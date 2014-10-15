@@ -1,0 +1,4 @@
+[submodule "vendor/bpp"]
+	path = vendor/bpp
+	url = https://github.com/jbigot/bpp.git
+	branch = master

@@ -1,51 +1,11 @@
+!$SH source fortran.bpp.sh
+
 !$SH # the maximum dimension of array handled here
 !$SH MAXDIM=7
-!$SH # the list of all type descriptors
-!$SH ALLTYPES="CHARACTER COMPLEX8 COMPLEX16 COMPLEX32 INTEGER1 INTEGER2 INTEGER4 INTEGER8 LOGICAL1 LOGICAL2 LOGICAL4 LOGICAL8 REAL4 REAL8 REAL16"
 
 !$SH # Returns the FTI type associated to the type descriptor $1
 !$SH function fti_type {
 !$SH   echo "FTI_${1}"
-!$SH }
-
-!$SH # Returns the Fortran type associated to the type descriptor $1
-!$SH function fort_type {
-!$SH   F_CHARACTER="character"
-!$SH   F_COMPLEX8="complex(4)"
-!$SH   F_COMPLEX16="complex(8)"
-!$SH   F_COMPLEX32="complex(16)"
-!$SH   F_INTEGER1="integer(1)"
-!$SH   F_INTEGER2="integer(2)"
-!$SH   F_INTEGER4="integer(4)"
-!$SH   F_INTEGER8="integer(8)"
-!$SH   F_LOGICAL1="logical(1)"
-!$SH   F_LOGICAL2="logical(2)"
-!$SH   F_LOGICAL4="logical(4)"
-!$SH   F_LOGICAL8="logical(8)"
-!$SH   F_REAL4="real(4)"
-!$SH   F_REAL8="real(8)"
-!$SH   F_REAL16="real(16)"
-!$SH   eval "echo \${F_${1}}"
-!$SH }
-
-!$SH # Returns the size of the Fortran type associated to the type descriptor $1
-!$SH function type_sizeof {
-!$SH   S_CHARACTER="1"
-!$SH   S_COMPLEX8="8"
-!$SH   S_COMPLEX16="16"
-!$SH   S_COMPLEX32="32"
-!$SH   S_INTEGER1="1"
-!$SH   S_INTEGER2="2"
-!$SH   S_INTEGER4="4"
-!$SH   S_INTEGER8="8"
-!$SH   S_LOGICAL1="1"
-!$SH   S_LOGICAL2="2"
-!$SH   S_LOGICAL4="4"
-!$SH   S_LOGICAL8="8"
-!$SH   S_REAL4="4"
-!$SH   S_REAL8="8"
-!$SH   S_REAL16="16"
-!$SH   eval "echo \${S_${1}}"
 !$SH }
 
 module FTI
@@ -71,14 +31,14 @@ module FTI
 
 
 
-!$SH for T in ${ALLTYPES}; do
+!$SH for T in ${FORTTYPES}; do
   type(FTI_type) :: $(fti_type ${T})
 !$SH done
 
 
 
   public :: FTI_SCES, FTI_NSCS, &
-!$SH for T in ${ALLTYPES}; do
+!$SH for T in ${FORTTYPES}; do
       $(fti_type ${T}), &
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
@@ -219,7 +179,7 @@ module FTI
   interface FTI_Protect
 
     module procedure FTI_Protect_Ptr
-!$SH for T in ${ALLTYPES}; do
+!$SH for T in ${FORTTYPES}; do
 !$SH   for D in $(seq 0 ${MAXDIM}); do
     module procedure FTI_Protect_${T}${D}
 !$SH   done
@@ -254,8 +214,8 @@ contains
       return
     endif
 
-!$SH for T in ${ALLTYPES}; do
-    call FTI_InitType($(fti_type ${T}), $(type_sizeof ${T})_c_int, err)
+!$SH for T in ${FORTTYPES}; do
+    call FTI_InitType($(fti_type ${T}), $(fort_sizeof ${T})_c_int, err)
     if (err /= FTI_SCES ) then
       return
     endif
@@ -301,7 +261,7 @@ contains
   endsubroutine FTI_Protect_Ptr
 
 
-!$SH for T in ${ALLTYPES}; do
+!$SH for T in ${FORTTYPES}; do
 
   subroutine FTI_Protect_${T}0(id_F, data, err)
 
