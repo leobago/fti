@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+__author__  = 'Julien Bigot <julien.bigot@cea.fr>'
+__version__ = '0.1-wip'
+__date__    = '2013/08/01'
+__license__ = 'BSD'
+
+""" The Bash PreProcessor
+"""
+
+from os import unlink
+from sys import argv
+from subprocess import call
+from tempfile import NamedTemporaryFile
+
+tmp=NamedTemporaryFile(prefix='bpp.',suffix='.tmp.bash',delete=False)
+tmp.write("""#!/bin/bash
+
+# Repeats string $1 ($3-$2+1) times, separated by string $4 inside $5 $6
+# if $1 contains the '@N' substring, it will be replaced by the iteration number (from $2 to $3)
+function str_repeat() {
+  STR="$1"
+  FROM="$2"
+  TO="$3"
+  SEP="$4"
+  START="$5"
+  END="$6"
+  if [ "${TO}" -lt "${FROM}" ]; then return; fi
+  RES="${START}${STR//@N/${FROM}}"
+  (( ++FROM ))
+  for N in $(seq $FROM $TO); do
+    RES="${RES}${SEP}${STR//@N/${N}}"
+  done
+  echo "${RES}${END}"
+}
+
+""")
+
+
+inbash=True
+for line in file(argv[1]):
+  if line[0:4] == "!$SH":
+    if not inbash:
+      tmp.write("EOF_random_string_to_prevent_clash_afsagpqm2wqlkfusdvbv\n")
+      inbash=True
+    tmp.write(line[4:])
+  else:
+    if inbash:
+      tmp.write(" cat<<EOF_random_string_to_prevent_clash_afsagpqm2wqlkfusdvbv\n")
+      inbash=False
+    tmp.write(line)
+if not inbash:
+  tmp.write("EOF_random_string_to_prevent_clash_afsagpqm2wqlkfusdvbv\n")
+tmp.close()
+
+outfile=open(argv[2], 'w')
+result = call(['bash','-r',tmp.name], stdout=outfile)
+unlink(tmp.name)

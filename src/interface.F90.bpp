@@ -1,0 +1,377 @@
+!$SH # the maximum dimension of array handled here
+!$SH MAXDIM=7
+!$SH # the list of all type descriptors
+!$SH ALLTYPES="CHARACTER COMPLEX8 COMPLEX16 COMPLEX32 INTEGER1 INTEGER2 INTEGER4 INTEGER8 LOGICAL1 LOGICAL2 LOGICAL4 LOGICAL8 REAL4 REAL8 REAL16"
+
+!$SH # Returns the FTI type associated to the type descriptor $1
+!$SH function fti_type {
+!$SH   echo "FTI_${1}"
+!$SH }
+
+!$SH # Returns the Fortran type associated to the type descriptor $1
+!$SH function fort_type {
+!$SH   F_CHARACTER="character"
+!$SH   F_COMPLEX8="complex(4)"
+!$SH   F_COMPLEX16="complex(8)"
+!$SH   F_COMPLEX32="complex(16)"
+!$SH   F_INTEGER1="integer(1)"
+!$SH   F_INTEGER2="integer(2)"
+!$SH   F_INTEGER4="integer(4)"
+!$SH   F_INTEGER8="integer(8)"
+!$SH   F_LOGICAL1="logical(1)"
+!$SH   F_LOGICAL2="logical(2)"
+!$SH   F_LOGICAL4="logical(4)"
+!$SH   F_LOGICAL8="logical(8)"
+!$SH   F_REAL4="real(4)"
+!$SH   F_REAL8="real(8)"
+!$SH   F_REAL16="real(16)"
+!$SH   eval "echo \${F_${1}}"
+!$SH }
+
+!$SH # Returns the size of the Fortran type associated to the type descriptor $1
+!$SH function type_sizeof {
+!$SH   S_CHARACTER="1"
+!$SH   S_COMPLEX8="8"
+!$SH   S_COMPLEX16="16"
+!$SH   S_COMPLEX32="32"
+!$SH   S_INTEGER1="1"
+!$SH   S_INTEGER2="2"
+!$SH   S_INTEGER4="4"
+!$SH   S_INTEGER8="8"
+!$SH   S_LOGICAL1="1"
+!$SH   S_LOGICAL2="2"
+!$SH   S_LOGICAL4="4"
+!$SH   S_LOGICAL8="8"
+!$SH   S_REAL4="4"
+!$SH   S_REAL8="8"
+!$SH   S_REAL16="16"
+!$SH   eval "echo \${S_${1}}"
+!$SH }
+
+module FTI
+
+  use ISO_C_BINDING
+
+  private
+
+
+  type, public :: FTI_type
+
+    private
+    type(c_ptr) :: raw_type
+
+  endtype FTI_type
+
+
+
+  !> Token returned if a FTI function succeeds.
+  integer, parameter :: FTI_SCES = 0
+  !> Token returned if a FTI function fails.
+  integer, parameter :: FTI_NSCS = -1
+
+
+
+!$SH for T in ${ALLTYPES}; do
+  type(FTI_type) :: $(fti_type ${T})
+!$SH done
+
+
+
+  public :: FTI_SCES, FTI_NSCS, &
+!$SH for T in ${ALLTYPES}; do
+      $(fti_type ${T}), &
+!$SH done
+      FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
+      FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize
+
+
+
+  interface
+
+    function FTI_Init_impl(config_file, global_comm) &
+            bind(c, name='FTI_Init_fort_wrapper')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Init_impl
+      character(c_char), intent(IN) :: config_file(*)
+      integer(c_int), intent(INOUT) :: global_comm
+
+    endfunction FTI_Init_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Status_impl() &
+            bind(c, name='FTI_Status')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Status_impl
+
+    endfunction FTI_Status_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_InitType_impl(type_F, size_F) &
+            bind(c, name='FTI_InitType_wrapper')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_InitType_impl
+      type(c_ptr), intent(OUT) :: type_F
+      integer(c_int), value :: size_F
+
+    endfunction FTI_InitType_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Protect_impl(id_F, ptr, count_F, type_F) &
+            bind(c, name='FTI_Protect_wrapper')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Protect_impl
+      integer(c_int), value :: id_F
+      type(c_ptr), value :: ptr
+      integer(c_long), value :: count_F
+      type(c_ptr), value :: type_F
+
+    endfunction FTI_Protect_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Checkpoint_impl(id_F, level) &
+            bind(c, name='FTI_Checkpoint')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Checkpoint_impl
+      integer(c_int), value :: id_F
+      integer(c_int), value :: level
+
+    endfunction FTI_Checkpoint_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Recover_impl() &
+            bind(c, name='FTI_Recover')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Recover_impl
+
+    endfunction FTI_Recover_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Snapshot_impl() &
+            bind(c, name='FTI_Snapshot')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Snapshot_impl
+
+    endfunction FTI_Snapshot_impl
+
+  endinterface
+
+
+
+  interface
+
+    function FTI_Finalize_impl() &
+            bind(c, name='FTI_Finalize')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Finalize_impl
+
+    endfunction FTI_Finalize_impl
+
+  endinterface
+
+
+
+  interface FTI_Protect
+
+    module procedure FTI_Protect_Ptr
+!$SH for T in ${ALLTYPES}; do
+!$SH   for D in $(seq 0 ${MAXDIM}); do
+    module procedure FTI_Protect_${T}${D}
+!$SH   done
+!$SH done
+
+  endinterface FTI_Protect
+
+
+contains
+
+  subroutine FTI_Init(config_file, global_comm, err)
+
+    include 'mpif.h'
+
+    character(len=*), intent(IN) :: config_file
+    integer, intent(INOUT) :: global_comm
+    integer, intent(OUT) :: err
+
+    character, target, dimension(1:len_trim(config_file)+1) :: config_file_c
+    integer :: ii, ll
+    integer(c_int) :: global_comm_c
+
+    ll = len_trim(config_file)
+    do ii = 1, ll
+      config_file_c(ii) = config_file(ii:ii)
+    enddo
+    config_file_c(ll+1) = c_null_char
+    global_comm_c = int(global_comm, c_int)
+    err = int(FTI_Init_impl(config_file_c, global_comm_c))
+    global_comm = int(global_comm_c)
+    if (err /= FTI_SCES ) then
+      return
+    endif
+
+!$SH for T in ${ALLTYPES}; do
+    call FTI_InitType($(fti_type ${T}), $(type_sizeof ${T})_c_int, err)
+    if (err /= FTI_SCES ) then
+      return
+    endif
+!$SH done
+
+  endsubroutine FTI_Init
+
+
+
+  subroutine FTI_Status(status)
+
+    integer, intent(OUT) :: status
+
+    status = int(FTI_Status_impl())
+
+  endsubroutine FTI_Status
+
+
+
+  subroutine FTI_InitType(type_F, size_F, err)
+
+    type(FTI_type), intent(OUT) :: type_F
+    integer, intent(IN) :: size_F
+    integer, intent(OUT) :: err
+
+    err = int(FTI_InitType_impl(type_F%raw_type, int(size_F, c_int)))
+
+  endsubroutine FTI_InitType
+
+
+
+  subroutine FTI_Protect_Ptr(id_F, ptr, count_F, type_F, err)
+
+    integer, intent(IN) :: id_F
+    type(c_ptr), value :: ptr
+    integer, intent(IN) :: count_F
+    type(FTI_type), intent(IN) :: type_F
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Protect_impl(int(id_F, c_int), ptr, int(count_F, c_long), &
+            type_F%raw_type))
+
+  endsubroutine FTI_Protect_Ptr
+
+
+!$SH for T in ${ALLTYPES}; do
+
+  subroutine FTI_Protect_${T}0(id_F, data, err)
+
+    integer, intent(IN) :: id_F
+    $(fort_type ${T}), pointer :: data
+    integer, intent(OUT) :: err
+
+    call FTI_Protect_Ptr(id_F, c_loc(data), 1, $(fti_type ${T}), err)
+
+  endsubroutine FTI_Protect_${T}0
+
+
+!$SH   for D in $(seq 1 ${MAXDIM}); do
+
+  subroutine FTI_Protect_${T}${D}(id_F, data, err)
+
+    integer, intent(IN) :: id_F
+    $(fort_type ${T}), pointer :: data$(str_repeat ':' 1 ${D} ',' '(' ')')
+    integer, intent(OUT) :: err
+
+    ! workaround, we take the address of the first array element and hope for
+    ! the best since not much better can be done
+    call FTI_Protect_Ptr(id_F, &
+            c_loc(data$(str_repeat 'lbound(data, @N)' 1 ${D} $',&\n' '(' ')')), &
+            size(data), $(fti_type ${T}), err)
+
+  endsubroutine FTI_Protect_${T}${D}
+
+
+!$SH   done
+!$SH done
+
+  subroutine FTI_Checkpoint(id_F, level, err)
+
+    integer, intent(IN) :: id_F
+    integer, intent(IN) :: level
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Checkpoint_impl(int(id_F, c_int), int(level, c_int)))
+
+  endsubroutine FTI_Checkpoint
+
+
+
+  subroutine FTI_Recover(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Recover_impl())
+
+  endsubroutine FTI_Recover
+
+
+
+  subroutine FTI_Snapshot(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Snapshot_impl())
+
+  endsubroutine FTI_Snapshot
+
+
+
+  subroutine FTI_Finalize(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Finalize_impl())
+
+  endsubroutine FTI_Finalize
+
+endmodule FTI

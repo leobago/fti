@@ -1,0 +1,333 @@
+/**
+ *  @file   tools.c
+ *  @author Leonardo A. Bautista Gomez (leobago@gmail.com)
+ *  @date   December, 2013
+ *  @brief  Utility functions for the FTI library.
+ */
+
+
+#include "fti.h"
+#include <dirent.h>
+#include <sys/types.h>
+
+
+int FTI_Clean(int level, int group, int rank);
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Prints FTI messages.
+    @param      msg             Message to print.
+    @param      priority        Priority of the message to be printed.
+    @return     void
+
+    This function prints messages depending on their priority and the
+    verbosity level set by the user. DEBUG messages are printed by all
+    processes with their rank. INFO messages are printed by one process.
+    ERROR messages are printed and then the application is killed.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Print(char *msg, int priority) {
+    if (priority >= FTI_Conf.verbosity)
+    {
+        if (msg != NULL)
+        {
+            switch(priority)
+            {
+                case FTI_EROR:
+                    fprintf(stderr, "[FTI Error - %06d] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                    MPI_Finalize();
+                    exit(1);
+                case FTI_WARN:
+                    fprintf(stdout, "[FTI Warning %06d] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+                case FTI_INFO:
+                    if (FTI_Topo.splitRank == 0)
+                        fprintf(stdout, "[ FTI  Information ] : %s \n", msg);
+                    break;
+                case FTI_DBUG:
+                    fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    fflush(stdout);
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Receive the return code of a function and print a message.
+    @param      result          Result to check.
+    @param      message         Message to print.
+    @return     integer         The same result as passed in parameter.
+
+    This function checks the result from a function and then decides to
+    print the message either as a debug message or as a warning.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_Try(int result, char* message) {
+    char str[FTI_BUFS];
+    if (result ==  FTI_SCES)
+    {
+        sprintf(str, "FTI succeeded to %s", message);
+        FTI_Print(str, FTI_DBUG);
+    } else {
+        sprintf(str, "FTI failed to %s", message);
+        FTI_Print(str, FTI_WARN);
+        sprintf(str, "Error => %s", strerror(errno));
+        FTI_Print(str, FTI_WARN);
+    }
+    return result;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It creates and broadcast a global execution ID.
+    @return     integer         FTI_SCES if successfull.
+
+    This function creates and broadcast an execution ID, so that all ranks
+    have the same execution ID.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CreateExecID() {
+    time_t tim = time(NULL);
+    struct tm *now = localtime(&tim);
+    snprintf(FTI_Exec.id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
+            now->tm_year+1900,
+            now->tm_mon+1,
+            now->tm_mday,
+            now->tm_hour,
+            now->tm_min,
+            now->tm_sec);
+    MPI_Bcast(FTI_Exec.id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec.globalComm);
+    return FTI_SCES;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It creates the basic datatypes and the dataset array.
+    @param      FTIT_dataset    Dataset array.
+    @return     integer         FTI_SCES if successfull.
+
+    This function creates the basic data types using FTIT_Type.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
+    int i;
+    for (i = 0; i < FTI_BUFS; i++)
+    {
+        FTI_Data[i].id = -1;
+    }
+    FTI_InitType(&FTI_CHAR, sizeof(char));
+    FTI_InitType(&FTI_SHRT, sizeof(short));
+    FTI_InitType(&FTI_INTG, sizeof(int));
+    FTI_InitType(&FTI_LONG, sizeof(long));
+    FTI_InitType(&FTI_UCHR, sizeof(unsigned char));
+    FTI_InitType(&FTI_USHT, sizeof(unsigned short));
+    FTI_InitType(&FTI_UINT, sizeof(unsigned int));
+    FTI_InitType(&FTI_ULNG, sizeof(unsigned long));
+    FTI_InitType(&FTI_SFLT, sizeof(float));
+    FTI_InitType(&FTI_DBLE, sizeof(double));
+    FTI_InitType(&FTI_LDBE, sizeof(long double));
+    return FTI_SCES;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It creates the directories required for current execution.
+    @return     integer         FTI_SCES if successfull.
+
+    This function creates the temporary metadata, local and global
+    directories required for the current execution.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CreateDirs() {
+    char fn[FTI_BUFS];
+
+    // Create metadata timestamp directory
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.metadDir, FTI_Exec.id);
+    if (access(fn, F_OK) != 0)
+    {
+        mkdir(fn, 0777);
+    }
+    snprintf(FTI_Conf.metadDir, FTI_BUFS, "%s", fn);
+    snprintf(FTI_Conf.mTmpDir, FTI_BUFS, "%s/tmp", fn);
+    snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
+    snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
+    snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
+    snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
+
+    // Create global checkpoint timestamp directory
+    snprintf(fn, FTI_BUFS, "%s", FTI_Conf.glbalDir);
+    snprintf(FTI_Conf.glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
+    if (access(FTI_Conf.glbalDir, F_OK) != 0)
+    {
+        mkdir(FTI_Conf.glbalDir, 0777);
+    }
+    snprintf(FTI_Conf.gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.glbalDir);
+    snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf.glbalDir);
+
+    // Create local checkpoint timestamp directory
+    if (FTI_Conf.test)
+    { // If local test generate name by topology
+        snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf.localDir, FTI_Topo.myRank/FTI_Topo.nodeSize);
+        if (access(fn, F_OK) != 0)
+        {
+            mkdir(fn, 0777);
+        }
+    } else {
+        snprintf(fn, FTI_BUFS, "%s", FTI_Conf.localDir);
+    }
+    snprintf(FTI_Conf.localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
+    if (access(FTI_Conf.localDir, F_OK) != 0)
+    {
+        mkdir(FTI_Conf.localDir, 0777);
+    }
+    snprintf(FTI_Conf.lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.localDir);
+    snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf.localDir);
+    snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf.localDir);
+    snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf.localDir);
+    return FTI_SCES;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It erases a directory and all its files.
+    @param      path            Path to the directory we want to erase.
+    @return     integer         FTI_SCES if successfull.
+
+    This function erases a directory and all its files. It focusses on the
+    checkpoint directories created by FTI so it does NOT handle recursive
+    erasing if the given directory includes other directories.
+
+ **/
+/*-------------------------------------------------------------------------*/
+
+int FTI_RmDir(char path[FTI_BUFS], int flag)
+{
+    if ((!flag) && (!access(path, R_OK)))
+    {
+        DIR* dp;
+        char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
+        struct dirent* ep;
+        dp = opendir(path);
+        sprintf(buf, "Removing directory %s and its files.", path);
+        FTI_Print(buf, FTI_DBUG);
+        if (dp != NULL)
+        {
+            while(ep = readdir(dp))
+            {
+                sprintf(fil, "%s", ep->d_name);
+                if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0))
+                {
+                    sprintf(fn, "%s/%s", path, fil);
+                    sprintf(buf, "File %s will be removed.", fn);
+                    FTI_Print(buf, FTI_DBUG);
+                    FTI_Try(remove(fn), "remove target file.");
+                }
+            }
+        } else {
+            FTI_Print("Error with opendir.", FTI_DBUG);
+        }
+        closedir(dp);
+        FTI_Try(remove(path), "remove the directory.");
+    }
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It erases the previous checkpoints and their metadata.
+    @param      level           Level of cleaning.
+    @param      group           Group ID of the cleanning target process.
+    @param      rank            Rank of the cleanning target process.
+    @return     integer         FTI_SCES if successfull.
+
+    This function erases previous checkpoint depending on the level of the
+    current checkpoint. Level 5 means complete clean up. Level 6 means clean
+    up local nodes but keep last checkpoint data and metadata in the PFS.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_Clean(int level, int group, int rank) {
+    char buf[FTI_BUFS];
+    int nodeFlag, globalFlag = FTI_Topo.splitRank;
+    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 0 : 1;
+    if (level == 0)
+    {
+        FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);
+        FTI_RmDir(FTI_Conf.gTmpDir, globalFlag);
+        FTI_RmDir(FTI_Conf.lTmpDir, nodeFlag);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
+	//remove(buf);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
+	//remove(buf);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
+	//remove(buf);
+        //rmdir(FTI_Conf.lTmpDir);
+    }
+    if (level >= 1)
+    { // Clean last checkpoint level 1
+	FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag);
+	FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[1].dir, FTI_Ckpt[1].lastCkpt, rank);
+	//remove(buf);
+        //FTI_Try(rmdir(FTI_Ckpt[1].dir), "remove L1 ckpt. directory.");
+    }
+    if (level >= 2)
+    { // Clean last checkpoint level 2
+	FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag);
+	FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[2].dir, FTI_Ckpt[2].lastCkpt, rank);
+	//remove(buf);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti",FTI_Ckpt[2].dir, FTI_Ckpt[2].lastCkpt, rank);
+	//remove(buf);
+        //FTI_Try(rmdir(FTI_Ckpt[2].dir), "remove L2 ckpt. directory.");
+    }
+    if (level >= 3)
+    { // Clean last checkpoint level 3
+	FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag);
+	FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[3].dir, FTI_Ckpt[3].lastCkpt, rank);
+	//remove(buf);
+        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti",FTI_Ckpt[3].dir, FTI_Ckpt[3].lastCkpt, rank);
+	//remove(buf);
+        //FTI_Try(rmdir(FTI_Ckpt[3].dir), "remove L3 ckpt. directory.");
+    }
+    if (level == 4 || level == 5)
+    { // Clean last checkpoint level 4
+	FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
+	FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
+        rmdir(FTI_Conf.gTmpDir);
+    }
+    if (level == 5)
+    { // If it is the very last cleaning and we DO NOT keep the last checkpoint
+        rmdir(FTI_Conf.lTmpDir);
+        rmdir(FTI_Conf.localDir);
+        rmdir(FTI_Conf.glbalDir);
+        snprintf(buf, FTI_BUFS, "%s/Topology.fti",FTI_Conf.metadDir);
+        remove(buf);
+        rmdir(FTI_Conf.metadDir);
+    }
+    if (level == 6)
+    { // If it is the very last cleaning and we DO keep the last checkpoint
+        rmdir(FTI_Conf.lTmpDir);
+        rmdir(FTI_Conf.localDir);
+    }
+    return FTI_SCES;
+}
+
+
