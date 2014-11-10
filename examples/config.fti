@@ -26,16 +26,16 @@ Glbl_dir = /path/to/global/storage/
 Meta_dir = /home/username/.fti
 
 # Level 1 ckpt interval in minutes of L1 ckpts (Local write)
-Ckpt_L1 = 2
+Ckpt_L1 = 3
 
 # Level 2 ckpt interval in minutes of L2 ckpts (Partner copy)
-Ckpt_L2 = 3
+Ckpt_L2 = 5
 
 # Level 3 ckpt interval in minutes of L3 ckpts (Reed-Solomon)
-Ckpt_L3 = 5
+Ckpt_L3 = 7
 
 # Level 4 ckpt interval in minutes of L4 ckpts (PFS write)
-Ckpt_L4 = 7
+Ckpt_L4 = 11
 
 # 1 if Level 2 ckpt is inline (synchronous) 0 if not (asynchronous)
 Inline_L2 = 1
@@ -58,7 +58,7 @@ Group_size = 4
 # 3 (Print only errors, silent mode)
 # 2 (Print errors and some few important information)
 # 1 (Print debug messages, very verbose)
-Verbosity = 1
+Verbosity = 2
 
 # *****************************************************************
 # *** Change these parameters ONLY in case of restart   ***********
@@ -106,5 +106,5 @@ Block_size = 1024
 Mpi_tag = 2612
 
 # Set to 1 if you are doing a test in local in a single computer
-Local_test = 0
+Local_test = 1
 
