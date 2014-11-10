@@ -1,71 +1,37 @@
-################################################################################
-###########                   FTI README FILE                     ##############
-################################################################################
 
 
-======================>   COMPILE AND INSTALL FTI   <======================
+###############################################################################
+###########             README file for the FTI library          ##############
+###############################################################################
+
+FTI stands for Fault Tolerance Interface and it aims to be an easy-to-use
+library to add fault tolerance features to parallel applications executed in
+large scale supercomputers.
 
 
- * See the INSTALL file
+###############################################################################
+########### Download, compile and install FTI (as easy as 1,2,3) ##############
+###############################################################################
+
+ 1) git clone https://github.com/leobago/fti.git
+ 2) mkdir fti/build && cd fti/build
+ 3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
 
 
-======================>   CONFIGURE FTI FOR YOUR JOB   <======================
+###############################################################################
+###########  Configure and run a FTI example (as easy as 1,2,3)  ##############
+###############################################################################
 
-
- * Place yourself in the examples directory
+ 1) Place yourself in the examples directory which contains head distribution
+ examples in both C and Fortran.
     - cd examples
 
- * Open the FTI configuration file with your favorite text editor
-    - vi config.fti
+ 2) With your favorite text editor open and edit the FTI configuration file
+ config.fti to set the three directory variables.
+    - vim config.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)
 
- * Set the three directory variables in the FTI configuration file
-    - Ckpt_dir = /path/to/local/storage (Storage LOCAL to the compute nodes)
-    - Glbl_dir = /path/to/global/storage (Storage accessible to ALL nodes)
-    - Meta_dir = /home/username/.fti (Storage accessible to ALL nodes)
-
- * OPTION: If you want to run the tests in local in one single node,
-   declare 'localhost' as the only host in the Hostfile and set
-   the Local_test option to 1 in the FTI configuration file.
-    - Local_test: 1
-
-
-======================>   RUN YOUR FTI TEST JOB   <======================
-
-
- * Update your LD_LIBRARY_PATH in your .bashrc script.
-    - export LD_LIBRARY_PATH=$(FTIPATH)/FTI/lib:$LD_LIBRARY_PATH
-
- * You might need to 'source' your .bashrc in your current terminal
-    - source ~/.bashrc
-
- * INFO : This test runs 8 MPI processes in 4 nodes (2 processes per node).
-
- * Set the FTIPATH in the Makefile
-    WARNING: It should be equal to the install path FTIPATH followed by '/FTI'
-
- * Compile the dummy test program
-    - make
-
- * If you need to set a Hostfile to run your MPI job, set FOUR nodes.
-    WARNING: If you declare more nodes in your Hostfile, MPI might place
-    some MPI processes in the other nodes, making the configuration given
-    in the config.fti file wrong. If you declare less nodes in the hostfile
-    then your job will have more MPI ranks per node.
-
- * Launch the test that uses the edited configuration file
-    - make test
-
-
-======================>   OTHERS   <======================
-
-
- * FTI requires you to run the same number of processes in every node
- otherwise FTI will exit with error at the initialization.
-
- * FTI requires you to run on a number of nodes multiple of the Group_size
- defined in the FTI configuration file.
-
- * FTI assumes that every node has local storage with enough space to store
- one or two checkpoint files plus encodings.
+ 3) Make sure that FTI library is accessible in you LD_LIBRARY_PATH, set the
+ FTIPATH in the Makefile, compile and launch the test.
+    - make all hdt
 
 
