@@ -30,7 +30,7 @@ hdf:		fheatdis.f90
 		$(MPIFC) -o hdf fheatdis.f90 $(FFTIFLAG)
 
 hdt:
-		$(MPIRUN) -np 8 ./hd 32 config.fti
+		$(MPIRUN) -np 8 ./hd.exe 32 config.fti
 
 hdv:
 		./plot.sh
