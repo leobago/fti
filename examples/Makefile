@@ -18,7 +18,7 @@ FFTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti_f90 -lfti -lm
 #FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libfti.a
 
 ##   TARGETS
-all: 		hd
+all: 		hd hd2 hdf
 
 hd:		heatdis.c
 		$(MPICC) -o hd heatdis.c $(FTIFLAG)
@@ -30,13 +30,13 @@ hdf:		fheatdis.f90
 		$(MPIFC) -o hdf fheatdis.f90 $(FFTIFLAG)
 
 hdt:
-		$(MPIRUN) -np 8 ./hd 64 config.fti
+		$(MPIRUN) -np 8 ./hd 32 config.fti
 
 hdv:
 		./plot.sh
 
 clean:
-		rm -f hd results/*
+		rm -f hd.exe hd2.exe hdf.exe results/*
 
-.PHONY:		hd hdt hdv clean
+.PHONY:		hd hd2 hdf hdt hdv clean
 
