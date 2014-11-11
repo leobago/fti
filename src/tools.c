@@ -233,14 +233,14 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                     sprintf(fn, "%s/%s", path, fil);
                     sprintf(buf, "File %s will be removed.", fn);
                     FTI_Print(buf, FTI_DBUG);
-                    FTI_Try(remove(fn), "remove target file.");
+                    if (remove(fn) != 0) FTI_Print("Error removing target file.", FTI_EROR);
                 }
             }
         } else {
-            FTI_Print("Error with opendir.", FTI_DBUG);
+            FTI_Print("Error with opendir.", FTI_EROR);
         }
         closedir(dp);
-        FTI_Try(remove(path), "remove the directory.");
+        if (remove(fn) != 0) FTI_Print("Error removing target directory.", FTI_EROR);
     }
     return FTI_SCES;
 }
