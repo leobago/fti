@@ -13,11 +13,11 @@
 #include <fti.h>
 
 
-#define PRECISION   0.001
-#define ITER_TIMES  1000
-#define ITER_OUT    100
-#define WORKTAG     26
-#define REDUCE      8
+#define PRECISION   0.005
+#define ITER_TIMES  5000
+#define ITER_OUT    500
+#define WORKTAG     50
+#define REDUCE      5
 
 
 void initData(int nbLines, int M, int rank, double *h)
@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
     if (rank == 0) printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
     if (rank == 0) printf("Target precision : %f \n", PRECISION);
+    if (rank == 0) printf("Maximum number of iterations : %f \n", ITER_TIMES);
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
