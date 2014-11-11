@@ -13,7 +13,7 @@
 /**
     @brief      Set the exec. ID and failure parameters in the conf. file.
     @param      restart         Value to set in the conf. file (0 or 1).
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function sets the execution ID and failure parameters in the
     configuration file. This is to avoid forcing the user to change these
@@ -41,18 +41,18 @@ int FTI_UpdateConf(int restart) {
     FILE *fd = fopen(FTI_Conf.cfgFile, "w");
     if (fd == NULL)
     {
-        FTI_Print("FTI failed to open the configuration file.", FTI_DBUG);
+        FTI_Print("FTI failed to open the configuration file.", FTI_EROR);
         return FTI_NSCS;
     }
     iniparser_dump_ini(ini, fd); // Write new configuration
     if (fflush(fd) != 0)
     {
-        FTI_Print("FTI failed to flush the configuration file.", FTI_DBUG);
+        FTI_Print("FTI failed to flush the configuration file.", FTI_EROR);
         return FTI_NSCS;
     }
     if (fclose(fd) != 0)
     {
-        FTI_Print("FTI failed to close the configuration file.", FTI_DBUG);
+        FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
         return FTI_NSCS;
     }
     iniparser_freedict(ini); // Free dictionary
@@ -63,7 +63,7 @@ int FTI_UpdateConf(int restart) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It reads the configuration given in the configuration file.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function reads the configuration given in the FTI configuration
     file and sets other required parameters.
@@ -165,7 +165,7 @@ int FTI_ReadConf(FTIT_injection *FTI_Inje) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It tests that the configuration given is correct.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function tests the FTI configuration to make sure that all
     parameter's values are correct.
@@ -236,9 +236,9 @@ int FTI_TestConfig() {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It tests that the directories given is correct.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
-    This function tests that the directories givven in the FTI configuration
+    This function tests that the directories given in the FTI configuration
     are correct.
 
  **/
@@ -295,7 +295,7 @@ int FTI_TestDirectories() {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It reads and tests the configuration given.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function reads the configuration file. Then test that the
     configuration parameters are correct (including directories).
