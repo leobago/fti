@@ -16,6 +16,21 @@ static FTIT_dataset        FTI_Data[FTI_BUFS];
 static FTIT_injection      FTI_Inje;
 
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It aborts the application.
+
+    This function aborts the application after cleaning the file system.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Abort() {
+        FTI_Clean(5, 0, FTI_Topo.myRank);
+        MPI_Abort(MPI_COMM_WORLD, -1);
+        MPI_Finalize();
+        exit(1);
+}
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -41,32 +56,17 @@ int FTI_Init(char *configFile, MPI_Comm globalComm) {
     FTI_COMM_WORLD = globalComm;            // Temporary before building topology
     FTI_Topo.splitRank = FTI_Topo.myRank;   // Temporary before building topology
     int res = FTI_Try(FTI_LoadConf(&FTI_Inje), "load configuration.");
-    if (res == FTI_NSCS)
-    {
-        MPI_Abort(MPI_COMM_WORLD, -1);
-        MPI_Finalize();
-        exit(1);
-    }
+    if (res == FTI_NSCS) FTI_Abort();
+    res = FTI_Try(FTI_Topology(), "build topology.");
+    if (res == FTI_NSCS) FTI_Abort();
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
-    if (FTI_Topo.myRank == 0)
-    {
-        FTI_Try(FTI_UpdateConf(1), "update configuration file.");
-    }
-    FTI_Try(FTI_CreateDirs(), "create checkpoint and metadata directories.");
-    FTI_Try(FTI_Topology(), "build topology.");
+    if (FTI_Topo.myRank == 0) FTI_Try(FTI_UpdateConf(1), "update configuration file.");
     if (FTI_Topo.amIaHead)
     { // If I am a FTI dedicated process
         if (FTI_Exec.reco)
         {
             res = FTI_Try(FTI_RecoverFiles(), "recover the checkpoint files.");
-            if (res == FTI_NSCS)
-            {
-                FTI_Print("Impossible to recover from this failure.", FTI_EROR);
-                FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
-                MPI_Abort(MPI_COMM_WORLD, -1);
-                MPI_Finalize();
-                exit(1);
-            }
+            if (res == FTI_NSCS) FTI_Abort();
         }
         res = 0;
         while (res != FTI_ENDW) {
@@ -78,14 +78,7 @@ int FTI_Init(char *configFile, MPI_Comm globalComm) {
         if (FTI_Exec.reco)
         {
             res = FTI_Try(FTI_RecoverFiles(), "recover the checkpoint files.");
-            if (res == FTI_NSCS)
-            {
-                FTI_Print("Impossible to recover from this failure.", FTI_EROR);
-                FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
-                MPI_Abort(MPI_COMM_WORLD, -1);
-                MPI_Finalize();
-                exit(1);
-            }
+            if (res == FTI_NSCS) FTI_Abort();
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
         }
     }

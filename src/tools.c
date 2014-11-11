@@ -142,66 +142,6 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It creates the directories required for current execution.
-    @return     integer         FTI_SCES if successful.
-
-    This function creates the temporary metadata, local and global
-    directories required for the current execution.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_CreateDirs() {
-    char fn[FTI_BUFS];
-
-    // Create metadata timestamp directory
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.metadDir, FTI_Exec.id);
-    if (access(fn, F_OK) != 0)
-    {
-        mkdir(fn, 0777);
-    }
-    snprintf(FTI_Conf.metadDir, FTI_BUFS, "%s", fn);
-    snprintf(FTI_Conf.mTmpDir, FTI_BUFS, "%s/tmp", fn);
-    snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
-    snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
-    snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
-    snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
-
-    // Create global checkpoint timestamp directory
-    snprintf(fn, FTI_BUFS, "%s", FTI_Conf.glbalDir);
-    snprintf(FTI_Conf.glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
-    if (access(FTI_Conf.glbalDir, F_OK) != 0)
-    {
-        mkdir(FTI_Conf.glbalDir, 0777);
-    }
-    snprintf(FTI_Conf.gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.glbalDir);
-    snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf.glbalDir);
-
-    // Create local checkpoint timestamp directory
-    if (FTI_Conf.test)
-    { // If local test generate name by topology
-        snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf.localDir, FTI_Topo.myRank/FTI_Topo.nodeSize);
-        if (access(fn, F_OK) != 0)
-        {
-            mkdir(fn, 0777);
-        }
-    } else {
-        snprintf(fn, FTI_BUFS, "%s", FTI_Conf.localDir);
-    }
-    snprintf(FTI_Conf.localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
-    if (access(FTI_Conf.localDir, F_OK) != 0)
-    {
-        mkdir(FTI_Conf.localDir, 0777);
-    }
-    snprintf(FTI_Conf.lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.localDir);
-    snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf.localDir);
-    snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf.localDir);
-    snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf.localDir);
-    return FTI_SCES;
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      It erases a directory and all its files.
     @param      path            Path to the directory we want to erase.
     @return     integer         FTI_SCES if successful.
