@@ -21,7 +21,6 @@
 /*-------------------------------------------------------------------------*/
 int FTI_UpdateCkptInfo(int offline) {
     FTI_Exec.wasLastOffline = offline;
-    FTI_Ckpt[FTI_Exec.ckptLvel].lastCkpt = FTI_Exec.ckptID;
     FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
     return FTI_SCES;
 }

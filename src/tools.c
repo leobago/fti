@@ -268,41 +268,21 @@ int FTI_Clean(int level, int group, int rank) {
         FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);
         FTI_RmDir(FTI_Conf.gTmpDir, globalFlag);
         FTI_RmDir(FTI_Conf.lTmpDir, nodeFlag);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
-	//remove(buf);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
-	//remove(buf);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, rank);
-	//remove(buf);
-        //rmdir(FTI_Conf.lTmpDir);
     }
     if (level >= 1)
     { // Clean last checkpoint level 1
 	FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag);
 	FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[1].dir, FTI_Ckpt[1].lastCkpt, rank);
-	//remove(buf);
-        //FTI_Try(rmdir(FTI_Ckpt[1].dir), "remove L1 ckpt. directory.");
     }
     if (level >= 2)
     { // Clean last checkpoint level 2
 	FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag);
 	FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[2].dir, FTI_Ckpt[2].lastCkpt, rank);
-	//remove(buf);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti",FTI_Ckpt[2].dir, FTI_Ckpt[2].lastCkpt, rank);
-	//remove(buf);
-        //FTI_Try(rmdir(FTI_Ckpt[2].dir), "remove L2 ckpt. directory.");
     }
     if (level >= 3)
     { // Clean last checkpoint level 3
 	FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag);
 	FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti",FTI_Ckpt[3].dir, FTI_Ckpt[3].lastCkpt, rank);
-	//remove(buf);
-        //snprintf(buf, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti",FTI_Ckpt[3].dir, FTI_Ckpt[3].lastCkpt, rank);
-	//remove(buf);
-        //FTI_Try(rmdir(FTI_Ckpt[3].dir), "remove L3 ckpt. directory.");
     }
     if (level == 4 || level == 5)
     { // Clean last checkpoint level 4

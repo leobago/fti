@@ -226,7 +226,6 @@ typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
     char            metaDir[FTI_BUFS];  /** Metadata directory.            */
     int             isInline;           /** TRUE if work is inline.        */
     int             ckptIntv;           /** Checkpoint interval.           */
-    int             lastCkpt;           /** ID of last checkpoint.         */
 } FTIT_checkpoint;
 
 /*-------------------------------------------------------------------------*/

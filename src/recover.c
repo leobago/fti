@@ -147,12 +147,10 @@ int FTI_RecoverFiles() {
                     FTI_Print(str, FTI_DBUG);
                     FTI_Exec.ckptID = id;
                     FTI_Exec.ckptLvel = level;
-                    FTI_Ckpt[level].lastCkpt = id;
                     FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
                     if (FTI_Exec.ckptLvel == 4)
                     {
                         FTI_Clean(1, FTI_Topo.groupID, FTI_Topo.myRank);
-                        FTI_Ckpt[1].lastCkpt = FTI_Exec.ckptID;
                         MPI_Barrier(FTI_COMM_WORLD);
                     }
                     if (FTI_Exec.ckptLvel == 4) r = FTI_RecoverL4(FTI_Topo.groupID);
