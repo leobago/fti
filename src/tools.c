@@ -119,7 +119,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
 /**
     @brief      It erases a directory and all its files.
     @param      path            Path to the directory we want to erase.
-    @param      flag            set to zero to activate.
+    @param      flag            set to 1 to activate.
     @return     integer         FTI_SCES if successful.
 
     This function erases a directory and all its files. It focusses on the
@@ -131,7 +131,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
 
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
-    if ((!flag) && (!access(path, R_OK)))
+    if (flag && (!access(path, R_OK)))
     {
         DIR* dp;
         char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
@@ -156,7 +156,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
             FTI_Print("Error with opendir.", FTI_EROR);
         }
         closedir(dp);
-        if (remove(fn) != 0) FTI_Print("Error removing target directory.", FTI_EROR);
+        if (remove(path) != 0) FTI_Print("Error removing target directory.", FTI_EROR);
     }
     return FTI_SCES;
 }
@@ -177,8 +177,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 /*-------------------------------------------------------------------------*/
 int FTI_Clean(int level, int group, int rank) {
     char buf[FTI_BUFS];
-    int nodeFlag, globalFlag = FTI_Topo.splitRank;
-    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 0 : 1;
+    int nodeFlag, globalFlag = !FTI_Topo.splitRank;
+    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 1 : 0;
     if (level == 0)
     {
         FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);

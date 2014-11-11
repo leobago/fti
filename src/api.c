@@ -502,9 +502,9 @@ int FTI_Finalize() {
                 if (FTI_Topo.splitRank == 0)
 		{
                     if (access(FTI_Ckpt[4].dir,0)==0)
-                        FTI_RmDir(FTI_Ckpt[4].dir);
+                        FTI_RmDir(FTI_Ckpt[4].dir, 1);
                     if (access(FTI_Ckpt[4].metaDir,0)==0)
-                        FTI_RmDir(FTI_Ckpt[4].metaDir);
+                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
                     rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir);
                     rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir);
                 }

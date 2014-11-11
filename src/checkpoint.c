@@ -203,7 +203,7 @@ int FTI_PostCkpt(int group, int fo, int pr) {
         level = (FTI_Exec.ckptLvel != 4) ? FTI_Exec.ckptLvel : 1;
         rename(FTI_Conf.lTmpDir, FTI_Ckpt[level].dir);
     }
-    if (globalFlag)
+    if (!globalFlag)
     {
         if (FTI_Exec.ckptLvel == 4)
         {
