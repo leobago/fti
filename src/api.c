@@ -338,7 +338,8 @@ int FTI_Checkpoint(int id, int level) {
             if (res == FTI_SCES)
             {
                 FTI_Exec.lastCkptLvel = res;
-                FTI_UpdateCkptInfo(1);
+                FTI_Exec.wasLastOffline = 1;
+                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
             }
         }
         t1 = MPI_Wtime();
@@ -361,7 +362,8 @@ int FTI_Checkpoint(int id, int level) {
             res = FTI_Try(FTI_PostCkpt(FTI_Topo.groupID, -1, 1), "postprocess the checkpoint.");
             if (res == FTI_SCES)
             {
-                FTI_UpdateCkptInfo(0);
+                FTI_Exec.wasLastOffline = 0;
+                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
             }
         }
         t3 = MPI_Wtime();
@@ -489,7 +491,8 @@ int FTI_Finalize() {
             if (buff != FTI_NSCS)
             {
                 FTI_Exec.ckptLvel = buff;
-                FTI_UpdateCkptInfo(1);
+                FTI_Exec.wasLastOffline = 1;
+                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
             }
         }
         buff = FTI_ENDW;

@@ -11,23 +11,6 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Updates the checkpoint information.
-    @param      offline         TRUE if the last ckpt. was offline.
-    @return     integer         FTI_SCES if successful.
-
-    This function updates the checkpoint information for the next ckpt.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_UpdateCkptInfo(int offline) {
-    FTI_Exec.wasLastOffline = offline;
-    FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
-    return FTI_SCES;
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      It updates the local and global mean iteration time.
     @return     integer         FTI_SCES if successful.
 
@@ -284,7 +267,8 @@ int FTI_Listen() {
     res = FTI_Try(FTI_PostCkpt(1, 0, FTI_Topo.nbApprocs), "postprocess the checkpoint.");
     if (res == FTI_SCES)
     {
-        FTI_UpdateCkptInfo(1);
+        FTI_Exec.wasLastOffline = 1;
+        FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
         res = FTI_Exec.ckptLvel;
     }
     for(i = 0; i < FTI_Topo.nbApprocs; i++)
