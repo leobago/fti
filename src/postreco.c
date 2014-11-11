@@ -32,7 +32,12 @@ int FTI_Decode(int fs, int maxFs, int *erased) {
     sprintf(efn,"%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec.ckptID, i);
     data = talloc(char *, k); coding = talloc(char *, m); dataTmp = talloc(char, FTI_Conf.blockSize*k);
     dm_ids = talloc(int, k); decMatrix = talloc(int, k*k); tmpmat = talloc(int, k*k); matrix =  talloc(int, k*k);
-    if (FTI_CreateMatrix(matrix) == FTI_SCES) FTI_Print("Matrix created.", FTI_DBUG);
+    for (i = 0; i < FTI_Topo.groupSize; i++) {
+        for (j = 0; j < FTI_Topo.groupSize; j++) {
+            matrix[i*FTI_Topo.groupSize+j] =
+                galois_single_divide(1, i ^ (FTI_Topo.groupSize + j), FTI_Conf.l3WordSize);
+        }
+    }
     for (i = 0; i < m; i++) {
         coding[i] = talloc(char, FTI_Conf.blockSize);
         data[i] = talloc(char, FTI_Conf.blockSize);

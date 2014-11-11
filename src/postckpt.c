@@ -11,29 +11,6 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Creates a distribution matrix for the RS encoding.
-  @param      matrix          Matrix to be filled.
-  @return     integer         FTI_SCES if successfull.
-
-  This function creates a distribution matrix for the RS encoding and
-  fill the values of the one passed in parameter. It uses the FTI
-  configuration and the jerasure library.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_CreateMatrix(int *matrix) {
-    int i,j;
-    for (i = 0; i < FTI_Topo.groupSize; i++) {
-        for (j = 0; j < FTI_Topo.groupSize; j++) {
-            matrix[i*FTI_Topo.groupSize+j] = galois_single_divide(1, i ^ (FTI_Topo.groupSize + j), FTI_Conf.l3WordSize);
-        }
-    }
-    return FTI_SCES;
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      It returns FTI_SCES.
   @param      group           The group ID.
   @return     integer         FTI_SCES.
@@ -43,6 +20,10 @@ int FTI_CreateMatrix(int *matrix) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Local(int group) {
+    unsigned long maxFs, fs;
+    FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
+    int res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
+    if (res == FTI_NSCS) return FTI_NSCS;
     return FTI_SCES;
 }
 
@@ -67,7 +48,8 @@ int FTI_Ptner(int group) {
     int         res, dest, src, bSize = FTI_Conf.blockSize;
     MPI_Status  status;
 
-    res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), " obtain the metadata.");
+    FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
+    res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
     if (res == FTI_NSCS) return FTI_NSCS;
     ps = (maxFs/FTI_Conf.blockSize)*FTI_Conf.blockSize;
     if (ps < maxFs) ps = ps + FTI_Conf.blockSize;
@@ -124,13 +106,14 @@ int FTI_Ptner(int group) {
 /*-------------------------------------------------------------------------*/
 int FTI_RSenc(int group) {
     char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
-    int *matrix, cnt, i, init, src, offset, dest, matVal, res, bs = FTI_Conf.blockSize;
+    int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf.blockSize;
     unsigned long maxFs, fs, ps, pos = 0;
     MPI_Request reqSend, reqRecv;
     MPI_Status status;
     int remBsize = bs;
     FILE *lfd, *efd;
 
+    FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
     if (res != FTI_SCES) return FTI_NSCS;
     ps = ((maxFs/bs))*bs;
@@ -146,14 +129,28 @@ int FTI_RSenc(int group) {
 
     lfd = fopen(lfn, "rb");
     efd = fopen(efn, "wb");
-    if (lfd == NULL) { FTI_Print("FTI failed to open L3 checkpoint file.", FTI_DBUG); return FTI_NSCS; }
-    if (efd == NULL) { FTI_Print("FTI failed to open encoded ckpt. file.", FTI_DBUG); return FTI_NSCS; }
+    if (lfd == NULL)
+    {
+        FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    if (efd == NULL)
+    {
+        FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
+        return FTI_NSCS;
+    }
 
     myData = talloc(char, bs);
     coding = talloc(char, bs);
     data   = talloc(char, 2*bs);
     matrix = talloc(int, FTI_Topo.groupSize*FTI_Topo.groupSize);
-    FTI_Try(FTI_CreateMatrix(matrix), "create matrix.");
+
+    for (i = 0; i < FTI_Topo.groupSize; i++) {
+        for (j = 0; j < FTI_Topo.groupSize; j++) {
+            matrix[i*FTI_Topo.groupSize+j] =
+                galois_single_divide(1, i ^ (FTI_Topo.groupSize + j), FTI_Conf.l3WordSize);
+        }
+    }
 
     while(pos < ps)
     { // For each block
@@ -232,11 +229,11 @@ int FTI_Flush(int group, int level) {
     unsigned long maxFs, fs, ps, pos = 0, bSize = FTI_Conf.blockSize;
     FILE        *lfd, *gfd;
     if (level == -1) return FTI_SCES; // Fake call for inline PFS checkpoint
-    if (FTI_GetMeta(&fs, &maxFs, group, level) != FTI_SCES)
-    {
-        FTI_Print("Error getting metadata.", FTI_WARN);
-        return FTI_NSCS;
-    }
+
+    FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
+    int res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, level), "obtain metadata.");
+    if (res != FTI_SCES) return FTI_NSCS;
+
     if (access(FTI_Conf.gTmpDir, F_OK) != 0) {
         mkdir(FTI_Conf.gTmpDir, 0777);
     }
@@ -254,19 +251,19 @@ int FTI_Flush(int group, int level) {
     FTI_Print(str, FTI_DBUG);
     if (access(lfn, R_OK) != 0)
     {
-        FTI_Print("L4 cannot access the checkpoint file.", FTI_WARN);
+        FTI_Print("L4 cannot access the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     lfd = fopen(lfn, "rb");
     if (lfd == NULL)
     {
-        FTI_Print("L4 cannot open the checkpoint file.", FTI_WARN);
+        FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     gfd = fopen(gfn, "wb");
     if (gfd == NULL)
     {
-        FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_WARN);
+        FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_EROR);
         return FTI_NSCS;
     }
     while(pos < ps)
