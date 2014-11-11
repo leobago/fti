@@ -21,13 +21,13 @@ FFTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti_f90 -lfti -lm
 all: 		hd hd2 hdf
 
 hd:		heatdis.c
-		$(MPICC) -o hd heatdis.c $(FTIFLAG)
+		$(MPICC) -o hd.exe heatdis.c $(FTIFLAG)
 
 hd2:		heatd2.c
-		$(MPICC) -o hd heatd2.c $(FTIFLAG)
+		$(MPICC) -o hd2.exe heatd2.c $(FTIFLAG)
 
 hdf:		fheatdis.f90
-		$(MPIFC) -o hdf fheatdis.f90 $(FFTIFLAG)
+		$(MPIFC) -o hdf.exe fheatdis.f90 $(FFTIFLAG)
 
 hdt:
 		$(MPIRUN) -np 8 ./hd.exe 32 config.fti
