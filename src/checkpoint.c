@@ -51,7 +51,7 @@ int FTI_UpdateIterTime() {
                 FTI_Exec.syncIter = FTI_Exec.syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
                         FTI_Exec.globMeanIter, FTI_Exec.ckptIntv, FTI_Exec.syncIter);
-                FTI_Print(str, FTI_INFO);
+                FTI_Print(str, FTI_DBUG);
             }
         }
     }
@@ -197,7 +197,7 @@ int FTI_PostCkpt(int group, int fo, int pr) {
     t2 = MPI_Wtime();
     FTI_GroupClean(FTI_Exec.ckptLvel, group, pr);
     MPI_Barrier(FTI_COMM_WORLD);
-    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 0 : 1;
+    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 1 : 0;
     if (nodeFlag)
     {
         level = (FTI_Exec.ckptLvel != 4) ? FTI_Exec.ckptLvel : 1;
