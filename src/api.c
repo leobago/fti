@@ -387,13 +387,13 @@ int FTI_Recover() {
     FTI_Print(str, FTI_DBUG);
     if (access(fn, F_OK) != 0)
     {
-        FTI_Print("FTI checkpoint file is NOT accesible.", FTI_WARN);
+        FTI_Print("FTI checkpoint file is NOT accesible.", FTI_EROR);
         return FTI_NSCS;
     }
     fd = fopen(fn, "rb");
     if (fd == NULL)
     {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_WARN);
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     for(i = 0; i < FTI_Exec.nbVar; i++)
@@ -402,7 +402,7 @@ int FTI_Recover() {
     }
     if (fclose(fd) != 0)
     {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_WARN);
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     FTI_Exec.reco = 0;
