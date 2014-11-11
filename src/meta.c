@@ -142,6 +142,7 @@ int FTI_WriteMetadata(unsigned long *fs, unsigned long mfs, char* fnl) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the metadata to recover the data after a failure.
+    @param      globalTmp       1 if using global temporary directory.
     @return     integer         FTI_SCES if successfull.
 
     This function gathers information about the checkpoint files in the
@@ -150,13 +151,13 @@ int FTI_WriteMetadata(unsigned long *fs, unsigned long mfs, char* fnl) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CreateMetadata() {
+int FTI_CreateMetadata(int globalTmp) {
     char *fnl = talloc(char, FTI_Topo.groupSize*FTI_BUFS);
     unsigned long fs[FTI_BUFS], mfs, tmpo;
     char str[FTI_BUFS], buf[FTI_BUFS];
     struct stat fileStatus;
     int i;
-    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4)
+    if (globalTmp)
     {
         sprintf(buf,"%s/%s",FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
     } else {

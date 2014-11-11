@@ -30,7 +30,7 @@ int FTI_UpdateCkptInfo(int offline) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It updates the local and global mean iteration time.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function updates the local and global mean iteration time. It also
     recomputes the checkpoint interval in iterations and correct the next
@@ -82,7 +82,7 @@ int FTI_UpdateIterTime() {
 /**
     @brief      It writes the checkpoint data in the target file.
     @param      FTIT_dataset    Dataset array.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function checks whether the checkpoint needs to be local or remote,
     opens the target file and write dataset per dataset, the checkpoint data,
@@ -129,9 +129,10 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data) {
         FTI_Print("FTI checkpoint file could not be flushed.", FTI_WARN);
         return FTI_NSCS;
     }
-    sprintf(str, "Time writting checkpoint file : %f seconds.", MPI_Wtime()-tt);
+    sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime()-tt);
     FTI_Print(str, FTI_DBUG);
-    res = FTI_Try(FTI_CreateMetadata(), "create metadata.");
+    int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) ? 1 : 0;
+    res = FTI_Try(FTI_CreateMetadata(globalTmp), "create metadata.");
     return res;
 }
 
@@ -240,7 +241,7 @@ int FTI_PostCkpt(int group, int fo, int pr) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It listens for checkpoint notifications.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function listens for notifications from the application processes
     and take the required actions after notification. This function is only
