@@ -131,7 +131,11 @@ int FTI_ReadConf(FTIT_injection *FTI_Inje) {
     FTI_Exec.reco = (int) iniparser_getint(ini, "restart:failure", 0);
     if (FTI_Exec.reco == 0)
     {
-        FTI_CreateExecID();
+        time_t tim = time(NULL);
+        struct tm *n = localtime(&tim);
+        snprintf(FTI_Exec.id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
+                n->tm_year+1900, n->tm_mon+1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec);
+        MPI_Bcast(FTI_Exec.id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec.globalComm);
         sprintf(str, "The execution ID is: %s", FTI_Exec.id);
         FTI_Print(str, FTI_INFO);
     } else {

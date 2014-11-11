@@ -86,31 +86,6 @@ int FTI_Try(int result, char* message) {
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It creates and broadcast a global execution ID.
-    @return     integer         FTI_SCES if successful.
-
-    This function creates and broadcast an execution ID, so that all ranks
-    have the same execution ID.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_CreateExecID() {
-    time_t tim = time(NULL);
-    struct tm *now = localtime(&tim);
-    snprintf(FTI_Exec.id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
-            now->tm_year+1900,
-            now->tm_mon+1,
-            now->tm_mday,
-            now->tm_hour,
-            now->tm_min,
-            now->tm_sec);
-    MPI_Bcast(FTI_Exec.id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec.globalComm);
-    return FTI_SCES;
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      It creates the basic datatypes and the dataset array.
     @param      FTIT_dataset    Dataset array.
     @return     integer         FTI_SCES if successful.
