@@ -1,4 +1,6 @@
 build
+doc/html
+doc/latex
 *.private
 *.exe
 *.swp
