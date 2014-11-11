@@ -87,7 +87,7 @@ int FTI_Try(int result, char* message) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It creates the basic datatypes and the dataset array.
-    @param      FTIT_dataset    Dataset array.
+    @param      FTI_Data        Dataset array.
     @return     integer         FTI_SCES if successful.
 
     This function creates the basic data types using FTIT_Type.
@@ -119,6 +119,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
 /**
     @brief      It erases a directory and all its files.
     @param      path            Path to the directory we want to erase.
+    @param      flag            set to zero to activate.
     @return     integer         FTI_SCES if successful.
 
     This function erases a directory and all its files. It focusses on the

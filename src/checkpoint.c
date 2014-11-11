@@ -63,7 +63,7 @@ int FTI_UpdateIterTime() {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the checkpoint data in the target file.
-    @param      FTIT_dataset    Dataset array.
+    @param      FTI_Data        Dataset array.
     @return     integer         FTI_SCES if successful.
 
     This function checks whether the checkpoint needs to be local or remote,
