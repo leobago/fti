@@ -62,6 +62,10 @@ int FTI_Init(char *configFile, MPI_Comm globalComm) {
             if (res == FTI_NSCS)
             {
                 FTI_Print("Impossible to recover from this failure.", FTI_EROR);
+                FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
+                MPI_Abort(MPI_COMM_WORLD, -1);
+                MPI_Finalize();
+                exit(1);
             }
         }
         res = 0;
@@ -77,6 +81,10 @@ int FTI_Init(char *configFile, MPI_Comm globalComm) {
             if (res == FTI_NSCS)
             {
                 FTI_Print("Impossible to recover from this failure.", FTI_EROR);
+                FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
+                MPI_Abort(MPI_COMM_WORLD, -1);
+                MPI_Finalize();
+                exit(1);
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
         }
@@ -165,6 +173,10 @@ int FTI_Protect(int id, void *ptr, long count, FTIT_type type) {
         if (FTI_Exec.nbVar >= FTI_BUFS)
         {
             FTI_Print("Too many variables registered.", FTI_EROR);
+            FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
+            MPI_Abort(MPI_COMM_WORLD, -1);
+            MPI_Finalize();
+            exit(1);
         }
         FTI_Data[FTI_Exec.nbVar].id = id;
         FTI_Data[FTI_Exec.nbVar].ptr = ptr;
@@ -424,6 +436,10 @@ int FTI_Snapshot() {
         if (res == FTI_NSCS)
         {
             FTI_Print("Impossible to load the checkpoint data.", FTI_EROR);
+            FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
+            MPI_Abort(MPI_COMM_WORLD, -1);
+            MPI_Finalize();
+            exit(1);
         }
     } else { // If it is a checkpoint test
         FTI_UpdateIterTime();

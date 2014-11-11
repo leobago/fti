@@ -23,7 +23,7 @@ int FTI_Clean(int level, int group, int rank);
     This function prints messages depending on their priority and the
     verbosity level set by the user. DEBUG messages are printed by all
     processes with their rank. INFO messages are printed by one process.
-    ERROR messages are printed and then the application is killed.
+    ERROR messages are printed with errno.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -36,10 +36,7 @@ void FTI_Print(char *msg, int priority) {
             {
                 case FTI_EROR:
                     fprintf(stderr, "[FTI Error - %06d] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
-                    FTI_Clean(5, FTI_Topo.groupID, FTI_Topo.myRank);
-                    MPI_Abort(MPI_COMM_WORLD, -1);
-                    MPI_Finalize();
-                    exit(1);
+                    break;
                 case FTI_WARN:
                     fprintf(stdout, "[FTI Warning %06d] : %s \n", FTI_Topo.myRank, msg);
                     break;
@@ -90,7 +87,7 @@ int FTI_Try(int result, char* message) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It creates and broadcast a global execution ID.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function creates and broadcast an execution ID, so that all ranks
     have the same execution ID.
@@ -116,7 +113,7 @@ int FTI_CreateExecID() {
 /**
     @brief      It creates the basic datatypes and the dataset array.
     @param      FTIT_dataset    Dataset array.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function creates the basic data types using FTIT_Type.
 
@@ -146,7 +143,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]) {
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It creates the directories required for current execution.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function creates the temporary metadata, local and global
     directories required for the current execution.
@@ -207,7 +204,7 @@ int FTI_CreateDirs() {
 /**
     @brief      It erases a directory and all its files.
     @param      path            Path to the directory we want to erase.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function erases a directory and all its files. It focusses on the
     checkpoint directories created by FTI so it does NOT handle recursive
@@ -252,9 +249,9 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 /**
     @brief      It erases the previous checkpoints and their metadata.
     @param      level           Level of cleaning.
-    @param      group           Group ID of the cleanning target process.
-    @param      rank            Rank of the cleanning target process.
-    @return     integer         FTI_SCES if successfull.
+    @param      group           Group ID of the cleaning target process.
+    @param      rank            Rank of the cleaning target process.
+    @return     integer         FTI_SCES if successful.
 
     This function erases previous checkpoint depending on the level of the
     current checkpoint. Level 5 means complete clean up. Level 6 means clean
