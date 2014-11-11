@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
     if (rank == 0) printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
     if (rank == 0) printf("Target precision : %f \n", PRECISION);
-    if (rank == 0) printf("Maximum number of iterations : %f \n", ITER_TIMES);
+    if (rank == 0) printf("Maximum number of iterations : %d \n", ITER_TIMES);
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
