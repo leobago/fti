@@ -1,7 +1,7 @@
 ## * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 ##* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 ##=======================================================================
-##Copyright (C) 2010-2013 Leonardo A. BAUTISTA GOMEZ
+##Copyright (C) 2010-2014 Leonardo A. BAUTISTA GOMEZ
 ##This program is free software; you can redistribute it and/or modify
 ##it under the terms of the GNU General Public License (GPL) as published
 ##of the License, or (at your option) any later version.
@@ -18,15 +18,15 @@
 ##   PLEASE SET THESE VARIABLES BEFORE COMPILING
 ##=======================================================================
 
-FTIPATH		= /path/to/fti/install/directory
-MPIPATH		= /path/to/mpi/directory
+FTIPATH		?= /path/to/fti/install/directory/FTI
+BUILDPATH	?= .
 
 ##=======================================================================
 ##   DIRECTORY TREE
 ##=======================================================================
 
-LIB 		= lib
-OBJ		= obj
+LIB 		= $(BUILDPATH)/lib
+OBJ		= $(BUILDPATH)/obj
 SRC		= src
 DOC		= doc
 INC		= include
@@ -35,15 +35,16 @@ INC		= include
 ##   COMPILERS
 ##=======================================================================
 
-CC 		= gcc
-MPICC 		= mpicc
+CC 		?= cc
+F90 		?= f95
+MPICC 		?= mpicc
+MPIF90		?= mpif90
 
 ##=======================================================================
 ##   FLAGS
 ##=======================================================================
 
-FTIFLAGS	= -fPIC -g -Iinclude/ -c
-MPIFLAGS	= -I$(MPIPATH)
+FTIFLAGS	= -fPIC -g -Iinclude/
 
 ##=======================================================================
 ##   TARGETS
@@ -57,39 +58,65 @@ OBJS		= $(OBJ)/galois.o $(OBJ)/jerasure.o \
 		  $(OBJ)/topo.o $(OBJ)/conf.o $(OBJ)/meta.o \
 		  $(OBJ)/tools.o $(OBJ)/api.o
 
+.PRECIOUS: $(OBJ)/interface.F90
+
+OBJS_F90	= $(OBJ)/interface.o $(OBJ)/ftif.o
+
 SHARED		= libfti.so
 STATIC		= libfti.a
+SHARED_F90	= libfti_f90.so
+STATIC_F90	= libfti_f90.a
 
-all: 		$(SHARED) $(STATIC)
+all: $(LIB)/$(SHARED) $(LIB)/$(STATIC) $(LIB)/$(SHARED_F90) $(LIB)/$(STATIC_F90)
 
 doc:
+		@mkdir -p $(DOC)
 		doxygen $(DOC)/Doxyfile
 
-$(OBJ)/%.o:	$(SRC)/%.c
-		$(MPICC) $(FTIFLAGS) $< -o $@
+$(OBJ)/%.o: $(SRC)/%.c
+		@mkdir -p $(OBJ)
+		$(MPICC) $(FTIFLAGS) -c $< -o $@
 
-$(SHARED):	$(OBJS)
-		$(CC) $(MPIFLAGS) -shared -o $(LIB)/$(SHARED) $(OBJS) -lc
+$(OBJ)/%.F90: $(SRC)/%.F90.bpp
+		@mkdir -p $(OBJ)
+		./bpp $< $@
 
-$(STATIC):	$(OBJS)
-		$(AR) -cvq $(LIB)/$(STATIC) $(OBJS)
-install:
-		if [ ! -d "$(FTIPATH)/FTI" ]; then mkdir $(FTIPATH)/FTI; fi
-		if [ ! -d "$(FTIPATH)/FTI/$(LIB)" ]; then mkdir $(FTIPATH)/FTI/$(LIB); fi
-		if [ ! -d "$(FTIPATH)/FTI/$(INC)" ]; then mkdir $(FTIPATH)/FTI/$(INC); fi
-		rm -f $(FTIPATH)/FTI/$(LIB)/* $(FTIPATH)/FTI/$(INC)/*
-		cp $(INC)/* $(FTIPATH)/FTI/$(INC)/
-		cp $(LIB)/* $(FTIPATH)/FTI/$(LIB)/
+$(OBJ)/%.o: $(OBJ)/%.F90
+		@mkdir -p $(OBJ)
+		@mkdir -p $(LIB)
+		$(MPIF90) $(FTIFLAGS) -c $< -o $@
+		mv *.mod $(INC)/
+
+$(LIB)/$(SHARED): $(OBJS)
+		@mkdir -p $(LIB)
+		$(CC) -shared -o $@ $(OBJS) -lc
+
+$(LIB)/$(SHARED_F90): $(OBJS_F90) $(LIB)/$(SHARED)
+		@mkdir -p $(LIB)
+		$(F90) -shared -o $@ -L$(LIB) -lfti $(OBJS_F90)
+
+$(LIB)/$(STATIC): $(OBJS)
+		@mkdir -p $(LIB)
+		$(RM) $@
+		$(AR) -cvq $@ $(OBJS)
+
+$(LIB)/$(STATIC_F90): $(OBJS_F90)
+		@mkdir -p $(LIB)
+		$(RM) $@
+		$(AR) -cvq $@ $(OBJS_F90)
+
+install: $(LIB)/$(SHARED) $(LIB)/$(STATIC) $(LIB)/$(SHARED_F90) $(LIB)/$(STATIC_F90)
+		install -d $(FTIPATH)/lib  $(FTIPATH)/include
+		install $(INC)/* $(FTIPATH)/include/
+		install $(LIB)/* $(FTIPATH)/lib/
 
 uninstall:
-		rm -f $(FTIPATH)/FTI/$(LIB)/* $(FTIPATH)/FTI/$(INC)/*
-		if [ -d "$(FTIPATH)/FTI/$(LIB)" ]; then rmdir $(FTIPATH)/FTI/$(LIB); fi
-		if [ -d "$(FTIPATH)/FTI/$(INC)" ]; then rmdir $(FTIPATH)/FTI/$(INC); fi
-		if [ -d "$(FTIPATH)/FTI" ]; then rmdir $(FTIPATH)/FTI; fi
+		$(RM) $(FTIPATH)/$(LIB)/* $(FTIPATH)/$(INC)/*
+		if [ -d "$(FTIPATH)/$(LIB)" ]; then rmdir $(FTIPATH)/$(LIB); fi
+		if [ -d "$(FTIPATH)/$(INC)" ]; then rmdir $(FTIPATH)/$(INC); fi
+		if [ -d "$(FTIPATH)" ]; then rmdir $(FTIPATH); fi
 
 clean:
-		rm -f $(OBJ)/* $(LIB)/*
+		$(RM) $(OBJ)/* $(LIB)/*
 
-.PHONY:		$(SHARED) $(STATIC) doc install uninstall clean
-
-
+.PHONY:		doc install uninstall clean
