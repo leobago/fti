@@ -148,11 +148,11 @@ int FTI_Protect(int id, void *ptr, long count, FTIT_type type) {
         if (id == FTI_Data[i].id)
         {
             prevSize = FTI_Data[i].size;
-            FTI_Data[FTI_Exec.nbVar].ptr = ptr;
-            FTI_Data[FTI_Exec.nbVar].count = count;
-            FTI_Data[FTI_Exec.nbVar].type = type;
-            FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
-            FTI_Data[FTI_Exec.nbVar].size = type.size*count;
+            FTI_Data[i].ptr = ptr;
+            FTI_Data[i].count = count;
+            FTI_Data[i].type = type;
+            FTI_Data[i].eleSize = type.size;
+            FTI_Data[i].size = type.size*count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size*count) - prevSize;
             updated = 1;
         }
