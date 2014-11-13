@@ -15,7 +15,7 @@ option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON
 include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include" ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH})
 
 set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
-set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/modules)
+set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(SRC_FTI
 	src/galois.c
@@ -42,7 +42,7 @@ append_property(TARGET fti.static fti.shared PROPERTY LINK_FLAGS " ${MPI_C_LINK_
 set_property(TARGET fti.static fti.shared PROPERTY OUTPUT_NAME fti)
 
 install(TARGETS fti.static fti.shared DESTINATION lib)
-install(FILES "include/fti.h" DESTINATION "include")
+install(FILES "include/fti.h" DESTINATION include)
 
 if ( ENABLE_FORTRAN )
 	bpp_preprocess(BPP_FTI_F90
@@ -62,7 +62,7 @@ if ( ENABLE_FORTRAN )
 	set_property(TARGET fti_f90.static fti_f90.shared PROPERTY OUTPUT_NAME fti_f90)
 
 	install(TARGETS fti_f90.static fti_f90.shared DESTINATION lib)
-        install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod DESTINATION "include")
+        install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod DESTINATION include)
 endif()
 
 if ( NOT "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}" )
