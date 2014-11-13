@@ -89,7 +89,7 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data) {
     fd = fopen(fn, "wb");
     if (fd == NULL)
     {
-        FTI_Print("FTI checkpoint file could not be opened.", FTI_WARN);
+        FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
         return FTI_NSCS;
     }
     for(i = 0; i < FTI_Exec.nbVar; i++)
@@ -97,18 +97,18 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data) {
         if (fwrite(FTI_Data[i].ptr, FTI_Data[i].eleSize, FTI_Data[i].count, fd) != FTI_Data[i].count)
         {
             sprintf(str, "Dataset %d could not be written.", i);
-            FTI_Print(str, FTI_WARN);
+            FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
     }
     if (fflush(fd) != 0)
     {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_WARN);
+        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
         return FTI_NSCS;
     }
     if (fclose(fd) != 0)
     {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_WARN);
+        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
         return FTI_NSCS;
     }
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime()-tt);
