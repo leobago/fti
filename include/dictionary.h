@@ -81,7 +81,7 @@ dictionary * dictionary_new(int size);
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Delete a dictionary object
-  @param    d   dictionary object to deallocate.
+  @param    vd      dictionary object to deallocate.
   @return   void
 
   Deallocate a dictionary object and all memory associated to it.
@@ -109,7 +109,7 @@ char * dictionary_get(dictionary * d, const char * key, char * def);
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Set a value in a dictionary.
-  @param    d       dictionary object to modify.
+  @param    vd      dictionary object to modify.
   @param    key     Key to modify or add.
   @param    val     Value to add.
   @return   int     0 if Ok, anything else otherwise
@@ -151,8 +151,8 @@ void dictionary_unset(dictionary * d, const char * key);
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Dump a dictionary to an opened file pointer.
-  @param    d   Dictionary to dump
-  @param    f   Opened file pointer.
+  @param    d       Dictionary to dump
+  @param    out     Opened file pointer.
   @return   void
 
   Dumps a dictionary onto an opened file pointer. Key pairs are printed out
