@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.6"/>
-<title>Fault Tolerance Interface: Main Page</title>
+<title>Fault Tolerance Interface: src -&gt; include Relation</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -36,7 +36,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
       <li>
@@ -57,7 +57,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -72,36 +71,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
-<div class="header">
-  <div class="headertitle">
-<div class="title">Fault Tolerance Interface Documentation</div>  </div>
-</div><!--header-->
+<div id="nav-path" class="navpath">
+  <ul>
+<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li>  </ul>
+</div>
+</div><!-- top -->
 <div class="contents">
-<div class="textblock"><p>FTI stands for Fault Tolerance Interface and is a library that aims to give computational scientists the means to perform fast and efficient multilevel checkpointing in large scale supercomputers. FTI leverages local storage plus data replication and erasure codes to provide several levels of reliability and performance. FTI is application-level checkpointing and allows users to select which datasets needs to be protected, in order to improve efficiency and avoid wasting space, time and energy. In addition, it offers a direct data interface so that users do not need to deal with files and/or directory names. All metadata is managed by FTI in a transparent fashion for the user. If desired, users can dedicate one process per node to overlap fault tolerance workload and scientific computation, so that post-checkpoint tasks are executed asynchronously.</p>
-<hr/>
- <h1>===== Download, compile and install FTI (as easy as 1,2,3) ===== </h1>
-<p>1) git clone <a href="https://github.com/leobago/fti.git">https://github.com/leobago/fti.git</a></p>
-<p>2) mkdir fti/build &amp;&amp; cd fti/build</p>
-<p>3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. &amp;&amp; make all install</p>
-<hr/>
- <h1>===== Configure and run a FTI example (as easy as 1,2,3) ===== </h1>
-<p>1) Place yourself in the examples directory which contains head distribution examples in both C and Fortran.</p>
-<ul>
-<li>cd examples</li>
-</ul>
-<p>2) With your favorite text editor open and edit the FTI configuration file config.fti to set the three directory variables.</p>
-<ul>
-<li>vim config.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)</li>
-</ul>
-<p>3) Make sure that FTI library is accessible in you LD_LIBRARY_PATH, set the FTIPATH in the Makefile, compile and launch the test.</p>
-<ul>
-<li>make all hdt</li>
-</ul>
-<hr/>
- <h1>===== Acknowledgement (send us a postal card! (^-^)/) ===== </h1>
-<p>If you use FTI please consider sending us an email to let us know what you liked and what could be improved, your feedback is important. Also, please make sure to acknowledge our paper "FTI: High Performance Fault Tolerance Interface
-for Hybrid Systems". Finally, don't hesitate to send us a postal card. </p>
-</div></div><!-- contents -->
+<h3>src &rarr; include Relation</h3><table class="dirtab"><tr class="dirtab"><th class="dirtab">File in src</th><th class="dirtab">Includes file in include</th></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="api_8c.html">api.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="checkpoint_8c.html">checkpoint.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="conf_8c.html">conf.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="ftif_8c.html">ftif.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="meta_8c.html">meta.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="postckpt_8c.html">postckpt.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="postreco_8c.html">postreco.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="recover_8c.html">recover.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="tools_8c.html">tools.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr><tr class="dirtab"><td class="dirtab"><a class="el" href="topo_8c.html">topo.c</a></td><td class="dirtab"><a class="el" href="fti_8h.html">fti.h</a></td></tr></table></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated on Thu Nov 13 2014 23:12:14 for Fault Tolerance Interface by &#160;<a href="http://www.doxygen.org/index.html">

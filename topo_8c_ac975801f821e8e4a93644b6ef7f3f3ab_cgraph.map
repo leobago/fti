@@ -1,0 +1,14 @@
+<map id="FTI_Topology" name="FTI_Topology">
+<area shape="rect" id="node2" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="191,56,259,83"/>
+<area shape="rect" id="node4" href="$topo_8c.html#a3dcce60314d3b280f5a96e4adc7a1c75" title="Build the list of nodes in the current execution. " alt="" coords="160,5,291,32"/>
+<area shape="rect" id="node5" href="$topo_8c.html#a73e8aa1d21997ab5a24a1eef69718d34" title="Reorder the nodes following the previous topology. " alt="" coords="159,107,292,133"/>
+<area shape="rect" id="node9" href="$topo_8c.html#a9cf0b701b2c1a365644622c73c34d5f4" title="Writes the topology in a file for recovery. " alt="" coords="171,157,279,184"/>
+<area shape="rect" id="node13" href="$topo_8c.html#af3c95daf3b8e06279bb1783612121615" title="Build the list of nodes in the current execution. " alt="" coords="158,208,293,235"/>
+<area shape="rect" id="node3" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="369,5,445,32"/>
+<area shape="rect" id="node6" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="355,157,458,184"/>
+<area shape="rect" id="node7" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="343,56,471,83"/>
+<area shape="rect" id="node8" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="346,107,467,133"/>
+<area shape="rect" id="node10" href="$iniparser_8h.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary. " alt="" coords="359,208,455,235"/>
+<area shape="rect" id="node11" href="$iniparser_8h.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary. " alt="" coords="351,259,462,285"/>
+<area shape="rect" id="node12" href="$iniparser_8h.html#aece0e32de371c9e9592d8333f816dfac" title="Save a dictionary to a loadable ini file. " alt="" coords="341,309,472,336"/>
+</map>

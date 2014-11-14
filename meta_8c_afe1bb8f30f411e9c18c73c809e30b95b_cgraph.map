@@ -1,0 +1,8 @@
+<map id="FTI_WriteMetadata" name="FTI_WriteMetadata">
+<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="217,5,293,32"/>
+<area shape="rect" id="node3" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="203,56,306,83"/>
+<area shape="rect" id="node4" href="$iniparser_8h.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary. " alt="" coords="207,107,303,133"/>
+<area shape="rect" id="node5" href="$iniparser_8h.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary. " alt="" coords="199,157,310,184"/>
+<area shape="rect" id="node6" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="194,208,315,235"/>
+<area shape="rect" id="node7" href="$iniparser_8h.html#aece0e32de371c9e9592d8333f816dfac" title="Save a dictionary to a loadable ini file. " alt="" coords="189,259,320,285"/>
+</map>

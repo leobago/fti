@@ -1,0 +1,7 @@
+<map id="FTI_GetMeta" name="FTI_GetMeta">
+<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="178,5,254,32"/>
+<area shape="rect" id="node3" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="165,56,267,83"/>
+<area shape="rect" id="node4" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="152,107,280,133"/>
+<area shape="rect" id="node5" href="$iniparser_8h.html#a694eb1110f4200db8648820a0bb405fa" title="Get the string associated to a key, convert to an int. " alt="" coords="161,157,271,184"/>
+<area shape="rect" id="node6" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="155,208,277,235"/>
+</map>

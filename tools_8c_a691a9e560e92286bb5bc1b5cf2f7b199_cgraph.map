@@ -1,0 +1,5 @@
+<map id="FTI_Print" name="FTI_Print">
+<area shape="rect" id="node2" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="131,5,213,32"/>
+<area shape="rect" id="node3" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="262,56,349,83"/>
+<area shape="rect" id="node4" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="398,81,466,108"/>
+</map>

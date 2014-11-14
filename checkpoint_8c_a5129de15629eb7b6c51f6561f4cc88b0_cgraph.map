@@ -1,0 +1,19 @@
+<map id="FTI_PostCkpt" name="FTI_PostCkpt">
+<area shape="rect" id="node2" href="$checkpoint_8c.html#a4df9eb5e3f10cc6d0f1cba99963905f2" title="Decides wich action start depending on the ckpt. level. " alt="" coords="158,104,277,131"/>
+<area shape="rect" id="node3" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="719,205,795,232"/>
+<area shape="rect" id="node6" href="$postckpt_8c.html#a2e93ca78c1ede39396bf24611d710230" title="It flushes the local ckpt. files in to the PFS. " alt="" coords="330,205,411,232"/>
+<area shape="rect" id="node13" href="$postckpt_8c.html#a02243a83a12aeccae0898a8923b5c209" title="It performs RS encoding with the ckpt. files in to the group. " alt="" coords="326,408,415,435"/>
+<area shape="rect" id="node17" href="$postckpt_8c.html#a8205b15e7b74f2f118ec2bef4ffa6878" title="It copies ckpt. files in to the partner node. " alt="" coords="331,256,411,283"/>
+<area shape="rect" id="node18" href="$postckpt_8c.html#a0ea7bcdf7b7389f68ade3cd2ab2ef9de" title="It returns FTI_SCES. " alt="" coords="331,307,411,333"/>
+<area shape="rect" id="node4" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="329,53,412,80"/>
+<area shape="rect" id="node5" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="511,53,598,80"/>
+<area shape="rect" id="node7" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="521,256,589,283"/>
+<area shape="rect" id="node8" href="$meta_8c.html#aded40228f27b54245ba7e64123fbac6f" title="It gets the metadata to recover the data after a failure. " alt="" coords="505,408,604,435"/>
+<area shape="rect" id="node9" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="706,484,809,511"/>
+<area shape="rect" id="node10" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="693,332,821,359"/>
+<area shape="rect" id="node11" href="$iniparser_8h.html#a694eb1110f4200db8648820a0bb405fa" title="Get the string associated to a key, convert to an int. " alt="" coords="702,383,813,409"/>
+<area shape="rect" id="node12" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="697,433,818,460"/>
+<area shape="rect" id="node14" href="$galois_8h.html#a9ccbbf5999f106f9b37e21f821405b87" title="galois_single_divide" alt="" coords="485,459,624,485"/>
+<area shape="rect" id="node15" href="$galois_8h.html#a0227afc578ca49a616fca5b345ec9eca" title="galois_region_xor" alt="" coords="493,509,616,536"/>
+<area shape="rect" id="node16" href="$galois_8h.html#a6d319cb970af33cd6aa7820630bc4b3d" title="galois_w16_region_multiply" alt="" coords="464,560,645,587"/>
+</map>

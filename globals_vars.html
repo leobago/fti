@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.6"/>
-<title>Fault Tolerance Interface: Main Page</title>
+<title>Fault Tolerance Interface: File Members</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -36,9 +36,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
-      <li><a href="files.html"><span>Files</span></a></li>
+      <li class="current"><a href="files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -57,6 +57,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
+  <div id="navrow2" class="tabs2">
+    <ul class="tablist">
+      <li><a href="files.html"><span>File&#160;List</span></a></li>
+      <li class="current"><a href="globals.html"><span>File&#160;Members</span></a></li>
+    </ul>
+  </div>
+  <div id="navrow3" class="tabs2">
+    <ul class="tablist">
+      <li><a href="globals.html"><span>All</span></a></li>
+      <li><a href="globals_func.html"><span>Functions</span></a></li>
+      <li class="current"><a href="globals_vars.html"><span>Variables</span></a></li>
+      <li><a href="globals_type.html"><span>Typedefs</span></a></li>
+      <li><a href="globals_defs.html"><span>Macros</span></a></li>
+    </ul>
+  </div>
 </div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
@@ -72,39 +87,79 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
-<div class="header">
-  <div class="headertitle">
-<div class="title">Fault Tolerance Interface Documentation</div>  </div>
-</div><!--header-->
 <div class="contents">
-<div class="textblock"><p>FTI stands for Fault Tolerance Interface and is a library that aims to give computational scientists the means to perform fast and efficient multilevel checkpointing in large scale supercomputers. FTI leverages local storage plus data replication and erasure codes to provide several levels of reliability and performance. FTI is application-level checkpointing and allows users to select which datasets needs to be protected, in order to improve efficiency and avoid wasting space, time and energy. In addition, it offers a direct data interface so that users do not need to deal with files and/or directory names. All metadata is managed by FTI in a transparent fashion for the user. If desired, users can dedicate one process per node to overlap fault tolerance workload and scientific computation, so that post-checkpoint tasks are executed asynchronously.</p>
-<hr/>
- <h1>===== Download, compile and install FTI (as easy as 1,2,3) ===== </h1>
-<p>1) git clone <a href="https://github.com/leobago/fti.git">https://github.com/leobago/fti.git</a></p>
-<p>2) mkdir fti/build &amp;&amp; cd fti/build</p>
-<p>3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. &amp;&amp; make all install</p>
-<hr/>
- <h1>===== Configure and run a FTI example (as easy as 1,2,3) ===== </h1>
-<p>1) Place yourself in the examples directory which contains head distribution examples in both C and Fortran.</p>
-<ul>
-<li>cd examples</li>
+&#160;<ul>
+<li>FTI_CHAR
+: <a class="el" href="fti_8h.html#af384b54744550e2300db530ef46f7e77">fti.h</a>
+</li>
+<li>FTI_Ckpt
+: <a class="el" href="fti_8h.html#a472c55d554ebe39f4e4507dcb3038604">fti.h</a>
+</li>
+<li>FTI_COMM_WORLD
+: <a class="el" href="fti_8h.html#a7deaa5171fbf22fe59ae1c08f2bdcc97">fti.h</a>
+</li>
+<li>FTI_Conf
+: <a class="el" href="fti_8h.html#a5b95385892fdc8a93fc7f7239272d23e">fti.h</a>
+</li>
+<li>FTI_DBLE
+: <a class="el" href="fti_8h.html#aafb3604bd7ebfae406d1c419890e04d8">fti.h</a>
+</li>
+<li>FTI_Exec
+: <a class="el" href="fti_8h.html#afcc7055dbe2db230399fd3010f9e4b8b">fti.h</a>
+</li>
+<li>FTI_INTG
+: <a class="el" href="fti_8h.html#ad236df2303494837c97a13741423a51b">fti.h</a>
+</li>
+<li>FTI_LDBE
+: <a class="el" href="fti_8h.html#acd10e7ef980b4ed3d775bb499cfac8ba">fti.h</a>
+</li>
+<li>FTI_LONG
+: <a class="el" href="fti_8h.html#a29acf773174ad269577b5c771521694a">fti.h</a>
+</li>
+<li>FTI_SFLT
+: <a class="el" href="fti_8h.html#a39b15455ede057260e435cf49bc3ee6d">fti.h</a>
+</li>
+<li>FTI_SHRT
+: <a class="el" href="fti_8h.html#a7f97366acb17493ec718fb6086f1ac3c">fti.h</a>
+</li>
+<li>FTI_Topo
+: <a class="el" href="fti_8h.html#a4645e2fc6a24d696307cf6fe0be196eb">fti.h</a>
+</li>
+<li>FTI_UCHR
+: <a class="el" href="fti_8h.html#a2a1ee34ef81027534671ee3145a89213">fti.h</a>
+</li>
+<li>FTI_UINT
+: <a class="el" href="fti_8h.html#a1e77437528f3df560360e0626b9a3b89">fti.h</a>
+</li>
+<li>FTI_ULNG
+: <a class="el" href="fti_8h.html#afdc10ccdf5f020d7b0306ecce07f52c1">fti.h</a>
+</li>
+<li>FTI_USHT
+: <a class="el" href="fti_8h.html#ad00601a105ae08e82837c629b8e55612">fti.h</a>
+</li>
+<li>galois_div_tables
+: <a class="el" href="galois_8h.html#a195b54400c1338c050cc0f3eef6509d1">galois.h</a>
+</li>
+<li>galois_ilog_tables
+: <a class="el" href="galois_8h.html#a7b6067490e4bcc8af67148e76e42a9f2">galois.h</a>
+</li>
+<li>galois_log_tables
+: <a class="el" href="galois_8h.html#a4ba05a8dcf6b6983af5cb6e5f7d0c5de">galois.h</a>
+</li>
+<li>galois_mult_tables
+: <a class="el" href="galois_8h.html#ac64ff68480f32943658969277a5ab51d">galois.h</a>
+</li>
+<li>nw
+: <a class="el" href="galois_8h.html#a8360bea5e67b00b1dcc540554e802e76">galois.h</a>
+</li>
+<li>nwm1
+: <a class="el" href="galois_8h.html#a89c29465d17ebd1482b17761c7083aa6">galois.h</a>
+</li>
 </ul>
-<p>2) With your favorite text editor open and edit the FTI configuration file config.fti to set the three directory variables.</p>
-<ul>
-<li>vim config.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)</li>
-</ul>
-<p>3) Make sure that FTI library is accessible in you LD_LIBRARY_PATH, set the FTIPATH in the Makefile, compile and launch the test.</p>
-<ul>
-<li>make all hdt</li>
-</ul>
-<hr/>
- <h1>===== Acknowledgement (send us a postal card! (^-^)/) ===== </h1>
-<p>If you use FTI please consider sending us an email to let us know what you liked and what could be improved, your feedback is important. Also, please make sure to acknowledge our paper "FTI: High Performance Fault Tolerance Interface
-for Hybrid Systems". Finally, don't hesitate to send us a postal card. </p>
-</div></div><!-- contents -->
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Nov 13 2014 23:12:14 for Fault Tolerance Interface by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Nov 13 2014 23:12:15 for Fault Tolerance Interface by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>

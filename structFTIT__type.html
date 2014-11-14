@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.6"/>
-<title>Fault Tolerance Interface: Main Page</title>
+<title>Fault Tolerance Interface: FTIT_type Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -36,8 +36,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="annotated.html"><span>Classes</span></a></li>
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -57,7 +57,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
-</div><!-- top -->
+  <div id="navrow2" class="tabs2">
+    <ul class="tablist">
+      <li><a href="annotated.html"><span>Class&#160;List</span></a></li>
+      <li><a href="classes.html"><span>Class&#160;Index</span></a></li>
+      <li><a href="functions.html"><span>Class&#160;Members</span></a></li>
+    </ul>
+  </div>
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -72,36 +78,56 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
+</div><!-- top -->
 <div class="header">
+  <div class="summary">
+<a href="#pub-attribs">Public Attributes</a> &#124;
+<a href="structFTIT__type-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">Fault Tolerance Interface Documentation</div>  </div>
+<div class="title">FTIT_type Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>FTI stands for Fault Tolerance Interface and is a library that aims to give computational scientists the means to perform fast and efficient multilevel checkpointing in large scale supercomputers. FTI leverages local storage plus data replication and erasure codes to provide several levels of reliability and performance. FTI is application-level checkpointing and allows users to select which datasets needs to be protected, in order to improve efficiency and avoid wasting space, time and energy. In addition, it offers a direct data interface so that users do not need to deal with files and/or directory names. All metadata is managed by FTI in a transparent fashion for the user. If desired, users can dedicate one process per node to overlap fault tolerance workload and scientific computation, so that post-checkpoint tasks are executed asynchronously.</p>
-<hr/>
- <h1>===== Download, compile and install FTI (as easy as 1,2,3) ===== </h1>
-<p>1) git clone <a href="https://github.com/leobago/fti.git">https://github.com/leobago/fti.git</a></p>
-<p>2) mkdir fti/build &amp;&amp; cd fti/build</p>
-<p>3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. &amp;&amp; make all install</p>
-<hr/>
- <h1>===== Configure and run a FTI example (as easy as 1,2,3) ===== </h1>
-<p>1) Place yourself in the examples directory which contains head distribution examples in both C and Fortran.</p>
-<ul>
-<li>cd examples</li>
+
+<p><code>#include &lt;<a class="el" href="fti_8h_source.html">fti.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
+Public Attributes</h2></td></tr>
+<tr class="memitem:a75237aa3e6824b450ee623bffb36608a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFTIT__type.html#a75237aa3e6824b450ee623bffb36608a">id</a></td></tr>
+<tr class="separator:a75237aa3e6824b450ee623bffb36608a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae849a5abd72710611f1830155f2ce6c4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structFTIT__type.html#ae849a5abd72710611f1830155f2ce6c4">size</a></td></tr>
+<tr class="separator:ae849a5abd72710611f1830155f2ce6c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a class="anchor" id="a75237aa3e6824b450ee623bffb36608a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int FTIT_type::id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>FTI type declarator. </p>
+
+</div>
+</div>
+<a class="anchor" id="ae849a5abd72710611f1830155f2ce6c4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int FTIT_type::size</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>ID of the data type. </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li>include/<a class="el" href="fti_8h_source.html">fti.h</a></li>
 </ul>
-<p>2) With your favorite text editor open and edit the FTI configuration file config.fti to set the three directory variables.</p>
-<ul>
-<li>vim config.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)</li>
-</ul>
-<p>3) Make sure that FTI library is accessible in you LD_LIBRARY_PATH, set the FTIPATH in the Makefile, compile and launch the test.</p>
-<ul>
-<li>make all hdt</li>
-</ul>
-<hr/>
- <h1>===== Acknowledgement (send us a postal card! (^-^)/) ===== </h1>
-<p>If you use FTI please consider sending us an email to let us know what you liked and what could be improved, your feedback is important. Also, please make sure to acknowledge our paper "FTI: High Performance Fault Tolerance Interface
-for Hybrid Systems". Finally, don't hesitate to send us a postal card. </p>
-</div></div><!-- contents -->
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated on Thu Nov 13 2014 23:12:14 for Fault Tolerance Interface by &#160;<a href="http://www.doxygen.org/index.html">

@@ -1,0 +1,11 @@
+<map id="FTI_WriteCkpt" name="FTI_WriteCkpt">
+<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="566,27,642,54"/>
+<area shape="rect" id="node3" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="389,27,457,54"/>
+<area shape="rect" id="node4" href="$meta_8c.html#afa3bd0c0d0bbaaa91091eac4aa5086e7" title="It writes the metadata to recover the data after a failure. " alt="" coords="163,78,306,104"/>
+<area shape="rect" id="node5" href="$meta_8c.html#afe1bb8f30f411e9c18c73c809e30b95b" title="It writes the metadata to recover the data after a failure. " alt="" coords="355,128,490,155"/>
+<area shape="rect" id="node6" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="553,78,655,104"/>
+<area shape="rect" id="node7" href="$iniparser_8h.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary. " alt="" coords="556,128,652,155"/>
+<area shape="rect" id="node8" href="$iniparser_8h.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary. " alt="" coords="549,179,659,206"/>
+<area shape="rect" id="node9" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="543,230,665,256"/>
+<area shape="rect" id="node10" href="$iniparser_8h.html#aece0e32de371c9e9592d8333f816dfac" title="Save a dictionary to a loadable ini file. " alt="" coords="539,280,669,307"/>
+</map>

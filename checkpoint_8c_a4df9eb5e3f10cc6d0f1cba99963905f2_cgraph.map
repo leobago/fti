@@ -1,0 +1,5 @@
+<map id="FTI_GroupClean" name="FTI_GroupClean">
+<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="441,5,517,32"/>
+<area shape="rect" id="node3" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="173,31,256,57"/>
+<area shape="rect" id="node4" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="305,31,391,57"/>
+</map>
