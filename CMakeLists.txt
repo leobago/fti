@@ -42,7 +42,7 @@ append_property(TARGET fti.static fti.shared PROPERTY LINK_FLAGS " ${MPI_C_LINK_
 set_property(TARGET fti.static fti.shared PROPERTY OUTPUT_NAME fti)
 
 install(TARGETS fti.static fti.shared DESTINATION lib)
-install(FILES "include/fti.h" DESTINATION include)
+install(FILES "include/fti.h" "include/dictionary.h" "include/galois.h" "include/iniparser.h" "include/jerasure.h" DESTINATION include)
 
 if ( ENABLE_FORTRAN )
 	bpp_preprocess(BPP_FTI_F90
