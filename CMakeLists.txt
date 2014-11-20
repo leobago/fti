@@ -42,7 +42,8 @@ target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
 append_property(TARGET fti.static fti.shared PROPERTY LINK_FLAGS " ${MPI_C_LINK_FLAGS} ")
 set_property(TARGET fti.static fti.shared PROPERTY OUTPUT_NAME fti)
 
-install(TARGETS fti.static fti.shared DESTINATION lib EXPORT FTILib)
+set(FTI_TARGETS fti.static fti.shared)
+install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h" "include/dictionary.h" "include/galois.h" "include/iniparser.h" "include/jerasure.h" DESTINATION include)
 
 if ( ENABLE_FORTRAN )
@@ -73,7 +74,8 @@ if ( ENABLE_FORTRAN )
 	set_property(TARGET fti_f90.static fti_f90.shared PROPERTY OUTPUT_NAME fti_f90)
 	set_property(TARGET fti_f90.static PROPERTY Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
 
-	install(TARGETS fti_f90.static fti_f90.shared DESTINATION lib EXPORT FTILib)
+	list(APPEND FTI_TARGETS fti_f90.static fti_f90.shared)
+	install(TARGETS fti_f90.static fti_f90.shared DESTINATION lib)
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/" DESTINATION include FILES_MATCHING PATTERN "*.mod")
 endif()
 
@@ -81,7 +83,7 @@ endif()
 # in tree config
 
 set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "FTI Include path")
-export(EXPORT FTILib FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
+export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
 export(PACKAGE FTI)
 
@@ -90,7 +92,7 @@ export(PACKAGE FTI)
 
 set(WORK_DIR "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
 set(FTI_INCLUDE_PATH "${CMAKE_INSTALL_PREFIX}/include")
-install(EXPORT FTILib DESTINATION lib/CMake/FTI)
+install(TARGETS ${FTI_TARGETS} DESTINATION lib/CMake/FTI)
 configure_file(CMakeScripts/FTIConfig.cmake.in "${WORK_DIR}/FTIConfig.cmake" @ONLY)
 export(PACKAGE FTI)
 install(FILES "${WORK_DIR}/FTIConfig.cmake" DESTINATION lib/CMake/FTI)
