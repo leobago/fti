@@ -96,7 +96,7 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data) {
     {
         if (fwrite(FTI_Data[i].ptr, FTI_Data[i].eleSize, FTI_Data[i].count, fd) != FTI_Data[i].count)
         {
-            sprintf(str, "Dataset %d could not be written.", i);
+            sprintf(str, "Dataset #%d could not be written.", FTI_Data[i].id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
