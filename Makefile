@@ -39,6 +39,8 @@ CC 		?= cc
 F90 		?= f95
 MPICC 		?= mpicc
 MPIF90		?= mpif90
+# either Gnu, Intel, PGI or XL for now
+BPP_COMPILER_ID ?= Gnu
 
 ##=======================================================================
 ##   FLAGS
@@ -49,7 +51,7 @@ FTIFLAGS	= -fPIC -g -Iinclude/
 ##=======================================================================
 ##   TARGETS
 ##=======================================================================
-
+include vendor/bpp/scripts/bpp.mk
 
 OBJS		= $(OBJ)/galois.o $(OBJ)/jerasure.o \
 		  $(OBJ)/dictionary.o $(OBJ)/iniparser.o \
@@ -77,9 +79,9 @@ $(OBJ)/%.o: $(SRC)/%.c
 		@mkdir -p $(OBJ)
 		$(MPICC) $(FTIFLAGS) -c $< -o $@
 
-$(OBJ)/%.F90: $(SRC)/%.F90.bpp
+$(OBJ)/%: $(SRC)/%.bpp
 		@mkdir -p $(OBJ)
-		./bpp $< $@
+		$(BPP) $(BPP_DEFAULT_INCLUDES) -DBPP_CONFIG=config.$(BPP_COMPILER_ID) $(BPPOPTS) $< $@
 
 $(OBJ)/%.o: $(OBJ)/%.F90
 		@mkdir -p $(OBJ)
@@ -117,6 +119,6 @@ uninstall:
 		if [ -d "$(FTIPATH)" ]; then rmdir $(FTIPATH); fi
 
 clean:
-		$(RM) $(OBJ)/* $(LIB)/*
+		$(RM) $(OBJ)/* $(LIB)/* $(INC)/fti.mod
 
 .PHONY:		doc install uninstall clean
