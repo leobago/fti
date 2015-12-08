@@ -314,7 +314,7 @@ int FTI_BitFlip(int datasetID)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level) {
-    int res, i;
+    int i, res = FTI_NSCS;
     double t0, t1, t2, t3, t4;
     char str[FTI_BUFS];
     MPI_Status status;
@@ -363,8 +363,10 @@ int FTI_Checkpoint(int id, int level) {
         sprintf(str, "%s taken in %.2f sec.", str, t3-t0);
         sprintf(str, "%s (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)", str, t1-t0, t2-t1, t3-t2);
         FTI_Print(str, FTI_INFO);
+        if (res == FTI_SCES) res = FTI_DONE;
+        else res = FTI_NSCS;
     }
-    return FTI_SCES;
+    return res;
 }
 
 
@@ -424,10 +426,10 @@ int FTI_Recover() {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot() {
-    int i, level = -1;
+    int i, res, level = -1;
     if (FTI_Exec.reco)
     { // If this is a recovery load icheckpoint data
-        int res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
+        res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS)
         {
             FTI_Print("Impossible to load the checkpoint data.", FTI_EROR);
@@ -437,6 +439,7 @@ int FTI_Snapshot() {
             exit(1);
         }
     } else { // If it is a checkpoint test
+        res = FTI_SCES;
         FTI_UpdateIterTime();
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt)
         { // If it is time to check for possible ckpt. (every minute)
@@ -451,14 +454,14 @@ int FTI_Snapshot() {
             }
             if (level != -1)
             {
-                    FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
+                    res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
             }
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
         }
     }
-    return FTI_SCES;
+    return res;
 }
 
 

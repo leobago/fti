@@ -70,7 +70,7 @@ void FTI_Print(char *msg, int priority) {
 /*-------------------------------------------------------------------------*/
 int FTI_Try(int result, char* message) {
     char str[FTI_BUFS];
-    if (result ==  FTI_SCES)
+    if (result ==  FTI_SCES || result == FTI_DONE)
     {
         sprintf(str, "FTI succeeded to %s", message);
         FTI_Print(str, FTI_DBUG);
