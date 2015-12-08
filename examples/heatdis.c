@@ -14,7 +14,7 @@
 
 
 #define PRECISION   0.005
-#define ITER_TIMES  5000
+#define ITER_TIMES  2000
 #define ITER_OUT    500
 #define WORKTAG     50
 #define REDUCE      5
@@ -122,7 +122,8 @@ int main(int argc, char *argv[])
     wtime = MPI_Wtime();
     for(i = 0; i < ITER_TIMES; i++)
     {
-        FTI_Snapshot();
+        int checkpointed = FTI_Snapshot();
+        if (checkpointed == 1) printf("A checkpoint was performed. \n");
         FTI_BitFlip(2);
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) printf("Step : %d, error = %f\n", i, globalerror);
