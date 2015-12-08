@@ -424,12 +424,6 @@ int FTI_Recover() {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot() {
-    int dummy;
-    return FTI_Snapshot(&dummy);
-}
-
-int FTI_Snapshot_extended(int * res) {
-    *res = FTI_CKPT_IGNORED;
     int i, level = -1;
     if (FTI_Exec.reco)
     { // If this is a recovery load icheckpoint data
@@ -443,10 +437,7 @@ int FTI_Snapshot_extended(int * res) {
             exit(1);
         }
     } else { // If it is a checkpoint test
-        char str[FTI_BUFS];
         FTI_UpdateIterTime();
-        //sprintf(str, "ckptNext(%d) == ckptIcnt(%d) && ckptCnt (%d) mod ckptIntv (%d) != 0\n", FTI_Exec.ckptNext, FTI_Exec.ckptIcnt, FTI_Exec.ckptCnt, FTI_Ckpt[1].ckptIntv);
-        FTI_Print(str, FTI_DBUG);
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt)
         { // If it is time to check for possible ckpt. (every minute)
             FTI_Print("Checking if it is time to checkpoint.", FTI_DBUG);
@@ -465,7 +456,6 @@ int FTI_Snapshot_extended(int * res) {
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
-            *res = FTI_CKPT_DONE;
         }
     }
     return FTI_SCES;

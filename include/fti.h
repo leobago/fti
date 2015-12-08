@@ -39,10 +39,6 @@
 #define FTI_SCES    0
 /** Token returned if a FTI function fails.                                */
 #define FTI_NSCS    -1
-/** Token returned if a checkpoint has actually been performed             */
-#define FTI_CKPT_DONE       1
-/** Token returned if a checkpoint has not been performed                  */
-#define FTI_CKPT_IGNORED    0
 
 /** Verbosity level to print only errors.                                  */
 #define FTI_EROR    4
@@ -304,7 +300,6 @@ int FTI_BitFlip(int datasetID);
 int FTI_Checkpoint(int id, int level);
 int FTI_Recover();
 int FTI_Snapshot();
-int FTI_Snapshot_extended(int * res);
 int FTI_Finalize();
 
 #ifdef __cplusplus
