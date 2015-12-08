@@ -178,7 +178,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 int FTI_Clean(int level, int group, int rank) {
     char buf[FTI_BUFS];
     int nodeFlag, globalFlag = !FTI_Topo.splitRank;
-    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 1)) || (FTI_Topo.amIaHead))? 1 : 0;
+    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 0)) || (FTI_Topo.amIaHead))? 1 : 0;
     if (level == 0)
     {
         FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);
