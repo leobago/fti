@@ -202,6 +202,7 @@ int FTI_PostCkpt(int group, int fo, int pr) {
     {
         level = (FTI_Exec.ckptLvel != 4) ? FTI_Exec.ckptLvel : 1;
         rename(FTI_Conf.lTmpDir, FTI_Ckpt[level].dir);
+        FTI_Print("Local directory renamed", FTI_DBUG);
     }
     if (!globalFlag)
     {
