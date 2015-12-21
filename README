@@ -1,6 +1,6 @@
-/*! \mainpage 
-* 
-* 
+/*! \mainpage
+*
+*
 *FTI stands for Fault Tolerance Interface and is a library that aims to give
 *computational scientists the means to perform fast and efficient multilevel
 *checkpointing in large scale supercomputers. FTI leverages local storage plus
@@ -12,12 +12,10 @@
 *metadata is managed by FTI in a transparent fashion for the user. If desired,
 *users can dedicate one process per node to overlap fault tolerance workload and
 *scientific computation, so that post-checkpoint tasks are executed
-*asynchronously. 
+*asynchronously.
 *
 *
-*==============================================================================
-*=====        Download, compile and install FTI (as easy as 1,2,3)        =====
-*==============================================================================
+*##########   Download, compile and install FTI (as easy as 1,2,3)   ##########
 *
 * 1) git clone https://github.com/leobago/fti.git
 *
@@ -26,9 +24,7 @@
 * 3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
 *
 *
-*==============================================================================
-*=====        Configure and run a FTI example (as easy as 1,2,3)          =====
-*==============================================================================
+*##########   Configure and run a FTI example (as easy as 1,2,3)     ##########
 *
 * 1) Place yourself in the examples directory which contains head distribution
 * examples in both C and Fortran.
@@ -46,15 +42,13 @@
 *    - make all hdt
 *
 *
-*==============================================================================
-*=====        Acknowledgement (send us a postal card! \(^-^)/)            =====
-*==============================================================================
+*##########   Acknowledgement (send us a postal card! \(^-^)/)       ##########
 *
 *
 *If you use FTI please consider sending us an email to let us know what you
 *liked and what could be improved, your feedback is important. Also, please make
 *sure to acknowledge our paper "FTI: High Performance Fault Tolerance Interface
-*for Hybrid Systems".  Finally, don't hesitate to send us a postal card. 
+*for Hybrid Systems".  Finally, don't hesitate to send us a postal card.
 *
 *
 */
