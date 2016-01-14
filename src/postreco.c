@@ -241,7 +241,7 @@ int FTI_RecoverL3(int group) {
     if (l > 0) {
         sprintf(str, "There are %d encoded/checkpoint files missing in this group.", l); FTI_Print(str, FTI_DBUG);
         if (FTI_Decode(fs, maxFs, erased) == FTI_NSCS)
-            { FTI_Print("RS-decoding could not regenerate the missing data."); return FTI_NSCS; }
+            { FTI_Print("RS-decoding could not regenerate the missing data.", FTI_DBUG); return FTI_NSCS; }
     } // Reed-Solomon decoding
     return FTI_SCES;
 }
