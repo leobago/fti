@@ -304,6 +304,39 @@ int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();
 
+
+/*---------------------------------------------------------------------------
+                            FTI private functions
+---------------------------------------------------------------------------*/
+
+
+void FTI_Print(char *msg, int priority);
+int FTI_Try(int result, char* message);
+int FTI_CheckErasures(unsigned long *fs, unsigned long *maxFs, int group, int *erased, int level);
+int FTI_Clean(int level, int group, int rank);
+int FTI_Local(int group);
+int FTI_Ptner(int group);
+int FTI_RSenc(int group);
+int FTI_Flush(int group, int level);
+int FTI_RecoverL1(int group);
+int FTI_RecoverL2(int group);
+int FTI_RecoverL3(int group);
+int FTI_RecoverL4(int group);
+int FTI_GetMeta(unsigned long *fs, unsigned long *mfs, int group, int level);
+int FTI_CreateMetadata(int globalTmp);
+int FTI_RmDir(char path[FTI_BUFS], int flag);
+int FTI_UpdateIterTime();
+int FTI_PostCkpt(int group, int fo, int pr);
+int FTI_WriteCkpt(FTIT_dataset* FTI_Data);
+int FTI_Listen();
+int FTI_RecoverFiles();
+int FTI_UpdateConf(int restart);
+int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]);
+int FTI_Topology();
+int FTI_LoadConf(FTIT_injection *FTI_Inje);
+
+
+
 #ifdef __cplusplus
 }
 #endif
