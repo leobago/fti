@@ -71,15 +71,18 @@ int FTI_Ptner(int group)
     src = FTI_Topo.left;
 
     lfd = fopen(lfn, "rb");
-    pfd = fopen(pfn, "wb");
     if (lfd == NULL) {
         FTI_Print("FTI failed to open L2 chckpt. file.", FTI_DBUG);
         return FTI_NSCS;
     }
+
+    pfd = fopen(pfn, "wb");
     if (pfd == NULL) {
         FTI_Print("FTI failed to open L2 partner file.", FTI_DBUG);
+        fclose(lfd);
         return FTI_NSCS;
     }
+
     blBuf1 = talloc(char, FTI_Conf.blockSize);
     blBuf2 = talloc(char, FTI_Conf.blockSize);
     while (pos < ps) { // Checkpoint files partner copy
