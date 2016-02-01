@@ -461,14 +461,17 @@ int FTI_RecoverL4(int group)
         FTI_Print("R4 cannot truncate the ckpt. file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     gfd = fopen(gfn, "rb");
-    lfd = fopen(lfn, "wb");
     if (gfd == NULL) {
         FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
     }
+
+    lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
         FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        fclose(gfd);
         return FTI_NSCS;
     }
 
