@@ -235,14 +235,18 @@ int FTI_RecoverL2(int group)
             FTI_Print(str, FTI_DBUG);
             sprintf(str, "Opening partner ckpt. file (%s) to recover (L2).", jfn);
             FTI_Print(str, FTI_DBUG);
+
             lfd = fopen(lfn, "wb");
             jfd = fopen(jfn, "wb");
             if (lfd == NULL) {
                 FTI_Print("R2 cannot open the checkpoint file.", FTI_DBUG);
+                if (jfd)
+                    fclose(jfd);
                 return FTI_NSCS;
             }
             if (jfd == NULL) {
                 FTI_Print("R2 cannot open the partner ckpt. file.", FTI_DBUG);
+                fclose(lfd);
                 return FTI_NSCS;
             }
         }
