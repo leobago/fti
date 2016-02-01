@@ -143,13 +143,15 @@ int FTI_RSenc(int group)
         return FTI_NSCS;
 
     lfd = fopen(lfn, "rb");
-    efd = fopen(efn, "wb");
     if (lfd == NULL) {
         FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
+
+    efd = fopen(efn, "wb");
     if (efd == NULL) {
         FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
+        fclose(lfd);
         return FTI_NSCS;
     }
 
