@@ -10,6 +10,8 @@ include(BPP)
 include(FortranCInterface)
 find_package(MPI REQUIRED)
 
+add_subdirectory(deps)
+
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 
 include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include" ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH})
@@ -18,10 +20,6 @@ set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(SRC_FTI
-	src/galois.c
-	src/jerasure.c
-	src/dictionary.c
-	src/iniparser.c
 	src/checkpoint.c
 	src/postckpt.c
 	src/recover.c
@@ -35,14 +33,16 @@ set(SRC_FTI
 append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS " ${MPI_C_COMPILE_FLAGS} ")
 
 add_library(fti.static STATIC ${SRC_FTI})
-target_link_libraries(fti.static ${MPI_C_LIBRARIES})
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} iniparser jerasure)
+
 add_library(fti.shared SHARED ${SRC_FTI})
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} iniparser jerasure)
+
 append_property(TARGET fti.static fti.shared PROPERTY LINK_FLAGS " ${MPI_C_LINK_FLAGS} ")
 set_property(TARGET fti.static fti.shared PROPERTY OUTPUT_NAME fti)
 
 install(TARGETS fti.static fti.shared DESTINATION lib)
-install(FILES "include/fti.h" "include/dictionary.h" "include/galois.h" "include/iniparser.h" "include/jerasure.h" DESTINATION include)
+install(FILES "include/fti.h" DESTINATION include)
 
 if ( ENABLE_FORTRAN )
 	bpp_preprocess(BPP_FTI_F90

@@ -18,10 +18,9 @@
 
 #include "mpi.h"
 
-#include "iniparser.h"
-#include "galois.h"
-#include "jerasure.h"
-
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/jerasure/galois.h"
+#include "../deps/jerasure/jerasure.h"
 
 /*---------------------------------------------------------------------------
                                   Defines
