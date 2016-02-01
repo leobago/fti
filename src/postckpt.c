@@ -273,14 +273,17 @@ int FTI_Flush(int group, int level)
         FTI_Print("L4 cannot access the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
+
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
+
     gfd = fopen(gfn, "wb");
     if (gfd == NULL) {
         FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_EROR);
+        fclose(lfd);
         return FTI_NSCS;
     }
 
