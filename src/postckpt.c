@@ -230,8 +230,8 @@ int FTI_RSenc(int group)
 /*-------------------------------------------------------------------------*/
 int FTI_Flush(int group, int level)
 {
-    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], *blBuf1 = talloc(char, FTI_Conf.blockSize);
-    unsigned long maxFs, fs, ps, pos = 0, bSize = FTI_Conf.blockSize;
+    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
+    unsigned long maxFs, fs, ps, pos = 0;
     FILE *lfd, *gfd;
     if (level == -1)
         return FTI_SCES; // Fake call for inline PFS checkpoint
@@ -278,6 +278,10 @@ int FTI_Flush(int group, int level)
         FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_EROR);
         return FTI_NSCS;
     }
+
+    char *blBuf1 = talloc(char, FTI_Conf.blockSize);
+    unsigned long bSize = FTI_Conf.blockSize;
+
     while (pos < ps) { // Checkpoint files exchange
         if ((fs - pos) < FTI_Conf.blockSize)
             bSize = fs - pos;
@@ -285,6 +289,9 @@ int FTI_Flush(int group, int level)
         fwrite(blBuf1, sizeof(char), bSize, gfd);
         pos = pos + FTI_Conf.blockSize;
     }
+
+    free(blBuf1);
+
     fclose(lfd);
     fclose(gfd);
     return FTI_SCES;
