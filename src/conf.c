@@ -39,15 +39,18 @@ int FTI_UpdateConf(int restart)
     FILE* fd = fopen(FTI_Conf.cfgFile, "w");
     if (fd == NULL) {
         FTI_Print("FTI failed to open the configuration file.", FTI_EROR);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_dump_ini(ini, fd); // Write new configuration
     if (fflush(fd) != 0) {
         FTI_Print("FTI failed to flush the configuration file.", FTI_EROR);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_freedict(ini); // Free dictionary
