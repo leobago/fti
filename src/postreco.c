@@ -85,10 +85,13 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     }
     if (fd == NULL) {
         FTI_Print("R3 cannot open checkpoint file.", FTI_DBUG);
+        if (efd)
+            fclose(efd);
         return FTI_NSCS;
     }
     if (efd == NULL) {
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
+        fclose(fd);
         return FTI_NSCS;
     }
     while (pos < ps) { // Main loop, block by block
