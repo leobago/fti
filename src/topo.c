@@ -46,15 +46,18 @@ int FTI_SaveTopo(char* nameList)
     FILE* fd = fopen(mfn, "w");
     if (fd == NULL) {
         FTI_Print("Topology file could NOT be opened", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_dump_ini(ini, fd); // Write new topology
     if (fflush(fd) != 0) {
         FTI_Print("Topology file could NOT be flushed.", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("Topology file could NOT be closed.", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_freedict(ini);
