@@ -8,11 +8,21 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
+#include "fti.h"
+
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
 #include "../deps/jerasure/galois.h"
 #include "../deps/jerasure/jerasure.h"
+
+#include <sys/stat.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <errno.h>
 
 /*---------------------------------------------------------------------------
                                   Defines

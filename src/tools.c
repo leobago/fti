@@ -5,7 +5,6 @@
  *  @brief  Utility functions for the FTI library.
  */
 
-#include "fti.h"
 #include "interface.h"
 #include <dirent.h>
 

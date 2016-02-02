@@ -8,14 +8,6 @@
 #ifndef  _FTI_H
 #define  _FTI_H
 
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-
 #include <mpi.h>
 
 /*---------------------------------------------------------------------------
