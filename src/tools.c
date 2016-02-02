@@ -6,8 +6,8 @@
  */
 
 #include "fti.h"
+#include "interface.h"
 #include <dirent.h>
-#include <sys/types.h>
 
 int FTI_Clean(int level, int group, int rank);
 
