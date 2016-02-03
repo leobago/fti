@@ -8,28 +8,11 @@
 #ifndef  _FTI_H
 #define  _FTI_H
 
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-
-#include "mpi.h"
-
-#include "iniparser.h"
-#include "galois.h"
-#include "jerasure.h"
-
+#include <mpi.h>
 
 /*---------------------------------------------------------------------------
                                   Defines
 ---------------------------------------------------------------------------*/
-
-
-/** Malloc macro.                                                          */
-#define talloc(type, num) (type *) malloc(sizeof(type)*(num))
 
 /** Standard size of buffer and mas node size.                             */
 #define FTI_BUFS    256
@@ -74,14 +57,12 @@ extern "C"{
                                   New types
 ---------------------------------------------------------------------------*/
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_double
-    @brief      Double mapped as two integers to allow bit-wise operations.
-
-    Double mapped as integer and byte array to allow bit-wise operators so
-    that we can inject failures on it.
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Double mapped as two integers to allow bit-wise operations.
+ *
+ *  Double mapped as integer and byte array to allow bit-wise operators so
+ *  that we can inject failures on it.
+ */
 typedef union FTIT_double {             /** Double mapped as a byte array. */
     double          value;              /** Double floating point value.   */
     float           floatval[2];        /** Float mapped to do bit edits.  */
@@ -89,39 +70,33 @@ typedef union FTIT_double {             /** Double mapped as a byte array. */
     char            byte[8];            /** Byte array for coarser control.*/
 } FTIT_double;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_float
-    @brief      Float mapped as integer to allow bit-wise operations.
-
-    Float mapped as integer and byte array to allow bit-wise operators so
-    that we can inject failures on it.
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Float mapped as integer to allow bit-wise operations.
+ *
+ *  Float mapped as integer and byte array to allow bit-wise operators so
+ *  that we can inject failures on it.
+ */
 typedef union FTIT_float {              /** Float mapped as a byte array.  */
     float           value;              /** Floating point value.          */
     int             intval;             /** Integer mapped to do bit edits.*/
     char            byte[4];            /** Byte array for coarser control.*/
 } FTIT_float;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_type
-    @brief      Type recognized by FTI.
-
-    This type allows handling data structures.
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Type recognized by FTI.
+ *
+ *  This type allows handling data structures.
+ */
 typedef struct FTIT_type {              /** FTI type declarator.           */
     int             id;                 /** ID of the data type.           */
     int             size;               /** Size of the data type.         */
 } FTIT_type;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_dataset
-    @brief      Dataset metadata.
-
-    This type stores the metadata related with a dataset.
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Dataset metadata.
+ *
+ *  This type stores the metadata related with a dataset.
+ */
 typedef struct FTIT_dataset {           /** Dataset metadata.              */
     int             id;                 /** ID to search/update dataset.   */
     void            *ptr;               /** Pointer to the dataset.        */
@@ -131,13 +106,11 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
     long            size;               /** Total size of the dataset.     */
 } FTIT_dataset;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_execution
-    @brief      Execution metadata
-
-    This type stores all the dynamic metadata related to the current execution
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Execution metadata
+ *
+ *  This type stores all the dynamic metadata related to the current execution
+ */
 typedef struct FTIT_execution {         /** Execution metadata.            */
     char            id[FTI_BUFS];       /** Execution ID.                  */
     char            ckptFile[FTI_BUFS]; /** Checkpoint file name.          */
@@ -165,13 +138,11 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     MPI_Comm        groupComm;          /** Group communicator.            */
 } FTIT_execution;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_configuration
-    @brief      Configuration metadata.
-
-    This type stores the general configuration metadata.
+ *  @brief      Configuration metadata.
+ *
+ *  This type stores the general configuration metadata.
  */
-/*-------------------------------------------------------------------------*/
 typedef struct FTIT_configuration {     /** Configuration metadata.        */
     char            cfgFile[FTI_BUFS];  /** Configuration file name.       */
     int             saveLastCkpt;       /** TRUE to save last checkpoint.  */
@@ -188,13 +159,11 @@ typedef struct FTIT_configuration {     /** Configuration metadata.        */
     char            mTmpDir[FTI_BUFS];  /** Metadata temporary directory.  */
 } FTIT_configuration;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_topology
-    @brief      Topology metadata.
-
-    This type stores the topology metadata.
+ *  @brief      Topology metadata.
+ *
+ *  This type stores the topology metadata.
  */
-/*-------------------------------------------------------------------------*/
 typedef struct FTIT_topology {          /** Topology metadata.             */
     int             nbProc;             /** Total global number of proc.   */
     int             nbNodes;            /** Total global number of nodes.  */
@@ -216,13 +185,11 @@ typedef struct FTIT_topology {          /** Topology metadata.             */
     int             body[FTI_BUFS];     /** List of app. proc. in the node.*/
 } FTIT_topology;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_checkpoint
-    @brief      Checkpoint metadata.
-
-    This type stores all the checkpoint metadata.
+ *  @brief      Checkpoint metadata.
+ *
+ *  This type stores all the checkpoint metadata.
  */
-/*-------------------------------------------------------------------------*/
 typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
     char            dir[FTI_BUFS];      /** Checkpoint directory.          */
     char            metaDir[FTI_BUFS];  /** Metadata directory.            */
@@ -230,13 +197,11 @@ typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
     int             ckptIntv;           /** Checkpoint interval.           */
 } FTIT_checkpoint;
 
-/*-------------------------------------------------------------------------*/
 /** @typedef    FTIT_injection
-    @brief      Type to describe failure injections in FTI.
-
-    This type allows users to describe a SDC failure injection model.
-*/
-/*-------------------------------------------------------------------------*/
+ *  @brief      Type to describe failure injections in FTI.
+ *
+ *  This type allows users to describe a SDC failure injection model.
+ */
 typedef struct FTIT_injection {         /** FTI type declarator.           */
     int             rank;               /** Rank of proc. that injects     */
     int             index;              /** Array index of the bit-flip.   */
@@ -247,12 +212,9 @@ typedef struct FTIT_injection {         /** FTI type declarator.           */
     double          timer;              /** Timer to measure frequency     */
 } FTIT_injection;
 
-
-
 /*---------------------------------------------------------------------------
                                   Global variables
 ---------------------------------------------------------------------------*/
-
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm            FTI_COMM_WORLD;
@@ -288,11 +250,9 @@ FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
 
-
 /*---------------------------------------------------------------------------
                             FTI public functions
 ---------------------------------------------------------------------------*/
-
 
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
@@ -304,42 +264,8 @@ int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();
 
-
-/*---------------------------------------------------------------------------
-                            FTI private functions
----------------------------------------------------------------------------*/
-
-
-void FTI_Print(char *msg, int priority);
-int FTI_Try(int result, char* message);
-int FTI_CheckErasures(unsigned long *fs, unsigned long *maxFs, int group, int *erased, int level);
-int FTI_Clean(int level, int group, int rank);
-int FTI_Local(int group);
-int FTI_Ptner(int group);
-int FTI_RSenc(int group);
-int FTI_Flush(int group, int level);
-int FTI_RecoverL1(int group);
-int FTI_RecoverL2(int group);
-int FTI_RecoverL3(int group);
-int FTI_RecoverL4(int group);
-int FTI_GetMeta(unsigned long *fs, unsigned long *mfs, int group, int level);
-int FTI_CreateMetadata(int globalTmp);
-int FTI_RmDir(char path[FTI_BUFS], int flag);
-int FTI_UpdateIterTime();
-int FTI_PostCkpt(int group, int fo, int pr);
-int FTI_WriteCkpt(FTIT_dataset* FTI_Data);
-int FTI_Listen();
-int FTI_RecoverFiles();
-int FTI_UpdateConf(int restart);
-int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS]);
-int FTI_Topology();
-int FTI_LoadConf(FTIT_injection *FTI_Inje);
-
-
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif   /* ----- #ifndef _FTI_H  ----- */
-

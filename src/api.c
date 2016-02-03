@@ -5,7 +5,7 @@
  *  @brief  API functions for the FTI library.
  */
 
-#include "fti.h"
+#include "interface.h"
 
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];

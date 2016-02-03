@@ -5,7 +5,7 @@
  *  @brief  Post-checkpointing functions for the FTI library.
  */
 
-#include "fti.h"
+#include "interface.h"
 
 /*-------------------------------------------------------------------------*/
 /**
