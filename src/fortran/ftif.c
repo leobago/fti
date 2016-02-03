@@ -6,9 +6,9 @@
  * @date 2013-08-01
  */
 
-#include <mpi.h>
-
-#include <fti.h>
+#include "fti.h"
+#include "interface.h"
+#include "ftif.h"
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
  * 
