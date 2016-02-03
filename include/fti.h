@@ -5,8 +5,8 @@
  *  @brief  Header file for the FTI library.
  */
 
-#ifndef  _FTI_H
-#define  _FTI_H
+#ifndef _FTI_H
+#define _FTI_H
 
 #include <mpi.h>
 
@@ -15,42 +15,42 @@
 ---------------------------------------------------------------------------*/
 
 /** Standard size of buffer and mas node size.                             */
-#define FTI_BUFS    256
+#define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */
-#define FTI_WORD    16
+#define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
-#define FTI_DONE    1
+#define FTI_DONE 1
 /** Token returned if a FTI function succeeds.                             */
-#define FTI_SCES    0
+#define FTI_SCES 0
 /** Token returned if a FTI function fails.                                */
-#define FTI_NSCS    -1
+#define FTI_NSCS -1
 
 /** Verbosity level to print only errors.                                  */
-#define FTI_EROR    4
+#define FTI_EROR 4
 /** Verbosity level to print only warning and errors.                      */
-#define FTI_WARN    3
+#define FTI_WARN 3
 /** Verbosity level to print main information.                             */
-#define FTI_INFO    2
+#define FTI_INFO 2
 /** Verbosity level to print debug messages.                               */
-#define FTI_DBUG    1
+#define FTI_DBUG 1
 
 /** Token for checkpoint Baseline.                                         */
-#define FTI_BASE    990
+#define FTI_BASE 990
 /** Token for checkpoint Level 1.                                          */
-#define FTI_CKTW    991
+#define FTI_CKTW 991
 /** Token for checkpoint Level 2.                                          */
-#define FTI_XORW    992
+#define FTI_XORW 992
 /** Token for checkpoint Level 3.                                          */
-#define FTI_RSEW    993
+#define FTI_RSEW 993
 /** Token for checkpoint Level 4.                                          */
-#define FTI_PFSW    994
+#define FTI_PFSW 994
 /** Token for end of the execution.                                        */
-#define FTI_ENDW    995
+#define FTI_ENDW 995
 /** Token to reject checkpoint.                                            */
-#define FTI_REJW    996
+#define FTI_REJW 996
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /*---------------------------------------------------------------------------
@@ -217,15 +217,15 @@ typedef struct FTIT_injection {         /** FTI type declarator.           */
 ---------------------------------------------------------------------------*/
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
-MPI_Comm            FTI_COMM_WORLD;
+MPI_Comm FTI_COMM_WORLD;
 /** Topology of the system.                                                */
-FTIT_topology       FTI_Topo;
+FTIT_topology FTI_Topo;
 /** Dynamic information for this execution.                                */
-FTIT_execution      FTI_Exec;
+FTIT_execution FTI_Exec;
 /** Checkpoint information for all levels of checkpoint.                   */
-FTIT_checkpoint     FTI_Ckpt[5];
+FTIT_checkpoint FTI_Ckpt[5];
 /** General configuration information used by FTI.                         */
-FTIT_configuration  FTI_Conf;
+FTIT_configuration FTI_Conf;
 
 /** FTI data type for chars.                                               */
 FTIT_type FTI_CHAR;
@@ -256,8 +256,8 @@ FTIT_type FTI_LDBE;
 
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
-int FTI_InitType(FTIT_type *type, int size);
-int FTI_Protect(int id, void *ptr, long count, FTIT_type type);
+int FTI_InitType(FTIT_type* type, int size);
+int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 int FTI_BitFlip(int datasetID);
 int FTI_Checkpoint(int id, int level);
 int FTI_Recover();
@@ -268,4 +268,4 @@ int FTI_Finalize();
 }
 #endif
 
-#endif   /* ----- #ifndef _FTI_H  ----- */
+#endif /* ----- #ifndef _FTI_H  ----- */

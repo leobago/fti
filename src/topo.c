@@ -46,15 +46,18 @@ int FTI_SaveTopo(char* nameList)
     FILE* fd = fopen(mfn, "w");
     if (fd == NULL) {
         FTI_Print("Topology file could NOT be opened", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_dump_ini(ini, fd); // Write new topology
     if (fflush(fd) != 0) {
         FTI_Print("Topology file could NOT be flushed.", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("Topology file could NOT be closed.", FTI_WARN);
+        iniparser_freedict(ini);
         return FTI_NSCS;
     }
     iniparser_freedict(ini);
@@ -277,18 +280,20 @@ int FTI_Topology()
     int res, nn, found, c1 = 0, c2 = 0, p, i, mypos, posInNode;
     char str[FTI_BUFS], *nameList = talloc(char, FTI_Topo.nbNodes *FTI_BUFS);
     int* nodeList = talloc(int, FTI_Topo.nbNodes* FTI_Topo.nodeSize);
-    int* distProcList = talloc(int, FTI_Topo.nbNodes);
-    int* userProcList = talloc(int, FTI_Topo.nbProc - (FTI_Topo.nbNodes * FTI_Topo.nbHeads));
     for (i = 0; i < FTI_Topo.nbProc; i++) {
         nodeList[i] = -1;
     }
     res = FTI_Try(FTI_BuildNodeList(nodeList, nameList), "create node list.");
     if (res == FTI_NSCS) {
+        free(nameList);
+        free(nodeList);
         return FTI_NSCS;
     }
     if (FTI_Exec.reco > 0) {
         res = FTI_Try(FTI_ReorderNodes(nodeList, nameList), "reorder nodes.");
         if (res == FTI_NSCS) {
+            free(nameList);
+            free(nodeList);
             return FTI_NSCS;
         }
     }
@@ -296,9 +301,15 @@ int FTI_Topology()
     if (FTI_Topo.myRank == 0 && FTI_Exec.reco == 0) {
         res = FTI_Try(FTI_SaveTopo(nameList), "save topology.");
         if (res == FTI_NSCS) {
+            free(nameList);
+            free(nodeList);
             return FTI_NSCS;
         }
     }
+
+    int *distProcList = talloc(int, FTI_Topo.nbNodes);
+    int *userProcList = talloc(int, FTI_Topo.nbProc - (FTI_Topo.nbNodes * FTI_Topo.nbHeads));
+
     for (i = 0; i < FTI_Topo.nbProc; i++) {
         if (FTI_Topo.myRank == nodeList[i]) {
             mypos = i;
@@ -325,6 +336,10 @@ int FTI_Topology()
     }
     res = FTI_Try(FTI_CreateComms(userProcList, distProcList, nodeList), "create communicators.");
     if (res == FTI_NSCS) {
+        free(userProcList);
+        free(distProcList);
+        free(nameList);
+        free(nodeList);
         return FTI_NSCS;
     }
     free(userProcList);

@@ -85,10 +85,13 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     }
     if (fd == NULL) {
         FTI_Print("R3 cannot open checkpoint file.", FTI_DBUG);
+        if (efd)
+            fclose(efd);
         return FTI_NSCS;
     }
     if (efd == NULL) {
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
+        fclose(fd);
         return FTI_NSCS;
     }
     while (pos < ps) { // Main loop, block by block
@@ -232,14 +235,18 @@ int FTI_RecoverL2(int group)
             FTI_Print(str, FTI_DBUG);
             sprintf(str, "Opening partner ckpt. file (%s) to recover (L2).", jfn);
             FTI_Print(str, FTI_DBUG);
+
             lfd = fopen(lfn, "wb");
             jfd = fopen(jfn, "wb");
             if (lfd == NULL) {
                 FTI_Print("R2 cannot open the checkpoint file.", FTI_DBUG);
+                if (jfd)
+                    fclose(jfd);
                 return FTI_NSCS;
             }
             if (jfd == NULL) {
                 FTI_Print("R2 cannot open the partner ckpt. file.", FTI_DBUG);
+                fclose(lfd);
                 return FTI_NSCS;
             }
         }
@@ -410,9 +417,9 @@ int FTI_RecoverL4(int group)
 {
     unsigned long maxFs, fs, ps, pos = 0;
     int j, l, gs, erased[FTI_BUFS];
-    char gfn[FTI_BUFS], lfn[FTI_BUFS], *blBuf1;
+    char gfn[FTI_BUFS], lfn[FTI_BUFS];
     FILE *gfd, *lfd;
-    blBuf1 = talloc(char, FTI_Conf.blockSize); // Allocate memory
+
     gs = FTI_Topo.groupSize;
     if (FTI_Topo.nodeRank == 0 || FTI_Topo.nodeRank == 1) {
         if (access(FTI_Ckpt[1].dir, F_OK) != 0) {
@@ -454,23 +461,31 @@ int FTI_RecoverL4(int group)
         FTI_Print("R4 cannot truncate the ckpt. file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     gfd = fopen(gfn, "rb");
-    lfd = fopen(lfn, "wb");
     if (gfd == NULL) {
         FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
     }
+
+    lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
         FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        fclose(gfd);
         return FTI_NSCS;
     }
+
+    char *blBuf1 = talloc(char, FTI_Conf.blockSize);
     while (pos < ps) { // Checkpoint files transfer from PFS
         fread(blBuf1, sizeof(char), FTI_Conf.blockSize, gfd);
         fwrite(blBuf1, sizeof(char), FTI_Conf.blockSize, lfd);
         pos = pos + FTI_Conf.blockSize;
     }
+    free(blBuf1);
+
     fclose(gfd);
     fclose(lfd); // Close files
+
     if (truncate(gfn, fs) == -1) {
         FTI_Print("R4 cannot re-truncate the checkpoint file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
@@ -479,6 +494,6 @@ int FTI_RecoverL4(int group)
         FTI_Print("R4 cannot re-truncate the local checkpoint file.", FTI_DBUG);
         return FTI_NSCS;
     }
-    free(blBuf1);
+
     return FTI_SCES;
 }
