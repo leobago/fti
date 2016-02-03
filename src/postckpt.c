@@ -5,9 +5,7 @@
  *  @brief  Post-checkpointing functions for the FTI library.
  */
 
-
 #include "fti.h"
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -19,14 +17,15 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Local(int group) {
+int FTI_Local(int group)
+{
     unsigned long maxFs, fs;
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
     int res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS) return FTI_NSCS;
+    if (res == FTI_NSCS)
+        return FTI_NSCS;
     return FTI_SCES;
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -40,42 +39,52 @@ int FTI_Local(int group) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Ptner(int group) {
-    char        *blBuf1, *blBuf2, lfn[FTI_BUFS], pfn[FTI_BUFS], str[FTI_BUFS];
+int FTI_Ptner(int group)
+{
+    char *blBuf1, *blBuf2, lfn[FTI_BUFS], pfn[FTI_BUFS], str[FTI_BUFS];
     unsigned long maxFs, fs, ps, pos = 0;
     MPI_Request reqSend, reqRecv;
-    FILE        *lfd, *pfd;
-    int         res, dest, src, bSize = FTI_Conf.blockSize;
-    MPI_Status  status;
+    FILE *lfd, *pfd;
+    int res, dest, src, bSize = FTI_Conf.blockSize;
+    MPI_Status status;
 
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS) return FTI_NSCS;
-    ps = (maxFs/FTI_Conf.blockSize)*FTI_Conf.blockSize;
-    if (ps < maxFs) ps = ps + FTI_Conf.blockSize;
+    if (res == FTI_NSCS)
+        return FTI_NSCS;
+    ps = (maxFs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
+    if (ps < maxFs)
+        ps = ps + FTI_Conf.blockSize;
     sprintf(str, "Max. file size %ld and padding size %ld.", maxFs, ps);
     FTI_Print(str, FTI_DBUG);
 
-    sscanf(FTI_Exec.ckptFile,"Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &src);
-    sprintf(lfn,"%s/%s",FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
-    sprintf(pfn,"%s/Ckpt%d-Pcof%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, src);
+    sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &src);
+    sprintf(lfn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
+    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, src);
 
     sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
     res = FTI_Try(access(lfn, R_OK), " access the L2 checkpoint file.");
-    if (res == FTI_NSCS) return FTI_NSCS;
+    if (res == FTI_NSCS)
+        return FTI_NSCS;
     dest = FTI_Topo.right;
     src = FTI_Topo.left;
 
     lfd = fopen(lfn, "rb");
     pfd = fopen(pfn, "wb");
-    if (lfd == NULL) { FTI_Print("FTI failed to open L2 chckpt. file.", FTI_DBUG); return FTI_NSCS; }
-    if (pfd == NULL) { FTI_Print("FTI failed to open L2 partner file.", FTI_DBUG); return FTI_NSCS; }
+    if (lfd == NULL) {
+        FTI_Print("FTI failed to open L2 chckpt. file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+    if (pfd == NULL) {
+        FTI_Print("FTI failed to open L2 partner file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
     blBuf1 = talloc(char, FTI_Conf.blockSize);
     blBuf2 = talloc(char, FTI_Conf.blockSize);
-    while(pos < ps)
-    { // Checkpoint files partner copy
-        if ((fs-pos) < FTI_Conf.blockSize) bSize = fs - pos;
+    while (pos < ps) { // Checkpoint files partner copy
+        if ((fs - pos) < FTI_Conf.blockSize)
+            bSize = fs - pos;
         fread(blBuf1, sizeof(char), bSize, lfd);
         MPI_Isend(blBuf1, FTI_Conf.blockSize, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf.blockSize, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
@@ -91,7 +100,6 @@ int FTI_Ptner(int group) {
     return FTI_SCES;
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It performs RS encoding with the ckpt. files in to the group.
@@ -104,7 +112,8 @@ int FTI_Ptner(int group) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RSenc(int group) {
+int FTI_RSenc(int group)
+{
     char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
     int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf.blockSize;
     unsigned long maxFs, fs, ps, pos = 0;
@@ -115,85 +124,81 @@ int FTI_RSenc(int group) {
 
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, 0), "obtain metadata.");
-    if (res != FTI_SCES) return FTI_NSCS;
-    ps = ((maxFs/bs))*bs;
-    if (ps < maxFs) ps = ps + bs;
+    if (res != FTI_SCES)
+        return FTI_NSCS;
+    ps = ((maxFs / bs)) * bs;
+    if (ps < maxFs)
+        ps = ps + bs;
 
-    sscanf(FTI_Exec.ckptFile,"Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
-    sprintf(lfn,"%s/%s",FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
-    sprintf(efn,"%s/Ckpt%d-RSed%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, i);
+    sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
+    sprintf(lfn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
+    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, i);
     sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
     res = FTI_Try(access(lfn, R_OK), "access the L3 checkpoint file.");
-    if (res != FTI_SCES) return FTI_NSCS;
+    if (res != FTI_SCES)
+        return FTI_NSCS;
 
     lfd = fopen(lfn, "rb");
     efd = fopen(efn, "wb");
-    if (lfd == NULL)
-    {
+    if (lfd == NULL) {
         FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
-    if (efd == NULL)
-    {
+    if (efd == NULL) {
         FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
         return FTI_NSCS;
     }
 
     myData = talloc(char, bs);
     coding = talloc(char, bs);
-    data   = talloc(char, 2*bs);
-    matrix = talloc(int, FTI_Topo.groupSize*FTI_Topo.groupSize);
+    data = talloc(char, 2 * bs);
+    matrix = talloc(int, FTI_Topo.groupSize* FTI_Topo.groupSize);
 
     for (i = 0; i < FTI_Topo.groupSize; i++) {
         for (j = 0; j < FTI_Topo.groupSize; j++) {
-            matrix[i*FTI_Topo.groupSize+j] =
-                galois_single_divide(1, i ^ (FTI_Topo.groupSize + j), FTI_Conf.l3WordSize);
+            matrix[i * FTI_Topo.groupSize + j] = galois_single_divide(1, i ^ (FTI_Topo.groupSize + j), FTI_Conf.l3WordSize);
         }
     }
 
-    while(pos < ps)
-    { // For each block
-        if ((fs-pos) < bs) remBsize = fs-pos;
+    while (pos < ps) { // For each block
+        if ((fs - pos) < bs)
+            remBsize = fs - pos;
         fread(myData, sizeof(char), remBsize, lfd); // Reading checkpoint files
         dest = FTI_Topo.groupRank;
         i = FTI_Topo.groupRank;
         offset = 0;
         init = 0;
         cnt = 0;
-        while(cnt < FTI_Topo.groupSize)
-        { // For each encoding
-            if (cnt == 0)
-            {
-                memcpy(&(data[offset*bs]), myData, sizeof(char)*bs);
-            } else {
+        while (cnt < FTI_Topo.groupSize) { // For each encoding
+            if (cnt == 0) {
+                memcpy(&(data[offset * bs]), myData, sizeof(char) * bs);
+            }
+            else {
                 MPI_Wait(&reqSend, &status);
                 MPI_Wait(&reqRecv, &status);
             }
-            if (cnt != FTI_Topo.groupSize-1)
-            { // At every loop *but* the last one we send the data
-                dest = (dest+FTI_Topo.groupSize-1)%FTI_Topo.groupSize;
-                src = (i+1)%FTI_Topo.groupSize;
+            if (cnt != FTI_Topo.groupSize - 1) { // At every loop *but* the last one we send the data
+                dest = (dest + FTI_Topo.groupSize - 1) % FTI_Topo.groupSize;
+                src = (i + 1) % FTI_Topo.groupSize;
                 MPI_Isend(myData, bs, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
-                MPI_Irecv(&(data[(1-offset)*bs]), bs, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
+                MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
             }
-            matVal = matrix[FTI_Topo.groupRank*FTI_Topo.groupSize+i];
-            if (matVal == 1)
-            { // First copy or xor any data that does not need to be multiplied by a factor
-                if (init == 0)
-                {
-                    memcpy(coding, &(data[offset*bs]), bs);
+            matVal = matrix[FTI_Topo.groupRank * FTI_Topo.groupSize + i];
+            if (matVal == 1) { // First copy or xor any data that does not need to be multiplied by a factor
+                if (init == 0) {
+                    memcpy(coding, &(data[offset * bs]), bs);
                     init = 1;
-                } else {
-                    galois_region_xor(&(data[offset*bs]), coding, coding, bs);
+                }
+                else {
+                    galois_region_xor(&(data[offset * bs]), coding, coding, bs);
                 }
             }
-            if (matVal != 0 && matVal != 1)
-            { // Then the data that needs to be multiplied by a factor
-                galois_w16_region_multiply(&(data[offset*bs]), matVal, bs, coding, init);
+            if (matVal != 0 && matVal != 1) { // Then the data that needs to be multiplied by a factor
+                galois_w16_region_multiply(&(data[offset * bs]), matVal, bs, coding, init);
                 init = 1;
             }
-            i = (i+1)%FTI_Topo.groupSize;
+            i = (i + 1) % FTI_Topo.groupSize;
             offset = 1 - offset;
             cnt++;
         }
@@ -212,7 +217,6 @@ int FTI_RSenc(int group) {
     return FTI_SCES;
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It flushes the local ckpt. files in to the PFS.
@@ -224,51 +228,59 @@ int FTI_RSenc(int group) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Flush(int group, int level) {
-    char        lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], *blBuf1 = talloc(char, FTI_Conf.blockSize);
+int FTI_Flush(int group, int level)
+{
+    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], *blBuf1 = talloc(char, FTI_Conf.blockSize);
     unsigned long maxFs, fs, ps, pos = 0, bSize = FTI_Conf.blockSize;
-    FILE        *lfd, *gfd;
-    if (level == -1) return FTI_SCES; // Fake call for inline PFS checkpoint
+    FILE *lfd, *gfd;
+    if (level == -1)
+        return FTI_SCES; // Fake call for inline PFS checkpoint
 
     FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
     int res = FTI_Try(FTI_GetMeta(&fs, &maxFs, group, level), "obtain metadata.");
-    if (res != FTI_SCES) return FTI_NSCS;
+    if (res != FTI_SCES)
+        return FTI_NSCS;
 
     if (access(FTI_Conf.gTmpDir, F_OK) != 0) {
         mkdir(FTI_Conf.gTmpDir, 0777);
     }
-    ps = (maxFs/FTI_Conf.blockSize)*FTI_Conf.blockSize;
-    if (ps < maxFs) ps = ps + FTI_Conf.blockSize;
-    switch(level)
-    {
-        case 0: sprintf(lfn,"%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile); break;
-        case 1: sprintf(lfn,"%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptFile); break;
-        case 2: sprintf(lfn,"%s/%s", FTI_Ckpt[2].dir, FTI_Exec.ckptFile); break;
-        case 3: sprintf(lfn,"%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile); break;
+    ps = (maxFs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
+    if (ps < maxFs)
+        ps = ps + FTI_Conf.blockSize;
+    switch (level) {
+    case 0:
+        sprintf(lfn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
+        break;
+    case 1:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptFile);
+        break;
+    case 2:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec.ckptFile);
+        break;
+    case 3:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile);
+        break;
     }
-    sprintf(gfn,"%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile); // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile); // Open and resize files
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
-    if (access(lfn, R_OK) != 0)
-    {
+    if (access(lfn, R_OK) != 0) {
         FTI_Print("L4 cannot access the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     lfd = fopen(lfn, "rb");
-    if (lfd == NULL)
-    {
+    if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     gfd = fopen(gfn, "wb");
-    if (gfd == NULL)
-    {
+    if (gfd == NULL) {
         FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_EROR);
         return FTI_NSCS;
     }
-    while(pos < ps)
-    { // Checkpoint files exchange
-        if ((fs-pos) < FTI_Conf.blockSize) bSize = fs - pos;
+    while (pos < ps) { // Checkpoint files exchange
+        if ((fs - pos) < FTI_Conf.blockSize)
+            bSize = fs - pos;
         fread(blBuf1, sizeof(char), bSize, lfd);
         fwrite(blBuf1, sizeof(char), bSize, gfd);
         pos = pos + FTI_Conf.blockSize;
@@ -277,6 +289,3 @@ int FTI_Flush(int group, int level) {
     fclose(gfd);
     return FTI_SCES;
 }
-
-
-
