@@ -22,17 +22,21 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     int *matrix, *decMatrix, *dm_ids, *tmpmat, i, j, k, m, ps, bs, pos = 0;
     char **coding, **data, *dataTmp, fn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
     FILE *fd, *efd;
+
     bs = FTI_Conf.blockSize;
     k = FTI_Topo.groupSize;
     m = k;
     ps = ((maxFs / FTI_Conf.blockSize)) * FTI_Conf.blockSize;
     if (ps < maxFs)
         ps = ps + FTI_Conf.blockSize; // Calculating padding size
+
     if (access(FTI_Ckpt[3].dir, F_OK) != 0)
         mkdir(FTI_Ckpt[3].dir, 0777);
+
     sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
     sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile);
     sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec.ckptID, i);
+
     data = talloc(char*, k);
     coding = talloc(char*, m);
     dataTmp = talloc(char, FTI_Conf.blockSize* k);
@@ -56,7 +60,8 @@ int FTI_Decode(int fs, int maxFs, int* erased)
             j++;
         }
     }
-    for (i = 0; i < k; i++) { // Building the matrix
+    // Building the matrix
+    for (i = 0; i < k; i++) {
         if (dm_ids[i] < k) {
             for (j = 0; j < k; j++)
                 tmpmat[i * k + j] = 0;
@@ -66,14 +71,41 @@ int FTI_Decode(int fs, int maxFs, int* erased)
             for (j = 0; j < k; j++) {
                 tmpmat[i * k + j] = matrix[(dm_ids[i] - k) * k + j];
             }
-    } // Inversing the matrix
+    }
+    // Inversing the matrix
     if (jerasure_invert_matrix(tmpmat, decMatrix, k, FTI_Conf.l3WordSize) < 0) {
         FTI_Print("Error inversing matrix", FTI_DBUG);
+
+        for (i = 0; i < m; i++) {
+            free(coding[i]);
+            free(data[i]);
+        }
+        free(tmpmat);
+        free(dm_ids);
+        free(decMatrix);
+        free(matrix);
+        free(data);
+        free(dataTmp);
+        free(coding);
+
         return FTI_NSCS;
     }
     if (erased[FTI_Topo.groupRank] == 0) { // Resize and open files
         if (truncate(fn, ps) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
+
+            for (i = 0; i < m; i++) {
+                free(coding[i]);
+                free(data[i]);
+            }
+            free(tmpmat);
+            free(dm_ids);
+            free(decMatrix);
+            free(matrix);
+            free(data);
+            free(dataTmp);
+            free(coding);
+
             return FTI_NSCS;
         }
         fd = fopen(fn, "rb");
@@ -87,11 +119,38 @@ int FTI_Decode(int fs, int maxFs, int* erased)
         FTI_Print("R3 cannot open checkpoint file.", FTI_DBUG);
         if (efd)
             fclose(efd);
+
+        for (i = 0; i < m; i++) {
+            free(coding[i]);
+            free(data[i]);
+        }
+        free(tmpmat);
+        free(dm_ids);
+        free(decMatrix);
+        free(matrix);
+        free(data);
+        free(dataTmp);
+        free(coding);
+
         return FTI_NSCS;
     }
     if (efd == NULL) {
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
+
         fclose(fd);
+
+        for (i = 0; i < m; i++) {
+            free(coding[i]);
+            free(data[i]);
+        }
+        free(tmpmat);
+        free(dm_ids);
+        free(decMatrix);
+        free(matrix);
+        free(data);
+        free(dataTmp);
+        free(coding);
+
         return FTI_NSCS;
     }
     while (pos < ps) { // Main loop, block by block
@@ -126,11 +185,42 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     fclose(efd); // Closing files
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_DBUG);
+
+        for (i = 0; i < m; i++) {
+            free(coding[i]);
+            free(data[i]);
+        }
+        free(tmpmat);
+        free(dm_ids);
+        free(decMatrix);
+        free(matrix);
+        free(data);
+        free(dataTmp);
+        free(coding);
+
         return FTI_NSCS;
     }
     if (truncate(efn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate encoded ckpt. file.", FTI_DBUG);
+
+        for (i = 0; i < m; i++) {
+            free(coding[i]);
+            free(data[i]);
+        }
+        free(tmpmat);
+        free(dm_ids);
+        free(decMatrix);
+        free(matrix);
+        free(data);
+        free(dataTmp);
+        free(coding);
+
         return FTI_NSCS;
+    }
+
+    for (i = 0; i < m; i++) {
+        free(coding[i]);
+        free(data[i]);
     }
     free(tmpmat);
     free(dm_ids);
@@ -139,6 +229,7 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     free(data);
     free(dataTmp);
     free(coding);
+
     return FTI_SCES;
 }
 
