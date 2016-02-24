@@ -490,8 +490,6 @@ int FTI_RecoverL2(int group)
                         fclose(lfd);
                     if (pfd)
                         fclose(pfd);
-                    if (qfd)
-                        fclose(qfd);
 
                     free(blBuf1);
                     free(blBuf2);
@@ -509,8 +507,6 @@ int FTI_RecoverL2(int group)
                         fclose(lfd);
                     if (pfd)
                         fclose(pfd);
-                    if (qfd)
-                        fclose(qfd);
 
                     free(blBuf1);
                     free(blBuf2);
@@ -530,12 +526,8 @@ int FTI_RecoverL2(int group)
 
                 if (jfd)
                     fclose(jfd);
-                if (lfd)
-                    fclose(lfd);
                 if (pfd)
                     fclose(pfd);
-                if (qfd)
-                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -551,8 +543,6 @@ int FTI_RecoverL2(int group)
                     fclose(jfd);
                 if (pfd)
                     fclose(pfd);
-                if (qfd)
-                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -567,8 +557,6 @@ int FTI_RecoverL2(int group)
 
                 if (pfd)
                     fclose(pfd);
-                if (qfd)
-                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -580,14 +568,8 @@ int FTI_RecoverL2(int group)
             if (truncate(jfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
 
-                if (jfd)
-                    fclose(jfd);
-                if (lfd)
-                    fclose(lfd);
                 if (pfd)
                     fclose(pfd);
-                if (qfd)
-                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -602,9 +584,6 @@ int FTI_RecoverL2(int group)
             if (fclose(pfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file", FTI_DBUG);
 
-                if (qfd)
-                    fclose(qfd);
-
                 free(blBuf1);
                 free(blBuf2);
                 free(blBuf3);
@@ -614,9 +593,6 @@ int FTI_RecoverL2(int group)
             }
             if (truncate(pfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
-
-                if (qfd)
-                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
