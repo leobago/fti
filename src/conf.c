@@ -182,7 +182,7 @@ int FTI_TestConfig()
         return FTI_NSCS;
     }
     if (FTI_Topo.nbNodes % FTI_Topo.groupSize != 0) {
-        FTI_Print("The group size is not multiple of the number of nodes.", FTI_WARN);
+        FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Topo.groupSize <= 2) {

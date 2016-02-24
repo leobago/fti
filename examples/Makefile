@@ -14,8 +14,8 @@ MPIRUN 		?= mpirun
 FTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti -lm
 FFTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti_f90 -lfti -lm
 # Compiling using static library
-#FTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti.a
-#FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libfti.a
+#FTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti.a -lm
+#FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libfti.a -lm
 
 ##   TARGETS
 all: 		hd hd2 hdf

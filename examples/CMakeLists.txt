@@ -2,7 +2,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 
 
 add_executable(hd.exe heatdis.c)
-target_link_libraries(hd.exe fti ${MPI_C_LIBRARIES})
+target_link_libraries(hd.exe fti ${MPI_C_LIBRARIES} m)
 
 if(MPI_C_COMPILE_FLAGS)
     set_target_properties(hd.exe PROPERTIES
@@ -16,7 +16,7 @@ endif()
 
 
 add_executable(hd2.exe heatd2.c)
-target_link_libraries(hd2.exe fti ${MPI_C_LIBRARIES})
+target_link_libraries(hd2.exe fti ${MPI_C_LIBRARIES} m)
 
 if(MPI_C_COMPILE_FLAGS)
     set_target_properties(hd2.exe PROPERTIES
@@ -31,7 +31,7 @@ endif()
 
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
-    target_link_libraries(hdf.exe fti_f90 fti ${MPI_Fortran_LIBRARIES})
+    target_link_libraries(hdf.exe fti_f90 fti ${MPI_Fortran_LIBRARIES} m)
 
     if(MPI_Fortran_COMPILE_FLAGS)
         set_target_properties(hdf.exe PROPERTIES
