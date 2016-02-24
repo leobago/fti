@@ -281,23 +281,35 @@ int FTI_RecoverL2(int group)
     char str[FTI_BUFS], lfn[FTI_BUFS], pfn[FTI_BUFS], jfn[FTI_BUFS], qfn[FTI_BUFS];
     char *blBuf1, *blBuf2, *blBuf3, *blBuf4;
     unsigned long ps, fs, maxFs, pos = 0;
+
     FILE *lfd, *pfd, *jfd, *qfd;
+
     MPI_Request reqSend1, reqRecv1, reqSend2, reqRecv2;
     MPI_Status status;
+
     blBuf1 = talloc(char, FTI_Conf.blockSize);
     blBuf2 = talloc(char, FTI_Conf.blockSize);
     blBuf3 = talloc(char, FTI_Conf.blockSize);
     blBuf4 = talloc(char, FTI_Conf.blockSize);
+
     gs = FTI_Topo.groupSize;
     src = FTI_Topo.left;
     dest = FTI_Topo.right;
+
     if (access(FTI_Ckpt[2].dir, F_OK) != 0)
         mkdir(FTI_Ckpt[2].dir, 0777);
-    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 2) != FTI_SCES) // Checking erasures
-    {
+    // Checking erasures
+    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 2) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
+
+        free(blBuf1);
+        free(blBuf2);
+        free(blBuf3);
+        free(blBuf4);
+
         return FTI_NSCS;
     }
+
     buf = -1;
     for (j = 0; j < gs; j++)
         if (erased[j] && erased[((j + 1) % gs) + gs])
@@ -305,8 +317,15 @@ int FTI_RecoverL2(int group)
     sprintf(str, "A checkpoint file and its partner copy (ID in group : %d) have been lost", buf);
     if (buf > -1) {
         FTI_Print(str, FTI_DBUG);
+
+        free(blBuf1);
+        free(blBuf2);
+        free(blBuf3);
+        free(blBuf4);
+
         return FTI_NSCS;
     }
+
     buf = 0;
     for (j = 0; j < gs * 2; j++)
         if (erased[j])
@@ -333,11 +352,23 @@ int FTI_RecoverL2(int group)
                 FTI_Print("R2 cannot open the checkpoint file.", FTI_DBUG);
                 if (jfd)
                     fclose(jfd);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             if (jfd == NULL) {
                 FTI_Print("R2 cannot open the partner ckpt. file.", FTI_DBUG);
                 fclose(lfd);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
@@ -348,11 +379,23 @@ int FTI_RecoverL2(int group)
             FTI_Print(str, FTI_DBUG);
             if (truncate(pfn, ps) == -1) {
                 FTI_Print("R2 cannot truncate the partner ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             pfd = fopen(pfn, "rb");
             if (pfd == NULL) {
                 FTI_Print("R2 cannot open partner ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
@@ -362,11 +405,23 @@ int FTI_RecoverL2(int group)
             FTI_Print(str, FTI_DBUG);
             if (truncate(qfn, ps) == -1) {
                 FTI_Print("R2 cannot truncate the ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             qfd = fopen(qfn, "rb");
             if (qfd == NULL) {
                 FTI_Print("R2 cannot open ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
@@ -392,10 +447,22 @@ int FTI_RecoverL2(int group)
                 MPI_Wait(&reqRecv2, &status);
                 if (fwrite(blBuf2, sizeof(char), FTI_Conf.blockSize, lfd) != FTI_Conf.blockSize) {
                     FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
                     return FTI_NSCS;
                 }
                 if (fwrite(blBuf4, sizeof(char), FTI_Conf.blockSize, jfd) != FTI_Conf.blockSize) {
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
                     return FTI_NSCS;
                 }
             }
@@ -404,6 +471,12 @@ int FTI_RecoverL2(int group)
         if (erased[FTI_Topo.groupRank]) { // Close files
             if (fclose(lfd) != 0) {
                 FTI_Print("R2 cannot close the checkpoint file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             if (truncate(lfn, fs) == -1) {
@@ -412,36 +485,76 @@ int FTI_RecoverL2(int group)
             }
             if (fclose(jfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             if (truncate(jfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
         if (erased[src] && !erased[gs + FTI_Topo.groupRank]) {
             if (fclose(pfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             if (truncate(pfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
         if (erased[dest] && !erased[gs + FTI_Topo.groupRank]) {
             if (fclose(qfd) != 0) {
                 FTI_Print("R2 cannot close the ckpt. file", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
             if (truncate(qfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the ckpt. file.", FTI_DBUG);
+
+                free(blBuf1);
+                free(blBuf2);
+                free(blBuf3);
+                free(blBuf4);
+
                 return FTI_NSCS;
             }
         }
     }
+
     free(blBuf1);
-    free(blBuf2); // Free memory
+    free(blBuf2);
+    free(blBuf3);
+    free(blBuf4);
+
     return FTI_SCES;
 }
 
