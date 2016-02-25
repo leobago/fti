@@ -594,6 +594,9 @@ int FTI_RecoverL2(int group)
             if (truncate(pfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
 
+                if (qfd)
+                    fclose(qfd);
+
                 free(blBuf1);
                 free(blBuf2);
                 free(blBuf3);
