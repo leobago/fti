@@ -24,43 +24,66 @@ int FTI_SaveTopo(char* nameList)
     char mfn[FTI_BUFS], str[FTI_BUFS];
     dictionary* ini;
     int i;
+
     sprintf(str, "Trying to load configuration file (%s) to create topology.", FTI_Conf.cfgFile);
     FTI_Print(str, FTI_DBUG);
+
     ini = iniparser_load(FTI_Conf.cfgFile);
     if (ini == NULL) {
         FTI_Print("Iniparser cannot parse the configuration file.", FTI_WARN);
+
         return FTI_NSCS;
     }
-    iniparser_set(ini, "topology", NULL); // Set topology section
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Write list of nodes
+
+    // Set topology section
+    iniparser_set(ini, "topology", NULL);
+
+    // Write list of nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS);
         sprintf(str, "topology:%d", i);
         iniparser_set(ini, str, mfn);
-    } // Unset sections of the configuration file
+    }
+
+    // Unset sections of the configuration file
     iniparser_unset(ini, "basic");
     iniparser_unset(ini, "restart");
     iniparser_unset(ini, "advanced");
+
     sprintf(mfn, "%s/Topology.fti", FTI_Conf.metadDir);
     sprintf(str, "Creating topology file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
+
     FILE* fd = fopen(mfn, "w");
     if (fd == NULL) {
         FTI_Print("Topology file could NOT be opened", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_dump_ini(ini, fd); // Write new topology
+
+    // Write new topology
+    iniparser_dump_ini(ini, fd);
+
     if (fflush(fd) != 0) {
         FTI_Print("Topology file could NOT be flushed.", FTI_WARN);
+
         iniparser_freedict(ini);
+        fclose(fd);
+
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("Topology file could NOT be closed.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
+
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 
