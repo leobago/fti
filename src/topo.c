@@ -277,7 +277,7 @@ int FTI_CreateComms(int* userProcList, int* distProcList, int* nodeList)
 /*-------------------------------------------------------------------------*/
 int FTI_Topology()
 {
-    int res, nn, found, c1 = 0, c2 = 0, p, i, mypos, posInNode;
+    int res, nn, found, c1 = 0, c2 = 0, p, i, mypos = -1, posInNode;
     char str[FTI_BUFS], *nameList = talloc(char, FTI_Topo.nbNodes *FTI_BUFS);
     int* nodeList = talloc(int, FTI_Topo.nbNodes* FTI_Topo.nodeSize);
     for (i = 0; i < FTI_Topo.nbProc; i++) {
@@ -319,6 +319,9 @@ int FTI_Topology()
             c2++;
         }
     }
+    if (mypos == -1)
+        return FTI_NSCS;
+
     FTI_Topo.nodeRank = mypos % FTI_Topo.nodeSize;
     if (FTI_Topo.nodeRank == 0 && FTI_Topo.nbHeads == 1) {
         FTI_Topo.amIaHead = 1;
