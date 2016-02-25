@@ -332,30 +332,38 @@ int FTI_Topology()
 {
     int res, nn, found, c1 = 0, c2 = 0, p, i, mypos = -1, posInNode;
     char str[FTI_BUFS], *nameList = talloc(char, FTI_Topo.nbNodes *FTI_BUFS);
+
     int* nodeList = talloc(int, FTI_Topo.nbNodes* FTI_Topo.nodeSize);
     for (i = 0; i < FTI_Topo.nbProc; i++) {
         nodeList[i] = -1;
     }
+
     res = FTI_Try(FTI_BuildNodeList(nodeList, nameList), "create node list.");
     if (res == FTI_NSCS) {
         free(nameList);
         free(nodeList);
+
         return FTI_NSCS;
     }
+
     if (FTI_Exec.reco > 0) {
         res = FTI_Try(FTI_ReorderNodes(nodeList, nameList), "reorder nodes.");
         if (res == FTI_NSCS) {
             free(nameList);
             free(nodeList);
+
             return FTI_NSCS;
         }
     }
-    MPI_Barrier(FTI_Exec.globalComm); // Need to synchronize before editing topology file
+
+    // Need to synchronize before editing topology file
+    MPI_Barrier(FTI_Exec.globalComm);
     if (FTI_Topo.myRank == 0 && FTI_Exec.reco == 0) {
         res = FTI_Try(FTI_SaveTopo(nameList), "save topology.");
         if (res == FTI_NSCS) {
             free(nameList);
             free(nodeList);
+
             return FTI_NSCS;
         }
     }
@@ -372,8 +380,14 @@ int FTI_Topology()
             c2++;
         }
     }
-    if (mypos == -1)
+    if (mypos == -1) {
+        free(userProcList);
+        free(distProcList);
+        free(nameList);
+        free(nodeList);
+
         return FTI_NSCS;
+    }
 
     FTI_Topo.nodeRank = mypos % FTI_Topo.nodeSize;
     if (FTI_Topo.nodeRank == 0 && FTI_Topo.nbHeads == 1) {
@@ -390,17 +404,21 @@ int FTI_Topology()
     for (i = 0; i < FTI_Topo.nbNodes; i++) {
         distProcList[i] = nodeList[(FTI_Topo.nodeSize * i) + posInNode];
     }
+
     res = FTI_Try(FTI_CreateComms(userProcList, distProcList, nodeList), "create communicators.");
     if (res == FTI_NSCS) {
         free(userProcList);
         free(distProcList);
         free(nameList);
         free(nodeList);
+
         return FTI_NSCS;
     }
+
     free(userProcList);
     free(distProcList);
     free(nameList);
     free(nodeList);
+
     return FTI_SCES;
 }
