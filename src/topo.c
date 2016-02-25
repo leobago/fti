@@ -24,43 +24,66 @@ int FTI_SaveTopo(char* nameList)
     char mfn[FTI_BUFS], str[FTI_BUFS];
     dictionary* ini;
     int i;
+
     sprintf(str, "Trying to load configuration file (%s) to create topology.", FTI_Conf.cfgFile);
     FTI_Print(str, FTI_DBUG);
+
     ini = iniparser_load(FTI_Conf.cfgFile);
     if (ini == NULL) {
         FTI_Print("Iniparser cannot parse the configuration file.", FTI_WARN);
+
         return FTI_NSCS;
     }
-    iniparser_set(ini, "topology", NULL); // Set topology section
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Write list of nodes
+
+    // Set topology section
+    iniparser_set(ini, "topology", NULL);
+
+    // Write list of nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS);
         sprintf(str, "topology:%d", i);
         iniparser_set(ini, str, mfn);
-    } // Unset sections of the configuration file
+    }
+
+    // Unset sections of the configuration file
     iniparser_unset(ini, "basic");
     iniparser_unset(ini, "restart");
     iniparser_unset(ini, "advanced");
+
     sprintf(mfn, "%s/Topology.fti", FTI_Conf.metadDir);
     sprintf(str, "Creating topology file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
+
     FILE* fd = fopen(mfn, "w");
     if (fd == NULL) {
         FTI_Print("Topology file could NOT be opened", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_dump_ini(ini, fd); // Write new topology
+
+    // Write new topology
+    iniparser_dump_ini(ini, fd);
+
     if (fflush(fd) != 0) {
         FTI_Print("Topology file could NOT be flushed.", FTI_WARN);
+
         iniparser_freedict(ini);
+        fclose(fd);
+
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("Topology file could NOT be closed.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
+
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 
@@ -81,6 +104,7 @@ int FTI_ReorderNodes(int* nodeList, char* nameList)
 {
     char mfn[FTI_BUFS], str[FTI_BUFS], *tmp;
     int i, j, *nl, *old, *new;
+
     nl = talloc(int, FTI_Topo.nbProc);
     old = talloc(int, FTI_Topo.nbNodes);
     new = talloc(int, FTI_Topo.nbNodes);
@@ -88,55 +112,84 @@ int FTI_ReorderNodes(int* nodeList, char* nameList)
         old[i] = -1;
         new[i] = -1;
     }
+
     sprintf(mfn, "%s/Topology.fti", FTI_Conf.metadDir);
     sprintf(str, "Loading FTI topology file (%s) to reorder nodes...", mfn);
     FTI_Print(str, FTI_DBUG);
-    if (access(mfn, F_OK) != 0) { // Checking that the topology file exist
+
+    // Checking that the topology file exist
+    if (access(mfn, F_OK) != 0) {
         FTI_Print("The topology file is NOT accessible.", FTI_WARN);
+
+        free(nl);
+        free(old);
+        free(new);
+
         return FTI_NSCS;
     }
+
     dictionary* ini;
     ini = iniparser_load(mfn);
     if (ini == NULL) {
         FTI_Print("Iniparser could NOT parse the topology file.", FTI_WARN);
+
+        free(nl);
+        free(old);
+        free(new);
+
         return FTI_NSCS;
     }
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Get the old order of nodes
+
+    // Get the old order of nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         sprintf(str, "Topology:%d", i);
         tmp = iniparser_getstring(ini, str, NULL);
         snprintf(str, FTI_BUFS, "%s", tmp);
-        for (j = 0; j < FTI_Topo.nbNodes; j++) { // Search for same node in current nameList
-            if (strncmp(str, nameList + (j * FTI_BUFS), FTI_BUFS) == 0) // If found...
-            {
+
+        // Search for same node in current nameList
+        for (j = 0; j < FTI_Topo.nbNodes; j++) {
+            // If found...
+            if (strncmp(str, nameList + (j * FTI_BUFS), FTI_BUFS) == 0) {
                 old[j] = i;
                 new[i] = j;
                 break;
             } // ...set matching IDs and break out of the searching loop
         }
     }
+
     iniparser_freedict(ini);
+
     j = 0;
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Introducing missing nodes
-        if (new[i] == -1) { // For each new node..
-            while (old[j] != -1) { // ..search for an old node not present in the new list...
+    // Introducing missing nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
+        // For each new node..
+        if (new[i] == -1) {
+            // ..search for an old node not present in the new list..
+            while (old[j] != -1) {
                 j++;
-            } // .. and set matching IDs
+            }
+            // .. and set matching IDs
             old[j] = i;
             new[i] = j;
             j++;
         }
     }
-    for (i = 0; i < FTI_Topo.nbProc; i++) { // Copying nodeList in nl
+    // Copying nodeList in nl
+    for (i = 0; i < FTI_Topo.nbProc; i++) {
         nl[i] = nodeList[i];
     }
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Creating the new nodeList with the old order
+    // Creating the new nodeList with the old order
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         for (j = 0; j < FTI_Topo.nodeSize; j++) {
             nodeList[(i * FTI_Topo.nodeSize) + j] = nl[(new[i] * FTI_Topo.nodeSize) + j];
         }
-    } // Free memory
+    }
+
+    // Free memory
+    free(nl);
     free(old);
     free(new);
-    free(nl);
+
     return FTI_SCES;
 }
 
@@ -277,7 +330,7 @@ int FTI_CreateComms(int* userProcList, int* distProcList, int* nodeList)
 /*-------------------------------------------------------------------------*/
 int FTI_Topology()
 {
-    int res, nn, found, c1 = 0, c2 = 0, p, i, mypos, posInNode;
+    int res, nn, found, c1 = 0, c2 = 0, p, i, mypos = -1, posInNode;
     char str[FTI_BUFS], *nameList = talloc(char, FTI_Topo.nbNodes *FTI_BUFS);
     int* nodeList = talloc(int, FTI_Topo.nbNodes* FTI_Topo.nodeSize);
     for (i = 0; i < FTI_Topo.nbProc; i++) {
@@ -319,6 +372,9 @@ int FTI_Topology()
             c2++;
         }
     }
+    if (mypos == -1)
+        return FTI_NSCS;
+
     FTI_Topo.nodeRank = mypos % FTI_Topo.nodeSize;
     if (FTI_Topo.nodeRank == 0 && FTI_Topo.nbHeads == 1) {
         FTI_Topo.amIaHead = 1;

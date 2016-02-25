@@ -282,7 +282,7 @@ int FTI_RecoverL2(int group)
     char *blBuf1, *blBuf2, *blBuf3, *blBuf4;
     unsigned long ps, fs, maxFs, pos = 0;
 
-    FILE *lfd, *pfd, *jfd, *qfd;
+    FILE *lfd = NULL, *pfd = NULL, *jfd = NULL, *qfd = NULL;
 
     MPI_Request reqSend1, reqRecv1, reqSend2, reqRecv2;
     MPI_Status status;
@@ -593,6 +593,9 @@ int FTI_RecoverL2(int group)
             }
             if (truncate(pfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
+
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);

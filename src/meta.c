@@ -78,15 +78,21 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
     char str[FTI_BUFS], buf[FTI_BUFS];
     dictionary* ini;
     int i;
+
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf.metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
-    ini = iniparser_load(buf); // To bypass iniparser bug while empty dict.
+
+    // To bypass iniparser bug while empty dict.
+    ini = iniparser_load(buf);
     if (ini == NULL) {
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
+
         return FTI_NSCS;
     }
-    for (i = 0; i < FTI_Topo.groupSize; i++) { // Add metadata to dictionary
+
+    // Add metadata to dictionary
+    for (i = 0; i < FTI_Topo.groupSize; i++) {
         strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS);
         sprintf(str, "%d", i);
         iniparser_set(ini, str, NULL);
@@ -99,32 +105,47 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
         sprintf(buf, "%ld", mfs);
         iniparser_set(ini, str, buf);
     }
-    iniparser_unset(ini, "topology"); // Remove topology section
+
+    // Remove topology section
+    iniparser_unset(ini, "topology");
     if (access(FTI_Conf.mTmpDir, F_OK) != 0) {
         mkdir(FTI_Conf.mTmpDir, 0777);
     }
+
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
     remove(buf);
     sprintf(str, "Creating metadata file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
+
     FILE* fd = fopen(buf, "w");
     if (fd == NULL) {
         FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_dump_ini(ini, fd); // Write metadata
+
+    // Write metadata
+    iniparser_dump_ini(ini, fd);
+
     if (fflush(fd) != 0) {
         FTI_Print("Metadata file could NOT be flushed.", FTI_WARN);
+
         iniparser_freedict(ini);
+        fclose(fd);
+
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 

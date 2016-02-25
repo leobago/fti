@@ -26,34 +26,53 @@ int FTI_UpdateConf(int restart)
 {
     char str[FTI_BUFS];
     dictionary* ini;
-    ini = iniparser_load(FTI_Conf.cfgFile); // Load dictionary
+
+    // Load dictionary
+    ini = iniparser_load(FTI_Conf.cfgFile);
     sprintf(str, "Updating configuration file (%s)...", FTI_Conf.cfgFile);
     FTI_Print(str, FTI_DBUG);
     if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the conf. file.", FTI_WARN);
+
         return FTI_NSCS;
     }
+
     sprintf(str, "%d", restart);
-    iniparser_set(ini, "Restart:failure", str); // Set failure to 'restart'
-    iniparser_set(ini, "Restart:exec_id", FTI_Exec.id); // Set the exec. ID
+    // Set failure to 'restart'
+    iniparser_set(ini, "Restart:failure", str);
+    // Set the exec. ID
+    iniparser_set(ini, "Restart:exec_id", FTI_Exec.id);
+
     FILE* fd = fopen(FTI_Conf.cfgFile, "w");
     if (fd == NULL) {
         FTI_Print("FTI failed to open the configuration file.", FTI_EROR);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_dump_ini(ini, fd); // Write new configuration
+
+    // Write new configuration
+    iniparser_dump_ini(ini, fd);
     if (fflush(fd) != 0) {
         FTI_Print("FTI failed to flush the configuration file.", FTI_EROR);
+
         iniparser_freedict(ini);
+        fclose(fd);
+
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_freedict(ini); // Free dictionary
+
+    // Free dictionary
+    iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 
