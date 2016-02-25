@@ -104,6 +104,7 @@ int FTI_ReorderNodes(int* nodeList, char* nameList)
 {
     char mfn[FTI_BUFS], str[FTI_BUFS], *tmp;
     int i, j, *nl, *old, *new;
+
     nl = talloc(int, FTI_Topo.nbProc);
     old = talloc(int, FTI_Topo.nbNodes);
     new = talloc(int, FTI_Topo.nbNodes);
@@ -111,55 +112,84 @@ int FTI_ReorderNodes(int* nodeList, char* nameList)
         old[i] = -1;
         new[i] = -1;
     }
+
     sprintf(mfn, "%s/Topology.fti", FTI_Conf.metadDir);
     sprintf(str, "Loading FTI topology file (%s) to reorder nodes...", mfn);
     FTI_Print(str, FTI_DBUG);
-    if (access(mfn, F_OK) != 0) { // Checking that the topology file exist
+
+    // Checking that the topology file exist
+    if (access(mfn, F_OK) != 0) {
         FTI_Print("The topology file is NOT accessible.", FTI_WARN);
+
+        free(nl);
+        free(old);
+        free(new);
+
         return FTI_NSCS;
     }
+
     dictionary* ini;
     ini = iniparser_load(mfn);
     if (ini == NULL) {
         FTI_Print("Iniparser could NOT parse the topology file.", FTI_WARN);
+
+        free(nl);
+        free(old);
+        free(new);
+
         return FTI_NSCS;
     }
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Get the old order of nodes
+
+    // Get the old order of nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         sprintf(str, "Topology:%d", i);
         tmp = iniparser_getstring(ini, str, NULL);
         snprintf(str, FTI_BUFS, "%s", tmp);
-        for (j = 0; j < FTI_Topo.nbNodes; j++) { // Search for same node in current nameList
-            if (strncmp(str, nameList + (j * FTI_BUFS), FTI_BUFS) == 0) // If found...
-            {
+
+        // Search for same node in current nameList
+        for (j = 0; j < FTI_Topo.nbNodes; j++) {
+            // If found...
+            if (strncmp(str, nameList + (j * FTI_BUFS), FTI_BUFS) == 0) {
                 old[j] = i;
                 new[i] = j;
                 break;
             } // ...set matching IDs and break out of the searching loop
         }
     }
+
     iniparser_freedict(ini);
+
     j = 0;
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Introducing missing nodes
-        if (new[i] == -1) { // For each new node..
-            while (old[j] != -1) { // ..search for an old node not present in the new list...
+    // Introducing missing nodes
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
+        // For each new node..
+        if (new[i] == -1) {
+            // ..search for an old node not present in the new list..
+            while (old[j] != -1) {
                 j++;
-            } // .. and set matching IDs
+            }
+            // .. and set matching IDs
             old[j] = i;
             new[i] = j;
             j++;
         }
     }
-    for (i = 0; i < FTI_Topo.nbProc; i++) { // Copying nodeList in nl
+    // Copying nodeList in nl
+    for (i = 0; i < FTI_Topo.nbProc; i++) {
         nl[i] = nodeList[i];
     }
-    for (i = 0; i < FTI_Topo.nbNodes; i++) { // Creating the new nodeList with the old order
+    // Creating the new nodeList with the old order
+    for (i = 0; i < FTI_Topo.nbNodes; i++) {
         for (j = 0; j < FTI_Topo.nodeSize; j++) {
             nodeList[(i * FTI_Topo.nodeSize) + j] = nl[(new[i] * FTI_Topo.nodeSize) + j];
         }
-    } // Free memory
+    }
+
+    // Free memory
+    free(nl);
     free(old);
     free(new);
-    free(nl);
+
     return FTI_SCES;
 }
 
