@@ -282,7 +282,7 @@ int FTI_RecoverL2(int group)
     char *blBuf1, *blBuf2, *blBuf3, *blBuf4;
     unsigned long ps, fs, maxFs, pos = 0;
 
-    FILE *lfd, *pfd, *jfd, *qfd;
+    FILE *lfd = NULL, *pfd = NULL, *jfd = NULL, *qfd = NULL;
 
     MPI_Request reqSend1, reqRecv1, reqSend2, reqRecv2;
     MPI_Status status;
