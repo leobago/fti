@@ -72,6 +72,7 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data)
     FILE* fd;
     double tt = MPI_Wtime();
     char fn[FTI_BUFS], str[FTI_BUFS];
+
     snprintf(FTI_Exec.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
@@ -81,31 +82,40 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data)
         sprintf(fn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
         mkdir(FTI_Conf.lTmpDir, 0777);
     }
+
     fd = fopen(fn, "wb");
     if (fd == NULL) {
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
+
         return FTI_NSCS;
     }
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         if (fwrite(FTI_Data[i].ptr, FTI_Data[i].eleSize, FTI_Data[i].count, fd) != FTI_Data[i].count) {
             sprintf(str, "Dataset #%d could not be written.", FTI_Data[i].id);
             FTI_Print(str, FTI_EROR);
+
             fclose(fd);
+
             return FTI_NSCS;
         }
     }
     if (fflush(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
+        fclose(fd);
+
         return FTI_NSCS;
     }
     if (fclose(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
         return FTI_NSCS;
     }
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) ? 1 : 0;
     res = FTI_Try(FTI_CreateMetadata(globalTmp), "create metadata.");
+
     return res;
 }
 
