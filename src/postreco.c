@@ -490,6 +490,8 @@ int FTI_RecoverL2(int group)
                         fclose(lfd);
                     if (pfd)
                         fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
 
                     free(blBuf1);
                     free(blBuf2);
@@ -507,6 +509,8 @@ int FTI_RecoverL2(int group)
                         fclose(lfd);
                     if (pfd)
                         fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
 
                     free(blBuf1);
                     free(blBuf2);
@@ -528,6 +532,8 @@ int FTI_RecoverL2(int group)
                     fclose(jfd);
                 if (pfd)
                     fclose(pfd);
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -543,6 +549,8 @@ int FTI_RecoverL2(int group)
                     fclose(jfd);
                 if (pfd)
                     fclose(pfd);
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -557,6 +565,8 @@ int FTI_RecoverL2(int group)
 
                 if (pfd)
                     fclose(pfd);
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -570,6 +580,8 @@ int FTI_RecoverL2(int group)
 
                 if (pfd)
                     fclose(pfd);
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
@@ -583,6 +595,9 @@ int FTI_RecoverL2(int group)
         if (erased[src] && !erased[gs + FTI_Topo.groupRank]) {
             if (fclose(pfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file", FTI_DBUG);
+
+                if (qfd)
+                    fclose(qfd);
 
                 free(blBuf1);
                 free(blBuf2);
