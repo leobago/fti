@@ -70,17 +70,20 @@ int FTI_WriteCkpt(FTIT_dataset* FTI_Data)
 {
     int i, res;
     FILE* fd;
-    double tt = MPI_Wtime();
     char fn[FTI_BUFS], str[FTI_BUFS];
+
+    double tt = MPI_Wtime();
 
     snprintf(FTI_Exec.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
-        mkdir(FTI_Conf.gTmpDir, 0777);
+        if (mkdir(FTI_Conf.gTmpDir, 0777) == -1)
+            FTI_Print("Cannot create global directory", FTI_EROR);
     }
     else {
         sprintf(fn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
-        mkdir(FTI_Conf.lTmpDir, 0777);
+        if (mkdir(FTI_Conf.lTmpDir, 0777) == -1)
+            FTI_Print("Cannot create local directory", FTI_EROR);
     }
 
     fd = fopen(fn, "wb");
