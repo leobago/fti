@@ -297,7 +297,9 @@ int FTI_RecoverL2(int group)
     dest = FTI_Topo.right;
 
     if (access(FTI_Ckpt[2].dir, F_OK) != 0)
-        mkdir(FTI_Ckpt[2].dir, 0777);
+        if (mkdir(FTI_Ckpt[2].dir, 0777) == -1)
+            FTI_Print("Cannot create directory", FTI_EROR);
+
     // Checking erasures
     if (FTI_CheckErasures(&fs, &maxFs, group, erased, 2) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
