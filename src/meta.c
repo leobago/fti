@@ -114,7 +114,9 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
     }
 
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
-    remove(buf);
+    if (remove(buf) == -1)
+        FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
+
     sprintf(str, "Creating metadata file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
 
