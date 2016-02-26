@@ -109,7 +109,8 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
     // Remove topology section
     iniparser_unset(ini, "topology");
     if (access(FTI_Conf.mTmpDir, F_OK) != 0) {
-        mkdir(FTI_Conf.mTmpDir, 0777);
+        if (mkdir(FTI_Conf.mTmpDir, 0777) == -1)
+            FTI_Print("Cannot create directory", FTI_EROR);
     }
 
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
