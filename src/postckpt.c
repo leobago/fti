@@ -250,7 +250,7 @@ int FTI_Flush(int group, int level)
         if (mkdir(FTI_Conf.gTmpDir, 0777) == -1)
             FTI_Print("Cannot create directory", FTI_EROR);
     }
-    
+
     ps = (maxFs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
     if (ps < maxFs)
         ps = ps + FTI_Conf.blockSize;

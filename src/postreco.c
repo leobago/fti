@@ -33,7 +33,7 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     if (access(FTI_Ckpt[3].dir, F_OK) != 0)
         if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
             FTI_Print("Cannot create directory", FTI_EROR);
-    
+
     sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
     sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile);
     sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec.ckptID, i);
@@ -674,24 +674,31 @@ int FTI_RecoverL3(int group)
     unsigned long fs, maxFs;
     char str[FTI_BUFS];
     gs = FTI_Topo.groupSize;
+
     if (access(FTI_Ckpt[3].dir, F_OK) != 0)
-        mkdir(FTI_Ckpt[3].dir, 0777);
-    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 3) != FTI_SCES) // Checking erasures
-    {
+        if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+            FTI_Print("Cannot create directory", FTI_EROR);
+
+    // Checking erasures
+    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 3) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
         return FTI_NSCS;
     }
+
+    // Counting erasures
     l = 0;
     for (j = 0; j < gs; j++) {
         if (erased[j])
             l++;
         if (erased[j + gs])
             l++;
-    } // Counting erasures
+    }
     if (l > gs) {
         FTI_Print("Too many erasures at L3.", FTI_DBUG);
         return FTI_NSCS;
     }
+
+    // Reed-Solomon decoding
     if (l > 0) {
         sprintf(str, "There are %d encoded/checkpoint files missing in this group.", l);
         FTI_Print(str, FTI_DBUG);
@@ -699,7 +706,8 @@ int FTI_RecoverL3(int group)
             FTI_Print("RS-decoding could not regenerate the missing data.", FTI_DBUG);
             return FTI_NSCS;
         }
-    } // Reed-Solomon decoding
+    }
+
     return FTI_SCES;
 }
 
