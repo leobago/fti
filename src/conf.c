@@ -311,7 +311,8 @@ int FTI_CreateDirs()
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.metadDir, FTI_Exec.id);
     if (access(fn, F_OK) != 0) {
-        mkdir(fn, 0777);
+        if (mkdir(fn, 0777) == -1)
+            FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.metadDir, FTI_BUFS, "%s", fn);
     snprintf(FTI_Conf.mTmpDir, FTI_BUFS, "%s/tmp", fn);
@@ -324,7 +325,8 @@ int FTI_CreateDirs()
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf.glbalDir);
     snprintf(FTI_Conf.glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
     if (access(FTI_Conf.glbalDir, F_OK) != 0) {
-        mkdir(FTI_Conf.glbalDir, 0777);
+        if (mkdir(FTI_Conf.glbalDir, 0777) == -1)
+            FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.glbalDir);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf.glbalDir);
@@ -333,7 +335,8 @@ int FTI_CreateDirs()
     if (FTI_Conf.test) { // If local test generate name by topology
         snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf.localDir, FTI_Topo.myRank / FTI_Topo.nodeSize);
         if (access(fn, F_OK) != 0) {
-            mkdir(fn, 0777);
+            if (mkdir(fn, 0777) == -1)
+                FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
         }
     }
     else {
@@ -341,12 +344,14 @@ int FTI_CreateDirs()
     }
     snprintf(FTI_Conf.localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
     if (access(FTI_Conf.localDir, F_OK) != 0) {
-        mkdir(FTI_Conf.localDir, 0777);
+        if (mkdir(FTI_Conf.localDir, 0777) == -1)
+            FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf.localDir);
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf.localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf.localDir);
+
     return FTI_SCES;
 }
 

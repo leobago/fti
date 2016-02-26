@@ -453,53 +453,66 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
-    if (!FTI_Topo.amIaHead) {
-        int buff = FTI_ENDW;
-        MPI_Status status;
-        if (FTI_Exec.wasLastOffline == 1) { // If there is remaining work to do for last checkpoint
-            MPI_Recv(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, &status);
-            if (buff != FTI_NSCS) {
-                FTI_Exec.ckptLvel = buff;
-                FTI_Exec.wasLastOffline = 1;
-                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
-            }
-        }
-        buff = FTI_ENDW;
-        if (FTI_Topo.nbHeads == 1) { // Send notice to the head to stop listening
-            MPI_Send(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-        }
-        if (FTI_Conf.saveLastCkpt) { // If we need to keep the last checkpoint
-            if (FTI_Exec.lastCkptLvel != 4) {
-                FTI_Try(FTI_Flush(FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-                MPI_Barrier(FTI_COMM_WORLD);
-                if (FTI_Topo.splitRank == 0) {
-                    if (access(FTI_Ckpt[4].dir, 0) == 0)
-                        FTI_RmDir(FTI_Ckpt[4].dir, 1);
-                    if (access(FTI_Ckpt[4].metaDir, 0) == 0)
-                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
-                    rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir);
-                    rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir);
-                }
-            }
-            if (FTI_Topo.splitRank == 0) {
-                FTI_Try(FTI_UpdateConf(2), "update configuration file to 2.");
-            }
-            buff = 6; // For cleaning only local storage
-        }
-        else {
-            if (FTI_Topo.splitRank == 0) {
-                FTI_Try(FTI_UpdateConf(0), "update configuration file to 0.");
-            }
-            buff = 5; // For cleaning everything
-        }
-        MPI_Barrier(FTI_Exec.globalComm);
-        FTI_Try(FTI_Clean(buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
-        FTI_Print("FTI has been finalized.", FTI_INFO);
-    }
-    else {
+    if (FTI_Topo.amIaHead) {
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
     }
+
+    // Not FTI_Topo.amIaHead
+    int buff = FTI_ENDW;
+    MPI_Status status;
+
+    // If there is remaining work to do for last checkpoint
+    if (FTI_Exec.wasLastOffline == 1) {
+        MPI_Recv(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag,
+                 FTI_Exec.globalComm, &status);
+        if (buff != FTI_NSCS) {
+            FTI_Exec.ckptLvel = buff;
+            FTI_Exec.wasLastOffline = 1;
+            FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
+        }
+    }
+    buff = FTI_ENDW;
+
+    // Send notice to the head to stop listening
+    if (FTI_Topo.nbHeads == 1) {
+        MPI_Send(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+    }
+
+    // If we need to keep the last checkpoint
+    if (FTI_Conf.saveLastCkpt) {
+        if (FTI_Exec.lastCkptLvel != 4) {
+            FTI_Try(FTI_Flush(FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            MPI_Barrier(FTI_COMM_WORLD);
+            if (FTI_Topo.splitRank == 0) {
+                if (access(FTI_Ckpt[4].dir, 0) == 0)
+                    FTI_RmDir(FTI_Ckpt[4].dir, 1);
+                if (access(FTI_Ckpt[4].metaDir, 0) == 0)
+                    FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
+
+                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1)
+                    FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
+                if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1)
+                    FTI_Print("cannot save last ckpt. dir", FTI_EROR);
+            }
+        }
+        if (FTI_Topo.splitRank == 0) {
+            FTI_Try(FTI_UpdateConf(2), "update configuration file to 2.");
+        }
+        buff = 6; // For cleaning only local storage
+    }
+    else {
+        if (FTI_Topo.splitRank == 0) {
+            FTI_Try(FTI_UpdateConf(0), "update configuration file to 0.");
+        }
+        buff = 5; // For cleaning everything
+    }
+    MPI_Barrier(FTI_Exec.globalComm);
+    FTI_Try(FTI_Clean(buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
+    FTI_Print("FTI has been finalized.", FTI_INFO);
+
     return FTI_SCES;
 }
+
+

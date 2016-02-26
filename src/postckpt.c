@@ -247,8 +247,10 @@ int FTI_Flush(int group, int level)
         return FTI_NSCS;
 
     if (access(FTI_Conf.gTmpDir, F_OK) != 0) {
-        mkdir(FTI_Conf.gTmpDir, 0777);
+        if (mkdir(FTI_Conf.gTmpDir, 0777) == -1)
+            FTI_Print("Cannot create directory", FTI_EROR);
     }
+
     ps = (maxFs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
     if (ps < maxFs)
         ps = ps + FTI_Conf.blockSize;
@@ -271,19 +273,23 @@ int FTI_Flush(int group, int level)
     FTI_Print(str, FTI_DBUG);
     if (access(lfn, R_OK) != 0) {
         FTI_Print("L4 cannot access the checkpoint file.", FTI_EROR);
+
         return FTI_NSCS;
     }
 
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
+
         return FTI_NSCS;
     }
 
     gfd = fopen(gfn, "wb");
     if (gfd == NULL) {
         FTI_Print("L4 cannot open ckpt. file in the PFS.", FTI_EROR);
+
         fclose(lfd);
+
         return FTI_NSCS;
     }
 
@@ -302,5 +308,6 @@ int FTI_Flush(int group, int level)
 
     fclose(lfd);
     fclose(gfd);
+
     return FTI_SCES;
 }
