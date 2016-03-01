@@ -154,36 +154,71 @@ int FTI_Decode(int fs, int maxFs, int* erased)
 
         return FTI_NSCS;
     }
-    while (pos < ps) { // Main loop, block by block
-        if (erased[FTI_Topo.groupRank] == 0) { // Reading the data
-            fread(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
-            fread(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
+    // Main loop, block by block
+    while (pos < ps) {
+        // Reading the data
+        if (erased[FTI_Topo.groupRank] == 0) {
+            (void)fread(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
+            (void)fread(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
+            if (ferror(fd) || ferror(efd)) {
+                FTI_Print("R3 cannot from the ckpt. file or the encoded ckpt. file.", FTI_DBUG);
+
+                fclose(fd);
+                fclose(efd);
+
+                for (i = 0; i < m; i++) {
+                    free(coding[i]);
+                    free(data[i]);
+                }
+                free(tmpmat);
+                free(dm_ids);
+                free(decMatrix);
+                free(matrix);
+                free(data);
+                free(dataTmp);
+                free(coding);
+
+                return FTI_NSCS;
+            }
         }
         else {
             bzero(data[FTI_Topo.groupRank], bs);
             bzero(coding[FTI_Topo.groupRank], bs);
         } // Erasure found
+
         MPI_Allgather(data[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+
         MPI_Allgather(coding[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
-        if (erased[FTI_Topo.groupRank]) // Decoding the lost data work
+
+        // Decoding the lost data work
+        if (erased[FTI_Topo.groupRank])
             jerasure_matrix_dotprod(k, FTI_Conf.l3WordSize, decMatrix + (FTI_Topo.groupRank * k), dm_ids, FTI_Topo.groupRank, data, coding, bs);
+
         MPI_Allgather(data[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
-        if (erased[FTI_Topo.groupRank + k]) // Finally, re-encode any erased encoded checkpoint file
+
+        // Finally, re-encode any erased encoded checkpoint file
+        if (erased[FTI_Topo.groupRank + k])
             jerasure_matrix_dotprod(k, FTI_Conf.l3WordSize, matrix + (FTI_Topo.groupRank * k), NULL, FTI_Topo.groupRank + k, data, coding, bs);
         if (erased[FTI_Topo.groupRank])
             fwrite(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
         if (erased[FTI_Topo.groupRank + k])
             fwrite(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
         pos = pos + bs;
     }
+
+    // Closing files
     fclose(fd);
-    fclose(efd); // Closing files
+    fclose(efd);
+
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_DBUG);
 
