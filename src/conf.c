@@ -165,7 +165,7 @@ int FTI_ReadConf(FTIT_injection* FTI_Inje)
     FTI_Topo.groupSize = (int)iniparser_getint(ini, "Basic:group_size", -1);
     FTI_Topo.nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     FTI_Topo.nbApprocs = FTI_Topo.nodeSize - FTI_Topo.nbHeads;
-    FTI_Topo.nbNodes = FTI_Topo.nbProc / FTI_Topo.nodeSize;
+    FTI_Topo.nbNodes = (FTI_Topo.nodeSize) ? FTI_Topo.nbProc / FTI_Topo.nodeSize : 0;
 
     // Reading/setting injection parameters
     FTI_Inje->rank = (int)iniparser_getint(ini, "Injection:rank", 0);

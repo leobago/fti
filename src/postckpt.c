@@ -33,7 +33,7 @@ int FTI_Local(int group)
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
-  This function copies the checkpoint files into the pertner node. It
+  This function copies the checkpoint files into the partner node. It
   follows a ring, where the ring size is the group size given in the FTI
   configuration file.
 
@@ -85,21 +85,48 @@ int FTI_Ptner(int group)
 
     blBuf1 = talloc(char, FTI_Conf.blockSize);
     blBuf2 = talloc(char, FTI_Conf.blockSize);
-    while (pos < ps) { // Checkpoint files partner copy
+    // Checkpoint files partner copy
+    while (pos < ps) {
         if ((fs - pos) < FTI_Conf.blockSize)
             bSize = fs - pos;
-        fread(blBuf1, sizeof(char), bSize, lfd);
+
+        (void)fread(blBuf1, sizeof(char), bSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("Error reading data from the L2 ckpt. file", FTI_DBUG);
+
+            free(blBuf1);
+            free(blBuf2);
+            fclose(lfd);
+            fclose(pfd);
+
+            return FTI_NSCS;
+        }
+
         MPI_Isend(blBuf1, FTI_Conf.blockSize, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf.blockSize, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
         MPI_Wait(&reqSend, &status);
         MPI_Wait(&reqRecv, &status);
+
         fwrite(blBuf2, sizeof(char), bSize, pfd);
+        if (ferror(pfd)) {
+            FTI_Print("Error writing data to the L2 partner file", FTI_DBUG);
+
+            free(blBuf1);
+            free(blBuf2);
+            fclose(lfd);
+            fclose(pfd);
+
+            return FTI_NSCS;
+        }
+
         pos = pos + FTI_Conf.blockSize;
     }
+
     free(blBuf1);
     free(blBuf2);
     fclose(lfd);
     fclose(pfd);
+
     return FTI_SCES;
 }
 
@@ -268,7 +295,9 @@ int FTI_Flush(int group, int level)
         sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile);
         break;
     }
-    sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile); // Open and resize files
+
+    // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
     if (access(lfn, R_OK) != 0) {
@@ -296,11 +325,35 @@ int FTI_Flush(int group, int level)
     char *blBuf1 = talloc(char, FTI_Conf.blockSize);
     unsigned long bSize = FTI_Conf.blockSize;
 
-    while (pos < ps) { // Checkpoint files exchange
+    // Checkpoint files exchange
+    while (pos < ps) {
         if ((fs - pos) < FTI_Conf.blockSize)
             bSize = fs - pos;
-        fread(blBuf1, sizeof(char), bSize, lfd);
-        fwrite(blBuf1, sizeof(char), bSize, gfd);
+
+        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            fclose(gfd);
+
+            return FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), bytes, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            fclose(gfd);
+
+            return FTI_NSCS;
+        }
+
         pos = pos + FTI_Conf.blockSize;
     }
 

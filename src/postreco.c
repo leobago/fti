@@ -154,36 +154,71 @@ int FTI_Decode(int fs, int maxFs, int* erased)
 
         return FTI_NSCS;
     }
-    while (pos < ps) { // Main loop, block by block
-        if (erased[FTI_Topo.groupRank] == 0) { // Reading the data
-            fread(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
-            fread(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
+    // Main loop, block by block
+    while (pos < ps) {
+        // Reading the data
+        if (erased[FTI_Topo.groupRank] == 0) {
+            (void)fread(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
+            (void)fread(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
+            if (ferror(fd) || ferror(efd)) {
+                FTI_Print("R3 cannot from the ckpt. file or the encoded ckpt. file.", FTI_DBUG);
+
+                fclose(fd);
+                fclose(efd);
+
+                for (i = 0; i < m; i++) {
+                    free(coding[i]);
+                    free(data[i]);
+                }
+                free(tmpmat);
+                free(dm_ids);
+                free(decMatrix);
+                free(matrix);
+                free(data);
+                free(dataTmp);
+                free(coding);
+
+                return FTI_NSCS;
+            }
         }
         else {
             bzero(data[FTI_Topo.groupRank], bs);
             bzero(coding[FTI_Topo.groupRank], bs);
         } // Erasure found
+
         MPI_Allgather(data[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+
         MPI_Allgather(coding[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
-        if (erased[FTI_Topo.groupRank]) // Decoding the lost data work
+
+        // Decoding the lost data work
+        if (erased[FTI_Topo.groupRank])
             jerasure_matrix_dotprod(k, FTI_Conf.l3WordSize, decMatrix + (FTI_Topo.groupRank * k), dm_ids, FTI_Topo.groupRank, data, coding, bs);
+
         MPI_Allgather(data[FTI_Topo.groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec.groupComm);
         for (i = 0; i < k; i++)
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
-        if (erased[FTI_Topo.groupRank + k]) // Finally, re-encode any erased encoded checkpoint file
+
+        // Finally, re-encode any erased encoded checkpoint file
+        if (erased[FTI_Topo.groupRank + k])
             jerasure_matrix_dotprod(k, FTI_Conf.l3WordSize, matrix + (FTI_Topo.groupRank * k), NULL, FTI_Topo.groupRank + k, data, coding, bs);
         if (erased[FTI_Topo.groupRank])
             fwrite(data[FTI_Topo.groupRank] + 0, sizeof(char), bs, fd);
         if (erased[FTI_Topo.groupRank + k])
             fwrite(coding[FTI_Topo.groupRank] + 0, sizeof(char), bs, efd);
+
         pos = pos + bs;
     }
+
+    // Closing files
     fclose(fd);
-    fclose(efd); // Closing files
+    fclose(efd);
+
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_DBUG);
 
@@ -466,11 +501,53 @@ int FTI_RecoverL2(int group)
         // Checkpoint files exchange
         while (pos < ps) {
             if (erased[src] && !erased[gs + FTI_Topo.groupRank]) {
-                fread(blBuf1, sizeof(char), FTI_Conf.blockSize, pfd);
+                (void)fread(blBuf1, sizeof(char), FTI_Conf.blockSize, pfd);
+
+                if (ferror(pfd)) {
+                    FTI_Print("Error reading the data from the partner ckpt. file.", FTI_DBUG);
+
+                    if (jfd)
+                        fclose(jfd);
+                    if (lfd)
+                        fclose(lfd);
+                    if (pfd)
+                        fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
+                    return FTI_NSCS;
+                }
+
                 MPI_Isend(blBuf1, FTI_Conf.blockSize, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend1);
             }
             if (erased[dest] && !erased[gs + FTI_Topo.groupRank]) {
-                fread(blBuf3, sizeof(char), FTI_Conf.blockSize, qfd);
+                (void)fread(blBuf3, sizeof(char), FTI_Conf.blockSize, qfd);
+
+                if (ferror(qfd)) {
+                    FTI_Print("Error reading the data from the ckpt. file.", FTI_DBUG);
+
+                    if (jfd)
+                        fclose(jfd);
+                    if (lfd)
+                        fclose(lfd);
+                    if (pfd)
+                        fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
+                    return FTI_NSCS;
+                }
+
                 MPI_Isend(blBuf3, FTI_Conf.blockSize, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend2);
             }
             if (erased[FTI_Topo.groupRank]) {
@@ -484,7 +561,9 @@ int FTI_RecoverL2(int group)
             if (erased[FTI_Topo.groupRank]) {
                 MPI_Wait(&reqRecv1, &status);
                 MPI_Wait(&reqRecv2, &status);
-                if (fwrite(blBuf2, sizeof(char), FTI_Conf.blockSize, lfd) != FTI_Conf.blockSize) {
+
+                fwrite(blBuf2, sizeof(char), FTI_Conf.blockSize, lfd);
+                if (ferror(lfd)) {
                     FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
 
                     if (jfd)
@@ -503,7 +582,9 @@ int FTI_RecoverL2(int group)
 
                     return FTI_NSCS;
                 }
-                if (fwrite(blBuf4, sizeof(char), FTI_Conf.blockSize, jfd) != FTI_Conf.blockSize) {
+
+                fwrite(blBuf4, sizeof(char), FTI_Conf.blockSize, jfd);
+                if (ferror(jfd)) {
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
 
                     if (jfd)
@@ -743,25 +824,30 @@ int FTI_RecoverL4(int group)
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
-    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 4) != FTI_SCES) // Checking erasures
-    {
+    // Checking erasures
+    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 4) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     l = 0;
+    // Counting erasures
     for (j = 0; j < gs; j++) {
         if (erased[j])
             l++;
-    } // Counting erasures
+    }
     if (l > 0) {
         FTI_Print("Checkpoint file missing at L4.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     ps = (fs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
     pos = 0; // For the logic
+    // Calculating padding size
     if (ps < fs)
-        ps = ps + FTI_Conf.blockSize; // Calculating padding size
-    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptFile); // Open and resize files
+        ps = ps + FTI_Conf.blockSize;
+    // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptFile);
     sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptFile);
     if (access(gfn, R_OK) != 0) {
         FTI_Print("R4 cannot read the checkpoint file in the PFS.", FTI_DBUG);
@@ -786,15 +872,39 @@ int FTI_RecoverL4(int group)
     }
 
     char *blBuf1 = talloc(char, FTI_Conf.blockSize);
-    while (pos < ps) { // Checkpoint files transfer from PFS
-        fread(blBuf1, sizeof(char), FTI_Conf.blockSize, gfd);
-        fwrite(blBuf1, sizeof(char), FTI_Conf.blockSize, lfd);
+    // Checkpoint files transfer from PFS
+    while (pos < ps) {
+        size_t bytes = fread(blBuf1, sizeof(char), FTI_Conf.blockSize, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), bytes, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
         pos = pos + FTI_Conf.blockSize;
     }
+
     free(blBuf1);
 
     fclose(gfd);
-    fclose(lfd); // Close files
+    fclose(lfd);
 
     if (truncate(gfn, fs) == -1) {
         FTI_Print("R4 cannot re-truncate the checkpoint file in the PFS.", FTI_DBUG);
