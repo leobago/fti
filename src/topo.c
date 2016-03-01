@@ -40,7 +40,7 @@ int FTI_SaveTopo(char* nameList)
 
     // Write list of nodes
     for (i = 0; i < FTI_Topo.nbNodes; i++) {
-        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS);
+        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "topology:%d", i);
         iniparser_set(ini, str, mfn);
     }
