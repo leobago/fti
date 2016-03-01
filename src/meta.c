@@ -93,7 +93,7 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
 
     // Add metadata to dictionary
     for (i = 0; i < FTI_Topo.groupSize; i++) {
-        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS);
+        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "%d", i);
         iniparser_set(ini, str, NULL);
         sprintf(str, "%d:Ckpt_file_name", i);
@@ -190,7 +190,7 @@ int FTI_CreateMetadata(int globalTmp)
     sprintf(fnl + (FTI_Topo.groupRank * FTI_BUFS), "%s", FTI_Exec.ckptFile);
     tmpo = fs[FTI_Topo.groupRank]; // Gather all the file sizes
     MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec.groupComm);
-    strncpy(str, fnl + (FTI_Topo.groupRank * FTI_BUFS), FTI_BUFS); // Gather all the file names
+    strncpy(str, fnl + (FTI_Topo.groupRank * FTI_BUFS), FTI_BUFS - 1); // Gather all the file names
     MPI_Allgather(str, FTI_BUFS, MPI_CHAR, fnl, FTI_BUFS, MPI_CHAR, FTI_Exec.groupComm);
     mfs = 0;
     for (i = 0; i < FTI_Topo.groupSize; i++) {
