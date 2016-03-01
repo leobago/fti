@@ -743,25 +743,30 @@ int FTI_RecoverL4(int group)
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
-    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 4) != FTI_SCES) // Checking erasures
-    {
+    // Checking erasures
+    if (FTI_CheckErasures(&fs, &maxFs, group, erased, 4) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     l = 0;
+    // Counting erasures
     for (j = 0; j < gs; j++) {
         if (erased[j])
             l++;
-    } // Counting erasures
+    }
     if (l > 0) {
         FTI_Print("Checkpoint file missing at L4.", FTI_DBUG);
         return FTI_NSCS;
     }
+
     ps = (fs / FTI_Conf.blockSize) * FTI_Conf.blockSize;
     pos = 0; // For the logic
+    // Calculating padding size
     if (ps < fs)
-        ps = ps + FTI_Conf.blockSize; // Calculating padding size
-    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptFile); // Open and resize files
+        ps = ps + FTI_Conf.blockSize;
+    // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptFile);
     sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptFile);
     if (access(gfn, R_OK) != 0) {
         FTI_Print("R4 cannot read the checkpoint file in the PFS.", FTI_DBUG);
@@ -786,15 +791,39 @@ int FTI_RecoverL4(int group)
     }
 
     char *blBuf1 = talloc(char, FTI_Conf.blockSize);
-    while (pos < ps) { // Checkpoint files transfer from PFS
-        fread(blBuf1, sizeof(char), FTI_Conf.blockSize, gfd);
-        fwrite(blBuf1, sizeof(char), FTI_Conf.blockSize, lfd);
+    // Checkpoint files transfer from PFS
+    while (pos < ps) {
+        size_t bytes = fread(blBuf1, sizeof(char), FTI_Conf.blockSize, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), bytes, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
         pos = pos + FTI_Conf.blockSize;
     }
+
     free(blBuf1);
 
     fclose(gfd);
-    fclose(lfd); // Close files
+    fclose(lfd);
 
     if (truncate(gfn, fs) == -1) {
         FTI_Print("R4 cannot re-truncate the checkpoint file in the PFS.", FTI_DBUG);
