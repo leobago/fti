@@ -295,7 +295,9 @@ int FTI_Flush(int group, int level)
         sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec.ckptFile);
         break;
     }
-    sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile); // Open and resize files
+
+    // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
     if (access(lfn, R_OK) != 0) {
@@ -323,11 +325,35 @@ int FTI_Flush(int group, int level)
     char *blBuf1 = talloc(char, FTI_Conf.blockSize);
     unsigned long bSize = FTI_Conf.blockSize;
 
-    while (pos < ps) { // Checkpoint files exchange
+    // Checkpoint files exchange
+    while (pos < ps) {
         if ((fs - pos) < FTI_Conf.blockSize)
             bSize = fs - pos;
-        fread(blBuf1, sizeof(char), bSize, lfd);
-        fwrite(blBuf1, sizeof(char), bSize, gfd);
+
+        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            fclose(gfd);
+
+            return FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), bytes, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            fclose(gfd);
+
+            return FTI_NSCS;
+        }
+
         pos = pos + FTI_Conf.blockSize;
     }
 
