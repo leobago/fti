@@ -224,7 +224,7 @@ int FTI_BuildNodeList(int* nodeList, char* nameList)
     for (i = 0; i < FTI_Topo.nbProc; i++) { // Creating the node list: For each process
         found = 0;
         pos = 0;
-        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS); // Get node name of process i
+        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS - 1); // Get node name of process i
         while ((pos < nbNodes) && (found == 0)) { // Search the node name in the current list of node names
             if (strncmp(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS) == 0) { // If we find it break out
                 found = 1;
