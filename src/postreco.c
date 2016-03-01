@@ -501,11 +501,53 @@ int FTI_RecoverL2(int group)
         // Checkpoint files exchange
         while (pos < ps) {
             if (erased[src] && !erased[gs + FTI_Topo.groupRank]) {
-                fread(blBuf1, sizeof(char), FTI_Conf.blockSize, pfd);
+                (void)fread(blBuf1, sizeof(char), FTI_Conf.blockSize, pfd);
+
+                if (ferror(pfd)) {
+                    FTI_Print("Error reading the data from the partner ckpt. file.", FTI_DBUG);
+
+                    if (jfd)
+                        fclose(jfd);
+                    if (lfd)
+                        fclose(lfd);
+                    if (pfd)
+                        fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
+                    return FTI_NSCS;
+                }
+
                 MPI_Isend(blBuf1, FTI_Conf.blockSize, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend1);
             }
             if (erased[dest] && !erased[gs + FTI_Topo.groupRank]) {
-                fread(blBuf3, sizeof(char), FTI_Conf.blockSize, qfd);
+                (void)fread(blBuf3, sizeof(char), FTI_Conf.blockSize, qfd);
+
+                if (ferror(qfd)) {
+                    FTI_Print("Error reading the data from the ckpt. file.", FTI_DBUG);
+
+                    if (jfd)
+                        fclose(jfd);
+                    if (lfd)
+                        fclose(lfd);
+                    if (pfd)
+                        fclose(pfd);
+                    if (qfd)
+                        fclose(qfd);
+
+                    free(blBuf1);
+                    free(blBuf2);
+                    free(blBuf3);
+                    free(blBuf4);
+
+                    return FTI_NSCS;
+                }
+
                 MPI_Isend(blBuf3, FTI_Conf.blockSize, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend2);
             }
             if (erased[FTI_Topo.groupRank]) {
@@ -519,7 +561,9 @@ int FTI_RecoverL2(int group)
             if (erased[FTI_Topo.groupRank]) {
                 MPI_Wait(&reqRecv1, &status);
                 MPI_Wait(&reqRecv2, &status);
-                if (fwrite(blBuf2, sizeof(char), FTI_Conf.blockSize, lfd) != FTI_Conf.blockSize) {
+
+                fwrite(blBuf2, sizeof(char), FTI_Conf.blockSize, lfd);
+                if (ferror(lfd)) {
                     FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
 
                     if (jfd)
@@ -538,7 +582,9 @@ int FTI_RecoverL2(int group)
 
                     return FTI_NSCS;
                 }
-                if (fwrite(blBuf4, sizeof(char), FTI_Conf.blockSize, jfd) != FTI_Conf.blockSize) {
+
+                fwrite(blBuf4, sizeof(char), FTI_Conf.blockSize, jfd);
+                if (ferror(jfd)) {
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
 
                     if (jfd)
