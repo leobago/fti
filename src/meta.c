@@ -93,7 +93,7 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
 
     // Add metadata to dictionary
     for (i = 0; i < FTI_Topo.groupSize; i++) {
-        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS);
+        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "%d", i);
         iniparser_set(ini, str, NULL);
         sprintf(str, "%d:Ckpt_file_name", i);
