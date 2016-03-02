@@ -506,12 +506,12 @@ int FTI_RecoverL2(int group)
                 if (ferror(pfd)) {
                     FTI_Print("Error reading the data from the partner ckpt. file.", FTI_DBUG);
 
+                    fclose(pfd);
+                    
                     if (jfd)
                         fclose(jfd);
                     if (lfd)
                         fclose(lfd);
-                    if (pfd)
-                        fclose(pfd);
                     if (qfd)
                         fclose(qfd);
 
@@ -531,14 +531,14 @@ int FTI_RecoverL2(int group)
                 if (ferror(qfd)) {
                     FTI_Print("Error reading the data from the ckpt. file.", FTI_DBUG);
 
+                    fclose(qfd);
+
                     if (jfd)
                         fclose(jfd);
                     if (lfd)
                         fclose(lfd);
                     if (pfd)
                         fclose(pfd);
-                    if (qfd)
-                        fclose(qfd);
 
                     free(blBuf1);
                     free(blBuf2);
@@ -566,10 +566,10 @@ int FTI_RecoverL2(int group)
                 if (ferror(lfd)) {
                     FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
 
+                    fclose(lfd);
+
                     if (jfd)
                         fclose(jfd);
-                    if (lfd)
-                        fclose(lfd);
                     if (pfd)
                         fclose(pfd);
                     if (qfd)
@@ -587,8 +587,8 @@ int FTI_RecoverL2(int group)
                 if (ferror(jfd)) {
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
 
-                    if (jfd)
-                        fclose(jfd);
+                    fclose(jfd);
+
                     if (lfd)
                         fclose(lfd);
                     if (pfd)
