@@ -372,7 +372,7 @@ int FTI_Recover()
     sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptFile);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
-    
+
     fd = fopen(fn, "rb");
     if (fd == NULL) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
