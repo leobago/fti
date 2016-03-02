@@ -90,7 +90,7 @@ int FTI_Ptner(int group)
         if ((fs - pos) < FTI_Conf.blockSize)
             bSize = fs - pos;
 
-        (void)fread(blBuf1, sizeof(char), bSize, lfd);
+        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
         if (ferror(lfd)) {
             FTI_Print("Error reading data from the L2 ckpt. file", FTI_DBUG);
 
@@ -102,7 +102,7 @@ int FTI_Ptner(int group)
             return FTI_NSCS;
         }
 
-        MPI_Isend(blBuf1, FTI_Conf.blockSize, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
+        MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf.blockSize, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
         MPI_Wait(&reqSend, &status);
         MPI_Wait(&reqRecv, &status);
@@ -193,31 +193,54 @@ int FTI_RSenc(int group)
         }
     }
 
-    while (pos < ps) { // For each block
+    // For each block
+    while (pos < ps) {
         if ((fs - pos) < bs)
             remBsize = fs - pos;
-        fread(myData, sizeof(char), remBsize, lfd); // Reading checkpoint files
+
+        // Reading checkpoint files
+        size_t bytes = fread(myData, sizeof(char), remBsize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("FTI failed to read from L3 ckpt. file.", FTI_EROR);
+
+            free(data);
+            free(matrix);
+            free(coding);
+            free(myData);
+
+            fclose(lfd);
+            fclose(efd);
+
+            return FTI_NSCS;
+        }
+
         dest = FTI_Topo.groupRank;
         i = FTI_Topo.groupRank;
         offset = 0;
         init = 0;
         cnt = 0;
-        while (cnt < FTI_Topo.groupSize) { // For each encoding
+
+        // For each encoding
+        while (cnt < FTI_Topo.groupSize) {
             if (cnt == 0) {
-                memcpy(&(data[offset * bs]), myData, sizeof(char) * bs);
+                memcpy(&(data[offset * bs]), myData, sizeof(char) * bytes);
             }
             else {
                 MPI_Wait(&reqSend, &status);
                 MPI_Wait(&reqRecv, &status);
             }
-            if (cnt != FTI_Topo.groupSize - 1) { // At every loop *but* the last one we send the data
+
+            // At every loop *but* the last one we send the data
+            if (cnt != FTI_Topo.groupSize - 1) {
                 dest = (dest + FTI_Topo.groupSize - 1) % FTI_Topo.groupSize;
                 src = (i + 1) % FTI_Topo.groupSize;
-                MPI_Isend(myData, bs, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
+                MPI_Isend(myData, bytes, MPI_CHAR, dest, FTI_Conf.tag, FTI_Exec.groupComm, &reqSend);
                 MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf.tag, FTI_Exec.groupComm, &reqRecv);
             }
+
             matVal = matrix[FTI_Topo.groupRank * FTI_Topo.groupSize + i];
-            if (matVal == 1) { // First copy or xor any data that does not need to be multiplied by a factor
+            // First copy or xor any data that does not need to be multiplied by a factor
+            if (matVal == 1) {
                 if (init == 0) {
                     memcpy(coding, &(data[offset * bs]), bs);
                     init = 1;
@@ -226,16 +249,23 @@ int FTI_RSenc(int group)
                     galois_region_xor(&(data[offset * bs]), coding, coding, bs);
                 }
             }
-            if (matVal != 0 && matVal != 1) { // Then the data that needs to be multiplied by a factor
+
+            // Then the data that needs to be multiplied by a factor
+            if (matVal != 0 && matVal != 1) {
                 galois_w16_region_multiply(&(data[offset * bs]), matVal, bs, coding, init);
                 init = 1;
             }
+
             i = (i + 1) % FTI_Topo.groupSize;
             offset = 1 - offset;
             cnt++;
         }
-        fwrite(coding, sizeof(char), remBsize, efd); // Writting encoded checkpoints
-        pos = pos + bs; // Next block
+
+        // Writting encoded checkpoints
+        fwrite(coding, sizeof(char), remBsize, efd);
+
+        // Next block
+        pos = pos + bs;
     }
 
     free(data);

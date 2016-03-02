@@ -382,7 +382,7 @@ int FTI_Recover()
         return FTI_NSCS;
     }
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        (void)fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        size_t bytes = fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
