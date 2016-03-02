@@ -124,7 +124,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS])
 
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
-    if (flag && (!access(path, R_OK))) {
+    if (flag) {
         DIR* dp;
         char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
         struct dirent* ep;

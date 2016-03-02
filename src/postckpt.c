@@ -64,9 +64,7 @@ int FTI_Ptner(int group)
 
     sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
-    res = FTI_Try(access(lfn, R_OK), " access the L2 checkpoint file.");
-    if (res == FTI_NSCS)
-        return FTI_NSCS;
+
     dest = FTI_Topo.right;
     src = FTI_Topo.left;
 
@@ -163,11 +161,9 @@ int FTI_RSenc(int group)
     sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
     sprintf(lfn, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
     sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf.lTmpDir, FTI_Exec.ckptID, i);
+
     sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
-    res = FTI_Try(access(lfn, R_OK), "access the L3 checkpoint file.");
-    if (res != FTI_SCES)
-        return FTI_NSCS;
 
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
@@ -330,11 +326,6 @@ int FTI_Flush(int group, int level)
     sprintf(gfn, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
-    if (access(lfn, R_OK) != 0) {
-        FTI_Print("L4 cannot access the checkpoint file.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
 
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {

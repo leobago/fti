@@ -849,10 +849,7 @@ int FTI_RecoverL4(int group)
     // Open and resize files
     sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptFile);
     sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptFile);
-    if (access(gfn, R_OK) != 0) {
-        FTI_Print("R4 cannot read the checkpoint file in the PFS.", FTI_DBUG);
-        return FTI_NSCS;
-    }
+
     if (truncate(gfn, ps) == -1) {
         FTI_Print("R4 cannot truncate the ckpt. file in the PFS.", FTI_DBUG);
         return FTI_NSCS;

@@ -111,7 +111,6 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
     if (access(FTI_Conf.mTmpDir, F_OK) != 0) {
         if (mkdir(FTI_Conf.mTmpDir, 0777) == -1)
             FTI_Print("Cannot create directory", FTI_EROR);
-    }
 
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
     if (remove(buf) == -1)
