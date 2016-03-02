@@ -372,17 +372,14 @@ int FTI_Recover()
     sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptFile);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
-    if (access(fn, F_OK) != 0) {
-        FTI_Print("FTI checkpoint file is NOT accesible.", FTI_EROR);
-        return FTI_NSCS;
-    }
+
     fd = fopen(fn, "rb");
     if (fd == NULL) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        (void)fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        size_t bytes = fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
