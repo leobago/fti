@@ -1254,6 +1254,7 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   ptr = bitmatrix;
 
   bestdiff = k*w+1;
+  bestrow = -1;
   top = 0;
   for (i = 0; i < m*w; i++) {
     no = 0;
