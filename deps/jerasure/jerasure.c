@@ -1322,7 +1322,8 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
           operations[op][1] = j%w;
           operations[op][2] = k+row/w;
           operations[op][3] = row%w;
-          optodo = 1;
+          // unused value
+          //optodo = 1;
           op++;
         }
       }
