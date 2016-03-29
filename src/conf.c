@@ -257,11 +257,10 @@ int FTI_TestDirectories()
     char str[FTI_BUFS];
 
     // Checking local directory
-    if (access(FTI_Conf.localDir, W_OK) != 0) {
-        sprintf(str, "Checking the local directory (%s)...", FTI_Conf.localDir);
-        FTI_Print(str, FTI_DBUG);
-        FTI_Print("The local directory does not exist or has no write access.", FTI_DBUG);
-        if (mkdir(FTI_Conf.localDir, 0777) != 0) {
+    sprintf(str, "Checking the local directory (%s)...", FTI_Conf.localDir);
+    FTI_Print(str, FTI_DBUG);
+    if (mkdir(FTI_Conf.localDir, 0777) != 0) {
+        if (errno != EEXIST) {
             FTI_Print("The local directory could NOT be created.", FTI_WARN);
             return FTI_NSCS;
         }
@@ -271,9 +270,8 @@ int FTI_TestDirectories()
         // Checking metadata directory
         sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf.metadDir);
         FTI_Print(str, FTI_DBUG);
-        if (access(FTI_Conf.metadDir, W_OK) != 0) {
-            FTI_Print("The metadata directory does not exist or has no write access.", FTI_DBUG);
-            if (mkdir(FTI_Conf.metadDir, 0777) != 0) {
+        if (mkdir(FTI_Conf.metadDir, 0777) != 0) {
+            if (errno != EEXIST) {
                 FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
                 return FTI_NSCS;
             }
@@ -282,9 +280,8 @@ int FTI_TestDirectories()
         // Checking global directory
         sprintf(str, "Checking the global directory (%s)...", FTI_Conf.glbalDir);
         FTI_Print(str, FTI_DBUG);
-        if (access(FTI_Conf.glbalDir, W_OK) != 0) {
-            FTI_Print("The global directory does not exist or has no write access.", FTI_DBUG);
-            if (mkdir(FTI_Conf.glbalDir, 0777) != 0) {
+        if (mkdir(FTI_Conf.glbalDir, 0777) != 0) {
+            if (errno != EEXIST) {
                 FTI_Print("The global directory could NOT be created.", FTI_WARN);
                 return FTI_NSCS;
             }
