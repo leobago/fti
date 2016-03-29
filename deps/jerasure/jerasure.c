@@ -400,6 +400,8 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
     tmp = mat[row_start+i];
     if (tmp != 1) {
       inverse = galois_single_divide(1, tmp, w);
+      if (inverse < 0)
+        return -1;
       for (j = 0; j < cols; j++) {
         mat[row_start+j] = galois_single_multiply(mat[row_start+j], inverse, w);
         inv[row_start+j] = galois_single_multiply(inv[row_start+j], inverse, w);
