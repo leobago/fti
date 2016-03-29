@@ -30,8 +30,8 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     if (ps < maxFs)
         ps = ps + FTI_Conf.blockSize; // Calculating padding size
 
-    if (access(FTI_Ckpt[3].dir, F_OK) != 0)
-        if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
 
     sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
