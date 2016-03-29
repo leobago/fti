@@ -589,8 +589,7 @@ int FTI_RecoverL2(int group)
 
                     fclose(jfd);
 
-                    if (lfd)
-                        fclose(lfd);
+                    fclose(lfd);
                     if (pfd)
                         fclose(pfd);
                     if (qfd)
