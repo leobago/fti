@@ -310,8 +310,8 @@ int FTI_CreateDirs()
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.metadDir, FTI_Exec.id);
-    if (access(fn, F_OK) != 0) {
-        if (mkdir(fn, 0777) == -1)
+    if (mkdir(fn, 0777) == -1) {
+        if (errno != EEXIST)
             FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.metadDir, FTI_BUFS, "%s", fn);
@@ -324,8 +324,8 @@ int FTI_CreateDirs()
     // Create global checkpoint timestamp directory
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf.glbalDir);
     snprintf(FTI_Conf.glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
-    if (access(FTI_Conf.glbalDir, F_OK) != 0) {
-        if (mkdir(FTI_Conf.glbalDir, 0777) == -1)
+    if (mkdir(FTI_Conf.glbalDir, 0777) == -1) {
+        if (errno != EEXIST)
             FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.glbalDir);
@@ -334,8 +334,8 @@ int FTI_CreateDirs()
     // Create local checkpoint timestamp directory
     if (FTI_Conf.test) { // If local test generate name by topology
         snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf.localDir, FTI_Topo.myRank / FTI_Topo.nodeSize);
-        if (access(fn, F_OK) != 0) {
-            if (mkdir(fn, 0777) == -1)
+        if (mkdir(fn, 0777) == -1) {
+            if (errno != EEXIST)
                 FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
         }
     }
@@ -343,8 +343,8 @@ int FTI_CreateDirs()
         snprintf(fn, FTI_BUFS, "%s", FTI_Conf.localDir);
     }
     snprintf(FTI_Conf.localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec.id);
-    if (access(FTI_Conf.localDir, F_OK) != 0) {
-        if (mkdir(FTI_Conf.localDir, 0777) == -1)
+    if (mkdir(FTI_Conf.localDir, 0777) == -1) {
+        if (errno != EEXIST)
             FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
     }
     snprintf(FTI_Conf.lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf.localDir);
