@@ -30,8 +30,8 @@ int FTI_Decode(int fs, int maxFs, int* erased)
     if (ps < maxFs)
         ps = ps + FTI_Conf.blockSize; // Calculating padding size
 
-    if (access(FTI_Ckpt[3].dir, F_OK) != 0)
-        if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
 
     sscanf(FTI_Exec.ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec.ckptID, &i);
@@ -332,8 +332,8 @@ int FTI_RecoverL2(int group)
     src = FTI_Topo.left;
     dest = FTI_Topo.right;
 
-    if (access(FTI_Ckpt[2].dir, F_OK) != 0)
-        if (mkdir(FTI_Ckpt[2].dir, 0777) == -1)
+    if (mkdir(FTI_Ckpt[2].dir, 0777) == -1)
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
 
     // Checking erasures
@@ -755,8 +755,8 @@ int FTI_RecoverL3(int group)
     char str[FTI_BUFS];
     gs = FTI_Topo.groupSize;
 
-    if (access(FTI_Ckpt[3].dir, F_OK) != 0)
-        if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
 
     // Checking erasures
@@ -812,14 +812,9 @@ int FTI_RecoverL4(int group)
 
     gs = FTI_Topo.groupSize;
     if (FTI_Topo.nodeRank == 0 || FTI_Topo.nodeRank == 1) {
-        if (access(FTI_Ckpt[1].dir, F_OK) != 0) {
-            FTI_Print("Directory L1 missing.", FTI_DBUG);
-            if (mkdir(FTI_Ckpt[1].dir, 0777) == 0) {
-                FTI_Print("Directory L1 created.", FTI_DBUG);
-            }
-            else {
+        if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+            if (errno != EEXIST)
                 FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);

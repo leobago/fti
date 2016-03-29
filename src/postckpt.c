@@ -299,8 +299,8 @@ int FTI_Flush(int group, int level)
     if (res != FTI_SCES)
         return FTI_NSCS;
 
-    if (access(FTI_Conf.gTmpDir, F_OK) != 0) {
-        if (mkdir(FTI_Conf.gTmpDir, 0777) == -1)
+    if (mkdir(FTI_Conf.gTmpDir, 0777) == -1) {
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
     }
 
