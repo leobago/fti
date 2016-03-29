@@ -755,8 +755,8 @@ int FTI_RecoverL3(int group)
     char str[FTI_BUFS];
     gs = FTI_Topo.groupSize;
 
-    if (access(FTI_Ckpt[3].dir, F_OK) != 0)
-        if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
 
     // Checking erasures
