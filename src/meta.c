@@ -108,8 +108,8 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
 
     // Remove topology section
     iniparser_unset(ini, "topology");
-    if (access(FTI_Conf.mTmpDir, F_OK) != 0) {
-        if (mkdir(FTI_Conf.mTmpDir, 0777) == -1)
+    if (mkdir(FTI_Conf.mTmpDir, 0777) == -1) {
+        if (errno != EEXIST)
             FTI_Print("Cannot create directory", FTI_EROR);
     }
 
