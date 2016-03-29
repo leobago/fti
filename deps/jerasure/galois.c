@@ -393,8 +393,9 @@ int galois_single_divide(int a, int b, int w)
     sum_j = galois_inverse(b, w);
     return galois_single_multiply(a, sum_j, w);
   }
-  fprintf(stderr, "Galois_single_divide - no implementation for w=%d\n", w);
-  exit(1);
+  // unreachable code
+  //fprintf(stderr, "Galois_single_divide - no implementation for w=%d\n", w);
+  //exit(1);
 }
 
 int galois_shift_divide(int a, int b, int w)
