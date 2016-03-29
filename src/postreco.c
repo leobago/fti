@@ -812,14 +812,9 @@ int FTI_RecoverL4(int group)
 
     gs = FTI_Topo.groupSize;
     if (FTI_Topo.nodeRank == 0 || FTI_Topo.nodeRank == 1) {
-        if (access(FTI_Ckpt[1].dir, F_OK) != 0) {
-            FTI_Print("Directory L1 missing.", FTI_DBUG);
-            if (mkdir(FTI_Ckpt[1].dir, 0777) == 0) {
-                FTI_Print("Directory L1 created.", FTI_DBUG);
-            }
-            else {
+        if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+            if (errno != EEXIST)
                 FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
