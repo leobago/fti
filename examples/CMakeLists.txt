@@ -1,6 +1,5 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
-
 add_executable(hd.exe heatdis.c)
 target_link_libraries(hd.exe fti ${MPI_C_LIBRARIES} m)
 
@@ -14,7 +13,6 @@ if(MPI_C_LINK_FLAGS)
         LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()
 
-
 add_executable(hd2.exe heatd2.c)
 target_link_libraries(hd2.exe fti ${MPI_C_LIBRARIES} m)
 
@@ -27,7 +25,6 @@ if(MPI_C_LINK_FLAGS)
     set_target_properties(hd2.exe PROPERTIES
         LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()
-
 
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
