@@ -93,7 +93,7 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
 
     // Add metadata to dictionary
     for (i = 0; i < FTI_Topo.groupSize; i++) {
-        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS);
+        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "%d", i);
         iniparser_set(ini, str, NULL);
         sprintf(str, "%d:Ckpt_file_name", i);
@@ -108,12 +108,15 @@ int FTI_WriteMetadata(unsigned long* fs, unsigned long mfs, char* fnl)
 
     // Remove topology section
     iniparser_unset(ini, "topology");
-    if (access(FTI_Conf.mTmpDir, F_OK) != 0) {
-        mkdir(FTI_Conf.mTmpDir, 0777);
+    if (mkdir(FTI_Conf.mTmpDir, 0777) == -1) {
+        if (errno != EEXIST)
+            FTI_Print("Cannot create directory", FTI_EROR);
     }
 
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
-    remove(buf);
+    if (remove(buf) == -1)
+        FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
+
     sprintf(str, "Creating metadata file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
 
@@ -187,7 +190,7 @@ int FTI_CreateMetadata(int globalTmp)
     sprintf(fnl + (FTI_Topo.groupRank * FTI_BUFS), "%s", FTI_Exec.ckptFile);
     tmpo = fs[FTI_Topo.groupRank]; // Gather all the file sizes
     MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec.groupComm);
-    strncpy(str, fnl + (FTI_Topo.groupRank * FTI_BUFS), FTI_BUFS); // Gather all the file names
+    strncpy(str, fnl + (FTI_Topo.groupRank * FTI_BUFS), FTI_BUFS - 1); // Gather all the file names
     MPI_Allgather(str, FTI_BUFS, MPI_CHAR, fnl, FTI_BUFS, MPI_CHAR, FTI_Exec.groupComm);
     mfs = 0;
     for (i = 0; i < FTI_Topo.groupSize; i++) {

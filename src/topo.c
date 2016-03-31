@@ -40,7 +40,7 @@ int FTI_SaveTopo(char* nameList)
 
     // Write list of nodes
     for (i = 0; i < FTI_Topo.nbNodes; i++) {
-        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS);
+        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "topology:%d", i);
         iniparser_set(ini, str, mfn);
     }
@@ -218,13 +218,13 @@ int FTI_BuildNodeList(int* nodeList, char* nameList)
     else {
         snprintf(lhn + (FTI_Topo.myRank * FTI_BUFS), FTI_BUFS, "node%d", FTI_Topo.myRank / FTI_Topo.nodeSize); // Local
     }
-    strncpy(hname, lhn + (FTI_Topo.myRank * FTI_BUFS), FTI_BUFS); // Distributing host names
+    strncpy(hname, lhn + (FTI_Topo.myRank * FTI_BUFS), FTI_BUFS - 1); // Distributing host names
     MPI_Allgather(hname, FTI_BUFS, MPI_CHAR, lhn, FTI_BUFS, MPI_CHAR, FTI_Exec.globalComm);
 
     for (i = 0; i < FTI_Topo.nbProc; i++) { // Creating the node list: For each process
         found = 0;
         pos = 0;
-        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS); // Get node name of process i
+        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS - 1); // Get node name of process i
         while ((pos < nbNodes) && (found == 0)) { // Search the node name in the current list of node names
             if (strncmp(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS) == 0) { // If we find it break out
                 found = 1;
@@ -246,7 +246,7 @@ int FTI_BuildNodeList(int* nodeList, char* nameList)
             }
         }
         else { // ... else, we add the new node to the end of the current list of nodes
-            strncpy(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS);
+            strncpy(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS - 1);
             nodeList[pos * FTI_Topo.nodeSize] = i;
             nbNodes++;
         }

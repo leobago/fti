@@ -5,6 +5,7 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
+option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -77,4 +78,6 @@ if(NOT "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" PARENT_SCOPE)
 endif()
 
-add_subdirectory(examples)
+if(ENABLE_EXAMPLES)
+	add_subdirectory(examples)
+endif()

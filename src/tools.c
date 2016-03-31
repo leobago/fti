@@ -124,7 +124,7 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS])
 
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
-    if (flag && (!access(path, R_OK))) {
+    if (flag) {
         DIR* dp;
         char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
         struct dirent* ep;
@@ -171,40 +171,56 @@ int FTI_Clean(int level, int group, int rank)
 {
     char buf[FTI_BUFS];
     int nodeFlag, globalFlag = !FTI_Topo.splitRank;
+
     nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0;
+
     if (level == 0) {
         FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);
         FTI_RmDir(FTI_Conf.gTmpDir, globalFlag);
         FTI_RmDir(FTI_Conf.lTmpDir, nodeFlag);
     }
-    if (level >= 1) { // Clean last checkpoint level 1
+
+    // Clean last checkpoint level 1
+    if (level >= 1) {
         FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag);
     }
-    if (level >= 2) { // Clean last checkpoint level 2
+
+    // Clean last checkpoint level 2
+    if (level >= 2) {
         FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag);
     }
-    if (level >= 3) { // Clean last checkpoint level 3
+
+    // Clean last checkpoint level 3
+    if (level >= 3) {
         FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag);
     }
-    if (level == 4 || level == 5) { // Clean last checkpoint level 4
+
+    // Clean last checkpoint level 4
+    if (level == 4 || level == 5) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf.gTmpDir);
     }
-    if (level == 5) { // If it is the very last cleaning and we DO NOT keep the last checkpoint
+
+    // If it is the very last cleaning and we DO NOT keep the last checkpoint
+    if (level == 5) {
         rmdir(FTI_Conf.lTmpDir);
         rmdir(FTI_Conf.localDir);
         rmdir(FTI_Conf.glbalDir);
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf.metadDir);
-        remove(buf);
+        if (remove(buf) == -1)
+            FTI_Print("Cannot remove Topology.fti", FTI_EROR);
         rmdir(FTI_Conf.metadDir);
     }
-    if (level == 6) { // If it is the very last cleaning and we DO keep the last checkpoint
+
+    // If it is the very last cleaning and we DO keep the last checkpoint
+    if (level == 6) {
         rmdir(FTI_Conf.lTmpDir);
         rmdir(FTI_Conf.localDir);
     }
+
     return FTI_SCES;
 }
