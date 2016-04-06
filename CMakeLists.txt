@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
 
-option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
+option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
 option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
@@ -31,16 +31,18 @@ set(SRC_FTI
 append_property(SOURCE ${SRC_FTI}
 	PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}")
 
-add_library(fti.static STATIC ${SRC_FTI})
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} iniparser jerasure)
-
-add_library(fti.shared SHARED ${SRC_FTI})
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} iniparser jerasure)
+add_library(fti.static STATIC ${SRC_FTI}
+    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+add_library(fti.shared SHARED ${SRC_FTI}
+    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 
 append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
+
+target_link_libraries(fti.static ${MPI_C_LIBRARIES})
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
 
 install(TARGETS fti.static fti.shared
 	DESTINATION lib)

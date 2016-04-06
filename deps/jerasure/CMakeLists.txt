@@ -5,4 +5,4 @@ set(SRC_jerasure
 append_property(SOURCE ${SRC_jerasure}
     PROPERTY COMPILE_FLAGS "-fPIC")
 
-add_library(jerasure ${SRC_jerasure})
+add_library(jerasure OBJECT ${SRC_jerasure})

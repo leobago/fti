@@ -5,4 +5,4 @@ set(SRC_iniparser
 append_property(SOURCE ${SRC_iniparser}
     PROPERTY COMPILE_FLAGS "-fPIC")
 
-add_library(iniparser ${SRC_iniparser})
+add_library(iniparser OBJECT ${SRC_iniparser})
