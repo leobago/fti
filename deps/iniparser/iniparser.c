@@ -567,6 +567,7 @@ static line_status iniparser_line(
     char        line[ASCIILINESZ+1];
     int         len ;
 
+    memset(line,    0, ASCIILINESZ);
     len = (int)strlen(strstrip(input_line));
     if (len > ASCIILINESZ)
         len = ASCIILINESZ;
@@ -616,6 +617,7 @@ static line_status iniparser_line(
     } else {
         /* Generate syntax error */
         sta = LINE_ERROR ;
+        printf("===== > %s   ===> %s\n", input_line, line);
     }
     return sta ;
 }
