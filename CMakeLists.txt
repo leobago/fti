@@ -4,8 +4,8 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
 
-option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
-option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
+option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
+option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)

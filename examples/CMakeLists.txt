@@ -28,7 +28,7 @@ endif()
 
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
-    target_link_libraries(hdf.exe fti_f90 fti ${MPI_Fortran_LIBRARIES} m)
+    target_link_libraries(hdf.exe fti_f90 ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_Fortran_LIBRARIES} m)
 
     if(MPI_Fortran_COMPILE_FLAGS)
         set_target_properties(hdf.exe PROPERTIES
