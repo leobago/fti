@@ -1,7 +1,7 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable(hd.exe heatdis.c)
-target_link_libraries(hd.exe fti ${MPI_C_LIBRARIES} m)
+target_link_libraries(hd.exe ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_C_LIBRARIES} m)
 
 if(MPI_C_COMPILE_FLAGS)
     set_target_properties(hd.exe PROPERTIES
@@ -14,7 +14,7 @@ if(MPI_C_LINK_FLAGS)
 endif()
 
 add_executable(hd2.exe heatd2.c)
-target_link_libraries(hd2.exe fti ${MPI_C_LIBRARIES} m)
+target_link_libraries(hd2.exe ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_C_LIBRARIES} m)
 
 if(MPI_C_COMPILE_FLAGS)
     set_target_properties(hd2.exe PROPERTIES

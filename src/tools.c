@@ -8,48 +8,6 @@
 #include "interface.h"
 #include <dirent.h>
 
-int FTI_Clean(int level, int group, int rank);
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Prints FTI messages.
-    @param      msg             Message to print.
-    @param      priority        Priority of the message to be printed.
-    @return     void
-
-    This function prints messages depending on their priority and the
-    verbosity level set by the user. DEBUG messages are printed by all
-    processes with their rank. INFO messages are printed by one process.
-    ERROR messages are printed with errno.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_Print(char* msg, int priority)
-{
-    if (priority >= FTI_Conf.verbosity) {
-        if (msg != NULL) {
-            switch (priority) {
-            case FTI_EROR:
-                fprintf(stderr, "[FTI Error - %06d] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
-                break;
-            case FTI_WARN:
-                fprintf(stdout, "[FTI Warning %06d] : %s \n", FTI_Topo.myRank, msg);
-                break;
-            case FTI_INFO:
-                if (FTI_Topo.splitRank == 0)
-                    fprintf(stdout, "[ FTI  Information ] : %s \n", msg);
-                break;
-            case FTI_DBUG:
-                fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    fflush(stdout);
-}
-
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Receive the return code of a function and print a message.
@@ -88,7 +46,7 @@ int FTI_Try(int result, char* message)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS])
+int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
 {
     int i;
     for (i = 0; i < FTI_BUFS; i++) {
@@ -125,30 +83,37 @@ int FTI_InitBasicTypes(FTIT_dataset FTI_Data[FTI_BUFS])
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
     if (flag) {
-        DIR* dp;
         char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
-        struct dirent* ep;
-        dp = opendir(path);
+        DIR* dp = NULL;
+        struct dirent* ep = NULL;
+
         sprintf(buf, "Removing directory %s and its files.", path);
         FTI_Print(buf, FTI_DBUG);
+
+        dp = opendir(path);
         if (dp != NULL) {
-            while (ep = readdir(dp)) {
+            while ((ep = readdir(dp)) != NULL) {
                 sprintf(fil, "%s", ep->d_name);
                 if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
                     sprintf(fn, "%s/%s", path, fil);
                     sprintf(buf, "File %s will be removed.", fn);
                     FTI_Print(buf, FTI_DBUG);
-                    if (remove(fn) != 0)
-                        FTI_Print("Error removing target file.", FTI_EROR);
+                    if (remove(fn) == -1)
+                        if (errno != ENOENT)
+                            FTI_Print("Error removing target file.", FTI_EROR);
                 }
             }
         }
         else {
-            FTI_Print("Error with opendir.", FTI_EROR);
+            if (errno != ENOENT)
+                FTI_Print("Error with opendir.", FTI_EROR);
         }
-        closedir(dp);
-        if (remove(path) != 0)
-            FTI_Print("Error removing target directory.", FTI_EROR);
+        if (dp != NULL)
+            closedir(dp);
+
+        if (remove(path) == -1)
+            if (errno != ENOENT)
+                FTI_Print("Error removing target directory.", FTI_EROR);
     }
     return FTI_SCES;
 }
@@ -167,17 +132,18 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Clean(int level, int group, int rank)
+int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank)
 {
     char buf[FTI_BUFS];
-    int nodeFlag, globalFlag = !FTI_Topo.splitRank;
+    int nodeFlag, globalFlag = !FTI_Topo->splitRank;
 
-    nodeFlag = (((!FTI_Topo.amIaHead) && (FTI_Topo.nodeRank == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0;
+    nodeFlag = (((!FTI_Topo->amIaHead) && (FTI_Topo->nodeRank == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
 
     if (level == 0) {
-        FTI_RmDir(FTI_Conf.mTmpDir, globalFlag);
-        FTI_RmDir(FTI_Conf.gTmpDir, globalFlag);
-        FTI_RmDir(FTI_Conf.lTmpDir, nodeFlag);
+        FTI_RmDir(FTI_Conf->mTmpDir, globalFlag);
+        FTI_RmDir(FTI_Conf->gTmpDir, globalFlag);
+        FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag);
     }
 
     // Clean last checkpoint level 1
@@ -202,24 +168,25 @@ int FTI_Clean(int level, int group, int rank)
     if (level == 4 || level == 5) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
-        rmdir(FTI_Conf.gTmpDir);
+        rmdir(FTI_Conf->gTmpDir);
     }
 
     // If it is the very last cleaning and we DO NOT keep the last checkpoint
     if (level == 5) {
-        rmdir(FTI_Conf.lTmpDir);
-        rmdir(FTI_Conf.localDir);
-        rmdir(FTI_Conf.glbalDir);
-        snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf.metadDir);
+        rmdir(FTI_Conf->lTmpDir);
+        rmdir(FTI_Conf->localDir);
+        rmdir(FTI_Conf->glbalDir);
+        snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1)
-            FTI_Print("Cannot remove Topology.fti", FTI_EROR);
-        rmdir(FTI_Conf.metadDir);
+            if (errno != ENOENT)
+                FTI_Print("Cannot remove Topology.fti", FTI_EROR);
+        rmdir(FTI_Conf->metadDir);
     }
 
     // If it is the very last cleaning and we DO keep the last checkpoint
     if (level == 6) {
-        rmdir(FTI_Conf.lTmpDir);
-        rmdir(FTI_Conf.localDir);
+        rmdir(FTI_Conf->lTmpDir);
+        rmdir(FTI_Conf->localDir);
     }
 
     return FTI_SCES;

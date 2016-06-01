@@ -218,14 +218,6 @@ typedef struct FTIT_injection {         /** FTI type declarator.           */
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
-/** Topology of the system.                                                */
-FTIT_topology FTI_Topo;
-/** Dynamic information for this execution.                                */
-FTIT_execution FTI_Exec;
-/** Checkpoint information for all levels of checkpoint.                   */
-FTIT_checkpoint FTI_Ckpt[5];
-/** General configuration information used by FTI.                         */
-FTIT_configuration FTI_Conf;
 
 /** FTI data type for chars.                                               */
 FTIT_type FTI_CHAR;

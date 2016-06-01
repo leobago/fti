@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[2], MPI_COMM_WORLD);
+
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
@@ -110,6 +111,7 @@ int main(int argc, char *argv[])
     g = (double *) malloc(sizeof(double *) * M * nbLines);
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
+
     if (rank == 0) printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
     if (rank == 0) printf("Target precision : %f \n", PRECISION);
     if (rank == 0) printf("Maximum number of iterations : %d \n", ITER_TIMES);
