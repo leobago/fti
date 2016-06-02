@@ -1,3 +1,6 @@
+sudo: required
+dist: trusty
+
 language: c
 
 env:
@@ -26,7 +29,7 @@ cache:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y openmpi-bin libopenmpi-dev gfortran
+  - sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev
 
 before_script:
   - mkdir $BUILD_DIR
