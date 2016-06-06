@@ -138,7 +138,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     char buf[FTI_BUFS];
     int nodeFlag, globalFlag = !FTI_Topo->splitRank;
 
-    nodeFlag = (((!FTI_Topo->amIaHead) && (FTI_Topo->nodeRank == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
 
     if (level == 0) {
         FTI_RmDir(FTI_Conf->mTmpDir, globalFlag);

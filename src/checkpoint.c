@@ -222,7 +222,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
     MPI_Barrier(FTI_COMM_WORLD);
-    nodeFlag = (((!FTI_Topo->amIaHead) && (FTI_Topo->nodeRank == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
         level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
         if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
