@@ -312,8 +312,8 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
-    int i, res = FTI_NSCS;
-    double t0, t1, t2, t3, t4;
+    int res = FTI_NSCS, value;
+    double t0, t1, t2, t3;
     char str[FTI_BUFS];
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
@@ -337,12 +337,12 @@ int FTI_Checkpoint(int id, int level)
         if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message..
             FTI_Exec.wasLastOffline = 1;
             if (res != FTI_SCES) {
-                res = FTI_REJW;
+                value = FTI_REJW;
             }
             else {
-                res = FTI_BASE + FTI_Exec.ckptLvel;
+                value = FTI_BASE + FTI_Exec.ckptLvel;
             }
-            MPI_Send(&res, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
         }
         else {
             FTI_Exec.wasLastOffline = 0;
