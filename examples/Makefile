@@ -2,7 +2,7 @@
 ##   Makefile to test FTI library with the heat distribution program.
 
 ##   PLEASE SET THIS VARIABLE BEFORE COMPILING
-FTIPATH		= /path/to/fti/install/directory
+FTIPATH		= /path/to/fti/
 
 ##   COMPILERS
 MPICC 		?= mpicc
@@ -30,7 +30,7 @@ hdf:		fheatdis.f90
 		$(MPIFC) -o hdf.exe fheatdis.f90 $(FFTIFLAG)
 
 hdt:
-		$(MPIRUN) -np 8 ./hd.exe 32 config.fti
+		$(MPIRUN) -np 8 ./hd.exe 4 config.fti
 
 hdv:
 		./plot.sh
