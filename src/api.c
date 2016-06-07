@@ -358,7 +358,7 @@ int FTI_Checkpoint(int id, int level)
         sprintf(str, "%s taken in %.2f sec.", str, t3 - t0);
         sprintf(str, "%s (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)", str, t1 - t0, t2 - t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
-        if (res == FTI_SCES)
+        if (res != FTI_NSCS)
             res = FTI_DONE;
         else
             res = FTI_NSCS;
