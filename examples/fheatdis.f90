@@ -7,12 +7,12 @@ program heat
   use FTI
   use MPI
 
-  real(8), parameter :: PREC       = 0.001
-  integer, parameter :: ITER_TIMES = 1000
+  real(8), parameter :: PREC       = 0.005
+  integer, parameter :: ITER_TIMES = 2000
   integer, parameter :: ITER_OUT   = 100
-  integer, parameter :: WORKTAG    = 26
-  integer, parameter :: REDUCE     = 8
-  integer, parameter :: MEM_MB     = 64
+  integer, parameter :: WORKTAG    = 50
+  integer, parameter :: REDUCE     = 5
+  integer, parameter :: MEM_MB     = 32
 
   integer, target :: rank, nbProcs, iter, row, col, err, FTI_comm_world
   integer, pointer  :: ptriter
@@ -39,7 +39,7 @@ program heat
   if ( rank == 0 ) then
     print '("Local data size is ",I5," x ",I5," = ",F5.0," MB (",I5,").")', &
             row, col, memSize, MEM_MB
-    print '("Target precision : ",F9.0)', PREC
+    print '("Target precision : ",F9.5)', PREC
   endif
 
   ptriter => iter
@@ -56,7 +56,7 @@ program heat
     call doWork(nbProcs, rank, g, h, localerror)
 
     if ( ( mod(iter, ITER_OUT) == 0 ) .and. (rank == 0) ) then
-      print '("Step : ",I5,", error = ",F9.0)', iter, globalerror
+      print '("Step : ",I5,", error = ",F9.5)', iter, globalerror
     endif
     if ( mod(iter, REDUCE) == 0 ) then
       call MPI_Allreduce(localerror, globalerror, 1, MPI_REAL8, MPI_MAX, FTI_comm_world, err)
@@ -114,8 +114,10 @@ subroutine doWork(numprocs, rank, g, h, localerror)
     call MPI_Irecv(h(1,1), size(h, 1), MPI_REAL8, rank-1, WORKTAG, FTI_comm_world, req1(2), err)
   endif
   if ( rank < numprocs-1 ) then
-    call MPI_Isend(g(ubound(g, 1)-1, 1), size(g, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(1), err)
-    call MPI_Irecv(h(ubound(h, 1)  , 1), size(h, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(2), err)
+    call MPI_Isend(g(1,ubound(g, 2)-1), size(g, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(1), err)
+    call MPI_Irecv(h(1,ubound(h, 2)), size(h, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(2), err)
+    !call MPI_Isend(g(ubound(g, 1)-1, 1), size(g, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(1), err)
+    !call MPI_Irecv(h(ubound(h, 1)  , 1), size(h, 1), MPI_REAL8, rank+1, WORKTAG, FTI_comm_world, req2(2), err)
   endif
   if ( rank > 0 ) then
     call MPI_Waitall(2, req1, status1, err)
