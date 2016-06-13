@@ -74,13 +74,13 @@ static char * strlwc(const char * s)
 static char * strstrip(const char * s)
 {
     static char l[ASCIILINESZ+1];
-    char * last ;
+    char * last;
 
     if (s==NULL) return NULL ;
 
     while (isspace((int)*s) && *s) s++;
     memset(l, 0, ASCIILINESZ+1);
-    strcpy(l, s);
+    strncpy(l, s, ASCIILINESZ);
     last = l + strlen(l);
     while (last > l) {
         if (!isspace((int)*(last-1)))
@@ -562,7 +562,11 @@ static line_status iniparser_line(
     char        line[ASCIILINESZ+1];
     int         len ;
 
-    strcpy(line, strstrip(input_line));
+    memset(line, 0, ASCIILINESZ + 1);
+    len = (int)strlen(strstrip(input_line));
+    if (len > ASCIILINESZ)
+        len = ASCIILINESZ;
+    strncpy(line, strstrip(input_line), len);
     len = (int)strlen(line);
 
     sta = LINE_UNPROCESSED ;
@@ -608,6 +612,7 @@ static line_status iniparser_line(
     } else {
         /* Generate syntax error */
         sta = LINE_ERROR ;
+        printf("===== > %s   ===> %s\n", input_line, line);
     }
     return sta ;
 }

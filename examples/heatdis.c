@@ -8,13 +8,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <math.h>
 #include <fti.h>
 
 
 #define PRECISION   0.005
-#define ITER_TIMES  2000
+#define ITER_TIMES  5000
 #define ITER_OUT    500
 #define WORKTAG     50
 #define REDUCE      5
@@ -101,6 +100,7 @@ int main(int argc, char *argv[])
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[2], MPI_COMM_WORLD);
+
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     g = (double *) malloc(sizeof(double *) * M * nbLines);
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
+
     if (rank == 0) printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
     if (rank == 0) printf("Target precision : %f \n", PRECISION);
     if (rank == 0) printf("Maximum number of iterations : %d \n", ITER_TIMES);
@@ -123,8 +124,6 @@ int main(int argc, char *argv[])
     for(i = 0; i < ITER_TIMES; i++)
     {
         int checkpointed = FTI_Snapshot();
-        if (checkpointed == 1) printf("A checkpoint was performed. \n");
-        FTI_BitFlip(2);
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) printf("Step : %d, error = %f\n", i, globalerror);
         if ((i%REDUCE) == 0) MPI_Allreduce(&localerror, &globalerror, 1, MPI_DOUBLE, MPI_MAX, FTI_COMM_WORLD);

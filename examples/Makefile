@@ -2,7 +2,7 @@
 ##   Makefile to test FTI library with the heat distribution program.
 
 ##   PLEASE SET THIS VARIABLE BEFORE COMPILING
-FTIPATH		= /path/to/fti/install/directory
+FTIPATH		= /path/to/fti/
 
 ##   COMPILERS
 MPICC 		?= mpicc
@@ -11,11 +11,11 @@ MPIRUN 		?= mpirun
 
 ##   FLAGS
 # Compiling using shared library
-FTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti -lm
-FFTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti_f90 -lfti -lm
+#FTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti -lm
+#FFTIFLAG 	= -I$(FTIPATH)/include -L$(FTIPATH)/lib -lfti_f90 -lfti -lm
 # Compiling using static library
-#FTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti.a
-#FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libfti.a
+FTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti.a -lm
+FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libfti.a -lm
 
 ##   TARGETS
 all: 		hd hd2 hdf
@@ -30,7 +30,7 @@ hdf:		fheatdis.f90
 		$(MPIFC) -o hdf.exe fheatdis.f90 $(FFTIFLAG)
 
 hdt:
-		$(MPIRUN) -np 8 ./hd.exe 32 config.fti
+		$(MPIRUN) -np 8 ./hd.exe 4 config.fti
 
 hdv:
 		./plot.sh

@@ -6,9 +6,9 @@
  * @date 2013-08-01
  */
 
-#include <mpi.h>
-
-#include <fti.h>
+#include "fti.h"
+#include "interface.h"
+#include "ftif.h"
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
  * 
@@ -20,11 +20,10 @@
  */
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm)
 {
-	int ierr = FTI_Init(configFile, MPI_Comm_f2c(*globalComm));
-	*globalComm = MPI_Comm_c2f(FTI_COMM_WORLD);
-	return ierr;
+    int ierr = FTI_Init(configFile, MPI_Comm_f2c(*globalComm));
+    *globalComm = MPI_Comm_c2f(FTI_COMM_WORLD);
+    return ierr;
 }
-
 
 /**
  *   @brief      Initializes a data type.
@@ -36,7 +35,8 @@ int FTI_Init_fort_wrapper(char* configFile, int* globalComm)
  *   size of the data type, the rest is black box for FTI.
  *
  **/
-int FTI_InitType_wrapper(FTIT_type **type, int size) {
+int FTI_InitType_wrapper(FTIT_type** type, int size)
+{
     *type = talloc(FTIT_type, 1);
     return FTI_InitType(*type, size);
 }
@@ -56,6 +56,7 @@ int FTI_InitType_wrapper(FTIT_type **type, int size) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Protect_wrapper(int id, void *ptr, long count, FTIT_type* type) {
+int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
+{
     return FTI_Protect(id, ptr, count, *type);
 }

@@ -5,9 +5,7 @@
  *  @brief  Metadata functions for the FTI library.
  */
 
-
-#include "fti.h"
-
+#include "interface.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -24,46 +22,45 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetMeta(unsigned long *fs, unsigned long *mfs, int group, int level) {
-    dictionary *ini;
+int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                unsigned long* fs, unsigned long* mfs, int group, int level)
+{
+    dictionary* ini;
     int res = -1, cnt = 3;
     char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
-    if(level == 0)
-    {
-        sprintf(mfn,"%s/sector%d-group%d.fti",FTI_Conf.mTmpDir, FTI_Topo.sectorID, group);
+    if (level == 0) {
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
     }
     else {
-        sprintf(mfn,"%s/sector%d-group%d.fti",FTI_Ckpt[level].metaDir, FTI_Topo.sectorID, group);
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
     }
-    sprintf(str, "Getting FTI metadata file (%s)...",mfn);
+    sprintf(str, "Getting FTI metadata file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
-    while (( res != 0) && (cnt > 0))
-    {
+    while ((res != 0) && (cnt > 0)) {
         FTI_Print("Checking FTI metadata file ...", FTI_DBUG);
         res = access(mfn, R_OK);
         cnt--;
     }
-    if (res != 0){
+    if (res != 0) {
         FTI_Print("FTI metadata file NOT accessible.", FTI_DBUG);
         return FTI_NSCS;
     }
     ini = iniparser_load(mfn);
-    if (ini == NULL)
-    {
+    if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
         return FTI_NSCS;
     }
-    sprintf(str, "%d:Ckpt_file_name", FTI_Topo.groupRank);
+    sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
     cfn = iniparser_getstring(ini, str, NULL);
-    snprintf(FTI_Exec.ckptFile, FTI_BUFS, "%s", cfn);
-    sprintf(str, "%d:Ckpt_file_size", FTI_Topo.groupRank);
-    *fs = (int) iniparser_getint(ini, str, -1);
-    sprintf(str, "%d:Ckpt_file_maxs", FTI_Topo.groupRank);
-    *mfs = (int) iniparser_getint(ini, str, -1);
+    snprintf(FTI_Exec->ckptFile, FTI_BUFS, "%s", cfn);
+    sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
+    *fs = (int)iniparser_getint(ini, str, -1);
+    sprintf(str, "%d:Ckpt_file_maxs", FTI_Topo->groupRank);
+    *mfs = (int)iniparser_getint(ini, str, -1);
     iniparser_freedict(ini);
     return FTI_SCES;
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -78,66 +75,86 @@ int FTI_GetMeta(unsigned long *fs, unsigned long *mfs, int group, int level) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteMetadata(unsigned long *fs, unsigned long mfs, char* fnl) {
+int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                      unsigned long* fs, unsigned long mfs, char* fnl)
+{
     char str[FTI_BUFS], buf[FTI_BUFS];
-    dictionary *ini;
+    dictionary* ini;
     int i;
-    snprintf(buf, FTI_BUFS, "%s/Topology.fti",FTI_Conf.metadDir);
+
+    snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
-    ini = iniparser_load(buf); // To bypass iniparser bug while empty dict.
-    if (ini == NULL)
-    {
+
+    // To bypass iniparser bug while empty dict.
+    ini = iniparser_load(buf);
+    if (ini == NULL) {
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
+
         return FTI_NSCS;
     }
-    for (i = 0; i < FTI_Topo.groupSize; i++)
-    { // Add metadata to dictionary
-        strncpy(buf,fnl+(i*FTI_BUFS),FTI_BUFS);
-        sprintf(str,"%d", i);
+
+    // Add metadata to dictionary
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
+        sprintf(str, "%d", i);
         iniparser_set(ini, str, NULL);
-        sprintf(str,"%d:Ckpt_file_name", i);
+        sprintf(str, "%d:Ckpt_file_name", i);
         iniparser_set(ini, str, buf);
-        sprintf(str,"%d:Ckpt_file_size", i);
-        sprintf(buf,"%ld", fs[i]);
+        sprintf(str, "%d:Ckpt_file_size", i);
+        sprintf(buf, "%ld", fs[i]);
         iniparser_set(ini, str, buf);
-        sprintf(str,"%d:Ckpt_file_maxs", i);
-        sprintf(buf,"%ld", mfs);
+        sprintf(str, "%d:Ckpt_file_maxs", i);
+        sprintf(buf, "%ld", mfs);
         iniparser_set(ini, str, buf);
     }
-    iniparser_unset(ini, "topology"); // Remove topology section
-    if (access(FTI_Conf.mTmpDir, F_OK) != 0)
-    {
-        mkdir(FTI_Conf.mTmpDir, 0777);
+
+    // Remove topology section
+    iniparser_unset(ini, "topology");
+    if (mkdir(FTI_Conf->mTmpDir, 0777) == -1) {
+        if (errno != EEXIST)
+            FTI_Print("Cannot create directory", FTI_EROR);
     }
-    sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf.mTmpDir, FTI_Topo.sectorID, FTI_Topo.groupID);
-    remove(buf);
+
+    sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+    if (remove(buf) == -1)
+        if (errno != ENOENT)
+            FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
+
     sprintf(str, "Creating metadata file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
-    FILE *fd = fopen(buf, "w");
-    if (fd == NULL)
-    {
+
+    FILE* fd = fopen(buf, "w");
+    if (fd == NULL) {
         FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
-    iniparser_dump_ini(ini, fd); // Write metadata
-    if (fflush(fd) != 0)
-    {
+
+    // Write metadata
+    iniparser_dump_ini(ini, fd);
+
+    if (fflush(fd) != 0) {
         FTI_Print("Metadata file could NOT be flushed.", FTI_WARN);
+
         iniparser_freedict(ini);
+        fclose(fd);
+
         return FTI_NSCS;
     }
-    if (fclose(fd) != 0)
-    {
+    if (fclose(fd) != 0) {
         FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
+
         iniparser_freedict(ini);
+
         return FTI_NSCS;
     }
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -151,48 +168,46 @@ int FTI_WriteMetadata(unsigned long *fs, unsigned long mfs, char* fnl) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CreateMetadata(int globalTmp) {
-    char *fnl = talloc(char, FTI_Topo.groupSize*FTI_BUFS);
+int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                       FTIT_topology* FTI_Topo, int globalTmp)
+{
+    char* fnl = talloc(char, FTI_Topo->groupSize* FTI_BUFS);
     unsigned long fs[FTI_BUFS], mfs, tmpo;
     char str[FTI_BUFS], buf[FTI_BUFS];
     struct stat fileStatus;
     int i;
-    if (globalTmp)
-    {
-        sprintf(buf,"%s/%s",FTI_Conf.gTmpDir, FTI_Exec.ckptFile);
-    } else {
-        sprintf(buf,"%s/%s",FTI_Conf.lTmpDir, FTI_Exec.ckptFile);
+    if (globalTmp) {
+        sprintf(buf, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
     }
-    if(stat(buf, &fileStatus) == 0)
-    { // Getting size of files
-        fs[FTI_Topo.groupRank] = (unsigned long) fileStatus.st_size;
-    } else {
+    else {
+        sprintf(buf, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+    }
+    if (stat(buf, &fileStatus) == 0) { // Getting size of files
+        fs[FTI_Topo->groupRank] = (unsigned long)fileStatus.st_size;
+    }
+    else {
         FTI_Print("Error with stat on the checkpoint file.", FTI_WARN);
         free(fnl);
         return FTI_NSCS;
     }
-    sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo.groupRank]);
+    sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo->groupRank]);
     FTI_Print(str, FTI_DBUG);
-    sprintf(fnl+(FTI_Topo.groupRank*FTI_BUFS),"%s",FTI_Exec.ckptFile);
-    tmpo = fs[FTI_Topo.groupRank]; // Gather all the file sizes
-    MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec.groupComm);
-    strncpy(str,fnl+(FTI_Topo.groupRank*FTI_BUFS),FTI_BUFS); // Gather all the file names
-    MPI_Allgather(str, FTI_BUFS, MPI_CHAR, fnl, FTI_BUFS, MPI_CHAR, FTI_Exec.groupComm);
+    sprintf(fnl + (FTI_Topo->groupRank * FTI_BUFS), "%s", FTI_Exec->ckptFile);
+    tmpo = fs[FTI_Topo->groupRank]; // Gather all the file sizes
+    MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec->groupComm);
+    strncpy(str, fnl + (FTI_Topo->groupRank * FTI_BUFS), FTI_BUFS - 1); // Gather all the file names
+    MPI_Allgather(str, FTI_BUFS, MPI_CHAR, fnl, FTI_BUFS, MPI_CHAR, FTI_Exec->groupComm);
     mfs = 0;
-    for(i = 0; i < FTI_Topo.groupSize; i++)
-    {
-        if (fs[i] > mfs)
-        {
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        if (fs[i] > mfs) {
             mfs = fs[i]; // Search max. size
         }
     }
     sprintf(str, "Max. file size %ld.", mfs);
     FTI_Print(str, FTI_DBUG);
-    if (FTI_Topo.groupRank == 0)
-    { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(fs, mfs, fnl), "write the metadata.");
-        if (res == FTI_NSCS)
-        {
+    if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fs, mfs, fnl), "write the metadata.");
+        if (res == FTI_NSCS) {
             free(fnl);
             return FTI_NSCS;
         }
@@ -200,5 +215,3 @@ int FTI_CreateMetadata(int globalTmp) {
     free(fnl);
     return FTI_SCES;
 }
-
-

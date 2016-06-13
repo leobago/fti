@@ -260,7 +260,10 @@ int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix)
   int rowelts, rowindex, colindex, elt, i, j, l, x;
 
   bitmatrix = talloc(int, k*m*w*w);
-  if (matrix == NULL) { return NULL; }
+  if (matrix == NULL) {
+    free(bitmatrix);
+    return NULL;
+  }
 
   rowelts = k * w;
   rowindex = 0;
@@ -397,6 +400,8 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
     tmp = mat[row_start+i];
     if (tmp != 1) {
       inverse = galois_single_divide(1, tmp, w);
+      if (inverse < 0)
+        return -1;
       for (j = 0; j < cols; j++) {
         mat[row_start+j] = galois_single_multiply(mat[row_start+j], inverse, w);
         inv[row_start+j] = galois_single_multiply(inv[row_start+j], inverse, w);
@@ -825,7 +830,11 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
   row_ids = talloc(int, k+m);
   ind_to_row = talloc(int, k+m);
 
-  if (set_up_ids_for_scheduled_decoding(k, m, erasures, row_ids, ind_to_row) < 0) return NULL;
+  if (set_up_ids_for_scheduled_decoding(k, m, erasures, row_ids, ind_to_row) < 0) {
+    free(row_ids);
+    free(ind_to_row);
+    return NULL;
+  }
 
   /* Now, we're going to create one decoding matrix which is going to
      decode everything with one call.  The hope is that the scheduler
@@ -1247,6 +1256,7 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   ptr = bitmatrix;
 
   bestdiff = k*w+1;
+  bestrow = -1;
   top = 0;
   for (i = 0; i < m*w; i++) {
     no = 0;
@@ -1312,7 +1322,8 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
           operations[op][1] = j%w;
           operations[op][2] = k+row/w;
           operations[op][3] = row%w;
-          optodo = 1;
+          // unused value
+          //optodo = 1;
           op++;
         }
       }
