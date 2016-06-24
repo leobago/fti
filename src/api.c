@@ -25,6 +25,34 @@ static FTIT_dataset FTI_Data[FTI_BUFS];
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
+
+/** MPI communicator that splits the global one into app and FTI appart.   */
+MPI_Comm FTI_COMM_WORLD;
+
+/** FTI data type for chars.                                               */
+FTIT_type FTI_CHAR;
+/** FTI data type for short integers.                                      */
+FTIT_type FTI_SHRT;
+/** FTI data type for integers.                                            */
+FTIT_type FTI_INTG;
+/** FTI data type for long integers.                                       */
+FTIT_type FTI_LONG;
+/** FTI data type for unsigned chars.                                      */
+FTIT_type FTI_UCHR;
+/** FTI data type for unsigned short integers.                             */
+FTIT_type FTI_USHT;
+/** FTI data type for unsigned integers.                                   */
+FTIT_type FTI_UINT;
+/** FTI data type for unsigned long integers.                              */
+FTIT_type FTI_ULNG;
+/** FTI data type for single floating point.                               */
+FTIT_type FTI_SFLT;
+/** FTI data type for double floating point.                               */
+FTIT_type FTI_DBLE;
+/** FTI data type for long doble floating point.                           */
+FTIT_type FTI_LDBE;
+
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It aborts the application.
