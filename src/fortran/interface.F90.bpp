@@ -215,7 +215,7 @@ contains
     endif
 
 !$SH for T in ${FORTTYPES}; do
-    call FTI_InitType($(fti_type ${T}), $(fort_sizeof ${T})_c_int, err)
+    call FTI_InitType($(fti_type ${T}), int($(fort_sizeof ${T})_C_int/8_c_int, C_int), err)
     if (err /= FTI_SCES ) then
       return
     endif
