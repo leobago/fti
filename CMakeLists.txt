@@ -84,10 +84,6 @@ if(ENABLE_FORTRAN)
 		DESTINATION include)
 endif()
 
-if(NOT "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/include" PARENT_SCOPE)
-endif()
-
 if(ENABLE_EXAMPLES)
 	add_subdirectory(examples)
 endif()
