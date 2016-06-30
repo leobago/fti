@@ -7,7 +7,7 @@ function(bpp_preprocess OUTVAR FIRST_SRC)
 		set(OUTFILE "${CMAKE_CURRENT_BINARY_DIR}/${OUTFILE}")
 		list(APPEND RESULT "${OUTFILE}")
 		add_custom_command(OUTPUT "${OUTFILE}"
-			COMMAND "${CMAKE_SOURCE_DIR}/scripts/bpp" ARGS "${SRC}" "${OUTFILE}"
+			COMMAND "${CMAKE_SOURCE_DIR}/vendor/fti/scripts/bpp" ARGS "${SRC}" "${OUTFILE}"
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 			MAIN_DEPENDENCY "${SRC}"
 			VERBATIM
