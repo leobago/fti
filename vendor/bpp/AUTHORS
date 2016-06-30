@@ -1,0 +1,4 @@
+Guillaume Latu historic awk based version of BPP.
+Julien Bigot current python version of BPP with support for command-line
+              includes and definitions, cmake based buildsystem and bash 
+              functions provided in the include files.

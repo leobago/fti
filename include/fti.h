@@ -217,30 +217,30 @@ typedef struct FTIT_injection {         /** FTI type declarator.           */
 ---------------------------------------------------------------------------*/
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
-MPI_Comm FTI_COMM_WORLD;
+extern MPI_Comm FTI_COMM_WORLD;
 
 /** FTI data type for chars.                                               */
-FTIT_type FTI_CHAR;
+extern FTIT_type FTI_CHAR;
 /** FTI data type for short integers.                                      */
-FTIT_type FTI_SHRT;
+extern FTIT_type FTI_SHRT;
 /** FTI data type for integers.                                            */
-FTIT_type FTI_INTG;
+extern FTIT_type FTI_INTG;
 /** FTI data type for long integers.                                       */
-FTIT_type FTI_LONG;
+extern FTIT_type FTI_LONG;
 /** FTI data type for unsigned chars.                                      */
-FTIT_type FTI_UCHR;
+extern FTIT_type FTI_UCHR;
 /** FTI data type for unsigned short integers.                             */
-FTIT_type FTI_USHT;
+extern FTIT_type FTI_USHT;
 /** FTI data type for unsigned integers.                                   */
-FTIT_type FTI_UINT;
+extern FTIT_type FTI_UINT;
 /** FTI data type for unsigned long integers.                              */
-FTIT_type FTI_ULNG;
+extern FTIT_type FTI_ULNG;
 /** FTI data type for single floating point.                               */
-FTIT_type FTI_SFLT;
+extern FTIT_type FTI_SFLT;
 /** FTI data type for double floating point.                               */
-FTIT_type FTI_DBLE;
+extern FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
-FTIT_type FTI_LDBE;
+extern FTIT_type FTI_LDBE;
 
 /*---------------------------------------------------------------------------
                             FTI public functions
