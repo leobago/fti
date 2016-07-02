@@ -69,6 +69,7 @@ if(ENABLE_FORTRAN)
 
 	add_library(fti_f90.shared SHARED ${SRC_FTI_F90})
 	add_dependencies(fti_f90.shared bpp_file) # to serialize src generation
+	add_dependencies(fti_f90.shared fti_f90.static) # to serialize mod generation
 	target_link_libraries(fti_f90.shared
 		fti.shared ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
 
