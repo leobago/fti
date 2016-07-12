@@ -39,9 +39,15 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
                 FTI_Exec->ckptIntv = (1 * 60) / FTI_Exec->globMeanIter;
             }
             res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
+            if (FTI_Exec->ckptLast == 0) {
+                res = res + 1;
+            }
             if (res >= FTI_Exec->ckptIcnt) {
                 FTI_Exec->ckptNext = res;
             }
+            sprintf(str, "Current iter : %d ckpt iter. : %d . Next ckpt. at iter. %d",
+                    FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext);
+            FTI_Print(str, FTI_DBUG);
             if (FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
