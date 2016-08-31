@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 
+if(POLICY CMP0054)
+	cmake_policy(SET CMP0054 NEW)
+endif()
+
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
