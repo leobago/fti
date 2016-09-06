@@ -349,7 +349,7 @@ int FTI_Checkpoint(int id, int level)
         t0 = MPI_Wtime();
         FTI_Exec.ckptID = id;
         FTI_Exec.ckptLvel = level;
-        sprintf(str, "Ckpt. ID %d", FTI_Exec.ckptID);
+        sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
         if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
             MPI_Recv(&res, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, &status);
