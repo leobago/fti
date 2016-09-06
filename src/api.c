@@ -343,13 +343,14 @@ int FTI_Checkpoint(int id, int level)
     int res = FTI_NSCS, value;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
+    char catstr[FTI_BUFS];
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
         FTI_Exec.ckptID = id;
         FTI_Exec.ckptLvel = level;
         sprintf(str, "Ckpt. ID %d", FTI_Exec.ckptID);
-        sprintf(str, "%s (L%d) (%.2f MB/proc)", str, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
+        sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
         if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
             MPI_Recv(&res, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, &status);
             if (res == FTI_SCES) {
@@ -383,8 +384,8 @@ int FTI_Checkpoint(int id, int level)
             }
         }
         t3 = MPI_Wtime();
-        sprintf(str, "%s taken in %.2f sec.", str, t3 - t0);
-        sprintf(str, "%s (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)", str, t1 - t0, t2 - t1, t3 - t2);
+        sprintf(catstr, "%s taken in %.2f sec.", str, t3 - t0);
+        sprintf(str, "%s (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)", catstr, t1 - t0, t2 - t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
         if (res != FTI_NSCS)
             res = FTI_DONE;
