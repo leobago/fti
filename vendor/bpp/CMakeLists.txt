@@ -26,6 +26,10 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	project(Bpp Fortran)
 endif()
 
+if(POLICY CMP0054)
+	cmake_policy(SET CMP0054 NEW)
+endif()
+
 include(cmake/Bpp.cmake)
 
 file(READ VERSION BPP_VERSION)
