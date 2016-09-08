@@ -449,6 +449,7 @@ int FTI_Recover()
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot()
 {
+    int rank;
     int i, res, level = -1;
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
@@ -480,6 +481,24 @@ int FTI_Snapshot()
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
         }
     }
+    
+    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
+    
+    if (rank == 0) {
+	
+		printf("iterTime = %f\n",FTI_Exec.iterTime);
+		printf("ckptIcnt = %i\n",FTI_Exec.ckptIcnt);
+		printf("lastIterTime = %f\n",FTI_Exec.lastIterTime);
+		printf("totalIterTime = %f\n",FTI_Exec.totalIterTime);
+		printf("syncIter = %u\n",FTI_Exec.syncIter);
+		printf("meanIterTime = %f\n",FTI_Exec.meanIterTime);
+		printf("globMeanIter = %f\n",FTI_Exec.globMeanIter);
+		printf("ckptIntv = %i\n",FTI_Exec.ckptIntv);
+		printf("ckptLast = %u\n",FTI_Exec.ckptLast);
+		printf("ckptNext = %u\n",FTI_Exec.ckptNext);
+	
+	}
+    
     return res;
 }
 
