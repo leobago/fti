@@ -1,0 +1,4 @@
+
+program test_BPP_CHARACTER16_WORKS
+  CHARACTER(KIND=16):: tstvar
+end program test_BPP_CHARACTER16_WORKS

@@ -1,0 +1,4 @@
+
+program test_BPP_CHARACTER64_WORKS
+  CHARACTER(KIND=64):: tstvar
+end program test_BPP_CHARACTER64_WORKS

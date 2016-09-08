@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/dictionary.c
+dictionary.h
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/dictionary.h
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+unistd.h
+-
+
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/dictionary.h
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+unistd.h
+-
+
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/iniparser.c
+ctype.h
+-
+iniparser.h
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/iniparser.h
+
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/iniparser.h
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+dictionary.h
+/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/deps/iniparser/dictionary.h
+

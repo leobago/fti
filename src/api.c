@@ -61,7 +61,7 @@ FTIT_type FTI_LDBE;
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_Abort()
+void FTI_Abort() 
 {
     FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, 0, FTI_Topo.myRank);
     MPI_Abort(MPI_COMM_WORLD, -1);
@@ -473,6 +473,7 @@ int FTI_Snapshot()
             }
             if (level != -1) {
                 res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
+/*#ch*/         printf("CHECKPOINT ID = %u\n", FTI_Exec.ckptCnt);
             }
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;

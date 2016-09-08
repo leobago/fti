@@ -1,0 +1,18 @@
+Performing C SOURCE FILE Test C_SUPPORTS_DOLLAR succeeded with the following output:
+Change Dir: /home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_6de2d/fast"
+/usr/bin/make -f CMakeFiles/cmTC_6de2d.dir/build.make CMakeFiles/cmTC_6de2d.dir/build
+make[1]: Verzeichnis „/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp“ wird betreten
+Building C object CMakeFiles/cmTC_6de2d.dir/src.c.o
+/usr/bin/cc    -DC_SUPPORTS_DOLLAR   -o CMakeFiles/cmTC_6de2d.dir/src.c.o   -c /home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_6de2d
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6de2d.dir/link.txt --verbose=1
+/usr/bin/cc   -DC_SUPPORTS_DOLLAR    CMakeFiles/cmTC_6de2d.dir/src.c.o  -o cmTC_6de2d 
+make[1]: Verzeichnis „/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp“ wird verlassen
+
+Source file was:
+
+extern int dollar$(void);
+int main() { return 0; }
+
