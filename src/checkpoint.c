@@ -6,6 +6,7 @@
  */
 
 #include "interface.h"
+#include <math.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -18,37 +19,38 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)										// ### first call inits FTI_Exec->iterTime = MPI_Wtime() and sets FTI_Exec->ckptIcnt=1
-{	
-    int nbProcs, res;
-    char str[FTI_BUFS];																									
-    double last = FTI_Exec->iterTime;																						// ### SECOND CALL ##############################
-    FTI_Exec->iterTime = MPI_Wtime();																						// 
-    if (FTI_Exec->ckptIcnt > 0) { 																							// true 
-        FTI_Exec->lastIterTime = FTI_Exec->iterTime - last;  																// lastIterTime = a bit > 120
-        FTI_Exec->totalIterTime = FTI_Exec->totalIterTime + FTI_Exec->lastIterTime;											// totalIterTime = a bit > 120
-        if (FTI_Exec->ckptIcnt % FTI_Exec->syncIter == 0) { 																// true
-            FTI_Exec->meanIterTime = FTI_Exec->totalIterTime / FTI_Exec->ckptIcnt;											// FTI_Exec->meanIterTime = FTI_Exec->totalIterTime
-            MPI_Allreduce(&FTI_Exec->meanIterTime, &FTI_Exec->globMeanIter, 1, MPI_DOUBLE, MPI_SUM, FTI_COMM_WORLD);		 
+int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
+{
+    int nbProcs, res, rank;
+    char str[FTI_BUFS];
+    double last = FTI_Exec->iterTime;
+    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
+    FTI_Exec->iterTime = MPI_Wtime();
+    if (FTI_Exec->ckptIcnt > 0) {
+        FTI_Exec->lastIterTime = FTI_Exec->iterTime - last;
+        FTI_Exec->totalIterTime = FTI_Exec->totalIterTime + FTI_Exec->lastIterTime;
+        if (FTI_Exec->ckptIcnt % FTI_Exec->syncIter == 0) {
+            FTI_Exec->meanIterTime = FTI_Exec->totalIterTime / FTI_Exec->ckptIcnt;
+            MPI_Allreduce(&FTI_Exec->meanIterTime, &FTI_Exec->globMeanIter, 1, MPI_DOUBLE, MPI_SUM, FTI_COMM_WORLD);
             MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
             FTI_Exec->globMeanIter = FTI_Exec->globMeanIter / nbProcs;
-            if (FTI_Exec->globMeanIter > 60) {																				// true -> FTI_Exec->ckptIntv = 1
-				FTI_Exec->ckptIntv = 1;
+            if (FTI_Exec->globMeanIter > 60) {
+                FTI_Exec->ckptIntv = 1;
             }
             else {
-                FTI_Exec->ckptIntv = (1 * 60) / FTI_Exec->globMeanIter;
+                FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
             }
-            res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;																	// res = 1	
-            if (FTI_Exec->ckptLast == 0) {																					// true -> res = 2
+            res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
+            if (FTI_Exec->ckptLast == 0) {
                 res = res + 1;
             }
-            if (res >= FTI_Exec->ckptIcnt) {																				// false -> res = 2
+            if (res >= FTI_Exec->ckptIcnt) {
                 FTI_Exec->ckptNext = res;
             }
             sprintf(str, "Current iter : %d ckpt iter. : %d . Next ckpt. at iter. %d",
                     FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext);
             FTI_Print(str, FTI_DBUG);
-            if (FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) {															// false -> FTI_Exec->syncIter = 1
+            if (FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
                     FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);

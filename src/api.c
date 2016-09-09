@@ -451,6 +451,9 @@ int FTI_Snapshot()
 {
     int rank;
     int i, res, level = -1;
+    
+    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
+    
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS) {
@@ -466,38 +469,24 @@ int FTI_Snapshot()
         FTI_UpdateIterTime(&FTI_Exec);
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt) { // If it is time to check for possible ckpt. (every minute)
             FTI_Print("Checking if it is time to checkpoint.", FTI_DBUG);
-            FTI_Exec.ckptCnt++; // Increment minute counter
+            if (FTI_Exec.globMeanIter > 60) FTI_Exec.ckptCnt = FTI_Exec.totalIterTime/60;
+			else FTI_Exec.ckptCnt++; // Increment minute counter
             for (i = 1; i < 5; i++) { // Check ckpt. level
-                if (FTI_Exec.ckptCnt % FTI_Ckpt[i].ckptIntv == 0) {
+                if (FTI_Ckpt[i].ckptIntv > 0 && FTI_Exec.ckptCnt/(FTI_Ckpt[i].ckptCnt*FTI_Ckpt[i].ckptIntv)) {
                     level = i;
+                    FTI_Ckpt[i].ckptCnt++;
                 }
             }
             if (level != -1) {
-                res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
-/*#ch*/         printf("CHECKPOINT ID = %u\n", FTI_Exec.ckptCnt);
+				if (rank==0) printf("\nChkpnt Time = %f\n\n",FTI_Exec.totalIterTime);
+				res = (FTI_Ckpt[level].ckptCnt-1)*FTI_Ckpt[level].ckptIntv;
+				res = FTI_Try(FTI_Checkpoint(res, level), "take checkpoint.");
             }
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
         }
     }
-    
-    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
-    
-    if (rank == 0) {
-	
-		printf("iterTime = %f\n",FTI_Exec.iterTime);
-		printf("ckptIcnt = %i\n",FTI_Exec.ckptIcnt);
-		printf("lastIterTime = %f\n",FTI_Exec.lastIterTime);
-		printf("totalIterTime = %f\n",FTI_Exec.totalIterTime);
-		printf("syncIter = %u\n",FTI_Exec.syncIter);
-		printf("meanIterTime = %f\n",FTI_Exec.meanIterTime);
-		printf("globMeanIter = %f\n",FTI_Exec.globMeanIter);
-		printf("ckptIntv = %i\n",FTI_Exec.ckptIntv);
-		printf("ckptLast = %u\n",FTI_Exec.ckptLast);
-		printf("ckptNext = %u\n",FTI_Exec.ckptNext);
-	
-	}
     
     return res;
 }
