@@ -452,8 +452,6 @@ int FTI_Snapshot()
     int rank;
     int i, res, level = -1;
     
-    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
-    
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS) {
@@ -478,7 +476,6 @@ int FTI_Snapshot()
                 }
             }
             if (level != -1) {
-				if (rank==0) printf("\nChkpnt Time = %f\n\n",FTI_Exec.totalIterTime);
 				res = (FTI_Ckpt[level].ckptCnt-1)*FTI_Ckpt[level].ckptIntv;
 				res = FTI_Try(FTI_Checkpoint(res, level), "take checkpoint.");
             }

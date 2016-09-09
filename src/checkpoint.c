@@ -21,10 +21,9 @@
 /*-------------------------------------------------------------------------*/
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 {
-    int nbProcs, res, rank;
+    int nbProcs, res;
     char str[FTI_BUFS];
     double last = FTI_Exec->iterTime;
-    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
     FTI_Exec->iterTime = MPI_Wtime();
     if (FTI_Exec->ckptIcnt > 0) {
         FTI_Exec->lastIterTime = FTI_Exec->iterTime - last;
