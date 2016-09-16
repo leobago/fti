@@ -1,2 +1,0 @@
-/usr/bin/ar qc lib/libfti_f90.a  CMakeFiles/fti_f90.static.dir/interface.F90.o CMakeFiles/fti_f90.static.dir/fortran/ftif.c.o
-/usr/bin/ranlib lib/libfti_f90.a

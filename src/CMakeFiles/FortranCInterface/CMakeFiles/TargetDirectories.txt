@@ -1,5 +1,0 @@
-/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/edit_cache.dir
-/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/symbols.dir
-/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/FortranCInterface.dir
-/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/myfort.dir
-/home/kellekai/Dokumente/BSC/WORK/FTI_REPOS/debug/src/CMakeFiles/FortranCInterface/CMakeFiles/rebuild_cache.dir

@@ -1,1 +1,0 @@
-/usr/bin/cc     -Wl,-rpath  -Wl,/usr/lib/openmpi/lib  -Wl,--enable-new-dtags CMakeFiles/hd2.exe.dir/heatd2.c.o  -o hd2.exe -rdynamic ../lib/libfti.a /usr/lib/openmpi/lib/libmpi.so -lm -Wl,-rpath,/usr/lib/openmpi/lib 

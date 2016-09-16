@@ -1,4 +1,0 @@
-
-program test_BPP_CHARACTER32_WORKS
-  CHARACTER(KIND=32):: tstvar
-end program test_BPP_CHARACTER32_WORKS

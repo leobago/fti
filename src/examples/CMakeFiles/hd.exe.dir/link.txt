@@ -1,1 +1,0 @@
-/usr/bin/cc     -Wl,-rpath  -Wl,/usr/lib/openmpi/lib  -Wl,--enable-new-dtags CMakeFiles/hd.exe.dir/heatdis.c.o  -o hd.exe -rdynamic ../lib/libfti.a /usr/lib/openmpi/lib/libmpi.so -lm -Wl,-rpath,/usr/lib/openmpi/lib 
