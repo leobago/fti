@@ -55,9 +55,9 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     cfn = iniparser_getstring(ini, str, NULL);
     snprintf(FTI_Exec->ckptFile, FTI_BUFS, "%s", cfn);
     sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
-    *fs = (int)iniparser_getint(ini, str, -1);
+    *fs = iniparser_getlint(ini, str, -1);
     sprintf(str, "%d:Ckpt_file_maxs", FTI_Topo->groupRank);
-    *mfs = (int)iniparser_getint(ini, str, -1);
+    *mfs = iniparser_getlint(ini, str, -1);
     iniparser_freedict(ini);
     return FTI_SCES;
 }
