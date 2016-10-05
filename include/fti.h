@@ -126,7 +126,8 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     double          globMeanIter;       /** Global mean iteration time.    */
     double          totalIterTime;      /** Total main loop time spent.    */
     unsigned int    syncIter;           /** To check mean iter. time.      */
-    unsigned int    ckptCnt;            /** Checkpoint minute counter.     */
+    unsigned int    minuteCnt;          /** Checkpoint minute counter.     */
+    unsigned int    ckptCnt;             /** Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /** Iteration loop counter.        */
     unsigned int    ckptID;             /** Checkpoint ID.                 */
     unsigned int    ckptNext;           /** Iteration for next checkpoint. */

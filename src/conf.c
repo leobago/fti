@@ -137,7 +137,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
     FTI_Exec->ckpt = 0;
-    FTI_Exec->ckptCnt = 0;
+    FTI_Exec->minuteCnt = 0;
+    FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;
     FTI_Exec->ckptID = 0;
     FTI_Exec->ckptLvel = 0;
@@ -146,7 +147,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->ckptNext = 0;
     FTI_Exec->ckptLast = 0;
     FTI_Exec->syncIter = 1;
-/*#ch*/    // FTI_Exec->iterTime = MPI_Wtime();
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
