@@ -416,6 +416,27 @@ int iniparser_getint(dictionary * d, const char * key, int notfound)
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief    Get the string associated to a key, convert to a long
+  @param    d Dictionary to search
+  @param    key Key string to look for
+  @param    notfound Value to return in case of error
+  @return   long
+
+  Credits: This function bases completely on int iniparser_getint and was
+  slightly modified to return long instead of int.
+ */
+/*--------------------------------------------------------------------------*/
+long iniparser_getlint(dictionary * d, const char * key, int notfound)
+{
+    char    *   str ;
+
+    str = iniparser_getstring(d, key, INI_INVALID_KEY);
+    if (str==INI_INVALID_KEY) return notfound ;
+    return strtol(str, NULL, 0);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief    Get the string associated to a key, convert to a double
   @param    d Dictionary to search
   @param    key Key string to look for

@@ -36,7 +36,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
                 FTI_Exec->ckptIntv = 1;
             }
             else {
-                FTI_Exec->ckptIntv = (1 * 60) / FTI_Exec->globMeanIter;
+                FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
             }
             res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
             if (FTI_Exec->ckptLast == 0) {

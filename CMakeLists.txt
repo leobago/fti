@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 
+if(POLICY CMP0054)
+	cmake_policy(SET CMP0054 NEW)
+endif()
+
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
@@ -69,6 +73,7 @@ if(ENABLE_FORTRAN)
 
 	add_library(fti_f90.shared SHARED ${SRC_FTI_F90})
 	add_dependencies(fti_f90.shared bpp_file) # to serialize src generation
+	add_dependencies(fti_f90.shared fti_f90.static) # to serialize mod generation
 	target_link_libraries(fti_f90.shared
 		fti.shared ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
 

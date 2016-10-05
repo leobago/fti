@@ -1,42 +1,16 @@
-link_directories(${CMAKE_BINARY_DIR}/lib)
-
 add_executable(hd.exe heatdis.c)
-target_link_libraries(hd.exe ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_C_LIBRARIES} m)
-
-if(MPI_C_COMPILE_FLAGS)
-    set_target_properties(hd.exe PROPERTIES
-        COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}")
-endif()
-
-if(MPI_C_LINK_FLAGS)
-    set_target_properties(hd.exe PROPERTIES
-        LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-endif()
+target_link_libraries(hd.exe fti.static ${MPI_C_LIBRARIES} m)
+set_property(TARGET hd.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+set_property(TARGET hd.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
 add_executable(hd2.exe heatd2.c)
-target_link_libraries(hd2.exe ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_C_LIBRARIES} m)
-
-if(MPI_C_COMPILE_FLAGS)
-    set_target_properties(hd2.exe PROPERTIES
-        COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}")
-endif()
-
-if(MPI_C_LINK_FLAGS)
-    set_target_properties(hd2.exe PROPERTIES
-        LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-endif()
+target_link_libraries(hd2.exe fti.static ${MPI_C_LIBRARIES} m)
+set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
-    target_link_libraries(hdf.exe fti_f90 ${CMAKE_BINARY_DIR}/lib/libfti.a ${MPI_Fortran_LIBRARIES} m)
-
-    if(MPI_Fortran_COMPILE_FLAGS)
-        set_target_properties(hdf.exe PROPERTIES
-            COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
-    endif()
-
-    if(MPI_Fortran_LINK_FLAGS)
-        set_target_properties(hdf.exe PROPERTIES
-            LINK_FLAGS "${MPI_Fortran_LINK_FLAGS}")
-    endif()
+    target_link_libraries(hdf.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)
+    set_property(TARGET hdf.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS})
+    set_property(TARGET hdf.exe APPEND PROPERTY LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
 endif()

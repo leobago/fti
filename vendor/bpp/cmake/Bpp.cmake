@@ -28,7 +28,7 @@ function(bpp_gen_config OUTFILE)
 	foreach(TYPENAME "CHARACTER" "COMPLEX" "INTEGER" "LOGICAL" "REAL")
 		foreach(TYPESIZE 1 2 4 8 16 32 64)
 			test_fort_type("BPP_${TYPENAME}${TYPESIZE}_WORKS" "${TYPENAME}" "${TYPESIZE}")
-			if ( "BPP_${TYPENAME}${TYPESIZE}_WORKS" )
+			if ( "${BPP_${TYPENAME}${TYPESIZE}_WORKS}" )
 				set(BPP_FORTTYPES "${BPP_FORTTYPES}${TYPENAME}${TYPESIZE} ")
 			endif()
 		endforeach()
@@ -46,20 +46,38 @@ endfunction()
 
 
 # A function to preprocess a source file with BPP
-function(bpp_preprocess OUTVAR FIRST_SRC)
+function(bpp_preprocess)
+	cmake_parse_arguments(BPP_PREPROCESS "" "OUTPUT" "DEFINES;INCLUDES;SOURCES" "${FIRST_SRC}" ${ARGN})
+
+	# old function signature for compatibility
+	if ( 
+			"${BPP_PREPROCESS_OUTPUT}" STREQUAL ""
+			AND "${BPP_PREPROCESS_DEFINES}" STREQUAL ""
+			AND "${BPP_PREPROCESS_INCLUDES}" STREQUAL ""
+			AND "${BPP_PREPROCESS_SOURCES}" STREQUAL ""
+	)
+		list(GET ARGV 0 BPP_PREPROCESS_OUTPUT)
+		list(REMOVE_AT ARGV 0)
+		set(BPP_PREPROCESS_SOURCES ${ARGV})
+	elseif(NOT "${BPP_PREPROCESS_UNPARSED_ARGUMENTS}" STREQUAL "")
+		message(SEND_ERROR "Unexpected argument(s) to bpp_preprocess: ${BPP_PREPROCESS_UNPARSED_ARGUMENTS}")
+	endif()
+	
 	set(BPP_INCLUDE_PARAMS ${BPP_DEFAULT_INCLUDES})
 
-	get_property(INCLUDE_DIRS DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
-	foreach(INCLUDE_DIR ${INCLUDE_DIRS})
+	get_property(DIR_INCLUDE_DIRS DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+	foreach(INCLUDE_DIR ${DIR_INCLUDE_DIRS} ${BPP_PREPROCESS_INCLUDES})
 		set(BPP_INCLUDE_PARAMS ${BPP_INCLUDE_PARAMS} "-I" "${INCLUDE_DIR}")
+	endforeach()
+	foreach(DEFINE ${BPP_PREPROCESS_DEFINES})
+		set(BPP_INCLUDE_PARAMS ${BPP_INCLUDE_PARAMS} "-D" "${DEFINE}")
 	endforeach()
 
 	bpp_gen_config("${CMAKE_CURRENT_BINARY_DIR}/bppconf/config.bpp.sh")
 	set(BPP_INCLUDE_PARAMS ${BPP_INCLUDE_PARAMS} "-I" "${CMAKE_CURRENT_BINARY_DIR}/bppconf")
 
-
 	set(OUTFILES)
-	foreach(SRC "${FIRST_SRC}" ${ARGN})
+	foreach(SRC ${BPP_PREPROCESS_SOURCES})
 		get_filename_component(OUTFILE "${SRC}" NAME)
 		string(REGEX REPLACE "\\.[bB][pP][pP]$" "" OUTFILE "${OUTFILE}")
 		set(OUTFILE "${CMAKE_CURRENT_BINARY_DIR}/${OUTFILE}")
@@ -72,5 +90,5 @@ function(bpp_preprocess OUTVAR FIRST_SRC)
 		list(APPEND OUTFILES "${OUTFILE}")
 	endforeach()
 
-	set(${OUTVAR} "${OUTFILES}" PARENT_SCOPE)
+	set(${BPP_PREPROCESS_OUTPUT} "${OUTFILES}" PARENT_SCOPE)
 endfunction()
