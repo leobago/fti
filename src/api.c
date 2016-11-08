@@ -508,6 +508,8 @@ int FTI_Finalize()
         exit(0);
     }
 
+    int isCkpt;
+    MPI_Allreduce( &FTI_Exec.ckptID, &isCkpt, 1, MPI_INT, MPI_SUM, FTI_Exec.globalComm );
     // Not FTI_Topo.amIaHead
     int buff = FTI_ENDW;
     MPI_Status status;
@@ -530,7 +532,7 @@ int FTI_Finalize()
     }
 
     // If we need to keep the last checkpoint
-    if (FTI_Conf.saveLastCkpt) {
+    if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
@@ -552,6 +554,7 @@ int FTI_Finalize()
         buff = 6; // For cleaning only local storage
     }
     else {
+        if (FTI_Conf.saveLastCkpt && !isCkpt && FTI_Topo.splitRank == 0) FTI_Print("no ckpt. to keep.", FTI_WARN);
         if (FTI_Topo.splitRank == 0) {
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
         }
