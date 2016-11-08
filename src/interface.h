@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
+#include <math.h>
 
 /*---------------------------------------------------------------------------
                                   Defines

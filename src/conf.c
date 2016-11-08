@@ -120,6 +120,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
     FTI_Ckpt[3].isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
     FTI_Ckpt[4].isInline = (int)iniparser_getint(ini, "Basic:inline_l4", 1);
+    FTI_Ckpt[1].ckptCnt  = 1;
+    FTI_Ckpt[2].ckptCnt  = 1;
+    FTI_Ckpt[3].ckptCnt  = 1;
+    FTI_Ckpt[4].ckptCnt  = 1;
 
     // Reading/setting configuration metadata
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
@@ -133,7 +137,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
     FTI_Exec->ckpt = 0;
-    FTI_Exec->ckptCnt = 0;
+    FTI_Exec->minuteCnt = 0;
+    FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;
     FTI_Exec->ckptID = 0;
     FTI_Exec->ckptLvel = 0;

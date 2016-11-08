@@ -36,7 +36,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
                 FTI_Exec->ckptIntv = 1;
             }
             else {
-                FTI_Exec->ckptIntv = (1 * 60) / FTI_Exec->globMeanIter;
+                FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
             }
             res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
             if (FTI_Exec->ckptLast == 0) {
@@ -190,6 +190,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, tres, res, level, nodeFlag, globalFlag = FTI_Topo->splitRank;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
+	char catstr[FTI_BUFS];
 
     t0 = MPI_Wtime();
 
@@ -247,8 +248,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     t3 = MPI_Wtime();
 
-    sprintf(str, "Post-checkpoint took %.2f sec.", t3 - t0);
-    sprintf(str, "%s (Ag:%.2fs, Pt:%.2fs, Cl:%.2fs)", str, t1 - t0, t2 - t1, t3 - t2);
+    sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
+    sprintf(str, "%s (Ag:%.2fs, Pt:%.2fs, Cl:%.2fs)", catstr, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
 
     return FTI_SCES;
