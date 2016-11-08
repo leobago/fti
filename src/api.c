@@ -554,7 +554,9 @@ int FTI_Finalize()
         buff = 6; // For cleaning only local storage
     }
     else {
-        if (FTI_Conf.saveLastCkpt && !isCkpt && FTI_Topo.splitRank == 0) FTI_Print("no ckpt. to keep.", FTI_WARN);
+        if (FTI_Conf.saveLastCkpt && !isCkpt && FTI_Topo.splitRank == 0) {
+            FTI_Print("no ckpt. to keep.", FTI_WARN);
+        }
         if (FTI_Topo.splitRank == 0) {
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
         }
