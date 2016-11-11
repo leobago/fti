@@ -200,6 +200,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                    FTIT_checkpoint* FTI_Ckpt)
 {
+    // Check if Reed-Salomon and L2 checkpointing is requested.
+    int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
+    int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
+    // Check requirements.
     if (FTI_Topo->nbHeads != 0 && FTI_Topo->nbHeads != 1) {
         FTI_Print("The number of heads needs to be set to 0 or 1.", FTI_WARN);
         return FTI_NSCS;
@@ -212,11 +216,11 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Topo->groupSize <= 2) {
+    if (FTI_Topo->groupSize <= 2 && (L2req || RSreq)) {
         FTI_Print("The group size must be bigger than 2", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Topo->groupSize >= 32) {
+    if (FTI_Topo->groupSize >= 32 && RSreq) {
         FTI_Print("The group size must be lower than 32", FTI_WARN);
         return FTI_NSCS;
     }
@@ -247,6 +251,9 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
+    if (FTI_Topo->groupSize < 1) 
+        FTI_Topo->groupSize = 1;
+
     return FTI_SCES;
 }
 
