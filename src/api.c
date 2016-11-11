@@ -484,7 +484,7 @@ int FTI_Snapshot()
             }
             if (level != -1) {
                   res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
-                  if (res == FTI_DONE) { 
+                  if (res == FTI_DONE) {
                       FTI_Exec.ckptCnt++;
                   }
             }
@@ -511,7 +511,7 @@ int FTI_Snapshot()
 int FTI_Finalize()
 {
     int isCkpt;
-    
+
     if (FTI_Topo.amIaHead) {
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
@@ -564,7 +564,7 @@ int FTI_Finalize()
     }
     else {
         if (FTI_Conf.saveLastCkpt && !isCkpt) {
-            FTI_Print("No ckpt. to keep.", FTI_WARN);
+            FTI_Print("No ckpt. to keep.", FTI_INFO);
         }
         if (FTI_Topo.splitRank == 0) {
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
