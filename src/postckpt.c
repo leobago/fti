@@ -6,6 +6,9 @@
  */
 
 #include "interface.h"
+#ifdef HAVE_LIBCPPR
+#include "cppr.h"
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -331,6 +334,29 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
 
+#ifdef HAVE_LIBCPPR
+
+    char *local_dir = (level == 0) ? FTI_Conf->lTmpDir : FTI_Ckpt[level].dir ;
+    char cppr_str[FTI_BUFS];
+    memset(cppr_str, 0x00, sizeof(cppr_str));
+    sprintf(cppr_str, "cppr attempting to move file in fti_flush: src %s dst %s file %s", local_dir, FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+    FTI_Print(cppr_str, FTI_WARN);
+    int cppr_retval = cppr_mv_wait(0, CPPR_FLAG_OVERWRITE, NULL,
+                  FTI_Conf->gTmpDir, local_dir, FTI_Exec->ckptFile);
+    if(cppr_retval != CPPR_SUCCESS){
+            memset(cppr_str, 0x00, sizeof(cppr_str));
+            sprintf(cppr_str, "Cannot transfer file with cppr: %s %s ",
+                    cppr_err_to_str(cppr_retval),
+                    cppr_err_to_desc(cppr_retval));
+        FTI_Print(cppr_str, FTI_WARN);
+        return FTI_NSCS;
+
+    }
+    sprintf(cppr_str, "cppr successfully transfered src: %s dest: %s, file %s",
+            local_dir, FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+    FTI_Print(cppr_str, FTI_WARN);
+    return FTI_SCES;
+#endif
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);

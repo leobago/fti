@@ -5,11 +5,26 @@ if(POLICY CMP0054)
 endif()
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	project(FTI C Fortran)
+       project(FTI C Fortran)
 endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_CPPR "Enables the use of CPPR as the underlying file movement service" OFF)
+set(CPPR_PATH "" CACHE PATH "user specified path to cppr")
+if(ENABLE_CPPR)
+     set(CPPR_INCLUDE_DIR "${CPPR_PATH}/include")
+     set(CPPR_LIBRARY "${CPPR_PATH}/lib/libcppr.so")
+     find_path(CPPR_INCLUDE_DIR cppr.h)
+     find_library(CPPR_LIBRARY libcppr)
+endif()
+
+
+if(CPPR_INCLUDE_DIR AND CPPR_LIBRARY)
+     set(CPPR_FOUND TRUE)
+     add_definitions(-DHAVE_LIBCPPR=1)
+
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -21,7 +36,7 @@ add_subdirectory(deps)
 
 include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include"
-	${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH})
+	${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH} ${CPPR_INCLUDE_DIR})
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -44,8 +59,15 @@ append_property(TARGET fti.static fti.shared
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES})
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
+
+if(CPPR_FOUND)
+     target_link_libraries(fti.static ${MPI_C_LIBRARIES} ${CPPR_LIBRARY})
+     target_link_libraries(fti.shared ${MPI_C_LIBRARIES} ${CPPR_LIBRARY})
+else()
+     target_link_libraries(fti.static ${MPI_C_LIBRARIES})
+     target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
+endif()
+
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
