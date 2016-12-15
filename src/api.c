@@ -7,6 +7,9 @@
 
 #include "interface.h"
 
+#ifdef HAVE_LIBCPPR
+#include "cppr.h"
+#endif
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
 
@@ -102,6 +105,19 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+#ifdef HAVE_LIBCPPR
+    /* try to init libcppr */
+    int cppr_ret;
+    cppr_ret = cppr_status();
+
+
+    if(cppr_ret != CPPR_SUCCESS){
+            FTI_Print("cppr failed initializing", FTI_WARN);
+            FTI_Abort();
+    }
+    FTI_Print("CPPR init'd successfully", FTI_INFO);
+
+#endif
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");

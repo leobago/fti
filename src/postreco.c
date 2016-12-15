@@ -6,6 +6,9 @@
  */
 
 #include "interface.h"
+#ifdef HAVE_LIBCPPR
+#include "cppr.h"
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -855,6 +858,31 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+#ifdef HAVE_LIBCPPR
+    FTI_Print("using CPPR for file transfer in FTI_RecoverL4", FTI_WARN);
+    char cppr_str[FTI_BUFS];
+    int cppr_retval = cppr_mv_wait(0,
+                                   0,
+                                   NULL,
+                                   FTI_Ckpt[1].dir,
+                                   FTI_Ckpt[4].dir,
+                                   FTI_Exec->ckptFile);
+
+    if(cppr_retval != CPPR_SUCCESS){
+            sprintf(cppr_str, "Cannot recover and transfer file with cppr:src %s dest: %s, file %s: %s %s ",
+                    FTI_Ckpt[1].dir, FTI_Ckpt[4].dir, FTI_Exec->ckptFile,
+                    cppr_err_to_str(cppr_retval),
+                    cppr_err_to_desc(cppr_retval));
+            FTI_Print(cppr_str, FTI_WARN);
+            return FTI_NSCS;
+    }
+
+    sprintf(cppr_str, "cppr successfully (recovered) dest: %s src: %s, file %s",
+            FTI_Ckpt[1].dir, FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
+    FTI_Print(cppr_str, FTI_WARN);
+    goto end;
+#endif
+
     gfd = fopen(gfn, "rb");
     if (gfd == NULL) {
         FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_DBUG);
@@ -902,7 +930,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fclose(gfd);
     fclose(lfd);
-
+end:
     if (truncate(gfn, fs) == -1) {
         FTI_Print("R4 cannot re-truncate the checkpoint file in the PFS.", FTI_DBUG);
         return FTI_NSCS;
