@@ -104,11 +104,11 @@ include(GetPrerequisites)
 
 # Start out with the generic MPI compiler names, as these are most commonly used.
 set(_MPI_C_COMPILER_NAMES                  mpicc_r  mpcc_r
-                                           mpicc    mpcc)
+                                           mpicc    mpcc cc)
 set(_MPI_CXX_COMPILER_NAMES                mpicxx_r mpiCC_r mpic++_r mpcxx_r mpCC_r mpc++_r
-                                           mpicxx   mpiCC   mpic++   mpcxx   mpCC   mpc++)
+                                           mpicxx   mpiCC   mpic++   mpcxx   mpCC   mpc++ CC)
 set(_MPI_Fortran_COMPILER_NAMES            mpif95_r mpf95_r mpif90_r mpf90_r mpif77_r mpf77_r
-                                           mpif95   mpf95   mpif90   mpf90   mpif77   mpf77)
+                                           mpif95   mpf95   mpif90   mpf90   mpif77   mpf77 ftn)
 
 # GNU compiler names
 set(_MPI_GNU_C_COMPILER_NAMES              mpigcc_r mpgcc_r
