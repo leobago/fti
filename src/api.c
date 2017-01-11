@@ -101,7 +101,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Abort();
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0)
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -345,10 +345,11 @@ int FTI_Checkpoint(int id, int level)
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
     char catstr[FTI_BUFS];
+    int ckptFirst = !FTI_Exec.ckptID;
+    FTI_Exec.ckptID = id;
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
-        FTI_Exec.ckptID = id;
         FTI_Exec.ckptLvel = level;
         sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -388,10 +389,15 @@ int FTI_Checkpoint(int id, int level)
         sprintf(catstr, "%s taken in %.2f sec.", str, t3 - t0);
         sprintf(str, "%s (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)", catstr, t1 - t0, t2 - t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
-        if (res != FTI_NSCS)
+        if (res != FTI_NSCS) {
             res = FTI_DONE;
-        else
+            if (ckptFirst && FTI_Topo.splitRank == 0) {
+                FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+            }
+        }
+        else {
             res = FTI_NSCS;
+        }
     }
     return res;
 }
@@ -478,7 +484,9 @@ int FTI_Snapshot()
             }
             if (level != -1) {
                   res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
-                  if (res == FTI_DONE) FTI_Exec.ckptCnt++;
+                  if (res == FTI_DONE) {
+                      FTI_Exec.ckptCnt++;
+                  }
             }
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;
@@ -502,12 +510,15 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
+    int isCkpt;
+
     if (FTI_Topo.amIaHead) {
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
     }
 
+    MPI_Reduce( &FTI_Exec.ckptID, &isCkpt, 1, MPI_INT, MPI_SUM, 0, FTI_COMM_WORLD );
     // Not FTI_Topo.amIaHead
     int buff = FTI_ENDW;
     MPI_Status status;
@@ -530,7 +541,7 @@ int FTI_Finalize()
     }
 
     // If we need to keep the last checkpoint
-    if (FTI_Conf.saveLastCkpt) {
+    if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
@@ -552,6 +563,9 @@ int FTI_Finalize()
         buff = 6; // For cleaning only local storage
     }
     else {
+        if (FTI_Conf.saveLastCkpt && !isCkpt) {
+            FTI_Print("No ckpt. to keep.", FTI_INFO);
+        }
         if (FTI_Topo.splitRank == 0) {
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
         }
