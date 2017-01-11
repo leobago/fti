@@ -5,6 +5,9 @@
  *  @brief  Checkpointing functions for the FTI library.
  */
 
+#define _POSIX_C_SOURCE 200809L
+#include <string.h>
+
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -106,12 +109,21 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if (fwrite(FTI_Data[i].ptr, FTI_Data[i].eleSize, FTI_Data[i].count, fd) != FTI_Data[i].count) {
-            sprintf(str, "Dataset #%d could not be written.", FTI_Data[i].id);
+        clearerr(fd);
+        size_t written = 0;
+        int fwrite_errno;
+        while ( written < FTI_Data[i].count && !ferror(fd) ) {
+            errno = 0;
+            written += fwrite(((char*)FTI_Data[i].ptr)+(FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count-written, fd);
+            fwrite_errno = errno;
+        }
+        if ( ferror(fd) ) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
             FTI_Print(str, FTI_EROR);
-
             fclose(fd);
-
             return FTI_NSCS;
         }
     }
