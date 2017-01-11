@@ -100,7 +100,7 @@ typedef struct FTIT_type {              /** FTI type declarator.           */
 typedef struct FTIT_dataset {           /** Dataset metadata.              */
     int             id;                 /** ID to search/update dataset.   */
     void            *ptr;               /** Pointer to the dataset.        */
-    int             count;              /** Number of elements in dataset. */
+    long            count;              /** Number of elements in dataset. */
     FTIT_type       type;               /** Data type for the dataset.     */
     int             eleSize;            /** Element size for the dataset.  */
     long            size;               /** Total size of the dataset.     */
