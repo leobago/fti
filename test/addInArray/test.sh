@@ -11,14 +11,14 @@ function test {
     cp configBkp.fti config.fti
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 1)
     echo "Flag = "$FLAG
-    if [ $FLAG != 0 ]
+    if [ "$FLAG" != 0 ]
     then
         printError $FLAG
         exit 1
     fi
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 0)
     echo "Flag2 = "$FLAG
-    if [ $FLAG != 0 ]
+    if [ "$FLAG" != 0 ]
     then
         printError $FLAG
         exit 1
