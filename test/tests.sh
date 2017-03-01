@@ -26,7 +26,7 @@ runAllConfiguration() {
 	startTest addInArray configH1I0.fti 1 2 3 4
 }
 
-cd testing
+cd test
 #Pattern: startTest testName configFile args(ex. checkpoint levels)
 #----------------------
 #-- Write tests here --
