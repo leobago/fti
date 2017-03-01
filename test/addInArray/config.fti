@@ -1,0 +1,37 @@
+
+[basic]
+head                           = 0
+node_size                      = 2
+ckpt_dir                       = ./Local
+glbl_dir                       = ./Global
+meta_dir                       = ./Meta
+ckpt_l1                        = 3
+ckpt_l2                        = 5
+ckpt_l3                        = 7
+ckpt_l4                        = 11
+inline_l2                      = 1
+inline_l3                      = 1
+inline_l4                      = 1
+keep_last_ckpt                 = 1
+group_size                     = 4
+verbosity                      = 3
+
+
+[restart]
+failure                        = 2
+exec_id                        = 2017-03-01_09-26-42
+
+
+[injection]
+rank                           = 0
+number                         = 0
+position                       = 0
+frequency                      = 0
+
+
+[advanced]
+block_size                     = 1024
+mpi_tag                        = 2612
+local_test                     = 1
+
+

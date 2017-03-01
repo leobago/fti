@@ -36,4 +36,6 @@ before_script:
   - cd $BUILD_DIR
   - cmake ..
 
-script: make
+script: 
+  - make
+  - ./test/addInArray/test.sh
