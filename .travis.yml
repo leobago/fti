@@ -38,4 +38,5 @@ before_script:
 
 script: 
   - make
-  - ./test/addInArray/test.sh
+  - pwd
+  #- ./test/addInArray/test.sh
