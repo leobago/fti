@@ -147,11 +147,13 @@ int main(int argc, char** argv){
         case WORK_STOPED:
             //printf("Work stopped (i = %d)\n", ITER_STOP);
             //simulate failure
-            if (world_rank == 0) printf("0");
-            //free(array);
-            //MPI_Finalize();
-            //return 0;
-            break;
+            if (world_rank == 0) {
+                printf("0");
+            }
+            MPI_Barrier(FTI_COMM_WORLD);
+            free(array);
+            MPI_Finalize();
+            return 0;
         case CHECKPOINT_FAILED:
             //printf("Checkpoint failed!\n");
             if (world_rank == 0) printf("2");
@@ -161,6 +163,8 @@ int main(int argc, char** argv){
             if (world_rank == 0) printf("2");
             break;
     }
+    fflush(stdout);
+    MPI_Barrier(FTI_COMM_WORLD);
     free(array);
     FTI_Finalize();
     MPI_Finalize();

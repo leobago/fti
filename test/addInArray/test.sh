@@ -10,12 +10,14 @@ function printError {
 function test {
     cp configBkp.fti config.fti
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 1)
+    echo "Flag = "$FLAG
     if [ $FLAG != 0 ]
     then
         printError $FLAG
         exit 1
     fi
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 0)
+    echo "Flag2 = "$FLAG
     if [ $FLAG != 0 ]
     then
         printError $FLAG
@@ -29,13 +31,13 @@ C_INCLUDE_PATH=../../include/
 export C_INCLUDE_PATH
 echo "Making..."
 make
-#echo "Testing L1..."
-#test 1
-#echo "Testing L2..."
-#test 2
-#echo "Testing L3..."
-#test 3
-echo "Testing recovery from checkpoint taken before finalize (L4)..."
+echo "Testing L1..."
+test 1
+echo "Testing L2..."
+test 2
+echo "Testing L3..."
+test 3
+echo "Testing L4..."
 test 4
 
 exit 0
