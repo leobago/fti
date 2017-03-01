@@ -41,7 +41,7 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     int number = array[world_rank];
     int i = 0;
     FTI_Protect(1, &i, 1, FTI_INTG);
-    FTI_Protect(2, &number, 1, FTI_INTG);
+    //FTI_Protect(2, &number, 1, FTI_INTG);
     if (FTI_Status() != 0 && fail == 0)
     {
         res = FTI_Recover();
