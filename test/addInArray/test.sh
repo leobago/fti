@@ -1,43 +1,45 @@
 #!/bin/bash
-function printError {
+printError () {
     case $1 in
-        "1") echo "Error: Result not correct!" ;;
-        "2") echo "Error: Checkpoint failed!" ;;
-        "3") echo "Error: Recovery failed!"
+        "1") echo "	Error: Result not correct!"
+	     exit 1 ;;
+        "2") echo "	Error: Checkpoint failed!"
+             exit 1 ;;
+        "3") echo "	Error: Recovery failed!" 
+             exit 1 ;;
+	*) echo "	$1"
     esac
 }
 
-function test {
-    cp configBkp.fti config.fti
+test () {
+    cp ../configs/$2 ./config.fti
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 1)
-    echo "Flag = "$FLAG
     if [ "$FLAG" != 0 ]
     then
-        printError $FLAG
+        printError "$FLAG"
         exit 1
     fi
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 0)
-    echo "Flag2 = "$FLAG
     if [ "$FLAG" != 0 ]
     then
-        printError $FLAG
+        printError "$FLAG"
         exit 1
     fi
 }
 
 
-echo "Including FTI..."
-C_INCLUDE_PATH=../../include/
-export C_INCLUDE_PATH
-echo "Making..."
-make
-echo "Testing L1..."
-test 1
-echo "Testing L2..."
-test 2
-echo "Testing L3..."
-test 3
-echo "Testing L4..."
-test 4
 
+cd addInArray
+echo "	Including FTI..."
+C_INCLUDE_PATH=../../include/ #access from subfolder
+export C_INCLUDE_PATH
+echo "	Making..."
+make
+for i in ${@:2}
+do
+	echo "	Testing L"$i"..."
+	test $i $1
+done
+printf "	addInArray tests succeed.\n\n"
+cd ..
 exit 0

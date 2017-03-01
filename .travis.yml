@@ -38,5 +38,5 @@ before_script:
 
 script: 
   - make
-  - cd ../test/addInArray/
-  - ./test.sh
+  - cd ..
+  - ./test/tests.sh
