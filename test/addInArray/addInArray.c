@@ -57,7 +57,7 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     //printf("Starting work (i = %d).\n", i);
     for (; i < ITERATIONS; i++) {
         if (i%ITER_CHECK == 0) {
-            res = FTI_Checkpoint(i%ITER_CHECK, checkpoint_level);
+            res = FTI_Checkpoint(i/ITER_CHECK, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("Res from FTI_Checkpoint = %d\n", res);
                 return CHECKPOINT_FAILED;
