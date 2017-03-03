@@ -117,9 +117,9 @@ int verify(int* array, int world_size) {
 int main(int argc, char** argv){
     //Need only integer on stdout, but there is bug on verbosity level 3
     int f = open("/dev/null", O_RDWR);
-    int temp = dup(1);
-    dup2(f, 1);
-    dup2(f, 2);
+    //int temp = dup(1);
+    //dup2(f, 1);
+    //dup2(f, 2);
 
     char *cnfgFile;
     int checkpoint_level, fail;
@@ -134,8 +134,8 @@ int main(int argc, char** argv){
     int *array = (int*) malloc (sizeof(int)*world_size);
     array[world_rank] = world_rank;
     //back to stdout
-    dup2(temp, 1);
-    close(f);
+    //dup2(temp, 1);
+    //close(f);
 
     MPI_Barrier(FTI_COMM_WORLD);
     int res = do_work(array, world_rank, world_size, checkpoint_level, fail);
