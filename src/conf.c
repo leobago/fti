@@ -324,7 +324,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
     if (mkdir(fn, 0777) == -1) {
-	FTI_Print(fn, FTI_DBUG);
+	char str[FTI_BUFS];	
+	sprintf(str, "PATH TO metadDir: %s", fn);
+	FTI_Print(str, FTI_DBUG);
         if (errno != EEXIST)
             FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
     }
