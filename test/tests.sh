@@ -21,8 +21,8 @@ startTest () {
 	esac
 }
 runAllConfiguration() {
-	#startTest addInArray configH0I1.fti 1 2 3 4
-	#startTest addInArray configH1I1.fti 1 2 3 4
+	startTest addInArray configH0I1.fti 1 2 3 4
+	startTest addInArray configH1I1.fti 1 2 3 4
 	startTest addInArray configH1I0.fti 1 2 3 4
 }
 
