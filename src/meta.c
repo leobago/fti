@@ -38,6 +38,7 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "Getting FTI metadata file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
     while ((res != 0) && (cnt > 0)) {
+	usleep(10);
         FTI_Print("Checking FTI metadata file ...", FTI_DBUG);
         res = access(mfn, R_OK);
         cnt--;
