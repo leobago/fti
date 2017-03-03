@@ -14,11 +14,19 @@ printError () {
 
 test () {
     cp ../configs/$2 ./config.fti
+    echo "XX1: Starting..."
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 1)
     if [ "$FLAG" != 0 ]
     then
         printError "$FLAG"
     fi
+    echo "XX2: Recovering no.1..."
+    FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 0)
+    if [ "$FLAG" != 0 ]
+    then
+        printError "$FLAG"
+    fi
+    echo "XX3: Recovering no.2..."
     FLAG=$(sudo mpirun -n 8 ./addInArray config.fti $1 0)
     if [ "$FLAG" != 0 ]
     then

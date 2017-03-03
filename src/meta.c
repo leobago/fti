@@ -6,24 +6,6 @@
  */
 
 #include "interface.h"
-#include <dirent.h>
-
-void printfDir(char* path){
-    DIR *dir;
-    struct dirent *ent;
-    char* str;
-    if ((dir = opendir (path)) != NULL) {
-      /* print all the files and directories within directory */
-      while ((ent = readdir (dir)) != NULL) {
-        sprintf(str, "%s/%s", path, ent->d_name);
-        FTI_Print(str, FTI_DBUG);
-      }
-      closedir (dir);
-    } else {
-      /* could not open directory */
-      perror ("");
-    }
-}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -49,22 +31,12 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
     if (level == 0) {
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
-        sprintf(str, "Listing files in %s...", FTI_Conf->mTmpDir);
-        FTI_Print(str, FTI_DBUG);
-        printfDir(FTI_Conf->mTmpDir);
-        FTI_Print("End of directiory.\n", FTI_DBUG);
     }
     else {
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
-        sprintf(str, "Listing files in %s...", FTI_Ckpt[level].metaDir);
-        FTI_Print(str, FTI_DBUG);
-        printfDir(FTI_Ckpt[level].metaDir);
-        FTI_Print("End of directiory.\n", FTI_DBUG);
     }
-
     sprintf(str, "Getting FTI metadata file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
-
     while ((res != 0) && (cnt > 0)) {
         FTI_Print("Checking FTI metadata file ...", FTI_DBUG);
         res = access(mfn, R_OK);
