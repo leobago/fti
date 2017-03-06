@@ -243,6 +243,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Barrier(FTI_COMM_WORLD);
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
+        //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
+        sprintf(str, "Has nodeFlag = 1 and nodeID = %d.", FTI_Topo->nodeID);
+        FTI_Print(str, FTI_DBUG);
+
         level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
         if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
             FTI_Print("Cannot rename local directory", FTI_EROR);

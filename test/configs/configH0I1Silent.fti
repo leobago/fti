@@ -61,7 +61,7 @@ Group_size = 4
 # 3 (Print only errors, silent mode)
 # 2 (Print errors and some few important information)
 # 1 (Print debug messages, very verbose)
-Verbosity = 1
+Verbosity = 3
 
 # *****************************************************************
 # *** Change these parameters ONLY in case of restart   ***********

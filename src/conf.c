@@ -93,8 +93,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Check access to FTI configuration file and load dictionary
     dictionary* ini;
     char *par, str[FTI_BUFS];
-    sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
-    FTI_Print(str, FTI_INFO);
     if (access(FTI_Conf->cfgFile, F_OK) != 0) {
         FTI_Print("FTI configuration file NOT accessible.", FTI_WARN);
         return FTI_NSCS;
@@ -132,6 +130,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
+
+    // Printing info about config file after setting verbosity
+    sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
+    FTI_Print(str, FTI_INFO);
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -251,7 +253,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
-    if (FTI_Topo->groupSize < 1) 
+    if (FTI_Topo->groupSize < 1)
         FTI_Topo->groupSize = 1;
 
     return FTI_SCES;
@@ -324,9 +326,6 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
     if (mkdir(fn, 0777) == -1) {
-	char str[FTI_BUFS];	
-	sprintf(str, "PATH TO metadDir: %s", fn);
-	FTI_Print(str, FTI_DBUG);
         if (errno != EEXIST)
             FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
     }

@@ -7,7 +7,7 @@
 
 # Set to 1 if you want to dedicate 1 MPI rank per node to FTI
 # set to 0 if you want ALL ckpt. post-processing to be done inline
-Head = 0
+Head = 1
 
 # The number of processes launched per node (Same for every node)
 # including FTI-dedicated process.
@@ -41,13 +41,13 @@ Ckpt_L3 = 7
 Ckpt_L4 = 11
 
 # 1 if Level 2 ckpt is inline (synchronous) 0 if not (asynchronous)
-Inline_L2 = 1
+Inline_L2 = 0
 
 # 1 if Level 3 ckpt is inline (synchronous) 0 if not (asynchronous)
-Inline_L3 = 1
+Inline_L3 = 0
 
 # 1 if Level 4 ckpt is inline (synchronous) 0 if not (asynchronous)
-Inline_L4 = 1
+Inline_L4 = 0
 
 # Set to 1 if you want to save the last checkpoint taken before finalize
 # Set to 0 if you want to erase all checkpoints after finalize
@@ -61,7 +61,7 @@ Group_size = 4
 # 3 (Print only errors, silent mode)
 # 2 (Print errors and some few important information)
 # 1 (Print debug messages, very verbose)
-Verbosity = 1
+Verbosity = 3
 
 # *****************************************************************
 # *** Change these parameters ONLY in case of restart   ***********
