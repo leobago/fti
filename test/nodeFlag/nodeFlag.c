@@ -29,6 +29,8 @@ int verify(int world_size) {
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
+		printf(strtmp);
+		printf("\n");
 		if((fp = fopen(strtmp, "r")) == NULL) {
 			return 2;
 		}
@@ -85,7 +87,7 @@ int main(int argc, char** argv){
 
 	//Getting FTI ranks (only app procs)
 	MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
 	MPI_Barrier(FTI_COMM_WORLD);
 
@@ -102,10 +104,12 @@ int main(int argc, char** argv){
 
 	//Backing to stdout
 	dup2(temp, 1);
+	dup2(temp, 2);
 	close(f);
 	MPI_Barrier(FTI_COMM_WORLD);
 	if (world_rank == 0) {
 	    int res = verify(world_size);
+		printf("Res = %d\n", res);
 		switch(res) {
 			case 0:
 				printf("0");
