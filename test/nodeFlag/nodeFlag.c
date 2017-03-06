@@ -92,10 +92,13 @@ int main(int argc, char** argv){
 	//Adding something to protect
 	int* someArray = (int*) malloc (sizeof(int) * world_size);
 	FTI_Protect(1, someArray, world_size, FTI_INTG);
-	FTI_Checkpoint(1, 1);
-	FTI_Checkpoint(1, 2);
-	FTI_Checkpoint(1, 3);
-	FTI_Checkpoint(1, 4);
+		
+	int i;
+	for (i = 1; i < 5; i++) {
+		FTI_Checkpoint(1, i);
+		MPI_Barrier(FTI_COMM_WORLD);
+
+	}
 
 	//Backing to stdout
 	dup2(temp, 1);
