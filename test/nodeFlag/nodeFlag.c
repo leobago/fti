@@ -29,12 +29,11 @@ int verify(int world_size) {
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
-		printf("\n%s\n", strtmp);
+		//printf("\n%s\n", strtmp);
 		if((fp = fopen(strtmp, "r")) == NULL) {
 			return 2;
 		}
 		while(fgets(temp, 256, fp) != NULL) {
-			printf("%s", temp); 
 			if((strstr(temp, str)) != NULL) {
 	            int nodeIDtmp, processIDtmp;
 				//counter++;
@@ -50,6 +49,7 @@ int verify(int world_size) {
 		fclose(fp);
 	}
 	//if everything is ok, deleting log files
+	printf("Deleting files...\n");
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
 		unlink(strtmp);
@@ -72,13 +72,13 @@ int main(int argc, char** argv){
     dup2(fnull, 1);
     dup2(fnull, 2);
 
-	int world_rank, world_size;
+	int world_rank, world_size, global_world_rank, global_world_size;
 	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
+	MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
 	//Creating log files
 	char str[256];
-	sprintf(str, "./log%d.txt", world_rank);
+	sprintf(str, "./log%d.txt", global_world_rank);
 	int f = open(str, O_CREAT | O_RDWR, 0666);
 	dup2(f, 1);
 	dup2(f, 2);
@@ -87,19 +87,18 @@ int main(int argc, char** argv){
 
 	//Getting FTI ranks (only app procs)
 	MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
-    	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
 	MPI_Barrier(FTI_COMM_WORLD);
 
 	//Adding something to protect
-	int* someArray = (int*) malloc (sizeof(int) * world_size);
-	FTI_Protect(1, someArray, world_size, FTI_INTG);
-		
+	int* someArray = (int*) malloc (sizeof(int) * global_world_size);
+	FTI_Protect(1, someArray, global_world_size, FTI_INTG);
+
 	int i;
 	for (i = 1; i < 5; i++) {
 		FTI_Checkpoint(1, i);
 		MPI_Barrier(FTI_COMM_WORLD);
-
 	}
 
 	//Backing to stdout
@@ -108,7 +107,7 @@ int main(int argc, char** argv){
 	close(f);
 	MPI_Barrier(FTI_COMM_WORLD);
 	if (world_rank == 0) {
-	    int res = verify(world_size);
+	    int res = verify(global_world_size);
 		printf("Res = %d\n", res);
 		switch(res) {
 			case 0:
@@ -122,7 +121,7 @@ int main(int argc, char** argv){
 				break;
 		}
 	}
-
+	//fflush(stdout);
 	dup2(fnull, 1);
     dup2(fnull, 2);
     FTI_Finalize();
