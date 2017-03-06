@@ -37,7 +37,7 @@ int verify(int world_size) {
 	            int nodeIDtmp, processIDtmp;
 				//counter++;
 				sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
-	            //printf("processIDtmp = %d, nodeIDtmp = %d\n", processIDtmp, nodeIDtmp);
+	            printf("processID = %d, nodeID = %d\n", processIDtmp, nodeIDtmp);
 	            if (nodeID[nodeIDtmp] == -1 || nodeID[nodeIDtmp] == processIDtmp) {
 	                nodeID[nodeIDtmp] = processIDtmp;
 	            } else {
