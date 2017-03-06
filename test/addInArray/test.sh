@@ -5,12 +5,12 @@ test () {
     sudo mpirun -n 8 ./addInArray config.fti $1 1
     if [ $? != 0 ]
     then
-        exit $?
+        exit 1
     fi
     sudo mpirun -n 8 ./addInArray config.fti $1 0
     if [ $? != 0 ]
     then
-        exit $?
+        exit 1
     fi
 }
 
