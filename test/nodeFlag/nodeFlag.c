@@ -29,12 +29,12 @@ int verify(int world_size) {
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
-		printf(strtmp);
-		printf("\n");
+		printf("\n%s\n", strtmp);
 		if((fp = fopen(strtmp, "r")) == NULL) {
 			return 2;
 		}
 		while(fgets(temp, 256, fp) != NULL) {
+			printf("%s", temp); 
 			if((strstr(temp, str)) != NULL) {
 	            int nodeIDtmp, processIDtmp;
 				//counter++;
