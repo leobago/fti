@@ -160,9 +160,7 @@ int main(int argc, char** argv){
             break;
     }
     free(array);
-    int allRtn = 0;
-    MPI_Allreduce(&rtn, &allRtn, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     FTI_Finalize();
     MPI_Finalize();
-    return allRtn;
+    return rtn;
 }

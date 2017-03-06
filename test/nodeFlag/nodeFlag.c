@@ -103,7 +103,7 @@ int main(int argc, char** argv){
 	MPI_Barrier(FTI_COMM_WORLD);
 	int rtn = 0; //return value
 	if (world_rank == 0) {
-	    int res = verify(global_world_size);
+		int res = verify(global_world_size);
 		dup2(stdoutTmp, 1);
 		dup2(f, 1);
 		switch(res) {
@@ -117,11 +117,9 @@ int main(int argc, char** argv){
 				break;
 		}
 	}
-    int allRtn = 0;
-    MPI_Allreduce(&rtn, &allRtn, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    dup2(f, 1);
-    FTI_Finalize();
-    MPI_Finalize();
+	dup2(f, 1);
+	FTI_Finalize();
+	MPI_Finalize();
 	close(f);
-    return allRtn;
+	return rtn;
 }
