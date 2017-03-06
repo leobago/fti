@@ -25,7 +25,6 @@ int verify(int world_size) {
     for (i = 0; i < world_size; i++) {
         nodeID[i] = -1;
     }
-	//int counter = 0;
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
@@ -34,17 +33,18 @@ int verify(int world_size) {
 			return 2;
 		}
 		while(fgets(temp, 256, fp) != NULL) {
-			if((strstr(temp, str)) != NULL) {
-	            int nodeIDtmp, processIDtmp;
-				//counter++;
-				sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
-	            printf("processID = %d, nodeID = %d\n", processIDtmp, nodeIDtmp);
-	            if (nodeID[nodeIDtmp] == -1 || nodeID[nodeIDtmp] == processIDtmp) {
-	                nodeID[nodeIDtmp] = processIDtmp;
-	            } else {
-	                return 1;
-	            }
-			}
+		    if((strstr(temp, str)) != NULL) {
+			    int nodeIDtmp, processIDtmp;
+			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
+			    if (nodeID[nodeIDtmp] == -1) {
+				nodeID[nodeIDtmp] = processIDtmp;
+				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+			    } 
+			    if (nodeID[nodeIDtmp] != processIDtmp) {
+				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);			        
+				return 1;
+			    }
+		    }
 		}
 		fclose(fp);
 	}
@@ -54,7 +54,6 @@ int verify(int world_size) {
 		sprintf(strtmp, "./log%d.txt", i);
 		unlink(strtmp);
 	}
-	//printf("counter = %d\n", counter);
     free(nodeID);
    	return 0;
 }
@@ -66,12 +65,6 @@ int verify(int world_size) {
 		2 if cannot access file
 */
 int main(int argc, char** argv){
-	//Desc for unwanted messages
-	int fnull = open("/dev/null", O_RDWR);
-    int temp = dup(1);
-    dup2(fnull, 1);
-    dup2(fnull, 2);
-
 	int world_rank, world_size, global_world_rank, global_world_size;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
@@ -80,6 +73,7 @@ int main(int argc, char** argv){
 	char str[256];
 	sprintf(str, "./log%d.txt", global_world_rank);
 	int f = open(str, O_CREAT | O_RDWR, 0666);
+	int stdoutTmp = dup(1);	
 	dup2(f, 1);
 	dup2(f, 2);
 
@@ -87,7 +81,7 @@ int main(int argc, char** argv){
 
 	//Getting FTI ranks (only app procs)
 	MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
+    	MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
 	MPI_Barrier(FTI_COMM_WORLD);
 
@@ -97,36 +91,35 @@ int main(int argc, char** argv){
 
 	int i;
 	for (i = 1; i < 5; i++) {
+		if (world_rank == 0) {
+			dup2(stdoutTmp, 1);
+			printf("Making checkpoint L%d\n", i);
+			dup2(f, 1);
+		}
 		FTI_Checkpoint(1, i);
 		MPI_Barrier(FTI_COMM_WORLD);
 	}
-
-	//Backing to stdout
-	dup2(temp, 1);
-	dup2(temp, 2);
-	close(f);
+	dup2(stdoutTmp, 1);
 	MPI_Barrier(FTI_COMM_WORLD);
+	int rtn = 0; //return value
 	if (world_rank == 0) {
 	    int res = verify(global_world_size);
-		printf("Res = %d\n", res);
+		dup2(stdoutTmp, 1);
+		dup2(f, 1);
 		switch(res) {
-			case 0:
-				printf("0");
-				break;
 			case 1:
-				printf("1");
+				printf("There is more than 1 nodeFlag == 1 in node.\n");
+				rtn = 1;				
 				break;
 			case 2:
-				printf("2");
+				printf("Cannot read file.\n");
+				rtn = 2;
 				break;
 		}
 	}
-	//fflush(stdout);
-	dup2(fnull, 1);
-    dup2(fnull, 2);
+    dup2(f, 1);
     FTI_Finalize();
     MPI_Finalize();
-	close(fnull);
 	close(f);
-    return 0;
+    if (world_rank == 0) return rtn;
 }

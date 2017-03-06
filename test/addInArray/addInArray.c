@@ -115,11 +115,6 @@ int verify(int* array, int world_size) {
         3 if recovery failed
 */
 int main(int argc, char** argv){
-    //Need only integer on stdout, but there is bug on verbosity level 3
-    int f = open("/dev/null", O_RDWR);
-    //int temp = dup(1);
-    //dup2(f, 1);
-    //dup2(f, 2);
 
     char *cnfgFile;
     int checkpoint_level, fail;
@@ -133,42 +128,41 @@ int main(int argc, char** argv){
 
     int *array = (int*) malloc (sizeof(int)*world_size);
     array[world_rank] = world_rank;
-    //back to stdout
-    //dup2(temp, 1);
-    //close(f);
 
     MPI_Barrier(FTI_COMM_WORLD);
     int res = do_work(array, world_rank, world_size, checkpoint_level, fail);
-
+    int rtn = 0; //return value
     switch(res){
         case WORK_DONE:
-            //printf("All work done.\n");
             if (world_rank == 0) {               //verify result
+		printf("All work done. Verifying result...\n");
                 res = verify(array, world_size);
-                if (res == VERIFY_SUCCESS) {
-                    printf("0");
+                if (res != VERIFY_SUCCESS) {
+		    rtn = 1;
+		    printf("FAILURE.\n");
                 } else {
-                    printf("1");
-                }
+		    printf("SUCCESS.\n");
+		}
             }
             break;
         case WORK_STOPED:
-            //printf("Work stopped (i = %d)\n", ITER_STOP);
             if (world_rank == 0) {
-                printf("0");
+            	printf("Work stopped at i = %d\n", ITER_STOP);              
             }
             break;
         case CHECKPOINT_FAILED:
-            //printf("Checkpoint failed!\n");
-            if (world_rank == 0) printf("2");
+            printf("Checkpoint failed!\n");
+            if (world_rank == 0) rtn = 1;
             break;
         case RECOVERY_FAILED:
-            //printf("Recovery failed!\n");
-            if (world_rank == 0) printf("3");
+            printf("Recovery failed!\n");
+            if (world_rank == 0) rtn = 1;
             break;
     }
     free(array);
     FTI_Finalize();
     MPI_Finalize();
-    return 0;
+    if (world_rank == 0) {
+	return rtn;
+    }
 }

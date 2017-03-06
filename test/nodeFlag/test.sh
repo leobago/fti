@@ -1,23 +1,13 @@
 #!/bin/bash
-printError () {
-    case $1 in
-        "1") echo "	Error: nodeFlag not unique in node!"
-	     exit 1;;
-	*) echo "	$1"
-	     #exit 1
-    esac
-}
 
 test () {
     cp ../configs/$1 ./config.fti
-    FLAG=$(sudo mpirun -n 8 ./nodeFlag config.fti)
-    if [ "$FLAG" != 0 ]
+    sudo mpirun -n 8 ./nodeFlag config.fti
+    if [ $? != 0 ]
     then
-        printError "$FLAG"
+        exit 1
     fi
 }
-
-
 
 cd nodeFlag
 echo "	Making..."
