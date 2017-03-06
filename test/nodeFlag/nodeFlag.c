@@ -117,9 +117,11 @@ int main(int argc, char** argv){
 				break;
 		}
 	}
+    int allRtn = 0;
+    MPI_Allreduce(&rtn, &allRtn, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     dup2(f, 1);
     FTI_Finalize();
     MPI_Finalize();
 	close(f);
-    if (world_rank == 0) return rtn;
+    return allRtn;
 }
