@@ -400,6 +400,7 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Problem with the directories.", FTI_WARN);
         return FTI_NSCS;
     }
+    MPI_Barrier(FTI_COMM_WORLD);
     res = FTI_Try(FTI_CreateDirs(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "create checkpoint directories.");
     if (res == FTI_NSCS) {
         FTI_Print("Problem creating the directories.", FTI_WARN);
