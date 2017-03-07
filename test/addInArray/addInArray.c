@@ -64,8 +64,8 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
             }
             //else printf("Checkpoint made (L%d, i = %d)\n", checkpoint_level, i);
         }
-        if(fail && i >= ITER_STOP) return WORK_STOPED;
         MPI_Allgather(&number, 1, MPI_INT, array, 1, MPI_INT, FTI_COMM_WORLD);
+	if(fail && i >= ITER_STOP) return WORK_STOPED;
         number += 1;
     }
     return WORK_DONE;
