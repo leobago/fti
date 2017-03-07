@@ -37,11 +37,11 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     sprintf(str, "Getting FTI metadata file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
-    while ((res != 0) && (cnt > 0)) {
+    while ((res != 0))) {
         usleep(100); //delay for accessing metadata file
         FTI_Print("Checking FTI metadata file ...", FTI_DBUG);
         res = access(mfn, R_OK);
-        cnt--;
+        //cnt--;
     }
     if (res != 0) {
         FTI_Print("FTI metadata file NOT accessible.", FTI_DBUG);
@@ -213,7 +213,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
-    MPI_Barrier(FTI_COMM_WORLD);
     free(fnl);
     return FTI_SCES;
 }
