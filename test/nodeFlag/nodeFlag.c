@@ -14,18 +14,22 @@
 #include <fti.h>
 #include <string.h>
 
-int nodes = 0;
-
 int verify(int world_size) {
 	FILE* fp;
 	char str[]  = "Has nodeFlag = 1 and nodeID =";
 	char temp[256];
 	char strtmp[256];
-    int i;
-    int* nodeID = (int*) malloc (sizeof(int) * world_size);
+    int i, k;
+	int** ckptLvel = (int**) malloc (sizeof(int*) * 5);
+	for (i = 1; i < 5; i++) {
+		int* nodeID = (int*) malloc (sizeof(int) * world_size);
+		ckptLvel[i] = nodeID;
+	}
 
-    for (i = 0; i < world_size; i++) {
-        nodeID[i] = -1;
+    for (i = 1; i < 5; i++) {
+		for (k = 0; k < world_size; k++) {
+			ckptLvel[i][k] = -1;
+		}
     }
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
@@ -35,15 +39,14 @@ int verify(int world_size) {
 		}
 		while(fgets(temp, 256, fp) != NULL) {
 		    if((strstr(temp, str)) != NULL) {
-			    int nodeIDtmp, processIDtmp;
-			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
-			    if (nodeID[nodeIDtmp] == -1) {
-					nodeID[nodeIDtmp] = processIDtmp;
-					nodes++;
-					fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+			    int nodeIDtmp, processIDtmp, ckptLveltmp;
+			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d. ", &processIDtmp, &nodeIDtmp, &ckptLveltmp);
+			    if (ckptLvel[ckptLveltmp][nodeIDtmp] == -1) {
+					ckptLvel[ckptLveltmp][nodeIDtmp] = processIDtmp;
+					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
 			    }
-			    if (nodeID[nodeIDtmp] != processIDtmp) {
-					fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+			    if (ckptLvel[ckptLveltmp][nodeIDtmp] != processIDtmp) {
+					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
 					return 1;
 			    }
 		    }
@@ -56,7 +59,10 @@ int verify(int world_size) {
 		sprintf(strtmp, "./log%d.txt", i);
 		unlink(strtmp);
 	}
-    free(nodeID);
+	for (i = 1; i < 5; i++) {
+		free(ckptLvel[i]);
+	}
+    free(ckptLvel);
    	return 0;
 }
 
@@ -113,7 +119,6 @@ int main(int argc, char** argv){
 		int res = verify(global_world_size);
 		switch(res) {
 			case 0:
-				fprintf(stderr, "Nodes found: %d\n", nodes);
 				break;
 			case 1:
 				fprintf(stderr, "There is more than 1 nodeFlag == 1 in one node.\n");
