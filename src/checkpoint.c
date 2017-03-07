@@ -96,12 +96,12 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     else {
         sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1)
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create local directory", FTI_EROR);
-            }
     }
-
+    if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Cannot create local directory", FTI_EROR);
+        }
+    }
     fd = fopen(fn, "wb");
     if (fd == NULL) {
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
