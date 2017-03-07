@@ -47,19 +47,19 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     {
         res = FTI_Recover();
         if (res != 0) {
-            printf("Res from FTI_Recover = %d\n", res);
+            printf("%d: FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         }
     }
     if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
         return RECOVERY_FAILED;
     }
-    //printf("Starting work (i = %d).\n", i);
+    printf("%d: Starting work at i = %d.\n", world_rank, i);
     for (; i < ITERATIONS; i++) {
         if (i%ITER_CHECK == 0) {
             res = FTI_Checkpoint(i/ITER_CHECK, checkpoint_level);
             if (res != FTI_DONE) {
-                printf("Res from FTI_Checkpoint = %d\n", res);
+                printf("%d: FTI_Checkpoint returned %d.\n", world_rank, res);
                 return CHECKPOINT_FAILED;
             }
             //else printf("Checkpoint made (L%d, i = %d)\n", checkpoint_level, i);
@@ -135,19 +135,19 @@ int main(int argc, char** argv){
     switch(res){
         case WORK_DONE:
             if (world_rank == 0) {               //verify result
-		printf("All work done. Verifying result...\n");
+                printf("All work done. Verifying result...\n");
                 res = verify(array, world_size);
                 if (res != VERIFY_SUCCESS) {
-		    rtn = 1;
-		    printf("FAILURE.\n");
+    		              rtn = 1;
+    		                    printf("FAILURE.\n");
                 } else {
-		    printf("SUCCESS.\n");
-		}
+    		              printf("SUCCESS.\n");
+    		    }
             }
             break;
         case WORK_STOPED:
             if (world_rank == 0) {
-            	printf("Work stopped at i = %d\n", ITER_STOP);              
+            	printf("Work stopped at i = %d.\n", ITER_STOP);
             }
             break;
         case CHECKPOINT_FAILED:

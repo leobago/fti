@@ -30,7 +30,6 @@ int verify(int world_size) {
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
-		//printf("\n%s\n", strtmp);
 		if((fp = fopen(strtmp, "r")) == NULL) {
 			return 2;
 		}
@@ -39,20 +38,20 @@ int verify(int world_size) {
 			    int nodeIDtmp, processIDtmp;
 			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
 			    if (nodeID[nodeIDtmp] == -1) {
-				nodeID[nodeIDtmp] = processIDtmp;
-				nodes++;
-				fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+					nodeID[nodeIDtmp] = processIDtmp;
+					nodes++;
+					fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
 			    }
 			    if (nodeID[nodeIDtmp] != processIDtmp) {
-				fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
-				return 1;
+					fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+					return 1;
 			    }
 		    }
 		}
 		fclose(fp);
 	}
 	//if everything is ok, deleting log files
-	fprintf(stderr, "Deleting files...\n");
+	fprintf(stderr, "All log files checked. Deleting files...\n");
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
 		unlink(strtmp);
@@ -72,10 +71,18 @@ int main(int argc, char** argv){
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
+
+	if (global_world_rank == 0) {
+		fprintf(stderr, "Creating log files...\n");
+	}
 	//Creating log files
 	char str[256];
 	sprintf(str, "./log%d.txt", global_world_rank);
 	int f = open(str, O_CREAT | O_RDWR, 0666);
+	if (f < 0) {
+		fprintf(stderr, "Cannot open %s file.\n", str);
+		return 1;
+	}
 	int stdoutTmp = dup(1);
 	dup2(f, 1);
 
@@ -83,7 +90,7 @@ int main(int argc, char** argv){
 
 	//Getting FTI ranks (only app procs)
 	MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
-    	MPI_Comm_size(FTI_COMM_WORLD, &world_size);
+    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
 	MPI_Barrier(FTI_COMM_WORLD);
 
@@ -99,10 +106,10 @@ int main(int argc, char** argv){
 		FTI_Checkpoint(1, i);
 		MPI_Barrier(FTI_COMM_WORLD);
 	}
-	dup2(stdoutTmp, 1); //back to stdout
 	MPI_Barrier(FTI_COMM_WORLD);
 	int rtn = 0; //return value
 	if (world_rank == 0) {
+		fprintf(stderr, "Verifying logs...\n");
 		int res = verify(global_world_size);
 		switch(res) {
 			case 0:
@@ -118,7 +125,6 @@ int main(int argc, char** argv){
 				break;
 		}
 	}
-	dup2(f, 1);
 	FTI_Finalize();
 	MPI_Finalize();
 	close(f);
