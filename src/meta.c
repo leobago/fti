@@ -213,6 +213,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
+    MPI_Barrier(FTI_COMM_WORLD);
     free(fnl);
     return FTI_SCES;
 }
