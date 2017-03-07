@@ -14,6 +14,8 @@
 #include <fti.h>
 #include <string.h>
 
+int nodes = 0;
+
 int verify(int world_size) {
 	FILE* fp;
 	char str[]  = "Has nodeFlag = 1 and nodeID =";
@@ -38,10 +40,11 @@ int verify(int world_size) {
 			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d.", &processIDtmp, &nodeIDtmp);
 			    if (nodeID[nodeIDtmp] == -1) {
 				nodeID[nodeIDtmp] = processIDtmp;
+				nodes++;
 				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);
-			    } 
+			    }
 			    if (nodeID[nodeIDtmp] != processIDtmp) {
-				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);			        
+				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);
 				return 1;
 			    }
 		    }
@@ -73,7 +76,8 @@ int main(int argc, char** argv){
 	char str[256];
 	sprintf(str, "./log%d.txt", global_world_rank);
 	int f = open(str, O_CREAT | O_RDWR, 0666);
-	int stdoutTmp = dup(1);	
+	dup2(2, 1);
+	int stdoutTmp = dup(1);
 	dup2(f, 1);
 	dup2(f, 2);
 
@@ -99,17 +103,18 @@ int main(int argc, char** argv){
 		FTI_Checkpoint(1, i);
 		MPI_Barrier(FTI_COMM_WORLD);
 	}
-	dup2(stdoutTmp, 1);
+	dup2(stdoutTmp, 1); //back to stdout
 	MPI_Barrier(FTI_COMM_WORLD);
 	int rtn = 0; //return value
 	if (world_rank == 0) {
 		int res = verify(global_world_size);
-		dup2(stdoutTmp, 1);
-		dup2(f, 1);
 		switch(res) {
+			case 0:
+				printf("Nodes found: %d\n", nodes);
+				break;
 			case 1:
-				printf("There is more than 1 nodeFlag == 1 in node.\n");
-				rtn = 1;				
+				printf("There is more than 1 nodeFlag == 1 in one node.\n");
+				rtn = 1;
 				break;
 			case 2:
 				printf("Cannot read file.\n");
