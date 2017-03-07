@@ -41,10 +41,10 @@ int verify(int world_size) {
 			    if (nodeID[nodeIDtmp] == -1) {
 				nodeID[nodeIDtmp] = processIDtmp;
 				nodes++;
-				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+				fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
 			    }
 			    if (nodeID[nodeIDtmp] != processIDtmp) {
-				printf("Node %d : Process %d\n", nodeIDtmp, processIDtmp);
+				fprintf(stderr, "Node %d : Process %d\n", nodeIDtmp, processIDtmp);
 				return 1;
 			    }
 		    }
@@ -52,7 +52,7 @@ int verify(int world_size) {
 		fclose(fp);
 	}
 	//if everything is ok, deleting log files
-	printf("Deleting files...\n");
+	fprintf(stderr, "Deleting files...\n");
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
 		unlink(strtmp);
@@ -76,10 +76,8 @@ int main(int argc, char** argv){
 	char str[256];
 	sprintf(str, "./log%d.txt", global_world_rank);
 	int f = open(str, O_CREAT | O_RDWR, 0666);
-	dup2(2, 1);
 	int stdoutTmp = dup(1);
 	dup2(f, 1);
-	dup2(f, 2);
 
 	FTI_Init(argv[1], MPI_COMM_WORLD);
 
@@ -96,9 +94,7 @@ int main(int argc, char** argv){
 	int i;
 	for (i = 1; i < 5; i++) {
 		if (world_rank == 0) {
-			dup2(stdoutTmp, 1);
-			printf("Making checkpoint L%d\n", i);
-			dup2(f, 1);
+			fprintf(stderr, "Making checkpoint L%d\n", i);
 		}
 		FTI_Checkpoint(1, i);
 		MPI_Barrier(FTI_COMM_WORLD);
@@ -110,14 +106,14 @@ int main(int argc, char** argv){
 		int res = verify(global_world_size);
 		switch(res) {
 			case 0:
-				printf("Nodes found: %d\n", nodes);
+				fprintf(stderr, "Nodes found: %d\n", nodes);
 				break;
 			case 1:
-				printf("There is more than 1 nodeFlag == 1 in one node.\n");
+				fprintf(stderr, "There is more than 1 nodeFlag == 1 in one node.\n");
 				rtn = 1;
 				break;
 			case 2:
-				printf("Cannot read file.\n");
+				fprintf(stderr, "Cannot read file.\n");
 				rtn = 2;
 				break;
 		}
