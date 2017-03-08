@@ -41,13 +41,7 @@ cd test
 #----------------------
 #-- Write tests here --
 
-#runAllConfiguration
-for i in 1 2 3
-do
-echo "Loop $i"
-	startTest addInArray configH0I1Silent.fti 1 2 3 4
-	startTest addInArray configH1I1Silent.fti 1 2 3 4
-	startTest addInArray configH1I0Silent.fti 1 2 3 4
-done
+runAllConfiguration
+
 #----------------------
 cd ..
