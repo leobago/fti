@@ -27,7 +27,7 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 unsigned long* fs, unsigned long* mfs, int group, int level)
 {
     dictionary* ini;
-    int res = -1, cnt = 3;
+    int res = -1, cnt = 1000;
     char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
     if (level == 0) {
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
@@ -37,15 +37,11 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     sprintf(str, "Getting FTI metadata file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
-    while (res != 0) {
+    while ((res != 0) && cnt > 0) {
         usleep(100); //delay for accessing metadata file
         FTI_Print("Checking FTI metadata file ...", FTI_DBUG);
         res = access(mfn, R_OK);
-        cnt++;
-	if (cnt > 6) {
-		sprintf(str, "It takes me %d iterations...", cnt - 3);
-		FTI_Print(str, FTI_DBUG);
-	}
+        cnt--;
     }
     if (res != 0) {
         FTI_Print("FTI metadata file NOT accessible.", FTI_DBUG);

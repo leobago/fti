@@ -93,6 +93,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Check access to FTI configuration file and load dictionary
     dictionary* ini;
     char *par, str[FTI_BUFS];
+    sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
+    FTI_Print(str, FTI_INFO);
     if (access(FTI_Conf->cfgFile, F_OK) != 0) {
         FTI_Print("FTI configuration file NOT accessible.", FTI_WARN);
         return FTI_NSCS;
@@ -130,10 +132,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
-
-    // Printing info about config file after setting verbosity
-    sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
-    FTI_Print(str, FTI_INFO);
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -283,7 +281,7 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
         }
     }
 
-    
+    if (FTI_Topo->myRank == 0) {
 	// Checking metadata directory
 	sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
 	FTI_Print(str, FTI_DBUG);
@@ -303,7 +301,10 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 		return FTI_NSCS;
 	    }
 	}
+    }
 
+    //Waiting for metadDir being created
+    MPI_Barrier(FTI_COMM_WORLD);
     return FTI_SCES;
 }
 
