@@ -20,10 +20,17 @@ nodeFlag () {
 		check $?
 }
 
+heatdis () {
+	echo "Running heatdis test... ($1)"
+		bash ./heatdis/test.sh $@
+		check $?
+}
+
 startTest () {
 	case "$1" in
 	  "addInArray") addInArray ${@:2} ;;
 	  "nodeFlag") nodeFlag $2 ;;
+	  "heatdis") heatdis $2 ;;
 	  *) echo "Wrong test name." ;;
 	esac
 }
@@ -34,6 +41,9 @@ runAllConfiguration() {
 	startTest nodeFlag configH0I1.fti
 	startTest nodeFlag configH1I1.fti
 	startTest nodeFlag configH1I0.fti
+	startTest heatdis configH0I1Silent.fti
+	startTest heatdis configH1I1Silent.fti
+	startTest heatdis configH1I0Silent.fti
 }
 
 cd test
