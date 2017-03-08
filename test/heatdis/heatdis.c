@@ -119,12 +119,12 @@ int init(char** argv, char* cnfgFile, int* fail) {
     return rtn;
 }
 
-int verify (double globalerror){
+int verify (double globalerror, int rank){
     if (fabs(globalerror - 0.004998) <= 0.000001) {
-        printf("OK, Diff = %f\n", fabs(globalerror - 0.004998));
+        printf("%d: OK, Diff = %f\n", rank, fabs(globalerror - 0.004998));
         return 0;
     }
-    printf("FAIL, Diff = %f\n", fabs(globalerror - 0.004998));
+    printf("%d: FAIL, Diff = %f\n", rank, fabs(globalerror - 0.004998));
     return 1;
 }
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
-    arg = 8;
+    arg = 6;
     M = (int)sqrt((double)(arg * 1024.0 * 512.0 * nbProcs)/sizeof(double));
     nbLines = (M / nbProcs)+3;
     h = (double *) malloc(sizeof(double *) * M * nbLines);
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 
     int rtn = 0; //return value
     if (!fail) {
-        rtn = verify(globalerror);
+        rtn = verify(globalerror, rank);
     }
 
     free(h);
