@@ -331,11 +331,26 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
 
-    lfd = fopen(lfn, "rb");
+        lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
-        FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
-
-        return FTI_NSCS;
+        FTI_Print("FAILURE. Trying to access temp ckpt. file instead.", FTI_EROR);
+        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+        lfd = fopen(lfn, "rb");
+        if (lfd == NULL) {
+            FTI_Print("L4 cannot open temp ckpt. file.", FTI_EROR);
+            sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+            sprintf(str, "L4 again trying to access local ckpt. file (%s).", lfn);
+            FTI_Print(str, FTI_DBUG);
+            lfd = fopen(lfn, "rb");
+            if (lfd == NULL) {
+                FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
+                return FTI_NSCS;
+            } else {
+                FTI_Print("SUCCESS. L4 can open ckpt. file in 2nd attempt.", FTI_DBUG);
+            }
+        } else {
+            FTI_Print("SUCCESS. L4 can open temp ckpt. file instead.", FTI_DBUG);
+        }
     }
 
     gfd = fopen(gfn, "wb");

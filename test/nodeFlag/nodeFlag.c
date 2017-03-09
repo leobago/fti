@@ -89,7 +89,6 @@ int main(int argc, char** argv){
 		fprintf(stderr, "Cannot open %s file.\n", str);
 		return 1;
 	}
-	int stdoutTmp = dup(1);
 	dup2(f, 1);
 
 	FTI_Init(argv[1], MPI_COMM_WORLD);
