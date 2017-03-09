@@ -332,10 +332,10 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_DBUG);
 
     lfd = fopen(lfn, "rb");
-    while (lfd == NULL) {
+    if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
-	lfd = fopen(lfn, "rb");
-        //return FTI_NSCS;
+
+        return FTI_NSCS;
     }
 
     gfd = fopen(gfn, "wb");
