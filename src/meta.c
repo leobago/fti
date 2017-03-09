@@ -41,13 +41,13 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     while (res != 0) {
         usleep(1000); //delay for accessing metadata file
 	sprintf(str, "Getting FTI metadata file (%s)... xx1:%d", mfn, cnt);
-        FTI_Print(str, FTI_DBUG);
+        FTI_Print(str, FTI_WARN);
         res = access(mfn, R_OK);
         cnt++;
     }
     if (cnt > 0) {
 	sprintf(str, "It took xx2:%d", cnt);
-        FTI_Print(str, FTI_DBUG);
+        FTI_Print(str, FTI_WARN);
     }
     if (res != 0) {
         FTI_Print("FTI metadata file NOT accessible.", FTI_DBUG);
