@@ -338,7 +338,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         lfd = fopen(lfn, "rb");
         if (lfd == NULL) {
             FTI_Print("L4 cannot open temp ckpt. file.", FTI_EROR);
-            sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+            sprintf(lfn, "%s/%s", FTI_Ckpt[level].dir, FTI_Exec->ckptFile);
             sprintf(str, "L4 again trying to access local ckpt. file (%s).", lfn);
             FTI_Print(str, FTI_DBUG);
             lfd = fopen(lfn, "rb");
