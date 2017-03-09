@@ -51,9 +51,9 @@ runAllConfiguration() {
 	#startTest tokenRing configH0I1.fti 1 2 3 4
 	#startTest tokenRing configH1I1.fti 1 2 3 4
 	#startTest tokenRing configH1I0.fti 1 2 3 4
-	startTest heatdis configH0I1Silent.fti
-	startTest heatdis configH1I1Silent.fti
-	startTest heatdis configH1I0Silent.fti
+	#startTest heatdis configH0I1Silent.fti
+	#startTest heatdis configH1I1Silent.fti
+	#startTest heatdis configH1I0Silent.fti
 }
 
 cd test
