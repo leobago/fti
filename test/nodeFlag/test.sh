@@ -2,7 +2,7 @@
 
 test () {
     cp ../configs/$1 ./config.fti
-    sudo mpirun -n 16 ./nodeFlag config.fti
+    sudo mpirun -n $2 ./nodeFlag config.fti
     if [ $? != 0 ]
     then
         exit 1
@@ -13,7 +13,7 @@ cd nodeFlag
 echo "	Making..."
 make
 echo "	Testing..."
-test $1
+test $1 $2
 printf "	nodeFlag tests succeed.\n\n"
 cd ..
 exit 0

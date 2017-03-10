@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
-    arg = 6;
+    arg = 4;
     M = (int)sqrt((double)(arg * 1024.0 * 512.0 * nbProcs)/sizeof(double));
     nbLines = (M / nbProcs)+3;
     h = (double *) malloc(sizeof(double *) * M * nbLines);

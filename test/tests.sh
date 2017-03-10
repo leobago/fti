@@ -35,33 +35,33 @@ tokenRing () {
 startTest () {
 	case "$1" in
 	  "addInArray") addInArray ${@:2} ;;
-	  "nodeFlag") nodeFlag $2 ;;
-	  "heatdis") heatdis $2 ;;
+	  "nodeFlag") nodeFlag ${@:2} ;;
+	  "heatdis") heatdis ${@:2} ;;
 	  "tokenRing") tokenRing ${@:2} ;;
 	  *) echo "Wrong test name." ;;
 	esac
 }
 runAllConfiguration() {
-	startTest addInArray configH0I1Silent.fti 1 2 3 4
-	startTest addInArray configH1I1Silent.fti 1 2 3 4
-	startTest addInArray configH1I0Silent.fti 1 2 3 4
-	startTest nodeFlag configH0I1.fti
-	startTest nodeFlag configH1I1.fti
-	startTest nodeFlag configH1I0.fti
-	startTest tokenRing configH0I1.fti 1 2 3 4
-	startTest tokenRing configH1I1.fti 1 2 3 4
-	startTest tokenRing configH1I0.fti 1 2 3 4
-	startTest heatdis configH0I1Silent.fti
-	startTest heatdis configH1I1Silent.fti
-	startTest heatdis configH1I0Silent.fti
+	startTest addInArray configH0I1Silent.fti $1 1 2 3 4
+	startTest addInArray configH1I1Silent.fti $1 1 2 3 4
+	startTest addInArray configH1I0Silent.fti $1 1 2 3 4
+	startTest nodeFlag configH0I1.fti $1
+	startTest nodeFlag configH1I1.fti $1
+	startTest nodeFlag configH1I0.fti $1
+	startTest tokenRing configH0I1.fti $1 1 2 3 4
+	startTest tokenRing configH1I1.fti $1 1 2 3 4
+	startTest tokenRing configH1I0.fti $1 1 2 3 4
+	startTest heatdis configH0I1Silent.fti $1
+	startTest heatdis configH1I1Silent.fti $1
+	startTest heatdis configH1I0Silent.fti $1
 }
 
 cd test
-#Pattern: startTest testName configFile args(ex. checkpoint levels)
+#Pattern: startTest testName configFile procNo args(ex. checkpoint levels)
 #----------------------
 #-- Write tests here --
 
-runAllConfiguration
+runAllConfiguration 16
 
 #----------------------
 cd ..
