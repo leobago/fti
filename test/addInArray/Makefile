@@ -2,7 +2,7 @@
 ##   Makefile to test FTI library with the heat distribution program.
 
 ##   PLEASE SET THIS VARIABLE BEFORE COMPILING
-FTIPATH		= /usr/local
+FTIPATH		= ../../build
 
 ##   COMPILERS
 MPICC 		?= mpicc
