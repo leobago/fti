@@ -54,6 +54,8 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
         if (res != 0) {
             printf("%d: FTI_Recover returned %d\n", world_rank, res);
             return RECOVERY_FAILED;
+        } else if (world_rank == 0) {
+            printf("0: Returned! i = %d\n", iters.i);
         }
     }
     if (world_rank == 0) {
@@ -73,6 +75,8 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
             if (res != FTI_DONE) {
                 printf("%d: FTI_Checkpoint returned %d\n", world_rank, res);
                 return CHECKPOINT_FAILED;
+            } else if (world_rank == 0) {
+                printf("0: Checkpointed at i = %d\n", iters.i);
             }
         }
         if (fail && iters.localIter >= ITER_STOP/world_size) {
