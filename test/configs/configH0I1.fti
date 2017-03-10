@@ -11,7 +11,7 @@ Head = 0
 
 # The number of processes launched per node (Same for every node)
 # including FTI-dedicated process.
-Node_size = 2
+Node_size = 4
 
 # LOCAL directory where the local checkpoints will be stored
 # This directory MUST exist and have write access
