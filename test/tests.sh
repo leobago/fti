@@ -32,28 +32,38 @@ tokenRing () {
 		check $?
 }
 
+lvlsRecovery () {
+	echo "Running lvlsRecovery test... ($1)"
+		bash ./lvlsRecovery/test.sh $@
+		check $?
+}
+
 startTest () {
 	case "$1" in
 	  "addInArray") addInArray ${@:2} ;;
 	  "nodeFlag") nodeFlag ${@:2} ;;
 	  "heatdis") heatdis ${@:2} ;;
 	  "tokenRing") tokenRing ${@:2} ;;
+	  "lvlsRecovery") lvlsRecovery ${@:2} ;;
 	  *) echo "Wrong test name." ;;
 	esac
 }
 runAllConfiguration() {
-	startTest addInArray configH0I1Silent.fti $1 1 2 3 4
-	startTest addInArray configH1I1Silent.fti $1 1 2 3 4
-	startTest addInArray configH1I0Silent.fti $1 1 2 3 4
-	startTest nodeFlag configH0I1.fti $1
-	startTest nodeFlag configH1I1.fti $1
-	startTest nodeFlag configH1I0.fti $1
-	startTest tokenRing configH0I1.fti $1 1 2 3 4
-	startTest tokenRing configH1I1.fti $1 1 2 3 4
-	startTest tokenRing configH1I0.fti $1 1 2 3 4
-	startTest heatdis configH0I1Silent.fti $1
-	startTest heatdis configH1I1Silent.fti $1
-	startTest heatdis configH1I0Silent.fti $1
+	#startTest addInArray configH0I1Silent.fti $1 1 2 3 4
+	#startTest addInArray configH1I1Silent.fti $1 1 2 3 4
+	#startTest addInArray configH1I0Silent.fti $1 1 2 3 4
+	#startTest nodeFlag configH0I1.fti $1
+	#startTest nodeFlag configH1I1.fti $1
+	#startTest nodeFlag configH1I0.fti $1
+	#startTest tokenRing configH0I1.fti $1 1 2 3 4
+	#startTest tokenRing configH1I1.fti $1 1 2 3 4
+	#startTest tokenRing configH1I0.fti $1 1 2 3 4
+	#startTest heatdis configH0I1Silent.fti $1
+	#startTest heatdis configH1I1Silent.fti $1
+	#startTest heatdis configH1I0Silent.fti $1
+	startTest lvlsRecovery configH0I1Silent.fti $1 1 2 3 4
+	startTest lvlsRecovery configH1I1Silent.fti $1 1 2 3 4
+	startTest lvlsRecovery configH1I0Silent.fti $1 1 2 3 4
 }
 
 cd test
