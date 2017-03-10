@@ -49,8 +49,8 @@ runAllConfiguration() {
 	#startTest nodeFlag configH1I1.fti
 	#startTest nodeFlag configH1I0.fti
 	#startTest tokenRing configH0I1.fti 1 2 3 4
-	startTest tokenRing configH1I1.fti 1 2 3 4
-	#startTest tokenRing configH1I0.fti 1 2 3 4
+	#startTest tokenRing configH1I1.fti 1 2 3 4
+	startTest tokenRing configH1I0.fti 1 2 3 4
 	#startTest heatdis configH0I1Silent.fti
 	#startTest heatdis configH1I1Silent.fti
 	#startTest heatdis configH1I0Silent.fti
