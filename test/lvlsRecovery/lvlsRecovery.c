@@ -56,7 +56,7 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (j = 0; j < MATRIX_SIZE; j++) {
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
-
+    MPI_Barrier(FTI_COMM_WORLD);
     if (FTI_Status() != 0 && fail == 0)
     {
         res = FTI_Recover();
