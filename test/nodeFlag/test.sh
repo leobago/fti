@@ -2,7 +2,7 @@
 
 test () {
     cp ../configs/$1 ./config.fti
-    sudo mpirun -n 8 ./nodeFlag config.fti
+    sudo mpirun -n 16 ./nodeFlag config.fti
     if [ $? != 0 ]
     then
         exit 1

@@ -2,13 +2,13 @@
 
 test () {
     cp ../configs/$1 ./config.fti
-    sudo mpirun -n 8 ./heatdis config.fti 1
+    sudo mpirun -n 16 ./heatdis config.fti 1
     if [ $? != 0 ]
     then
         exit 1
     fi
     echo "Resuming..."
-    sudo mpirun -n 8 ./heatdis config.fti 0
+    sudo mpirun -n 16 ./heatdis config.fti 0
     if [ $? != 0 ]
     then
         exit 1

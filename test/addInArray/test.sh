@@ -2,12 +2,12 @@
 
 test () {
     cp ../configs/$2 ./config.fti
-    sudo mpirun -n 8 ./addInArray config.fti $1 1
+    sudo mpirun -n 16 ./addInArray config.fti $1 1
     if [ $? != 0 ]
     then
         exit 1
     fi
-    sudo mpirun -n 8 ./addInArray config.fti $1 0
+    sudo mpirun -n 16 ./addInArray config.fti $1 0
     if [ $? != 0 ]
     then
         exit 1
