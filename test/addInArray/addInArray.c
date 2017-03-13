@@ -4,6 +4,13 @@
  *  @date   Feburary, 2017
  *  @brief  FTI testing program.
  *
+ *  Testing FTI_Init, FTI_Checkpoint, FTI_Status, FTI_Recover, FTI_Finalize,
+ *  saving last checkpoint to PFS
+ *
+ *  Program adds number in array, does MPI_Allgather each iteration and checkpoint
+ *  every ITER_CHECK interations with level passed in argv, but recovery is always
+ *  from L4, because of FTI_Finalize() call.
+ *
  *  First execution this program should be with fail flag = 1, because
  *  then FTI saves checkpoint and program stops after ITER_STOP iteration.
  *  Second execution must be with the same #defines and flag = 0 to
@@ -16,10 +23,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <fti.h>
+#include <string.h>
 
-#define ITERATIONS 100  //iterations for every level
-#define ITER_CHECK 10   //every ITER_CHECK iterations make checkpoint
-#define ITER_STOP 54    //simulate failure after ITER_STOP iterations
+#define ITERATIONS 100          //iterations for every level
+#define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
+#define ITER_STOP 54            //stop work after ITER_STOP iterations
 
 #define WORK_DONE 0
 #define WORK_STOPED 1
@@ -32,17 +40,22 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Do work to makes checkpoints
-    @param      array       Pointer to array, length == app. proc.
-    @param      fail        True if stop after ITER_STOP, false if resuming work
-    @return     integer     WORK_DONE if successful.
+    @param      array               Pointer to array, length == app. proc.
+    @param      world_rank          FTI_COMM rank
+    @param      world_size          FTI_COMM size
+    @param      checkpoint_level    Checkpont level to all checkpoints
+    @param      fail                True if stop after ITER_STOP, false if resuming work
+    @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
 int do_work(int* array, int world_rank, int world_size, int checkpoint_level, int fail) {
-    int res;
-    int number = array[world_rank];
+    int res, number = world_rank;
     int i = 0;
+    //adding variables to protect
     FTI_Protect(1, &i, 1, FTI_INTG);
     FTI_Protect(2, &number, 1, FTI_INTG);
+
+    //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
         res = FTI_Recover();
@@ -51,49 +64,48 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
             return RECOVERY_FAILED;
         }
     }
+    //if recovery, but recover values don't match
     if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
         return RECOVERY_FAILED;
     }
     printf("%d: Starting work at i = %d.\n", world_rank, i);
     for (; i < ITERATIONS; i++) {
+        //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
             res = FTI_Checkpoint(i/ITER_CHECK, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: FTI_Checkpoint returned %d.\n", world_rank, res);
                 return CHECKPOINT_FAILED;
             }
-            //else printf("Checkpoint made (L%d, i = %d)\n", checkpoint_level, i);
         }
         MPI_Allgather(&number, 1, MPI_INT, array, 1, MPI_INT, FTI_COMM_WORLD);
-	if(fail && i >= ITER_STOP) return WORK_STOPED;
+
+        //stoping after ITER_STOP iterations
+        if(fail && i >= ITER_STOP)
+            return WORK_STOPED;
         number += 1;
     }
     return WORK_DONE;
 }
 
 
-int init(char** argv, char* cnfgFile, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail) {
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
         rtn = 1;
-    } else {
-        cnfgFile = argv[1];
-        //printf("Config file: %s\n", cnfgFile);
     }
     if (argv[2] == NULL) {
         printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
     } else {
         *checkpoint_level = atoi(argv[2]);
-        //printf("Checkpoint level: %d\n", *checkpoint_level);
     }
     if (argv[3] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
     } else {
         *fail = atoi(argv[3]);
-        //printf("Fail: %d\n", *fail);
     }
     return rtn;
 }
@@ -101,35 +113,33 @@ int init(char** argv, char* cnfgFile, int* checkpoint_level, int* fail) {
 int verify(int* array, int world_size) {
     int i;
     for (i = 0; i < world_size; i++) {
-        //printf("%d = %d\n", array[i], ITERATIONS + (i-1));
-        if (array[i] != ITERATIONS + (i-1)) return VERIFY_FAILED;
+        if (array[i] != ITERATIONS + (i-1)) {
+            printf("array[%d] = %d, should be %d.\n", i, array[i], ITERATIONS + (i-1));
+            return VERIFY_FAILED;
+        }
     }
     return VERIFY_SUCCESS;
 }
 
-/*
-    Prints:
-        0 if everything is OK
-        1 if calculation error
-        2 if checkpoint failed
-        3 if recovery failed
-*/
+
+/*-------------------------------------------------------------------------*/
+/**
+    @return     integer     0 if successful, 1 otherwise
+ **/
+/*-------------------------------------------------------------------------*/
 int main(int argc, char** argv){
-
-    char *cnfgFile;
     int checkpoint_level, fail;
-    if (init(argv, cnfgFile, &checkpoint_level, &fail)) return 0;   //verify args
-
+    if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
     MPI_Init(&argc, &argv);
     FTI_Init(argv[1], MPI_COMM_WORLD);
-    int world_rank, world_size;
+    int world_rank, world_size; //FTI_COMM rank and size
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int *array = (int*) malloc (sizeof(int)*world_size);
-    array[world_rank] = world_rank;
 
-    MPI_Barrier(FTI_COMM_WORLD);
+    //array[world_rank] = world_rank;
+    //MPI_Barrier(FTI_COMM_WORLD);
     int res = do_work(array, world_rank, world_size, checkpoint_level, fail);
     int rtn = 0; //return value
     switch(res){
@@ -138,10 +148,10 @@ int main(int argc, char** argv){
                 printf("All work done. Verifying result...\n");
                 res = verify(array, world_size);
                 if (res != VERIFY_SUCCESS) {
-    		              rtn = 1;
-    		                    printf("FAILURE.\n");
+    		            rtn = 1;
+    		            printf("Failure.\n");
                 } else {
-    		              printf("SUCCESS.\n");
+    		            printf("Success.\n");
     		    }
             }
             break;
@@ -151,11 +161,11 @@ int main(int argc, char** argv){
             }
             break;
         case CHECKPOINT_FAILED:
-            printf("Checkpoint failed!\n");
+            printf("%d: Checkpoint failed!\n", world_rank);
             if (world_rank == 0) rtn = 1;
             break;
         case RECOVERY_FAILED:
-            printf("Recovery failed!\n");
+            printf("%d: Recovery failed!\n", world_rank);
             if (world_rank == 0) rtn = 1;
             break;
     }

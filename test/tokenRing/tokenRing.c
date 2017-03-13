@@ -4,6 +4,12 @@
  *  @date   March, 2017
  *  @brief  FTI testing program.
  *
+ *  Testing FTI_InitType, FTI_Init, FTI_Checkpoint, FTI_Status, FTI_Recover,
+ *  FTI_Finalize, saving last checkpoint to PFS
+ *
+ *  Processes are connected in logical ring. Passing and incrementing token.
+ *  When rank 0 process get token, checking if checkpoint needed.
+ *
  *  First execution this program should be with fail flag = 1, because
  *  then FTI saves checkpoint and program stops after ITER_STOP iteration.
  *  Second execution must be with the same #defines and flag = 0 to
@@ -18,9 +24,9 @@
 #include <fti.h>
 #include <dirent.h>
 
-#define ITERATIONS 599  //iterations for every level
+#define ITERATIONS 599  //token loop iterations
 #define ITER_CHECK 50   //every ITER_CHECK iterations make checkpoint
-#define ITER_STOP 299    //end work after ITER_STOP iterations
+#define ITER_STOP 299    //stop work after ITER_STOP iterations
 
 #define WORK_DONE 0
 #define CHECKPOINT_FAILED 1
@@ -32,68 +38,74 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Do work to makes checkpoints
-    @param
-    @param      fail        True if stop after ITER_STOP, false if resuming work
-    @return     integer     WORK_DONE if successful.
+    @param      world_rank          FTI_COMM rank
+    @param      world_size          FTI_COMM size
+    @param      checkpoint_level    Checkpont level to all checkpoints
+    @param      fail                True if stop after ITER_STOP, false if resuming work
+    @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
 int do_work(int* token, int world_rank, int world_size, int checkpoint_level, int fail) {
+    //defining structure
     typedef struct iteratiors {
-        int i;
-        int localIter;
+        int i;          //global iteratior (counts token pass)
+        int localIter;  //local iteratior (counts full token loop (from rank 0 to 0) )
     } cIters;
     cIters iters = {0,0};
     FTIT_type itersInfo;
 
+    //creating new FTI type
     FTI_InitType(&itersInfo, 2*sizeof(int));
+    //adding variables to protect
     FTI_Protect(1, &iters, 1, itersInfo);
     FTI_Protect(2, token, 1, FTI_INTG);
+    //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
         int res = FTI_Recover();
         if (res != 0) {
             printf("%d: FTI_Recover returned %d\n", world_rank, res);
             return RECOVERY_FAILED;
-        } else if (world_rank == 0) {
-            printf("0: Returned! i = %d\n", iters.i);
         }
     }
+    //starting by sending token
     if (world_rank == 0) {
         MPI_Request req;
         MPI_Isend(token, 1, MPI_INT, 1, 0, FTI_COMM_WORLD, &req);
         MPI_Isend(&(iters.i), 1, MPI_INT, 1, 0, FTI_COMM_WORLD, &req);
         MPI_Request_free(&req);
     }
+    //if recovery, but recover values don't match
     if (!fail && iters.localIter == 0) {
         printf("%d: Did not recovered.\n", world_rank);
         return RECOVERY_FAILED;
     }
     for (;iters.localIter < ITERATIONS/world_size + 1; iters.localIter++) {
-        MPI_Barrier(FTI_COMM_WORLD);
+        //MPI_Barrier(FTI_COMM_WORLD);
         if (iters.localIter%(ITER_CHECK/world_size) == 0) {
-            int res = FTI_Checkpoint(iters.localIter/(ITER_CHECK/world_size), checkpoint_level);
+            int res = FTI_Checkpoint(iters.localIter/(ITER_CHECK/world_size) + 1, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: FTI_Checkpoint returned %d\n", world_rank, res);
                 return CHECKPOINT_FAILED;
-            } else if (world_rank == 0) {
-                printf("0: Checkpointed at i = %d\n", iters.i);
             }
         }
+        //stoping after ITER_STOP full token loop
         if (fail && iters.localIter >= ITER_STOP/world_size) {
             printf("%d: Work stoped at i = %d.\n", world_rank, iters.i);
             break;
         }
-        //ITERATIONS/world
+
+        //passing token + 1 (rank => rank +1 )
         if (iters.i + world_size < ITERATIONS) {
             MPI_Recv(token, 1, MPI_INT, (world_rank + world_size - 1)%world_size, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&(iters.i), 1, MPI_INT, (world_rank + world_size - 1)%world_size, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
-            //printf("%d: Got token %d\n", world_rank, *token);
             (*token)++;
             iters.i++;
             MPI_Request req;
             MPI_Isend(token, 1, MPI_INT, (world_rank + 1)%world_size, 0, FTI_COMM_WORLD, &req);
             MPI_Isend(&(iters.i), 1, MPI_INT, (world_rank + 1)%world_size, 0, FTI_COMM_WORLD, &req);
             MPI_Request_free(&req);
+            //all except rank = 0 sets token to 0
             if (world_rank != 0) {
                 *token = 0;
             }
@@ -104,28 +116,23 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
 }
 
 
-int init(char** argv, char* cnfgFile, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail) {
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
         rtn = 1;
-    } else {
-        cnfgFile = argv[1];
-        //printf("Config file: %s\n", cnfgFile);
     }
     if (argv[2] == NULL) {
         printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
     } else {
         *checkpoint_level = atoi(argv[2]);
-        //printf("Checkpoint level: %d\n", *checkpoint_level);
     }
     if (argv[3] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
     } else {
         *fail = atoi(argv[3]);
-        //printf("Fail: %d\n", *fail);
     }
     return rtn;
 }
@@ -133,29 +140,26 @@ int init(char** argv, char* cnfgFile, int* checkpoint_level, int* fail) {
 int verify(int token, int world_rank, int world_size) {
     if (world_rank == 0) {
         if (token != ITERATIONS - ITERATIONS%world_size || token == 0) {
-            printf("%d: Token == %d and ITERATIONSX = %d\n", world_rank, token, ITERATIONS - ITERATIONS%world_size);
+            printf("%d: Token = %d, should be = %d\n", world_rank, token, ITERATIONS - ITERATIONS%world_size);
             return VERIFY_FAILED;
         }
     } else {
         if (token != 0) {
-            printf("%d: My token = %d", world_rank, token);
+            printf("%d: Token = %d, should be = 0\n", world_rank, token);
              return VERIFY_FAILED;
         }
     }
     return VERIFY_SUCCESS;
 }
 
-/*
-    Prints:
-        0 if everything is OK
-        1 if calculation error
-        2 if checkpoint failed
-        3 if recovery failed
-*/
+/*-------------------------------------------------------------------------*/
+/**
+    @return     integer     0 if successful, 1 otherwise
+ **/
+/*-------------------------------------------------------------------------*/
 int main(int argc, char** argv){
-    char *cnfgFile;
     int checkpoint_level, fail;
-    if (init(argv, cnfgFile, &checkpoint_level, &fail)) return 0;   //verify args
+    if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[1], MPI_COMM_WORLD);
@@ -164,11 +168,12 @@ int main(int argc, char** argv){
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int token = 0;
-    MPI_Barrier(FTI_COMM_WORLD);
+    //MPI_Barrier(FTI_COMM_WORLD);
     int rtn; //return value
 
     rtn = do_work(&token, world_rank, world_size, checkpoint_level, fail);
     if (!rtn && !fail) rtn = verify(token, world_rank, world_size);
+
     FTI_Finalize();
     MPI_Finalize();
     return rtn;

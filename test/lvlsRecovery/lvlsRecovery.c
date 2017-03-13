@@ -223,6 +223,7 @@ int main(int argc, char** argv){
         printf("%d: sent.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
     }
+    printf("%d: After checkpoint_level.\n", world_rank);
     //FTI_Finalize();
     MPI_Finalize();
     return rtn;

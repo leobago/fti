@@ -4,7 +4,8 @@
  *  @date   Feburary, 2017
  *  @brief  FTI testing program.
  *
- *	Program tests if nodeFlag == 1 is unique in node.
+ *	Program tests if there is only one process with nodeFlag set to 1 in node.
+ *  Look FTI_PostCkpt(...) in checkpoint.c
  */
 
 #include <stdio.h>
@@ -16,10 +17,13 @@
 
 int verify(int world_size) {
 	FILE* fp;
+	//Shearching this string in log file
 	char str[]  = "Has nodeFlag = 1 and nodeID =";
 	char temp[256];
 	char strtmp[256];
     int i, k;
+
+	//Have to checking ckptLvel
 	int** ckptLvel = (int**) malloc (sizeof(int*) * 5);
 	for (i = 1; i < 5; i++) {
 		int* nodeID = (int*) malloc (sizeof(int) * world_size);
@@ -41,10 +45,12 @@ int verify(int world_size) {
 		    if((strstr(temp, str)) != NULL) {
 			    int nodeIDtmp, processIDtmp, ckptLveltmp;
 			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d. ", &processIDtmp, &nodeIDtmp, &ckptLveltmp);
-			    if (ckptLvel[ckptLveltmp][nodeIDtmp] == -1) {
+				//if found first nodeFlag process for this ckptLvel
+				if (ckptLvel[ckptLveltmp][nodeIDtmp] == -1) {
 					ckptLvel[ckptLveltmp][nodeIDtmp] = processIDtmp;
 					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
 			    }
+				//if found this nodeFlag process and it's not the same as before
 			    if (ckptLvel[ckptLveltmp][nodeIDtmp] != processIDtmp) {
 					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
 					return 1;
@@ -66,12 +72,11 @@ int verify(int world_size) {
    	return 0;
 }
 
-/*
-    Prints:
-        0 if everything is OK
-        1 if error
-		2 if cannot access file
-*/
+/*-------------------------------------------------------------------------*/
+/**
+    @return     integer     0 if successful, 1 if error, 2 if can open file
+ **/
+/*-------------------------------------------------------------------------*/
 int main(int argc, char** argv){
 	int world_rank, world_size, global_world_rank, global_world_size;
 	MPI_Init(&argc, &argv);
@@ -89,6 +94,7 @@ int main(int argc, char** argv){
 		fprintf(stderr, "Cannot open %s file.\n", str);
 		return 1;
 	}
+	//change stdout to file
 	dup2(f, 1);
 
 	FTI_Init(argv[1], MPI_COMM_WORLD);
@@ -103,15 +109,16 @@ int main(int argc, char** argv){
 	int* someArray = (int*) malloc (sizeof(int) * global_world_size);
 	FTI_Protect(1, someArray, global_world_size, FTI_INTG);
 
+	//making some checkpoints
 	int i;
 	for (i = 1; i < 5; i++) {
 		if (world_rank == 0) {
 			fprintf(stderr, "Making checkpoint L%d\n", i);
 		}
 		FTI_Checkpoint(1, i);
-		MPI_Barrier(FTI_COMM_WORLD);
+		//MPI_Barrier(FTI_COMM_WORLD);
 	}
-	MPI_Barrier(FTI_COMM_WORLD);
+
 	int rtn = 0; //return value
 	if (world_rank == 0) {
 		fprintf(stderr, "Verifying logs...\n");

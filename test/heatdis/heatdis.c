@@ -1,8 +1,16 @@
 /**
  *  @file   heatdis.c
- *  @author Leonardo A. Bautista Gomez
- *  @date   May, 2014
+ *  @author Leonardo A. Bautista Gomez (../../exaples/heatdis.c) & Karol Sierocinski
+ *  @date   March, 2017
  *  @brief  Heat distribution code to test FTI.
+ *
+ *  Program tests FTI_Snapshot.
+ *
+ *  First execution this program should be with fail flag = 1, because
+ *  then FTI saves checkpoint and program stops after ITER_STOP iteration.
+ *  Second execution must be with the same #defines and flag = 0 to
+ *  properly recover data. It is important that FTI config file got
+ *  keep_last_ckpt = 1.
  */
 
 
@@ -11,7 +19,7 @@
 #include <math.h>
 #include <fti.h>
 
-
+//do not change this defines (static verifying)
 #define PRECISION   0.005
 #define ITER_TIMES  5000
 #define ITER_OUT    500
@@ -45,7 +53,6 @@ void initData(int nbLines, int M, int rank, double *h)
         }
     }
 }
-
 
 double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h)
 {
@@ -100,42 +107,40 @@ double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h)
     return localerror;
 }
 
-int init(char** argv, char* cnfgFile, int* fail) {
+int init(char** argv, int* fail) {
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
         rtn = 1;
-    } else {
-        cnfgFile = argv[1];
-        //printf("Config file: %s\n", cnfgFile);
     }
     if (argv[2] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
     } else {
         *fail = atoi(argv[2]);
-        //printf("Fail: %d\n", *fail);
     }
     return rtn;
 }
 
 int verify (double globalerror, int rank){
     if (fabs(globalerror - 0.004998) <= 0.000001) {
-        printf("%d: OK, Diff = %f\n", rank, fabs(globalerror - 0.004998));
         return 0;
     }
-    printf("%d: FAIL, Diff = %f\n", rank, fabs(globalerror - 0.004998));
+    printf("%d: globalerror = %f, should be 0.004998\n", rank, globalerror);
     return 1;
 }
 
-int main(int argc, char *argv[])
+/*-------------------------------------------------------------------------*/
+/**
+    @return     integer     0 if successful, 1 otherwise
+ **/
+/*-------------------------------------------------------------------------*/
+int main(int argc, char** argv)
 {
-    char *cnfgFile;
-    int fail;
-    int rank, nbProcs, nbLines, i, M, arg;
+    int fail, rank, nbProcs, nbLines, i, M, arg;
     double wtime, *h, *g, memSize, localerror, globalerror = 1;
 
-    if (init(argv, cnfgFile, &fail)) return 0;   //verify args
+    if (init(argv, &fail)) return 0;   //verify args
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[1], MPI_COMM_WORLD);
@@ -155,6 +160,7 @@ int main(int argc, char *argv[])
     if (rank == 0) printf("Target precision : %f \n", PRECISION);
     if (rank == 0) printf("Maximum number of iterations : %d \n", ITER_TIMES);
 
+    //adding variables to protect
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
     FTI_Protect(2, g, M*nbLines, FTI_DBLE);
@@ -171,15 +177,15 @@ int main(int argc, char *argv[])
             FTI_Finalize();
             MPI_Finalize();
             return 1;
-        } else if (checkpointed == FTI_DONE) {
-            printf("%d: Checkpoint made i = %d\n", rank, i);
-        } else if (checkpointed == FTI_SCES && i != iTmp) {
-            printf("%d: Recovered! i = %d\n", rank, i);
+        } else if (rank == 0 && checkpointed == FTI_DONE) {
+            printf("Checkpoint made i = %d\n", i);
+        } else if (rank == 0 && checkpointed == FTI_SCES && i != iTmp) {
+            printf("Recovered! i = %d\n", i);
         }
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) printf("Step : %d, error = %f\n", i, globalerror);
         if ((i%REDUCE) == 0) MPI_Allreduce(&localerror, &globalerror, 1, MPI_DOUBLE, MPI_MAX, FTI_COMM_WORLD);
-        if(globalerror < PRECISION) break;
+        if (globalerror < PRECISION) break;
         if (fail && i >= ITER_STOP) {
             printf("%d: Stoped at i = %d.\n", rank, i);
             break;
