@@ -143,7 +143,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_DBUG);
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
-
+    MPI_Barrier(FTI_COMM_WORLD);
     return res;
 }
 
@@ -261,7 +261,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1)
             FTI_Print("Cannot rename meta directory", FTI_EROR);
     }
-
+    MPI_Barrier(FTI_COMM_WORLD);
     t3 = MPI_Wtime();
 
     sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
