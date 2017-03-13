@@ -192,9 +192,11 @@ int main(int argc, char** argv){
     }
     free(matrix);
     dictionary* ini = iniparser_load("config.fti");
-
+    int heads = (int)iniparser_getint(ini, "Basic:head", -1);
+    int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     if (checkpoint_level != 1) {
         int isInline = -1;
+        int heads = (int)iniparser_getint(ini, "Basic:head", -1);
         switch (checkpoint_level) {
             case 2:
                 isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
@@ -206,14 +208,20 @@ int main(int argc, char** argv){
                 isInline = (int)iniparser_getint(ini, "Basic:inline_l4", 1);
                 break;
         }
-        dictionary* ini = iniparser_load("config.fti");
-        int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-        if (isInline == 0)     MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , 2612, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+        printf("%d: isInline = %d, nodeSize = %d.\n", world_rank, isInline, nodeSize);
+        if (isInline == 0) {
+            printf("%d: receiving.\n", world_rank);
+            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , 2612, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    MPI_Barrier(FTI_COMM_WORLD);
-    if (world_rank == 0) {
-        int mpi_res = MPI_Abort(MPI_COMM_WORLD, 0);
+            printf("%d: received.\n", world_rank);
+        }
+
+    }
+    if (heads > 0) {
+        res = FTI_ENDW;
+        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), 2612, MPI_COMM_WORLD);
+        printf("%d: sent.\n", world_rank);
+        MPI_Barrier(MPI_COMM_WORLD);
     }
     //FTI_Finalize();
     MPI_Finalize();
