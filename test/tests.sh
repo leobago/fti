@@ -8,45 +8,10 @@ check () {
 	fi
 }
 
-addInArray () {
-	echo "Running addInArray test... ($1)"
-		bash ./addInArray/test.sh $@
-		check $?
-}
-
-nodeFlag () {
-	echo "Running nodeFlag test... ($1)"
-		bash ./nodeFlag/test.sh $@
-		check $?
-}
-
-heatdis () {
-	echo "Running heatdis test... ($1)"
-		bash ./heatdis/test.sh $@
-		check $?
-}
-
-tokenRing () {
-	echo "Running tokenRing test... ($1)"
-		bash ./tokenRing/test.sh $@
-		check $?
-}
-
-lvlsRecovery () {
-	echo "Running lvlsRecovery test... ($1)"
-		bash ./lvlsRecovery/test.sh $@
-		check $?
-}
-
 startTest () {
-	case "$1" in
-	  "addInArray") addInArray ${@:2} ;;
-	  "nodeFlag") nodeFlag ${@:2} ;;
-	  "heatdis") heatdis ${@:2} ;;
-	  "tokenRing") tokenRing ${@:2} ;;
-	  "lvlsRecovery") lvlsRecovery ${@:2} ;;
-	  *) echo "Wrong test name." ;;
-	esac
+	echo "Running $1 test... ($2)"
+		bash ./$1/test.sh ${@:2}
+		check $?
 }
 runAllConfiguration() {
 	startTest addInArray configH0I1Silent.fti $1 1 2 3 4
@@ -58,12 +23,15 @@ runAllConfiguration() {
 	startTest tokenRing configH0I1Silent.fti $1 1 2 3 4
 	startTest tokenRing configH1I1Silent.fti $1 1 2 3 4
 	startTest tokenRing configH1I0Silent.fti $1 1 2 3 4
-	startTest heatdis configH0I1Silent.fti $1
-	startTest heatdis configH1I1Silent.fti $1
-	startTest heatdis configH1I0Silent.fti $1
+	startTest diffSizes configH1I0Silent.fti 16 1 2 3 4
+	startTest diffSizes configH1I1Silent.fti 16 1 2 3 4
+	startTest diffSizes configH0I1Silent.fti 16 1 2 3 4
 	startTest lvlsRecovery configH0I1Silent.fti $1 1 2 3 4
 	startTest lvlsRecovery configH1I1Silent.fti $1 1 2 3 4
 	startTest lvlsRecovery configH1I0Silent.fti $1 1 2 3 4
+	startTest heatdis configH0I1Silent.fti $1
+	startTest heatdis configH1I1Silent.fti $1
+	startTest heatdis configH1I0Silent.fti $1
 }
 
 cd test
