@@ -25,7 +25,7 @@
 #include <fti.h>
 #include <string.h>
 
-#define ITERATIONS 97          //iterations for every level
+#define ITERATIONS 101          //iterations for every level
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
 #define ITER_STOP 54            //stop work after ITER_STOP iterations
 
@@ -38,7 +38,7 @@
 #define VERIFY_SUCCESS 0
 
 
-#define INIT_SIZE 100   //multiplied by world_size gives origin array size
+#define INIT_SIZE 50   //multiplied by world_size*2 gives origin array size
 
 int verify(long* array, int world_size);
 /*-------------------------------------------------------------------------*/
@@ -55,14 +55,21 @@ int verify(long* array, int world_size);
 int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     int res;
     int i = 0, j;
-    int size = world_size*INIT_SIZE;
-    int part = size/world_size;
-    int offset = world_rank*part;
-    long* array = malloc (sizeof(long) * size);
-    FTI_Protect(0, &i, 1, FTI_INTG);
-    FTI_Protect(1, array, size, FTI_LONG);
-    FTI_Protect(2, &size, 1, FTI_INTG);
+    int size = world_size * INIT_SIZE * 2;
+    int part = size / world_size / 2;
+    int offset = world_rank * part * 2;
+    int myPart;
+    if (world_rank % 2 == 0) {
+        myPart = part * 3;
+    } else {
+        myPart = part;
+        offset += part;
+    }
 
+    FTI_Protect(0, &i, 1, FTI_INTG);
+    FTI_Protect(1, &size, 1, FTI_INTG);
+    long* buf = malloc (sizeof(long) * myPart);
+    FTI_Protect(2, buf, myPart, FTI_LONG);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
@@ -78,7 +85,6 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     }
     printf("%d: Starting work at i = %d.\n", world_rank, i);
     for (; i < ITERATIONS; i++) {
-        //printf("%d: i = %d\n", world_rank, i);
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
@@ -87,25 +93,43 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
                 return CHECKPOINT_FAILED;
             }
         }
-        part = size/world_size;
-        array = realloc (array, sizeof(long) * size);
-        long* buf = malloc (sizeof(long) * part);
-        for (j = 0; j < part; j++) {
+        part = size / world_size / 2;
+        offset = world_rank * part * 2;
+        if (world_rank % 2 == 0) {
+            myPart = part * 3;
+        } else {
+            myPart = part;
+            offset += part;
+        }
+
+        buf = realloc (buf, sizeof(long) * myPart);
+        for (j = 0; j < myPart; j++) {
                 buf[j] = size;
         }
-        MPI_Allgather(buf, part, MPI_LONG, array, part, MPI_LONG, FTI_COMM_WORLD);
-        FTI_Protect(1, array, size, FTI_LONG);
-
-        free(buf);
+        FTI_Protect(2, buf, myPart, FTI_LONG);
         //stoping after ITER_STOP iterations
         if(fail && i >= ITER_STOP){
             return WORK_STOPED;
         }
         size += world_size;
     }
-    int rtn = verify(array, world_size);
-    free(array);
-    return rtn;
+    long* array = malloc (sizeof(long) * size);
+    if (world_rank == 0) {
+        for (j = 1; j < world_size; j++) {
+            if (j%2 == 0) {
+                MPI_Recv(array + (j * part * 2), part * 3, MPI_LONG, j, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
+            } else {
+                MPI_Recv(array + (j * part * 2) + part, part, MPI_LONG, j, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+        }
+        memcpy(array, buf, sizeof(long) * myPart);
+        return verify(array, world_size);
+    } else {
+        MPI_Send(buf, myPart, MPI_LONG, 0, 0, FTI_COMM_WORLD);
+    }
+
+    free(buf);
+    return WORK_DONE;
 }
 
 
@@ -132,7 +156,7 @@ int init(char** argv, int* checkpoint_level, int* fail) {
 
 int verify(long* array, int world_size) {
     int i;
-    int size = world_size * (INIT_SIZE + ITERATIONS-2);
+    int size = world_size * ((ITERATIONS - 1) + INIT_SIZE * 2);
     for (i = 0; i < size; i++) {
         if (array[i] != size) {
             printf("array[%d] = %ld, should be %d.\n", i, array[i], size);
