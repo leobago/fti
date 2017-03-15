@@ -43,13 +43,15 @@
 
 int verify(long* array, int world_size) {
     int i;
-    int size = world_size * ((ITERATIONS - 1) + INIT_SIZE * 2);
-    for (i = 0; i < size; i++) {
+    int size = world_size * (ITERATIONS + INIT_SIZE * 2);
+    for (i = 0; i < size - world_size; i++) {
+        printf("array[%d] = %ld\n", i, array[i]);
         if (array[i] != size) {
             printf("array[%d] = %ld, should be %d.\n", i, array[i], size);
-            return VERIFY_FAILED;
+            //return VERIFY_FAILED;
         }
     }
+    return VERIFY_FAILED;
     return VERIFY_SUCCESS;
 }
 
@@ -86,6 +88,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, &size, 1, FTI_INTG);
     long* buf = malloc (sizeof(long) * myPart);
+    for (j = 0; j < myPart; j++) {
+            buf[j] = size;
+    }
     FTI_Protect(2, buf, myPart, FTI_LONG);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
@@ -94,6 +99,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         if (res != 0) {
             printf("%d: FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
+        } else {
+            getPart(&myPart, &offset, size, world_rank, world_size);
         }
     }
     //if recovery, but recover values don't match
@@ -110,10 +117,11 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
                 return CHECKPOINT_FAILED;
             }
         }
+        long tempValue = buf[myPart - 1];
         getPart(&myPart, &offset, size, world_rank, world_size);
         buf = realloc (buf, sizeof(long) * myPart);
         for (j = 0; j < myPart; j++) {
-                buf[j] = size;
+                buf[j] = tempValue + world_size;
         }
         FTI_Protect(2, buf, myPart, FTI_LONG);
         //stoping after ITER_STOP iterations

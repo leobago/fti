@@ -23,9 +23,9 @@ runAllConfiguration() {
 	startTest tokenRing configH0I1Silent.fti $1 1 2 3 4
 	startTest tokenRing configH1I1Silent.fti $1 1 2 3 4
 	startTest tokenRing configH1I0Silent.fti $1 1 2 3 4
-	startTest diffSizes configH1I0Silent.fti 16 1 2 3 4
-	startTest diffSizes configH1I1Silent.fti 16 1 2 3 4
-	startTest diffSizes configH0I1Silent.fti 16 1 2 3 4
+	#startTest diffSizes configH1I0Silent.fti 16 1 2 3 4
+	#startTest diffSizes configH1I1Silent.fti 16 1 2 3 4
+	#startTest diffSizes configH0I1Silent.fti 16 1 2 3 4
 	startTest lvlsRecovery configH0I1Silent.fti $1 1 2 3 4
 	startTest lvlsRecovery configH1I1Silent.fti $1 1 2 3 4
 	startTest lvlsRecovery configH1I0Silent.fti $1 1 2 3 4
