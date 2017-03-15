@@ -7,9 +7,9 @@
  *  Testing FTI_Init, FTI_Checkpoint, FTI_Status, FTI_Recover, FTI_Finalize,
  *  saving last checkpoint to PFS
  *
- *  Program adds number in array, does MPI_Allgather each iteration and checkpoint
- *  every ITER_CHECK interations with level passed in argv, but recovery is always
- *  from L4, because of FTI_Finalize() call.
+ *  Every process in every iteration expand their array and set value to each
+ *  index and make checkpoint. Even ranks have 3 times longer array than odd ranks.
+ *  After ITERATIONS iterations every process send their array to rank 0 process.
  *
  *  First execution this program should be with fail flag = 1, because
  *  then FTI saves checkpoint and program stops after ITER_STOP iteration.
@@ -25,7 +25,7 @@
 #include <fti.h>
 #include <string.h>
 
-#define ITERATIONS 101          //iterations for every level
+#define ITERATIONS 101          //iterations
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
 #define ITER_STOP 54            //stop work after ITER_STOP iterations
 
@@ -40,7 +40,31 @@
 
 #define INIT_SIZE 50   //multiplied by world_size*2 gives origin array size
 
-int verify(long* array, int world_size);
+
+int verify(long* array, int world_size) {
+    int i;
+    int size = world_size * ((ITERATIONS - 1) + INIT_SIZE * 2);
+    for (i = 0; i < size; i++) {
+        if (array[i] != size) {
+            printf("array[%d] = %ld, should be %d.\n", i, array[i], size);
+            return VERIFY_FAILED;
+        }
+    }
+    return VERIFY_SUCCESS;
+}
+
+void getPart(int* myPart, int* offset, int size, int world_rank, int world_size) {
+    int part = size / world_size / 2;
+    *offset = world_rank * part * 2;
+    //even rank processes get 3 part of work; odd get 1 part
+    if (world_rank % 2 == 0) {
+        *myPart = part * 3;
+    } else {
+        *myPart = part;
+        *offset += part;
+    }
+}
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Do work to makes checkpoints
@@ -56,15 +80,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     int res;
     int i = 0, j;
     int size = world_size * INIT_SIZE * 2;
-    int part = size / world_size / 2;
-    int offset = world_rank * part * 2;
-    int myPart;
-    if (world_rank % 2 == 0) {
-        myPart = part * 3;
-    } else {
-        myPart = part;
-        offset += part;
-    }
+    int offset, myPart;
+    getPart(&myPart, &offset, size, world_rank, world_size);
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, &size, 1, FTI_INTG);
@@ -93,15 +110,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
                 return CHECKPOINT_FAILED;
             }
         }
-        part = size / world_size / 2;
-        offset = world_rank * part * 2;
-        if (world_rank % 2 == 0) {
-            myPart = part * 3;
-        } else {
-            myPart = part;
-            offset += part;
-        }
-
+        getPart(&myPart, &offset, size, world_rank, world_size);
         buf = realloc (buf, sizeof(long) * myPart);
         for (j = 0; j < myPart; j++) {
                 buf[j] = size;
@@ -115,6 +124,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     }
     long* array = malloc (sizeof(long) * size);
     if (world_rank == 0) {
+        int part = size / world_size / 2;
         for (j = 1; j < world_size; j++) {
             if (j%2 == 0) {
                 MPI_Recv(array + (j * part * 2), part * 3, MPI_LONG, j, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -154,17 +164,6 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     return rtn;
 }
 
-int verify(long* array, int world_size) {
-    int i;
-    int size = world_size * ((ITERATIONS - 1) + INIT_SIZE * 2);
-    for (i = 0; i < size; i++) {
-        if (array[i] != size) {
-            printf("array[%d] = %ld, should be %d.\n", i, array[i], size);
-            return VERIFY_FAILED;
-        }
-    }
-    return VERIFY_SUCCESS;
-}
 
 
 /*-------------------------------------------------------------------------*/
