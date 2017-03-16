@@ -45,13 +45,11 @@ int verify(long* array, int world_size) {
     int i;
     int size = world_size * (ITERATIONS + INIT_SIZE * 2);
     for (i = 0; i < size - world_size; i++) {
-        printf("array[%d] = %ld\n", i, array[i]);
         if (array[i] != size) {
             printf("array[%d] = %ld, should be %d.\n", i, array[i], size);
-            //return VERIFY_FAILED;
+            return VERIFY_FAILED;
         }
     }
-    return VERIFY_FAILED;
     return VERIFY_SUCCESS;
 }
 
@@ -97,27 +95,49 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     {
         res = FTI_Recover();
         if (res != 0) {
-            printf("%d: FTI_Recover returned %d.\n", world_rank, res);
+            printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         } else {
             getPart(&myPart, &offset, size, world_rank, world_size);
+            buf = realloc (buf, sizeof(long) * myPart);
+            for (j = 0; j < myPart; j++) {
+                if (j < myPart/2 - 1)
+                    buf[myPart - j - 1] = buf[j];
+            }
         }
     }
     //if recovery, but recover values don't match
-    if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
-        return RECOVERY_FAILED;
+    if (fail == 0) {
+        if (i != (ITER_STOP - ITER_STOP % ITER_CHECK)){
+            printf("%d: i = %d, should be %d\n", world_rank, i, (ITER_STOP - ITER_STOP % ITER_CHECK));
+            return RECOVERY_FAILED;
+        }
+        if (size != world_size * (i + INIT_SIZE * 2)) {
+            printf("%d: size = %d, should be %d\n", world_rank, size, world_size * (i + INIT_SIZE * 2));
+            return RECOVERY_FAILED;
+        }
+        getPart(&myPart, &offset, size, world_rank, world_size);
+        buf = realloc (buf, sizeof(long) * myPart);
+        for (j = 0; j < myPart; j++) {
+            if (buf[j] != size) {
+                printf("%d: buf[%d] = %ld, should be %d\n", world_rank, j, buf[j], size);
+                return RECOVERY_FAILED;
+            }
+        }
     }
-    printf("%d: Starting work at i = %d.\n", world_rank, i);
+    if(world_rank == 0)
+        printf("Starting work at i = %d.\n", i);
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
-                printf("%d: FTI_Checkpoint returned %d.\n", world_rank, res);
+                printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n", world_rank, res);
                 return CHECKPOINT_FAILED;
             }
         }
         long tempValue = buf[myPart - 1];
+        size += world_size;
         getPart(&myPart, &offset, size, world_rank, world_size);
         buf = realloc (buf, sizeof(long) * myPart);
         for (j = 0; j < myPart; j++) {
@@ -126,9 +146,11 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         FTI_Protect(2, buf, myPart, FTI_LONG);
         //stoping after ITER_STOP iterations
         if(fail && i >= ITER_STOP){
-            return WORK_STOPED;
+            if (world_rank == 0) {
+            	printf("Work stopped at i = %d.\n", ITER_STOP);
+            }
+            return WORK_DONE;
         }
-        size += world_size;
     }
     long* array = malloc (sizeof(long) * size);
     if (world_rank == 0) {
@@ -189,26 +211,8 @@ int main(int argc, char** argv){
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int rtn = do_work(world_rank, world_size, checkpoint_level, fail);
-    switch(rtn){
-        case WORK_DONE:
-            if (world_rank == 0) {
-            	printf("Success.\n");
-            }
-            break;
-        case WORK_STOPED:
-            if (world_rank == 0) {
-            	printf("Work stopped at i = %d.\n", ITER_STOP);
-            }
-            rtn = 0;
-            break;
-        case CHECKPOINT_FAILED:
-            printf("%d: Checkpoint failed!\n", world_rank);
-            if (world_rank == 0) rtn = 1;
-            break;
-        case RECOVERY_FAILED:
-            printf("%d: Recovery failed!\n", world_rank);
-            if (world_rank == 0) rtn = 1;
-            break;
+    if (world_rank == 0 && !fail && !rtn) {
+        printf("Success.\n");
     }
     FTI_Finalize();
     MPI_Finalize();

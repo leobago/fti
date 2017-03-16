@@ -30,9 +30,8 @@
 #define ITER_STOP 54            //stop work after ITER_STOP iterations
 
 #define WORK_DONE 0
-#define WORK_STOPED 1
-#define CHECKPOINT_FAILED 2
-#define RECOVERY_FAILED 3
+#define CHECKPOINT_FAILED 1
+#define RECOVERY_FAILED 2
 
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
@@ -68,11 +67,12 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
         return RECOVERY_FAILED;
     }
-    printf("%d: Starting work at i = %d.\n", world_rank, i);
+    if (world_rank == 0)
+        printf("Starting work at i = %d.\n", i);
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
-            res = FTI_Checkpoint(i/ITER_CHECK, checkpoint_level);
+            res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: FTI_Checkpoint returned %d.\n", world_rank, res);
                 return CHECKPOINT_FAILED;
@@ -82,7 +82,7 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
 
         //stoping after ITER_STOP iterations
         if(fail && i >= ITER_STOP)
-            return WORK_STOPED;
+            break;
         number += 1;
     }
     return WORK_DONE;
@@ -138,36 +138,16 @@ int main(int argc, char** argv){
 
     int *array = (int*) malloc (sizeof(int)*world_size);
 
-    //array[world_rank] = world_rank;
-    //MPI_Barrier(FTI_COMM_WORLD);
-    int res = do_work(array, world_rank, world_size, checkpoint_level, fail);
-    int rtn = 0; //return value
-    switch(res){
-        case WORK_DONE:
-            if (world_rank == 0) {               //verify result
-                printf("All work done. Verifying result...\n");
-                res = verify(array, world_size);
-                if (res != VERIFY_SUCCESS) {
-    		            rtn = 1;
-    		            printf("Failure.\n");
-                } else {
-    		            printf("Success.\n");
-    		    }
-            }
-            break;
-        case WORK_STOPED:
-            if (world_rank == 0) {
-            	printf("Work stopped at i = %d.\n", ITER_STOP);
-            }
-            break;
-        case CHECKPOINT_FAILED:
-            printf("%d: Checkpoint failed!\n", world_rank);
-            if (world_rank == 0) rtn = 1;
-            break;
-        case RECOVERY_FAILED:
-            printf("%d: Recovery failed!\n", world_rank);
-            if (world_rank == 0) rtn = 1;
-            break;
+    int rtn = do_work(array, world_rank, world_size, checkpoint_level, fail);
+
+    if (world_rank == 0 && rtn == 0 && !fail) {               //verify result
+        printf("All work done. Verifying result... \t");
+        rtn = verify(array, world_size);
+        if (rtn != VERIFY_SUCCESS) {
+	            printf("Failure.\n");
+        } else {
+	            printf("Success.\n");
+	    }
     }
     free(array);
     FTI_Finalize();

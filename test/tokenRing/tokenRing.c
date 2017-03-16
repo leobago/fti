@@ -80,8 +80,22 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
         printf("%d: Did not recovered.\n", world_rank);
         return RECOVERY_FAILED;
     }
+    if(!fail) {
+        if (world_rank == 0) {
+            if (iters.localIter * world_size != iters.i || *token != iters.i){
+                printf("%d: Did not recovered properly.\n", world_rank);
+                return RECOVERY_FAILED;
+            }
+        } else {
+            if (iters.localIter * world_size - (world_size - world_rank) != iters.i || *token != 0) {
+                printf("%d: Did not recovered properly.\n", world_rank);
+                return RECOVERY_FAILED;
+            }
+        }
+    }
+    if (world_rank == 0)
+        printf("Starting work at localIter = %d.\n", iters.localIter);
     for (;iters.localIter < ITERATIONS/world_size + 1; iters.localIter++) {
-        //MPI_Barrier(FTI_COMM_WORLD);
         if (iters.localIter%(ITER_CHECK/world_size) == 0) {
             int res = FTI_Checkpoint(iters.localIter/(ITER_CHECK/world_size) + 1, checkpoint_level);
             if (res != FTI_DONE) {
@@ -91,11 +105,12 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
         }
         //stoping after ITER_STOP full token loop
         if (fail && iters.localIter >= ITER_STOP/world_size) {
-            printf("%d: Work stoped at i = %d.\n", world_rank, iters.i);
+            if (world_rank == 0)
+                printf("Work stoped at localIter = %d.\n", iters.localIter);
             break;
         }
 
-        //passing token + 1 (rank => rank +1 )
+        //passing token + 1 (rank => rank +1)
         if (iters.i + world_size < ITERATIONS) {
             MPI_Recv(token, 1, MPI_INT, (world_rank + world_size - 1)%world_size, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&(iters.i), 1, MPI_INT, (world_rank + world_size - 1)%world_size, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -111,7 +126,6 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
             }
         }
     }
-    if (!fail) printf("%d: All work done.\n", world_rank);
     return WORK_DONE;
 }
 
@@ -146,7 +160,7 @@ int verify(int token, int world_rank, int world_size) {
     } else {
         if (token != 0) {
             printf("%d: Token = %d, should be = 0\n", world_rank, token);
-             return VERIFY_FAILED;
+            return VERIFY_FAILED;
         }
     }
     return VERIFY_SUCCESS;
@@ -168,12 +182,15 @@ int main(int argc, char** argv){
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int token = 0;
-    //MPI_Barrier(FTI_COMM_WORLD);
-    int rtn; //return value
-
-    rtn = do_work(&token, world_rank, world_size, checkpoint_level, fail);
-    if (!rtn && !fail) rtn = verify(token, world_rank, world_size);
-
+    int rtn = do_work(&token, world_rank, world_size, checkpoint_level, fail);
+    if (!rtn && !fail && world_rank == 0) {
+        printf("All work done. Verifying result... \t");
+        rtn = verify(token, world_rank, world_size);
+        if (rtn)
+            printf("Failure.\n");
+        else
+            printf("Success.\n");
+    }
     FTI_Finalize();
     MPI_Finalize();
     return rtn;

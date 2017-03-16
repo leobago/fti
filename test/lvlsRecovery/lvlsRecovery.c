@@ -51,8 +51,7 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     int i, j, k;
     for (i = 0; i < MATRIX_SIZE; i++) {
         for (j = 0; j < MATRIX_SIZE; j++) {
-            if (i == j) matrix[i][j] = 1.0;
-            else matrix[i][j] = 0.0;
+            matrix[i][j] = 0.0;
         }
     }
     i = 0;
@@ -60,34 +59,49 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (j = 0; j < MATRIX_SIZE; j++) {
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
-    //MPI_Barrier(FTI_COMM_WORLD);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
         res = FTI_Recover();
         if (res != 0) {
-            printf("%d: FTI_Recover returned %d.\n", world_rank, res);
+            printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         }
     }
     //if recovery, but recover values don't match
-    if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
-        return RECOVERY_FAILED;
+    if (!fail) {
+        if (i != ITER_STOP - ITER_STOP % ITER_CHECK)
+            return RECOVERY_FAILED;
+        for (j = 0; j < MATRIX_SIZE; j++) {
+            for (k = 0; k < MATRIX_SIZE; k++) {
+                if (j == k && matrix[j][k] != i) {
+                    printf("%d: Did not recovered properly.\n", world_rank);
+                    return RECOVERY_FAILED;
+                }
+                else if (j != k && matrix[j][k] != 0.0) {
+                    printf("%d: Did not recovered properly.\n", world_rank);
+                    return RECOVERY_FAILED;
+                }
+            }
+        }
     }
-    printf("%d: Starting work at i = %d.\n", world_rank, i);
+    if (world_rank == 0)
+        printf("Starting work at i = %d.\n", i);
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
-                printf("%d: FTI_Checkpoint returned %d.\n", world_rank, res);
+                printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n", world_rank, res);
                 return CHECKPOINT_FAILED;
             }
         }
 
         //stoping after ITER_STOP iterations
 	    if(fail && i >= ITER_STOP) {
-            return WORK_STOPED;
+            if (world_rank == 0)
+                printf("Work stopped at i = %d.\n", ITER_STOP);
+            break;
         }
         for (j = 0; j < MATRIX_SIZE; j++) {
             matrix[j][j] += 1.0;
@@ -118,12 +132,18 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     return rtn;
 }
 
-int verify(double** matrix) {
+int verify(double** matrix, int world_rank) {
     int i, j;
     for (i = 0; i < MATRIX_SIZE; i++) {
         for (j = 0; j < MATRIX_SIZE; j++) {
-            if (i == j && matrix[i][j] != (double)(ITERATIONS + 1)) return VERIFY_FAILED;
-            else if (i != j && matrix[i][j] != 0.0) return VERIFY_FAILED;
+            if (i == j && matrix[i][j] != ITERATIONS) {
+                printf("%d: matrix[%d][%d] = %f, should be %d\n", world_rank, i, j, matrix[i][j], ITERATIONS);
+                return VERIFY_FAILED;
+            }
+            else if (i != j && matrix[i][j] != 0.0) {
+                printf("%d: matrix[%d][%d] = %f, should be 0.0\n", world_rank, i, j, matrix[i][j]);
+                return VERIFY_FAILED;
+            }
         }
     }
     return VERIFY_SUCCESS;
@@ -140,9 +160,8 @@ int main(int argc, char** argv){
     if (init(argv, &checkpoint_level, &fail)) return 0;     //verify args
 
     MPI_Init(&argc, &argv);
-    int global_world_rank, global_world_size;               //MPI_COMM rank & size
+    int global_world_rank;                                  //MPI_COMM rank
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
 
     FTI_Init(argv[1], MPI_COMM_WORLD);
     int world_rank, world_size;                             //FTI_COMM rank & size
@@ -155,35 +174,18 @@ int main(int argc, char** argv){
         matrix[i] = (double*) malloc (sizeof(double) * MATRIX_SIZE);
     }
 
-    //MPI_Barrier(FTI_COMM_WORLD);
-    int res = do_work(matrix, world_rank, world_size, checkpoint_level, fail);
-    int rtn = 0; //return value
-    switch(res){
-        case WORK_DONE:
-            if (world_rank == 0) {               //verify result
-                printf("All work done. Verifying result...\n");
-                res = verify(matrix);
-                if (res != VERIFY_SUCCESS) {
-    		              rtn = 1;
-    		                    printf("Failure.\n");
-                } else {
-    		              printf("Success.\n");
-    		    }
-            }
-            break;
-        case WORK_STOPED:
-            if (world_rank == 0) {
-            	printf("Work stopped at i = %d.\n", ITER_STOP);
-            }
-            break;
-        case CHECKPOINT_FAILED:
-            printf("Checkpoint failed!\n");
-            if (world_rank == 0) rtn = 1;
-            break;
-        case RECOVERY_FAILED:
-            printf("Recovery failed!\n");
-            if (world_rank == 0) rtn = 1;
-            break;
+    int rtn = do_work(matrix, world_rank, world_size, checkpoint_level, fail);
+
+    if (!fail) {
+        if (world_rank == 0)
+            printf("All work done. Verifying result...\t");
+        rtn = verify(matrix, world_rank);
+        if (rtn != VERIFY_SUCCESS) {
+            printf("%d: Failure.\n", world_rank);
+        } else {
+            if (world_rank == 0)
+                printf("Success.\n");
+        }
     }
     MPI_Barrier(FTI_COMM_WORLD);
     for (i = 0; i < MATRIX_SIZE; i++) {
@@ -193,6 +195,7 @@ int main(int argc, char** argv){
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
+    int res;
     if (checkpoint_level != 1) {
         int isInline = -1;
         int heads = (int)iniparser_getint(ini, "Basic:head", -1);
