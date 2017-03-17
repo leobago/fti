@@ -22,7 +22,7 @@ runAllConfiguration() {
 	#startTest nodeFlag configH1I0.fti $1
 	#startTest tokenRing configH0I1Silent.fti $1 1 2 3 4
 	#startTest tokenRing configH1I1Silent.fti $1 1 2 3 4
-	#tartTest tokenRing configH1I0Silent.fti $1 1 2 3 4
+	#startTest tokenRing configH1I0Silent.fti $1 1 2 3 4
 	startTest diffSizes configH1I0Silent.fti 16 1 2 3 4
 	startTest diffSizes configH1I1Silent.fti 16 1 2 3 4
 	startTest diffSizes configH0I1Silent.fti 16 1 2 3 4

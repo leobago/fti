@@ -107,9 +107,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
             buf = realloc (buf, sizeof(long) * myPart);
 
             //to simulate proper recovery
-            for (j = 1; j < myPart; j++) {
+            /*for (j = 1; j < myPart; j++) {
                 buf[j] = buf[0];
-            }
+            }*/
         }
     }
     //if recovery, but recover values don't match
