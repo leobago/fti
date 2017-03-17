@@ -98,18 +98,26 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
+        int myPartTmp, offsetTmp;
+        int expectedI = ITER_STOP - ITER_STOP % ITER_CHECK;
+        int expectedSize = originSize + (expectedI * addToSize);
+        getPart(&myPartTmp, &offsetTmp, expectedSize, world_rank, world_size);
+        buf = realloc (buf, sizeof(long) * myPartTmp);
+        memset(buf, -1, myPartTmp);
+
+        FTI_Protect(2, buf, myPartTmp, FTI_LONG);
+
         res = FTI_Recover();
         if (res != 0) {
             printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         } else {
-            getPart(&myPart, &offset, size, world_rank, world_size);
-            buf = realloc (buf, sizeof(long) * myPart);
-
-            //to simulate proper recovery
-            /*for (j = 1; j < myPart; j++) {
-                buf[j] = buf[0];
-            }*/
+            int recoverySize = 2 * sizeof(int); //i and size
+            for (j = 0; j < myPartTmp; j++) {
+                if (buf[j] == -1) break;
+            }
+            recoverySize += j * sizeof(long);
+            printf("%d: recoverySize = %d\n", world_rank, recoverySize);
         }
     }
     //if recovery, but recover values don't match
@@ -251,7 +259,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
             int myPart, offset;
             getPart(&myPart, &offset, arrayExpectedLength, rank, world_size);
             expectedSize += sizeof(long) * myPart;
-
+            printf("%d: Last checkpoint file size = %d.\n", rank, fileSize);
             if (fileSize != expectedSize) {
                 printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
                 fclose(f);
@@ -289,7 +297,7 @@ int main(int argc, char** argv){
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int rtn = do_work(world_rank, world_size, checkpoint_level, fail);
-
+    if (rtn) MPI_Abort(MPI_COMM_WORLD, -1);
     int* mpi_ranks = malloc (sizeof(int) * world_size);
     MPI_Gather(&global_world_rank, 1, MPI_INT, mpi_ranks, 1, MPI_INT, 0, FTI_COMM_WORLD);
 
