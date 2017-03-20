@@ -481,7 +481,7 @@ int FTI_Recover()
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
-    fseek(fd, FTI_Exec.nbVar * sizeof(long), 0);
+    fseek(fd, FTI_Exec.nbVar * sizeof(long), 0); //to pass by data count
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t bytes = fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
