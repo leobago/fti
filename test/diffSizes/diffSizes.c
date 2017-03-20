@@ -94,19 +94,20 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
             buf[j] = size;
     }
     FTI_Protect(2, buf, myPart, FTI_LONG);
-
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
-        res = FTI_Recover();
-        getPart(&myPart, &offset, size, world_rank, world_size);
-        buf = realloc (buf, sizeof(long) * myPart);
-        FTI_Protect(2, buf, myPart, FTI_LONG);
+        buf = FTI_Realloc(2, buf);
+        if (buf == NULL) {
+            printf("%d: Reallocation failed!\n", world_rank);
+            return RECOVERY_FAILED;
+        }
         res = FTI_Recover();
         if (res != 0) {
             printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         } else {
+            getPart(&myPart, &offset, size, world_rank, world_size);
             int recoverySize = 2 * sizeof(int); //i and size
             for (j = 0; j < myPart; j++) {
                 if (buf[j] == -1) break;
@@ -241,6 +242,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
             }
 
             int expectedSize = 0;
+            expectedSize += sizeof(long) * 2; //(i and size) length
             expectedSize += sizeof(int) * 2; //i and size
 
             int lastCheckpointIter;
@@ -253,6 +255,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
 
             int myPart, offset;
             getPart(&myPart, &offset, arrayExpectedLength, rank, world_size);
+            expectedSize += sizeof(long); //myPart length
             expectedSize += sizeof(long) * myPart;
             printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
             if (fileSize != expectedSize) {

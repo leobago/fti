@@ -110,6 +110,16 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         clearerr(fd);
+        size_t written = fwrite((char*)&FTI_Data[i].count, sizeof(long), 1, fd);
+        if ( ferror(fd) ) {
+            sprintf(str, "Data count #%d could not be written: %d.", FTI_Data[i].id, errno);
+            FTI_Print(str, FTI_EROR);
+            fclose(fd);
+            return FTI_NSCS;
+        }
+    }
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        clearerr(fd);
         size_t written = 0;
         int fwrite_errno;
         while ( written < FTI_Data[i].count && !ferror(fd) ) {
