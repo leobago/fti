@@ -101,7 +101,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			FTI_Print("Cannot create local directory", FTI_EROR);
 		}
     }
-    
+
     fd = fopen(fn, "wb");
     if (fd == NULL) {
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
@@ -153,7 +153,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_DBUG);
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
-    //MPI_Barrier(FTI_COMM_WORLD);
     return res;
 }
 
@@ -252,16 +251,16 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
-	//Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
-	sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
-	FTI_Print(str, FTI_DBUG);
-	if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
-		level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
-		if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
-		    FTI_Print("Cannot rename local directory", FTI_EROR);
-		else
-		    FTI_Print("Local directory renamed", FTI_DBUG);
-	}
+    	//Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
+    	sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+    	FTI_Print(str, FTI_DBUG);
+    	if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
+    		level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
+    		if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
+    		    FTI_Print("Cannot rename local directory", FTI_EROR);
+    		else
+    		    FTI_Print("Local directory renamed", FTI_DBUG);
+    	}
     }
     if (!globalFlag) {
         if (FTI_Exec->ckptLvel == 4) {
