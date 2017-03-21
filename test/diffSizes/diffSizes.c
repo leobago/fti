@@ -8,7 +8,7 @@
  *  saving last checkpoint to PFS
  *
  *  Every process in every iteration expand their array and set value to each
- *  index and make checkpoint. Even ranks have 3 times longer array than odd ranks.
+ *  index and make checkpoint. Even ranks have 3 times larger array than odd ranks.
  *  After ITERATIONS iterations every process send their array to rank 0 process.
  *
  *  First execution this program should be with fail flag = 1, because
@@ -43,7 +43,11 @@
 
 #define INIT_SIZE 53   //multiplied by world_size*2 gives origin array size
 
-
+/*-------------------------------------------------------------------------*/
+/**
+    Verifies final result.
+ **/
+/*-------------------------------------------------------------------------*/
 int verify(long* array, int world_size) {
     int i;
     int size = world_size * ((ITERATIONS * 2) + INIT_SIZE * 2);
@@ -56,15 +60,18 @@ int verify(long* array, int world_size) {
     return VERIFY_SUCCESS;
 }
 
-void getPart(int* myPart, int* offset, int size, int world_rank, int world_size) {
+/*-------------------------------------------------------------------------*/
+/**
+    Updates myPart. Even ranks get 3/4 of work, odd 1/4 of work.
+ **/
+/*-------------------------------------------------------------------------*/
+void getPart(int* myPart, int size, int world_rank, int world_size) {
     int part = size / world_size / 2;
-    *offset = world_rank * part * 2;
     //even rank processes get 3 part of work; odd get 1 part
     if (world_rank % 2 == 0) {
         *myPart = part * 3;
     } else {
         *myPart = part;
-        *offset += part;
     }
 }
 
@@ -84,8 +91,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     int size = (world_size * INIT_SIZE * 2);
     int originSize = size;
     int addToSize = (world_size * 2);
-    int offset, myPart;
-    getPart(&myPart, &offset, size, world_rank, world_size);
+    int myPart;
+    getPart(&myPart, size, world_rank, world_size);
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, &size, 1, FTI_INTG);
@@ -107,13 +114,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
             printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         } else {
-            getPart(&myPart, &offset, size, world_rank, world_size);
-            int recoverySize = 2 * sizeof(int); //i and size
-            for (j = 0; j < myPart; j++) {
-                if (buf[j] == -1) break;
-            }
-            recoverySize += j * sizeof(long);
-            printf("%d: recoverySize = %d\n", world_rank, recoverySize);
+            getPart(&myPart, size, world_rank, world_size);
+
         }
     }
     //if recovery, but recover values don't match
@@ -128,22 +130,26 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
             printf("%d: size = %d, should be %d\n", world_rank, size, expectedSize);
             return RECOVERY_FAILED;
         }
-        getPart(&myPart, &offset, size, world_rank, world_size);
-        buf = realloc (buf, sizeof(long) * myPart);
+        getPart(&myPart, size, world_rank, world_size);
+        int recoverySize = 2 * sizeof(int); //i and size
+        recoverySize += 3 * sizeof(long); //counts
         for (j = 0; j < myPart; j++) {
             if (buf[j] != size) {
+                printf("%d: Recovery size = %d\n", world_rank, recoverySize);
                 printf("%d: buf[%d] = %ld, should be %d\n", world_rank, j, buf[j], size);
                 return RECOVERY_FAILED;
             }
+            recoverySize += sizeof(long);
         }
+        printf("%d: Recovery size = %d\n", world_rank, recoverySize);
     }
     if(world_rank == 0)
         printf("Starting work at i = %d.\n", i);
 
     for (; i < ITERATIONS; i++) {
-
-        //checkpoints after every ITER_CHECK iterations
+        //checkpoint after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
+            FTI_Protect(2, buf, myPart, FTI_LONG);
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n", world_rank, res);
@@ -151,14 +157,13 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
             }
         }
 
-        size += addToSize;
+        size += addToSize;                      //enlarge size
         long tempValue = buf[myPart - 1];
-        getPart(&myPart, &offset, size, world_rank, world_size);
+        getPart(&myPart, size, world_rank, world_size);    //update myPart
         buf = realloc (buf, sizeof(long) * myPart);
         for (j = 0; j < myPart; j++) {
                 buf[j] = tempValue + addToSize;
         }
-        FTI_Protect(2, buf, myPart, FTI_LONG);
 
         //stoping after ITER_STOP iterations
         if(fail && i >= ITER_STOP){
@@ -169,6 +174,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     }
 
     if (world_rank == 0) {
+        //gather all part and verify result
         long* array = malloc (sizeof(long) * size);
         int part = size / world_size / 2;
         for (j = 1; j < world_size; j++) {
@@ -222,6 +228,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
     DIR *dir;
     struct dirent *ent;
     sprintf(path, "./Global/%s/l4", exec_id);
+    free(exec_id);
 
     if ((dir = opendir (path)) != NULL) {
       while ((ent = readdir (dir)) != NULL) {
@@ -232,6 +239,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
             fseek(f, 0L, SEEK_END);
             int fileSize = ftell(f);
 
+            //get rank from file name
             int i, id, rank;
             sscanf(ent->d_name, "Ckpt%d-Rank%d.fti", &id, &rank);
             for (i = 0; i < world_size; i++) {
@@ -253,10 +261,10 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
             }
             int arrayExpectedLength = world_size * ((lastCheckpointIter  * 2) + INIT_SIZE * 2);
 
-            int myPart, offset;
-            getPart(&myPart, &offset, arrayExpectedLength, rank, world_size);
-            expectedSize += sizeof(long); //myPart length
-            expectedSize += sizeof(long) * myPart;
+            int myPart;
+            getPart(&myPart, arrayExpectedLength, rank, world_size);
+            expectedSize += sizeof(long);               //myPart length
+            expectedSize += sizeof(long) * myPart;      //myPart size
             printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
             if (fileSize != expectedSize) {
                 printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
@@ -269,7 +277,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
       }
       closedir (dir);
     } else {
-      /* could not open directory */
+      //could not open directory
       perror ("");
       return 1;
     }
@@ -286,16 +294,17 @@ int main(int argc, char** argv){
     if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
 
     MPI_Init(&argc, &argv);
-    int global_world_rank;
+    int global_world_rank;                          //MPI_COMM rank
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     FTI_Init(argv[1], MPI_COMM_WORLD);
-    int world_rank, world_size; //FTI_COMM rank and size
+    int world_rank, world_size;                     //FTI_COMM rank and size
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     int rtn = do_work(world_rank, world_size, checkpoint_level, fail);
 
+    //need MPI ranks to know checkpoint files names
     int* mpi_ranks = malloc (sizeof(int) * world_size);
     MPI_Gather(&global_world_rank, 1, MPI_INT, mpi_ranks, 1, MPI_INT, 0, FTI_COMM_WORLD);
 
@@ -304,7 +313,7 @@ int main(int argc, char** argv){
 
     if (world_rank == 0 && !rtn) {
         rtn = checkFileSizes(mpi_ranks, world_size, fail);
-        if (!rtn)
+        if (!rtn && !fail)
             printf("Success.\n");
     }
     free(mpi_ranks);
