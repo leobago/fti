@@ -104,18 +104,24 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
+        /*
+        when we add FTI_Realloc();
         buf = FTI_Realloc(2, buf);
         if (buf == NULL) {
             printf("%d: Reallocation failed!\n", world_rank);
             return RECOVERY_FAILED;
-        }
+        }*/
+
+        //need to call FTI_Recover twice to get all data
+        res = FTI_Recover();
+        getPart(&myPart, size, world_rank, world_size);
+        buf = realloc (buf, sizeof(long) * myPart);
+
+        FTI_Protect(2, buf, myPart, FTI_LONG);
         res = FTI_Recover();
         if (res != 0) {
             printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
-        } else {
-            getPart(&myPart, size, world_rank, world_size);
-
         }
     }
     //if recovery, but recover values don't match
@@ -132,7 +138,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         }
         getPart(&myPart, size, world_rank, world_size);
         int recoverySize = 2 * sizeof(int); //i and size
+        /* when we add FTI_Realloc();
         recoverySize += 3 * sizeof(long); //counts
+        */
         for (j = 0; j < myPart; j++) {
             if (buf[j] != size) {
                 printf("%d: Recovery size = %d\n", world_rank, recoverySize);
@@ -250,7 +258,9 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
             }
 
             int expectedSize = 0;
+            /* when we add FTI_Realloc();
             expectedSize += sizeof(long) * 2; //(i and size) length
+            */
             expectedSize += sizeof(int) * 2; //i and size
 
             int lastCheckpointIter;
@@ -263,7 +273,9 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
 
             int myPart;
             getPart(&myPart, arrayExpectedLength, rank, world_size);
+            /* when we add FTI_Realloc();
             expectedSize += sizeof(long);               //myPart length
+            */
             expectedSize += sizeof(long) * myPart;      //myPart size
             printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
             if (fileSize != expectedSize) {

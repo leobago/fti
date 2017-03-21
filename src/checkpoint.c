@@ -96,10 +96,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     else {
         sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-	if (mkdir(FTI_Conf->lTmpDir, 0777) == -1)
-		if (errno != EEXIST) {
-			FTI_Print("Cannot create local directory", FTI_EROR);
-		}
+        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1)
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create local directory", FTI_EROR);
+            }
     }
 
     fd = fopen(fn, "wb");
@@ -107,16 +107,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
 
         return FTI_NSCS;
-    }
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        clearerr(fd);
-        size_t written = fwrite((char*)&FTI_Data[i].count, sizeof(long), 1, fd);
-        if ( ferror(fd) ) {
-            sprintf(str, "Data count #%d could not be written: %d.", FTI_Data[i].id, errno);
-            FTI_Print(str, FTI_EROR);
-            fclose(fd);
-            return FTI_NSCS;
-        }
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         clearerr(fd);
@@ -153,6 +143,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_DBUG);
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
+
     return res;
 }
 
@@ -271,6 +262,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Cannot rename meta directory", FTI_EROR);
     }
     MPI_Barrier(FTI_COMM_WORLD); //issue #64
+
     t3 = MPI_Wtime();
 
     sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);

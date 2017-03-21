@@ -254,7 +254,6 @@ int FTI_InitType(FTIT_type* type, int size);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 int FTI_BitFlip(int datasetID);
 int FTI_Checkpoint(int id, int level);
-void* FTI_Realloc(int id, void* ptr);
 int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();

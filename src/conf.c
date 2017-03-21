@@ -251,7 +251,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
-    if (FTI_Topo->groupSize < 1)
+    if (FTI_Topo->groupSize < 1) 
         FTI_Topo->groupSize = 1;
 
     return FTI_SCES;
@@ -282,29 +282,27 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
     }
 
     if (FTI_Topo->myRank == 0) {
-	// Checking metadata directory
-	sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
-	FTI_Print(str, FTI_DBUG);
-	if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
-	    if (errno != EEXIST) {
-		FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
-		return FTI_NSCS;
-	    }
-	}
+        // Checking metadata directory
+        sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
+        FTI_Print(str, FTI_DBUG);
+        if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
+                return FTI_NSCS;
+            }
+        }
 
-	// Checking global directory
-	sprintf(str, "Checking the global directory (%s)...", FTI_Conf->glbalDir);
-	FTI_Print(str, FTI_DBUG);
-	if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
-	    if (errno != EEXIST) {
-		FTI_Print("The global directory could NOT be created.", FTI_WARN);
-		return FTI_NSCS;
-	    }
-	}
+        // Checking global directory
+        sprintf(str, "Checking the global directory (%s)...", FTI_Conf->glbalDir);
+        FTI_Print(str, FTI_DBUG);
+        if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("The global directory could NOT be created.", FTI_WARN);
+                return FTI_NSCS;
+            }
+        }
     }
 
-    //Waiting for metadDir being created
-    MPI_Barrier(FTI_COMM_WORLD);
     return FTI_SCES;
 }
 
