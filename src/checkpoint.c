@@ -249,6 +249,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     t2 = MPI_Wtime();
 
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
+    MPI_Barrier(FTI_COMM_WORLD); //issue #64
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
     	//Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
@@ -270,7 +271,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1)
             FTI_Print("Cannot rename meta directory", FTI_EROR);
     }
-    MPI_Barrier(FTI_COMM_WORLD); //issue #64
+    //MPI_Barrier(FTI_COMM_WORLD); //issue #64
     t3 = MPI_Wtime();
 
     sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
