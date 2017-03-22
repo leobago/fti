@@ -199,7 +199,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  int group, int fo, int pr)
 {
-    int i, tres, res, level, nodeFlag, globalFlag = FTI_Topo->splitRank;
+    int i, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
 	char catstr[FTI_BUFS];
@@ -253,7 +253,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     		    FTI_Print("Local directory renamed", FTI_DBUG);
     	}
     }
-    if (!globalFlag) {
+    if (globalFlag) {
         if (FTI_Exec->ckptLvel == 4) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].dir) == -1)
                 FTI_Print("Cannot rename global directory", FTI_EROR);
