@@ -80,19 +80,63 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_dataset* FTI_Data)
 
 {
-    int i, res;
+    int i, res, sid, numFiles = 1;
+    MPI_Comm lComm;
+    sion_int64 chunksize=0;
+    sion_int32 fsblksize=-1;
+    size_t eleSize;
+    size_t eleCount;
     FILE* fd;
-    char fn[FTI_BUFS], str[FTI_BUFS];
+    char fn[FTI_BUFS], str[FTI_BUFS], pfn[FTI_BUFS], *newfname = NULL;
 
     double tt = MPI_Wtime();
 
+    int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
+
     snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
+        
+        snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
         sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+
         if (mkdir(FTI_Conf->gTmpDir, 0777) == -1)
             if (errno != EEXIST) {
                 FTI_Print("Cannot create global directory", FTI_EROR);
             }
+        // determine chunksize
+        for (i=0; i < FTI_Exec->nbVar; i++) {
+            chunksize+=FTI_Data[i].size;
+        }
+
+        // open parallel file
+        sid = sion_paropen_mpi(fn, "wb,posix", &numFiles, FTI_Exec->globalComm, &lComm, &chunksize, &fsblksize, &(FTI_Topo->splitRank), NULL, &newfname);
+        
+        // check if successful
+        if (sid==-1) {
+            sprintf(str, "SIONlib: File could no be opened");
+            FTI_Print(str, FTI_EROR);
+            return FTI_NSCS;
+        }
+        
+        // write datasets into file
+        for (i=0; i < FTI_Exec->nbVar; i++) {
+            eleSize = FTI_Data[i].size;
+            
+            // SIONlib write call
+            res = sion_fwrite(FTI_Data[i].ptr, eleSize, 1, sid);
+            
+			// check if successful
+            if (res==0) {
+                sprintf(str, "SIONlib: Data could not be written");
+                FTI_Print(str, FTI_EROR);
+                return FTI_NSCS;
+            }
+        }
+
+        sion_parclose_mpi(sid);
+        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
+        return res;
+
     }
     else {
         sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
@@ -139,9 +183,11 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
+    
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
+    
     FTI_Print(str, FTI_DBUG);
-    int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
+    
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
 
     return res;

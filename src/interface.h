@@ -16,6 +16,7 @@
 #include "../deps/jerasure/galois.h"
 #include "../deps/jerasure/jerasure.h"
 
+#include <sion.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>

@@ -104,7 +104,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         buf = FTI_CheckFile(fn, *fs);
         MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
         break;
-    }
+    }    
     }
     return FTI_SCES;
 }
@@ -153,6 +153,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         MPI_Barrier(FTI_COMM_WORLD);
                     }
                     if (FTI_Exec->ckptLvel == 4)
+                        sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
                         r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                     if (FTI_Exec->ckptLvel == 3)
                         r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
@@ -167,6 +168,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (tres == FTI_SCES) {
                 sprintf(str, "Recovering successfully from level %d.", level);
                 FTI_Print(str, FTI_INFO);
+                if(level == 4) // TODO this is the easy solution which avoids changing too much code...
+                    FTI_Exec->ckptLvel = 1;
                 break;
             }
             else {
