@@ -35,5 +35,9 @@ before_script:
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
+  - sudo make all install
 
-script: make
+script: 
+  - make
+  - cd ..
+  - ./test/tests.sh

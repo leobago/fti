@@ -199,7 +199,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  int group, int fo, int pr)
 {
-    int i, tres, res, level, nodeFlag, globalFlag = FTI_Topo->splitRank;
+    int i, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
 	char catstr[FTI_BUFS];
@@ -240,16 +240,20 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     t2 = MPI_Wtime();
 
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
-    MPI_Barrier(FTI_COMM_WORLD);
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
-        level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
-        if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
-            FTI_Print("Cannot rename local directory", FTI_EROR);
-        else
-            FTI_Print("Local directory renamed", FTI_DBUG);
+    	//Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
+    	sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+    	FTI_Print(str, FTI_DBUG);
+    	if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
+    		level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
+    		if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
+    		    FTI_Print("Cannot rename local directory", FTI_EROR);
+    		else
+    		    FTI_Print("Local directory renamed", FTI_DBUG);
+    	}
     }
-    if (!globalFlag) {
+    if (globalFlag) {
         if (FTI_Exec->ckptLvel == 4) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].dir) == -1)
                 FTI_Print("Cannot rename global directory", FTI_EROR);
@@ -257,6 +261,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1)
             FTI_Print("Cannot rename meta directory", FTI_EROR);
     }
+    MPI_Barrier(FTI_COMM_WORLD);
 
     t3 = MPI_Wtime();
 
