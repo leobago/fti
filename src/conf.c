@@ -303,6 +303,8 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
         }
     }
 
+    //Waiting for metadDir being created
+    MPI_Barrier(FTI_COMM_WORLD);
     return FTI_SCES;
 }
 
