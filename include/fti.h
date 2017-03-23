@@ -57,6 +57,14 @@ extern "C" {
                                   New types
 ---------------------------------------------------------------------------*/
 
+/** @typedef    FTI_functionID
+ *  @brief      Used for counting function calls
+ */
+typedef enum FTI_functionID {
+    FTI_RECOVERFILES,
+    FTI_RECOVERL4
+} FTI_functionID;
+
 /** @typedef    FTIT_double
  *  @brief      Double mapped as two integers to allow bit-wise operations.
  *
@@ -120,6 +128,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     int             ckptIntv;           /** Ckpt. interval in minutes.     */
     int             lastCkptLvel;       /** Last checkpoint level.         */
     int             wasLastOffline;     /** TRUE if last ckpt. offline.    */
+    int             functionCalls[2];   /** TRUE if last ckpt. offline.    */
     double          iterTime;           /** Current wall time.             */
     double          lastIterTime;       /** Time spent in the last iter.   */
     double          meanIterTime;       /** Mean iteration time.           */

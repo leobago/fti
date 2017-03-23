@@ -109,7 +109,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         // open parallel file
-        sid = sion_paropen_mpi(fn, "wb,posix", &numFiles, FTI_Exec->globalComm, &lComm, &chunksize, &fsblksize, &(FTI_Topo->splitRank), NULL, &newfname);
+        sid = sion_paropen_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &lComm, &chunksize, &fsblksize, &(FTI_Topo->myRank), NULL, &newfname);
         
         // check if successful
         if (sid==-1) {

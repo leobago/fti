@@ -831,7 +831,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
 
-    sprintf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->splitRank);
+    sprintf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
    
     // this is done, since sionlib aborts if the file is not readable.
@@ -839,7 +839,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    sid = sion_paropen_mpi(gfn, "rb,posix", &numFiles, FTI_Exec->globalComm, &lComm, &chunksize, &fsblksize, &(FTI_Topo->splitRank), NULL, &newfname);
+    sid = sion_paropen_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &lComm, &chunksize, &fsblksize, &(FTI_Topo->splitRank), NULL, &newfname);
     
     lfd = fopen(lfn, "wb");
     if (lfd == NULL) {

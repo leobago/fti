@@ -105,6 +105,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    // initializing function call array
+    memset(FTI_Exec->functionCalls, 0, sizeof(FTI_Exec->functionCalls));
+    
     // Setting/reading checkpoint configuration metadata
     par = iniparser_getstring(ini, "Basic:ckpt_dir", NULL);
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s", par);
