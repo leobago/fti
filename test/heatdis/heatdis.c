@@ -35,7 +35,8 @@
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
 
-void initData(int nbLines, int M, int rank, double *h) {
+void initData(int nbLines, int M, int rank, double *h)
+{
     int i, j;
     for (i = 0; i < nbLines; i++) {
         for (j = 0; j < M; j++) {
@@ -49,7 +50,8 @@ void initData(int nbLines, int M, int rank, double *h) {
     }
 }
 
-double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h) {
+double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h)
+{
     int i,j;
     MPI_Request req1[2], req2[2];
     MPI_Status status1[2], status2[2];
@@ -90,7 +92,8 @@ double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h) 
     return localerror;
 }
 
-int init(char** argv, int* fail) {
+int init(char** argv, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -119,7 +122,8 @@ int verify (double globalerror, int rank) {
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     int fail, rank, nbProcs, nbLines, i, M, arg;
     double wtime, *h, *g, memSize, localerror, globalerror = 1;
 

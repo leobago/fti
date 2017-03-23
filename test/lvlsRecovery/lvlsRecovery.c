@@ -46,7 +46,8 @@
     @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int do_work(double** matrix, int world_rank, int world_size, int checkpoint_level, int fail) {
+int do_work(double** matrix, int world_rank, int world_size, int checkpoint_level, int fail)
+{
     int res;
     int i, j, k;
     for (i = 0; i < MATRIX_SIZE; i++) {
@@ -113,7 +114,8 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -136,7 +138,8 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     return rtn;
 }
 
-int verify(double** matrix, int world_rank) {
+int verify(double** matrix, int world_rank)
+{
     int i, j;
     for (i = 0; i < MATRIX_SIZE; i++) {
         for (j = 0; j < MATRIX_SIZE; j++) {
@@ -158,7 +161,8 @@ int verify(double** matrix, int world_rank) {
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
 
     int checkpoint_level, fail;
     if (init(argv, &checkpoint_level, &fail)) return 0;     //verify args

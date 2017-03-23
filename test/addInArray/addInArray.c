@@ -47,7 +47,8 @@
     @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int do_work(int* array, int world_rank, int world_size, int checkpoint_level, int fail) {
+int do_work(int* array, int world_rank, int world_size, int checkpoint_level, int fail)
+{
     int res, number = world_rank;
     int i = 0;
     //adding variables to protect
@@ -90,7 +91,8 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -130,7 +132,8 @@ int verify(int* array, int world_size) {
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
     int checkpoint_level, fail;
     if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
     MPI_Init(&argc, &argv);

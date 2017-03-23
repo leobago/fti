@@ -45,7 +45,8 @@
     @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int do_work(int* token, int world_rank, int world_size, int checkpoint_level, int fail) {
+int do_work(int* token, int world_rank, int world_size, int checkpoint_level, int fail)
+{
     //defining structure
     typedef struct iteratiors {
         int i;          //global iteratior (counts token pass)
@@ -132,7 +133,8 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -155,7 +157,8 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     return rtn;
 }
 
-int verify(int token, int world_rank, int world_size) {
+int verify(int token, int world_rank, int world_size)
+{
     if (world_rank == 0) {
         if (token != ITERATIONS - ITERATIONS%world_size || token == 0) {
             printf("%d: Token = %d, should be = %d\n", world_rank, token, ITERATIONS - ITERATIONS%world_size);
@@ -176,7 +179,8 @@ int verify(int token, int world_rank, int world_size) {
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
     int checkpoint_level, fail;
     if (init(argv, &checkpoint_level, &fail)) {
         return 0;   //verify args

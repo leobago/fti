@@ -18,7 +18,8 @@
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
 
-int verify(int world_size, int nbNodes) {
+int verify(int world_size, int nbNodes)
+{
 	FILE* fp;
 	//Shearching this string in log file
 	char str[] = "Has nodeFlag = 1 and nodeID =";
@@ -94,7 +95,8 @@ int verify(int world_size, int nbNodes) {
     @return     integer     0 if successful, 1 if error, 2 if can open file
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
 	//disable buffering
 	setbuf(stdout, NULL);
 

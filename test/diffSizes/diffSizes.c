@@ -48,7 +48,8 @@
     Verifies final result.
  **/
 /*-------------------------------------------------------------------------*/
-int verify(long* array, int world_size) {
+int verify(long* array, int world_size)
+{
     int i;
     int size = world_size * ((ITERATIONS * 2) + INIT_SIZE * 2);
     for (i = 0; i < size; i++) {
@@ -65,7 +66,8 @@ int verify(long* array, int world_size) {
     Updates myPart. Even ranks get 3/4 of work, odd 1/4 of work.
  **/
 /*-------------------------------------------------------------------------*/
-void getPart(int* myPart, int size, int world_rank, int world_size) {
+void getPart(int* myPart, int size, int world_rank, int world_size)
+{
     int part = size / world_size / 2;
     //even rank processes get 3 part of work; odd get 1 part
     if (world_rank % 2 == 0) {
@@ -86,7 +88,8 @@ void getPart(int* myPart, int size, int world_rank, int world_size) {
     @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
+int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
+{
     int res;
     int i = 0, j;
     int size = (world_size * INIT_SIZE * 2);
@@ -211,7 +214,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -235,7 +239,8 @@ int init(char** argv, int* checkpoint_level, int* fail) {
 }
 
 
-int checkFileSizes(int* mpi_ranks, int world_size, int fail){
+int checkFileSizes(int* mpi_ranks, int world_size, int fail)
+{
     dictionary* ini = iniparser_load("config.fti");
     char* exec_id = malloc (sizeof(char) * 256);
     exec_id = iniparser_getstring(ini, "Restart:exec_id", NULL);
@@ -315,7 +320,8 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
     int checkpoint_level, fail;
     if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
 
