@@ -31,7 +31,6 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
     ini = iniparser_load(FTI_Conf->cfgFile);
     if (ini == NULL) {
         FTI_Print("Iniparser cannot parse the configuration file.", FTI_WARN);
-
         return FTI_NSCS;
     }
 
@@ -260,7 +259,9 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
+
     free(lhn);
+
     return FTI_SCES;
 }
 

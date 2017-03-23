@@ -55,8 +55,7 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     FTI_Protect(2, &number, 1, FTI_INTG);
 
     //checking if this is recovery run
-    if (FTI_Status() != 0 && fail == 0)
-    {
+    if (FTI_Status() != 0 && fail == 0) {
         res = FTI_Recover();
         if (res != 0) {
             printf("%d: FTI_Recover returned %d.\n", world_rank, res);
@@ -67,8 +66,9 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
     if (fail == 0 && i != (ITER_STOP - ITER_STOP%ITER_CHECK)) {
         return RECOVERY_FAILED;
     }
-    if (world_rank == 0)
+    if (world_rank == 0) {
         printf("Starting work at i = %d.\n", i);
+    }
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
@@ -81,8 +81,9 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
         MPI_Allgather(&number, 1, MPI_INT, array, 1, MPI_INT, FTI_COMM_WORLD);
 
         //stoping after ITER_STOP iterations
-        if(fail && i >= ITER_STOP)
+        if(fail && i >= ITER_STOP) {
             break;
+        }
         number += 1;
     }
     return WORK_DONE;
@@ -98,13 +99,15 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     if (argv[2] == NULL) {
         printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *checkpoint_level = atoi(argv[2]);
     }
     if (argv[3] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *fail = atoi(argv[3]);
     }
     return rtn;
@@ -144,10 +147,11 @@ int main(int argc, char** argv){
         printf("All work done. Verifying result... \t");
         rtn = verify(array, world_size);
         if (rtn != VERIFY_SUCCESS) {
-	            printf("Failure.\n");
-        } else {
-	            printf("Success.\n");
-	    }
+            printf("Failure.\n");
+        }
+        else {
+            printf("Success.\n");
+        }
     }
     free(array);
     FTI_Finalize();

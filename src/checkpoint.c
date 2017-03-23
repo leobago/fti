@@ -78,7 +78,6 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                   FTIT_dataset* FTI_Data)
-
 {
     int i, res;
     FILE* fd;
@@ -89,23 +88,24 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1)
+        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
             if (errno != EEXIST) {
                 FTI_Print("Cannot create global directory", FTI_EROR);
             }
+        }
     }
     else {
         sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1)
+        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
             if (errno != EEXIST) {
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
+        }
     }
 
     fd = fopen(fn, "wb");
     if (fd == NULL) {
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
-
         return FTI_NSCS;
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -123,7 +123,9 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             strerror_r(fwrite_errno, error_msg, FTI_BUFS);
             sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
             FTI_Print(str, FTI_EROR);
+
             fclose(fd);
+
             return FTI_NSCS;
         }
     }
@@ -136,14 +138,12 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     if (fclose(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
-
         return FTI_NSCS;
     }
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp), "create metadata.");
-
     return res;
 }
 
@@ -172,8 +172,9 @@ int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
     rank = FTI_Topo->myRank;
     for (i = 0; i < pr; i++) {
-        if (FTI_Topo->amIaHead)
+        if (FTI_Topo->amIaHead) {
             rank = FTI_Topo->body[i];
+        }
         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, level, i + group, rank);
     }
     return FTI_SCES;
@@ -202,7 +203,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
-	char catstr[FTI_BUFS];
+    char catstr[FTI_BUFS];
 
     t0 = MPI_Wtime();
 
@@ -217,18 +218,18 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     for (i = 0; i < pr; i++) {
         switch (FTI_Exec->ckptLvel) {
-        case 4:
-            res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
-            break;
-        case 3:
-            res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-            break;
-        case 2:
-            res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-            break;
-        case 1:
-            res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-            break;
+            case 4:
+                res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
+                break;
+            case 3:
+                res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
+                break;
+            case 2:
+                res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
+                break;
+            case 1:
+                res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
+                break;
         }
     }
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
@@ -242,24 +243,28 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
-    	//Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
-    	sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
-    	FTI_Print(str, FTI_DBUG);
-    	if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
-    		level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
-    		if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1)
-    		    FTI_Print("Cannot rename local directory", FTI_EROR);
-    		else
-    		    FTI_Print("Local directory renamed", FTI_DBUG);
-    	}
+        //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
+        sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+        FTI_Print(str, FTI_DBUG);
+        if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
+            level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
+            if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
+                FTI_Print("Cannot rename local directory", FTI_EROR);
+            }
+            else {
+                FTI_Print("Local directory renamed", FTI_DBUG);
+            }
+        }
     }
     if (globalFlag) {
         if (FTI_Exec->ckptLvel == 4) {
-            if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].dir) == -1)
+            if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].dir) == -1) {
                 FTI_Print("Cannot rename global directory", FTI_EROR);
+            }
         }
-        if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1)
+        if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
             FTI_Print("Cannot rename meta directory", FTI_EROR);
+        }
     }
     MPI_Barrier(FTI_COMM_WORLD);
 
@@ -268,7 +273,6 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
     sprintf(str, "%s (Ag:%.2fs, Pt:%.2fs, Cl:%.2fs)", catstr, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
-
     return FTI_SCES;
 }
 

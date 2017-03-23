@@ -21,10 +21,10 @@
 int verify(int world_size, int nbNodes) {
 	FILE* fp;
 	//Shearching this string in log file
-	char str[]  = "Has nodeFlag = 1 and nodeID =";
+	char str[] = "Has nodeFlag = 1 and nodeID =";
 	char temp[256];
 	char strtmp[256];
-    int i, k;
+	int i, k;
 
 	//Have to checking ckptLvel
 	int** ckptLvel = (int**) malloc (sizeof(int*) * 5);
@@ -33,11 +33,11 @@ int verify(int world_size, int nbNodes) {
 		ckptLvel[i] = nodeID;
 	}
 
-    for (i = 1; i < 5; i++) {
+	for (i = 1; i < 5; i++) {
 		for (k = 0; k < nbNodes; k++) {
 			ckptLvel[i][k] = -1;
 		}
-    }
+	}
 	//Searching in all log files
 	for (i = 0; i < world_size; i++) {
 		sprintf(strtmp, "./log%d.txt", i);
@@ -46,21 +46,21 @@ int verify(int world_size, int nbNodes) {
 			return 2;
 		}
 		while(fgets(temp, 256, fp) != NULL) {
-		    if((strstr(temp, str)) != NULL) {
-			    int nodeIDtmp, processIDtmp, ckptLveltmp;
-			    sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", &processIDtmp, &nodeIDtmp, &ckptLveltmp);
+			if((strstr(temp, str)) != NULL) {
+				int nodeIDtmp, processIDtmp, ckptLveltmp;
+				sscanf(temp, "[FTI Debug - %06d] : Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", &processIDtmp, &nodeIDtmp, &ckptLveltmp);
 				//if found first nodeFlag process for this ckptLvel
 				if (ckptLvel[ckptLveltmp][nodeIDtmp] == -1) {
 					ckptLvel[ckptLveltmp][nodeIDtmp] = processIDtmp;
 					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
-			    }
+				}
 				//if found this nodeFlag process and it's not the same as before
-			    if (ckptLvel[ckptLveltmp][nodeIDtmp] != processIDtmp) {
+				if (ckptLvel[ckptLveltmp][nodeIDtmp] != processIDtmp) {
 					fprintf(stderr, "Lv%d: Node %d; Process %d\n", ckptLveltmp, nodeIDtmp, processIDtmp);
 					fprintf(stderr, "The node %d on checkpoint level %d has more than 1 nodeFlag process: %d and %d.\n", nodeIDtmp, ckptLveltmp, processIDtmp, ckptLvel[ckptLveltmp][nodeIDtmp]);
 					return 1;
-			    }
-		    }
+				}
+			}
 		}
 		fclose(fp);
 	}
@@ -72,7 +72,7 @@ int verify(int world_size, int nbNodes) {
 				return 1;
 			}
 		}
-    }
+	}
 
 	//if everything is ok, deleting log files
 	fprintf(stderr, "All log files checked. Deleting files...\n");
@@ -83,8 +83,10 @@ int verify(int world_size, int nbNodes) {
 	for (i = 1; i < 5; i++) {
 		free(ckptLvel[i]);
 	}
-    free(ckptLvel);
-   	return 0;
+
+	free(ckptLvel);
+
+	return 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,7 +121,7 @@ int main(int argc, char** argv){
 
 	//Getting FTI ranks (only app procs)
 	MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
+	MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
 	//Adding something to protect
 	int* someArray = (int*) malloc (sizeof(int) * global_world_size);
@@ -159,8 +161,8 @@ int main(int argc, char** argv){
 	}
 
 	if (!(heads > 0 && !isInlineL4)) {
-   		FTI_Finalize();
-    }
+		FTI_Finalize();
+	}
 
 	MPI_Finalize();
 

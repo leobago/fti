@@ -70,8 +70,9 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     }
     //if recovery, but recover values don't match
     if (!fail) {
-        if (i != ITER_STOP - ITER_STOP % ITER_CHECK)
+        if (i != ITER_STOP - ITER_STOP % ITER_CHECK) {
             return RECOVERY_FAILED;
+        }
         for (j = 0; j < MATRIX_SIZE; j++) {
             for (k = 0; k < MATRIX_SIZE; k++) {
                 if (j == k && matrix[j][k] != i) {
@@ -85,8 +86,9 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
             }
         }
     }
-    if (world_rank == 0)
+    if (world_rank == 0) {
         printf("Starting work at i = %d.\n", i);
+    }
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
@@ -96,11 +98,11 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
                 return CHECKPOINT_FAILED;
             }
         }
-
         //stoping after ITER_STOP iterations
-	    if(fail && i >= ITER_STOP) {
-            if (world_rank == 0)
+        if(fail && i >= ITER_STOP) {
+            if (world_rank == 0) {
                 printf("Work stopped at i = %d.\n", ITER_STOP);
+            }
             break;
         }
         for (j = 0; j < MATRIX_SIZE; j++) {
@@ -120,13 +122,15 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     if (argv[2] == NULL) {
         printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *checkpoint_level = atoi(argv[2]);
     }
     if (argv[3] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *fail = atoi(argv[3]);
     }
     return rtn;
@@ -177,21 +181,26 @@ int main(int argc, char** argv){
     int rtn = do_work(matrix, world_rank, world_size, checkpoint_level, fail);
 
     if (!fail) {
-        if (world_rank == 0)
+        if (world_rank == 0) {
             printf("All work done. Verifying result...\t");
+        }
         rtn = verify(matrix, world_rank);
         if (rtn != VERIFY_SUCCESS) {
             printf("%d: Failure.\n", world_rank);
-        } else {
-            if (world_rank == 0)
+        }
+        else {
+            if (world_rank == 0) {
                 printf("Success.\n");
+            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
     for (i = 0; i < MATRIX_SIZE; i++) {
         free(matrix[i]);
     }
+
     free(matrix);
+
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
@@ -202,7 +211,7 @@ int main(int argc, char** argv){
         switch (checkpoint_level) {
             case 2:
                 isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
-            break;
+                break;
             case 3:
                 isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
                 break;
@@ -214,7 +223,6 @@ int main(int argc, char** argv){
             //waiting untill head do Post-checkpointing
             MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , 2612, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-
     }
     if (heads > 0) {
         res = FTI_ENDW;
