@@ -251,7 +251,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
-    if (FTI_Topo->groupSize < 1)
+    if (FTI_Topo->groupSize < 1) 
         FTI_Topo->groupSize = 1;
 
     return FTI_SCES;

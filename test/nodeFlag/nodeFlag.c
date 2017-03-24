@@ -150,9 +150,8 @@ int main(int argc, char** argv){
 		//sending end of work
 		MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), 2612, MPI_COMM_WORLD);
 		MPI_Barrier(MPI_COMM_WORLD); //calling Barrier to let heads end work
-	} else {
-		MPI_Barrier(FTI_COMM_WORLD);
 	}
+
 	int rtn = 0; //return value
 	if (world_rank == 0) {
 		fprintf(stderr, "Verifying logs...\n");

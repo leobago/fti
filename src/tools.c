@@ -10,33 +10,6 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Make synchronization
-    @param      comm        MPI communicator
-
-    This function make all process to wait for root process in comm.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_WaitForRoot(MPI_Comm comm) {
-    int myRank, temp = 0;
-    MPI_Comm_rank(comm, &myRank);
-    if (myRank == 0) {
-        int i, size;
-        MPI_Comm_size(comm, &size);
-        for (i = 1; i < size; i++) {
-            MPI_Request req;
-            MPI_Isend(&temp, 1, MPI_INT, i, 1233, comm, &req);
-            MPI_Request_free(&req);
-        }
-    } else {
-        MPI_Recv(&temp, 1, MPI_INT, 0, 1233, comm, MPI_STATUS_IGNORE);
-    }
-    //int temp = 0;
-    //MPI_Bcast(&temp, 1, MPI_INT, 0, comm);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Receive the return code of a function and print a message.
     @param      result          Result to check.
     @param      message         Message to print.
