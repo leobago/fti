@@ -449,11 +449,10 @@ void* FTI_Realloc(int id, void* ptr) {
                 break;
             }
         }
-        return ptr;
     } else {
         FTI_Print("This is not a recovery.", FTI_WARN);
-        return ptr;
     }
+    return ptr;
 }
 
 /*-------------------------------------------------------------------------*/
