@@ -83,7 +83,7 @@ int do_work(int* token, int world_rank, int world_size, int checkpoint_level, in
     if(!fail) {
         if (world_rank == 0) {
             if (iters.localIter * world_size != iters.i || *token != iters.i){
-                printf("%d: Did not recovered properly.\n", world_rank);
+                printf("%d: Did not recovered properly.z\n", world_rank);
                 return RECOVERY_FAILED;
             }
         } else {
