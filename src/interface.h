@@ -104,6 +104,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
+void FTI_WaitForRoot(MPI_Comm comm);
 int FTI_Try(int result, char* message);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);

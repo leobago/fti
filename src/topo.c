@@ -306,6 +306,7 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     MPI_Comm_rank(FTI_COMM_WORLD, &FTI_Topo->splitRank);
+    MPI_Comm_split(FTI_COMM_WORLD, FTI_Topo->nodeID, FTI_Topo->splitRank, &FTI_Exec->nodeComm);
     buf = FTI_Topo->sectorID * FTI_Topo->groupSize;
     for (i = 0; i < FTI_Topo->groupSize; i++) { // Group of node-distributed processes (Topology-aware).
         group[i] = distProcList[buf + i];

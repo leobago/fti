@@ -10,6 +10,20 @@
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Make synchronization
+    @param      comm        MPI communicator
+
+    This function make all process to wait for root process in comm.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_WaitForRoot(MPI_Comm comm) {
+    int temp = 0;
+    MPI_Bcast(&temp, 1, MPI_INT, 0, comm);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      Receive the return code of a function and print a message.
     @param      result          Result to check.
     @param      message         Message to print.

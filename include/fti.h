@@ -137,6 +137,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     unsigned int    nbType;             /** Number of data types.          */
     MPI_Comm        globalComm;         /** Global communicator.           */
     MPI_Comm        groupComm;          /** Group communicator.            */
+    MPI_Comm        nodeComm;           /** Node app. proc. communicator.  */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
