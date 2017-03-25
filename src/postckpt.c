@@ -23,8 +23,9 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned long maxFs, fs;
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
     int res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS)
+    if (res == FTI_NSCS) {
         return FTI_NSCS;
+    }
     return FTI_SCES;
 }
 
@@ -52,11 +53,13 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS)
+    if (res == FTI_NSCS) {
         return FTI_NSCS;
+    }
     ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (ps < maxFs)
+    if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;
+    }
     sprintf(str, "Max. file size %ld and padding size %ld.", maxFs, ps);
     FTI_Print(str, FTI_DBUG);
 
@@ -87,8 +90,9 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     blBuf2 = talloc(char, FTI_Conf->blockSize);
     // Checkpoint files partner copy
     while (pos < ps) {
-        if ((fs - pos) < FTI_Conf->blockSize)
+        if ((fs - pos) < FTI_Conf->blockSize) {
             bSize = fs - pos;
+        }
 
         size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
         if (ferror(lfd)) {
@@ -155,11 +159,13 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res != FTI_SCES)
+    if (res != FTI_SCES) {
         return FTI_NSCS;
+    }
     ps = ((maxFs / bs)) * bs;
-    if (ps < maxFs)
+    if (ps < maxFs) {
         ps = ps + bs;
+    }
 
     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &i);
     sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
@@ -177,7 +183,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     efd = fopen(efn, "wb");
     if (efd == NULL) {
         FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
+
         fclose(lfd);
+
         return FTI_NSCS;
     }
 
@@ -194,8 +202,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // For each block
     while (pos < ps) {
-        if ((fs - pos) < bs)
+        if ((fs - pos) < bs) {
             remBsize = fs - pos;
+        }
 
         // Reading checkpoint files
         size_t bytes = fread(myData, sizeof(char), remBsize, lfd);
@@ -206,7 +215,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(matrix);
             free(coding);
             free(myData);
-
             fclose(lfd);
             fclose(efd);
 
@@ -271,7 +279,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(matrix);
     free(coding);
     free(myData);
-
     fclose(lfd);
     fclose(efd);
 
@@ -295,35 +302,39 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
     unsigned long maxFs, fs, ps, pos = 0;
     FILE *lfd, *gfd;
-    if (level == -1)
+    if (level == -1) {
         return FTI_SCES; // Fake call for inline PFS checkpoint
+    }
 
     FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
     int res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, level), "obtain metadata.");
-    if (res != FTI_SCES)
+    if (res != FTI_SCES) {
         return FTI_NSCS;
+    }
 
     if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST)
+        if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
+        }
     }
 
     ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (ps < maxFs)
+    if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;
+    }
     switch (level) {
-    case 0:
-        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-        break;
-    case 1:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
-        break;
-    case 2:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-        break;
-    case 3:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
-        break;
+        case 0:
+            sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+            break;
+        case 1:
+            sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
+            break;
+        case 2:
+            sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
+            break;
+        case 3:
+            sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+            break;
     }
 
     // Open and resize files
@@ -334,7 +345,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     lfd = fopen(lfn, "rb");
     if (lfd == NULL) {
         FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
-
         return FTI_NSCS;
     }
 
@@ -352,15 +362,15 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Checkpoint files exchange
     while (pos < ps) {
-        if ((fs - pos) < FTI_Conf->blockSize)
+        if ((fs - pos) < FTI_Conf->blockSize) {
             bSize = fs - pos;
+        }
 
         size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
         if (ferror(lfd)) {
             FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
 
             free(blBuf1);
-
             fclose(lfd);
             fclose(gfd);
 
@@ -372,7 +382,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
 
             free(blBuf1);
-
             fclose(lfd);
             fclose(gfd);
 
@@ -381,9 +390,8 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         pos = pos + FTI_Conf->blockSize;
     }
-
+    
     free(blBuf1);
-
     fclose(lfd);
     fclose(gfd);
 
