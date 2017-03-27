@@ -23,6 +23,7 @@ os:
 
 compiler:
   - gcc
+  - clang
 
 cache:
   apt: true
