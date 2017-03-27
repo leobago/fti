@@ -19,6 +19,4 @@ FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libf
 
 ##   TARGETS
 all:		tokenRing.c
-#		C_INCLUDE_PATH=../../include
-#		export C_INCLUDE_PATH
 		$(MPICC) -o tokenRing tokenRing.c $(FTIFLAG)

@@ -58,7 +58,9 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     *fs = iniparser_getlint(ini, str, -1);
     sprintf(str, "%d:Ckpt_file_maxs", FTI_Topo->groupRank);
     *mfs = iniparser_getlint(ini, str, -1);
+
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 
@@ -90,7 +92,6 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     ini = iniparser_load(buf);
     if (ini == NULL) {
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
-
         return FTI_NSCS;
     }
 
@@ -112,14 +113,17 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     // Remove topology section
     iniparser_unset(ini, "topology");
     if (mkdir(FTI_Conf->mTmpDir, 0777) == -1) {
-        if (errno != EEXIST)
+        if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
+        }
     }
 
     sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
-    if (remove(buf) == -1)
-        if (errno != ENOENT)
+    if (remove(buf) == -1) {
+        if (errno != ENOENT) {
             FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
+        }
+    }
 
     sprintf(str, "Creating metadata file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
@@ -151,6 +155,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
         return FTI_NSCS;
     }
+
     iniparser_freedict(ini);
 
     return FTI_SCES;
@@ -187,7 +192,9 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     else {
         FTI_Print("Error with stat on the checkpoint file.", FTI_WARN);
+
         free(fnl);
+
         return FTI_NSCS;
     }
     sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo->groupRank]);
@@ -209,9 +216,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fs, mfs, fnl), "write the metadata.");
         if (res == FTI_NSCS) {
             free(fnl);
+
             return FTI_NSCS;
         }
     }
+
     free(fnl);
+
     return FTI_SCES;
 }

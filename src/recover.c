@@ -73,38 +73,34 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
     FTI_Print(fn, FTI_DBUG);
     switch (level) {
-    case 1: {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-        break;
-    }
-    case 2: {
-        sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-        sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-        sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
-        break;
-    }
-    case 3: {
-        sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-        sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-        sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, buf);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
-        break;
-    }
-    case 4: {
-        sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
-        buf = FTI_CheckFile(fn, *fs);
-        MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-        break;
-    }
+        case 1:
+            sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+            break;
+        case 2:
+            sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
+            sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
+            break;
+        case 3:
+            sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
+            sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, buf);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
+            break;
+        case 4:
+            sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
+            buf = FTI_CheckFile(fn, *fs);
+            MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+            break;
     }
     return FTI_SCES;
 }
@@ -148,18 +144,22 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Exec->ckptID = id;
                     FTI_Exec->ckptLvel = level;
                     FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                    if (FTI_Exec->ckptLvel == 4) {
-                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
-                        MPI_Barrier(FTI_COMM_WORLD);
+                    switch (FTI_Exec->ckptLvel) {
+                        case 4:
+                            FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
+                            MPI_Barrier(FTI_COMM_WORLD);
+                            r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                            break;
+                        case 3:
+                            r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                            break;
+                        case 2:
+                            r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                            break;
+                        case 1:
+                            r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                            break;
                     }
-                    if (FTI_Exec->ckptLvel == 4)
-                        r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                    if (FTI_Exec->ckptLvel == 3)
-                        r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                    if (FTI_Exec->ckptLvel == 2)
-                        r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                    if (FTI_Exec->ckptLvel == 1)
-                        r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                     MPI_Allreduce(&r, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
                 }
             }
