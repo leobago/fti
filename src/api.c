@@ -94,19 +94,23 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_COMM_WORLD = globalComm; // Temporary before building topology
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology
     int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    if (res == FTI_NSCS)
+    if (res == FTI_NSCS) {
         FTI_Abort();
+    }
     res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
-    if (res == FTI_NSCS)
+    if (res == FTI_NSCS) {
         FTI_Abort();
+    }
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
-    if (FTI_Topo.myRank == 0)
+    if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
+    }
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res == FTI_NSCS)
+            if (res == FTI_NSCS) {
                 FTI_Abort();
+            }
         }
         res = 0;
         while (res != FTI_ENDW) {
@@ -118,8 +122,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res == FTI_NSCS)
+            if (res == FTI_NSCS) {
                 FTI_Abort();
+            }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
         }
@@ -377,8 +382,9 @@ int FTI_Checkpoint(int id, int level)
         }
         else {
             FTI_Exec.wasLastOffline = 0;
-            if (res != FTI_SCES)
+            if (res != FTI_SCES) {
                 FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE;
+            }
             res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, -1, 1), "postprocess the checkpoint.");
             if (res == FTI_SCES) {
                 FTI_Exec.wasLastOffline = 0;
@@ -474,8 +480,12 @@ int FTI_Snapshot()
         FTI_UpdateIterTime(&FTI_Exec);
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt) { // If it is time to check for possible ckpt. (every minute)
             FTI_Print("Checking if it is time to checkpoint.", FTI_DBUG);
-            if (FTI_Exec.globMeanIter > 60) FTI_Exec.minuteCnt = FTI_Exec.totalIterTime/60;
-            else FTI_Exec.minuteCnt++; // Increment minute counter
+            if (FTI_Exec.globMeanIter > 60) {
+                FTI_Exec.minuteCnt = FTI_Exec.totalIterTime/60;
+            }
+            else {
+                FTI_Exec.minuteCnt++; // Increment minute counter
+            }
             for (i = 1; i < 5; i++) { // Check ckpt. level
                 if (FTI_Ckpt[i].ckptIntv > 0 && FTI_Exec.minuteCnt/(FTI_Ckpt[i].ckptCnt*FTI_Ckpt[i].ckptIntv)) {
                     level = i;
@@ -483,17 +493,16 @@ int FTI_Snapshot()
                 }
             }
             if (level != -1) {
-                  res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
-                  if (res == FTI_DONE) {
-                      FTI_Exec.ckptCnt++;
-                  }
+                res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
+                if (res == FTI_DONE) {
+                    FTI_Exec.ckptCnt++;
+                }
             }
             FTI_Exec.ckptLast = FTI_Exec.ckptNext;
             FTI_Exec.ckptNext = FTI_Exec.ckptNext + FTI_Exec.ckptIntv;
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
         }
     }
-
     return res;
 }
 
@@ -525,8 +534,7 @@ int FTI_Finalize()
 
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
-        MPI_Recv(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag,
-                 FTI_Exec.globalComm, &status);
+        MPI_Recv(&buff, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, &status);
         if (buff != FTI_NSCS) {
             FTI_Exec.ckptLvel = buff;
             FTI_Exec.wasLastOffline = 1;
@@ -547,15 +555,18 @@ int FTI_Finalize()
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
-                if (access(FTI_Ckpt[4].dir, 0) == 0)
+                if (access(FTI_Ckpt[4].dir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].dir, 1);
-                if (access(FTI_Ckpt[4].metaDir, 0) == 0)
+                }
+                if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
-
-                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1)
+                }
+                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
                     FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
-                if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1)
+                }
+                if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) {
                     FTI_Print("cannot save last ckpt. dir", FTI_EROR);
+                }
             }
         }
         if (FTI_Topo.splitRank == 0) {
@@ -575,7 +586,6 @@ int FTI_Finalize()
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
     FTI_Print("FTI has been finalized.", FTI_INFO);
-
     return FTI_SCES;
 }
 
@@ -605,8 +615,9 @@ void FTI_Print(char* msg, int priority)
                     fprintf(stdout, "[FTI Warning %06d] : %s \n", FTI_Topo.myRank, msg);
                     break;
                 case FTI_INFO:
-                    if (FTI_Topo.splitRank == 0)
+                    if (FTI_Topo.splitRank == 0) {
                         fprintf(stdout, "[ FTI  Information ] : %s \n", msg);
+                    }
                     break;
                 case FTI_DBUG:
                     fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);

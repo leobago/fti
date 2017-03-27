@@ -22,17 +22,13 @@
 void initData(int nbLines, int M, int rank, double *h)
 {
     int i, j;
-    for (i = 0; i < nbLines; i++)
-    {
-        for (j = 0; j < M; j++)
-        {
+    for (i = 0; i < nbLines; i++) {
+        for (j = 0; j < M; j++) {
             h[(i*M)+j] = 0;
         }
     }
-    if (rank == 0)
-    {
-        for (j = (M*0.1); j < (M*0.9); j++)
-        {
+    if (rank == 0) {
+        for (j = (M*0.1); j < (M*0.9); j++) {
             h[j] = 100;
         }
     }
@@ -44,15 +40,12 @@ void print_solution (char *filename, double *grid)
     int i, j;
     FILE *outfile;
     outfile = fopen(filename,"w");
-    if (outfile == NULL)
-    {
+    if (outfile == NULL) {
         printf("Can't open output file.");
         exit(-1);
     }
-    for (i = 0; i < GRIDSIZE; i++)
-    {
-        for (j = 0; j < GRIDSIZE; j++)
-        {
+    for (i = 0; i < GRIDSIZE; i++) {
+        for (j = 0; j < GRIDSIZE; j++) {
             fprintf (outfile, "%6.2f\n", grid[(i*GRIDSIZE)+j]);
         }
         fprintf(outfile, "\n");
@@ -68,46 +61,35 @@ double doWork(int numprocs, int rank, int M, int nbLines, double *g, double *h)
     MPI_Status status1[2], status2[2];
     double localerror, globalerror;
     localerror = 0;
-    for(i = 0; i < nbLines; i++)
-    {
-        for(j = 0; j < M; j++)
-        {
+    for(i = 0; i < nbLines; i++) {
+        for(j = 0; j < M; j++) {
             h[(i*M)+j] = g[(i*M)+j];
         }
     }
-    if (rank > 0)
-    {
+    if (rank > 0) {
         MPI_Isend(g+M, M, MPI_DOUBLE, rank-1, WORKTAG, FTI_COMM_WORLD, &req1[0]);
         MPI_Irecv(h,   M, MPI_DOUBLE, rank-1, WORKTAG, FTI_COMM_WORLD, &req1[1]);
     }
-    if (rank < numprocs-1)
-    {
+    if (rank < numprocs-1) {
         MPI_Isend(g+((nbLines-2)*M), M, MPI_DOUBLE, rank+1, WORKTAG, FTI_COMM_WORLD, &req2[0]);
         MPI_Irecv(h+((nbLines-1)*M), M, MPI_DOUBLE, rank+1, WORKTAG, FTI_COMM_WORLD, &req2[1]);
     }
-    if (rank > 0)
-    {
+    if (rank > 0) {
         MPI_Waitall(2,req1,status1);
     }
-    if (rank < numprocs-1)
-    {
+    if (rank < numprocs-1) {
         MPI_Waitall(2,req2,status2);
     }
-    for(i = 1; i < (nbLines-1); i++)
-    {
-        for(j = 0; j < M; j++)
-        {
+    for (i = 1; i < (nbLines-1); i++) {
+        for (j = 0; j < M; j++) {
             g[(i*M)+j] = 0.25*(h[((i-1)*M)+j]+h[((i+1)*M)+j]+h[(i*M)+j-1]+h[(i*M)+j+1]);
-            if(localerror < fabs(g[(i*M)+j] - h[(i*M)+j]))
-            {
+            if (localerror < fabs(g[(i*M)+j] - h[(i*M)+j])) {
                 localerror = fabs(g[(i*M)+j] - h[(i*M)+j]);
             }
         }
     }
-    if (rank == (numprocs-1))
-    {
-        for(j = 0; j < M; j++)
-        {
+    if (rank == (numprocs-1)) {
+        for(j = 0; j < M; j++) {
             g[((nbLines-1)*M)+j] = g[((nbLines-2)*M)+j];
         }
     }
@@ -134,7 +116,9 @@ int main(int argc, char *argv[])
     g = (double *) malloc(sizeof(double *) * M * nbLines);
     grid = (double *) malloc(sizeof(double *) * M * (nbLines-2) * nbProcs);
     initData(nbLines, M, rank, g);
-    if (rank == 0) printf("Data initialized. Global grid size is %d x %d.\n", M, (nbLines-2)*nbProcs);
+    if (rank == 0) {
+        printf("Data initialized. Global grid size is %d x %d.\n", M, (nbLines-2)*nbProcs);
+    }
 
     // Create your data structure
     typedef struct cInfo {
@@ -155,38 +139,48 @@ int main(int argc, char *argv[])
 
     MPI_Barrier(FTI_COMM_WORLD);
     wtime = MPI_Wtime();
-    for(i = 0; i < ITER_TIMES; i++)
-    { // Check execution status
-        if (FTI_Status() != 0)
-        {
+    for(i = 0; i < ITER_TIMES; i++) { // Check execution status
+        if (FTI_Status() != 0) {
             res = FTI_Recover();
-            if (res != 0) exit(1);
-            else { myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++; } // Update ckpt. id & level
-        } else {
-            if (((i+1)%ITER_OUT) == 0)
-            { // Checkpoint every ITER_OUT steps
+            if (res != 0) {
+                exit(1);
+            }
+            else { // Update ckpt. id & level
+                myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
+            }
+        }
+        else {
+            if (((i+1)%ITER_OUT) == 0) { // Checkpoint every ITER_OUT steps
                 res = FTI_Checkpoint(myCkpt.id, myCkpt.level); // Ckpt ID 5 is ignored because level = 0
-                if (res == 0) { myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++; } // Update ckpt. id & level
+                if (res == 0) {
+                    myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
+                } // Update ckpt. id & level
             }
         }
         globalerror = doWork(nbProcs, rank, M, nbLines, g, h);
-        if ((i%ITER_OUT) == 0)
-        {
-            if (rank == 0) printf("Step : %d, current error = %f; target = %f\n", i, globalerror, PRECISION);
+        if ((i%ITER_OUT) == 0) {
+            if (rank == 0) {
+                printf("Step : %d, current error = %f; target = %f\n", i, globalerror, PRECISION);
+            }
             MPI_Gather(g+M, (nbLines-2)*M, MPI_DOUBLE, grid, (nbLines-2)*M, MPI_DOUBLE, 0, FTI_COMM_WORLD);
             sprintf(fn, "results/vis-%d.dat", i);
-            if (rank == 0) print_solution(fn, grid);
+            if (rank == 0) {
+                print_solution(fn, grid);
+            }
         }
-        if(globalerror < PRECISION) break;
+        if (globalerror < PRECISION) {
+            break;
+        }
     }
-    if (rank == 0) printf("Execution finished in %lf seconds.\n", MPI_Wtime() - wtime);
+    if (rank == 0) {
+        printf("Execution finished in %lf seconds.\n", MPI_Wtime() - wtime);
+    }
 
     free(h);
     free(g);
     free(grid);
+
     FTI_Finalize();
     MPI_Finalize();
     return 0;
 }
-
-

@@ -48,7 +48,8 @@
     Verifies final result.
  **/
 /*-------------------------------------------------------------------------*/
-int verify(long* array, int world_size) {
+int verify(long* array, int world_size)
+{
     int i;
     int size = world_size * ((ITERATIONS * 2) + INIT_SIZE * 2);
     for (i = 0; i < size; i++) {
@@ -65,12 +66,14 @@ int verify(long* array, int world_size) {
     Updates myPart. Even ranks get 3/4 of work, odd 1/4 of work.
  **/
 /*-------------------------------------------------------------------------*/
-void getPart(int* myPart, int size, int world_rank, int world_size) {
+void getPart(int* myPart, int size, int world_rank, int world_size)
+{
     int part = size / world_size / 2;
     //even rank processes get 3 part of work; odd get 1 part
     if (world_rank % 2 == 0) {
         *myPart = part * 3;
-    } else {
+    }
+    else {
         *myPart = part;
     }
 }
@@ -85,7 +88,8 @@ void getPart(int* myPart, int size, int world_rank, int world_size) {
     @return     integer             WORK_DONE if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
+int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
+{
     int res;
     int i = 0, j;
     int size = (world_size * INIT_SIZE * 2);
@@ -98,19 +102,18 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     FTI_Protect(1, &size, 1, FTI_INTG);
     long* buf = malloc (sizeof(long) * myPart);
     for (j = 0; j < myPart; j++) {
-            buf[j] = size;
+        buf[j] = size;
     }
     FTI_Protect(2, buf, myPart, FTI_LONG);
     //checking if this is recovery run
-    if (FTI_Status() != 0 && fail == 0)
-    {
-        /*
-        when we add FTI_Realloc();
+    if (FTI_Status() != 0 && fail == 0) {
+        /* when we add FTI_Realloc();
         buf = FTI_Realloc(2, buf);
         if (buf == NULL) {
             printf("%d: Reallocation failed!\n", world_rank);
             return RECOVERY_FAILED;
-        }*/
+        }
+        */
 
         //need to call FTI_Recover twice to get all data
         res = FTI_Recover();
@@ -151,9 +154,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         }
         printf("%d: Recovery size = %d\n", world_rank, recoverySize);
     }
-    if(world_rank == 0)
+    if (world_rank == 0) {
         printf("Starting work at i = %d.\n", i);
-
+    }
     for (; i < ITERATIONS; i++) {
         //checkpoint after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
@@ -170,13 +173,14 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         getPart(&myPart, size, world_rank, world_size);    //update myPart
         buf = realloc (buf, sizeof(long) * myPart);
         for (j = 0; j < myPart; j++) {
-                buf[j] = tempValue + addToSize;
+            buf[j] = tempValue + addToSize;
         }
 
         //stoping after ITER_STOP iterations
-        if(fail && i >= ITER_STOP){
-            if (world_rank == 0)
-            	printf("Work stopped at i = %d.\n", ITER_STOP);
+        if (fail && i >= ITER_STOP) {
+            if (world_rank == 0) {
+                printf("Work stopped at i = %d.\n", ITER_STOP);
+            }
             return WORK_DONE;
         }
     }
@@ -188,23 +192,30 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
         for (j = 1; j < world_size; j++) {
             if (j%2 == 0) {
                 MPI_Recv(array + (j * part * 2), part * 3, MPI_LONG, j, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
-            } else {
+            }
+            else {
                 MPI_Recv(array + (j * part * 2) + part, part, MPI_LONG, j, 0, FTI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
         }
         memcpy(array, buf, sizeof(long) * myPart);
         int rtn = verify(array, world_size);
+
         free(array);
+
         return rtn;
-    } else {
+    }
+    else {
         MPI_Send(buf, myPart, MPI_LONG, 0, 0, FTI_COMM_WORLD);
     }
+
     free(buf);
+
     return WORK_DONE;
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail) {
+int init(char** argv, int* checkpoint_level, int* fail)
+{
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
@@ -213,20 +224,23 @@ int init(char** argv, int* checkpoint_level, int* fail) {
     if (argv[2] == NULL) {
         printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *checkpoint_level = atoi(argv[2]);
     }
     if (argv[3] == NULL) {
         printf("Missing third parameter (if fail).\n");
         rtn = 1;
-    } else {
+    }
+    else {
         *fail = atoi(argv[3]);
     }
     return rtn;
 }
 
 
-int checkFileSizes(int* mpi_ranks, int world_size, int fail){
+int checkFileSizes(int* mpi_ranks, int world_size, int fail)
+{
     dictionary* ini = iniparser_load("config.fti");
     char* exec_id = malloc (sizeof(char) * 256);
     exec_id = iniparser_getstring(ini, "Restart:exec_id", NULL);
@@ -236,62 +250,67 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
     DIR *dir;
     struct dirent *ent;
     sprintf(path, "./Global/%s/l4", exec_id);
+
     free(exec_id);
 
     if ((dir = opendir (path)) != NULL) {
-      while ((ent = readdir (dir)) != NULL) {
-        if (strcmp(ent->d_name , ".") && strcmp(ent->d_name, "..")) {
-            sprintf(str, "%s/%s", path, ent->d_name);
+        while ((ent = readdir (dir)) != NULL) {
+            if (strcmp(ent->d_name , ".") && strcmp(ent->d_name, "..")) {
+                sprintf(str, "%s/%s", path, ent->d_name);
 
-            FILE* f = fopen(str, "rb");
-            fseek(f, 0L, SEEK_END);
-            int fileSize = ftell(f);
+                FILE* f = fopen(str, "rb");
+                fseek(f, 0L, SEEK_END);
+                int fileSize = ftell(f);
 
-            //get rank from file name
-            int i, id, rank;
-            sscanf(ent->d_name, "Ckpt%d-Rank%d.fti", &id, &rank);
-            for (i = 0; i < world_size; i++) {
-                if (rank == mpi_ranks[i]) {
-                    rank = i;
-                    break;
+                //get rank from file name
+                int i, id, rank;
+                sscanf(ent->d_name, "Ckpt%d-Rank%d.fti", &id, &rank);
+                for (i = 0; i < world_size; i++) {
+                    if (rank == mpi_ranks[i]) {
+                        rank = i;
+                        break;
+                    }
                 }
-            }
 
-            int expectedSize = 0;
-            /* when we add FTI_Realloc();
-            expectedSize += sizeof(long) * 2; //(i and size) length
-            */
-            expectedSize += sizeof(int) * 2; //i and size
+                int expectedSize = 0;
+                /* when we add FTI_Realloc();
+                expectedSize += sizeof(long) * 2; //(i and size) length
+                */
+                expectedSize += sizeof(int) * 2; //i and size
 
-            int lastCheckpointIter;
-            if (fail) {
-                lastCheckpointIter = ITER_STOP - ITER_STOP % ITER_CHECK;
-            } else {
-                lastCheckpointIter = (ITERATIONS - 1) - (ITERATIONS - 1) % ITER_CHECK;
-            }
-            int arrayExpectedLength = world_size * ((lastCheckpointIter  * 2) + INIT_SIZE * 2);
+                int lastCheckpointIter;
+                if (fail) {
+                    lastCheckpointIter = ITER_STOP - ITER_STOP % ITER_CHECK;
+                }
+                else {
+                    lastCheckpointIter = (ITERATIONS - 1) - (ITERATIONS - 1) % ITER_CHECK;
+                }
+                int arrayExpectedLength = world_size * ((lastCheckpointIter  * 2) + INIT_SIZE * 2);
 
-            int myPart;
-            getPart(&myPart, arrayExpectedLength, rank, world_size);
-            /* when we add FTI_Realloc();
-            expectedSize += sizeof(long);               //myPart length
-            */
-            expectedSize += sizeof(long) * myPart;      //myPart size
-            printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
-            if (fileSize != expectedSize) {
-                printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
+                int myPart;
+                getPart(&myPart, arrayExpectedLength, rank, world_size);
+                /* when we add FTI_Realloc();
+                expectedSize += sizeof(long);               //myPart length
+                */
+                expectedSize += sizeof(long) * myPart;      //myPart size
+                printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
+                if (fileSize != expectedSize) {
+                    printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
+
+                    fclose(f);
+                    closedir (dir);
+
+                    return 1;
+                }
                 fclose(f);
-                closedir (dir);
-                return 1;
             }
-            fclose(f);
         }
-      }
-      closedir (dir);
-    } else {
-      //could not open directory
-      perror ("");
-      return 1;
+        closedir (dir);
+    }
+    else {
+        //could not open directory
+        perror ("");
+        return 1;
     }
     return 0;
 }
@@ -301,7 +320,8 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail){
     @return     integer     0 if successful, 1 otherwise
  **/
 /*-------------------------------------------------------------------------*/
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
     int checkpoint_level, fail;
     if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
 
@@ -325,9 +345,12 @@ int main(int argc, char** argv){
 
     if (world_rank == 0 && !rtn) {
         rtn = checkFileSizes(mpi_ranks, world_size, fail);
-        if (!rtn && !fail)
+        if (!rtn && !fail) {
             printf("Success.\n");
+        }
     }
+
     free(mpi_ranks);
+
     return rtn;
 }

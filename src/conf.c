@@ -33,7 +33,6 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
     FTI_Print(str, FTI_DBUG);
     if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the conf. file.", FTI_WARN);
-
         return FTI_NSCS;
     }
 
@@ -183,7 +182,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Synchronize after config reading and free dictionary
     MPI_Barrier(FTI_Exec->globalComm);
+
     iniparser_freedict(ini);
+
     return FTI_SCES;
 }
 
@@ -242,18 +243,20 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
     int l;
     for (l = 1; l < 5; l++) {
-        if (FTI_Ckpt[l].ckptIntv == 0)
+        if (FTI_Ckpt[l].ckptIntv == 0) {
             FTI_Ckpt[l].ckptIntv = -1;
-        if (FTI_Ckpt[l].isInline != 0 && FTI_Ckpt[l].isInline != 1)
+        }
+        if (FTI_Ckpt[l].isInline != 0 && FTI_Ckpt[l].isInline != 1) {
             FTI_Ckpt[l].isInline = 1;
+        }
         if (FTI_Ckpt[l].isInline == 0 && FTI_Topo->nbHeads != 1) {
             FTI_Print("If inline is set to 0 then head should be set to 1.", FTI_WARN);
             return FTI_NSCS;
         }
     }
-    if (FTI_Topo->groupSize < 1) 
+    if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
-
+    }
     return FTI_SCES;
 }
 
@@ -326,8 +329,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
     if (mkdir(fn, 0777) == -1) {
-        if (errno != EEXIST)
+        if (errno != EEXIST) {
             FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
+        }
     }
     snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", fn);
     snprintf(FTI_Conf->mTmpDir, FTI_BUFS, "%s/tmp", fn);
@@ -340,8 +344,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
     if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
-        if (errno != EEXIST)
+        if (errno != EEXIST) {
             FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
+        }
     }
     snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
@@ -350,8 +355,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Conf->test) { // If local test generate name by topology
         snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf->localDir, FTI_Topo->myRank / FTI_Topo->nodeSize);
         if (mkdir(fn, 0777) == -1) {
-            if (errno != EEXIST)
+            if (errno != EEXIST) {
                 FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
+            }
         }
     }
     else {
@@ -359,14 +365,14 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
     if (mkdir(FTI_Conf->localDir, 0777) == -1) {
-        if (errno != EEXIST)
+        if (errno != EEXIST) {
             FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
+        }
     }
     snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
-
     return FTI_SCES;
 }
 
@@ -405,6 +411,5 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Problem creating the directories.", FTI_WARN);
         return FTI_NSCS;
     }
-
     return FTI_SCES;
 }
