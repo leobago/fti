@@ -266,9 +266,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Cannot rename meta directory", FTI_EROR);
         }
     }
-    if (FTI_Ckpt[FTI_Exec->ckptLvel].isInline) {
+
         MPI_Barrier(FTI_COMM_WORLD);
-    }
+
 
     t3 = MPI_Wtime();
 
