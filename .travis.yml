@@ -37,6 +37,13 @@ before_install:
   - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi ; fi
 
 before_script:
+  - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then cd ~/intel ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then cd .. ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
@@ -44,11 +51,4 @@ before_script:
   - cd ..
 
 script: 
-  - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then cd ~/intel ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then cd ..
   - ./test/tests.sh
