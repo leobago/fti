@@ -34,6 +34,8 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev
+  - sudo apt-get -y install libnetcdf-dev build-essential libnetcdff5 libnetcdfc7 libnetcdfc++4 libcf0 netcdf-doc netcdf-bin openjdk-6-jre-headless
+  - sudo apt-get -y install libgd-dev libgd2-xpm-dev debhelper
   - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /intel ; fi
 
 before_script:
