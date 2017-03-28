@@ -36,12 +36,12 @@ before_install:
   - sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev
   - sudo apt-get -y install libnetcdf-dev build-essential libnetcdff5 libnetcdfc7 libnetcdfc++4 libcf0 netcdf-doc netcdf-bin openjdk-6-jre-headless
   - sudo apt-get -y install libgd-dev libgd2-xpm-dev debhelper
-  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /intel ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
 
 before_script:
   - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then source /intel/bin/compilervars.sh intel64 ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc MPICC=mpiicc ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then source /opt/intel/bin/compilervars.sh intel64 ; fi
   - if [[ "$USE_ICC" = "true" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64 ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
