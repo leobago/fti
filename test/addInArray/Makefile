@@ -22,4 +22,6 @@ all:		addInArray.c
 #		C_INCLUDE_PATH=../../include
 #		export C_INCLUDE_PATH
 		echo "$(MPICC)"
+		$(MPICC) testMPI.c -o testMPI
+		sudo mpirun -n 16 ./testMPI
 		$(MPICC) -o addInArray addInArray.c $(FTIFLAG)
