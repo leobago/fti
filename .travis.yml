@@ -34,16 +34,11 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev
-  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
 
 before_script:
   - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then cd ~/intel ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
   - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then cd .. ; fi
   - if [[ "$USE_ICC" = "true" ]] ; then source /opt/intel/bin/compilervars.sh intel64 ; fi
   - if [[ "$USE_ICC" = "true" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64 ; fi
   - mkdir $BUILD_DIR
