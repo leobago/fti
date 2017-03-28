@@ -232,3 +232,19 @@ echo "  find \"\${INTEL_INSTALL_PATH}\" -name 'uninstall.sh' -not -path '*/ism/u
 echo "}" >> ~/.bashrc-intel
 cat ~/.bashrc >> ~/.bashrc-intel
 mv ~/.bashrc-intel ~/.bashrc
+
+# We can't just export a new path since it will not persist to the
+# next item in our .travis.yml, and adding a line to ~/.bashrc doesn't
+# work either, so we'll just dump a bunch of symlinks in a directory
+# which is already in $PATH.
+SYMDIR="${HOME}/.local/bin"
+if [ ! -e "${SYMDIR}" ]; then
+    mkdir -p "${SYMDIR}"
+fi
+
+ls -l "${DESTINATION}"/compilers_and_libraries_*/linux/bin
+
+echo "Looking for libimf..."
+find "${DESTINATION}" -name 'libimf.so*'
+
+echo "Installation successful!"
