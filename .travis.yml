@@ -34,7 +34,7 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev
-  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest ./intel; fi
 
 before_script:
   - mkdir $BUILD_DIR
