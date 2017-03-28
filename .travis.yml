@@ -44,7 +44,7 @@ before_script:
   - if [[ "$USE_ICC" = "true" ]] ; then CC=icc CXX=icpc; fi
   - if [[ "$USE_ICC" = "true" ]] ; then pwd ; fi
   - if [[ "$USE_ICC" = "true" ]] ; then cd .. ; fi
-  - if [[ "$USE_ICC" = "true" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/intel/ism/bin/intel64
+  - if [[ "$USE_ICC" = "true" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/intel/ism/bin/intel64 ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
