@@ -33,6 +33,8 @@ cd test
 #--------Pattern: startTest testName configFile procNo args(ex. checkpoint levels)-------
 #----------------------------------------------------------------------------------------
 #-------------------------------- Write tests here --------------------------------------
+	"$(MPICC)" testMPI.c -o testMPI
+	sudo mpirun -n 16 ./testMPI
 
 	configs=(configH0I1.fti configH1I1.fti configH1I0.fti)
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
