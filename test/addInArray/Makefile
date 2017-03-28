@@ -22,6 +22,4 @@ all:		addInArray.c
 #		C_INCLUDE_PATH=../../include
 #		export C_INCLUDE_PATH
 		echo "$(MPICC)"
-		if [ "$(USE_ICC)" = "true" ]; then MPICC=mpiicc ; fi
-		echo "$(MPICC)"
 		$(MPICC) -o addInArray addInArray.c $(FTIFLAG)
