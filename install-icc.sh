@@ -48,7 +48,9 @@ add_components() {
 while [ $# != 0 ]; do
     case "$1" in
 	"--dest")
+	    echo "Changing destination to $2"
 	    DESTINATION="$(realpath $2)"; shift
+	    echo "Destination = ${DESTINATION}"
 	    ;;
 	"--tmpdir")
 	    TEMPORARY_FILES="$2"; shift
