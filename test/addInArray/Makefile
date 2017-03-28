@@ -21,4 +21,7 @@ FFTIFLAG 	= -I$(FTIPATH)/include $(FTIPATH)/lib/libfti_f90.a $(FTIPATH)/lib/libf
 all:		addInArray.c
 #		C_INCLUDE_PATH=../../include
 #		export C_INCLUDE_PATH
+		echo "MPICC = $MPICC"
+		MPICC = mpiicc
+		echo "MPICC = $MPICC"
 		$(MPICC) -o addInArray addInArray.c $(FTIFLAG)
