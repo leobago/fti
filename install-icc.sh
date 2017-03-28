@@ -48,7 +48,7 @@ add_components() {
 while [ $# != 0 ]; do
     case "$1" in
 	"--dest")
-	    DESTINATION="$(realpath "$2")"; shift
+	    DESTINATION="$(realpath $2)"; shift
 	    ;;
 	"--tmpdir")
 	    TEMPORARY_FILES="$2"; shift
