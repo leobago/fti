@@ -50,4 +50,5 @@ before_script:
   - cd ..
 
 script: 
+  - "$MPICC" test-mpi.c -o test-mpi && sudo mpirun -n 16 ./test-mpi
   - ./test/tests.sh
