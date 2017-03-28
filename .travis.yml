@@ -44,5 +44,7 @@ before_script:
   - cd ..
 
 script: 
-  - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; CC=icc CXX=icpc ./configure ; make ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; then source ~/.bashrc ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; CC=icc CXX=icpc ./configure ; fi
+  - if [[ "$USE_ICC" = "true" ]] ; make ; fi
   - ./test/tests.sh
