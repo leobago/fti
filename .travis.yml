@@ -49,6 +49,5 @@ before_script:
   - sudo make all install
   - cd ..
 
-script: 
-  - $(MPICC) test-mpi.c -o test-mpi && sudo mpirun -n 16 ./test-mpi
+script:
   - ./test/tests.sh
