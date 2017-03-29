@@ -16,16 +16,7 @@ startTest () {
 runAllConfiguration() {
 	for i in {0..2}
 	do
-		startTest addInArray ${silentConfigs[$i]} $1 1 2 3 4
-		startTest nodeFlag ${configs[$i]} $1
-		startTest tokenRing ${silentConfigs[$i]} $1 1 2 3 4
-		startTest diffSizes ${silentConfigs[$i]} $1 1 2 3 4
-		startTest lvlsRecovery ${silentConfigs[$i]} $1 1 2 3 4
-	done
-	#slow test at the end
-	for i in {0..2}
-	do
-		startTest heatdis ${silentConfigs[$i]} $1
+		startTest lvlsRecovery ${configs[$i]} $1 1 2 3 4
 	done
 }
 
