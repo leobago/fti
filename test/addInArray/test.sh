@@ -19,7 +19,7 @@ test () {
 cd addInArray
 echo "	Making..."
 make
-sudo ./testMPI
+sudo ./testMPI --enable-mpi-thread-multiple
 for i in ${@:3}
 do
 	echo "	Testing L"$i"..."
