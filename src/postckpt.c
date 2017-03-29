@@ -106,12 +106,20 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
-        MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
         sprintf(str, "%d: sent to %d; receiving from %d", FTI_Topo->groupRank, dest, src);
         FTI_Print(str, FTI_DBUG);
-        MPI_Wait(&reqSend, &status);
-        MPI_Wait(&reqRecv, &status);
+        if (FTI_Topo->groupRank%2 == 0) {
+            MPI_Send(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm);
+            MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm);
+        }
+        else {
+            MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm);
+            MPI_Send(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm);
+        }
+
+
+
+
 
         fwrite(blBuf2, sizeof(char), bSize, pfd);
         if (ferror(pfd)) {
