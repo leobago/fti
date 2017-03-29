@@ -49,6 +49,7 @@ before_script:
   - cd ..
   - if [[ "$MPICC" = "mpiicc" ]] ; then which mpiicc ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then which mpirun ; fi
+  - if [[ "$MPICC" = "mpiicc" ]] ; then hostname ; fi
 
 script:
   - ./test/tests.sh
