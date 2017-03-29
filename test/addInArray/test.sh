@@ -17,6 +17,22 @@ test () {
 
 
 cd addInArray
+echo "***mpicc show" > output.txt
+	mpicc -show -o gtest mpi-test.c >> output.txt
+	echo "***mpiicc show" >> output.txt
+	mpiicc -show -o itest mpi-test.c >> output.txt
+	mpicc -o gtest mpi-test.c
+	mpiicc -o itest mpi-test.c
+	echo "***ldd gtest" >> output.txt
+	ldd gtest >> output.txt
+	echo "***ldd itest" >> output.txt
+	ldd itest >> output.txt
+	echo "***runtest gtest" >> output.txt
+	mpirun -n 8 -genv I_MPI_DEBUG 5 -verbose ./gtest 2>&1 >> output.txt
+	echo "***runtest itest" >> output.txt
+	mpirun -n 8 -genv I_MPI_DEBUG 5 -verbose ./itest 2>&1 >> output.txt
+echo "output.txt"
+cat output.txt
 echo "	Making..."
 make
 sudo mpirun -np 16 -host localhost ./testMPI
