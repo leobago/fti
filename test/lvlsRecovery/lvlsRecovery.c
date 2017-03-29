@@ -58,8 +58,10 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     i = 0;
     FTI_Protect(1, &i, 1, FTI_INTG);
     for (j = 0; j < MATRIX_SIZE; j++) {
+        MPI_Barrier(FTI_COMM_WORLD);
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
+    MPI_Barrier(FTI_COMM_WORLD);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
@@ -208,7 +210,7 @@ int main(int argc, char** argv)
 
     free(matrix);
 
-    /*dictionary* ini = iniparser_load("config.fti");
+    dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int res;
@@ -240,7 +242,7 @@ int main(int argc, char** argv)
         //Barrier needed for heads (look FTI_Finalize() in api.c)
         printf("%d: Waiting for MPI_COMM_WORLD.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
-    }*/
+    }
     printf("%d: Ready to finalize.\n", world_rank);
     //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
