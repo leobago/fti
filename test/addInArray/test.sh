@@ -19,7 +19,7 @@ test () {
 cd addInArray
 echo "	Making..."
 make
-mpirun -V -np 16 ./testMPI
+mpirun -np 16 ./testMPI
 for i in ${@:3}
 do
 	echo "	Testing L"$i"..."
