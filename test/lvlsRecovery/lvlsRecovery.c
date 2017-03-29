@@ -60,6 +60,9 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (j = 0; j < MATRIX_SIZE; j++) {
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
+    printf("%d: Waiting for FTI_COMM_WORLD.\n", world_rank);
+    MPI_Barrier(FTI_COMM_WORLD);
+    printf("%d: Passed FTI_COMM_WORLD barrier.\n", world_rank);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
