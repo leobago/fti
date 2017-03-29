@@ -16,7 +16,7 @@ startTest () {
 runAllConfiguration() {
 	for i in {0..2}
 	do
-		startTest lvlsRecovery ${configs[$i]} $1 1 2 3 4
+		startTest lvlsRecovery ${configs[$i]} $1 2 3 4
 	done
 }
 
