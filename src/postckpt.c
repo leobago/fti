@@ -108,7 +108,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
+        MPI_Ibsend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
         FTI_Print("MPI_Waiting recv...", FTI_DBUG);
         MPI_Wait(&reqRecv, &status);
