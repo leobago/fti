@@ -232,18 +232,15 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 break;
         }
     }
-    FTI_Print("Before MPI_Allreduce", FTI_DBUG);
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (tres != FTI_SCES) {
-        FTI_Print("tres != FTI_SCES", FTI_DBUG);
         FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0, group, pr);
         return FTI_NSCS;
     }
-    FTI_Print("After MPI_Allreduce", FTI_DBUG);
+
     t2 = MPI_Wtime();
 
     FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
-    FTI_Print("After GroupClean", FTI_DBUG);
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) {
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
@@ -269,9 +266,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Cannot rename meta directory", FTI_EROR);
         }
     }
-    FTI_Print("Before FTI Barrier", FTI_DBUG);
     MPI_Barrier(FTI_COMM_WORLD);
-    FTI_Print("After FTI Barrier", FTI_DBUG);
+
     t3 = MPI_Wtime();
 
     sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
