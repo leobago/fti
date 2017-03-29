@@ -113,7 +113,21 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             sprintf(str, "%d: sent, w8ing for %d;", FTI_Topo->groupRank, src);
             FTI_Print(str, FTI_DBUG);
-            MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+            //MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+
+                int number_amount;
+                MPI_Status status;
+                // Probe for an incoming message from process zero
+                MPI_Probe(src, FTI_Conf->tag, FTI_Exec->groupComm, &status);
+
+                // When probe returns, the status object has the size and other
+                // attributes of the incoming message. Get the message size
+                MPI_Get_count(&status, MPI_INT, &number_amount);
+
+                // Now receive the message with the allocated buffer
+                MPI_Recv(blBuf2, number_amount, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+                sprintf(str, "%d: dynamically received %d numbers from %d (block = %d).\n", FTI_Topo->groupRank, number_amount, src, FTI_Conf->blockSize);
+                FTI_Print(str, FTI_DBUG);
 
             sprintf(str, "%d: received from %d;", FTI_Topo->groupRank, src);
             FTI_Print(str, FTI_DBUG);
@@ -121,7 +135,21 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             sprintf(str, "%d: w8ing for %d;", FTI_Topo->groupRank, src);
             FTI_Print(str, FTI_DBUG);
-            MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+            //MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+
+                int number_amount;
+                MPI_Status status;
+                // Probe for an incoming message from process zero
+                MPI_Probe(src, FTI_Conf->tag, FTI_Exec->groupComm, &status);
+
+                // When probe returns, the status object has the size and other
+                // attributes of the incoming message. Get the message size
+                MPI_Get_count(&status, MPI_INT, &number_amount);
+
+                // Now receive the message with the allocated buffer
+                MPI_Recv(blBuf2, number_amount, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+                sprintf(str, "%d: dynamically received %d numbers from %d (block = %d).\n", FTI_Topo->groupRank, number_amount, src, FTI_Conf->blockSize);
+                FTI_Print(str, FTI_DBUG);
 
             sprintf(str, "%d: received, sending to %d;", FTI_Topo->groupRank, dest, src);
             FTI_Print(str, FTI_DBUG);
