@@ -3,7 +3,8 @@
 
 int main(int argc, char *argv[])
 {
-    int provided = MPI_Init_thread(&argc, &argv, 16);
+    int provided = -1;
+	MPI_Init_thread(&argc, &argv, 16, &provided);
 	printf("Provided = %d\n", provided);
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
