@@ -60,9 +60,6 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (j = 0; j < MATRIX_SIZE; j++) {
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
-    printf("%d: Waiting for FTI_COMM_WORLD.\n", world_rank);
-    MPI_Barrier(FTI_COMM_WORLD);
-    printf("%d: Passed FTI_COMM_WORLD barrier.\n", world_rank);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
@@ -96,6 +93,9 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
+            printf("%d: Waiting for FTI_COMM_WORLD.\n", world_rank);
+            MPI_Barrier(FTI_COMM_WORLD);
+            printf("%d: Passed FTI_COMM_WORLD barrier.\n", world_rank);
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n", world_rank, res);
