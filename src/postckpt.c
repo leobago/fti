@@ -105,13 +105,14 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-
+        sprintf(str, "groupRank = %d, src = %d, dst = %d, groupComm = %d, tag = %d", FTI_Topo->groupRank, src, dst, FTI_Exec->groupComm, FTI_Conf->tag);
+        FTI_Print(str, FTI_DBUG);
         if (FTI_Topo->groupRank%2 == 0) {
             sprintf(str, "%d: sending to %d;", FTI_Topo->groupRank, dest);
             FTI_Print(str, FTI_DBUG);
             MPI_Send(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm);
 
-            sprintf(str, "%d: sent, w8ing for %d;", FTI_Topo->groupRank, src);
+            sprintf(str, "%d: sent, w8ing for %d", FTI_Topo->groupRank, src);
             FTI_Print(str, FTI_DBUG);
             //MPI_Recv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
 
