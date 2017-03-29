@@ -122,7 +122,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 // When probe returns, the status object has the size and other
                 // attributes of the incoming message. Get the message size
-                MPI_Get_count(&status, MPI_INT, &number_amount);
+                MPI_Get_count(&status, MPI_CHAR, &number_amount);
 
                 // Now receive the message with the allocated buffer
                 MPI_Recv(blBuf2, number_amount, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -144,7 +144,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 // When probe returns, the status object has the size and other
                 // attributes of the incoming message. Get the message size
-                MPI_Get_count(&status, MPI_INT, &number_amount);
+                MPI_Get_count(&status, MPI_CHAR, &number_amount);
 
                 // Now receive the message with the allocated buffer
                 MPI_Recv(blBuf2, number_amount, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
