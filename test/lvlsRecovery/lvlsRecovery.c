@@ -225,16 +225,20 @@ int main(int argc, char** argv)
         }
         if (isInline == 0) {
             //waiting untill head do Post-checkpointing
+            printf("%d: Waiting for head %d.\n", world_rank, global_world_rank - (global_world_rank%nodeSize));
             MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , 2612, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
     if (heads > 0) {
         res = FTI_ENDW;
         //sending END WORK to head to stop listening
+        printf("%d: Sending ENDW to head %d.\n", world_rank, global_world_rank - (global_world_rank%nodeSize));
         MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), 2612, MPI_COMM_WORLD);
         //Barrier needed for heads (look FTI_Finalize() in api.c)
+        printf("%d: Waiting for MPI_COMM_WORLD.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
     }
+    printf("%d: Ready to finalize.\n", world_rank);
     //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
     return rtn;
