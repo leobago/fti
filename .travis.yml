@@ -47,9 +47,6 @@ before_script:
   - cmake ..
   - sudo make all install
   - cd ..
-  - if [[ "$MPICC" = "mpiicc" ]] ; then which mpiicc ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then which mpirun ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then hostname ; fi
 
 script:
   - ./test/tests.sh
