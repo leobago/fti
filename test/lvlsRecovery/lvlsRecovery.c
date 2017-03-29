@@ -208,7 +208,7 @@ int main(int argc, char** argv)
 
     free(matrix);
 
-    dictionary* ini = iniparser_load("config.fti");
+    /*dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int res;
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
         //Barrier needed for heads (look FTI_Finalize() in api.c)
         printf("%d: Waiting for MPI_COMM_WORLD.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
-    }
+    }*/
     printf("%d: Ready to finalize.\n", world_rank);
     //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
