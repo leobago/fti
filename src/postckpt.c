@@ -105,7 +105,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-        sprintf(str, "groupRank = %d, src = %d, dst = %d, groupComm = %d, tag = %d", FTI_Topo->groupRank, src, dst, FTI_Exec->groupComm, FTI_Conf->tag);
+        sprintf(str, "groupRank = %d, src = %d, dest = %d, groupComm = %d, tag = %d", FTI_Topo->groupRank, src, dest, FTI_Exec->groupComm, FTI_Conf->tag);
         FTI_Print(str, FTI_DBUG);
         if (FTI_Topo->groupRank%2 == 0) {
             sprintf(str, "%d: sending to %d;", FTI_Topo->groupRank, dest);
@@ -152,7 +152,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 sprintf(str, "%d: dynamically received %d numbers from %d (block = %d).\n", FTI_Topo->groupRank, number_amount, src, FTI_Conf->blockSize);
                 FTI_Print(str, FTI_DBUG);
 
-            sprintf(str, "%d: received, sending to %d;", FTI_Topo->groupRank, dest, src);
+            sprintf(str, "%d: received, sending to %d;", FTI_Topo->groupRank, dest);
             FTI_Print(str, FTI_DBUG);
             MPI_Send(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm);
 
