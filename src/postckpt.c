@@ -88,8 +88,10 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     blBuf1 = talloc(char, FTI_Conf->blockSize);
     blBuf2 = talloc(char, FTI_Conf->blockSize);
+    FTI_Print("Entering while...", FTI_DBUG);
     // Checkpoint files partner copy
     while (pos < ps) {
+        FTI_Print("Next loop of the while...", FTI_DBUG);
         if ((fs - pos) < FTI_Conf->blockSize) {
             bSize = fs - pos;
         }
@@ -108,8 +110,6 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
-        FTI_Print("MPI_Waiting send...", FTI_DBUG);
-        MPI_Wait(&reqSend, &status);
         FTI_Print("MPI_Waiting recv...", FTI_DBUG);
         MPI_Wait(&reqRecv, &status);
         FTI_Print("After MPI_Waiting.", FTI_DBUG);
@@ -127,7 +127,9 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         pos = pos + FTI_Conf->blockSize;
+        FTI_Print("End of section...", FTI_DBUG);
     }
+    FTI_Print("Out of loop.", FTI_DBUG);
     free(blBuf1);
     free(blBuf2);
     fclose(lfd);
