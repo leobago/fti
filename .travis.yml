@@ -46,7 +46,8 @@ before_script:
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
-  - make all install
+  - make all
+  - sudo make install
   - cd ..
 
 script:
