@@ -38,10 +38,6 @@ before_install:
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
 
 before_script:
-  - if [[ "$MPICC" = "mpiicc" ]] ; then source ~/.bashrc ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then source /opt/intel/bin/compilervars.sh intel64 ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64 ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then CC=icc CXX=icpc ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
