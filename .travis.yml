@@ -36,6 +36,7 @@ before_install:
   - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo apt-get install -y cmake gfortran ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
+  - if [[ "$MPICC" = "mpiicc" ]] ; then ./before_script-icc.sh ; fi
 
 before_script:
   - mkdir $BUILD_DIR
