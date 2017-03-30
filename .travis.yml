@@ -13,7 +13,9 @@ matrix:
       compiler: gcc
     - env: MPICC=mpicc
       compiler: clang
-    - env: MPICC=mpiicc
+    - env: 
+      - MPICC=mpiicc
+      - MPIFC=ifort
 
 addons:
   coverity_scan:
@@ -33,9 +35,9 @@ cache:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y cmake gfortran
-  - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y openmpi-bin libopenmpi-dev ; fi
-  - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
+  - sudo apt-get install -y cmake
+  - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
+  - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
