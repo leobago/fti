@@ -105,7 +105,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-        sprintf(str, "groupID = %d, groupRank = %d, src = %d, dest = %d", FTI_Topo->groupID, FTI_Topo->groupRank, src, dest);
+        sprintf(str, "groupID = %d, groupSize = %d, groupRank = %d, src = %d, dest = %d", FTI_Topo->groupID, FTI_Topo->groupSize, FTI_Topo->groupRank, src, dest);
         FTI_Print(str, FTI_DBUG);
         if (FTI_Topo->groupRank%2 == 0) {
             sprintf(str, "%d: sending to %d;", FTI_Topo->groupRank, dest);
