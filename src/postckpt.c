@@ -103,11 +103,16 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         sprintf(str, "Sending %d bytes. Receiving %d bytes.", bytes, FTI_Conf->blockSize);
         FTI_Print(str, FTI_DBUG);
-        
+
         MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
         MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
         MPI_Wait(&reqSend, &status);
         MPI_Wait(&reqRecv, &status);
+        int receivedBytes;
+        MPI_Get_count(status, MPI_CHAR, &receivedBytes);
+
+        sprintf(str, "Received %d bytes.", receivedBytes);
+        FTI_Print(str, FTI_DBUG);
 
         fwrite(blBuf2, sizeof(char), bSize, pfd);
         if (ferror(pfd)) {
