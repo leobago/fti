@@ -104,7 +104,8 @@ frequency = 0
 [Advanced]
 
 # The ckpt files are decomposed in blocks of size Block_size KB
-Block_size = 1024
+Block_size = 63
+#1024
 
 # The tag for MPI communications done within the FTI library
 Mpi_tag = 2612
