@@ -33,7 +33,7 @@
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
 
-#define MATRIX_SIZE 93
+#define MATRIX_SIZE 90
 
 /*-------------------------------------------------------------------------*/
 /**
