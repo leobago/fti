@@ -35,7 +35,7 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake
-  - if [[ "$compiler" = "clang" ]] ; then export CC=clang CFLAGS='-emit-llvm' ./configure ; fi
+  - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
 
