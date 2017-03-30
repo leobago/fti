@@ -41,6 +41,8 @@ before_install:
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
+  - echo $LD_LIBRARY_PATH
+  - echo $MIC_LD_LIBRARY_PATH
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
