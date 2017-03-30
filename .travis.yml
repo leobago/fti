@@ -10,7 +10,9 @@ env:
   matrix:
     - env: MPICC=mpicc
       compiler: gcc
-    - env: MPICC=mpicc
+    - env: 
+        - MPICC=mpicc
+        - CC=clang
       compiler: clang
     - env: 
       - MPICC=mpiicc
