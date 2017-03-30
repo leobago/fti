@@ -173,8 +173,7 @@ int main(int argc, char** argv)
     if (init(argv, &checkpoint_level, &fail)) return 0;     //verify args
 
     MPI_Init(&argc, &argv);
-    int global_world_rank;                                  //MPI_COMM rank
-    MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
+
 
     FTI_Init(argv[1], MPI_COMM_WORLD);
     int world_rank, world_size;                             //FTI_COMM rank & size
@@ -209,6 +208,9 @@ int main(int argc, char** argv)
     }
 
     free(matrix);
+    
+    int global_world_rank;                                  //MPI_COMM rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
