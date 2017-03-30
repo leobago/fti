@@ -33,9 +33,6 @@ cache:
 
 before_install:
   - sudo apt-get update -qq
-  - ifconfig
-  - ip link set lo mtu 131072
-  - ifconfig
   - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y cmake gcc gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo apt-get install -y cmake gfortran ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi --dest /opt/intel ; fi
