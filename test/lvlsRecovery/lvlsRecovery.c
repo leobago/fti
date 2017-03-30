@@ -33,7 +33,7 @@
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
 
-#define MATRIX_SIZE 75
+#define MATRIX_SIZE 85
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -208,10 +208,8 @@ int main(int argc, char** argv)
     }
 
     free(matrix);
-
     int global_world_rank;                                  //MPI_COMM rank
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
-
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
