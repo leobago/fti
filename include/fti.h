@@ -148,7 +148,7 @@ typedef struct FTIT_configuration {     /** Configuration metadata.        */
     char            cfgFile[FTI_BUFS];  /** Configuration file name.       */
     int             saveLastCkpt;       /** TRUE to save last checkpoint.  */
     int             verbosity;          /** Verbosity level.               */
-    int             blockSize;          /** Communication block size.      */
+    long            blockSize;          /** Communication block size.      */
     int             tag;                /** Tag for MPI messages in FTI.   */
     int             test;               /** TRUE if local test.            */
     int             l3WordSize;         /** RS encoding word size.         */

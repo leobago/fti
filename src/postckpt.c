@@ -101,7 +101,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-        sprintf(str, "Sending %zu bytes. Receiving %d bytes.", bytes, FTI_Conf->blockSize);
+        sprintf(str, "Sending %zu bytes. Receiving %ld bytes.", bytes, FTI_Conf->blockSize);
         FTI_Print(str, FTI_DBUG);
 
         MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
