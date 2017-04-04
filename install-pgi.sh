@@ -30,6 +30,7 @@ VERBOSE=false
 while [ $# != 0 ]; do
     case "$1" in
 	"--dest")
+	    echo "dest="$2
 	    export PGI_INSTALL_DIR="$2"; shift
 	    ;;
 	"--tmpdir")
@@ -58,7 +59,7 @@ while [ $# != 0 ]; do
 	    ;;
 	*)
 	    echo "Unrecognized argument '$1'"
-	    exit 1
+	    #exit 1
 	    ;;
     esac
     shift
