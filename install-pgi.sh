@@ -28,9 +28,10 @@ export PGI_INSTALL_MANAGED=false
 VERBOSE=false
 
 while [ $# != 0 ]; do
+    echo "1="$1
+    echo "2="$2
     case "$1" in
 	"--dest")
-	    echo "dest="$2
 	    export PGI_INSTALL_DIR="$2"; shift
 	    ;;
 	"--tmpdir")
@@ -46,7 +47,7 @@ while [ $# != 0 ]; do
 	    export PGI_INSTALL_JAVA=true; shift
 	    ;;
 	"--mpi")
-	    export PGI_INSTALL_MPI=true; shift
+	    export PGI_INSTALL_MPI=true;
 	    ;;
 	"--mpi-gpu")
 	    export PGI_INSTALL_MPI_GPU=true; shift
