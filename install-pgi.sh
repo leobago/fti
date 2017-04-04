@@ -33,6 +33,7 @@ while [ $# != 0 ]; do
     case "$1" in
 	"--dest")
 	    export PGI_INSTALL_DIR="$2"; shift
+            echo "DEST="${PGI_INSTALL_DIR}
 	    ;;
 	"--tmpdir")
 	    TEMPORARY_FILES="$2"; shift
@@ -47,7 +48,8 @@ while [ $# != 0 ]; do
 	    export PGI_INSTALL_JAVA=true; shift
 	    ;;
 	"--mpi")
-	    export PGI_INSTALL_MPI=true;
+	    export PGI_INSTALL_MPI=true
+            echo "INCLUDING MPI"
 	    ;;
 	"--mpi-gpu")
 	    export PGI_INSTALL_MPI_GPU=true; shift
