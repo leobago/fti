@@ -30,7 +30,7 @@ VERBOSE=false
 while [ $# != 0 ]; do
     case "$1" in
 	"--dest")
-	    export PGI_INSTALL_DIR="$(realpath "$2")"; shift
+	    export PGI_INSTALL_DIR="$2"; shift
 	    ;;
 	"--tmpdir")
 	    TEMPORARY_FILES="$2"; shift
