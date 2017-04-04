@@ -35,7 +35,7 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c)
 
-set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -D_SION_LINUX  -DSION_MPI")
+set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
 
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}")

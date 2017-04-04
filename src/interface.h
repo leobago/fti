@@ -71,6 +71,8 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                 unsigned long *fs, unsigned long *mfs, int group, int level);
+int FTI_UpdateMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                                 unsigned long fs, unsigned long mfs, char* fn);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       unsigned long *fs, unsigned long mfs, char* fnl);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -82,6 +84,8 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+int FTI_Flush_init(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level);
 

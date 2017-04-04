@@ -813,11 +813,12 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     unsigned long maxFs, fs;
     size_t nbBlocks, block = 0, lastBlockBytes;
-    int j, l, gs, erased[FTI_BUFS], sid, numFiles=1, res, noFile;
+    int j, l, gs, erased[FTI_BUFS], sid, nlocaltasks = 1, numFiles=1, nlocalfiles = 1, res, noFile;
+    int *gRankList, *file_map, *rank_map;
     char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS], *newfname = NULL;
-    FILE *gfd, *lfd;
+    FILE *gfd, *lfd, *dfp;
     MPI_Comm lComm;
-    sion_int64 chunksize;
+    sion_int64 *chunkSizes, chunksize;
     sion_int32 fsblksize=-1;
 
     gs = FTI_Topo->groupSize;
@@ -838,8 +839,18 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (access(gfn, F_OK) != 0) {
         return FTI_NSCS;
     }
+    
+    gRankList = talloc(int, 1);
+    chunkSizes = talloc(sion_int64, 1);
+    file_map = talloc(int, 1);
+    rank_map = talloc(int, 1);
+        
+    *gRankList = FTI_Topo->myRank;
+    *file_map = 0;
+    *rank_map = *gRankList;
+        
 
-    sid = sion_paropen_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &lComm, &chunksize, &fsblksize, &(FTI_Topo->splitRank), NULL, &newfname);
+    sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
     
     lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
@@ -849,10 +860,12 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     char *blBuf1 = talloc(char, FTI_Conf->blockSize);
     
+    res = sion_seek(sid, *gRankList, SION_CURRENT_BLK, SION_CURRENT_POS);
+        
     // Checkpoint files transfer from PFS
     while (!sion_feof(sid)) {
         
-        chunksize = sion_bytes_avail_in_chunk(sid);
+        chunksize = FTI_Exec->meta[0].fs;
         
         nbBlocks = chunksize / FTI_Conf->blockSize;
         block = 0;
@@ -906,7 +919,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fclose(lfd);
 
-    sion_parclose_mpi(sid);
+    sion_parclose_mapped_mpi(sid);
 
     return FTI_SCES;
 }

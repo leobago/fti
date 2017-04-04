@@ -114,6 +114,17 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
     long            size;               /** Total size of the dataset.     */
 } FTIT_dataset;
 
+/** @typedef    FTIT_metadata
+ *  @brief      Metadata for restart.
+ *
+ *  This type stores all the metadata necessary for the restart.
+ */
+typedef struct FTIT_metadata {
+    char            ckptFile[FTI_BUFS]; /** filename                       */
+    size_t          maxFs;              /** maxFs                          */
+    size_t          fs;                 /** fs                             */
+} FTIT_metadata;
+
 /** @typedef    FTIT_execution
  *  @brief      Execution metadata
  *
@@ -129,6 +140,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     int             lastCkptLvel;       /** Last checkpoint level.         */
     int             wasLastOffline;     /** TRUE if last ckpt. offline.    */
     int             functionCalls[2];   /** TRUE if last ckpt. offline.    */
+    int             sid;                /** SIONlib filehandle             */
     double          iterTime;           /** Current wall time.             */
     double          lastIterTime;       /** Time spent in the last iter.   */
     double          meanIterTime;       /** Mean iteration time.           */
@@ -136,7 +148,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     double          totalIterTime;      /** Total main loop time spent.    */
     unsigned int    syncIter;           /** To check mean iter. time.      */
     unsigned int    minuteCnt;          /** Checkpoint minute counter.     */
-    unsigned int    ckptCnt;             /** Checkpoint number counter.     */
+    unsigned int    ckptCnt;            /** Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /** Iteration loop counter.        */
     unsigned int    ckptID;             /** Checkpoint ID.                 */
     unsigned int    ckptNext;           /** Iteration for next checkpoint. */
@@ -144,6 +156,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     unsigned int    ckptSize;           /** Checkpoint size.               */
     unsigned int    nbVar;              /** Number of protected variables. */
     unsigned int    nbType;             /** Number of data types.          */
+    FTIT_metadata   *meta;              /** Metadata for restart           */
     MPI_Comm        globalComm;         /** Global communicator.           */
     MPI_Comm        groupComm;          /** Group communicator.            */
 } FTIT_execution;
@@ -195,6 +208,7 @@ typedef struct FTIT_topology {          /** Topology metadata.             */
     int             body[FTI_BUFS];     /** List of app. proc. in the node.*/
 } FTIT_topology;
 
+
 /** @typedef    FTIT_checkpoint
  *  @brief      Checkpoint metadata.
  *
@@ -206,6 +220,7 @@ typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
     int             isInline;           /** TRUE if work is inline.        */
     int             ckptIntv;           /** Checkpoint interval.           */
     int             ckptCnt;            /** Checkpoint counter.            */
+    
 } FTIT_checkpoint;
 
 /** @typedef    FTIT_injection

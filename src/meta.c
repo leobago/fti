@@ -75,6 +75,101 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
+int FTI_UpdateMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                      unsigned long fs, unsigned long mfs, char* fn)
+{
+    char str[FTI_BUFS], buf[FTI_BUFS];
+    dictionary* ini;
+    int i;
+
+    snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
+    sprintf(str, "Temporary load of topology file (%s)...", buf);
+    FTI_Print(str, FTI_DBUG);
+
+    // To bypass iniparser bug while empty dict.
+    ini = iniparser_load(buf);
+    if (ini == NULL) {
+        FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
+
+        return FTI_NSCS;
+    }
+
+    // Add metadata to dictionary
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        //strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
+        sprintf(str, "%d", i);
+        iniparser_set(ini, str, NULL);
+        sprintf(str, "%d:Ckpt_file_name", i);
+        iniparser_set(ini, str, fn);
+        sprintf(str, "%d:Ckpt_file_size", i);
+        sprintf(buf, "%ld", fs);
+        iniparser_set(ini, str, buf);
+        sprintf(str, "%d:Ckpt_file_maxs", i);
+        sprintf(buf, "%ld", mfs);
+        iniparser_set(ini, str, buf);
+    }
+
+    // Remove topology section
+    iniparser_unset(ini, "topology");
+    if (mkdir(FTI_Conf->mTmpDir, 0777) == -1) {
+        if (errno != EEXIST)
+            FTI_Print("Cannot create directory", FTI_EROR);
+    }
+
+    sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+    if (remove(buf) == -1)
+        if (errno != ENOENT)
+            FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
+
+    sprintf(str, "Creating metadata file (%s)...", buf);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(buf, "w");
+    if (fd == NULL) {
+        FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+
+    // Write metadata
+    iniparser_dump_ini(ini, fd);
+
+    if (fflush(fd) != 0) {
+        FTI_Print("Metadata file could NOT be flushed.", FTI_WARN);
+
+        iniparser_freedict(ini);
+        fclose(fd);
+
+        return FTI_NSCS;
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+    iniparser_freedict(ini);
+
+    return FTI_SCES;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It writes the metadata to recover the data after a failure.
+    @param      fs              Pointer to the list of checkpoint sizes.
+    @param      mfs             The maximum checkpoint file size.
+    @param      fnl             Pointer to the list of checkpoint names.
+    @return     integer         FTI_SCES if successfull.
+
+    This function should be executed only by one process per group. It
+    writes the metadata file used to recover in case of failure.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       unsigned long* fs, unsigned long mfs, char* fnl)
 {
@@ -182,8 +277,9 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else {
         sprintf(buf, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
     }
+    // TODO ugly... FTI_Exec->meta
     if (stat(buf, &fileStatus) == 0) { // Getting size of files
-        fs[FTI_Topo->groupRank] = (unsigned long)fileStatus.st_size;
+        fs[FTI_Topo->groupRank] = (unsigned long)FTI_Exec->meta[0].fs;
     }
     else {
         FTI_Print("Error with stat on the checkpoint file.", FTI_WARN);

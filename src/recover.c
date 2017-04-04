@@ -150,6 +150,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     tres = FTI_NSCS;
                 }
                 else {
+                    FTI_Exec->meta[0].fs = fs;
+                    FTI_Exec->meta[0].maxFs = maxFs;
                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
                     sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                     FTI_Print(str, FTI_DBUG);
