@@ -38,7 +38,7 @@ before_install:
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo ./install-pgi.sh --mpi --dest /opt/pgi ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo ./install-pgi.sh --dest /opt/pgi ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y openmpi-bin libopenmpi-dev ; fi
 
 before_script:
