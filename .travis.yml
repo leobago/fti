@@ -13,8 +13,9 @@ env:
 #    - env: 
 #      - MPICC=mpiicc
 #      - MPIFC=ifort
-    - env:
-      - MPIFC=pgfortran
+    - compiler: gcc
+      env:
+        - MPIFC=pgfortran
 
 addons:
   coverity_scan:

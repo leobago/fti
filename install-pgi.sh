@@ -28,12 +28,9 @@ export PGI_INSTALL_MANAGED=false
 VERBOSE=false
 
 while [ $# != 0 ]; do
-    echo "1="$1
-    echo "2="$2
     case "$1" in
 	"--dest")
 	    export PGI_INSTALL_DIR="$2"; shift
-            echo "DEST="${PGI_INSTALL_DIR}
 	    ;;
 	"--tmpdir")
 	    TEMPORARY_FILES="$2"; shift
