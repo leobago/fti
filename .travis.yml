@@ -13,6 +13,8 @@ env:
     - env: 
       - MPICC=mpiicc
       - MPIFC=ifort
+    - env:
+      - MPIFC=pgfortran
 
 addons:
   coverity_scan:
@@ -36,11 +38,10 @@ before_install:
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" != "mpiicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo ./install-pgi.sh --components mpi --dest /opt/pgi ; fi
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
-  - echo $LD_LIBRARY_PATH
-  - echo $MIC_LD_LIBRARY_PATH
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
