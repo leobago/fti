@@ -44,9 +44,8 @@ before_install:
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
-#  - if [[ "$MPIFC" = "pgfortran" ]] ; then source before-script-pgi.sh ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then source /home/travis/opt/pgi/linux86-64/16.10/bin/makelocalrc -x /home/travis/opt/pgi/linux86-64/16.10 ; fi
-  - sudo apt-get install libc6
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then source before-script-pgi.sh ; fi
+ # - sudo apt-get install libc6
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
