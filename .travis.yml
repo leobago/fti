@@ -48,6 +48,8 @@ before_script:
   - if [[ "$MPIFC" = "pgfortran" ]] ; then source ./before-script-pgi.sh ; fi
  # - sudo apt-get install libc6
   - which mpicc
+  - cat /etc/ld.so.conf 
+  - cat /etc/ld.so.conf.d/libc.conf 
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
