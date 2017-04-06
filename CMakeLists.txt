@@ -45,6 +45,7 @@ set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
 find_library(LIBM m DOC "The math library")
+MESSAGE( STATUS "LIBM =          " ${LIBM} )
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
