@@ -43,8 +43,10 @@ before_install:
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --dest /opt/pgi ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
-
-
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then deb http://pkg-ofed.alioth.debian.org/apt/ofed ./ ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then deb-src http://pkg-ofed.alioth.debian.org/apt/ofed ./ ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then aptitude update ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then aptitude install ofed ; fi
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
