@@ -44,7 +44,8 @@ append_property(TARGET fti.static fti.shared
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
-find_library(LIBM m DOC "The math library")
+# find_library(LIBM m DOC "The math library")
+set(LIBM /usr/lib/x86_64-linux-gnu/libm.so)
 MESSAGE( STATUS "LIBM =          " ${LIBM} )
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
