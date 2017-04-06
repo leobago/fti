@@ -46,7 +46,6 @@ while [ $# != 0 ]; do
 	    ;;
 	"--mpi")
 	    export PGI_INSTALL_MPI=true
-            echo "INCLUDING MPI"
 	    ;;
 	"--mpi-gpu")
 	    export PGI_INSTALL_MPI_GPU=true; shift
