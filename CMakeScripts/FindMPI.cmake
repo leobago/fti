@@ -83,6 +83,9 @@
 include(FindPackageHandleStandardArgs)
 include(GetPrerequisites)
 
+MESSAGE( FMPI STATUS "MPI_Fortran_INCLUDE_PATH:         " ${MPI_Fortran_INCLUDE_PATH} )
+MESSAGE( FMPI STATUS "MPI_C_INCLUDE_PATH:         " ${MPI_C_INCLUDE_PATH} )
+
 #
 # This part detects MPI compilers, attempting to wade through the mess of compiler names in
 # a sensible way.
