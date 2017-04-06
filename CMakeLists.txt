@@ -15,6 +15,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 include(FortranCInterface)
 
+set(MPI_Fortran_INCLUDE_PATH /opt/pgi/linux86-64/16.10/mpi/openmpi/include)
+set(MPI_C_INCLUDE_PATH /opt/pgi/linux86-64/16.10/mpi/openmpi/include)
 
 MESSAGE( STATUS "MPI_Fortran_INCLUDE_PATH:         " ${MPI_Fortran_INCLUDE_PATH} )
 MESSAGE( STATUS "MPI_C_INCLUDE_PATH:         " ${MPI_C_INCLUDE_PATH} )
