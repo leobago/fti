@@ -15,12 +15,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 include(FortranCInterface)
 
-set(MPI_Fortran_INCLUDE_PATH /opt/pgi/linux86-64/16.10/mpi/openmpi/include)
-set(MPI_C_INCLUDE_PATH /opt/pgi/linux86-64/16.10/mpi/openmpi/include)
-
-MESSAGE( STATUS "MPI_Fortran_INCLUDE_PATH:         " ${MPI_Fortran_INCLUDE_PATH} )
-MESSAGE( STATUS "MPI_C_INCLUDE_PATH:         " ${MPI_C_INCLUDE_PATH} )
-
 find_package(MPI REQUIRED)
 
 add_subdirectory(deps)
@@ -51,10 +45,9 @@ set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
 find_library(LIBM m DOC "The math library")
-MESSAGE( STATUS "LIBM =         " ${LIBM} )
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
+target_link_libraries(fti.static ${MPI_C_LIBRARIES}) 
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
