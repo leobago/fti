@@ -44,7 +44,7 @@ before_install:
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
-# - if [[ "$MPIFC" = "pgfortran" ]] ; then source before-script-pgi.sh ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then source before-script-pgi.sh ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
