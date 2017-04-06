@@ -42,6 +42,8 @@ before_install:
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --dest /opt/pgi ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
+
 
 
 before_script:
