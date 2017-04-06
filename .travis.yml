@@ -39,13 +39,13 @@ before_install:
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo ./install-pgi.sh --dest /home/travis/opt/pgi ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then source /install-pgi.sh --dest /home/travis/opt/pgi ; fi
 #  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install build-essential ; fi
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
 #  - if [[ "$MPIFC" = "pgfortran" ]] ; then source before-script-pgi.sh ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo source /home/travis/opt/pgi/linux86-64/16.10/bin/makelocalrc -x /home/travis/opt/pgi/linux86-64/16.10 ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then source /home/travis/opt/pgi/linux86-64/16.10/bin/makelocalrc -x /home/travis/opt/pgi/linux86-64/16.10 ; fi
   - sudo apt-get install libc6
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
