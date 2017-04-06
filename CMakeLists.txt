@@ -16,8 +16,8 @@ include(AppendProperty)
 include(FortranCInterface)
 
 
-MESSAGE( STATUS "MPI_Fortran_LIBRARIES:         " ${MPI_Fortran_LIBRARIES} )
-MESSAGE( STATUS "MPI_HEADER_PATH:         " ${MPI_HEADER_PATH} )
+MESSAGE( STATUS "MPI_Fortran_INCLUDE_PATH:         " ${MPI_Fortran_INCLUDE_PATH} )
+MESSAGE( STATUS "MPI_C_INCLUDE_PATH:         " ${MPI_C_INCLUDE_PATH} )
 
 find_package(MPI REQUIRED)
 
