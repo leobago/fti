@@ -43,7 +43,7 @@ before_install:
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --dest /opt/pgi ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; sudo apt-get -y --force-yes install libibcm1 libibverbs1 ibverbs-utils librdmacm1 rdmacm-utils libdapl2 ibsim-utils ibutils libcxgb3-1 libibmad5 libibumad3 libmlx4-1 libmthca1 libnes1 rds-tools infiniband-diags libibcommon1 mstflint opensm libopensm5 perftest srptools ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get -y --force-yes install libibcm1 libibverbs1 ibverbs-utils librdmacm1 rdmacm-utils libdapl2 ibsim-utils ibutils libcxgb3-1 libibmad5 libibumad3 libmlx4-1 libmthca1 libnes1 rds-tools infiniband-diags libibcommon1 mstflint opensm libopensm5 perftest srptools ; fi
 # - if [[ "$MPIFC" = "pgfortran" ]] ; then deb http://pkg-ofed.alioth.debian.org/apt/ofed ./ ; fi
 #  - if [[ "$MPIFC" = "pgfortran" ]] ; then deb-src http://pkg-ofed.alioth.debian.org/apt/ofed ./ ; fi
 #  - if [[ "$MPIFC" = "pgfortran" ]] ; then aptitude update ; fi
