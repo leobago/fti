@@ -278,7 +278,13 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-int FTI_Flush_init(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
+{
+    return FTI_SCES;
+}
+
+int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
 	unsigned long maxFs, fs;
@@ -290,14 +296,6 @@ int FTI_Flush_init(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char *newfname = NULL;
     char str[FTI_BUFS];
     FILE *dfp;
-    
-    if (level == -1)
-        return FTI_SCES; // Fake call for inline PFS checkpoint
-
-    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST)
-            FTI_Print("Cannot create directory", FTI_EROR);
-    }
     
     // SIONlid doesn't offer append mode, hence file has to be opened once and closed once.
     // ckpdID is one lower then the actual ckptID since it gets increased only if write
@@ -324,49 +322,121 @@ int FTI_Flush_init(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         // get metadata
         for (i = 0; i<FTI_Topo->nbApprocs; i++) {
-            res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, i+1, 0), "obtain metadata.");
+            res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, i+1, level), "obtain metadata.");
             if (res != FTI_SCES) {
                 FTI_Print("failed to obtain the metadata", FTI_EROR);
                 return FTI_NSCS;
             }
             FTI_Exec->meta[i].fs = fs;
-            printf("fs-bla: %i\n",(int)FTI_Exec->meta[i].fs);
 
             chunkSizes[i+1] = fs;
             FTI_Exec->meta[i].maxFs = maxFs;
-            snprintf(FTI_Exec->meta[i].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", (FTI_Exec->ckptID+1));
         }
         // set parallel file name
-        sprintf(str, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", (FTI_Exec->ckptID+1));
+        sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, str);
         // open parallel file in collective call for all heads
-        FTI_Exec->sid = sion_paropen_mapped_mpi(str, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
+        FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
         if (FTI_Exec->sid == -1) {
             FTI_Print("PAROPEN MAPPED ERROR", FTI_EROR);
             return FTI_NSCS;
         }
-    } else {
-        gRankList = talloc(int, 1);
-        chunkSizes = talloc(sion_int64, 1);
-        file_map = talloc(int, 1);
-        rank_map = talloc(int, 1);
-        
-        *gRankList = FTI_Topo->myRank;
-        *file_map = 0;
-        *rank_map = *gRankList;
-        
+    } 
+	
+	else {
+        // set parallel file name
+        snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+        sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, str);
+
         res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->nodeRank, level), "obtain metadata.");
         if (res != FTI_SCES)
             return FTI_NSCS;
+    	
+		// set parameter for paropen mapped call
+    	if (FTI_Topo->nbHeads == 1 && FTI_Topo->groupID == 1) {
+
+    	    // for the case that we have a head
+    	    nlocaltasks = 2;
+    	    gRankList = talloc(int, 2);
+    	    chunkSizes = talloc(sion_int64, 2);
+    	    file_map = talloc(int, 2);
+    	    rank_map = talloc(int, 2);
+
+    	    chunkSizes[0] = 0;
+    	    chunkSizes[1] = fs;
+    	    gRankList[0] = FTI_Topo->headRank;
+    	    gRankList[1] = FTI_Topo->myRank;
+    	    file_map[0] = 0;
+    	    file_map[1] = 0;
+    	    rank_map[0] = gRankList[0];
+    	    rank_map[1] = gRankList[1];
+    	
+    	} else {
+    	
+    	    nlocaltasks = 1;
+    	    gRankList = talloc(int, 1);
+    	    chunkSizes = talloc(sion_int64, 1);
+    	    file_map = talloc(int, 1);
+    	    rank_map = talloc(int, 1);
+
+    	    *chunkSizes = fs;
+    	    *gRankList = FTI_Topo->myRank;
+    	    *file_map = 0;
+    	    *rank_map = *gRankList;
+    	
+    	}
+        
         FTI_Exec->meta[0].fs = fs;
         FTI_Exec->meta[0].maxFs = maxFs;
         
-        *chunkSizes = fs;
-        snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", (FTI_Exec->ckptID));
-        sprintf(str, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-        FTI_Exec->sid = sion_paropen_mapped_mpi(str, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
+        FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL); 
 	}
 
     return FTI_SCES;
+}
+
+int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
+{
+    
+    int res;
+    char str[FTI_BUFS];
+    
+    if (level == -1)
+        return FTI_SCES; // Fake call for inline PFS checkpoint
+    
+    // create global temp directory
+    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Cannot create global directory", FTI_EROR);
+            return FTI_NSCS;
+        }
+    }
+    
+    // select IO
+    switch(FTI_Conf->ioMode) {
+
+        case FTI_IO_POSIX:
+
+            res = FTI_SCES; 
+            break;
+        
+        case FTI_IO_MPI:
+            
+            res = FTI_FlushInitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+            break;
+
+        case FTI_IO_SIONLIB:
+            
+            // write checkpoint
+            res = FTI_FlushInitSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+            break;
+
+    }
+
+    return res;
+
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -384,17 +454,21 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
 {
     int i, gRank, member;
-    size_t res;
+    size_t res, fs, maxFs;
     MPI_Comm lComm;
     size_t data_written = 0;
     char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
     unsigned long ps, pos = 0;
     FILE *lfd;
 
-    // determine local file name
-    if (level == -1)
+    // Fake call as well for the case head enabled but level 4 ckpt isinline
+    if (level == -1 || (level != -1 && FTI_Topo->amIaHead && FTI_Ckpt[4].isInline ))
         return FTI_SCES; // Fake call for inline PFS checkpoint
     
+	FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
+    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, level), "obtain metadata.");
+    if (res != FTI_SCES)
+        return FTI_NSCS; 
     /* 
      * make it generic. group is the groupID. But for the meta information in the 
      * arrays we need groupID -1 in the head case and 0 for the approc case.
@@ -434,15 +508,19 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    res = sion_seek(FTI_Exec->sid, gRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    // if SIONlib IO
+    if (FTI_Conf->ioMode == FTI_IO_SIONLIB) {
+        res = sion_seek(FTI_Exec->sid, gRank, SION_CURRENT_BLK, SION_CURRENT_POS);
     
-    // check if successful
-    if (res!=SION_SUCCESS) {
-        sprintf(str, "SIONlib: unable to set file pointer");
-        FTI_Print(str, FTI_EROR);
-        fclose(lfd);
-        sion_close(FTI_Exec->sid);
-        return FTI_NSCS;
+        // check if successful
+        if (res!=SION_SUCCESS) {
+            sprintf(str, "SIONlib: unable to set file pointer");
+            FTI_Print(str, FTI_EROR);
+            fclose(lfd);
+            sion_close(FTI_Exec->sid);
+            return FTI_NSCS;
+        }
+
     }
 
     char *blBuf1 = talloc(char, FTI_Conf->blockSize);
@@ -465,32 +543,110 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     
-        //while (bytes > 0) {
-            
-            data_written = sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
-            
-            if (data_written < 0) {
-                FTI_Print("sionlib: could not write data", FTI_EROR);
+        data_written += sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
+        
+        if (data_written < 0) {
+            FTI_Print("sionlib: could not write data", FTI_EROR);
 
-                free(blBuf1);
+            free(blBuf1);
 
-                fclose(lfd);
-                //sion_close(FTI_Exec->sid);
+            fclose(lfd);
+            sion_parclose_mapped_mpi(FTI_Exec->sid);
 
-                return FTI_NSCS;
-            }
-            
-            //bytes = data_written;
-            //blBuf1 += data_written;
-        //}
-
+            return FTI_NSCS;
+        }
+        
         pos = pos + FTI_Conf->blockSize;
     }
-
-    free(blBuf1);
+    
+	free(blBuf1);
 
     fclose(lfd);
-    //sion_close(FTI_Exec->sid);
 
+    return FTI_SCES;
+}
+
+int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
+{
+    
+    int res;
+    char str[FTI_BUFS];
+    
+    // select IO
+    switch(FTI_Conf->ioMode) {
+
+        case FTI_IO_POSIX:
+
+            res = FTI_SCES; 
+            break;
+        
+        case FTI_IO_MPI:
+            
+            res = FTI_FlushFinalizeMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            break;
+
+        case FTI_IO_SIONLIB:
+
+            // write checkpoint
+            res = FTI_FlushFinalizeSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            break;
+
+    }
+
+    return res;
+
+
+}
+
+
+int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
+{
+    
+    int res = 0, i, j, nbSectors, save_sectorID, save_groupID;
+
+    sion_parclose_mapped_mpi(FTI_Exec->sid); 
+
+    if (FTI_Topo->amIaHead) {
+        
+        // set parallel file name
+        snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID+1);
+
+        // update meta data
+        nbSectors = FTI_Topo->nbProc / (FTI_Topo->groupSize * FTI_Topo->nodeSize);
+   
+        // backup execution values
+        save_sectorID = FTI_Topo->sectorID;
+        save_groupID = FTI_Topo->groupID;
+
+        // update Meta data files for processes in group
+        for (i = 0; i < nbSectors; i++) {
+            FTI_Topo->sectorID = i;
+            for (j = 1; j <= FTI_Topo->nbApprocs; j++) {
+                // TODO: #BUG since more then one process may try to access the same file.
+                FTI_Topo->groupID = j;
+                res += FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[j-1].fs, FTI_Exec->meta[j-1].maxFs, FTI_Exec->ckptFile), "write the metadata.");
+            }
+        }
+        FTI_Topo->sectorID = save_sectorID;
+        FTI_Topo->groupID = save_groupID;
+   
+    }
+
+    else {
+        
+        // set parallel file name
+        snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+        res = FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[0].fs, FTI_Exec->meta[0].maxFs, FTI_Exec->ckptFile), "write the metadata.");
+
+    }
+    return res;
+
+}
+
+int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
+{
     return FTI_SCES;
 }

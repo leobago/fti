@@ -48,6 +48,12 @@
 #define FTI_ENDW 995
 /** Token to reject checkpoint.                                            */
 #define FTI_REJW 996
+/** Token for IO mode Posix                                                */
+#define FTI_IO_POSIX 1001
+/** Token for IO mode MPI                                                  */
+#define FTI_IO_MPI 1002       
+/** Token for IO mode SIONlib                                              */
+#define FTI_IO_SIONLIB 1003
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,7 +126,6 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
  *  This type stores all the metadata necessary for the restart.
  */
 typedef struct FTIT_metadata {
-    char            ckptFile[FTI_BUFS]; /** filename                       */
     size_t          maxFs;              /** maxFs                          */
     size_t          fs;                 /** fs                             */
 } FTIT_metadata;
@@ -133,6 +138,7 @@ typedef struct FTIT_metadata {
 typedef struct FTIT_execution {         /** Execution metadata.            */
     char            id[FTI_BUFS];       /** Execution ID.                  */
     char            ckptFile[FTI_BUFS]; /** Checkpoint file name.          */
+    char            fn[FTI_BUFS];       /** Temp file name full path.      */
     int             ckpt;               /** Checkpoint flag.               */
     int             reco;               /** Recovery flag.                 */
     int             ckptLvel;           /** Checkpoint level.              */
@@ -174,6 +180,7 @@ typedef struct FTIT_configuration {     /** Configuration metadata.        */
     int             tag;                /** Tag for MPI messages in FTI.   */
     int             test;               /** TRUE if local test.            */
     int             l3WordSize;         /** RS encoding word size.         */
+    int             ioMode;             /** IO mode for L4 ckpt.           */
     char            localDir[FTI_BUFS]; /** Local directory.               */
     char            glbalDir[FTI_BUFS]; /** Global directory.              */
     char            metadDir[FTI_BUFS]; /** Metadata directory.            */

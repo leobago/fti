@@ -840,6 +840,41 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     
+    // set parameter for paropen mapped call
+    if (FTI_Topo->nbHeads == 1 && FTI_Topo->groupID == 1) {
+
+        // for the case that we have a head
+        nlocaltasks = 2;
+        gRankList = talloc(int, 2);
+        chunkSizes = talloc(sion_int64, 2);
+        file_map = talloc(int, 2);
+        rank_map = talloc(int, 2);
+
+//        chunkSizes[0] = 0;
+//        chunkSizes[1] = ckptSize;
+        gRankList[0] = FTI_Topo->headRank;
+        gRankList[1] = FTI_Topo->myRank;
+        file_map[0] = 0;
+        file_map[1] = 0;
+        rank_map[0] = gRankList[0];
+        rank_map[1] = gRankList[1];
+    
+    } else {
+    
+        nlocaltasks = 1;
+        gRankList = talloc(int, 1);
+        chunkSizes = talloc(sion_int64, 1);
+        file_map = talloc(int, 1);
+        rank_map = talloc(int, 1);
+
+//        *chunkSizes = ckptSize;
+        *gRankList = FTI_Topo->myRank;
+        *file_map = 0;
+        *rank_map = *gRankList;
+    
+    }
+
+/*
     gRankList = talloc(int, 1);
     chunkSizes = talloc(sion_int64, 1);
     file_map = talloc(int, 1);
@@ -848,7 +883,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     *gRankList = FTI_Topo->myRank;
     *file_map = 0;
     *rank_map = *gRankList;
-        
+*/      
 
     sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
     
@@ -860,9 +895,9 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     char *blBuf1 = talloc(char, FTI_Conf->blockSize);
     
-    res = sion_seek(sid, *gRankList, SION_CURRENT_BLK, SION_CURRENT_POS);
-        
-    // Checkpoint files transfer from PFS
+    res = sion_seek(sid, FTI_Topo->myRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    
+	// Checkpoint files transfer from PFS
     while (!sion_feof(sid)) {
         
         chunksize = FTI_Exec->meta[0].fs;

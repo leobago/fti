@@ -352,15 +352,16 @@ int FTI_Checkpoint(int id, int level)
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
-        FTI_Exec.ckptLvel = level;
+        FTI_Exec.ckptLvel = level; // (1) TODO #BUG this should come after (2) 
+        // str is set to print ckpt information on stdout
         sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
         if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
             MPI_Recv(&res, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, &status);
             if (res == FTI_SCES) {
-                FTI_Exec.lastCkptLvel = res;
+                FTI_Exec.lastCkptLvel = res; // TODO why this assignment ??
                 FTI_Exec.wasLastOffline = 1;
-                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
+                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; // (2) TODO look at (1)
             }
         }
         t1 = MPI_Wtime();
@@ -545,7 +546,9 @@ int FTI_Finalize()
     // If we need to keep the last checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
+            FTI_Try(FTI_FlushInit(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Initialize flush to the PFS.");
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            FTI_Try(FTI_FlushFinalize(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "Finalize flush to the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0)
@@ -553,7 +556,7 @@ int FTI_Finalize()
                 if (access(FTI_Ckpt[4].metaDir, 0) == 0)
                     FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
 
-                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1)
+                if (rename(FTI_Conf.mTmpDir, FTI_Ckpt[4].metaDir) == -1)
                     FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1)
                     FTI_Print("cannot save last ckpt. dir", FTI_EROR);
