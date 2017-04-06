@@ -15,6 +15,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 include(FortranCInterface)
 
+
+MESSAGE( STATUS "MPI_Fortran_LIBRARIES:         " ${MPI_Fortran_LIBRARIES} )
+MESSAGE( STATUS "MPI_HEADER_PATH:         " ${MPI_HEADER_PATH} )
+
 find_package(MPI REQUIRED)
 
 add_subdirectory(deps)
@@ -46,8 +50,6 @@ set_property(TARGET fti.static fti.shared
 
 find_library(LIBM m DOC "The math library")
 MESSAGE( STATUS "LIBM =         " ${LIBM} )
-MESSAGE( STATUS "MPI_Fortran_LIBRARIES:         " ${MPI_Fortran_LIBRARIES} )
-MESSAGE( STATUS "MPI_HEADER_PATH:         " ${MPI_HEADER_PATH} )
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
