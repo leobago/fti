@@ -47,6 +47,8 @@ before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then source ./before-script-pgi.sh ; fi
   - echo $MPI_C_INCLUDE_PATH
+  - which mpicc
+  - which pgcc
  # - sudo apt-get install libc6
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR

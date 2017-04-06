@@ -124,9 +124,9 @@ set(_MPI_Intel_CXX_COMPILER_NAMES          mpiicpc  mpiicxx mpiic++ mpiiCC)
 set(_MPI_Intel_Fortran_COMPILER_NAMES      mpiifort mpiif95 mpiif90 mpiif77)
 
 # PGI compiler names
-set(_MPI_PGI_C_COMPILER_NAMES              mpicc)
-set(_MPI_PGI_CXX_COMPILER_NAMES            mpicc mppgCC)
-set(_MPI_PGI_Fortran_COMPILER_NAMES        mpipgf95 mpif90 mppgf95 mppgf90 mpipgf77 mppgf77)
+set(_MPI_PGI_C_COMPILER_NAMES              mpipgcc mppgcc)
+set(_MPI_PGI_CXX_COMPILER_NAMES            mpipgCC mppgCC)
+set(_MPI_PGI_Fortran_COMPILER_NAMES        mpipgf95 mpipgf90 mppgf95 mppgf90 mpipgf77 mppgf77)
 
 # XLC MPI Compiler names
 set(_MPI_XL_C_COMPILER_NAMES               mpixlc_r mpxlc_r
