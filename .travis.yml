@@ -43,7 +43,7 @@ before_install:
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --dest /opt/pgi ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then apt-get install build-essential cmake gcc libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install build-essential cmake gcc libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then git clone https://github.com/linux-rdma/rdma-core.git ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then cd rdma-core ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./build.sh ; fi
