@@ -35,8 +35,8 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake
-  - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
-  - if [[ "$MPICC" = "mpicc" ] || ["$compiler" = "clang"]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
+  - if [[ "$compiler" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
+  - if [[ "$MPICC" = "mpicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
