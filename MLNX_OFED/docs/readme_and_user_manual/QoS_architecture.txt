@@ -1,0 +1,216 @@
+
+                       QoS support in OFED
+
+==============================================================================
+Table of contents
+==============================================================================
+
+1. Overview
+2. Architecture
+3. Supported Policy
+4. CMA functionality
+5. IPoIB functionality
+6. SDP functionality
+7. RDS functionality
+8. SRP functionality
+9. iSER functionality
+10. OpenSM functionality
+
+
+==============================================================================
+1. Overview
+==============================================================================
+
+Quality of Service requirements stem from the realization of I/O consolidation
+over IB network: As multiple applications and ULPs share the same fabric,
+means to control their use of the network resources are becoming a must.
+The basic need is to differentiate the service levels provided to different
+traffic flows, such that a policy could be enforced and control each flow
+utilization of the fabric resources.
+
+IBTA specification defined several hardware features and management interfaces
+to support QoS:
+* Up to 15 Virtual Lanes (VL) carry traffic in a non-blocking manner
+* Arbitration between traffic of different VLs is performed by a 2 priority
+  levels weighted round robin arbiter. The arbiter is programmable with
+  a sequence of (VL, weight) pairs and maximal number of high priority credits
+  to be processed before low priority is served
+* Packets carry class of service marking in the range 0 to 15 in their
+  header SL field
+* Each switch can map the incoming packet by its SL to a particular output
+  VL based on programmable table VL=SL-to-VL-MAP(in-port, out-port, SL)
+* The Subnet Administrator controls each communication flow parameters
+  by providing them as a response to Path Record (PR) or MultiPathRecord (MPR)
+  queries
+
+The IB QoS features provide the means to implement a DiffServ like
+architecture. DiffServ architecture (IETF RFC 2474 & 2475) is widely used
+today in highly dynamic fabrics.
+
+This document provides the detailed functional definition for the various
+software elements that enable a DiffServ like architecture over the
+OpenFabrics software stack.
+
+
+==============================================================================
+2. Architecture
+==============================================================================
+
+QoS functionality is split between the SM/SA, CMA and the various ULPS.
+We take the "chronology approach" to describe how the overall system works.
+
+2.1. The network manager (human) provides a set of rules (policy) that
+define how the network is being configured and how its resources are split
+to different QoS-Levels. The policy also define how to decide which QoS-Level
+each application or ULP or service use.
+
+2.2. The SM analyzes the provided policy to see if it is realizable and
+performs the necessary fabric setup. Part of this policy defines the default
+QoS-Level of each partition. The SA is enhanced to match the requested Source,
+Destination, QoS-Class, Service-ID, PKey against the policy, so clients
+(ULPs, programs) can obtain a policy enforced QoS. The SM may also set up
+partitions with appropriate IPoIB broadcast group. This broadcast group
+carries its QoS attributes: SL, MTU, RATE, and Packet Lifetime.
+
+2.3. IPoIB is being setup. IPoIB uses the SL, MTU, RATE and Packet Lifetime
+available on the multicast group which forms the broadcast group of this
+partition.
+
+2.4. MPI which provides non IB based connection management should be
+configured to run using hard coded SLs. It uses these SLs for every QP
+being opened.
+
+2.5. ULPs that use CM interface (like SRP) have their own pre-assigned
+Service-ID and use it while obtaining PathRecord/MultiPathRecord (PR/MPR)
+for establishing connections. The SA receiving the PR/MPR matches it
+against the policy and returns the appropriate PR/MPR including SL, MTU,
+RATE and Lifetime.
+
+2.6. ULPs and programs (e.g. SDP) use CMA to establish RC connection provide
+the CMA the target IP and port number. ULPs might also provide QoS-Class.
+The CMA then creates Service-ID for the ULP and passes this ID and optional
+QoS-Class in the PR/MPR request. The resulting PR/MPR is used for configuring
+the connection QP.
+
+PathRecord and MultiPathRecord enhancement for QoS:
+
+As mentioned above the PathRecord and MultiPathRecord attributes are enhanced
+to carry the Service-ID which is a 64bit value. A new field QoS-Class is also
+provided.
+A new capability bit describes the SM QoS support in the SA class port info.
+This approach provides an easy migration path for existing access layer and
+ULPs by not introducing new set of PR/MPR attributes.
+
+
+==============================================================================
+3. Supported Policy
+==============================================================================
+
+The QoS policy that is specified in a separate file is divided into
+4 sub sections:
+
+I) Port Group: a set of CAs, Routers or Switches that share the same settings.
+   A port group might be a partition defined by the partition manager policy,
+   list of GUIDs, or list of port names based on NodeDescription.
+
+II) Fabric Setup: Defines how the SL2VL and VLArb tables should be setup.
+    NOTE: Currently this part of the policy is ignored. SL2VL and VLArb
+          tables should be configured in the OpenSM options file
+          (opensm.opts).
+
+III) QoS-Levels Definition: This section defines the possible sets of
+     parameters for QoS that a client might be mapped to. Each set holds
+     SL and optionally: Max MTU, Max Rate, Packet Lifetime and Path Bits.
+     NOTE: Currently, Path Bits are not implemented.
+
+IV) Matching Rules: A list of rules that match an incoming PR/MPR request
+    to a QoS-Level. The rules are processed in order such as the first match
+    is applied. Each rule is built out of a set of match expressions which
+    should all match for the rule to apply. The matching expressions are
+    defined for the following fields:
+      - SRC and DST to lists of port groups
+      - Service-ID to a list of Service-ID values or ranges
+      - QoS-Class to a list of QoS-Class values or ranges
+
+
+==============================================================================
+4. CMA features
+==============================================================================
+
+The CMA interface supports Service-ID through the notion of port space
+as a prefixes to the port_num which is part of the sockaddr provided to
+rdma_resolve_add().
+CMP also allows the ULP (like SDP) to propagate a request for specific
+QoS-Class. CMA uses the provided QoS-Class and Service-ID in the sent PR/MPR.
+
+
+==============================================================================
+5. IPoIB
+==============================================================================
+
+IPoIB queries the SA for its broadcast group information.
+It provides the broadcast group SL, MTU, and RATE in every following
+PathRecord query performed when a new UDAV is needed by IPoIB.
+
+
+==============================================================================
+6. SDP
+==============================================================================
+
+SDP uses CMA for building its connections.
+The Service-ID for SDP is 0x000000000001PPPP, where PPPP are 4 hex digits
+holding the remote TCP/IP Port Number to connect to.
+
+
+==============================================================================
+7. RDS
+==============================================================================
+
+RDS uses CMA and thus it is very close to SDP. The Service-ID for RDS is
+0x000000000106PPPP, where PPPP are 4 hex digits holding the TCP/IP Port
+Number that the protocol connects to.
+Default port number for RDS is 0x48CA, which makes a default Service-ID
+0x00000000010648CA.
+
+
+==============================================================================
+8. SRP
+==============================================================================
+
+Current SRP implementation uses its own CM callbacks (not CMA). So SRP fills
+in the Service-ID in the PR/MPR by itself and use that information in setting
+up the QP.
+SRP Service-ID is defined by the SRP target I/O Controller (it also complies
+with IBTA Service-ID rules). The Service-ID is reported by the I/O Controller
+in the ServiceEntries DMA attribute and should be used in the PR/MPR if the
+SA reports its ability to handle QoS PR/MPRs.
+
+
+==============================================================================
+9. iSER
+==============================================================================
+
+Similar to RDS, iSER also uses CMA. The Service-ID for iSER is similar to RDS
+(0x000000000106PPPP), with default port number 0x0CBC, which makes a default
+Service-ID 0x0000000001060CBC.
+
+
+==============================================================================
+10. OpenSM features
+==============================================================================
+
+The QoS related functionality that is provided by OpenSM can be split into two
+main parts:
+
+10.1. Fabric Setup
+During fabric initialization the SM parses the policy and apply its settings
+to the discovered fabric elements.
+
+10.2. PR/MPR query handling:
+OpenSM enforces the provided policy on client request.
+The overall flow for such requests is: first the request is matched against
+the defined match rules such that the target QoS-Level definition is found.
+Given the QoS-Level a path(s) search is performed with the given restrictions
+imposed by that level.
+
+==============================================================================

@@ -1,0 +1,253 @@
+                             Mellanox Technologies
+                             *********************
+
+                  Adaptive Routing Manager for Mellanox OFED
+                                  User Guide
+
+===============================================================================
+ Table of contents
+===============================================================================
+
+1. Adaptive Routing Overview
+2. Installation
+3. Running OpenSM with Adaptive Routing Manager
+   3.1 Enabling Adaptive Routing
+   3.2 Disabling Adaptive Routing
+4. Querying Adaptive Routing Tables
+5. Adaptive Routing Manager Options File
+6. Example of Adaptive Routing Manager Options File
+
+
+===============================================================================
+ 1. Adaptive Routing Overview
+===============================================================================
+
+ Adaptive Routing (AR) enables the switch to select the output port based on
+ the port's load. AR supports two routing modes:
+  - Free AR:    No constraints on output port selection.
+  - Bounded AR: The switch does not change the output port during the same
+                transmission burst. This mode minimizes the appearance 
+				of out-of-order packets.
+
+ Adaptive Routing Manager enables and configures Adaptive Routing mechanism
+ on fabric switches. It scans all the fabric switches, deduces which
+ switches support Adaptive Routing and configures the AR functionality on
+ these switches.
+
+ Currently, Adaptive Routing Manager supports only link aggregation algorithm.
+ Adaptive Routing Manager configures AR mechanism to allow switches to select
+ output port out of all the ports that are linked to the same remote switch.
+ This algorithm suits any topology with several links between switches.
+ Especially, it suits 3D torus/mesh, where there are  several link in each
+ direction of the X/Y/Z axis.
+
+ Note: If some switches do not support AR, they will slow down the AR Manager
+       as it may get timeouts on the AR-related queries to these switches.
+
+
+===============================================================================
+ 2. Installation
+===============================================================================
+
+ Adaptive Routing Manager is a Subnet Manager plug-in, i.e. it is a shared
+ library (libarmgr.so) that is dynamically loaded by the Subnet Manager.
+ Adaptive Routing Manager is installed as a part of Mellanox OFED installation.
+
+===============================================================================
+ 3. Running Subnet Manager with Adaptive Routing Manager
+===============================================================================
+
+ Adaptive Routing (AR) Manager can be enabled/disabled through SM options file.
+
+===============================================================================
+ 3.1. Enabling Adaptive Routing
+===============================================================================
+
+ To enable Adaptive Routing, perform the following:
+
+ 1. Create the Subnet Manager options file. Run: 
+	'opensm -c <options-file-name>'
+ 
+ 2. Add 'armgr' to the 'event_plugin_name' option in the file:
+	# Event plugin name(s)
+	event_plugin_name armgr
+ 
+ 3. Run Subnet Manager with the new options file:
+	'opensm -F <options-file-name>'
+
+ Adaptive Routing Manager can read options file with various configuration
+ parameters to fine-tune AR mechanism and AR Manager behavior. Default
+ location of the AR Manager options file is /etc/opensm/ar_mgr.conf.
+
+ To provide an alternative location, please perform the following:
+
+ 1. Add 'armgr --conf_file <ar-mgr-options-file-name>' 
+    to the 'event_plugin_options' option in the file
+    # Options string that would be passed to the plugin(s)
+	event_plugin_options armgr --conf_file <ar-mgr-options-file-name>
+ 
+ 2. Run Subnet Manager with the new options file:
+	'opensm -F <options-file-name>'
+
+ See an example of AR Manager options file with all the default values
+ in section 5.
+
+===============================================================================
+ 3.2. Disabling Adaptive Routing
+===============================================================================
+
+ There are two ways to disable Adaptive Routing Manager:
+ 
+ 1. By disabling it explicitly in the Adaptive Routing configuration file
+   (see section 4 for details).
+ 
+ 2. By removing the 'armgr' option from the Subnet Manager options file.
+
+ Note: Adaptive Routing mechanism is automatically disabled once the switch
+       receives setting of the usual linear routing table (LFT). 
+	   Hence, no action is required to clear Adaptive Routing configuration 
+	   on the switches if you do not wish to use Adaptive Routing.
+
+===============================================================================
+ 4. Querying Adaptive Routing Tables
+===============================================================================
+
+ When Adaptive Routing is active, the content of the usual Linear Forwarding
+ Routing Table on the switch is invalid, thus the standard tools that query LFT
+ (e.g. smpquery, dump_lfts.sh, and others) cannot be used.
+ To query the switch for the content of its Adaptive Routing table, use the 
+ 'smparquery' tool that is installed as a part of the Adaptive Routing Manager
+ package. To see its usage details, run 'smparquery -h'.
+
+
+===============================================================================
+ 5. Adaptive Routing Manager Options File
+===============================================================================
+
+ The default location of the AR Manager options file is /etc/opensm/ar_mgr.conf.
+ To set an alternative location, please perform the following:
+
+ 1. Add 'armgr --conf_file <ar-mgr-options-file-name>' 
+    to the 'event_plugin_options' option in the file
+    # Options string that would be passed to the plugin(s)
+	event_plugin_options armgr --conf_file <ar-mgr-options-file-name>
+ 
+ 2. Run Subnet Manager with the new options file:
+	'opensm -F <options-file-name>'
+
+ AR Manager options file contains two types of parameters:
+ 1. General options - Options which describe the AR Manager behavior and 
+    the AR parameters that will be applied to all the switches in the fabric.
+ 2. Per-switch options - Options which describe specific switch behavior.
+
+ Note the following:
+  - Adaptive Routing configuration file is case sensitive.
+  - You can specify options for nonexisting switch GUID. These options will
+    be ignored until a switch with a matching GUID will be added to the fabric.
+  - Adaptive Routing configuration file is parsed every AR Manager cycle, 
+    which in turn is executed at every heavy sweep of the Subnet Manager.
+  - If the AR Manager fails to parse the options file, default settings for all
+    the options will be used.
+
+ General AR Manager Options:
+============================
+
+	ENABLE: <true|false>;
+		Enable/disable Adaptive Routing on fabric switches.
+		Default: true
+		This option can be changed on-the-fly.
+		Note that if a switch was identified by AR Manager as device that does
+		not support AR, AR Manager will not try to enable AR on this switch.
+		If the firmware of this switch was updated to support the AR, 
+		the AR Manager will need to be restarted (by restarting SUbnet Manager)
+		to allow it to configure the AR on this switch.
+
+	AR_MODE: <bounded|free>;
+		Adaptive Routing Mode.
+		free: no constraints on output port selection.
+		bounded: the switch does not change the output port during the same
+		transmission burst. This mode minimizes the appearance of out-of-order
+		packets.
+		Default: bounded
+		This option can be changed on-the-fly.
+
+	AGEING_TIME: <usec>;
+		Applicable to bounded AR mode only.
+		Specifies how much time there should be no traffic in order for the
+		switch to declare a transmission burst as finished and allow changing
+		the output port for the next transmission burst (32-bit value).
+		Default: 30
+        This option can be changed on-the-fly.
+	
+	MAX_ERRORS: <N>;
+	ERROR_WINDOW: <N>;
+		When number of errors exceeds 'MAX_ERRORS' of send/receive errors or
+		timeouts in less than 'ERROR_WINDOW' seconds, the AR Manager will
+		abort, returning control back to the Subnet Manager.
+		Values for both options: [0-0xffff]
+		MAX_ERRORS = 0: zero tollerance - abort configuration on first error.
+		ERROR_WINDOW = 0: mechanism disabled - no error checking.
+		Default value for MAX_ERRORS: 10
+		Default value for ERROR_WINDOW: 5
+		These options can be changed on-the-fly.
+
+	LOG_FILE: <full path>;
+		AR Manager log file.
+		Default: /var/log/armgr.log
+		This option CANNOT be changed on-the-fly.
+
+	LOG_SIZE: <size in MB>;
+		This option defines maximal AR Manager log file size in MB. The log
+		file will be truncated and restarted upon reaching this limit.
+		0: unlimited log file size.
+        Default: 5
+		This option CANNOT be changed on-the-fly.
+
+ Per-switch AR Options:
+=======================
+
+	A user can provide per-switch configuration options with the following
+	syntax:
+
+	SWITCH <GUID> {
+		<switch option 1>;
+		<switch option 2>;
+		...
+	}
+
+	The following per-switch options exist:
+	
+	ENABLE: <true|false>;
+		Allows you to enable/disable the AR on this switch. If the general
+		ENABLE option value is set to 'false', then this per-switch option is
+		ignored.
+        This option can be changed on the fly.
+		
+	AGING_TIME: <usec>;
+		Same as in general options, but refers to the particular switch only.
+
+		
+===============================================================================
+ 6. Example of Adaptive Routing Manager Options File
+===============================================================================
+
+ ENABLE: true;
+ LOG_FILE: /tmp/ar_mgr.log;
+ LOG_SIZE: 100;
+ MAX_ERRORS: 10;
+ ERROR_WINDOW: 5;
+
+ SWITCH 0x12345 {
+	ENABLE: true;
+	AGEING_TIME: 77;
+ }
+
+ SWITCH 0x0002c902004050f8 {
+	AGEING_TIME: 44;
+ }
+
+ SWITCH 0xabcde {
+	ENABLE: false;
+ }
+
+===============================================================================
