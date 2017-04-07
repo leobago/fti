@@ -48,7 +48,7 @@ while [ $# != 0 ]; do
 	    export PGI_INSTALL_MPI=true
 	    ;;
 	"--mpi-gpu")
-	    export PGI_INSTALL_MPI_GPU=true; shift
+	    export PGI_INSTALL_MPI_GPU=true
 	    ;;
 	"--managed")
 	    export PGI_INSTALL_MANAGED=true; shift
