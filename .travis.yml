@@ -56,7 +56,7 @@ before_script:
   - sudo make install
   - cd ..
   - cd MLNX_OFED
-  - sudo ./mlnxofedinstall
+  - yes | sudo ./mlnxofedinstall
   - cd ..
 
 script:
