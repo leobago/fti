@@ -91,10 +91,6 @@ if(ENABLE_FORTRAN)
 		DESTINATION include)
 endif()
 
-if(ENABLE_EXAMPLES)
-	add_subdirectory(examples)
-endif()
-
 
 # installable config
 
