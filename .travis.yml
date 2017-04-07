@@ -40,22 +40,14 @@ before_install:
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" = "mpicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --dest /opt/pgi ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev openmpi-bin libopenmpi-dev ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
-  - ls /usr/lib -al
-  - ls /usr/include/ -al
-  - ls /usr/lib/openmpi/include -al
-  - ls /usr/bin -al
 
 
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then source ./before-script-pgi.sh ; fi
- # - sudo apt-get install libc6
-  - which mpicc
-  - cat /etc/ld.so.conf 
-  - cat /etc/ld.so.conf.d/libc.conf 
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
