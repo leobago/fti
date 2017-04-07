@@ -1,0 +1,22 @@
+diff --git a/dhcp.spec b/dhcp.spec
+index 39e0cfb..44eb248 100644
+--- a/dhcp.spec
++++ b/dhcp.spec
+@@ -98,6 +98,8 @@ Patch49:        dhcp-4.2.4-parsing-and-printing-options.patch
+ Patch50:        dhcp-4.2.4-interface-discovery-using-getifaddrs.patch
+ Patch51:        dhcp-4.2.4-P2-do-not-die-on-sigpipe.patch
+ Patch52:        dhcp-4.2.4-P2-obvious-fixes-from-4.2.5rc1.patch
++Patch53:        0001-dhcp-4.2.4p2-lpf-ip-over-ib-support.patch
++Patch54:        0002-dhcp-4.2.4p2-improved-xid.patch
+ Patch70:        dhcp-4.2.4-P2-no-bind-regex-check.CVE-2013-2266.diff
+ ##
+ PreReq:         /bin/touch /sbin/chkconfig sysconfig
+@@ -243,6 +245,8 @@ Authors:
+ %patch50 -p1
+ %patch51 -p1
+ %patch52 -p1
++%patch53 -p1
++%patch54 -p1
+ ##
+ find . -type f -name \*.cat\* -exec rm -f {} \;
+ dos2unix contrib/ms2isc/*
