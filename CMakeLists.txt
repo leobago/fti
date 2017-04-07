@@ -46,8 +46,8 @@ set_property(TARGET fti.static fti.shared
 
 find_library(LIBM m DOC "The math library")
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES}) 
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES})
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} ${LIBM}) 
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} ${LIBM})
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
