@@ -15,7 +15,7 @@ env:
      - env: 
        - MPICC=mpiicc
        - MPIFC=ifort
-    - env:
+     - env:
        - USE_PGI=true
 
 addons:
