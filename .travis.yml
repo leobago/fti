@@ -55,6 +55,7 @@ before_script:
   - make all
   - sudo make install
   - cd ..
+  - which mpicc
 
 script:
   - ./test/tests.sh
