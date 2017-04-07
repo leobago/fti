@@ -40,7 +40,8 @@ before_install:
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" = "mpicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi ; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh; fi
+  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install libcr-dev mpich2 mpich2-doc ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
 
