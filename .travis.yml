@@ -50,8 +50,9 @@ before_install:
   - if [[ "$MPIFC" = "pgfortran" ]] ; then export PATH=/home/travis/rdma-core/build/bin:$PATH ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/rdma-core/build/lib ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then cd .. ; fi
-  - ls /usr/lib/openmpi/lib -al
-  - ls /usr/lib/openmpi/bin -al
+  - ls /usr/lib -al
+  - ls /usr/include -al
+  - ls /usr/bin -al
 
 
 before_script:
