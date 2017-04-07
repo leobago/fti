@@ -1,0 +1,7 @@
+Driver configuration files:
+
+/etc/infiniband/openib.conf     - Configuration file for openibd service
+/etc/modprobe.d/mlnx.conf       - Configuration file for MLNX_OFED's kernel modules
+/etc/infiniband/connectx.conf   - HCA port type configuration
+/etc/modprobe.d/ib_ipoib.conf   - IPoIB aliases and kernel module parameters
+/etc/sysconfig/opensm           - Configuration file for opensmd service

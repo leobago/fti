@@ -1,0 +1,33 @@
+DHCP IPoIB support for dhcp-4.2.4.P2-0.16.15.src.rpm
+
+Build Procedure:
+
+1. Have the rpmbuild command use another directory (e.g., /home/your_userid/rpm)
+by putting this line in a file called .rpmmacros in your home directory:
+
+%_topdir /home/your_userid/rpm
+
+2. Create the following subdirectories in that directory:
+
+cd /home/your_userid/rpm
+mkdir SOURCES SPECS BUILD SRPMS
+mkdir -p RPMS/i386 RPMS/i486 RPMS/i586 RPMS/i686 RPMS/x86_64 RPMS/noarch
+
+3. Install the .src.rpm file this way:
+
+rpm -i dhcp-<ver>.src.rpm
+
+This will create files in the SOURCES directory of your RPM building directory tree, and a .spec file in the SPECS directory.
+
+4. Copy the 0001-dhcp-4.2.4p2-lpf-ip-over-ib-support.patch and 0002-dhcp-4.2.4p2-improved-xid.patch to /home/your_userid/rpm/SOURCES
+
+5. apply dhcp.spec.diff to dhcp.spec via patch command (patch -p1 -i dhcp.spec.diff)
+
+6. Go the SPECS directory and give the command to build the RPM:
+
+cd /home/your_userid/rpm/SPECS
+rpmbuild --define '%_topdir /home/your_userid/rpm' -bb dhcp.spec
+
+NOTE: The build should be performed on a machine with the appropriate distro.
+With SLES(11), the build will not succeed without doing this.
+
