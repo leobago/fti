@@ -37,10 +37,13 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake
+  - cd MLNX_OFED
+  - yes | sudo ./mlnxofedinstall
+  - cd ..
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
   - if [[ "$MPICC" = "mpicc" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel ; fi
-  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install openmpi-bin libopenmpi-dev ; fi
+#  - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then ./install-pgi.sh --mpi --mpi-gpu ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y libibverbs-dev ; fi
   - if [[ "$MPIFC" = "pgfortran" ]] ; then sudo apt-get install -y librdmacm-dev ; fi
@@ -54,9 +57,6 @@ before_script:
   - cmake ..
   - make all
   - sudo make install
-  - cd ..
-  - cd MLNX_OFED
-  - yes | sudo ./mlnxofedinstall
   - cd ..
 
 script:
