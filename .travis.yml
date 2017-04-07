@@ -37,7 +37,10 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake
-  - cd MLNX_OFED
+  - wget http://www.mellanox.com/downloads/ofed/MLNX_OFED-4.0-2.0.0.1/MLNX_OFED_LINUX-4.0-2.0.0.1-ubuntu14.04-x86_64.tgz
+  - gunzip < MLNX_OFED_LINUX-4.0-2.0.0.1-ubuntu14.04-x86_64.tgz | tar xvf -
+  - ls -l
+  - cd MLNX_OFED_LINUX-4.0-2.0.0.1-ubuntu14.04-x86_64
   - yes | sudo ./mlnxofedinstall
   - cd ..
   - if [[ "$compiler" = "clang" ]] ; then export CC=clang ; fi
