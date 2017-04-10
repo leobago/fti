@@ -1,4 +1,4 @@
-sudo ./install-icc.sh --components icc,mpi,ifort --dest /opt/intel
+sudo ./travisScripts/install-icc.sh --components icc,mpi,ifort --dest /opt/intel
 
 source ~/.bashrc
 source /opt/intel/bin/compilervars.sh intel64
