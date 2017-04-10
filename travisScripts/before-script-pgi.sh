@@ -3,7 +3,7 @@ gunzip < MLNX_OFED_LINUX-4.0-2.0.0.1-ubuntu14.04-x86_64.tgz | tar xvf -
 cd MLNX_OFED_LINUX-4.0-2.0.0.1-ubuntu14.04-x86_64
 yes | sudo ./mlnxofedinstall
 cd ..
-./install-pgi.sh --mpi --dest /opt/pgi
+./travisScripts/install-pgi.sh --mpi --dest /opt/pgi
 sudo apt-get install -y libibverbs-dev librdmacm-dev
 
 source ~/.bashrc
