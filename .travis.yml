@@ -15,6 +15,8 @@ env:
        - MPIFC=ifort
      - env:
        - USE_PGI=true
+     - env:
+       - USE_XL=true
 
 addons:
   coverity_scan:
@@ -41,6 +43,7 @@ before_install:
 before_script:
   - if [[ "$MPICC" = "mpiicc" ]] ; then source before-script-icc.sh ; fi
   - if [[ "$USE_PGI" = "true" ]] ; then source ./before-script-pgi.sh ; fi
+  - if [[ "$USE_XL" = "true" ]] ; then sudo ./install-xl.sh ; fi
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
   - cmake ..
