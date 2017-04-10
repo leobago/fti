@@ -3,8 +3,6 @@
 
 #sudo apt-get update -qq
 
-wget ftp://public.dhe.ibm.com/software/server/POWER/Linux/rte/xlcpp/le/ubuntu/libxlc*
-
 echo "deb http://public.dhe.ibm.com/software/server/POWER/Linux/rte/xlcpp/le/ubuntu $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/ibm-xlcpp-rte.list
 
 sudo apt-get update -qq
