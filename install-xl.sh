@@ -2,10 +2,11 @@
 #echo "deb http://public.dhe.ibm.com/software/server/POWER/Linux/xl-compiler/eval/ppc64le/ubuntu/ trusty main" | sudo tee /etc/apt/sources.list.d/ibm-xl-compiler-eval.list
 
 #sudo apt-get update -qq
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4B19F6F50761C815
 
 echo "deb http://public.dhe.ibm.com/software/server/POWER/Linux/rte/xlcpp/le/ubuntu $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/ibm-xlcpp-rte.list
 
-sudo apt-get update -qq
+sudo apt-get update
 sudo apt-get install libxlc
 
 ls -l /opt/ibm
