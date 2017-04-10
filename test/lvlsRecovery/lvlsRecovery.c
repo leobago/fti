@@ -58,10 +58,8 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     i = 0;
     FTI_Protect(1, &i, 1, FTI_INTG);
     for (j = 0; j < MATRIX_SIZE; j++) {
-        MPI_Barrier(FTI_COMM_WORLD);
         FTI_Protect(j+2, matrix[j], MATRIX_SIZE, FTI_DBLE);
     }
-    MPI_Barrier(FTI_COMM_WORLD);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0)
     {
@@ -95,9 +93,6 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
     for (; i < ITERATIONS; i++) {
         //checkpoints after every ITER_CHECK iterations
         if (i%ITER_CHECK == 0) {
-            printf("%d: Waiting for FTI_COMM_WORLD.\n", world_rank);
-            MPI_Barrier(FTI_COMM_WORLD);
-            printf("%d: Passed FTI_COMM_WORLD barrier.\n", world_rank);
             res = FTI_Checkpoint(i/ITER_CHECK + 1, checkpoint_level);
             if (res != FTI_DONE) {
                 printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n", world_rank, res);
@@ -173,7 +168,8 @@ int main(int argc, char** argv)
     if (init(argv, &checkpoint_level, &fail)) return 0;     //verify args
 
     MPI_Init(&argc, &argv);
-
+    int global_world_rank;                                  //MPI_COMM rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     FTI_Init(argv[1], MPI_COMM_WORLD);
     int world_rank, world_size;                             //FTI_COMM rank & size
@@ -208,8 +204,7 @@ int main(int argc, char** argv)
     }
 
     free(matrix);
-    int global_world_rank;                                  //MPI_COMM rank
-    MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
+
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
@@ -230,20 +225,16 @@ int main(int argc, char** argv)
         }
         if (isInline == 0) {
             //waiting untill head do Post-checkpointing
-            printf("%d: Waiting for head %d.\n", world_rank, global_world_rank - (global_world_rank%nodeSize));
             MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , 2612, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
     if (heads > 0) {
         res = FTI_ENDW;
         //sending END WORK to head to stop listening
-        printf("%d: Sending ENDW to head %d.\n", world_rank, global_world_rank - (global_world_rank%nodeSize));
         MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), 2612, MPI_COMM_WORLD);
         //Barrier needed for heads (look FTI_Finalize() in api.c)
-        printf("%d: Waiting for MPI_COMM_WORLD.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
     }
-    printf("%d: Ready to finalize.\n", world_rank);
     //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
     return rtn;
