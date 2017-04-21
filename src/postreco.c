@@ -29,12 +29,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     k = FTI_Topo->groupSize;
     m = k;
     ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
-    if (ps < maxFs)
+    if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize; // Calculating padding size
+    }
 
-    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
-        if (errno != EEXIST)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1) {
+        if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
+        }
+    }
 
     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &i);
     sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
@@ -66,14 +69,16 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Building the matrix
     for (i = 0; i < k; i++) {
         if (dm_ids[i] < k) {
-            for (j = 0; j < k; j++)
+            for (j = 0; j < k; j++) {
                 tmpmat[i * k + j] = 0;
+            }
             tmpmat[i * k + dm_ids[i]] = 1;
         }
-        else
+        else {
             for (j = 0; j < k; j++) {
                 tmpmat[i * k + j] = matrix[(dm_ids[i] - k) * k + j];
             }
+        }
     }
     // Inversing the matrix
     if (jerasure_invert_matrix(tmpmat, decMatrix, k, FTI_Conf->l3WordSize) < 0) {
@@ -101,6 +106,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 free(coding[i]);
                 free(data[i]);
             }
+
             free(tmpmat);
             free(dm_ids);
             free(decMatrix);
@@ -120,9 +126,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     if (fd == NULL) {
         FTI_Print("R3 cannot open checkpoint file.", FTI_DBUG);
-        if (efd)
-            fclose(efd);
 
+        if (efd) {
+            fclose(efd);
+        }
         for (i = 0; i < m; i++) {
             free(coding[i]);
             free(data[i]);
@@ -141,7 +148,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
 
         fclose(fd);
-
+        
         for (i = 0; i < m; i++) {
             free(coding[i]);
             free(data[i]);
@@ -191,28 +198,35 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } // Erasure found
 
         MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
-        for (i = 0; i < k; i++)
+        for (i = 0; i < k; i++) {
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+        }
 
         MPI_Allgather(coding[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
-        for (i = 0; i < k; i++)
+        for (i = 0; i < k; i++) {
             memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+        }
 
         // Decoding the lost data work
-        if (erased[FTI_Topo->groupRank])
+        if (erased[FTI_Topo->groupRank]) {
             jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, bs);
+        }
 
         MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
-        for (i = 0; i < k; i++)
+        for (i = 0; i < k; i++) {
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+        }
 
         // Finally, re-encode any erased encoded checkpoint file
-        if (erased[FTI_Topo->groupRank + k])
+        if (erased[FTI_Topo->groupRank + k]) {
             jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
-        if (erased[FTI_Topo->groupRank])
+        }
+        if (erased[FTI_Topo->groupRank]) {
             fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
-        if (erased[FTI_Topo->groupRank + k])
+        }
+        if (erased[FTI_Topo->groupRank + k]) {
             fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+        }
 
         pos = pos + bs;
     }
@@ -292,9 +306,11 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     buf = 0;
-    for (j = 0; j < FTI_Topo->groupSize; j++)
-        if (erased[j])
+    for (j = 0; j < FTI_Topo->groupSize; j++) {
+        if (erased[j]) {
             buf++; // Counting erasures
+        }
+    }
     if (buf > 0) {
         FTI_Print("Checkpoint files missing at L1.", FTI_DBUG);
         return FTI_NSCS;
@@ -336,9 +352,11 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     src = FTI_Topo->left;
     dest = FTI_Topo->right;
 
-    if (mkdir(FTI_Ckpt[2].dir, 0777) == -1)
-        if (errno != EEXIST)
+    if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
+        if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
+        }
+    }
 
     // Checking erasures
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 2) != FTI_SCES) {
@@ -353,9 +371,11 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     buf = -1;
-    for (j = 0; j < gs; j++)
-        if (erased[j] && erased[((j + 1) % gs) + gs])
+    for (j = 0; j < gs; j++) {
+        if (erased[j] && erased[((j + 1) % gs) + gs]) {
             buf = j; // Counting erasures
+        }
+    }
     sprintf(str, "A checkpoint file and its partner copy (ID in group : %d) have been lost", buf);
     if (buf > -1) {
         FTI_Print(str, FTI_DBUG);
@@ -369,14 +389,17 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     buf = 0;
-    for (j = 0; j < gs * 2; j++)
-        if (erased[j])
+    for (j = 0; j < gs * 2; j++) {
+        if (erased[j]) {
             buf++; // Counting erasures
+        }
+    }
     if (buf > 0) {
         ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
         pos = 0; // For the logic
-        if (ps < maxFs)
+        if (ps < maxFs) {
             ps = ps + FTI_Conf->blockSize; // Calculating padding size
+        }
         sprintf(str, "File size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, ps);
         FTI_Print(str, FTI_DBUG);
 
@@ -427,10 +450,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (truncate(pfn, ps) == -1) {
                 FTI_Print("R2 cannot truncate the partner ckpt. file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (lfd)
+                }
+                if (lfd) {
                     fclose(lfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -444,10 +469,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (pfd == NULL) {
                 FTI_Print("R2 cannot open partner ckpt. file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (lfd)
+                }
+                if (lfd) {
                     fclose(lfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -467,12 +494,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (truncate(qfn, ps) == -1) {
                 FTI_Print("R2 cannot truncate the ckpt. file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (lfd)
+                }
+                if (lfd) {
                     fclose(lfd);
-                if (pfd)
+                }
+                if (pfd) {
                     fclose(pfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -486,18 +516,20 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (qfd == NULL) {
                 FTI_Print("R2 cannot open ckpt. file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (lfd)
+                }
+                if (lfd) {
                     fclose(lfd);
-                if (pfd)
+                }
+                if (pfd) {
                     fclose(pfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
                 free(blBuf3);
                 free(blBuf4);
-
                 return FTI_NSCS;
             }
         }
@@ -511,13 +543,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print("Error reading the data from the partner ckpt. file.", FTI_DBUG);
 
                     fclose(pfd);
-
-                    if (jfd)
+                    if (jfd) {
                         fclose(jfd);
-                    if (lfd)
+                    }
+                    if (lfd) {
                         fclose(lfd);
-                    if (qfd)
+                    }
+                    if (qfd) {
                         fclose(qfd);
+                    }
 
                     free(blBuf1);
                     free(blBuf2);
@@ -536,13 +570,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print("Error reading the data from the ckpt. file.", FTI_DBUG);
 
                     fclose(qfd);
-
-                    if (jfd)
+                    if (jfd) {
                         fclose(jfd);
-                    if (lfd)
+                    }
+                    if (lfd) {
                         fclose(lfd);
-                    if (pfd)
+                    }
+                    if (pfd) {
                         fclose(pfd);
+                    }
 
                     free(blBuf1);
                     free(blBuf2);
@@ -558,10 +594,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv1);
                 MPI_Irecv(blBuf4, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv2);
             }
-            if (erased[src] && !erased[gs + FTI_Topo->groupRank])
+            if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
                 MPI_Wait(&reqSend1, &status);
-            if (erased[dest] && !erased[gs + FTI_Topo->groupRank])
+            }
+            if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
                 MPI_Wait(&reqSend2, &status);
+            }
             if (erased[FTI_Topo->groupRank]) {
                 MPI_Wait(&reqRecv1, &status);
                 MPI_Wait(&reqRecv2, &status);
@@ -571,13 +609,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
 
                     fclose(lfd);
-
-                    if (jfd)
+                    if (jfd) {
                         fclose(jfd);
-                    if (pfd)
+                    }
+                    if (pfd) {
                         fclose(pfd);
-                    if (qfd)
+                    }
+                    if (qfd) {
                         fclose(qfd);
+                    }
 
                     free(blBuf1);
                     free(blBuf2);
@@ -592,12 +632,13 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
 
                     fclose(jfd);
-
                     fclose(lfd);
-                    if (pfd)
+                    if (pfd) {
                         fclose(pfd);
-                    if (qfd)
+                    }
+                    if (qfd) {
                         fclose(qfd);
+                    }
 
                     free(blBuf1);
                     free(blBuf2);
@@ -615,12 +656,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (fclose(lfd) != 0) {
                 FTI_Print("R2 cannot close the checkpoint file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (pfd)
+                }
+                if (pfd) {
                     fclose(pfd);
-                if (qfd)
+                }
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -632,12 +676,15 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (truncate(lfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_DBUG);
 
-                if (jfd)
+                if (jfd) {
                     fclose(jfd);
-                if (pfd)
+                }
+                if (pfd) {
                     fclose(pfd);
-                if (qfd)
+                }
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -650,10 +697,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (fclose(jfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file.", FTI_DBUG);
 
-                if (pfd)
+                if (pfd) {
                     fclose(pfd);
-                if (qfd)
+                }
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -665,10 +714,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (truncate(jfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
 
-                if (pfd)
+                if (pfd) {
                     fclose(pfd);
-                if (qfd)
+                }
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -683,8 +734,9 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (fclose(pfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file", FTI_DBUG);
 
-                if (qfd)
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -696,8 +748,9 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (truncate(pfn, fs) == -1) {
                 FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
 
-                if (qfd)
+                if (qfd) {
                     fclose(qfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -760,9 +813,11 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     gs = FTI_Topo->groupSize;
 
-    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1)
-        if (errno != EEXIST)
+    if (mkdir(FTI_Ckpt[3].dir, 0777) == -1) {
+        if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
+        }
+    }
 
     // Checking erasures
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 3) != FTI_SCES) {
@@ -773,10 +828,12 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Counting erasures
     l = 0;
     for (j = 0; j < gs; j++) {
-        if (erased[j])
+        if (erased[j]) {
             l++;
-        if (erased[j + gs])
+        }
+        if (erased[j + gs]) {
             l++;
+        }
     }
     if (l > gs) {
         FTI_Print("Too many erasures at L3.", FTI_DBUG);
@@ -824,8 +881,9 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     gs = FTI_Topo->groupSize;
     if (FTI_Topo->nodeRank == 0 || FTI_Topo->nodeRank == 1) {
         if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-            if (errno != EEXIST)
+            if (errno != EEXIST) {
                 FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
@@ -955,6 +1013,5 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
 
     sion_parclose_mapped_mpi(sid);
-
     return FTI_SCES;
 }

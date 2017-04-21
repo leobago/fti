@@ -98,22 +98,28 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                     sprintf(fn, "%s/%s", path, fil);
                     sprintf(buf, "File %s will be removed.", fn);
                     FTI_Print(buf, FTI_DBUG);
-                    if (remove(fn) == -1)
-                        if (errno != ENOENT)
+                    if (remove(fn) == -1) {
+                        if (errno != ENOENT) {
                             FTI_Print("Error removing target file.", FTI_EROR);
+                        }
+                    }
                 }
             }
         }
         else {
-            if (errno != ENOENT)
+            if (errno != ENOENT) {
                 FTI_Print("Error with opendir.", FTI_EROR);
+            }
         }
-        if (dp != NULL)
+        if (dp != NULL) {
             closedir(dp);
+        }
 
-        if (remove(path) == -1)
-            if (errno != ENOENT)
+        if (remove(path) == -1) {
+            if (errno != ENOENT) {
                 FTI_Print("Error removing target directory.", FTI_EROR);
+            }
+        }
     }
     return FTI_SCES;
 }
@@ -177,9 +183,11 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         rmdir(FTI_Conf->localDir);
         rmdir(FTI_Conf->glbalDir);
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
-        if (remove(buf) == -1)
-            if (errno != ENOENT)
+        if (remove(buf) == -1) {
+            if (errno != ENOENT) {
                 FTI_Print("Cannot remove Topology.fti", FTI_EROR);
+            }
+        }
         rmdir(FTI_Conf->metadDir);
     }
 
