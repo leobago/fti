@@ -50,8 +50,8 @@ if(NOT ${USE_PGI})
 	find_library(LIBM m DOC "The math library")
 endif()
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} ${LIBM}) 
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} ${LIBM})
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}")
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
@@ -60,12 +60,12 @@ install(FILES "include/fti.h"
 
 if(ENABLE_FORTRAN)
 	add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-	
+
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
-		
+
 	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
-	
+
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
