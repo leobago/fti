@@ -63,230 +63,6 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
     return FTI_SCES;
 }
 
-
-int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    return FTI_SCES;
-}
-
-int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    return FTI_SCES;
-}
-
-int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-
-    int i, res, numFiles = 1, nlocaltasks, *file_map, *rank_map, *gRankList;
-    sion_int64 *chunkSizes;
-    sion_int32 fsblksize=-1;
-    size_t eleSize;
-    size_t ckptSize = 0;
-    
-    // determine chunksize
-    for (i=0; i < FTI_Exec->nbVar; i++) {
-        ckptSize += FTI_Data[i].size;
-    }
-
-    // set parameter for paropen mapped call
-    if (FTI_Topo->nbHeads == 1 && FTI_Topo->groupID == 1) {
-
-        // for the case that we have a head
-        nlocaltasks = 2;
-        gRankList = talloc(int, 2);
-        chunkSizes = talloc(sion_int64, 2);
-        file_map = talloc(int, 2);
-        rank_map = talloc(int, 2);
-
-        chunkSizes[0] = 0;
-        chunkSizes[1] = ckptSize;
-        gRankList[0] = FTI_Topo->headRank;
-        gRankList[1] = FTI_Topo->myRank;
-        file_map[0] = 0;
-        file_map[1] = 0;
-        rank_map[0] = gRankList[0];
-        rank_map[1] = gRankList[1];
-    
-    } else {
-    
-        nlocaltasks = 1;
-        gRankList = talloc(int, 1);
-        chunkSizes = talloc(sion_int64, 1);
-        file_map = talloc(int, 1);
-        rank_map = talloc(int, 1);
-
-        *chunkSizes = ckptSize;
-        *gRankList = FTI_Topo->myRank;
-        *file_map = 0;
-        *rank_map = *gRankList;
-    
-    }
-
-    // set chunksize for the metadata creation
-    FTI_Exec->meta[0].fs = (size_t) ckptSize;
-    
-    // open parallel file
-    FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL); 
-    
-    // check if successful
-    if (FTI_Exec->sid==-1) {
-        errno = 0;
-        FTI_Print("SIONlib: File could no be opened", FTI_EROR);
-        return FTI_NSCS;
-    }
-        
-    // set file pointer to corresponding block in sionlib file
-    res = sion_seek(FTI_Exec->sid, FTI_Topo->myRank, SION_CURRENT_BLK, SION_CURRENT_POS);
-		
-    // check if successful
-    if (res != SION_SUCCESS) {
-        errno = 0;
-        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
-        return FTI_NSCS;
-    }
-    
-    // write datasets into file
-    for (i=0; i < FTI_Exec->nbVar; i++) {
-        eleSize = FTI_Data[i].size;
-    
-        // SIONlib write call
-        res = sion_fwrite(FTI_Data[i].ptr, eleSize, 1, FTI_Exec->sid);
-		
-        // check if successful
-        if (res < 0) {
-            errno = 0;
-            FTI_Print("SIONlib: Data could not be written", FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
-
-    // close parallel file
-    res =  sion_parclose_mapped_mpi(FTI_Exec->sid);
-    
-    // check if successful
-    if (res<0) {
-        errno = 0;
-        FTI_Print("SIONlib: Parclose mapped error", FTI_EROR);
-        return FTI_NSCS;
-     }
-
-    return FTI_SCES;
-
-}
-
-int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    
-    int res;
-    
-    // create global temp directory
-    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global directory", FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
-    
-    // select IO
-    switch(FTI_Conf->ioMode) {
-
-        case FTI_IO_POSIX:
-
-            res = FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-        
-        case FTI_IO_MPI:
-            
-            res = FTI_WriteMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-
-        case FTI_IO_SIONLIB:
-
-            // set parallel file name
-            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-
-            // write checkpoint
-            res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-
-    }
-
-    return res;
-
-}
-
-int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-
-    int i;
-    char fn[FTI_BUFS], str[FTI_BUFS];
-    size_t glbWritten = 0; // checkpointsize
-    FILE *fd;
-    
-    // create local temp directory
-    snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create local directory", FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
-
-    // open task local ckpt file
-    fd = fopen(fn, "wb");
-    if (fd == NULL) {
-        FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    // write data into ckpt file
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        clearerr(fd);
-        size_t written = 0;
-        int fwrite_errno;
-        while ( written < FTI_Data[i].count && !ferror(fd) ) {
-            errno = 0;
-            written += fwrite(((char*)FTI_Data[i].ptr)+(FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count-written, fd);
-            fwrite_errno = errno;
-        }
-        if ( ferror(fd) ) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
-            FTI_Print(str, FTI_EROR);
-            fclose(fd);
-            return FTI_NSCS;
-        }
-        glbWritten += written*FTI_Data[i].eleSize;
-    }
-    
-    // store file size in runtime meta data
-    FTI_Exec->meta[0].fs = glbWritten;
-    
-    // flush buffer
-    if (fflush(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
-
-        fclose(fd);
-
-        return FTI_NSCS;
-    }
-    
-    // close file
-    if (fclose(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-    
-    return FTI_SCES;
-
-}
-
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the checkpoint data in the target file.
@@ -521,3 +297,227 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     return FTI_SCES;
 }
+
+int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+{
+    return FTI_SCES;
+}
+
+int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+{
+    return FTI_SCES;
+}
+
+int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+{
+
+    int i, res, numFiles = 1, nlocaltasks, *file_map, *rank_map, *gRankList;
+    sion_int64 *chunkSizes;
+    sion_int32 fsblksize=-1;
+    size_t eleSize;
+    size_t ckptSize = 0;
+    
+    // determine chunksize
+    for (i=0; i < FTI_Exec->nbVar; i++) {
+        ckptSize += FTI_Data[i].size;
+    }
+
+    // set parameter for paropen mapped call
+    if (FTI_Topo->nbHeads == 1 && FTI_Topo->groupID == 1) {
+
+        // for the case that we have a head
+        nlocaltasks = 2;
+        gRankList = talloc(int, 2);
+        chunkSizes = talloc(sion_int64, 2);
+        file_map = talloc(int, 2);
+        rank_map = talloc(int, 2);
+
+        chunkSizes[0] = 0;
+        chunkSizes[1] = ckptSize;
+        gRankList[0] = FTI_Topo->headRank;
+        gRankList[1] = FTI_Topo->myRank;
+        file_map[0] = 0;
+        file_map[1] = 0;
+        rank_map[0] = gRankList[0];
+        rank_map[1] = gRankList[1];
+    
+    } else {
+    
+        nlocaltasks = 1;
+        gRankList = talloc(int, 1);
+        chunkSizes = talloc(sion_int64, 1);
+        file_map = talloc(int, 1);
+        rank_map = talloc(int, 1);
+
+        *chunkSizes = ckptSize;
+        *gRankList = FTI_Topo->myRank;
+        *file_map = 0;
+        *rank_map = *gRankList;
+    
+    }
+
+    // set chunksize for the metadata creation
+    FTI_Exec->meta[0].fs = (size_t) ckptSize;
+    
+    // open parallel file
+    FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL); 
+    
+    // check if successful
+    if (FTI_Exec->sid==-1) {
+        errno = 0;
+        FTI_Print("SIONlib: File could no be opened", FTI_EROR);
+        return FTI_NSCS;
+    }
+        
+    // set file pointer to corresponding block in sionlib file
+    res = sion_seek(FTI_Exec->sid, FTI_Topo->myRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+		
+    // check if successful
+    if (res != SION_SUCCESS) {
+        errno = 0;
+        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    // write datasets into file
+    for (i=0; i < FTI_Exec->nbVar; i++) {
+        eleSize = FTI_Data[i].size;
+    
+        // SIONlib write call
+        res = sion_fwrite(FTI_Data[i].ptr, eleSize, 1, FTI_Exec->sid);
+		
+        // check if successful
+        if (res < 0) {
+            errno = 0;
+            FTI_Print("SIONlib: Data could not be written", FTI_EROR);
+            return FTI_NSCS;
+        }
+    }
+
+    // close parallel file
+    res =  sion_parclose_mapped_mpi(FTI_Exec->sid);
+    
+    // check if successful
+    if (res<0) {
+        errno = 0;
+        FTI_Print("SIONlib: Parclose mapped error", FTI_EROR);
+        return FTI_NSCS;
+     }
+
+    return FTI_SCES;
+
+}
+
+int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+{
+    
+    int res;
+    
+    // create global temp directory
+    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Cannot create global directory", FTI_EROR);
+            return FTI_NSCS;
+        }
+    }
+    
+    // select IO
+    switch(FTI_Conf->ioMode) {
+
+        case FTI_IO_POSIX:
+
+            res = FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+            break;
+        
+        case FTI_IO_MPI:
+            
+            res = FTI_WriteMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+            break;
+
+        case FTI_IO_SIONLIB:
+
+            // set parallel file name
+            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+
+            // write checkpoint
+            res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+            break;
+
+    }
+
+    return res;
+
+}
+
+int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+{
+
+    int i;
+    char fn[FTI_BUFS], str[FTI_BUFS];
+    size_t glbWritten = 0; // checkpointsize
+    FILE *fd;
+    
+    // create local temp directory
+    snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+    if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Cannot create local directory", FTI_EROR);
+            return FTI_NSCS;
+        }
+    }
+
+    // open task local ckpt file
+    fd = fopen(fn, "wb");
+    if (fd == NULL) {
+        FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
+
+        return FTI_NSCS;
+    }
+
+    // write data into ckpt file
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        clearerr(fd);
+        size_t written = 0;
+        int fwrite_errno;
+        while ( written < FTI_Data[i].count && !ferror(fd) ) {
+            errno = 0;
+            written += fwrite(((char*)FTI_Data[i].ptr)+(FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count-written, fd);
+            fwrite_errno = errno;
+        }
+        if ( ferror(fd) ) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
+            FTI_Print(str, FTI_EROR);
+            fclose(fd);
+            return FTI_NSCS;
+        }
+        glbWritten += written*FTI_Data[i].eleSize;
+    }
+    
+    // store file size in runtime meta data
+    FTI_Exec->meta[0].fs = glbWritten;
+    
+    // flush buffer
+    if (fflush(fd) != 0) {
+        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
+        fclose(fd);
+
+        return FTI_NSCS;
+    }
+    
+    // close file
+    if (fclose(fd) != 0) {
+        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
+        return FTI_NSCS;
+    }
+    
+    return FTI_SCES;
+
+}
+

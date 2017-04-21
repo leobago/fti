@@ -278,6 +278,133 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It flushes the local ckpt. files in to the PFS.
+  @param      group           The group ID.
+  @param      level           The level from which ckpt. files are flushed.
+  @return     integer         FTI_SCES if successful.
+
+  This function flushes the local checkpoint files in to the PFS.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
+{
+    int i, gRank, member;
+    size_t res, fs, maxFs;
+    MPI_Comm lComm;
+    size_t data_written = 0;
+    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
+    unsigned long ps, pos = 0;
+    FILE *lfd;
+
+    // Fake call as well for the case head enabled but level 4 ckpt isinline
+    if (level == -1 || (level != -1 && FTI_Topo->amIaHead && FTI_Ckpt[4].isInline ))
+        return FTI_SCES; // Fake call for inline PFS checkpoint
+    
+	FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
+    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, level), "obtain metadata.");
+    if (res != FTI_SCES)
+        return FTI_NSCS; 
+    /* 
+     * make it generic. group is the groupID. But for the meta information in the 
+     * arrays we need groupID -1 in the head case and 0 for the approc case.
+    */
+    member = (FTI_Topo->amIaHead) ? group-1 : 0;
+    gRank = (FTI_Topo->amIaHead) ? FTI_Topo->body[member] : FTI_Topo->myRank;
+
+    // TODO determine filesizes (maxFs and fs)
+    ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
+    if (ps < FTI_Exec->meta[member].maxFs)
+        ps = ps + FTI_Conf->blockSize;
+    
+    switch (level) {
+    case 0:
+        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+        break;
+    case 1:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
+        break;
+    case 2:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
+        break;
+    case 3:
+        sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+        break;
+    }
+
+
+    // Open and resize files
+    sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
+    FTI_Print(str, FTI_DBUG);
+
+    lfd = fopen(lfn, "rb");
+    if (lfd == NULL) {
+        FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
+
+        return FTI_NSCS;
+    }
+
+    // if SIONlib IO
+    if (FTI_Conf->ioMode == FTI_IO_SIONLIB) {
+        res = sion_seek(FTI_Exec->sid, gRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    
+        // check if successful
+        if (res!=SION_SUCCESS) {
+            sprintf(str, "SIONlib: unable to set file pointer");
+            FTI_Print(str, FTI_EROR);
+            fclose(lfd);
+            sion_close(FTI_Exec->sid);
+            return FTI_NSCS;
+        }
+
+    }
+
+    char *blBuf1 = talloc(char, FTI_Conf->blockSize);
+    unsigned long bSize = FTI_Conf->blockSize;
+    
+    // Checkpoint files exchange
+    while (pos < ps) {
+        if ((FTI_Exec->meta[member].fs - pos) < FTI_Conf->blockSize)
+            bSize = FTI_Exec->meta[member].fs - pos;
+
+        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            sion_close(FTI_Exec->sid);
+
+            return FTI_NSCS;
+        }
+    
+        data_written += sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
+        
+        if (data_written < 0) {
+            FTI_Print("sionlib: could not write data", FTI_EROR);
+
+            free(blBuf1);
+
+            fclose(lfd);
+            sion_parclose_mapped_mpi(FTI_Exec->sid);
+
+            return FTI_NSCS;
+        }
+        
+        pos = pos + FTI_Conf->blockSize;
+    }
+    
+	free(blBuf1);
+
+    fclose(lfd);
+
+    return FTI_SCES;
+}
+
 int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
@@ -437,133 +564,6 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return res;
 
 
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It flushes the local ckpt. files in to the PFS.
-  @param      group           The group ID.
-  @param      level           The level from which ckpt. files are flushed.
-  @return     integer         FTI_SCES if successful.
-
-  This function flushes the local checkpoint files in to the PFS.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
-{
-    int i, gRank, member;
-    size_t res, fs, maxFs;
-    MPI_Comm lComm;
-    size_t data_written = 0;
-    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
-    unsigned long ps, pos = 0;
-    FILE *lfd;
-
-    // Fake call as well for the case head enabled but level 4 ckpt isinline
-    if (level == -1 || (level != -1 && FTI_Topo->amIaHead && FTI_Ckpt[4].isInline ))
-        return FTI_SCES; // Fake call for inline PFS checkpoint
-    
-	FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
-    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, level), "obtain metadata.");
-    if (res != FTI_SCES)
-        return FTI_NSCS; 
-    /* 
-     * make it generic. group is the groupID. But for the meta information in the 
-     * arrays we need groupID -1 in the head case and 0 for the approc case.
-    */
-    member = (FTI_Topo->amIaHead) ? group-1 : 0;
-    gRank = (FTI_Topo->amIaHead) ? FTI_Topo->body[member] : FTI_Topo->myRank;
-
-    // TODO determine filesizes (maxFs and fs)
-    ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (ps < FTI_Exec->meta[member].maxFs)
-        ps = ps + FTI_Conf->blockSize;
-    
-    switch (level) {
-    case 0:
-        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-        break;
-    case 1:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
-        break;
-    case 2:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-        break;
-    case 3:
-        sprintf(lfn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
-        break;
-    }
-
-
-    // Open and resize files
-    sprintf(str, "L4 trying to access local ckpt. file (%s).", lfn);
-    FTI_Print(str, FTI_DBUG);
-
-    lfd = fopen(lfn, "rb");
-    if (lfd == NULL) {
-        FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    // if SIONlib IO
-    if (FTI_Conf->ioMode == FTI_IO_SIONLIB) {
-        res = sion_seek(FTI_Exec->sid, gRank, SION_CURRENT_BLK, SION_CURRENT_POS);
-    
-        // check if successful
-        if (res!=SION_SUCCESS) {
-            sprintf(str, "SIONlib: unable to set file pointer");
-            FTI_Print(str, FTI_EROR);
-            fclose(lfd);
-            sion_close(FTI_Exec->sid);
-            return FTI_NSCS;
-        }
-
-    }
-
-    char *blBuf1 = talloc(char, FTI_Conf->blockSize);
-    unsigned long bSize = FTI_Conf->blockSize;
-    
-    // Checkpoint files exchange
-    while (pos < ps) {
-        if ((FTI_Exec->meta[member].fs - pos) < FTI_Conf->blockSize)
-            bSize = FTI_Exec->meta[member].fs - pos;
-
-        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
-        if (ferror(lfd)) {
-            FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
-
-            free(blBuf1);
-
-            fclose(lfd);
-            sion_close(FTI_Exec->sid);
-
-            return FTI_NSCS;
-        }
-    
-        data_written += sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
-        
-        if (data_written < 0) {
-            FTI_Print("sionlib: could not write data", FTI_EROR);
-
-            free(blBuf1);
-
-            fclose(lfd);
-            sion_parclose_mapped_mpi(FTI_Exec->sid);
-
-            return FTI_NSCS;
-        }
-        
-        pos = pos + FTI_Conf->blockSize;
-    }
-    
-	free(blBuf1);
-
-    fclose(lfd);
-
-    return FTI_SCES;
 }
 
 int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
