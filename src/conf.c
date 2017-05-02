@@ -134,7 +134,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
-    FTI_Conf->ioMode = FTI_IO_SIONLIB;
+    FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 1) + 1000;
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;

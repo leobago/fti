@@ -25,6 +25,7 @@
 #include <time.h>
 #include <errno.h>
 #include <math.h>
+#include <limits.h>
 
 /*---------------------------------------------------------------------------
                                   Defines
