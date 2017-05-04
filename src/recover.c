@@ -148,26 +148,56 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 else {
                     FTI_Exec->meta[0].fs = fs;
                     FTI_Exec->meta[0].maxFs = maxFs;
-                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                    sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                    FTI_Print(str, FTI_DBUG);
-                    FTI_Exec->ckptID = id;
                     FTI_Exec->ckptLvel = level;
-                    FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                     switch (FTI_Exec->ckptLvel) {
                         case 4:
                             FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
                             MPI_Barrier(FTI_COMM_WORLD);
-                        sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
+                            switch(FTI_Conf->ioMode) {
+
+                                case FTI_IO_POSIX:
+
+                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                                    break;
+                                
+                                case FTI_IO_MPI:
+                                    
+                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-mpiio.fti", &id);
+                                    break;
+
+                                case FTI_IO_SIONLIB:
+
+                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
+                    		        break;
+                            }
+                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                   			FTI_Print(str, FTI_DBUG);
+                    		FTI_Exec->ckptID = id;
+                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                             r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                             break;
                         case 3:
+                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                   			FTI_Print(str, FTI_DBUG);
+                    		FTI_Exec->ckptID = id;
+                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                             r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                             break;
                         case 2:
+                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                   			FTI_Print(str, FTI_DBUG);
+                    		FTI_Exec->ckptID = id;
+                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                             r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                             break;
                         case 1:
+                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                   			FTI_Print(str, FTI_DBUG);
+                    		FTI_Exec->ckptID = id;
+                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                             r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
                             break;
                     }

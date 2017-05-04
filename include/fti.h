@@ -14,6 +14,12 @@
                                   Defines
 ---------------------------------------------------------------------------*/
 
+/** Define colors for FTI output                                           */
+#define RED   "\x1B[31m"
+#define ORG   "\x1B[38;5;202m"
+#define GRN   "\x1B[32m"
+#define RESET "\x1B[0m"
+
 /** Standard size of buffer and mas node size.                             */
 #define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */

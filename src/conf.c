@@ -261,6 +261,21 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
+    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
+        FTI_Conf->ioMode = FTI_IO_POSIX;
+        FTI_Print("No I/O selected. Set to default (POSIX)", FTI_WARN);
+    } else {
+        switch(FTI_Conf->ioMode) {
+            case FTI_IO_POSIX:
+                FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
+                break;
+            case FTI_IO_MPI:
+                FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
+                break;
+            case FTI_IO_SIONLIB:
+                FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
+        }    
+    }        
     return FTI_SCES;
 }
 

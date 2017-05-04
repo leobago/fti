@@ -868,9 +868,313 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    unsigned long maxFs, fs;
+    int res;
+    
+    // select IO
+    switch(FTI_Conf->ioMode) {
+
+        case FTI_IO_POSIX:
+
+            res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, group);
+            break;
+        
+        case FTI_IO_MPI:
+            
+            res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            break;
+
+        case FTI_IO_SIONLIB:
+
+            res = FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            break;
+    }
+
+    return res;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover L4 ckpt. files from the PFS using POSIX.
+    @param      group           The group ID.
+    @return     integer         FTI_SCES if successful.
+
+    This function tries to recover the ckpt. files using the L4 ckpt. files
+    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+    consider this checkpoint unavailable.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+{
+    unsigned long maxFs, fs, ps, pos = 0;
+    int j, l, gs, erased[FTI_BUFS];
+    char gfn[FTI_BUFS], lfn[FTI_BUFS];
+    FILE *gfd, *lfd;
+
+    gs = FTI_Topo->groupSize;
+    if (FTI_Topo->nodeRank == 0 || FTI_Topo->nodeRank == 1) {
+        if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+            if (errno != EEXIST)
+                FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+        }
+    }
+    MPI_Barrier(FTI_COMM_WORLD);
+    // Checking erasures
+    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 4) != FTI_SCES) {
+        FTI_Print("Error checking erasures.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    l = 0;
+    // Counting erasures
+    for (j = 0; j < gs; j++) {
+        if (erased[j])
+            l++;
+    }
+    if (l > 0) {
+        FTI_Print("Checkpoint file missing at L4.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    ps = (fs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
+    pos = 0; // For the logic
+    // Calculating padding size
+    if (ps < fs)
+        ps = ps + FTI_Conf->blockSize;
+    // Open and resize files
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
+    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
+
+    if (truncate(gfn, ps) == -1) {
+        FTI_Print("R4 cannot truncate the ckpt. file in the PFS.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    gfd = fopen(gfn, "rb");
+    if (gfd == NULL) {
+        FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    lfd = fopen(lfn, "wb");
+    if (lfd == NULL) {
+        FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        fclose(gfd);
+        return FTI_NSCS;
+    }
+
+    char *blBuf1 = talloc(char, FTI_Conf->blockSize);
+    // Checkpoint files transfer from PFS
+    while (pos < ps) {
+        size_t bytes = fread(blBuf1, sizeof(char), FTI_Conf->blockSize, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), bytes, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(gfd);
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
+        pos = pos + FTI_Conf->blockSize;
+    }
+
+    free(blBuf1);
+
+    fclose(gfd);
+    fclose(lfd);
+
+    if (truncate(gfn, fs) == -1) {
+        FTI_Print("R4 cannot re-truncate the checkpoint file in the PFS.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+    if (truncate(lfn, fs) == -1) {
+        FTI_Print("R4 cannot re-truncate the local checkpoint file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover L4 ckpt. files from the PFS using MPI-I/O.
+    @return     integer         FTI_SCES if successful.
+
+    This function tries to recover the ckpt. files using the L4 ckpt. files
+    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+    consider this checkpoint unavailable.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+{
+    int i, j, l, reslen, buf;
+    char gfn[FTI_BUFS], lfn[FTI_BUFS], mpi_err[FTI_BUFS], str[FTI_BUFS];
+    FILE *lfd;
+    MPI_File pfh;
+    MPI_Offset offset = 0, tfs, sfs, nbBlocks, block = 0, lastBlockBytes, *chunkSizes;
+    MPI_Status status;
+    MPI_Info info;
+    
+    // enable collective buffer optimization
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "romio_cb_read", "enable");
+        
+    // set stripping unit to 4MB
+    MPI_Info_set(info, "stripping_unit", "4194304");
+
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
+    
+    // rename checkpoint file.
+    sprintf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
+    
+    // open parallel file
+    buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
+    // check if successfull
+    if (buf != 0) {
+        MPI_Error_string(buf, mpi_err, &reslen);
+        if (buf != MPI_ERR_NO_SUCH_FILE) {
+            snprintf(str, FTI_BUFS, "unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
+            FTI_Print(str, FTI_EROR);
+        }
+        return FTI_NSCS;
+    }
+
+    // create local directories
+    if (FTI_Topo->nodeRank == 0 || FTI_Topo->nodeRank == 1) {
+        if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+            if (errno != EEXIST)
+                FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+        }
+    }
+    MPI_Barrier(FTI_COMM_WORLD);
+    
+    // collect chunksizes of other ranks
+    chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
+    MPI_Allgather(&(FTI_Exec->meta[0].fs), 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+   
+    // set file offset
+    for (i=0; i<FTI_Topo->splitRank; i++) {
+        offset += chunkSizes[i];
+    }
+    
+    // number of blocks
+    nbBlocks = (FTI_Exec->meta[0].fs) / FTI_Conf->blockSize;
+    block = 0; // For the logic
+    lastBlockBytes = (FTI_Exec->meta[0].fs) % FTI_Conf->blockSize; // modulo for size of last block in bytes
+
+    lfd = fopen(lfn, "wb");
+    if (lfd == NULL) {
+        FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    char *blBuf1 = talloc(char, FTI_Conf->blockSize);
+    
+    // Checkpoint files transfer from PFS
+    while (block < nbBlocks) {
+        
+        // read block in parallel file
+        buf = MPI_File_read_at(pfh, offset, blBuf1, FTI_Conf->blockSize, MPI_BYTE, &status);
+        // check if successfull
+        if (buf != 0) {
+            MPI_Error_string(buf, mpi_err, &reslen);
+            snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
+            FTI_Print(str, FTI_EROR);
+            MPI_File_close(&pfh);
+            return FTI_NSCS;
+        }
+
+        fwrite(blBuf1, sizeof(char), FTI_Conf->blockSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+
+            free(blBuf1);
+
+            fclose(lfd);
+
+            return  FTI_NSCS;
+        }
+
+        offset += FTI_Conf->blockSize;
+        block++;
+    }
+        
+    // read block in parallel file
+    buf = MPI_File_read_at(pfh, offset, blBuf1, lastBlockBytes, MPI_BYTE, &status);
+    // check if successfull
+    if (buf != 0) {
+        MPI_Error_string(buf, mpi_err, &reslen);
+        snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
+        FTI_Print(str, FTI_EROR);
+        MPI_File_close(&pfh);
+        return FTI_NSCS;
+    }
+
+    fwrite(blBuf1, sizeof(char), lastBlockBytes, lfd);
+    if (ferror(lfd)) {
+        FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+
+        free(blBuf1);
+
+        fclose(lfd);
+
+        return  FTI_NSCS;
+    }
+
+
+    free(blBuf1);
+
+    buf = MPI_File_close(&pfh);
+    // check if successfull
+    if (buf != 0) {
+        MPI_Error_string(buf, mpi_err, &reslen);
+        snprintf(str, FTI_BUFS, "unable to close file [MPI ERROR - %i] %s", buf, mpi_err);
+        FTI_Print(str, FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    fclose(lfd);
+
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover L4 ckpt. files from the PFS using SIONlib.
+    @return     integer         FTI_SCES if successful.
+
+    This function tries to recover the ckpt. files using the L4 ckpt. files
+    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+    consider this checkpoint unavailable.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+{
     size_t nbBlocks, block = 0, lastBlockBytes;
-    int j, l, gs, erased[FTI_BUFS], sid, nlocaltasks = 1, numFiles=1, nlocalfiles = 1, res, noFile;
+    int j, l, sid, nlocaltasks = 1, numFiles=1, nlocalfiles = 1, res, noFile;
     int *gRankList, *file_map, *rank_map;
     char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS], *newfname = NULL;
     FILE *gfd, *lfd, *dfp;
@@ -878,7 +1182,6 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sion_int64 *chunkSizes, chunksize;
     sion_int32 fsblksize=-1;
 
-    gs = FTI_Topo->groupSize;
     if (FTI_Topo->nodeRank == 0 || FTI_Topo->nodeRank == 1) {
         if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
             if (errno != EEXIST) {
@@ -886,6 +1189,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
+
     MPI_Barrier(FTI_COMM_WORLD);
 
     sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
@@ -931,17 +1235,6 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         *rank_map = *gRankList;
     
     }
-
-/*
-    gRankList = talloc(int, 1);
-    chunkSizes = talloc(sion_int64, 1);
-    file_map = talloc(int, 1);
-    rank_map = talloc(int, 1);
-        
-    *gRankList = FTI_Topo->myRank;
-    *file_map = 0;
-    *rank_map = *gRankList;
-*/      
 
     sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
     
@@ -1014,4 +1307,5 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     sion_parclose_mapped_mpi(sid);
     return FTI_SCES;
+
 }

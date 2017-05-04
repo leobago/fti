@@ -613,14 +613,14 @@ void FTI_Print(char* msg, int priority)
         if (msg != NULL) {
             switch (priority) {
                 case FTI_EROR:
-                    fprintf(stderr, "[FTI Error - %06d] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
                     break;
                 case FTI_WARN:
-                    fprintf(stdout, "[FTI Warning %06d] : %s \n", FTI_Topo.myRank, msg);
+                    fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
                     break;
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ FTI  Information ] : %s \n", msg);
+                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_DBUG:

@@ -87,9 +87,27 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
     
     if (globalTmp) {
+        // create global temp directory
+        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create global directory", FTI_EROR);
+                return FTI_NSCS;
+            }
+        }
+
         res = FTI_Try(FTI_WritePar(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data),"Write checkpoint to PFS");
     }
     else {
+        // set serial file name
+        snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+        sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+        
+        // create local temp directory
+        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create local directory", FTI_EROR);
+            }
+        }
         res = FTI_Try(FTI_WriteSer(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data),"Write checkpoint to PFS");
     }
     
@@ -302,11 +320,6 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    return FTI_SCES;
-}
-
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
     int i, dCount, res, reslen;
@@ -332,10 +345,12 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
         chunkSize += FTI_Data[i].size;
     }
 
+    FTI_Exec->meta[0].fs = chunkSize;
+
     // collect chunksizes of other ranks
     chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
     MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-   
+       
     // determine parallel file size
     for(i=0; i<FTI_Topo->nbApprocs*FTI_Topo->nbNodes; i++) {
         pfSize += chunkSizes[i];
@@ -553,20 +568,16 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     
     int res;
     
-    // create global temp directory
-    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global directory", FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
-    
     // select IO
     switch(FTI_Conf->ioMode) {
 
         case FTI_IO_POSIX:
 
-            res = FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+            // set serial file name
+            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+            
+            res = FTI_WriteSer(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
             break;
         
         case FTI_IO_MPI:
@@ -598,22 +609,12 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
 {
 
     int i;
-    char fn[FTI_BUFS], str[FTI_BUFS];
+    char str[FTI_BUFS];
     size_t glbWritten = 0; // checkpointsize
     FILE *fd;
     
-    // create local temp directory
-    snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create local directory", FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
-
     // open task local ckpt file
-    fd = fopen(fn, "wb");
+    fd = fopen(FTI_Exec->fn, "wb");
     if (fd == NULL) {
         FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
 

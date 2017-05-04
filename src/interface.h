@@ -51,8 +51,6 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
-int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -121,7 +119,12 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
-
+int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
+int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_CheckFile(char *fn, unsigned long fs);
 int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
