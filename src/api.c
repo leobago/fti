@@ -556,7 +556,7 @@ int FTI_Finalize()
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_FlushInit(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Initialize flush to the PFS.");
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-            FTI_Try(FTI_FlushFinalize(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "Finalize flush to the PFS.");
+            FTI_Try(FTI_FlushFinalize(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Finalize flush to the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
@@ -565,8 +565,14 @@ int FTI_Finalize()
                 if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
                 }
-                if (rename(FTI_Conf.mTmpDir, FTI_Ckpt[4].metaDir) == -1) {
-                    FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
+                if ( FTI_Conf.ioMode == FTI_IO_POSIX ) {
+                    if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
+                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
+                    }
+                } else {
+                    if (rename(FTI_Conf.mTmpDir, FTI_Ckpt[4].metaDir) == -1) {
+                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
+                    }
                 }
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) {
                     FTI_Print("cannot save last ckpt. dir", FTI_EROR);

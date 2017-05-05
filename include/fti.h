@@ -134,6 +134,7 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
 typedef struct FTIT_metadata {
     size_t          maxFs;              /** maxFs                          */
     size_t          fs;                 /** fs                             */
+    char            ckptFile[FTI_BUFS]; /** ckpt file name                 */
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
@@ -169,6 +170,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     unsigned int    nbVar;              /** Number of protected variables. */
     unsigned int    nbType;             /** Number of data types.          */
     FTIT_metadata   *meta;              /** Metadata for restart           */
+    MPI_File        pfh;                /** MPI-IO file handle             */
     MPI_Comm        globalComm;         /** Global communicator.           */
     MPI_Comm        groupComm;          /** Group communicator.            */
 } FTIT_execution;

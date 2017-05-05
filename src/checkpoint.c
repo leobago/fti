@@ -171,12 +171,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  int group, int fo, int pr)
 {
-    int i, j, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank, sid;
+    int i, j, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
     double t0, t1, t2, t3;
-    int save_sectorID, save_groupID, nbSectors;
-    unsigned long fs, maxFs;
-    sion_int64 chunksize;
-    sion_int32 fsblksize = -1;
     char str[FTI_BUFS];
     char catstr[FTI_BUFS];
 
@@ -191,9 +187,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     t1 = MPI_Wtime();
     
-    if (FTI_Exec->ckptLvel == 4 && FTI_Topo->amIaHead && !FTI_Ckpt[4].isInline) {
-        res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
-    }
+    // initialize Flush
+    res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
     
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (tres != FTI_SCES) {
@@ -218,9 +213,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    if (FTI_Exec->ckptLvel == 4 && FTI_Topo->amIaHead && !FTI_Ckpt[4].isInline) {
-        res += FTI_FlushFinalize(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-    }
+    // finalize Flush
+    res += FTI_FlushFinalize(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
 
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (tres != FTI_SCES) {
@@ -335,7 +329,8 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     // enable collective buffer optimization
     MPI_Info_create(&info);
     MPI_Info_set(info, "romio_cb_write", "enable");
-        
+    
+    // TODO enable to set stripping unit in the config file (Maybe also other hints)
     // set stripping unit to 4MB
     MPI_Info_set(info, "stripping_unit", "4194304");
     
@@ -459,7 +454,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     // This barrier is actually not supposed to be here since close call collective...
     MPI_Barrier(FTI_COMM_WORLD);
     MPI_File_close(&pfh);
-    //MPI_Info_free(&info);
+    MPI_Info_free(&info);
     return FTI_SCES;
 }
 
