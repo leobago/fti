@@ -38,6 +38,4 @@ before_script:
   - sudo make all install
 
 script: 
-  - make
-  - cd ..
   - ./test/tests.sh

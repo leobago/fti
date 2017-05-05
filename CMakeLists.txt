@@ -10,6 +10,7 @@ endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_TESTS "Enables the generation of tests" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -95,6 +96,9 @@ if(ENABLE_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
+if(ENABLE_TESTS)
+	add_subdirectory(test)
+endif()
 
 # installable config
 

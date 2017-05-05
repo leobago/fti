@@ -27,8 +27,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
 
 #define ITERATIONS 111          //iterations
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
@@ -222,18 +222,18 @@ int init(char** argv, int* checkpoint_level, int* fail)
         rtn = 1;
     }
     if (argv[2] == NULL) {
-        printf("Missing second parameter (checkpoint level).\n");
+        printf("Missing second parameter (if fail).\n");
         rtn = 1;
     }
     else {
-        *checkpoint_level = atoi(argv[2]);
+        *fail = atoi(argv[2]);
     }
     if (argv[3] == NULL) {
-        printf("Missing third parameter (if fail).\n");
+        printf("Missing third parameter (checkpoint level).\n");
         rtn = 1;
     }
     else {
-        *fail = atoi(argv[3]);
+        *checkpoint_level = atoi(argv[3]);
     }
     return rtn;
 }
@@ -255,7 +255,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail)
 
     if ((dir = opendir (path)) != NULL) {
         while ((ent = readdir (dir)) != NULL) {
-            if (strcmp(ent->d_name , ".") && strcmp(ent->d_name, "..")) {
+            if (strstr(ent->d_name, "Ckpt") != NULL && strstr(ent->d_name, "ftics") == NULL) {
                 sprintf(str, "%s/%s", path, ent->d_name);
 
                 FILE* f = fopen(str, "rb");

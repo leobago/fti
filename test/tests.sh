@@ -1,26 +1,40 @@
 #!/bin/bash
 
-check () {
-	if [ $1 != 0 ]
+startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - checkpoint level
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		Running $1 test... ($2)"
+	printf "_______________________________________________________________________________________\n\n"
+	cp configs/$2 config.fti
+	sudo mpirun -n $3 ./$1 config.fti 1 $4
+	if [ $? != 0 ]
 	then
-		echo "Exit status: $1"
 		exit 1
 	fi
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		 Resuming $1 test... ($2)"
+	printf "_______________________________________________________________________________________\n\n"
+	sudo mpirun -n $3 ./$1 config.fti 0 $4
+	if [ $? != 0 ]
+	then
+		exit 1
+	fi
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		$1 test succeed. ($2)"
+	printf "_______________________________________________________________________________________\n\n"
 }
 
-startTest () {
-	echo "Running $1 test... ($2)"
-		bash ./$1/test.sh ${@:2}
-		check $?
-}
 runAllConfiguration() {
 	for i in {0..2}
 	do
-		startTest addInArray ${silentConfigs[$i]} $1 1 2 3 4
+		for j in {1..4}
+		do
+		startTest addInArray ${silentConfigs[$i]} $1 $j
+		startTest diffSizes ${silentConfigs[$i]} $1 $j
+		startTest lvlsRecovery ${silentConfigs[$i]} $1 $j
+		startTest tokenRing ${silentConfigs[$i]} $1 $j
+		done
 		startTest nodeFlag ${configs[$i]} $1
-		startTest tokenRing ${silentConfigs[$i]} $1 1 2 3 4
-		startTest diffSizes ${silentConfigs[$i]} $1 1 2 3 4
-		startTest lvlsRecovery ${silentConfigs[$i]} $1 1 2 3 4
+
 	done
 	#slow test at the end
 	for i in {0..2}
