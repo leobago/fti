@@ -43,7 +43,6 @@ before_install:
 before_script:
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
-  - ls -l /opt/pgi/linux86-64/
   - cmake ..
   - make all
   - sudo make install
