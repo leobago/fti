@@ -15,15 +15,15 @@ Node_size = 2
 
 # LOCAL directory where the local checkpoints will be stored
 # This directory MUST exist and have write access
-Ckpt_dir = /path/to/local/storage/
+Ckpt_dir = ./Local	#/path/to/local/storage/
 
 # GLOBAL directory where the global checkpoints will be stored
 # This directory MUST exist and have write access
-Glbl_dir = /path/to/global/storage/
+Glbl_dir = ./Global 	#/path/to/global/storage/
 
 # GLOBAL directory where the FTI metadata will be stored
 # This directory MUST exist and have write access
-Meta_dir = /home/username/.fti
+Meta_dir = ./Meta	#/home/username/.fti
 
 # Level 1 ckpt interval in minutes of L1 ckpts (Local write)
 Ckpt_L1 = 3
