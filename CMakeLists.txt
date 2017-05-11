@@ -44,13 +44,9 @@ append_property(TARGET fti.static fti.shared
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
-#PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
-#http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
-if(NOT ${USE_PGI})
-	find_library(LIBM m DOC "The math library")
-endif()
+find_library(LIBM m DOC "The math library")
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}")
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
 
 set(FTI_TARGETS fti.static fti.shared)
@@ -60,12 +56,12 @@ install(FILES "include/fti.h"
 
 if(ENABLE_FORTRAN)
 	add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-
+	
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
-
+		
 	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
-
+	
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
@@ -115,3 +111,10 @@ install(FILES "${WORK_DIR}/FTIConfig.cmake" DESTINATION lib/CMake/FTI)
 set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "FTI Include path")
 export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
+
+# set up exaples in build/examples/
+
+file(COPY examples/configBkp.fti DESTINATION examples)
+file(COPY examples/plot.sh DESTINATION examples)
+file(COPY examples/vplot.plg DESTINATION examples)
+file(COPY examples/README.txt DESTINATION examples)
