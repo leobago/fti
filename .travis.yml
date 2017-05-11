@@ -49,4 +49,5 @@ before_script:
   - cd ..
 
 script:
+  - ls -l /opt/pgi/linux86-64/
   - ./test/tests.sh
