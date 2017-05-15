@@ -5,7 +5,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	echo "		Running $1 test... ($2)"
 	printf "_______________________________________________________________________________________\n\n"
 	cp configs/$2 config.fti
-	mpirun -n $3 ./$1 config.fti 1 $4
+	mpirun -n $3 ./$1 config.fti $4 1
 	if [ $? != 0 ]
 	then
 		exit 1
@@ -13,7 +13,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	printf "_______________________________________________________________________________________\n\n"	
 	echo "		 Resuming $1 test... ($2)"
 	printf "_______________________________________________________________________________________\n\n"
-	mpirun -n $3 ./$1 config.fti 0 $4
+	mpirun -n $3 ./$1 config.fti $4 0
 	if [ $? != 0 ]
 	then
 		exit 1

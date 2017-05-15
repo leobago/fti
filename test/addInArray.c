@@ -99,18 +99,18 @@ int init(char** argv, int* checkpoint_level, int* fail)
         rtn = 1;
     }
     if (argv[2] == NULL) {
-        printf("Missing second parameter (if fail).\n");
+        printf("Missing second parameter (checkpoint level).\n");
         rtn = 1;
     }
     else {
-        *fail = atoi(argv[2]);
+        *checkpoint_level = atoi(argv[2]);
     }
     if (argv[3] == NULL) {
-        printf("Missing third parameter (checkpoint level).\n");
+        printf("Missing third parameter (if fail).\n");
         rtn = 1;
     }
     else {
-        *checkpoint_level = atoi(argv[3]);
+        *fail = atoi(argv[3]);
     }
     return rtn;
 }
