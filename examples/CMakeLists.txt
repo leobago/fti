@@ -6,6 +6,8 @@ set_property(TARGET hd.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 add_executable(hd2.exe heatd2.c)
 target_link_libraries(hd2.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
+
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
     target_link_libraries(hdf.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)
