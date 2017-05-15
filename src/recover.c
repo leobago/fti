@@ -141,7 +141,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
                 else {
                     FTI_Exec->meta[0].fs = fs;
-                    printf("rank: %i, fs: %i\n",FTI_Topo->splitRank, (int)fs);
                     FTI_Exec->meta[0].maxFs = maxFs;
                     FTI_Exec->ckptLvel = level;
                     switch (FTI_Exec->ckptLvel) {

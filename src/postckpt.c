@@ -335,7 +335,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // TODO nodeRank was used here. But it is always == 0. should maybe get fixed.
     // Instead nodeRank == headRank (i.e. Head splitRank).
     // determine split rank from global rank
-    int splitRank = gRank - ( (FTI_Topo->splitRank+1) * FTI_Topo->nbHeads );
+    int splitRank = (FTI_Topo->amIaHead) ? gRank - ( (FTI_Topo->splitRank+1) * FTI_Topo->nbHeads ) : FTI_Topo->splitRank;
 
     // align ps to blocksize
     ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
@@ -400,7 +400,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             for (i=0; i<splitRank; i++) {
                 offset += chunkSizes[i];
             }
-    
+
             break; 
 
         case FTI_IO_SIONLIB:
@@ -844,7 +844,8 @@ int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
         
         // set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-        res = FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[0].fs, FTI_Exec->meta[0].maxFs, FTI_Exec->ckptFile), "write the metadata.");
+        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1), "create metadata.");
+        //res = FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[0].fs, FTI_Exec->meta[0].maxFs, FTI_Exec->ckptFile), "write the metadata.");
 
     }
     return res;
@@ -856,6 +857,7 @@ int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     
     int res = 0, i, j, nbSectors, save_sectorID, save_groupID;
+    unsigned long *fs, *mfs;
 
     // This barrier is actually not supposed to be here since close call collective...
     MPI_Barrier(FTI_COMM_WORLD);
@@ -863,6 +865,7 @@ int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (FTI_Topo->amIaHead) {
         
+        talloc(unsigned long, FTI_Topo->groupSize);
         // set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID+1);
 
@@ -891,7 +894,8 @@ int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         
         // set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-        res = FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[0].fs, FTI_Exec->meta[0].maxFs, FTI_Exec->ckptFile), "write the metadata.");
+        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1), "create metadata.");
+        //res = FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[0].fs, FTI_Exec->meta[0].maxFs, FTI_Exec->ckptFile), "write the metadata.");
 
     }
     return res;
