@@ -39,3 +39,4 @@ clean:
 		rm -f hd.exe hd2.exe hdf.exe results/*
 
 .PHONY:		hd hd2 hdf hdt hdv clean
+
