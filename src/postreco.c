@@ -148,7 +148,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
 
         fclose(fd);
-        
+
         for (i = 0; i < m; i++) {
             free(coding[i]);
             free(data[i]);
@@ -320,6 +320,155 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Sends checkpint file.
+    @param      destination     destination group rank
+    @param      fs              filesize
+    @param      maxFs           maximum filesize
+    @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt
+
+    @return     integer         FTI_SCES if successful.
+
+    This function sends Ckpt or PtnerCkpt file from partner proccess.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                        FTIT_checkpoint* FTI_Ckpt, int destination,
+                         unsigned long fs, unsigned long maxFs, int ptner) {
+    unsigned long position, paddingSize; //fileSize, maxFileSize, position, paddingSize
+    int i, j; //iterators
+    int bytes;
+    char filename[FTI_BUFS], str[FTI_BUFS];
+    FILE *fileDesc;
+
+    paddingSize = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
+    if (paddingSize < maxFs) {
+        paddingSize = paddingSize + FTI_Conf->blockSize; // Calculating padding size
+    }
+    sprintf(str, "Send file size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, paddingSize);
+    FTI_Print(str, FTI_DBUG);
+
+    if (ptner) {
+        int rank;
+        sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
+        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
+    } else {
+        sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
+    }
+    if (truncate(filename, paddingSize) == -1) {
+        sprintf(str, "R2 cannot truncate the ckpt. file (%s).", filename);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    sprintf(str, "Opening Ptner checkpoint file (%s) (L2).", filename);
+    FTI_Print(str, FTI_DBUG);
+    fileDesc = fopen(filename, "rb");
+    if (fileDesc == NULL) {
+        FTI_Print("R2 cannot open the partner ckpt. file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    char* buffer = talloc(char, FTI_Conf->blockSize);
+    position = 0; // For the logic
+    while (position < paddingSize) {
+        size_t bytes = fread(buffer, sizeof(char), FTI_Conf->blockSize, fileDesc);
+
+        if (ferror(fileDesc)) {
+            FTI_Print("Error reading the data from the ckpt. file.", FTI_WARN);
+
+            fclose(fileDesc);
+            free(buffer);
+
+            return FTI_NSCS;
+        }
+
+        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->tag, FTI_Exec->groupComm);
+        position += bytes;
+    }
+    fclose(fileDesc);
+    free(buffer);
+
+    if (truncate(filename, fs) == -1) { //this is proper fileSize for ptner?
+        FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Receives checkpint file.
+    @param      source          source group rank
+    @param      fs              filesize
+    @param      maxFs           maximum filesize
+    @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt
+
+    @return     integer         FTI_SCES if successful.
+
+    This function receives Ckpt or PtnerCkpt file from partner proccess.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                        FTIT_checkpoint* FTI_Ckpt, int source, unsigned long fs,
+                         unsigned long maxFs, int ptner) {
+    int i, j; //iterators
+    char filename[FTI_BUFS], str[FTI_BUFS];
+    FILE *fileDesc;
+    unsigned long position, paddingSize;
+
+    paddingSize = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
+    if (paddingSize < maxFs) {
+        paddingSize = paddingSize + FTI_Conf->blockSize; // Calculating padding size
+    }
+    sprintf(str, "Receive file size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, paddingSize);
+    FTI_Print(str, FTI_DBUG);
+
+    if (ptner) {
+        int rank;
+        sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
+        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
+    } else {
+        sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
+    }
+
+    sprintf(str, "Opening checkpoint file (%s) (L2).", FTI_Exec->ckptFile);
+    FTI_Print(str, FTI_DBUG);
+    fileDesc = fopen(filename, "wb");
+    if (fileDesc == NULL) {
+        FTI_Print("R2 cannot open the ckpt. file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    char* buffer = talloc(char, FTI_Conf->blockSize);
+    position = 0; // For the logic
+    while (position < paddingSize) {
+        MPI_Recv(buffer, FTI_Conf->blockSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        fwrite(buffer, sizeof(char), FTI_Conf->blockSize, fileDesc);
+        if (ferror(fileDesc)) {
+            FTI_Print("Error writing the data to the ckpt. file.", FTI_WARN);
+
+            fclose(fileDesc);
+            free(buffer);
+
+            return FTI_NSCS;
+        }
+
+        position += FTI_Conf->blockSize;
+    }
+    fclose(fileDesc);
+    free(buffer);
+
+    if (truncate(filename, fs) == -1) { //this is proper fileSize for ptner?
+        FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      Recover L2 ckpt. files using the partner copy.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
@@ -333,24 +482,15 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    int erased[FTI_BUFS], gs, buf, j, src, dest;
-    char str[FTI_BUFS], lfn[FTI_BUFS], pfn[FTI_BUFS], jfn[FTI_BUFS], qfn[FTI_BUFS];
-    char *blBuf1, *blBuf2, *blBuf3, *blBuf4;
-    unsigned long ps, fs, maxFs, pos = 0;
-
-    FILE *lfd = NULL, *pfd = NULL, *jfd = NULL, *qfd = NULL;
-
-    MPI_Request reqSend1, reqRecv1, reqSend2, reqRecv2;
-    MPI_Status status;
-
-    blBuf1 = talloc(char, FTI_Conf->blockSize);
-    blBuf2 = talloc(char, FTI_Conf->blockSize);
-    blBuf3 = talloc(char, FTI_Conf->blockSize);
-    blBuf4 = talloc(char, FTI_Conf->blockSize);
-
-    gs = FTI_Topo->groupSize;
-    src = FTI_Topo->left;
-    dest = FTI_Topo->right;
+    FTI_Print("Recover from L2", FTI_WARN);
+    int erased[FTI_BUFS];
+    unsigned long fs, maxFs, position, paddingSize; //fileSize, maxFileSize, position, paddingSize
+    int i, j; //iterators
+    int source = FTI_Topo->right; //we get file from this process
+    int destination = FTI_Topo->left; //we give file to this process
+    int res;
+    char ptnerFilename[FTI_BUFS], str[FTI_BUFS];
+    FILE *ptnerFile;
 
     if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -360,435 +500,88 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Checking erasures
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 2) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_DBUG);
-
-        free(blBuf1);
-        free(blBuf2);
-        free(blBuf3);
-        free(blBuf4);
-
+        FTI_Print("Error checking erasures.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    buf = -1;
-    for (j = 0; j < gs; j++) {
-        if (erased[j] && erased[((j + 1) % gs) + gs]) {
-            buf = j; // Counting erasures
-        }
-    }
-    sprintf(str, "A checkpoint file and its partner copy (ID in group : %d) have been lost", buf);
-    if (buf > -1) {
-        FTI_Print(str, FTI_DBUG);
-
-        free(blBuf1);
-        free(blBuf2);
-        free(blBuf3);
-        free(blBuf4);
-
-        return FTI_NSCS;
-    }
-
-    buf = 0;
-    for (j = 0; j < gs * 2; j++) {
+    i = 0;
+    for (j = 0; j < FTI_Topo->groupSize * 2; j++) { //do we need to check Ptner files?
         if (erased[j]) {
-            buf++; // Counting erasures
+            i++; // Counting erasures
         }
     }
-    if (buf > 0) {
-        ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-        pos = 0; // For the logic
-        if (ps < maxFs) {
-            ps = ps + FTI_Conf->blockSize; // Calculating padding size
-        }
-        sprintf(str, "File size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, ps);
-        FTI_Print(str, FTI_DBUG);
+    if (i == 0) {
+        FTI_Print("Have all checkpoint files.", FTI_DBUG);
+        return FTI_SCES;
+    }
 
-        // Open checkpoint file to recover
-        if (erased[FTI_Topo->groupRank]) {
-            sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-            sprintf(jfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
-            sprintf(str, "Opening checkpoint file (%s) to recover (L2).", lfn);
-            FTI_Print(str, FTI_DBUG);
-            sprintf(str, "Opening partner ckpt. file (%s) to recover (L2).", jfn);
-            FTI_Print(str, FTI_DBUG);
+    if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
+        FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
+        return FTI_NSCS; //needed FTI_Abort?
+    }
 
-            lfd = fopen(lfn, "wb");
-            if (lfd == NULL) {
-                FTI_Print("R2 cannot open the checkpoint file.", FTI_DBUG);
+    if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
+        FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
+        return FTI_NSCS; //needed FTI_Abort?
+    }
 
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-
-            jfd = fopen(jfn, "wb");
-            if (jfd == NULL) {
-                FTI_Print("R2 cannot open the partner ckpt. file.", FTI_DBUG);
-
-                fclose(lfd);
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
+    //recover checkpoint files
+    if (FTI_Topo->groupRank % 2) {
+        if (erased[destination]) { //fisrst send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-
-        // Truncate and open partner file to transfer
-        if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
-            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-            sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
-            sprintf(str, "Opening partner ckpt. file (%s) to transfer (L2).", pfn);
-            FTI_Print(str, FTI_DBUG);
-
-            if (truncate(pfn, ps) == -1) {
-                FTI_Print("R2 cannot truncate the partner ckpt. file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (lfd) {
-                    fclose(lfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-
-            pfd = fopen(pfn, "rb");
-            if (pfd == NULL) {
-                FTI_Print("R2 cannot open partner ckpt. file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (lfd) {
-                    fclose(lfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
+        if (erased[FTI_Topo->groupRank]) { //receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-
-        // Truncate and open partner file to transfer
-        if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
-            sprintf(qfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-            sprintf(str, "Opening ckpt. file (%s) to transfer (L2).", qfn);
-            FTI_Print(str, FTI_DBUG);
-
-            if (truncate(qfn, ps) == -1) {
-                FTI_Print("R2 cannot truncate the ckpt. file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (lfd) {
-                    fclose(lfd);
-                }
-                if (pfd) {
-                    fclose(pfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-
-            qfd = fopen(qfn, "rb");
-            if (qfd == NULL) {
-                FTI_Print("R2 cannot open ckpt. file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (lfd) {
-                    fclose(lfd);
-                }
-                if (pfd) {
-                    fclose(pfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
+    } else {
+        if (erased[FTI_Topo->groupRank]) { //first receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-
-        // Checkpoint files exchange
-        while (pos < ps) {
-            if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
-                size_t bytes = fread(blBuf1, sizeof(char), FTI_Conf->blockSize, pfd);
-
-                if (ferror(pfd)) {
-                    FTI_Print("Error reading the data from the partner ckpt. file.", FTI_DBUG);
-
-                    fclose(pfd);
-                    if (jfd) {
-                        fclose(jfd);
-                    }
-                    if (lfd) {
-                        fclose(lfd);
-                    }
-                    if (qfd) {
-                        fclose(qfd);
-                    }
-
-                    free(blBuf1);
-                    free(blBuf2);
-                    free(blBuf3);
-                    free(blBuf4);
-
-                    return FTI_NSCS;
-                }
-
-                MPI_Isend(blBuf1, bytes, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend1);
-            }
-            if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
-                size_t bytes = fread(blBuf3, sizeof(char), FTI_Conf->blockSize, qfd);
-
-                if (ferror(qfd)) {
-                    FTI_Print("Error reading the data from the ckpt. file.", FTI_DBUG);
-
-                    fclose(qfd);
-                    if (jfd) {
-                        fclose(jfd);
-                    }
-                    if (lfd) {
-                        fclose(lfd);
-                    }
-                    if (pfd) {
-                        fclose(pfd);
-                    }
-
-                    free(blBuf1);
-                    free(blBuf2);
-                    free(blBuf3);
-                    free(blBuf4);
-
-                    return FTI_NSCS;
-                }
-
-                MPI_Isend(blBuf3, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend2);
-            }
-            if (erased[FTI_Topo->groupRank]) {
-                MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv1);
-                MPI_Irecv(blBuf4, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv2);
-            }
-            if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
-                MPI_Wait(&reqSend1, &status);
-            }
-            if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
-                MPI_Wait(&reqSend2, &status);
-            }
-            if (erased[FTI_Topo->groupRank]) {
-                MPI_Wait(&reqRecv1, &status);
-                MPI_Wait(&reqRecv2, &status);
-
-                fwrite(blBuf2, sizeof(char), FTI_Conf->blockSize, lfd);
-                if (ferror(lfd)) {
-                    FTI_Print("Errors writting the data in the R2 checkpoint file.", FTI_DBUG);
-
-                    fclose(lfd);
-                    if (jfd) {
-                        fclose(jfd);
-                    }
-                    if (pfd) {
-                        fclose(pfd);
-                    }
-                    if (qfd) {
-                        fclose(qfd);
-                    }
-
-                    free(blBuf1);
-                    free(blBuf2);
-                    free(blBuf3);
-                    free(blBuf4);
-
-                    return FTI_NSCS;
-                }
-
-                fwrite(blBuf4, sizeof(char), FTI_Conf->blockSize, jfd);
-                if (ferror(jfd)) {
-                    FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
-
-                    fclose(jfd);
-                    fclose(lfd);
-                    if (pfd) {
-                        fclose(pfd);
-                    }
-                    if (qfd) {
-                        fclose(qfd);
-                    }
-
-                    free(blBuf1);
-                    free(blBuf2);
-                    free(blBuf3);
-                    free(blBuf4);
-
-                    return FTI_NSCS;
-                }
-            }
-            pos = pos + FTI_Conf->blockSize;
-        }
-
-        // Close files
-        if (erased[FTI_Topo->groupRank]) {
-            if (fclose(lfd) != 0) {
-                FTI_Print("R2 cannot close the checkpoint file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (pfd) {
-                    fclose(pfd);
-                }
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-            if (truncate(lfn, fs) == -1) {
-                FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_DBUG);
-
-                if (jfd) {
-                    fclose(jfd);
-                }
-                if (pfd) {
-                    fclose(pfd);
-                }
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-
-            if (fclose(jfd) != 0) {
-                FTI_Print("R2 cannot close the partner ckpt. file.", FTI_DBUG);
-
-                if (pfd) {
-                    fclose(pfd);
-                }
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-            if (truncate(jfn, fs) == -1) {
-                FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
-
-                if (pfd) {
-                    fclose(pfd);
-                }
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-        }
-
-        if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
-            if (fclose(pfd) != 0) {
-                FTI_Print("R2 cannot close the partner ckpt. file", FTI_DBUG);
-
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-            if (truncate(pfn, fs) == -1) {
-                FTI_Print("R2 cannot re-truncate the partner ckpt. file.", FTI_DBUG);
-
-                if (qfd) {
-                    fclose(qfd);
-                }
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-        }
-
-        if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
-            if (fclose(qfd) != 0) {
-                FTI_Print("R2 cannot close the ckpt. file", FTI_DBUG);
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
-                return FTI_NSCS;
-            }
-            if (truncate(qfn, fs) == -1) {
-                FTI_Print("R2 cannot re-truncate the ckpt. file.", FTI_DBUG);
-
-                free(blBuf1);
-                free(blBuf2);
-                free(blBuf3);
-                free(blBuf4);
-
+        if (erased[destination]) { //send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     }
 
-    free(blBuf1);
-    free(blBuf2);
-    free(blBuf3);
-    free(blBuf4);
+    //recover partner files
+    if (FTI_Topo->groupRank % 2) {
+        if (erased[source + FTI_Topo->groupSize]) { //fisrst send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
+    } else {
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //first receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
+        if (erased[source + FTI_Topo->groupSize]) { //send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
+    }
 
     return FTI_SCES;
 }
