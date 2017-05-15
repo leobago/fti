@@ -27,8 +27,8 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 unsigned long* fs, unsigned long* mfs, int group, int level)
 {
     dictionary* ini;
-    char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
     int res = -1, cnt = 3;
+    char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
     if (level == 0) {
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
     }
