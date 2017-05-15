@@ -363,7 +363,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
         return FTI_NSCS;
     }
     
-    //set parallel file size (collective)
+    // TODO (not needed most likely) set parallel file size (collective)
     res = MPI_File_set_size(pfh, pfSize);
 
     // set file offset
@@ -451,7 +451,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
 
     }
 
-    // This barrier is actually not supposed to be here since close call collective...
+    // TODO This barrier is actually not supposed to be here since close call collective...
     MPI_Barrier(FTI_COMM_WORLD);
     MPI_File_close(&pfh);
     MPI_Info_free(&info);

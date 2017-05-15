@@ -130,23 +130,18 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int f, r, tres = FTI_SCES, id, level = 1;
     unsigned long fs, maxFs;
     char str[FTI_BUFS];
-    if (FTI_Topo->nbHeads == 1) {
-        f = 1;
-    }
-    else {
-        f = 0;
-    }
     if (!FTI_Topo->amIaHead) {
         while (level < 5) {
             if ((FTI_Exec->reco == 2) && (level != 4)) {
                 tres = FTI_NSCS;
             }
             else {
-                if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, f, level) != FTI_SCES) {
+                if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->groupID, level) != FTI_SCES) {
                     tres = FTI_NSCS;
                 }
                 else {
                     FTI_Exec->meta[0].fs = fs;
+                    printf("rank: %i, fs: %i\n",FTI_Topo->splitRank, (int)fs);
                     FTI_Exec->meta[0].maxFs = maxFs;
                     FTI_Exec->ckptLvel = level;
                     switch (FTI_Exec->ckptLvel) {

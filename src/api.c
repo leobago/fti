@@ -437,6 +437,9 @@ int FTI_Recover()
     }
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t bytes = fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        if (i==2) {
+            printf("rank: %i, asize: %i\n", FTI_Topo.splitRank, *(int*)FTI_Data[i].ptr);
+        }
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);

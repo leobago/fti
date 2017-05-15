@@ -306,6 +306,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fs[i]; // Search max. size
         }
     }
+    FTI_Exec->meta[0].maxFs; 
     sprintf(str, "Max. file size %ld.", mfs);
     FTI_Print(str, FTI_DBUG);
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
