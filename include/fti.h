@@ -132,8 +132,8 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
  *  This type stores all the metadata necessary for the restart.
  */
 typedef struct FTIT_metadata {
-    size_t          maxFs;              /** maxFs                          */
-    size_t          fs;                 /** fs                             */
+    long            maxFs;              /** maxFs                          */
+    long            fs;                 /** fs                             */
     char            ckptFile[FTI_BUFS]; /** ckpt file name                 */
 } FTIT_metadata;
 
@@ -166,7 +166,7 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
     unsigned int    ckptID;             /** Checkpoint ID.                 */
     unsigned int    ckptNext;           /** Iteration for next checkpoint. */
     unsigned int    ckptLast;           /** Iteration for last checkpoint. */
-    unsigned int    ckptSize;           /** Checkpoint size.               */
+    long            ckptSize;           /** Checkpoint size.               */
     unsigned int    nbVar;              /** Number of protected variables. */
     unsigned int    nbType;             /** Number of data types.          */
     FTIT_metadata   *meta;              /** Metadata for restart           */

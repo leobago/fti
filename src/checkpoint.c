@@ -277,7 +277,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     MPI_Status status;
     char str[FTI_BUFS];
-    int i, buf, res, flags[7];
+    int i, j, buf, res, flags[7];
     for (i = 0; i < 7; i++) { // Initialize flags
         flags[i] = 0;
     }
@@ -316,12 +316,12 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
-    int i, dCount, res, reslen;
+    int i, j, dCount, res, reslen, int_max_int=(INT_MAX-1)/2, rSize; // somehow biggest datatype is half int_max...
     char str[FTI_BUFS], mpi_err[FTI_BUFS];
     void *dataOffset;
-    MPI_Datatype maxInt, dType, rType;
-    MPI_Offset chunkSize = 0, *chunkSizes;
-    MPI_Offset pfSector = 0, pfSize = 0, dSize, rSize;
+    MPI_Datatype dType, rType;
+    MPI_Offset chunkSize = 0, *chunkSizes, int_max_offset = (INT_MAX-1)/2;
+    MPI_Offset pfSector = 0, pfSize = 0, dSize;
     MPI_Info info;
     MPI_Status status;
     MPI_File pfh;
@@ -333,7 +333,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     // TODO enable to set stripping unit in the config file (Maybe also other hints)
     // set stripping unit to 4MB
     MPI_Info_set(info, "stripping_unit", "4194304");
-    
+    //MPI_Info_set(info, "stripping_factor", "16");
         
     // determine own chunksize
     for (i=0; i < FTI_Exec->nbVar; i++) {
@@ -364,7 +364,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     }
     
     // TODO (not needed most likely) set parallel file size (collective)
-    res = MPI_File_set_size(pfh, pfSize);
+    // res = MPI_File_set_size(pfh, pfSize);
 
     // set file offset
     for (i=0; i<FTI_Topo->splitRank; i++) {
@@ -375,45 +375,43 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
         
         // determine data types
         dSize = FTI_Data[i].size;                       // check if > 1 MPI stypes needed
-        dCount = ((int)dSize)/INT_MAX;                  // determine # chunks of datatype
+        dCount = (int)(dSize/int_max_offset);           // determine # chunks of datatype
         dataOffset = FTI_Data[i].ptr;                   // create new reference ptr
-        rSize = dSize%INT_MAX; 
+        rSize = (int)(dSize%int_max_offset);
         
         // if size of data > INT_MAX
-        if ( dCount > 1 ) {
+        if ( dCount > 0 ) {
             
             // create MPI data type
-            MPI_Type_contiguous(INT_MAX, MPI_BYTE, &dType); 
+            MPI_Type_contiguous(int_max_int, MPI_BYTE, &dType); 
             MPI_Type_commit(&dType);
-
-            for (i = 0; i < dCount; i++) {
-                
-                // write ckpt data to file
-                res = MPI_File_write_at(pfh, pfSector, dataOffset, dCount, dType, &status);
-                pfSector += INT_MAX;                    // increment file pointer
-                dataOffset += INT_MAX;                  // increment data pointer
-
-                // check if successfull
-                if (res != 0) {
-                    MPI_Error_string(res, mpi_err, &reslen);
-                    snprintf(str, FTI_BUFS, "unable to write ckpt data [MPI ERROR - %i] %s", res, mpi_err);
-                    FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&pfh);
-                    return FTI_NSCS;
-                }
-
+            
+            res=0;
+            for (j=1; j<=dCount; j++) {
+                res += MPI_File_write_at(pfh, pfSector, dataOffset, 1, dType, &status);
+                pfSector += int_max_offset;                                                                          // increment file pointer
+                dataOffset = (void*)((uintptr_t)int_max_offset + (uintptr_t)dataOffset);                  // increment data pointer
             }
             
+            // check if successfull
+            if (res != 0) {
+                MPI_Error_string(res, mpi_err, &reslen);
+                snprintf(str, FTI_BUFS, "unable to write dType to PFS [MPI ERROR - %i] %s", res, mpi_err);
+                FTI_Print(str, FTI_EROR);
+                MPI_File_close(&pfh);
+                return FTI_NSCS;
+            }
+
             // writing modulo of data size and INT_MAX
             if ( rSize > 0 ) {
 
                 // create MPI data type
                 MPI_Type_contiguous(rSize, MPI_BYTE, &rType);
-                
+                MPI_Type_commit(&rType);                
                 // write ckpt data to file
-                res = MPI_File_write_at(pfh, pfSector, dataOffset, dCount, dType, &status);
+                res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, rType, &status);
                 pfSector += rSize;                      // increment file pointer
-
+                
                 // check if successfull
                 if (res != 0) {
                     MPI_Error_string(res, mpi_err, &reslen);
@@ -450,9 +448,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
         }
 
     }
-
-    // TODO This barrier is actually not supposed to be here since close call collective...
-    MPI_Barrier(FTI_COMM_WORLD);
+    
     MPI_File_close(&pfh);
     MPI_Info_free(&info);
     return FTI_SCES;
