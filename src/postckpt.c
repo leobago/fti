@@ -299,11 +299,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
 {
-    int i, gRank, member;
+    int i, gRank, member, reslen;
     size_t res, fs, maxFs;
     MPI_Comm lComm;
     size_t data_written = 0;
-    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS];
+    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], mpi_err[FTI_BUFS];
     unsigned long ps, pos = 0;
     FILE *lfd;
     FILE *gfd;
