@@ -189,12 +189,6 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     // initialize Flush
     res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
-    
-    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (tres != FTI_SCES) {
-        FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0, group, pr);
-        return FTI_NSCS;
-    }
 
     for (i = 0; i < pr; i++) {
         switch (FTI_Exec->ckptLvel) {
@@ -314,7 +308,134 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+/*-------------------------------------------------------------------------*/
+/**
+@brief      Selects I/O to write to the PFS
+@return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+				FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
+{
+
+	int res;
+
+	// select IO
+	switch (FTI_Conf->ioMode) {
+
+	case FTI_IO_POSIX:
+
+		// set serial file name
+		snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+		sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+
+		res = FTI_WriteSer(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+		break;
+
+	case FTI_IO_MPI:
+
+		// set parallel file name
+		snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+		sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+
+		res = FTI_WriteMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+		break;
+
+	case FTI_IO_SIONLIB:
+
+		// set parallel file name
+		snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+		sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
+
+		// write checkpoint
+		res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+		break;
+
+	}
+
+	return res;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+@brief      Writes ckpt to PFS using POSIX
+@return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+				FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
+{
+
+	int i;
+	char str[FTI_BUFS];
+	size_t glbWritten = 0; // checkpointsize
+	FILE *fd;
+
+	// open task local ckpt file
+	fd = fopen(FTI_Exec->fn, "wb");
+	if (fd == NULL) {
+		FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
+
+		return FTI_NSCS;
+	}
+
+	// write data into ckpt file
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		clearerr(fd);
+		size_t written = 0;
+		int fwrite_errno;
+		while (written < FTI_Data[i].count && !ferror(fd)) {
+			errno = 0;
+			written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+			fwrite_errno = errno;
+		}
+		if (ferror(fd)) {
+			char error_msg[FTI_BUFS];
+			error_msg[0] = 0;
+			strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+			sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
+			FTI_Print(str, FTI_EROR);
+			fclose(fd);
+			return FTI_NSCS;
+		}
+		glbWritten += written*FTI_Data[i].eleSize;
+	}
+
+	// store file size in runtime meta data
+	FTI_Exec->meta[0].fs = glbWritten;
+
+	// flush buffer
+	if (fflush(fd) != 0) {
+		FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
+		fclose(fd);
+
+		return FTI_NSCS;
+	}
+
+	// close file
+	if (fclose(fd) != 0) {
+		FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+
+		return FTI_NSCS;
+	}
+
+	return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+@brief      Writes ckpt to PFS using MPI I/O
+@return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+				FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
     int i, j, dCount, res, reslen, int_max_int=(INT_MAX-1)/2, rSize; // somehow biggest datatype is half int_max...
     char str[FTI_BUFS], mpi_err[FTI_BUFS];
@@ -356,15 +477,13 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
      
     // check if successfull
     if (res != 0) {
+		errno = 0;
         MPI_Error_string(res, mpi_err, &reslen);
         snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
         FTI_Print(str, FTI_EROR);
         MPI_File_close(&pfh);
         return FTI_NSCS;
     }
-    
-    // TODO (not needed most likely) set parallel file size (collective)
-    // res = MPI_File_set_size(pfh, pfSize);
 
     // set file offset
     for (i=0; i<FTI_Topo->splitRank; i++) {
@@ -379,27 +498,28 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
         dataOffset = FTI_Data[i].ptr;                   // create new reference ptr
         rSize = (int)(dSize%int_max_offset);
         
-        // if size of data > INT_MAX
+        // if size of data > (INT_MAX-1)/2
         if ( dCount > 0 ) {
             
             // create MPI data type
             MPI_Type_contiguous(int_max_int, MPI_BYTE, &dType); 
             MPI_Type_commit(&dType);
             
-            res=0;
             for (j=1; j<=dCount; j++) {
-                res += MPI_File_write_at(pfh, pfSector, dataOffset, 1, dType, &status);
-                pfSector += int_max_offset;                                                                          // increment file pointer
-                dataOffset = (void*)((uintptr_t)int_max_offset + (uintptr_t)dataOffset);                  // increment data pointer
-            }
-            
-            // check if successfull
-            if (res != 0) {
-                MPI_Error_string(res, mpi_err, &reslen);
-                snprintf(str, FTI_BUFS, "unable to write dType to PFS [MPI ERROR - %i] %s", res, mpi_err);
-                FTI_Print(str, FTI_EROR);
-                MPI_File_close(&pfh);
-                return FTI_NSCS;
+                res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, dType, &status);
+				// check if successfull
+				if (res != 0) {
+					errno = 0;
+					MPI_Error_string(res, mpi_err, &reslen);
+					snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
+					FTI_Print(str, FTI_EROR);
+					MPI_File_close(&pfh);
+					return FTI_NSCS;
+				}
+				// increment file pointer
+				pfSector += int_max_offset;
+				// increment data pointer
+                dataOffset = (void*)((uintptr_t)int_max_offset + (uintptr_t)dataOffset);
             }
 
             // writing modulo of data size and INT_MAX
@@ -410,17 +530,17 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
                 MPI_Type_commit(&rType);                
                 // write ckpt data to file
                 res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, rType, &status);
-                pfSector += rSize;                      // increment file pointer
-                
-                // check if successfull
-                if (res != 0) {
-                    MPI_Error_string(res, mpi_err, &reslen);
-                    snprintf(str, FTI_BUFS, "unable to write ckpt data [MPI ERROR - %i] %s", res, mpi_err);
-                    FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&pfh);
-                    return FTI_NSCS;
-                }
-
+				// check if successfull
+				if (res != 0) {
+					errno = 0;
+					MPI_Error_string(res, mpi_err, &reslen);
+					snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
+					FTI_Print(str, FTI_EROR);
+					MPI_File_close(&pfh);
+					return FTI_NSCS;
+				}
+				// increment file pointer
+                pfSector += rSize;
             }
         } else {
             // create MPI data type
@@ -429,16 +549,17 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
                 
             // write ckpt data to file
             res = MPI_File_write_at(pfh, pfSector, FTI_Data[i].ptr, 1, dType, &status);
-            pfSector += dSize;                         // increment file pointer
-
-            // check if successfull
-            if (res != 0) {
-                MPI_Error_string(res, mpi_err, &reslen);
-                snprintf(str, FTI_BUFS, "unable to write ckpt data [MPI ERROR - %i] %s", res, mpi_err);
-                FTI_Print(str, FTI_EROR);
-                MPI_File_close(&pfh);
-                return FTI_NSCS;
-            }
+			// check if successfull
+			if (res != 0) {
+				errno = 0;
+				MPI_Error_string(res, mpi_err, &reslen);
+				snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
+				FTI_Print(str, FTI_EROR);
+				MPI_File_close(&pfh);
+				return FTI_NSCS;
+			}
+			// increment file pointer
+            pfSector += dSize;
 
         }
 
@@ -454,7 +575,15 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_top
     return FTI_SCES;
 }
 
-int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+/*-------------------------------------------------------------------------*/
+/**
+@brief      Writes ckpt to PFS using SIONlib
+@return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+					FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
 
     int i, res, numFiles = 1, nlocaltasks, *file_map, *rank_map, *gRankList;
@@ -550,109 +679,6 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT
         return FTI_NSCS;
      }
 
-    return FTI_SCES;
-
-}
-
-int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    
-    int res;
-    
-    // select IO
-    switch(FTI_Conf->ioMode) {
-
-        case FTI_IO_POSIX:
-
-            // set serial file name
-            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-            
-            res = FTI_WriteSer(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-        
-        case FTI_IO_MPI:
-            
-            // set parallel file name
-            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-
-            res = FTI_WriteMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-
-        case FTI_IO_SIONLIB:
-
-            // set parallel file name
-            snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-            sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
-
-            // write checkpoint
-            res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
-            break;
-
-    }
-
-    return res;
-
-}
-
-int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-
-    int i;
-    char str[FTI_BUFS];
-    size_t glbWritten = 0; // checkpointsize
-    FILE *fd;
-    
-    // open task local ckpt file
-    fd = fopen(FTI_Exec->fn, "wb");
-    if (fd == NULL) {
-        FTI_Print("FTI checkpoint file could not be opened.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    // write data into ckpt file
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        clearerr(fd);
-        size_t written = 0;
-        int fwrite_errno;
-        while ( written < FTI_Data[i].count && !ferror(fd) ) {
-            errno = 0;
-            written += fwrite(((char*)FTI_Data[i].ptr)+(FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count-written, fd);
-            fwrite_errno = errno;
-        }
-        if ( ferror(fd) ) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
-            FTI_Print(str, FTI_EROR);
-            fclose(fd);
-            return FTI_NSCS;
-        }
-        glbWritten += written*FTI_Data[i].eleSize;
-    }
-    
-    // store file size in runtime meta data
-    FTI_Exec->meta[0].fs = glbWritten;
-    
-    // flush buffer
-    if (fflush(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
-
-        fclose(fd);
-
-        return FTI_NSCS;
-    }
-    
-    // close file
-    if (fclose(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-    
     return FTI_SCES;
 
 }
