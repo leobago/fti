@@ -526,11 +526,11 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         res = FTI_NSCS; //needed FTI_Abort?
     }
 
-    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_Topo->groupComm);
+    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
     if (tres != FTI_SCES) {
         return FTI_NSCS;
     }
-    
+
     //recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
         if (erased[destination]) { //fisrst send file
