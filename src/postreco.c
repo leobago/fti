@@ -488,7 +488,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, j; //iterators
     int source = FTI_Topo->right; //we get file from this process
     int destination = FTI_Topo->left; //we give file to this process
-    int res;
+    int res, tres;
     char ptnerFilename[FTI_BUFS], str[FTI_BUFS];
     FILE *ptnerFile;
 
@@ -515,16 +515,22 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_SCES;
     }
 
+    res = FTI_SCES;
     if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
         FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
-        return FTI_NSCS; //needed FTI_Abort?
+        res = FTI_NSCS; //needed FTI_Abort?
     }
 
     if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
         FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
-        return FTI_NSCS; //needed FTI_Abort?
+        res = FTI_NSCS; //needed FTI_Abort?
     }
 
+    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_Topo->groupComm);
+    if (tres != FTI_SCES) {
+        return FTI_NSCS;
+    }
+    
     //recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
         if (erased[destination]) { //fisrst send file
