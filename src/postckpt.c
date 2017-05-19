@@ -299,8 +299,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
 {
-    int i, gRank, member, reslen;
-    size_t res, fs, maxFs;
+    int i, res, gRank, member, reslen;
+    size_t fs, maxFs;
     MPI_Comm lComm;
     size_t data_written = 0;
     char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], mpi_err[FTI_BUFS];
@@ -859,35 +859,20 @@ int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
 
     if (FTI_Topo->amIaHead) {
         
-        // set parallel file name
+		// set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID+1);
 
         // update meta data
-        nbSectors = FTI_Topo->nbProc / (FTI_Topo->groupSize * FTI_Topo->nodeSize);
-   
-        // backup execution values
-        save_sectorID = FTI_Topo->sectorID;
-        save_groupID = FTI_Topo->groupID;
-
-        // update Meta data files for processes in group
-        for (i = 0; i < nbSectors; i++) {
-            FTI_Topo->sectorID = i;
-            for (j = 1; j <= FTI_Topo->nbApprocs; j++) {
-                // TODO: #BUG since more then one process may try to access the same file.
-                FTI_Topo->groupID = j;
-                res += FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[j-1].fs, FTI_Exec->meta[j-1].maxFs, FTI_Exec->ckptFile), "write the metadata.");
-            }
+        for (i = 0; i < FTI_Topo->nbApprocs; i++) {
+            res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1, i), "create metadata.");
         }
-        FTI_Topo->sectorID = save_sectorID;
-        FTI_Topo->groupID = save_groupID;
-   
     }
 
     else {
         
         // set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1), "create metadata.");
+        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1, 0), "create metadata.");
 
     }
     return res;
@@ -916,31 +901,16 @@ int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID+1);
 
         // update meta data
-        nbSectors = FTI_Topo->nbProc / (FTI_Topo->groupSize * FTI_Topo->nodeSize);
-   
-        // backup execution values
-        save_sectorID = FTI_Topo->sectorID;
-        save_groupID = FTI_Topo->groupID;
-
-        // update Meta data files for processes in group
-        for (i = 0; i < nbSectors; i++) {
-            FTI_Topo->sectorID = i;
-            for (j = 1; j <= FTI_Topo->nbApprocs; j++) {
-                // TODO: #BUG since more then one process may try to access the same file.
-                FTI_Topo->groupID = j;
-                res += FTI_Try(FTI_UpdateMetadata(FTI_Conf, FTI_Topo, FTI_Exec->meta[j-1].fs, FTI_Exec->meta[j-1].maxFs, FTI_Exec->ckptFile), "write the metadata.");
-            }
+        for (i = 0; i < FTI_Topo->nbApprocs; i++) {
+            res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1, i), "create metadata.");
         }
-        FTI_Topo->sectorID = save_sectorID;
-        FTI_Topo->groupID = save_groupID;
-   
     }
 
     else {
         
         // set parallel file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1), "create metadata.");
+        res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, 1, 0), "create metadata.");
 
     }
     return res;
