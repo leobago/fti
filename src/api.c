@@ -410,6 +410,59 @@ int FTI_Checkpoint(int id, int level)
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Reallocates dataset to last checkpoint size.
+    @param      id              Checkpoint ID.
+    @param      ptr             Pointer to the data structure.
+    @return     pointer         Pointer if successful, NULL otherwise
+
+    This function loads the checkpoint data size from the checkpoint
+    file, reallacates memory and updates data size information.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void* FTI_Realloc(int id, void* ptr) {
+    FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
+    if (FTI_Exec.reco) {
+        char fn[FTI_BUFS], str[FTI_BUFS];
+        FILE* fd;
+        int i;
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptFile);
+        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+        FTI_Print(str, FTI_DBUG);
+        fd = fopen(fn, "rb");
+        if (fd == NULL) {
+            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+            return NULL;
+        }
+
+        fseek(fd, sizeof(long) * id, 0);
+        long count;
+        size_t bytes = fread((char*)&count, 1, sizeof(long), fd);
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return NULL;
+        }
+        fclose(fd);
+
+        for (i = 0; i < FTI_BUFS; i++) {
+            if (id == FTI_Data[i].id) {
+                FTI_Data[i].size = FTI_Data[i].eleSize * count;
+                ptr = realloc (ptr, FTI_Data[i].size);
+                FTI_Data[i].ptr = ptr;
+                sprintf(str, "Dataset #%d reallocated.", FTI_Data[i].id);
+                FTI_Print(str, FTI_DBUG);
+                break;
+            }
+        }
+    } else {
+        FTI_Print("This is not a recovery.", FTI_WARN);
+    }
+    return ptr;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It loads the checkpoint data.
     @return     integer         FTI_SCES if successful.
 
@@ -432,6 +485,7 @@ int FTI_Recover()
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NSCS;
     }
+    fseek(fd, FTI_Exec.nbVar * sizeof(long), 0); //to pass by data count
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t bytes = fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
