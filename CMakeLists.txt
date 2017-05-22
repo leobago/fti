@@ -119,3 +119,10 @@ install(FILES "${WORK_DIR}/FTIConfig.cmake" DESTINATION lib/CMake/FTI)
 set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "FTI Include path")
 export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
+
+# set up exaples in build/examples/
+
+file(COPY examples/configBkp.fti DESTINATION examples)
+file(COPY examples/plot.sh DESTINATION examples)
+file(COPY examples/vplot.plg DESTINATION examples)
+file(COPY examples/README.txt DESTINATION examples)
