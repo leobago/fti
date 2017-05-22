@@ -1,0 +1,20 @@
+So far unreleased changes
+-------------------------
+
+* Fixed incorrect warnings for no-head ranks if using dedicated processes.
+* Fixed problem with renaming/erasing local files if using dedicated processes.
+* Fixed problem with creating files/directories which already exist and deleting files/directories which don't exist.
+* Moved some global variables into static.
+* Removed some unused variables or code.
+* Fixed buffer overflow in jerasure library.
+* Fixed some not null terminated string bugs.
+* Fixed many unchecked or ignored return value form standard library functions.
+* Fixed some uninitialized variable problems.
+* Corrected some misleading warning/error messages.
+* Fixed many resource leaks.
+* Fixed many potential memory leaks.
+* Fixed many TOCTOU problems.
+* Added header file with declarations of all library functions.
+* Added option to build examples.
+* Added cmake files to build dependencies and examples.
+* Cleaned library interface.
