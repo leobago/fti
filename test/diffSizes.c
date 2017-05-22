@@ -27,8 +27,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
 
 #define ITERATIONS 111          //iterations
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint

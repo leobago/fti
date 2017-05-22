@@ -46,7 +46,6 @@ before_script:
   - cmake ..
   - make all
   - sudo make install
-  - cd ..
 
 script:
   - ./test/tests.sh

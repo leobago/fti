@@ -18,8 +18,8 @@
 #include <unistd.h>
 #include <fti.h>
 
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
 
 #define ITERATIONS 100  //iterations for every level
 #define ITER_CHECK 10   //every ITER_CHECK iterations make checkpoint
