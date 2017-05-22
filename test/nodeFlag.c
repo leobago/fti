@@ -15,8 +15,8 @@
 #include <fti.h>
 #include <string.h>
 
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
 
 int verify(int world_size, int nbNodes)
 {
