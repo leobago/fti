@@ -1,0 +1,54 @@
+/*! \mainpage
+*
+*
+*FTI stands for Fault Tolerance Interface and is a library that aims to give
+*computational scientists the means to perform fast and efficient multilevel
+*checkpointing in large scale supercomputers. FTI leverages local storage plus
+*data replication and erasure codes to provide several levels of reliability and
+*performance. FTI is application-level checkpointing and allows users to select
+*which datasets needs to be protected, in order to improve efficiency and avoid
+*wasting space, time and energy. In addition, it offers a direct data interface
+*so that users do not need to deal with files and/or directory names.  All
+*metadata is managed by FTI in a transparent fashion for the user. If desired,
+*users can dedicate one process per node to overlap fault tolerance workload and
+*scientific computation, so that post-checkpoint tasks are executed
+*asynchronously.
+*
+*
+*##########   Download, compile and install FTI (as easy as 1,2,3)   ##########
+*
+* 1) git clone https://github.com/leobago/fti.git
+*
+* 2) mkdir fti/build && cd fti/build
+*
+* 3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
+*
+*
+*##########   Configure and run a FTI example (as easy as 1,2,3)     ##########
+*
+* 1) Place yourself in the examples directory which contains head distribution
+* examples in both C and Fortran.
+*
+*    - cd examples
+*
+* 2) With your favorite text editor open and edit the FTI configuration file
+* config.fti to set the three directory variables.
+*
+*    - vim config.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)
+*
+* 3) Make sure that FTI library is accessible in you LD_LIBRARY_PATH, set the
+* FTIPATH in the Makefile, compile and launch the test.
+*
+*    - make all hdt
+*
+*
+*##########   Acknowledgement (send us a postal card! \(^-^)/)       ##########
+*
+*
+*If you use FTI please consider sending us an email to let us know what you
+*liked and what could be improved, your feedback is important. Also, please make
+*sure to acknowledge our paper "FTI: High Performance Fault Tolerance Interface
+*for Hybrid Systems".  Finally, don't hesitate to send us a postal card.
+*
+*
+*/
