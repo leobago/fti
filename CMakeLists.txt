@@ -45,7 +45,11 @@ append_property(TARGET fti.static fti.shared
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
-find_library(LIBM m DOC "The math library")
+#PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
+#http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
+if(NOT USE_PGI)
+	find_library(LIBM m DOC "The math library")
+endif()
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
