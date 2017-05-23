@@ -255,7 +255,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail)
 
     if ((dir = opendir (path)) != NULL) {
         while ((ent = readdir (dir)) != NULL) {
-            if (strcmp(ent->d_name , ".") && strcmp(ent->d_name, "..")) {
+            if (strstr(ent->d_name, "Ckpt") != NULL && strstr(ent->d_name, "ftics") == NULL) {
                 sprintf(str, "%s/%s", path, ent->d_name);
 
                 FILE* f = fopen(str, "rb");
