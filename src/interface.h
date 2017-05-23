@@ -16,6 +16,12 @@
 #include "../deps/jerasure/galois.h"
 #include "../deps/jerasure/jerasure.h"
 
+#if MD5P
+    #include "../deps/md5/md5.h"
+#else
+    #include <openssl/md5.h>
+#endif
+
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
@@ -104,6 +110,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
+int FTI_Checksum(char* fileName, int recovery);
+int FTI_FlushChecksum(char* sourceFileName, char* destinationFileName);
 int FTI_Try(int result, char* message);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
