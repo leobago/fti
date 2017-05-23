@@ -36,7 +36,7 @@ set(SRC_FTI
 append_property(SOURCE ${SRC_FTI}
 	PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}")
 
-if(${OPENSSL_FOUND})
+if(OPENSSL_FOUND)
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
@@ -63,7 +63,7 @@ if("$ENV{USE_PGI}" STREQUAL "")
 	find_library(LIBM m DOC "The math library")
 endif()
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}") 
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 
 set(FTI_TARGETS fti.static fti.shared)
@@ -73,12 +73,12 @@ install(FILES "include/fti.h"
 
 if(ENABLE_FORTRAN)
 	add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-	
+
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
-		
+
 	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
-	
+
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}

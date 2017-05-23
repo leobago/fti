@@ -1,10 +1,10 @@
 add_subdirectory(iniparser)
 add_subdirectory(jerasure)
 
-if(NOT ${OPENSSL_FOUND})
+if(NOT OPENSSL_FOUND)
         string(ASCII 27 Esc)
         set(ColourReset "${Esc}[m")
         set(Red         "${Esc}[31m")
-        message(STATUS "${Red}Cannot find MD5 library. Using slower build in MD5 algorithm.${ColourReset}")
+        message(STATUS "${Red}Cannot find OPENSSL library. Using slower build in MD5 algorithm.${ColourReset}")
         add_subdirectory(md5)
 endif()
