@@ -63,6 +63,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     int buf;
     char fn[FTI_BUFS];
+    unsigned long pfs;
     if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fs, maxFs, group, level) == FTI_SCES) {
         FTI_Print("Metadata obtained.", FTI_DBUG);
     }
@@ -70,6 +71,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Error getting metadata.", FTI_WARN);
         return FTI_NSCS;
     }
+
     sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
     FTI_Print(fn, FTI_DBUG);
     switch (level) {
@@ -82,9 +84,17 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
             buf = FTI_CheckFile(fn, *fs);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+
+            if (FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2) == FTI_SCES) {
+                FTI_Print("PtnerSize obtained.", FTI_DBUG);
+            }
+            else {
+                FTI_Print("Error getting ptnerSize.", FTI_WARN);
+                return FTI_NSCS;
+            }
             sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
             sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
-            buf = FTI_CheckFile(fn, *fs);
+            buf = FTI_CheckFile(fn, pfs);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 3:

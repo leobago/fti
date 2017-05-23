@@ -323,7 +323,6 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @brief      Sends checkpint file.
     @param      destination     destination group rank
     @param      fs              filesize
-    @param      maxFs           maximum filesize
     @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt
 
     @return     integer         FTI_SCES if successful.
@@ -334,34 +333,21 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int destination,
-                         unsigned long fs, unsigned long maxFs, int ptner) {
-    unsigned long position, paddingSize; //fileSize, maxFileSize, position, paddingSize
+                         unsigned long fs, int ptner) {
     int i, j; //iterators
-    int bytes;
+    int bytes; //bytes read by fread
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
 
-    paddingSize = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (paddingSize < maxFs) {
-        paddingSize = paddingSize + FTI_Conf->blockSize; // Calculating padding size
-    }
-    sprintf(str, "Send file size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, paddingSize);
-    FTI_Print(str, FTI_DBUG);
-
-    if (ptner) {
+    if (ptner) {    //if want to send Ptner file
         int rank;
         sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
         sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
-    } else {
+    } else {    //if want to send Ckpt file
         sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
     }
-    if (truncate(filename, paddingSize) == -1) {
-        sprintf(str, "R2 cannot truncate the ckpt. file (%s).", filename);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
-    }
 
-    sprintf(str, "Opening Ptner checkpoint file (%s) (L2).", filename);
+    sprintf(str, "Opening file (rb) (%s) (L2).", filename);
     FTI_Print(str, FTI_DBUG);
     fileDesc = fopen(filename, "rb");
     if (fileDesc == NULL) {
@@ -369,9 +355,10 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    position = 0; // For the logic
-    while (position < paddingSize) {
-        size_t bytes = fread(buffer, sizeof(char), FTI_Conf->blockSize, fileDesc);
+    unsigned long toSend = fs; // remaining data to send
+    while (toSend > 0) {
+        int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
+        size_t bytes = fread(buffer, sizeof(char), toSend, fileDesc);
 
         if (ferror(fileDesc)) {
             FTI_Print("Error reading the data from the ckpt. file.", FTI_WARN);
@@ -383,15 +370,11 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->tag, FTI_Exec->groupComm);
-        position += bytes;
+        toSend -= bytes;
     }
+
     fclose(fileDesc);
     free(buffer);
-
-    if (truncate(filename, fs) == -1) { //this is proper fileSize for ptner?
-        FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_WARN);
-        return FTI_NSCS;
-    }
 
     return FTI_SCES;
 }
@@ -401,9 +384,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @brief      Receives checkpint file.
     @param      source          source group rank
     @param      fs              filesize
-    @param      maxFs           maximum filesize
     @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt
-
     @return     integer         FTI_SCES if successful.
 
     This function receives Ckpt or PtnerCkpt file from partner proccess.
@@ -412,41 +393,35 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int source, unsigned long fs,
-                         unsigned long maxFs, int ptner) {
+                         int ptner) {
     int i, j; //iterators
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
-    unsigned long position, paddingSize;
 
-    paddingSize = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (paddingSize < maxFs) {
-        paddingSize = paddingSize + FTI_Conf->blockSize; // Calculating padding size
-    }
-    sprintf(str, "Receive file size: %ld, max. file size : %ld and padding size : %ld.", fs, maxFs, paddingSize);
-    FTI_Print(str, FTI_DBUG);
-
-    if (ptner) {
+    if (ptner) { //if want to receive Ptner file
         int rank;
         sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
         sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
-    } else {
+    } else { //if want to receive Ckpt file
         sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
     }
 
-    sprintf(str, "Opening checkpoint file (%s) (L2).", FTI_Exec->ckptFile);
+    sprintf(str, "Opening file (wb) (%s) (L2).", filename);
     FTI_Print(str, FTI_DBUG);
     fileDesc = fopen(filename, "wb");
     if (fileDesc == NULL) {
-        FTI_Print("R2 cannot open the ckpt. file.", FTI_WARN);
+        FTI_Print("R2 cannot open the file.", FTI_WARN);
         return FTI_NSCS;
     }
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    position = 0; // For the logic
-    while (position < paddingSize) {
-        MPI_Recv(buffer, FTI_Conf->blockSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        fwrite(buffer, sizeof(char), FTI_Conf->blockSize, fileDesc);
+    int toRecv = fs;    //remaining data to receive
+    while (toRecv > 0) {
+        int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
+        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        fwrite(buffer, sizeof(char), recvSize, fileDesc);
+
         if (ferror(fileDesc)) {
-            FTI_Print("Error writing the data to the ckpt. file.", FTI_WARN);
+            FTI_Print("Error writing the data to the file.", FTI_WARN);
 
             fclose(fileDesc);
             free(buffer);
@@ -454,15 +429,11 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        position += FTI_Conf->blockSize;
+        toRecv -= recvSize;
     }
+
     fclose(fileDesc);
     free(buffer);
-
-    if (truncate(filename, fs) == -1) { //this is proper fileSize for ptner?
-        FTI_Print("R2 cannot re-truncate the checkpoint file.", FTI_WARN);
-        return FTI_NSCS;
-    }
 
     return FTI_SCES;
 }
@@ -482,12 +453,11 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    FTI_Print("Recover from L2", FTI_WARN);
     int erased[FTI_BUFS];
-    unsigned long fs, maxFs, position, paddingSize; //fileSize, maxFileSize, position, paddingSize
+    unsigned long fs, maxFs; //fileSize, maxFileSize
     int i, j; //iterators
-    int source = FTI_Topo->right; //we get file from this process
-    int destination = FTI_Topo->left; //we give file to this process
+    int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
+    int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
     int res, tres;
     char ptnerFilename[FTI_BUFS], str[FTI_BUFS];
     FILE *ptnerFile;
@@ -505,7 +475,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     i = 0;
-    for (j = 0; j < FTI_Topo->groupSize * 2; j++) { //do we need to check Ptner files?
+    for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
         if (erased[j]) {
             i++; // Counting erasures
         }
@@ -518,42 +488,52 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     res = FTI_SCES;
     if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
         FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
-        res = FTI_NSCS; //needed FTI_Abort?
+        res = FTI_NSCS;
     }
 
     if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
         FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
-        res = FTI_NSCS; //needed FTI_Abort?
+        res = FTI_NSCS;
     }
 
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
     if (tres != FTI_SCES) {
-        return FTI_NSCS;
+        return FTI_NSCS; //needed FTI_Abort?
     }
 
     //recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
-        if (erased[destination]) { //fisrst send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+        if (erased[destination]) { //first send file
+            unsigned long pfs; //Ptner file size
+            res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2);
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, pfs, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-        if (erased[FTI_Topo->groupRank]) { //receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+        if (erased[FTI_Topo->groupRank]) { //then receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     } else {
         if (erased[FTI_Topo->groupRank]) { //first receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-        if (erased[destination]) { //send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+        if (erased[destination]) { //then send file
+            unsigned long pfs; //Ptner file size
+            res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2);
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, pfs, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
@@ -563,26 +543,36 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //recover partner files
     if (FTI_Topo->groupRank % 2) {
         if (erased[source + FTI_Topo->groupSize]) { //fisrst send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            unsigned long pfs; //Ptner file size
+            res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2);
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, pfs, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     } else {
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //first receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, fs, maxFs, 1);
+            unsigned long pfs; //Ptner file size
+            res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2);
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, pfs, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
         if (erased[source + FTI_Topo->groupSize]) { //send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, maxFs, 0);
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }

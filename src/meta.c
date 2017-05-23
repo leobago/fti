@@ -7,6 +7,38 @@
 
 #include "interface.h"
 
+int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                      FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level)
+{
+    dictionary* ini;
+    char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+    if (level == 0) {
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
+    }
+    else {
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
+    }
+
+    sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+    FTI_Print(str, FTI_DBUG);
+    if (access(mfn, R_OK) != 0) {
+        FTI_Print("FTI metadata file NOT accessible.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    ini = iniparser_load(mfn);
+    if (ini == NULL) {
+        FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //get Ptner file size
+    sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
+    *pfs = iniparser_getlint(ini, str, -1);
+    iniparser_freedict(ini);
+
+    return FTI_SCES;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the metadata to recover the data after a failure.
