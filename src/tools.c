@@ -8,97 +8,28 @@
 #include "interface.h"
 #include <dirent.h>
 #define CHUNK_SIZE 4096
-#define MD5_DIGEST_LENGTH 16
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Flushes checksum.
-    @param      sourceFileName          source filename of the checkpoint
-    @param      destinationFileName     destination filename of the checkpoint
-    @return     integer                 FTI_SCES if successful
-
-    This function flushes checksum file (correspond to sourceFileName checkpoint
-    file) to destination checkpoint file.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FlushChecksum(char* sourceFileName, char* destinationFileName)
-{
-    char checksum[MD5_DIGEST_LENGTH];
-    char checksumSourceFileName[FTI_BUFS];
-    char checksumDestinationFileName[FTI_BUFS];
-    int bytes;
-    char str[FTI_BUFS];
-    double startTime = MPI_Wtime();
-
-    sprintf(checksumSourceFileName, "%scs", sourceFileName);
-    sprintf(checksumDestinationFileName, "%scs", destinationFileName);
-
-    FILE *sfd = fopen(checksumSourceFileName, "rb");
-    if (sfd == NULL) {
-        sprintf(str, "FTI failed to open source file %s to flush checksum.", checksumSourceFileName);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    bytes = fread(checksum, sizeof(unsigned char), MD5_DIGEST_LENGTH, sfd);
-    if (ferror(sfd) || bytes != MD5_DIGEST_LENGTH) {
-        sprintf(str, "Read %d bytes.", bytes);
-        FTI_Print(str, FTI_WARN);
-        FTI_Print("Checksum could not be read.", FTI_EROR);
-
-        fclose(sfd);
-
-        return FTI_NSCS;
-    }
-
-    FILE *dfd = fopen(checksumDestinationFileName, "wb");
-    if (dfd == NULL) {
-        sprintf(str, "FTI failed to open destination file %s to flush checksum.", checksumDestinationFileName);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
-    }
-    size_t written = 0;
-    while (written < MD5_DIGEST_LENGTH && !ferror(dfd)) {
-        errno = 0;
-        written += fwrite(checksum, sizeof(unsigned char), MD5_DIGEST_LENGTH - written, dfd);
-    }
-    if (ferror(dfd)) {
-        FTI_Print("Checksum could not be written.", FTI_EROR);
-
-        fclose(dfd);
-
-        return FTI_NSCS;
-    }
-    sprintf(str, "Checksum (flush) took %.2f sec.", MPI_Wtime() - startTime);
-    FTI_Print(str, FTI_DBUG);
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Calculates and saves/compares checksum of the checkpoint file.
+    @brief      calculates checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
-    @param      recovery        1 if recovery, 0 Otherwise
+    @param      checksumToCmp   checksum that is calculated
     @return     integer         FTI_SCES if successful
 
     This function calculates checksum of the checkpoint file based on
-    MD5 algorithm. If recovery is set to 1 it compares calculated hash value
-    with the one saved in the file. Otherwise it saves checksum in the file.
+    MD5 algorithm and saves it in checksum.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(char* fileName, int recovery)
+int FTI_Checksum(char* fileName, char* checksum)
 {
     MD5_CTX mdContext;
     unsigned char data[CHUNK_SIZE];
-    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
-    char checksumFileName[FTI_BUFS];
+    unsigned char hash[MD5_DIGEST_LENGTH];
     int bytes;
     char str[FTI_BUFS];
     double startTime = MPI_Wtime();
-
-    sprintf(checksumFileName, "%scs", fileName);
+    int i;
 
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
@@ -111,66 +42,69 @@ int FTI_Checksum(char* fileName, int recovery)
     while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
         MD5_Update (&mdContext, data, bytes);
     }
-    MD5_Final (checksum, &mdContext);
+    MD5_Final (hash, &mdContext);
+
+    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
+        sprintf(&checksum[i], "%02x", hash[i]);
+    checksum[i] = '\0';
+
+    sprintf(str, "Checksum took %.2f sec.", MPI_Wtime() - startTime);
+    FTI_Print(str, FTI_DBUG);
 
     fclose (fd);
 
-    if (!recovery) { // If this is not recovery; save checksum
-        FILE *cfd = fopen(checksumFileName, "wb");
-        if (cfd == NULL) {
-            sprintf(str, "FTI failed to open file %s to write checksum.", checksumFileName);
-            FTI_Print(str, FTI_WARN);
-            return FTI_NSCS;
-        }
-        size_t written = 0;
-        while (written < MD5_DIGEST_LENGTH && !ferror(cfd)) {
-            errno = 0;
-            written += fwrite(checksum, sizeof(unsigned char), MD5_DIGEST_LENGTH-written, cfd);
-        }
-        if (ferror(cfd)) {
-            FTI_Print("Checksum could not be written.", FTI_EROR);
+    return FTI_SCES;
+}
 
-            fclose(cfd);
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Compares checksum of the checkpoint file.
+    @param      fileName        filename of the checkpoint
+    @param      checksumToCmp   checksum to compare
+    @return     integer         FTI_SCES if successful
 
-            return FTI_NSCS;
-        }
+    This function calculates checksum of the checkpoint file based on
+    MD5 algorithm. It compares calculated hash value with the one saved
+    in the file.
 
-        fclose(cfd);
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
+{
+    MD5_CTX mdContext;
+    unsigned char data[CHUNK_SIZE];
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
+    int bytes;
+    char str[FTI_BUFS];
+    int i;
 
-        sprintf(str, "Checksum (write) took %.2f sec.", MPI_Wtime() - startTime);
-    } else { //If this is recovery read checksum and compare
-        FILE *cfd = fopen(checksumFileName, "rb");
-        if (cfd == NULL) {
-            sprintf(str, "FTI failed to open file %s to read checksum.", checksumFileName);
-            FTI_Print(str, FTI_WARN);
-
-            fclose(cfd);
-
-            return FTI_NSCS;
-        }
-        char checksumRead[MD5_DIGEST_LENGTH];
-        bytes = fread(checksumRead, sizeof(unsigned char), MD5_DIGEST_LENGTH, cfd);
-        if (ferror(cfd) || bytes != MD5_DIGEST_LENGTH) {
-            FTI_Print("Checksum could not be read.", FTI_EROR);
-
-            fclose(cfd);
-
-            return FTI_NSCS;
-        }
-
-        if (memcmp(checksum, checksumRead, MD5_DIGEST_LENGTH) != 0) {
-            FTI_Print("Checksum do not match. Checkpoint file is corrupted.", FTI_WARN);
-
-            fclose(cfd);
-
-            return FTI_NSCS;
-        }
-
-        fclose(cfd);
-
-        sprintf(str, "Checksum (read) took %.2f sec.", MPI_Wtime() - startTime);
+    FILE *fd = fopen(fileName, "rb");
+    if (fd == NULL) {
+        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
     }
-    FTI_Print(str, FTI_DBUG);
+
+    MD5_Init (&mdContext);
+    while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
+        MD5_Update (&mdContext, data, bytes);
+    }
+    MD5_Final (hash, &mdContext);
+
+    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
+        sprintf(&checksum[i], "%02x", hash[i]);
+    checksum[i] = '\0';
+
+    if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
+        sprintf(str, "Checksum do not match. Checkpoint file is corrupted. %s != %s",
+            checksum, checksumToCmp);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    fclose (fd);
+
     return FTI_SCES;
 }
 

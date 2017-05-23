@@ -21,15 +21,12 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
     unsigned long maxFs, fs;
-    char fn[FTI_BUFS];
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
     int res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    res = FTI_Try(FTI_Checksum(fn, 0), "save checksum.");
-    return res;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,12 +131,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
     fclose(pfd);
 
-    res = FTI_Try(FTI_Checksum(lfn, 0), "save checksum.");
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
-    }
-    res = FTI_Try(FTI_Checksum(pfn, 0), "save Ptner checksum.");
-    return res;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -290,12 +282,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
     fclose(efd);
 
-    res = FTI_Try(FTI_Checksum(lfn, 0), "save checksum.");
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
-    }
-    res = FTI_Try(FTI_Checksum(efn, 0), "save RS checksum.");
-    return res;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -338,10 +325,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     switch (level) {
         case 0:
             sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-            res = FTI_Try(FTI_Checksum(lfn, 0), "save checksum.");
-            if (res != FTI_SCES) {
-                return FTI_NSCS;
-            }
             break;
         case 1:
             sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
@@ -412,6 +395,5 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
     fclose(gfd);
 
-    res = FTI_Try(FTI_FlushChecksum(lfn, gfn), "flush checksum");
-    return res;
+    return FTI_SCES;
 }
