@@ -25,7 +25,8 @@ int FTI_CheckFile(char* fn, unsigned long fs)
     if (access(fn, F_OK) == 0) {
         if (stat(fn, &fileStatus) == 0) {
             if (fileStatus.st_size == fs) {
-                return 0;
+                int res = FTI_Checksum(fn, 1);
+                return res;
             }
             else {
                 return 1;
