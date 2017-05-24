@@ -226,7 +226,9 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         return FTI_NSCS;
     }
     if (FTI_Conf->verbosity > 3 || FTI_Conf->verbosity < 1) {
-        FTI_Print("Verbosity needs to be set to 1, 2 or 3.", FTI_WARN);
+        char str[FTI_BUFS];
+        sprintf(str, "Verbosity needs to be set to 1, 2 or 3. And it's = %d", FTI_Conf->verbosity);
+        FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Conf->blockSize > (2048 * 1024) || FTI_Conf->blockSize < (1 * 1024)) {
