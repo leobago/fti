@@ -61,6 +61,11 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 
         return FTI_NSCS;
     }
+
+    int v = (int)iniparser_getint(ini, "Basic:verbosity", -1);
+    sprintf(str, "UpdateConf verbosity = %d", v);
+    FTI_Print(str, FTI_WARN);
+
     if (fclose(fd) != 0) {
         FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
 
