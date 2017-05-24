@@ -20,8 +20,9 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetChecksum(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                    FTIT_checkpoint* FTI_Ckpt, char* checksum, int group, int level)
+int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                    FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
+                    char* rsChecksum, int group, int level)
 {
     dictionary* ini;
     char* checksumTemp;
@@ -48,6 +49,16 @@ int FTI_GetChecksum(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     sprintf(str, "%d:Ckpt_checksum", FTI_Topo->groupRank);
     checksumTemp = iniparser_getstring(ini, str, NULL);
     strncpy(checksum, checksumTemp, MD5_DIGEST_LENGTH);
+    sprintf(str, "%d:Ckpt_checksum", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
+    checksumTemp = iniparser_getstring(ini, str, NULL);
+    strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+    sprintf(str, "%d:RS_checksum", FTI_Topo->groupRank);
+    checksumTemp = iniparser_getstring(ini, str, NULL);
+    if (checksumTemp != NULL) {
+        strncpy(rsChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+    } else {
+        rsChecksum[0] = '\0';
+    }
 
     iniparser_freedict(ini);
 
@@ -275,7 +286,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
-    
+
     free(fnl);
     free(checksums);
 

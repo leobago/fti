@@ -11,7 +11,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      calculates checksum of the checkpoint file.
+    @brief      Calculates checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
     @param      checksumToCmp   checksum that is calculated
     @return     integer         FTI_SCES if successful
@@ -46,7 +46,7 @@ int FTI_Checksum(char* fileName, char* checksum)
 
     for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
         sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0';
+    checksum[i] = '\0'; //to get a proper string
 
     sprintf(str, "Checksum took %.2f sec.", MPI_Wtime() - startTime);
     FTI_Print(str, FTI_DBUG);
@@ -94,11 +94,11 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 
     for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
         sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0';
+    checksum[i] = '\0'; //to get a proper string
 
     if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
-        sprintf(str, "Checksum do not match. Checkpoint file is corrupted. %s != %s",
-            checksum, checksumToCmp);
+        sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+            fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
