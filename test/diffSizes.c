@@ -309,7 +309,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int fail)
     }
     else {
         //could not open directory
-        printf("%d: Could not open %s", rank, path);
+        printf("Could not open %s", path);
         perror ("");
         return 1;
     }
