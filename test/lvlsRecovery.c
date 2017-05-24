@@ -76,7 +76,7 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
         }
         for (j = 0; j < MATRIX_SIZE; j++) {
             for (k = 0; k < MATRIX_SIZE; k++) {
-                if (j == k && matrix[j][k] != i) {
+                if (j == k && matrix[j][k] != i * world_rank) {
                     printf("%d: Did not recovered properly.\n", world_rank);
                     return RECOVERY_FAILED;
                 }
@@ -107,7 +107,7 @@ int do_work(double** matrix, int world_rank, int world_size, int checkpoint_leve
             break;
         }
         for (j = 0; j < MATRIX_SIZE; j++) {
-            matrix[j][j] += 1.0;
+            matrix[j][j] += (double)world_rank;
         }
     }
     return WORK_DONE;
@@ -143,8 +143,8 @@ int verify(double** matrix, int world_rank)
     int i, j;
     for (i = 0; i < MATRIX_SIZE; i++) {
         for (j = 0; j < MATRIX_SIZE; j++) {
-            if (i == j && matrix[i][j] != ITERATIONS) {
-                printf("%d: matrix[%d][%d] = %f, should be %d\n", world_rank, i, j, matrix[i][j], ITERATIONS);
+            if (i == j && matrix[i][j] != ITERATIONS * world_rank) {
+                printf("%d: matrix[%d][%d] = %f, should be %d\n", world_rank, i, j, matrix[i][j], ITERATIONS * world_rank);
                 return VERIFY_FAILED;
             }
             else if (i != j && matrix[i][j] != 0.0) {

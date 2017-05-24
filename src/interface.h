@@ -74,8 +74,9 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 
-int FTI_GetChecksum(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                 FTIT_checkpoint* FTI_Ckpt, char* checksum, int group, int level);
+ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                     FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
+                     char* rsChecksum, int group, int level);
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                 unsigned long *fs, unsigned long *mfs, int group, int level);
@@ -115,7 +116,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 int FTI_Checksum(char* fileName, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
-int FTI_FlushChecksum(char* sourceFileName, char* destinationFileName);
 int FTI_Try(int result, char* message);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
