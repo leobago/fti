@@ -1,7 +1,7 @@
 #!/bin/bash
 
 startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - checkpoint level
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		Running $1 test... ($2)"
 	printf "_______________________________________________________________________________________\n\n"
 	cp configs/$2 config.fti
@@ -10,7 +10,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	then
 		exit 1
 	fi
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		 Resuming $1 test... ($2)"
 	printf "_______________________________________________________________________________________\n\n"
 	mpirun -n $3 ./$1 config.fti $4 0
@@ -18,7 +18,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	then
 		exit 1
 	fi
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		$1 test succeed. ($2)"
 	printf "_______________________________________________________________________________________\n\n"
 }
@@ -30,7 +30,6 @@ runAllConfiguration() {
 		do
 		startTest addInArray ${silentConfigs[$i]} $1 $j
 		startTest diffSizes ${silentConfigs[$i]} $1 $j
-		startTest lvlsRecovery ${silentConfigs[$i]} $1 $j
 		startTest tokenRing ${silentConfigs[$i]} $1 $j
 		done
 		startTest nodeFlag ${configs[$i]} $1
