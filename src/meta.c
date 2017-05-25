@@ -11,12 +11,15 @@
 /**
     @brief      It gets the checksums from metadata.
     @param      checksum        Pointer to fill the checkpoint checksum.
+    @param      ptnerChecksum   Pointer to fill the ptner file checksum.
+    @param      rsChecksum      Pointer to fill the RS file checksum.
     @param      group           The group in the node.
     @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successfull.
 
     This function read the metadata file created during checkpointing and
-    recover the checkpoint checksum.
+    recover the checkpoint checksum. If there is no RS file, rsChecksum
+    string length is 0.
 
  **/
 /*-------------------------------------------------------------------------*/
