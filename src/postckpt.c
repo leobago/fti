@@ -29,6 +29,18 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Send Ckpt file.
+  @param      fs              Ckpt file size
+  @param      destination     destination group rank
+  @return     integer         FTI_SCES if successful.
+
+  This function sends ckpt file to partner process. Partner should call
+  FTI_RecvPtner to receive this file.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                  unsigned long fs, int destination)
 {
@@ -68,10 +80,22 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 
     free(buffer);
     fclose(lfd);
-    
+
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Receive Ptner file.
+  @param      pfs             Ptner file size
+  @param      source          souce group rank
+  @return     integer         FTI_SCES if successful.
+
+  This function receives ckpt file from partner process and saves it as
+  Ptner file. Partner should call FTI_SendCkpt to send file.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                   unsigned long pfs, int source)
 {
@@ -114,13 +138,24 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It copies ckpt. files in to the partner node.
+  @param      group           The group ID.
+  @return     integer         FTI_SCES if successful.
 
+  This function copies the checkpoint files into the partner node. It
+  follows a ring, where the ring size is the group size given in the FTI
+  configuration file.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
     unsigned long maxFs, fs, pfs; //ckpt file size, partner file size
-    int source = FTI_Topo->left; //to receive Ckpt file from this process
-    int destination = FTI_Topo->right; //to send Ckpt file to this process
+    int source = FTI_Topo->left; //receive Ckpt file from this process
+    int destination = FTI_Topo->right; //send Ckpt file to this process
     int res;
     char str[FTI_BUFS];
 
@@ -154,110 +189,6 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
-    return FTI_SCES;
-}
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It copies ckpt. files in to the partner node.
-  @param      group           The group ID.
-  @return     integer         FTI_SCES if successful.
-
-  This function copies the checkpoint files into the partner node. It
-  follows a ring, where the ring size is the group size given in the FTI
-  configuration file.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_Ptnerold(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
-{
-    char *blBuf1, *blBuf2, lfn[FTI_BUFS], pfn[FTI_BUFS], str[FTI_BUFS];
-    unsigned long maxFs, fs, ps, pos = 0;
-    MPI_Request reqSend, reqRecv;
-    FILE *lfd, *pfd;
-    int res, dest, src, bSize = FTI_Conf->blockSize;
-    MPI_Status status;
-
-    FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
-    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-    ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (ps < maxFs) {
-        ps = ps + FTI_Conf->blockSize;
-    }
-    sprintf(str, "Max. file size %ld and padding size %ld.", maxFs, ps);
-    FTI_Print(str, FTI_DBUG);
-
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &src);
-    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, src);
-
-    sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
-    FTI_Print(str, FTI_DBUG);
-
-    dest = FTI_Topo->right;
-    src = FTI_Topo->left;
-
-    lfd = fopen(lfn, "rb");
-    if (lfd == NULL) {
-        FTI_Print("FTI failed to open L2 chckpt. file.", FTI_DBUG);
-        return FTI_NSCS;
-    }
-
-    pfd = fopen(pfn, "wb");
-    if (pfd == NULL) {
-        FTI_Print("FTI failed to open L2 partner file.", FTI_DBUG);
-        fclose(lfd);
-        return FTI_NSCS;
-    }
-
-    blBuf1 = talloc(char, FTI_Conf->blockSize);
-    blBuf2 = talloc(char, FTI_Conf->blockSize);
-    // Checkpoint files partner copy
-    while (pos < ps) {
-        if ((fs - pos) < FTI_Conf->blockSize) {
-            bSize = fs - pos;
-        }
-
-        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
-        if (ferror(lfd)) {
-            FTI_Print("Error reading data from the L2 ckpt. file", FTI_DBUG);
-
-            free(blBuf1);
-            free(blBuf2);
-            fclose(lfd);
-            fclose(pfd);
-
-            return FTI_NSCS;
-        }
-
-        MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
-        MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
-        MPI_Wait(&reqSend, &status);
-        MPI_Wait(&reqRecv, &status);
-
-        fwrite(blBuf2, sizeof(char), bSize, pfd);
-        if (ferror(pfd)) {
-            FTI_Print("Error writing data to the L2 partner file", FTI_DBUG);
-
-            free(blBuf1);
-            free(blBuf2);
-            fclose(lfd);
-            fclose(pfd);
-
-            return FTI_NSCS;
-        }
-
-        pos = pos + FTI_Conf->blockSize;
-    }
-
-    free(blBuf1);
-    free(blBuf2);
-    fclose(lfd);
-    fclose(pfd);
-
     return FTI_SCES;
 }
 
