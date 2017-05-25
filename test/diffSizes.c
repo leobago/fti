@@ -8,7 +8,7 @@
  *  saving last checkpoint to PFS
  *
  *  Every process in every iteration expand their array and set value to each
- *  index and make checkpoint. Every rank has differen size of checkpoint.
+ *  index and make checkpoint. Every rank has different size of checkpoint.
  *
  *  Program don't end with FTI_Finalize to make sure that checkpoint files
  *  will stay local (for L1, L2 and L3).
