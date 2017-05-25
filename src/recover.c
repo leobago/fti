@@ -71,7 +71,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Error getting metadata.", FTI_WARN);
         return FTI_NSCS;
     }
-
     sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
     FTI_Print(fn, FTI_DBUG);
     switch (level) {

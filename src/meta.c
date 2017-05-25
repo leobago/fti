@@ -7,6 +7,19 @@
 
 #include "interface.h"
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It gets the ptner file size from metadata.
+    @param      pfs             Pointer to fill the ptner file size.
+    @param      group           The group in the node.
+    @param      level           The level of the ckpt or 0 if tmp.
+    @return     integer         FTI_SCES if successfull.
+
+    This function read the metadata file created during checkpointing and
+    reads partner file size.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level)
 {
@@ -19,7 +32,7 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
     }
 
-    sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+    sprintf(str, "Getting Ptner file size (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
     if (access(mfn, R_OK) != 0) {
         FTI_Print("FTI metadata file NOT accessible.", FTI_WARN);

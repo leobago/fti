@@ -448,7 +448,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         pos = pos + FTI_Conf->blockSize;
     }
-
+    
     free(blBuf1);
     fclose(lfd);
     fclose(gfd);
