@@ -105,6 +105,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
+    MPI_Barrier(FTI_Exec.globalComm); //wait for FTI_Topo.myRank == 0 to save config file
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
