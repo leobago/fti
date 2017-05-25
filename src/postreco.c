@@ -148,7 +148,6 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
 
         fclose(fd);
-        
         for (i = 0; i < m; i++) {
             free(coding[i]);
             free(data[i]);
@@ -376,9 +375,9 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             buf = j; // Counting erasures
         }
     }
-    sprintf(str, "A checkpoint file and its partner copy (ID in group : %d) have been lost", buf);
     if (buf > -1) {
-        FTI_Print(str, FTI_DBUG);
+        sprintf(str, "A checkpoint file and its partner copy (ID in group : %d) have been lost", buf);
+        FTI_Print(str, FTI_WARN);
 
         free(blBuf1);
         free(blBuf2);
@@ -406,13 +405,8 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // Open checkpoint file to recover
         if (erased[FTI_Topo->groupRank]) {
             sprintf(lfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-            sprintf(jfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
             sprintf(str, "Opening checkpoint file (%s) to recover (L2).", lfn);
             FTI_Print(str, FTI_DBUG);
-            sprintf(str, "Opening partner ckpt. file (%s) to recover (L2).", jfn);
-            FTI_Print(str, FTI_DBUG);
-
             lfd = fopen(lfn, "wb");
             if (lfd == NULL) {
                 FTI_Print("R2 cannot open the checkpoint file.", FTI_DBUG);
@@ -424,12 +418,21 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 return FTI_NSCS;
             }
+        }
 
+        // Open partner file to recover
+        if (erased[FTI_Topo->groupRank + gs]) {
+            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
+            sprintf(jfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
+            sprintf(str, "Opening partner ckpt. file (%s) to recover (L2).", jfn);
+            FTI_Print(str, FTI_DBUG);
             jfd = fopen(jfn, "wb");
             if (jfd == NULL) {
                 FTI_Print("R2 cannot open the partner ckpt. file.", FTI_DBUG);
 
-                fclose(lfd);
+                if (lfd) {
+                    fclose(lfd);
+                }
 
                 free(blBuf1);
                 free(blBuf2);
@@ -486,7 +489,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         // Truncate and open partner file to transfer
-        if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
+        if (erased[dest + gs] && !erased[FTI_Topo->groupRank]) {
             sprintf(qfn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
             sprintf(str, "Opening ckpt. file (%s) to transfer (L2).", qfn);
             FTI_Print(str, FTI_DBUG);
@@ -533,7 +536,6 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
-
         // Checkpoint files exchange
         while (pos < ps) {
             if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
@@ -563,7 +565,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 MPI_Isend(blBuf1, bytes, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend1);
             }
-            if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
+            if (erased[dest + gs] && !erased[FTI_Topo->groupRank]) {
                 size_t bytes = fread(blBuf3, sizeof(char), FTI_Conf->blockSize, qfd);
 
                 if (ferror(qfd)) {
@@ -592,17 +594,18 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             if (erased[FTI_Topo->groupRank]) {
                 MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv1);
+            }
+            if (erased[FTI_Topo->groupRank] + gs) {
                 MPI_Irecv(blBuf4, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv2);
             }
             if (erased[src] && !erased[gs + FTI_Topo->groupRank]) {
                 MPI_Wait(&reqSend1, &status);
             }
-            if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
+            if (erased[dest + gs] && !erased[FTI_Topo->groupRank]) {
                 MPI_Wait(&reqSend2, &status);
             }
             if (erased[FTI_Topo->groupRank]) {
                 MPI_Wait(&reqRecv1, &status);
-                MPI_Wait(&reqRecv2, &status);
 
                 fwrite(blBuf2, sizeof(char), FTI_Conf->blockSize, lfd);
                 if (ferror(lfd)) {
@@ -626,7 +629,10 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                     return FTI_NSCS;
                 }
+            }
 
+            if (erased[FTI_Topo->groupRank + gs]) {
+                MPI_Wait(&reqRecv2, &status);
                 fwrite(blBuf4, sizeof(char), FTI_Conf->blockSize, jfd);
                 if (ferror(jfd)) {
                     FTI_Print("Errors writting the data in the R2 partner ckpt. file.", FTI_DBUG);
@@ -693,7 +699,9 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 return FTI_NSCS;
             }
+        }
 
+        if (erased[FTI_Topo->groupRank + gs]) {
             if (fclose(jfd) != 0) {
                 FTI_Print("R2 cannot close the partner ckpt. file.", FTI_DBUG);
 
@@ -761,7 +769,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
-        if (erased[dest] && !erased[gs + FTI_Topo->groupRank]) {
+        if (erased[dest + gs] && !erased[FTI_Topo->groupRank]) {
             if (fclose(qfd) != 0) {
                 FTI_Print("R2 cannot close the ckpt. file", FTI_DBUG);
 
