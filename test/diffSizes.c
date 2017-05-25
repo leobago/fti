@@ -247,6 +247,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
                     else {
                         lastCheckpointIter = (ITERATIONS - 1) - (ITERATIONS - 1) % ITER_CHECK;
                     }
+
                     expectedSize += ((rank + 1) * INIT_SIZE + lastCheckpointIter * rank) * sizeof(long);
 
                     printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
@@ -301,15 +302,6 @@ int main(int argc, char** argv)
     int* mpi_ranks = malloc (sizeof(int) * world_size);
     MPI_Gather(&global_world_rank, 1, MPI_INT, mpi_ranks, 1, MPI_INT, 0, FTI_COMM_WORLD);
 
-    if (world_rank == 0 && !rtn) {
-        rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
-        if (!rtn && !fail) {
-            printf("Success.\n");
-        }
-    }
-
-    MPI_Barrier(FTI_COMM_WORLD);
-
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
@@ -341,6 +333,14 @@ int main(int argc, char** argv)
         //Barrier needed for heads (look FTI_Finalize() in api.c)
         MPI_Barrier(MPI_COMM_WORLD);
     }
+
+    if (world_rank == 0 && !rtn) {
+        rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
+        if (!rtn && !fail) {
+            printf("Success.\n");
+        }
+    }
+    MPI_Barrier(FTI_COMM_WORLD);
     //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
 
