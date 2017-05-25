@@ -15,3 +15,4 @@ target_link_libraries(tokenRing fti.static)
 
 file(COPY configs DESTINATION .)
 file(COPY tests.sh DESTINATION .)
+
