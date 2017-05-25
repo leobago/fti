@@ -61,11 +61,6 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 
         return FTI_NSCS;
     }
-
-    int v = (int)iniparser_getint(ini, "Basic:verbosity", -1);
-    sprintf(str, "UpdateConf verbosity = %d", v);
-    FTI_Print(str, FTI_WARN);
-
     if (fclose(fd) != 0) {
         FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
 
@@ -231,9 +226,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         return FTI_NSCS;
     }
     if (FTI_Conf->verbosity > 3 || FTI_Conf->verbosity < 1) {
-        char str[FTI_BUFS];
-        sprintf(str, "Verbosity needs to be set to 1, 2 or 3. And it's = %d", FTI_Conf->verbosity);
-        FTI_Print(str, FTI_WARN);
+        FTI_Print("Verbosity needs to be set to 1, 2 or 3.", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Conf->blockSize > (2048 * 1024) || FTI_Conf->blockSize < (1 * 1024)) {

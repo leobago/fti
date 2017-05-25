@@ -16,12 +16,8 @@
 #include "../deps/jerasure/galois.h"
 #include "../deps/jerasure/jerasure.h"
 
+#include "../deps/md5/md5.h"
 #define MD5_DIGEST_LENGTH 17
-#if MD5P
-    #include "../deps/md5/md5.h"
-#else
-    #include <openssl/md5.h>
-#endif
 
 #include <sys/stat.h>
 #include <string.h>
