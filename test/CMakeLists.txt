@@ -7,9 +7,6 @@ target_link_libraries(diffSizes fti.static)
 add_executable(heatdis heatdis.c)
 target_link_libraries(heatdis fti.static)
 
-add_executable(lvlsRecovery lvlsRecovery.c)
-target_link_libraries(lvlsRecovery fti.static)
-
 add_executable(nodeFlag nodeFlag.c)
 target_link_libraries(nodeFlag fti.static)
 
