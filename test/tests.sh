@@ -59,7 +59,11 @@ cd test
 		do
 			for j in {1..4}
 			do
-				startTest "$TEST" ${silentConfigs[$i]} 16 $j
+				if [ "$TEST" = "nodeFlag" ]; then
+					startTest "$TEST" ${configs[$i]} 16 $j
+				else
+					startTest "$TEST" ${silentConfigs[$i]} 16 $j
+				fi
 			done
 		done
 	fi
