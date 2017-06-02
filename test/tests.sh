@@ -54,6 +54,12 @@ cd test
 	if [ "$TEST" = "" ]
 	then
 		runAllConfiguration 16
+	elif [ "$TEST" = "heatdis" ]
+	then
+		for i in {0..2}
+		do
+			startTest "$TEST" ${silentConfigs[$i]} 16
+		done
 	else
 		for i in {0..2}
 		do
