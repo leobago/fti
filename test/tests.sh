@@ -51,7 +51,18 @@ cd test
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
 	#runs all configuration with 16 processes
-	runAllConfiguration 16
+	if [ "$TEST" = "" ]
+	then
+		runAllConfiguration 16
+	else
+		for i in {0..2}
+		do
+			for j in {1..4}
+			do
+				startTest "$TEST" ${silentConfigs[$i]} 16 $j
+			done
+		done
+	fi
 
 #----------------------------------------------------------------------------------------
 cd ..
