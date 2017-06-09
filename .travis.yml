@@ -63,9 +63,9 @@ env:
      - env:
        - TEST=heatdis CONFIG=configH1I0Silent.fti
      - env:
-       - TEST=nodeFlag CONFIG=configH1I0.fti
+       - TEST=nodeFlag CONFIG=configH0I1.fti
      - env:
-       - TEST=nodeFlag CONFIG=configH1I0.fti
+       - TEST=nodeFlag CONFIG=configH1I1.fti
      - env:
        - TEST=nodeFlag CONFIG=configH1I0.fti
      - env:
