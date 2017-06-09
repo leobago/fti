@@ -49,7 +49,7 @@ cd test
 
 	configs=(configH0I1.fti configH1I1.fti configH1I0.fti)
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
-	
+
 	if  [ -z "$TEST" ] || [ -z "$CONFIG" ]
 	then
 		runAllConfiguration 16
