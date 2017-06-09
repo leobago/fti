@@ -57,9 +57,9 @@ env:
      - env:
        - TEST=diffSizes CONFIG=configH1I0Silent.fti LEVEL=4
      - env:
-       - TEST=heatdis CONFIG=configH1I0Silent.fti
+       - TEST=heatdis CONFIG=configH0I1Silent.fti
      - env:
-       - TEST=heatdis CONFIG=configH1I0Silent.fti
+       - TEST=heatdis CONFIG=configH1I1Silent.fti
      - env:
        - TEST=heatdis CONFIG=configH1I0Silent.fti
      - env:
