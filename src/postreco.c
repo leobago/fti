@@ -173,8 +173,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (erased[FTI_Topo->groupRank] == 0) {
             size_t data_size = fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
 
-            if (ferror(fd) || ferror(efd)) {
-                FTI_Print("R3 cannot from the ckpt. file or the encoded ckpt. file.", FTI_DBUG);
+            if (ferror(fd)) {
+                FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
 
                 fclose(fd);
                 fclose(efd);
@@ -200,6 +200,26 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
             size_t coding_size = fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            if (ferror(efd)) {
+                FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
+
+                fclose(fd);
+                fclose(efd);
+
+                for (i = 0; i < m; i++) {
+                    free(coding[i]);
+                    free(data[i]);
+                }
+                free(tmpmat);
+                free(dm_ids);
+                free(decMatrix);
+                free(matrix);
+                free(data);
+                free(dataTmp);
+                free(coding);
+
+                return FTI_NSCS;
+            }
         } else {
             bzero(coding[FTI_Topo->groupRank], bs);
         }
