@@ -70,9 +70,12 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 
- int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                      FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
                      char* rsChecksum, int group, int level);
+ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                              int rank, char* checksum);
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                 unsigned long *fs, unsigned long *mfs, int group, int level);

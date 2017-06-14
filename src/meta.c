@@ -68,6 +68,76 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     return FTI_SCES;
 }
 
+int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                            FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                             int rank, char* checksum)
+{
+    char str[FTI_BUFS], buf[FTI_BUFS], fileName[FTI_BUFS];
+    dictionary* ini;
+    char* checksums;
+    int i;
+    int sectorID = rank / (FTI_Topo->groupSize * FTI_Topo->nodeSize);
+    int node = rank / FTI_Topo->nodeSize;
+    int rankInGroup = node - (sectorID * FTI_Topo->groupSize);
+    int groupID = rank % FTI_Topo->nodeSize;
+
+    checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
+    MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
+    if (rankInGroup) {
+        free(checksums);
+        return FTI_SCES;
+    }
+
+    sprintf(fileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, groupID);
+    ini = iniparser_load(fileName);
+    if (ini == NULL) {
+        FTI_Print("Temporary metadata file could NOT be parsed", FTI_WARN);
+        return FTI_NSCS;
+    }
+    // Add metadata to dictionary
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+        sprintf(str, "%d:RSed_checksum", i);
+        iniparser_set(ini, str, buf);
+    }
+    free(checksums);
+
+    sprintf(str, "Recreating metadata file (%s)...", buf);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fileName, "w");
+    if (fd == NULL) {
+        FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+
+    // Write metadata
+    iniparser_dump_ini(ini, fd);
+
+    if (fflush(fd) != 0) {
+        FTI_Print("Metadata file could NOT be flushed.", FTI_WARN);
+
+        iniparser_freedict(ini);
+        fclose(fd);
+
+        return FTI_NSCS;
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+
+    iniparser_freedict(ini);
+
+    return FTI_SCES;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the metadata to recover the data after a failure.
