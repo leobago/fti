@@ -68,6 +68,18 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It writes the RSed file checksum to metadata.
+    @param      rank            global rank of the process
+    @param      checksum        Pointer to the checksum.
+    @return     integer         FTI_SCES if successfull.
+
+    This function should be executed only by one process per group. It
+    writes the RSed checksum to the metadata file.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                              int rank, char* checksum)
