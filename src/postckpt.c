@@ -178,8 +178,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (truncate(lfn, maxFs) == -1) {
         FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
         return FTI_NSCS;
-    } else {
-        fs = maxFs;
     }
 
     lfd = fopen(lfn, "rb");
@@ -210,8 +208,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // For each block
     while (pos < ps) {
-        if ((fs - pos) < bs) {
-            remBsize = fs - pos;
+        if ((maxFs - pos) < bs) {
+            remBsize = maxFs - pos;
         }
 
         // Reading checkpoint files
@@ -281,6 +279,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         // Next block
         pos = pos + bs;
+    }
+
+    if (truncate(lfn, fs) == -1) {
+        FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
+        return FTI_NSCS;
     }
 
     free(data);
