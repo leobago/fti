@@ -202,7 +202,6 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
     char* exec_id = malloc (sizeof(char) * 256);
     exec_id = iniparser_getstring(ini, "Restart:exec_id", NULL);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int groupSize = (int)iniparser_getint(ini, "Basic:group_size", -1);
     int nodes = nodeSize ? global_world_size / nodeSize : 0;
     char str[256];
     char path[256];
@@ -226,20 +225,12 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
                     int fileSize = ftell(f);
 
                     //get rank from file name
-                    int i, id, rank, sector;
+                    int i, id, rank;
                     sscanf(ent->d_name, "Ckpt%d-Rank%d.fti", &id, &rank);
                     for (i = 0; i < world_size; i++) {
                         if (rank == mpi_ranks[i]) {
                             rank = i;
-                            sector = rank / (nodeSize * groupSize);
                             break;
-                        }
-                    }
-
-                    int tempRank = rank;
-                    if (level == 3) {
-                        while ( rank + nodeSize <= ((nodeSize * groupSize) * (sector + 1) - 1) ) {
-                            rank += nodeSize;
                         }
                     }
 
@@ -259,9 +250,9 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
 
                     expectedSize += ((rank + 1) * INIT_SIZE + lastCheckpointIter * rank) * sizeof(long);
 
-                    printf("%d: Last checkpoint file size = %d\n", tempRank, fileSize);
+                    printf("%d: Last checkpoint file size = %d\n", rank, fileSize);
                     if (fileSize != expectedSize) {
-                        printf("%d: Last checkpoint file size = %d, should be %d.\n", tempRank, fileSize, expectedSize);
+                        printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
 
                         fclose(f);
                         closedir (dir);
