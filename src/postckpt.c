@@ -150,7 +150,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
     char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
-    int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf->blockSize;
+    int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf->blockSize, rank;
     unsigned long maxFs, fs, ps, pos = 0;
     MPI_Request reqSend, reqRecv;
     MPI_Status status;
@@ -167,9 +167,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         ps = ps + bs;
     }
 
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &i);
+    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
     sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, i);
+    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
 
     sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
@@ -282,7 +282,15 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
     fclose(efd);
 
-    return FTI_SCES;
+    //write checksum in metadata
+    char checksum[MD5_DIGEST_LENGTH];
+    res = FTI_Checksum(efn, checksum);
+    if (res != FTI_SCES) {
+        return FTI_NSCS;
+    }
+    res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
+
+    return res;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -390,7 +398,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         pos = pos + FTI_Conf->blockSize;
     }
-    
+
     free(blBuf1);
     fclose(lfd);
     fclose(gfd);
