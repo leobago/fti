@@ -27,7 +27,10 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
             if (fileStatus.st_size == fs) {
                 if (strlen(checksum)) {
                     int res = FTI_VerifyChecksum(fn, checksum);
-                    return res;
+                    if (res != FTI_SCES) {
+                        return 1;
+                    }
+                    return 0;
                 }
                 return 0;
             }
