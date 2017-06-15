@@ -188,7 +188,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     t1 = MPI_Wtime();
     
     // initialize Flush
-    res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+    if (FTI_Exec->ckptLvel == 4) {
+        res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+    }
 
     for (i = 0; i < pr; i++) {
         switch (FTI_Exec->ckptLvel) {
@@ -208,7 +210,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // finalize Flush
-    res += FTI_FlushFinalize(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+    if (FTI_Exec->ckptLvel == 4) {
+        res += FTI_FlushFinalize(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+    }
 
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (tres != FTI_SCES) {

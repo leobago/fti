@@ -13,7 +13,7 @@ option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 
 set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
 
-set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/install/sionlib_linux_gomp/include/")
+set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -51,11 +51,11 @@ set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
 find_library(LIBM m DOC "The math library")
-find_library(SIONLIB_MPI NAMES "sionmpi_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "install/sionlib_linux_gomp/lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_GEN NAMES "siongen_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "install/sionlib_linux_gomp/lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_SER NAMES "sionser_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "install/sionlib_linux_gomp/lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "install/sionlib_linux_gomp/lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "install/sionlib_linux_gomp/lib" NO_DEFAULT_PATH)
+find_library(SIONLIB_MPI NAMES "sionmpi_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+find_library(SIONLIB_GEN NAMES "siongen_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+find_library(SIONLIB_SER NAMES "sionser_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
