@@ -13,6 +13,8 @@ target_link_libraries(nodeFlag fti.static)
 add_executable(tokenRing tokenRing.c)
 target_link_libraries(tokenRing fti.static)
 
+add_subdirectory(local)
+
 file(COPY configs DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 
