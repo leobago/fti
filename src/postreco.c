@@ -358,7 +358,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned long toSend = fs; // remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
-        size_t bytes = fread(buffer, sizeof(char), toSend, fileDesc);
+        size_t bytes = fread(buffer, sizeof(char), sendSize, fileDesc);
 
         if (ferror(fileDesc)) {
             FTI_Print("Error reading the data from the ckpt. file.", FTI_WARN);
