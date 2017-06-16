@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
         result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize);
         MPI_Barrier(FTI_COMM_WORLD);
         if (result != 0) {
-            exit(BACKUP_DATA_CORRUPT);
+            exit(DATA_CORRUPT);
         }
     }
     
