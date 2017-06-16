@@ -16,6 +16,54 @@ testFailed=0
 # some arguments don't have a corresponding value to go with it such
 # as in the --default example).
 # note: if this is set to -gt 0 the /etc/hosts part is not recognized ( may be a bug )
+display_usage() {
+cat <<EOF
+Usage: ./run-checks.sh [options]
+
+-h|--help           shows this help.
+
+-e|--erase-files    delete files before recovery
+-d|--diff-size      use different sizes for checkpoint files
+
+Default (no options):
+
+Checkpoint and restart for all levels with configurations:
+
+HEAD | KEEP | L2 INLINE | L3 INLINE | L4 INLINE
+
+0      0      1           1           1 (L1, L2, L3, L4) 
+0      1      1           1           1 (L1, L2, L3, L4)
+1      0      1           1           1 (L1, L2, L3, L4) 
+1      1      1           1           1 (L1, L2, L3, L4)
+1      0      0           1           1 (L2)
+1      1      0           1           1 (L2)
+1      0      1           0           1 (L3)
+1      1      1           0           1 (L3)
+1      0      1           1           0 (L4)
+1      1      1           1           0 (L4)
+
+In total: 22 Tests
+
+If erased-files is set, L2 and L3 in addition have 4 additional tests for cases with
+Keep=0
+
+    - 2 checkpoint files in non-consecutive nodes are deleted before recovery
+    - 2 partner/encoded files in non-consecutive nodes are deleted before recovery
+    - 2 consecutive nodes are deleted before recovery
+    - 2 non-consecutive nodes are deleted before recovery
+
+L1 and L4 have two additional tests in cases with keep=0:
+
+    - 1 checkpoint file is deleted
+
+Also after the Flush to the PFS for the Cases Head=0 and Head=1 one checkpoint file
+on the PFS is deleted before the recovery.
+
+In total: 53 Tests
+
+If diff-size is set, the checkpoint files have different sizes.
+EOF
+}
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -37,8 +85,9 @@ case $key in
     corruptFiles=1
     echo "[OPTION] Set corrupt checkpoint files -> TRUE"
     ;;
-    *)
-            # unknown option
+    -h|--help)
+    display_usage
+    exit 0
     ;;
 esac
 shift # past argument or value
@@ -162,6 +211,11 @@ should_fail() {
 
 set_inline() {
     case $1 in
+        1)
+            let l2=1
+            let l3=1
+            let l4=1
+            ;;
         2)
             let l2=$2
             let l3=1
@@ -392,208 +446,210 @@ for keep in ${KEEP[*]}; do
             fi
         fi
     done
-	rm $NAME
+    rm $NAME
 done
 for keep in ${KEEP[*]}; do
     for level in ${LEVEL[*]}; do    
-        for inline in "0 1"; do
-            set_inline $level $inline
-            NAME="H1K"$keep"I"$l2""$l3""$l4
-            #                  #
-            # --- HEAD = 1 --- #
-            #                  #
-            awk '$1 == "head" {$3 = 1}1' TMPLT > tmp; cp tmp TMPLT
-            awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-            awk -v var="$l2" '$1 == "inline_l2" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-            awk -v var="$l3" '$1 == "inline_l3" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-            awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT > $NAME; rm tmp
-            echo -e "[ \033[1mTesting L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4")...\033[m ]"
-            if [ $keep -eq "1" ]; then
-            	( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-            	### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
-            	awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-            	( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-            	should_not_fail $?
-            	if [ $testFailed = 1 ]; then
-            		echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
-                    testFailed=0
-            	fi
-            	awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                if [ $eraseFiles = "1" ] && [ $FLAG = "2" ]; then
-                    awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
+        for inline in 0 1; do
+            if [ $inline -eq 1 ] || [[ $inline -eq 0 && $level -ne 1 ]]; then
+                set_inline $level $inline
+                NAME="H1K"$keep"I"$l2""$l3""$l4
+                #                  #
+                # --- HEAD = 1 --- #
+                #                  #
+                awk '$1 == "head" {$3 = 1}1' TMPLT > tmp; cp tmp TMPLT
+                awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
+                awk -v var="$l2" '$1 == "inline_l2" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
+                awk -v var="$l3" '$1 == "inline_l3" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
+                awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT > $NAME; rm tmp
+                echo -e "[ \033[1mTesting L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4")...\033[m ]"
+                if [ $keep -eq "1" ]; then
                     ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                    ### DELETE CHECKPOINT FILE
-                    echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                    folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
-                    filename=$(ls $folder | grep Rank | head -n 1)
-                    ( set -x; rm -rf $folder"/"$filename )
                     ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                     awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                    should_fail $?
+                    should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted file on PFS, should fail" >> failed.log
+                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                    let FLAG=3
-                fi
-            fi
-            if [ $keep -eq "0" ]; then
-                ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                should_not_fail $?
-                if [ $testFailed = 1 ]; then
-                    echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
-                    testFailed=0
-                fi
-                awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                if [ $eraseFiles = "1" ]; then
-                    if [ $level = 1 ]; then
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE CHECKPOINT FILE
-                        echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                        folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l1"
-                        filename=$(ls $folder | grep Rank | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L1 file, should fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                    fi
-                    if [ $level = 2 ]; then
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE Checkpoint FILES
-                        echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                        folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
-                        filename=$(ls $folder | grep Rank | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
-                        filename=$(ls $folder | grep Rank | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 ckpt files, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE PARTNER FILES
-                        echo -e "[ \033[1mDeleting Partner Files...\033[m ]"
-                        folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
-                        filename=$(ls $folder | grep Pcof | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
-                        filename=$(ls $folder | grep Pcof | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 partner files, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE NODES
-                        echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                        ( set -x; rm -rf Local/node0 )
-                        ( set -x; rm -rf Local/node1 )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted 2 consecutive nodes, should fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE NODES
-                        echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                        ( set -x; rm -rf Local/node0 )
-                        ( set -x; rm -rf Local/node2 )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                    fi
-                    if [ $level = 3 ]; then
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE Checkpoint FILES
-                        echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                        folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
-                        filename=$(ls $folder | grep Rank | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
-                        filename=$(ls $folder | grep Rank | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 ckpt files, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE ENCODED FILES
-                        echo -e "[ \033[1mDeleting Encoded Files...\033[m ]"
-                        folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
-                        filename=$(ls $folder | grep Rsed | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
-                        filename=$(ls $folder | grep Rsed | head -n 1)
-                        ( set -x; rm -rf $folder"/"$filename )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 encoded files, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE NODES
-                        echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                        ( set -x; rm -rf Local/node0 )
-                        ( set -x; rm -rf Local/node1 )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to consecutive nodes, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
-                        ### DELETE NODES
-                        echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                        ( set -x; rm -rf Local/node0 )
-                        ( set -x; rm -rf Local/node2 )
-                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
-                        should_not_fail $?
-                        if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
-                            testFailed=0
-                        fi
-                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                    fi
-                    if [ $level = 4 ]; then
-                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    if [ $eraseFiles = "1" ] && [ $FLAG = "2" ]; then
+                        awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         ### DELETE CHECKPOINT FILE
                         echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
                         folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
                         filename=$(ls $folder | grep Rank | head -n 1)
                         ( set -x; rm -rf $folder"/"$filename )
+                        ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                        awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                         ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         should_fail $?
                         if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 file, should fail" >> failed.log
+                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted file on PFS, should fail" >> failed.log
                             testFailed=0
                         fi
                         awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        let FLAG=3
+                    fi
+                fi
+                if [ $keep -eq "0" ]; then
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                    if [ $eraseFiles = "1" ]; then
+                        if [ $level = 1 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE CHECKPOINT FILE
+                            echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l1"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L1 file, should fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 2 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE Checkpoint FILES
+                            echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 ckpt files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE PARTNER FILES
+                            echo -e "[ \033[1mDeleting Partner Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Pcof | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Pcof | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 partner files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE NODES
+                            echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
+                            ( set -x; rm -rf Local/node0 )
+                            ( set -x; rm -rf Local/node1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted 2 consecutive nodes, should fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE NODES
+                            echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
+                            ( set -x; rm -rf Local/node0 )
+                            ( set -x; rm -rf Local/node2 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 3 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE Checkpoint FILES
+                            echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 ckpt files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE ENCODED FILES
+                            echo -e "[ \033[1mDeleting Encoded Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rsed | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rsed | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 encoded files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE NODES
+                            echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
+                            ( set -x; rm -rf Local/node0 )
+                            ( set -x; rm -rf Local/node1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to consecutive nodes, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE NODES
+                            echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
+                            ( set -x; rm -rf Local/node0 )
+                            ( set -x; rm -rf Local/node2 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 4 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### DELETE CHECKPOINT FILE
+                            echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+                            folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; rm -rf $folder"/"$filename )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 file, should fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
                     fi
                 fi
             fi
