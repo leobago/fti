@@ -1,3 +1,39 @@
+/**
+ *  @file   check.c
+ *  @author Kai Keller (kellekai@gmx.de)
+ *  @date   June, 2017
+ *  @brief  FTI testing program.
+ *	
+ *	The program may test the correct behaviour for checkpoint
+ *	and restart for all configurations. The recovered data is also 
+ *	tested upon correct data fields.
+ *
+ *	The program takes four arguments:
+ *	  - arg1: FTI configuration file
+ *	  - arg2: Interrupt yes/no (1/0)
+ *	  - arg3: Checkpoint level (1, 2, 3, 4)
+ *	  - arg4: different ckpt. sizes yes/no (1/0)
+ *
+ * If arg2 = 0, the program simulates a clean run of FTI:
+ *    FTI_Init
+ *    FTI_Protect
+ *    if FTI_Status = 0 
+ *      FTI_Checkpoint
+ *    else
+ *      FTI_Recover
+ *    FTI_Finalize
+ *
+ * If arg2 = 1, the program simulates an execution failure:
+ *    FTI_Init
+ *    FTI_Protect
+ *    if FTI_Status = 0
+ *      exit(10)
+ *    else
+ *      FTI_Recover
+ *    FTI_Finalize
+ *
+ */
+
 #include "mpi.h"
 #include "fti.h"
 #include <stdio.h>
@@ -9,9 +45,6 @@
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
-#define BACKUP_DATA_CORRUPT 40
-#define FTI_ERROR 50
-#define MPI_ERROR 60
 #define KEEP 2
 #define RESTART 1
 #define INIT 0
@@ -20,14 +53,70 @@
  * function prototypes
  */
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Initialize test data
+    @param      [out] A				Unit vector (1, 1, ....., 1)
+    @param      [out] B				Random vector
+    @param      [in] asize			Dimension
+
+	Initializes A with 1's and B with random numbers r,  0 <= r <= 5. 
+	Dimension of both vectors is 'asize'
+ **/
+/*-------------------------------------------------------------------------*/
 void init_arrays(double* A, double* B, size_t asize);
 
-void vecmulc(double* A, double* B, size_t asize);
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Multiplies components of A and B and stores result into A
+    @param      [in/out] A			Unit vector (1, 1, ....., 1)
+    @param      [in] B				Random vector
+    @param      [in] asize			Dimension
 
-int validify(double* A, double* B, size_t asize);
+    After function call, A equals B.
+ **/
+/*-------------------------------------------------------------------------*/
+void vecmult(double* A, double* B, size_t asize);
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Validifies the recovered data
+    @param      [in] A			    A returned from vecmult
+    @param      [in] B_chk			POSIX Backup of B
+    @param      [in] asize			Dimension
+    @return     integer             0 if successful, -1 else.
+
+    Checks entry for entry if A equals the POSIX Backup of B, B_chk, from 
+    the preceding execution. This function must be called after the call to
+    vecmult(A, B, asize).
+ **/
+/*-------------------------------------------------------------------------*/
+int validify(double* A, double* B_chk, size_t asize);
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Writes 'B' and 'asize' to file, using POSIX fwrite.
+    @param      [in] B              Random array B from init_array call
+    @param      [in] asize			Dimension
+    @param      [in] rank           FTI application rank
+ **/
+/*-------------------------------------------------------------------------*/
 int write_data(double* B, size_t* asize, int rank);
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recovers 'B' and 'asize' to 'B_chk' and 'asize_chk' from file, 
+                using POSIX fread.
+    @param      [out] B_chk         B backup
+    @param      [out] asize_chk     Dimension backup
+    @param      [in] rank           FTI application rank
+    @param      [in] asize			Dimension
+    @return     integer             0 if successful, -1 else.
+
+    Before recovering B, the function checks if 'asize_chk' equals 'asize',
+    to prevent SIGSEGV. If not 'asize_chk' = 'asize' it returns -1.
+ **/
+/*-------------------------------------------------------------------------*/
 int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
 
 /**
@@ -129,7 +218,7 @@ int main(int argc, char* argv[]) {
      * on RESTART or KEEP, B is recovered and must be equal to B_chk
      */
 
-    vecmulc(A, B, asize);
+    vecmult(A, B, asize);
 
     if (state == RESTART || state == KEEP) {
         result = validify(A, B_chk, asize);
@@ -175,17 +264,17 @@ void init_arrays(double* A, double* B, size_t asize) {
     }
 }
 
-void vecmulc(double* A, double* B, size_t asize) {
+void vecmult(double* A, double* B, size_t asize) {
     int i;
     for (i=0; i<asize; i++) {
         A[i] = A[i]*B[i];
     }
 }
 
-int validify(double* A, double* B, size_t asize) {
+int validify(double* A, double* B_chk, size_t asize) {
     int i;
     for (i=0; i<asize; i++) {
-        if (A[i] != B[i]){
+        if (A[i] != B_chk[i]){
             return -1;
         }
     }
