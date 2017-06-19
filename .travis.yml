@@ -9,15 +9,89 @@ env:
     - secure: "Dw0r4cbZoT0QoIlI7XWLdhPQxL62CQzskdw3tUth4eSWJd/0IIvLq/ogaZZbYWGH4lifI4p5NMzEpHJ5yFjWnO/ZcpVTZ26SJEFwfBrPUzeu3MV30poX89EYxWz+dE4xPFKzAAKnemlcVxfTHE+z3vW5klnjg5bRH3+pFKoFVBX6M2ABPXcigkpbd1dnXqQK+36v0yx/SF4Yg607vLLPVfcmcU+ohT52OENVkoeEllOxmGxdVfdskEVQ9O16BbtxNSthYQFplvFn5RrpvknRarby51E+7eMf9sOey2H6MWtZYFKXKiascUz5ZLPIt0mFCW1x2wFC39cxMZNFURg+hHlGKUGV9Bt7B7K/XAwvPhY6X+td4OYPR2B68vywxpPlShiTg8iduYg1H4bdVzt+1qdRHsg2qmyJe5eQBMwW5fEVOffJhfVAiG5ceDWzQJQt5cEKn/2yxt1bX3sC7Hl6lzTQ1X6DuLWi9cCsKqsAB7ht/ZC1m13YGRyjghG9RDsRfM2FPy0w0iOHDAGrNzQVPPDDxxgNi/xpmqPlkvjRSz3Pmj6VeAZ2cG68pls+oKyzcWEhCeSL3uT3ShKBfrpQcFxVFzsdTWzH6XYul/HHrUnYKGtd3K1MW59Dng5WcD5xi8n76/wmlkXUoWmYNjfGsP5wwcz/yLfc/CRDRB3P4jo="
   matrix:
      - env:
-       - TEST=addInArray
+       - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=1
      - env:
-       - TEST=diffSizes
+       - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=2
      - env:
-       - TEST=heatdis
+       - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=3
      - env:
-       - TEST=nodeFlag
+       - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=4
      - env:
-       - TEST=tokenRing
+       - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=1
+     - env:
+       - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=2
+     - env:
+       - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=3
+     - env:
+       - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=4
+     - env:
+       - TEST=addInArray CONFIG=configH1I0Silent.fti LEVEL=1
+     - env:
+       - TEST=addInArray CONFIG=configH1I0Silent.fti LEVEL=2
+     - env:
+       - TEST=addInArray CONFIG=configH1I0Silent.fti LEVEL=3
+     - env:
+       - TEST=addInArray CONFIG=configH1I0Silent.fti LEVEL=4
+     - env:
+       - TEST=diffSizes CONFIG=configH0I1Silent.fti LEVEL=1
+     - env:
+       - TEST=diffSizes CONFIG=configH0I1Silent.fti LEVEL=2
+     - env:
+       - TEST=diffSizes CONFIG=configH0I1Silent.fti LEVEL=3
+     - env:
+       - TEST=diffSizes CONFIG=configH0I1Silent.fti LEVEL=4
+     - env:
+       - TEST=diffSizes CONFIG=configH1I1Silent.fti LEVEL=1
+     - env:
+       - TEST=diffSizes CONFIG=configH1I1Silent.fti LEVEL=2
+     - env:
+       - TEST=diffSizes CONFIG=configH1I1Silent.fti LEVEL=3
+     - env:
+       - TEST=diffSizes CONFIG=configH1I1Silent.fti LEVEL=4
+     - env:
+       - TEST=diffSizes CONFIG=configH1I0Silent.fti LEVEL=1
+     - env:
+       - TEST=diffSizes CONFIG=configH1I0Silent.fti LEVEL=2
+     - env:
+       - TEST=diffSizes CONFIG=configH1I0Silent.fti LEVEL=3
+     - env:
+       - TEST=diffSizes CONFIG=configH1I0Silent.fti LEVEL=4
+     - env:
+       - TEST=heatdis CONFIG=configH0I1Silent.fti
+     - env:
+       - TEST=heatdis CONFIG=configH1I1Silent.fti
+     - env:
+       - TEST=heatdis CONFIG=configH1I0Silent.fti
+     - env:
+       - TEST=nodeFlag CONFIG=configH0I1.fti
+     - env:
+       - TEST=nodeFlag CONFIG=configH1I1.fti
+     - env:
+       - TEST=nodeFlag CONFIG=configH1I0.fti
+     - env:
+       - TEST=tokenRing CONFIG=configH0I1Silent.fti LEVEL=1
+     - env:
+       - TEST=tokenRing CONFIG=configH0I1Silent.fti LEVEL=2
+     - env:
+       - TEST=tokenRing CONFIG=configH0I1Silent.fti LEVEL=3
+     - env:
+       - TEST=tokenRing CONFIG=configH0I1Silent.fti LEVEL=4
+     - env:
+       - TEST=tokenRing CONFIG=configH1I1Silent.fti LEVEL=1
+     - env:
+       - TEST=tokenRing CONFIG=configH1I1Silent.fti LEVEL=2
+     - env:
+       - TEST=tokenRing CONFIG=configH1I1Silent.fti LEVEL=3
+     - env:
+       - TEST=tokenRing CONFIG=configH1I1Silent.fti LEVEL=4
+     - env:
+       - TEST=tokenRing CONFIG=configH1I0Silent.fti LEVEL=1
+     - env:
+       - TEST=tokenRing CONFIG=configH1I0Silent.fti LEVEL=2
+     - env:
+       - TEST=tokenRing CONFIG=configH1I0Silent.fti LEVEL=3
+     - env:
+       - TEST=tokenRing CONFIG=configH1I0Silent.fti LEVEL=4
      - compiler: clang
      - env:
        - MPICC=mpiicc
