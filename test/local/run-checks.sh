@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-#test
+# 
+#  @file   check.c
+#  @author Kai Keller (kellekai@gmx.de)
+#  @date   June, 2017
+#  @brief  FTI testing program.
+#    
+#    The program may test the correct behaviour for checkpoint
+#    and restart for all configurations. The recovered data is also 
+#    tested upon correct data fields.
+# 
+#  Hit ./run-checks.sh -h for info
+# 
 FLAG=1
 PROCS=16
 diffSize=0
@@ -10,12 +21,6 @@ FAILED=0
 SUCCEED=0
 FAULTY=0
 testFailed=0
-# Use -gt 1 to consume two arguments per pass in the loop (e.g. each
-# argument has a corresponding value to go with it).
-# Use -gt 0 to consume one or more arguments per pass in the loop (e.g.
-# some arguments don't have a corresponding value to go with it such
-# as in the --default example).
-# note: if this is set to -gt 0 the /etc/hosts part is not recognized ( may be a bug )
 display_usage() {
 cat <<EOF
 Usage: ./run-checks.sh [options]
@@ -156,7 +161,7 @@ should_not_fail() {
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 30 ]; then
-		echo -e "\033[0;31mfailed\033[m (Checkpopint Data Corrupted!)" 
+		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 20 ]; then
@@ -249,7 +254,7 @@ for keep in ${KEEP[*]}; do
     #                  #
     awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
     for level in ${LEVEL[*]}; do    
-        echo -e "[ \033[1mTesting L"$level", head=0, keep="$keep", inline=(1,1,1)...\033[m ]"
+        echo -e "[ \033[1m*** Testing L"$level", head=0, keep="$keep", inline=(1,1,1)... ***\033[m ]"
         if [ $keep -eq "1" ]; then
             #                  #
             # --- KEEP = 1 --- #
@@ -462,7 +467,7 @@ for keep in ${KEEP[*]}; do
                 awk -v var="$l2" '$1 == "inline_l2" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
                 awk -v var="$l3" '$1 == "inline_l3" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
                 awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT > $NAME; rm tmp
-                echo -e "[ \033[1mTesting L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4")...\033[m ]"
+                echo -e "[ \033[1m*** Testing L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4")... ***\033[m ]"
                 if [ $keep -eq "1" ]; then
                     ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
@@ -606,7 +611,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 encoded files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 encoded files, should not fail" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
