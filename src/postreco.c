@@ -480,6 +480,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             i++; // Counting erasures
         }
     }
+
     if (i == 0) {
         FTI_Print("Have all checkpoint files.", FTI_DBUG);
         return FTI_SCES;
@@ -527,6 +528,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
+
         if (erased[destination]) { //then send file
             unsigned long pfs; //Ptner file size
             res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2);
@@ -571,6 +573,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
+
         if (erased[source + FTI_Topo->groupSize]) { //send file
             res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, fs, 0);
             if (res != FTI_SCES) {
