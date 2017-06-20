@@ -125,7 +125,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
         efd = fopen(efn, "rb");
-    } else {
+    }
+    else {
         efd = fopen(efn, "wb");
     }
     if (fd == NULL) {
@@ -220,7 +221,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 return FTI_NSCS;
             }
-        } else {
+        }
+        else {
             bzero(coding[FTI_Topo->groupRank], bs);
         }
 
