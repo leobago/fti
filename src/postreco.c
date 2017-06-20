@@ -118,10 +118,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
         fd = fopen(fn, "rb");
-        efd = fopen(efn, "rb");
     }
     else {
         fd = fopen(fn, "wb");
+    }
+
+    if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
+        efd = fopen(efn, "rb");
+    }
+    else {
         efd = fopen(efn, "wb");
     }
     if (fd == NULL) {
@@ -168,10 +173,9 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
             size_t data_size = fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
-            size_t coding_size = fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
 
-            if (ferror(fd) || ferror(efd)) {
-                FTI_Print("R3 cannot from the ckpt. file or the encoded ckpt. file.", FTI_DBUG);
+            if (ferror(fd)) {
+                FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
 
                 fclose(fd);
                 fclose(efd);
@@ -193,8 +197,34 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         else {
             bzero(data[FTI_Topo->groupRank], bs);
-            bzero(coding[FTI_Topo->groupRank], bs);
         } // Erasure found
+
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
+            size_t coding_size = fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            if (ferror(efd)) {
+                FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
+
+                fclose(fd);
+                fclose(efd);
+
+                for (i = 0; i < m; i++) {
+                    free(coding[i]);
+                    free(data[i]);
+                }
+                free(tmpmat);
+                free(dm_ids);
+                free(decMatrix);
+                free(matrix);
+                free(data);
+                free(dataTmp);
+                free(coding);
+
+                return FTI_NSCS;
+            }
+        }
+        else {
+            bzero(coding[FTI_Topo->groupRank], bs);
+        }
 
         MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
@@ -235,24 +265,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(efd);
 
     if (truncate(fn, fs) == -1) {
-        FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_DBUG);
-
-        for (i = 0; i < m; i++) {
-            free(coding[i]);
-            free(data[i]);
-        }
-        free(tmpmat);
-        free(dm_ids);
-        free(decMatrix);
-        free(matrix);
-        free(data);
-        free(dataTmp);
-        free(coding);
-
-        return FTI_NSCS;
-    }
-    if (truncate(efn, fs) == -1) {
-        FTI_Print("R3 cannot re-truncate encoded ckpt. file.", FTI_DBUG);
+        FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 
         for (i = 0; i < m; i++) {
             free(coding[i]);
