@@ -263,24 +263,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(efd);
 
     if (truncate(fn, fs) == -1) {
-        FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_DBUG);
-
-        for (i = 0; i < m; i++) {
-            free(coding[i]);
-            free(data[i]);
-        }
-        free(tmpmat);
-        free(dm_ids);
-        free(decMatrix);
-        free(matrix);
-        free(data);
-        free(dataTmp);
-        free(coding);
-
-        return FTI_NSCS;
-    }
-    if (truncate(efn, fs) == -1) {
-        FTI_Print("R3 cannot re-truncate encoded ckpt. file.", FTI_DBUG);
+        FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 
         for (i = 0; i < m; i++) {
             free(coding[i]);
