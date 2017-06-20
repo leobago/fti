@@ -31,6 +31,115 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      Send Ckpt file.
+  @param      fs              Ckpt file size
+  @param      destination     destination group rank
+  @return     integer         FTI_SCES if successful.
+
+  This function sends ckpt file to partner process. Partner should call
+  FTI_RecvPtner to receive this file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                 unsigned long fs, int destination)
+{
+    int bytes; //bytes read by fread
+    char lfn[FTI_BUFS], str[FTI_BUFS];
+    FILE* lfd;
+
+    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+
+    sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
+    FTI_Print(str, FTI_DBUG);
+
+    lfd = fopen(lfn, "rb");
+    if (lfd == NULL) {
+        FTI_Print("FTI failed to open L2 Ckpt. file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    char* buffer = talloc(char, FTI_Conf->blockSize);
+    unsigned long toSend = fs; //remaining data to send
+    while (toSend > 0) {
+        int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
+        bytes = fread(buffer, sizeof(char), sendSize, lfd);
+
+        if (ferror(lfd)) {
+            FTI_Print("Error reading data from L2 ckpt file", FTI_DBUG);
+
+            free(buffer);
+            fclose(lfd);
+
+            return FTI_NSCS;
+        }
+
+        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->tag, FTI_Exec->groupComm);
+        toSend -= bytes;
+    }
+
+    free(buffer);
+    fclose(lfd);
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Receive Ptner file.
+  @param      pfs             Ptner file size
+  @param      source          souce group rank
+  @return     integer         FTI_SCES if successful.
+
+  This function receives ckpt file from partner process and saves it as
+  Ptner file. Partner should call FTI_SendCkpt to send file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                  unsigned long pfs, int source)
+{
+    int rank;
+    char pfn[FTI_BUFS], str[FTI_BUFS];
+
+    //heads need to use ckptFile to get ckptID and rank
+    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
+    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
+    sprintf(str, "L2 trying to access Ptner file (%s).", pfn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* pfd = fopen(pfn, "wb");
+    if (pfd == NULL) {
+        FTI_Print("FTI failed to open L2 ptner file.", FTI_DBUG);
+        return FTI_NSCS;
+    }
+
+    char* buffer = talloc(char, FTI_Conf->blockSize);
+    unsigned long toRecv = pfs; //remaining data to receive
+    while (toRecv > 0) {
+        int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
+        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        fwrite(buffer, sizeof(char), recvSize, pfd);
+
+        if (ferror(pfd)) {
+            FTI_Print("Error writing data to L2 ptner file", FTI_DBUG);
+
+            free(buffer);
+            fclose(pfd);
+
+            return FTI_NSCS;
+        }
+        toRecv -= recvSize;
+    }
+
+    free(buffer);
+    fclose(pfd);
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      It copies ckpt. files in to the partner node.
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
@@ -44,93 +153,42 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    char *blBuf1, *blBuf2, lfn[FTI_BUFS], pfn[FTI_BUFS], str[FTI_BUFS];
-    unsigned long maxFs, fs, ps, pos = 0;
-    MPI_Request reqSend, reqRecv;
-    FILE *lfd, *pfd;
-    int res, dest, src, bSize = FTI_Conf->blockSize;
-    MPI_Status status;
+    unsigned long maxFs, fs, pfs; //ckpt file size, partner file size
+    int source = FTI_Topo->left; //receive Ckpt file from this process
+    int destination = FTI_Topo->right; //send Ckpt file to this process
+    int res;
+    char str[FTI_BUFS];
 
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    ps = (maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
-    if (ps < maxFs) {
-        ps = ps + FTI_Conf->blockSize;
-    }
-    sprintf(str, "Max. file size %ld and padding size %ld.", maxFs, ps);
-    FTI_Print(str, FTI_DBUG);
 
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &src);
-    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, src);
-
-    sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
-    FTI_Print(str, FTI_DBUG);
-
-    dest = FTI_Topo->right;
-    src = FTI_Topo->left;
-
-    lfd = fopen(lfn, "rb");
-    if (lfd == NULL) {
-        FTI_Print("FTI failed to open L2 chckpt. file.", FTI_DBUG);
+    res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 0);
+    if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
 
-    pfd = fopen(pfn, "wb");
-    if (pfd == NULL) {
-        FTI_Print("FTI failed to open L2 partner file.", FTI_DBUG);
-        fclose(lfd);
-        return FTI_NSCS;
-    }
-
-    blBuf1 = talloc(char, FTI_Conf->blockSize);
-    blBuf2 = talloc(char, FTI_Conf->blockSize);
-    // Checkpoint files partner copy
-    while (pos < ps) {
-        if ((fs - pos) < FTI_Conf->blockSize) {
-            bSize = fs - pos;
-        }
-
-        size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
-        if (ferror(lfd)) {
-            FTI_Print("Error reading data from the L2 ckpt. file", FTI_DBUG);
-
-            free(blBuf1);
-            free(blBuf2);
-            fclose(lfd);
-            fclose(pfd);
-
+    if (FTI_Topo->groupRank % 2) { //first send, then receive
+        res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, fs, destination);
+        if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-
-        MPI_Isend(blBuf1, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
-        MPI_Irecv(blBuf2, FTI_Conf->blockSize, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
-        MPI_Wait(&reqSend, &status);
-        MPI_Wait(&reqRecv, &status);
-
-        fwrite(blBuf2, sizeof(char), bSize, pfd);
-        if (ferror(pfd)) {
-            FTI_Print("Error writing data to the L2 partner file", FTI_DBUG);
-
-            free(blBuf1);
-            free(blBuf2);
-            fclose(lfd);
-            fclose(pfd);
-
+        res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, pfs, source);
+        if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-
-        pos = pos + FTI_Conf->blockSize;
+    } else { //first receive, then send
+        res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, pfs, source);
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
+        res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, fs, destination);
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
     }
-
-    free(blBuf1);
-    free(blBuf2);
-    fclose(lfd);
-    fclose(pfd);
-
     return FTI_SCES;
 }
 
