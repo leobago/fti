@@ -172,7 +172,7 @@ should_not_fail() {
 	    echo -e "\033[0;32mpassed\033[m"
 		let SUCCEED=SUCCEED+1
 	elif [ $1 = 255 ]; then
-        echo -e "\033[0;31mfailed\033[m (MPI exception)" 
+        echo -e "\033[0;31mfailed\033[m (FTI Abort)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 30 ]; then
@@ -200,7 +200,7 @@ should_not_fail() {
 
 should_fail() {
 	if [ $1 = 255 ]; then
-	    echo -e "\033[0;32mpassed\033[m (MPI exception)"
+	    echo -e "\033[0;32mpassed\033[m (FTI Abort)"
 		let SUCCEED=SUCCEED+1
 	elif [ $1 = 0 ]; then
         echo -e "\033[0;31mfailed\033[m (Finalized Without Error!)"
@@ -279,7 +279,7 @@ for keep in ${KEEP[*]}; do
 			( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
 			should_not_fail $?
 			if [ $testFailed = 1 ]; then
-				echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+				echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
 				testFailed=0
 			fi
             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -296,7 +296,7 @@ for keep in ${KEEP[*]}; do
                 ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                 should_fail $?
                 if [ $testFailed = 1 ]; then
-                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Deleted checkpoint file on PFS, should fail" >> failed.log
+                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Deleted checkpoint file on PFS, should not recover" >> failed.log
                     testFailed=0
                 fi
                 awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -315,7 +315,7 @@ for keep in ${KEEP[*]}; do
                 ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                 should_fail $?
                 if [ $testFailed = 1 ]; then
-                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Corrupted checkpoint file on PFS, should fail" >> failed.log
+                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Corrupted checkpoint file on PFS, should not recover" >> failed.log
                     testFailed=0
                 fi
                 awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -330,7 +330,7 @@ for keep in ${KEEP[*]}; do
 			( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
 			should_not_fail $?
 			if [ $testFailed = 1 ]; then
-				echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+				echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
 				testFailed=0
 			fi
             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -345,7 +345,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L1 ckpt file, should fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L1 ckpt file, should not recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -363,7 +363,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 ckpt files, should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 ckpt files, should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -379,7 +379,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 partner files, should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 partner files, should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -397,7 +397,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L3 ckpt files, should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L3 ckpt files, should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -413,7 +413,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted encoded L3 files, should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted encoded L3 files, should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -428,7 +428,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L4 ckpt file, should fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L4 ckpt file, should not recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -445,7 +445,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -463,7 +463,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -479,7 +479,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -491,7 +491,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -503,7 +503,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -521,7 +521,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -537,7 +537,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -549,7 +549,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -561,7 +561,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -576,7 +576,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -608,7 +608,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
+                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -625,7 +625,7 @@ for keep in ${KEEP[*]}; do
                         ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         should_fail $?
                         if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Deleted checkpoint file on PFS, should fail" >> failed.log
+                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Deleted checkpoint file on PFS, should not recover" >> failed.log
                             testFailed=0
                         fi
                         awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -644,7 +644,7 @@ for keep in ${KEEP[*]}; do
                         ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         should_fail $?
                         if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Corrupted checkpoint file on PFS, should fail" >> failed.log
+                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Corrupted checkpoint file on PFS, should not recover" >> failed.log
                             testFailed=0
                         fi
                         awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -656,7 +656,7 @@ for keep in ${KEEP[*]}; do
                     ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                     should_not_fail $?
                     if [ $testFailed = 1 ]; then
-                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should not fail" >> failed.log
+                        echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover" >> failed.log
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -671,7 +671,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L1 ckpt file, should fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L1 ckpt file, should not recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -689,7 +689,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 ckpt files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 ckpt files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -705,7 +705,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 partner files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 partner files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -723,7 +723,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L3 ckpt files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L3 ckpt files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -739,7 +739,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted encoded L3 files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted encoded L3 files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -754,7 +754,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L4 ckpt file, should fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L4 ckpt file, should not recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -771,7 +771,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L1 file, should fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L1 file, should not recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -789,7 +789,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 ckpt files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 ckpt files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -805,7 +805,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 partner files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 partner files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -817,7 +817,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted 2 consecutive nodes, should fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted 2 consecutive nodes, should not recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -829,7 +829,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -847,7 +847,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 ckpt files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 ckpt files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -863,7 +863,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 encoded files, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 encoded files, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -875,7 +875,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to consecutive nodes, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to consecutive nodes, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -887,7 +887,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_not_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should not fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted to non-consecutive nodes, should recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -902,7 +902,7 @@ for keep in ${KEEP[*]}; do
                             ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                             should_fail $?
                             if [ $testFailed = 1 ]; then
-                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 file, should fail" >> failed.log
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 file, should not recover" >> failed.log
                                 testFailed=0
                             fi
                             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -919,5 +919,5 @@ pkill -f check.exe
 echo "---SUMMARY---"
 echo "PASSED: "$SUCCEED
 echo "FAILED: "$FAILED
-echo "FAULTY: "$FAULTY
+#echo "FAULTY: "$FAULTY
 cat failed.log
