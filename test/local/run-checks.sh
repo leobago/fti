@@ -11,7 +11,8 @@
 # 
 #  Hit ./run-checks.sh -h for info
 # 
-FLAG=1
+DFLAG=1
+CFLAG=1
 PROCS=16
 diffSize=0
 verbose=0
@@ -29,6 +30,7 @@ Usage: ./run-checks.sh [options]
 
 -e|--erase-files    delete files before recovery
 -d|--diff-size      use different sizes for checkpoint files
+-c|--corrupt-files  corrupt files before recovery
 
 Default (no options):
 
@@ -47,26 +49,39 @@ HEAD | KEEP | L2 INLINE | L3 INLINE | L4 INLINE
 1      0      1           1           0 (L4)
 1      1      1           1           0 (L4)
 
-In total: 22 Tests
+-> 22 tests
 
-If erased-files is set, L2 and L3 in addition have 4 additional tests for cases with
-Keep=0
+If *erased-files* is set, L2 and L3 have 4 additional tests for cases with Keep=0 ( 24 tests ):
 
     - 2 checkpoint files in non-consecutive nodes are deleted before recovery
     - 2 partner/encoded files in non-consecutive nodes are deleted before recovery
     - 2 consecutive nodes are deleted before recovery
     - 2 non-consecutive nodes are deleted before recovery
 
-L1 and L4 have two additional tests in cases with keep=0:
+L1 and L4 have one additional tests in cases with keep=0 ( 5 tests ):
 
     - 1 checkpoint file is deleted
 
-Also after the Flush to the PFS for the Cases Head=0 and Head=1 one checkpoint file
-on the PFS is deleted before the recovery.
+Also after the Flush to the PFS for the Cases Head=0 and Head=1 one checkpoint file on the PFS is deleted before the recovery ( 2 tests ).
 
-In total: 53 Tests
+-> 31 additional tests
 
-If diff-size is set, the checkpoint files have different sizes.
+If *corrupt-files* is set, L2 and L3 have 2 additional tests for cases with Keep=0 ( 12 tests ):
+
+    - 2 checkpoint files in non-consecutive nodes are corrupted before recovery
+    - 2 partner/encoded files in non-consecutive nodes are corrupted before recovery
+
+L1 and L4 have one additional tests in cases with keep=0 ( 5 tests ):
+
+    - 1 checkpoint file is corrupted
+
+Also after the Flush to the PFS for the Cases Head=0 and Head=1 one checkpoint file on the PFS is corrupted before the recovery ( 2 tests ).
+
+-> 19 additional tests
+
+if -e and -c is passed, there will be in total 72 tests.
+
+If *diff-size* is set, the checkpoint files have different sizes.
 EOF
 }
 while [[ $# -gt 0 ]]
@@ -185,9 +200,8 @@ should_not_fail() {
 
 should_fail() {
 	if [ $1 = 255 ]; then
-	    echo -e "\033[0;31mfailed\033[m (MPI exception)"
-		let FAILED=FAILED+1
-		testFailed=1
+	    echo -e "\033[0;32mpassed\033[m (MPI exception)"
+		let SUCCEED=SUCCEED+1
 	elif [ $1 = 0 ]; then
         echo -e "\033[0;31mfailed\033[m (Finalized Without Error!)"
 		let FAILED=FAILED+1
@@ -269,7 +283,7 @@ for keep in ${KEEP[*]}; do
 				testFailed=0
 			fi
             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-            if [ $eraseFiles = "1" ] && [ $FLAG = "1" ]; then
+            if [ $eraseFiles = "1" ] && [ $DFLAG = "1" ]; then
                 awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
                 ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                 ### DELETE CHECKPOINT FILE
@@ -282,11 +296,30 @@ for keep in ${KEEP[*]}; do
                 ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                 should_fail $?
                 if [ $testFailed = 1 ]; then
-                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), should not fail" >> failed.log
+                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Deleted checkpoint file on PFS, should fail" >> failed.log
                     testFailed=0
                 fi
                 awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                let FLAG=2
+                let DFLAG=2
+            fi
+            if [ $corruptFiles = "1" ] && [ $CFLAG = "1" ]; then
+                awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                ### CORRUPT CHECKPOINT FILE
+                echo -e "[ \033[1mCorrupting Checkpoint File...\033[m ]"
+                folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
+                filename=$(ls $folder | grep Rank | head -n 1)
+                ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                should_fail $?
+                if [ $testFailed = 1 ]; then
+                    echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), Corrupted checkpoint file on PFS, should fail" >> failed.log
+                    testFailed=0
+                fi
+                awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                let CFLAG=2
             fi
         fi
         if [ $keep -eq "0" ]; then
@@ -301,6 +334,106 @@ for keep in ${KEEP[*]}; do
 				testFailed=0
 			fi
             awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+            if [ $corruptFiles = "1" ]; then
+                if [ $level = 1 ]; then
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT Checkpoint FILES
+                    echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                    folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l1"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L1 ckpt file, should fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                fi
+                if [ $level = 2 ]; then
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT Checkpoint FILES
+                    echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                    folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 ckpt files, should not fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT PARTNER FILES
+                    echo -e "[ \033[1mCorrupting Partner Files...\033[m ]"
+                    folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                    filename=$(ls $folder | grep Pcof | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                    filename=$(ls $folder | grep Pcof | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 partner files, should not fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                fi
+                if [ $level = 3 ]; then
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT Checkpoint FILES
+                    echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                    folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L3 ckpt files, should not fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT PARTNER FILES
+                    echo -e "[ \033[1mCorrupting Encoded Files...\033[m ]"
+                    folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                    filename=$(ls $folder | grep Rsed | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                    filename=$(ls $folder | grep Rsed | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted encoded L3 files, should not fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                fi
+                if [ $level = 4 ]; then
+                    ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                    ### CORRUPT Checkpoint FILES
+                    echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                    folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
+                    filename=$(ls $folder | grep Rank | head -n 1)
+                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                    ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                    should_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e "L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L4 ckpt file, should fail" >> failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                fi
+            fi
             if [ $eraseFiles = "1" ]; then
                 if [ $level = 1 ]; then
                     ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
@@ -479,7 +612,7 @@ for keep in ${KEEP[*]}; do
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                    if [ $eraseFiles = "1" ] && [ $FLAG = "2" ]; then
+                    if [ $eraseFiles = "1" ] && [ $DFLAG = "2" ]; then
                         awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
                         ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         ### DELETE CHECKPOINT FILE
@@ -492,11 +625,30 @@ for keep in ${KEEP[*]}; do
                         ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
                         should_fail $?
                         if [ $testFailed = 1 ]; then
-                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted file on PFS, should fail" >> failed.log
+                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Deleted checkpoint file on PFS, should fail" >> failed.log
                             testFailed=0
                         fi
                         awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                        let FLAG=3
+                        let DFLAG=3
+                    fi
+                    if [ $corruptFiles = "1" ] && [ $CFLAG = "2" ]; then
+                        awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        ( set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                        ### CORRUPT CHECKPOINT FILE
+                        echo -e "[ \033[1mCorrupting Checkpoint File...\033[m ]"
+                        folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
+                        filename=$(ls $folder | grep Rank | head -n 1)
+                        ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                        ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                        awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                        should_fail $?
+                        if [ $testFailed = 1 ]; then
+                            echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), Corrupted checkpoint file on PFS, should fail" >> failed.log
+                            testFailed=0
+                        fi
+                        awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        let CFLAG=3
                     fi
                 fi
                 if [ $keep -eq "0" ]; then
@@ -508,6 +660,106 @@ for keep in ${KEEP[*]}; do
                         testFailed=0
                     fi
                     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                    if [ $corruptFiles = "1" ]; then
+                        if [ $level = 1 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT Checkpoint FILES
+                            echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l1"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L1 ckpt file, should fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 2 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT Checkpoint FILES
+                            echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 ckpt files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT PARTNER FILES
+                            echo -e "[ \033[1mCorrupting Partner Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Pcof | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l2"
+                            filename=$(ls $folder | grep Pcof | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 partner files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 3 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT Checkpoint FILES
+                            echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L3 ckpt files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT PARTNER FILES
+                            echo -e "[ \033[1mCorrupting Encoded Files...\033[m ]"
+                            folder="Local/node0/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rsed | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            folder="Local/node2/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l3"
+                            filename=$(ls $folder | grep Rsed | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted encoded L3 files, should not fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                        if [ $level = 4 ]; then
+                            ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
+                            ### CORRUPT Checkpoint FILES
+                            echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
+                            folder="Global/"$(awk '$1 == "exec_id" {print $3}' < $NAME)"/l4"
+                            filename=$(ls $folder | grep Rank | head -n 1)
+                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
+                            ( cmdpid=$BASHPID; (sleep 10; kill $cmdpid > /dev/null 2>&1 ) & set -x; mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize &>> check.log )
+                            should_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e "L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L4 ckpt file, should fail" >> failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+                        fi
+                    fi
                     if [ $eraseFiles = "1" ]; then
                         if [ $level = 1 ]; then
                             ( set -x; mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize &>> check.log )
