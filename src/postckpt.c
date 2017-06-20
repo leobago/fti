@@ -174,7 +174,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
     FTI_Print(str, FTI_DBUG);
 
-    //all files must have the same size
+    //all files in group must have the same size
     if (truncate(lfn, maxFs) == -1) {
         FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
         return FTI_NSCS;
@@ -401,7 +401,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         pos = pos + FTI_Conf->blockSize;
     }
-
+    
     free(blBuf1);
     fclose(lfd);
     fclose(gfd);
