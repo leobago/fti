@@ -57,9 +57,12 @@
 /** Token for IO mode Posix                                                */
 #define FTI_IO_POSIX 1001
 /** Token for IO mode MPI                                                  */
-#define FTI_IO_MPI 1002       
-/** Token for IO mode SIONlib                                              */
-#define FTI_IO_SIONLIB 1003
+#define FTI_IO_MPI 1002
+
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+    /** Token for IO mode SIONlib                                          */
+    #define FTI_IO_SIONLIB 1003
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,14 +71,6 @@ extern "C" {
 /*---------------------------------------------------------------------------
                                   New types
 ---------------------------------------------------------------------------*/
-
-/** @typedef    FTI_functionID
- *  @brief      Used for counting function calls
- */
-typedef enum FTI_functionID {
-    FTI_RECOVERFILES,
-    FTI_RECOVERL4
-} FTI_functionID;
 
 /** @typedef    FTIT_double
  *  @brief      Double mapped as two integers to allow bit-wise operations.

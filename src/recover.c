@@ -119,14 +119,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    /*
-    char debug_str[FTI_BUFS];
-    FTI_functionID func_ID = FTI_RECOVERFILES;
-    FTI_Exec->functionCalls[func_ID]++;
-    snprintf(debug_str, FTI_BUFS, "FTI_RecoverFiles call count: %i", FTI_Exec->functionCalls[func_ID]);
-    FTI_Print(debug_str,FTI_INFO);
-    */
-
     int f, r, tres = FTI_SCES, id, level = 1;
     unsigned long fs, maxFs;
     char str[FTI_BUFS];
@@ -158,11 +150,12 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                                     
                                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-mpiio.fti", &id);
                                     break;
-
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
                                 case FTI_IO_SIONLIB:
 
                                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
                     		        break;
+#endif
                             }
                             sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                    			FTI_Print(str, FTI_DBUG);

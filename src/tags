@@ -1,0 +1,94 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+FTI_Abort	api.c	/^void FTI_Abort()$/;"	f
+FTI_BitFlip	api.c	/^int FTI_BitFlip(int datasetID)$/;"	f
+FTI_BuildNodeList	topo.c	/^int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_CHAR	api.c	/^FTIT_type FTI_CHAR;$/;"	v
+FTI_COMM_WORLD	api.c	/^MPI_Comm FTI_COMM_WORLD;$/;"	v
+FTI_CheckErasures	recover.c	/^int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_CheckFile	recover.c	/^int FTI_CheckFile(char* fn, unsigned long fs)$/;"	f
+FTI_Checkpoint	api.c	/^int FTI_Checkpoint(int id, int level)$/;"	f
+FTI_Ckpt	api.c	/^static FTIT_checkpoint FTI_Ckpt[5];$/;"	v	file:
+FTI_Clean	tools.c	/^int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_Conf	api.c	/^static FTIT_configuration FTI_Conf;$/;"	v	file:
+FTI_CreateComms	topo.c	/^int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_CreateDirs	conf.c	/^int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_CreateMetadata	meta.c	/^int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_DBLE	api.c	/^FTIT_type FTI_DBLE;$/;"	v
+FTI_Data	api.c	/^static FTIT_dataset FTI_Data[FTI_BUFS];$/;"	v	file:
+FTI_Decode	postreco.c	/^int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_DoubleBitFlip	api.c	/^int FTI_DoubleBitFlip(double* target, int bit)$/;"	f
+FTI_Exec	api.c	/^static FTIT_execution FTI_Exec;$/;"	v	file:
+FTI_Finalize	api.c	/^int FTI_Finalize()$/;"	f
+FTI_FloatBitFlip	api.c	/^int FTI_FloatBitFlip(float* target, int bit)$/;"	f
+FTI_Flush	postckpt.c	/^int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushFinalize	postckpt.c	/^int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushFinalizeMpi	postckpt.c	/^int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushFinalizeSionlib	postckpt.c	/^int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushInit	postckpt.c	/^int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushInitMpi	postckpt.c	/^int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushInitPosix	postckpt.c	/^int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_FlushInitSionlib	postckpt.c	/^int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_GetMeta	meta.c	/^int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_GroupClean	checkpoint.c	/^int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_INTG	api.c	/^FTIT_type FTI_INTG;$/;"	v
+FTI_Init	api.c	/^int FTI_Init(char* configFile, MPI_Comm globalComm)$/;"	f
+FTI_InitBasicTypes	tools.c	/^int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)$/;"	f
+FTI_InitType	api.c	/^int FTI_InitType(FTIT_type* type, int size)$/;"	f
+FTI_InitType_wrapper	fortran/ftif.c	/^int FTI_InitType_wrapper(FTIT_type** type, int size)$/;"	f
+FTI_Init_fort_wrapper	fortran/ftif.c	/^int FTI_Init_fort_wrapper(char* configFile, int* globalComm)$/;"	f
+FTI_Inje	api.c	/^static FTIT_injection FTI_Inje;$/;"	v	file:
+FTI_LDBE	api.c	/^FTIT_type FTI_LDBE;$/;"	v
+FTI_LONG	api.c	/^FTIT_type FTI_LONG;$/;"	v
+FTI_Listen	checkpoint.c	/^int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_LoadConf	conf.c	/^int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_Local	postckpt.c	/^int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_PostCkpt	checkpoint.c	/^int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_Print	api.c	/^void FTI_Print(char* msg, int priority)$/;"	f
+FTI_Protect	api.c	/^int FTI_Protect(int id, void* ptr, long count, FTIT_type type)$/;"	f
+FTI_Protect_wrapper	fortran/ftif.c	/^int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)$/;"	f
+FTI_Ptner	postckpt.c	/^int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RSenc	postckpt.c	/^int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_ReadConf	conf.c	/^int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_Recover	api.c	/^int FTI_Recover()$/;"	f
+FTI_RecoverFiles	recover.c	/^int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL1	postreco.c	/^int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL2	postreco.c	/^int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL3	postreco.c	/^int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL4	postreco.c	/^int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL4Mpi	postreco.c	/^int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL4Posix	postreco.c	/^int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_RecoverL4Sionlib	postreco.c	/^int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_ReorderNodes	topo.c	/^int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_RmDir	tools.c	/^int FTI_RmDir(char path[FTI_BUFS], int flag)$/;"	f
+FTI_SFLT	api.c	/^FTIT_type FTI_SFLT;$/;"	v
+FTI_SHRT	api.c	/^FTIT_type FTI_SHRT;$/;"	v
+FTI_SaveTopo	topo.c	/^int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* nameList)$/;"	f
+FTI_Snapshot	api.c	/^int FTI_Snapshot()$/;"	f
+FTI_Status	api.c	/^int FTI_Status()$/;"	f
+FTI_TestConfig	conf.c	/^int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_TestDirectories	conf.c	/^int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)$/;"	f
+FTI_Topo	api.c	/^static FTIT_topology FTI_Topo;$/;"	v	file:
+FTI_Topology	topo.c	/^int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_Try	tools.c	/^int FTI_Try(int result, char* message)$/;"	f
+FTI_UCHR	api.c	/^FTIT_type FTI_UCHR;$/;"	v
+FTI_UINT	api.c	/^FTIT_type FTI_UINT;$/;"	v
+FTI_ULNG	api.c	/^FTIT_type FTI_ULNG;$/;"	v
+FTI_USHT	api.c	/^FTIT_type FTI_USHT;$/;"	v
+FTI_UpdateConf	conf.c	/^int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int restart)$/;"	f
+FTI_UpdateIterTime	checkpoint.c	/^int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)$/;"	f
+FTI_UpdateMetadata	meta.c	/^int FTI_UpdateMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_WriteCkpt	checkpoint.c	/^int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_WriteMetadata	meta.c	/^int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,$/;"	f
+FTI_WriteMpi	checkpoint.c	/^int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+FTI_WritePar	checkpoint.c	/^int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, $/;"	f
+FTI_WriteSer	checkpoint.c	/^int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, $/;"	f
+FTI_WriteSionlib	checkpoint.c	/^int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,$/;"	f
+_FTIF_H	fortran/ftif.h	9;"	d
+_FTI_INTERFACE_H	interface.h	9;"	d
+_POSIX_C_SOURCE	checkpoint.c	8;"	d	file:
+talloc	interface.h	35;"	d

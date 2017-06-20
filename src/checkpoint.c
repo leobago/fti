@@ -346,6 +346,7 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		res = FTI_WriteMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
 		break;
 
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 	case FTI_IO_SIONLIB:
 
 		// set parallel file name
@@ -355,6 +356,7 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		// write checkpoint
 		res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
 		break;
+#endif
 
 	}
 
@@ -586,6 +588,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 **/
 /*-------------------------------------------------------------------------*/
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 					FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
@@ -686,4 +689,4 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 
 }
-
+#endif

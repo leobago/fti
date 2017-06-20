@@ -261,7 +261,11 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
+#else
+    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_MPI) {
+#endif
         FTI_Conf->ioMode = FTI_IO_POSIX;
         FTI_Print("No I/O selected. Set to default (POSIX)", FTI_WARN);
     } else {
@@ -272,8 +276,10 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             case FTI_IO_MPI:
                 FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
                 break;
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
             case FTI_IO_SIONLIB:
                 FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
+#endif
         }    
     }        
     return FTI_SCES;

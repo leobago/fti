@@ -394,6 +394,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             break; 
 
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
         case FTI_IO_SIONLIB:
 
             res = sion_seek(FTI_Exec->sid, gRank, SION_CURRENT_BLK, SION_CURRENT_POS);
@@ -408,7 +409,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             break;
-
+#endif
     }
 
     char *blBuf1 = talloc(char, FTI_Conf->blockSize);
@@ -424,7 +425,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
             free(blBuf1);
             fclose(lfd);
-            sion_close(FTI_Exec->sid);
             return FTI_NSCS;
         }
         
@@ -464,6 +464,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 break;
 
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
             case FTI_IO_SIONLIB:
 
                 data_written = sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
@@ -479,7 +480,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
 
                 break;
-
+#endif
         }
         
         pos = pos + FTI_Conf->blockSize;
@@ -534,12 +535,13 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		res = FTI_FlushInitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
 		break;
 
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 	case FTI_IO_SIONLIB:
 
 		// write checkpoint
 		res = FTI_FlushInitSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
 		break;
-
+#endif
 	}
 
 	return res;
@@ -686,6 +688,7 @@ Init for the flush of locally stored checkpoint data to the PFS by SIONlib
 
 **/
 /*-------------------------------------------------------------------------*/
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
@@ -798,6 +801,7 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     return FTI_SCES;
 }
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -831,11 +835,12 @@ int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             res = FTI_FlushFinalizeMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             break;
 
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
         case FTI_IO_SIONLIB:
 
             res = FTI_FlushFinalizeSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             break;
-
+#endif
     }
 
     return res;
@@ -849,6 +854,7 @@ int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 **/
 /*-------------------------------------------------------------------------*/
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
 {
@@ -878,6 +884,7 @@ int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
     return res;
 
 }
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**

@@ -10,10 +10,7 @@ endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
-
-set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
-
-set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
+option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -25,7 +22,7 @@ add_subdirectory(deps)
 
 include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH} ${SIONLIB_INCLUDE_DIR})
+    ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH})
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -34,8 +31,6 @@ set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c)
-
-set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
 
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}")
@@ -51,14 +46,23 @@ set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
 find_library(LIBM m DOC "The math library")
-find_library(SIONLIB_MPI NAMES "sionmpi_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_GEN NAMES "siongen_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_SER NAMES "sionser_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}") 
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
+
+if(ENABLE_SIONLIB)
+    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
+    set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
+    include_directories("${SIONLIB_INCLUDE_DIR}")
+    set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
+    find_library(SIONLIB_MPI NAMES "sionmpi_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_GEN NAMES "siongen_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_SER NAMES "sionser_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    target_link_libraries(fti.static "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
+    add_definitions(-DENABLE_SIONLIB)
+endif()
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
@@ -106,6 +110,7 @@ if(ENABLE_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
+add_subdirectory(test)
 
 # installable config
 

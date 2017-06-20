@@ -357,7 +357,7 @@ int FTI_Checkpoint(int id, int level)
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
-        FTI_Exec.ckptLvel = level; // (1) TODO #BUG this should come after (2) 
+        FTI_Exec.ckptLvel = level; // (1) TODO #BUG? this should come after (2) 
         // str is set to print ckpt information on stdout
         sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -371,7 +371,6 @@ int FTI_Checkpoint(int id, int level)
         }
         t1 = MPI_Wtime();
         res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
-        //MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
         t2 = MPI_Wtime();
         if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message..
             FTI_Exec.wasLastOffline = 1;
