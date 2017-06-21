@@ -50,8 +50,12 @@ cd test
 	configs=(configH0I1.fti configH1I1.fti configH1I0.fti)
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
-	#runs all configuration with 16 processes
-	runAllConfiguration 16
+	if  [ -z "$TEST" ] || [ -z "$CONFIG" ]
+	then
+		runAllConfiguration 16
+	else 
+		startTest "$TEST" "$CONFIG" 16 "$LEVEL"
+	fi
 
 #----------------------------------------------------------------------------------------
 cd ..
