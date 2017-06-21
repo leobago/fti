@@ -8,7 +8,7 @@
  *  saving last checkpoint to PFS
  *
  *  Every process in every iteration expand their array and set value to each
- *  index and make checkpoint. Every rank has different its.size of checkpoint.
+ *  index and make checkpoint. Every rank has different size of checkpoint.
  *
  *  Program don't end with FTI_Finalize to make sure that checkpoint files
  *  will stay local (for L1, L2 and L3).
@@ -67,7 +67,7 @@ int verify(long* array, int world_rank)
 /**
     @brief      Do work to makes checkpoints
     @param      world_rank          FTI_COMM rank
-    @param      world_size          FTI_COMM its.size
+    @param      world_size          FTI_COMM size
     @param      checkpoint_level    Checkpont level to all checkpoints
     @param      fail                True if stop after ITER_STOP, false if resuming work
     @return     integer             WORK_DONE if successful.
@@ -128,7 +128,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             printf("%d: size = %d, should be %d\n", world_rank, its.size, expectedSize);
             return RECOVERY_FAILED;
         }
-        int recoverySize = 2 * sizeof(int); //its.i and its.size
+        int recoverySize = 2 * sizeof(int); //i and size
         /* when we add FTI_Realloc();
         recoverySize += 3 * sizeof(long); //counts
         */
@@ -156,7 +156,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             }
         }
 
-        its.size += addToSize;                      //enlarge its.size
+        its.size += addToSize;                      //enlarge size
         buf = realloc (buf, sizeof(long) * its.size);
         long tempValue = buf[0];
         for (j = 0; j < its.size; j++) {
@@ -244,9 +244,9 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
 
                     int expectedSize = 0;
                     /* when we add FTI_Realloc();
-                    expectedSize += sizeof(long) * 2; //(its.i and its.size) length
+                    expectedSize += sizeof(long) * 2; //(i and size) length
                     */
-                    expectedSize += sizeof(int) * 2; //its.i and its.size
+                    expectedSize += sizeof(int) * 2; //i and size
 
                     int lastCheckpointIter;
                     if (fail) {
@@ -274,7 +274,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
         }
         else {
             //could not open directory
-            perror ("Checking file its.size failed: ");
+            perror ("Checking file size failed: ");
             free(exec_id);
             return 1;
         }
@@ -300,7 +300,7 @@ int main(int argc, char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
 
     FTI_Init(argv[1], MPI_COMM_WORLD);
-    int world_rank, world_size;                     //FTI_COMM rank and its.size
+    int world_rank, world_size;                     //FTI_COMM rank and size
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
