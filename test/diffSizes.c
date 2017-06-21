@@ -260,7 +260,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
 
                     printf("%d: Last checkpoint file size = %d MB\n", rank, fileSize/1024/1024);
                     if (fileSize != expectedSize) {
-                        printf("%d: Last checkpoint file size = %d , should be %d.\n", rank, fileSize, expectedSize);
+                        printf("%d: Last checkpoint file size = %d, should be %d.\n", rank, fileSize, expectedSize);
 
                         fclose(f);
                         closedir (dir);
