@@ -1,26 +1,39 @@
 #!/bin/bash
 
-check () {
-	if [ $1 != 0 ]
+startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - checkpoint level
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		Running $1 test... ($2)"
+	printf "_______________________________________________________________________________________\n\n"
+	cp configs/$2 config.fti
+	mpirun -n $3 ./$1 config.fti $4 1
+	if [ $? != 0 ]
 	then
-		echo "Exit status: $1"
 		exit 1
 	fi
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		 Resuming $1 test... ($2)"
+	printf "_______________________________________________________________________________________\n\n"
+	mpirun -n $3 ./$1 config.fti $4 0
+	if [ $? != 0 ]
+	then
+		exit 1
+	fi
+	printf "_______________________________________________________________________________________\n\n"	
+	echo "		$1 test succeed. ($2)"
+	printf "_______________________________________________________________________________________\n\n"
 }
 
-startTest () {
-	echo "Running $1 test... ($2)"
-		bash ./$1/test.sh ${@:2}
-		check $?
-}
 runAllConfiguration() {
 	for i in {0..2}
 	do
-		startTest addInArray ${silentConfigs[$i]} $1 1 2 3 4
+		for j in {1..4}
+		do
+		startTest addInArray ${silentConfigs[$i]} $1 $j
+		startTest diffSizes ${silentConfigs[$i]} $1 $j
+		startTest tokenRing ${silentConfigs[$i]} $1 $j
+		done
 		startTest nodeFlag ${configs[$i]} $1
-		startTest tokenRing ${silentConfigs[$i]} $1 1 2 3 4
-		startTest diffSizes ${silentConfigs[$i]} $1 1 2 3 4
-		startTest lvlsRecovery ${silentConfigs[$i]} $1 1 2 3 4
+
 	done
 	#slow test at the end
 	for i in {0..2}
@@ -38,7 +51,28 @@ cd test
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
 	#runs all configuration with 16 processes
-	runAllConfiguration 16
+	if [ "$TEST" = "" ]
+	then
+		runAllConfiguration 16
+	elif [ "$TEST" = "heatdis" ]
+	then
+		for i in {0..2}
+		do
+			startTest "$TEST" ${silentConfigs[$i]} 16
+		done
+	else
+		for i in {0..2}
+		do
+			for j in {1..4}
+			do
+				if [ "$TEST" = "nodeFlag" ]; then
+					startTest "$TEST" ${configs[$i]} 16 $j
+				else
+					startTest "$TEST" ${silentConfigs[$i]} 16 $j
+				fi
+			done
+		done
+	fi
 
 #----------------------------------------------------------------------------------------
 cd ..

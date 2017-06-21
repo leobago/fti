@@ -298,8 +298,6 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
         return FTI_ENDW;
     }
-    //MPI_Barrier(FTI_COMM_WORLD);
-    //exit(0);
     res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 1, 0, FTI_Topo->nbApprocs), "postprocess the checkpoint.");
     if (res == FTI_SCES) {
         FTI_Exec->wasLastOffline = 1;
