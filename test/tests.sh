@@ -21,6 +21,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	printf "_______________________________________________________________________________________\n\n"	
 	echo "		$1 test succeed. ($2)"
 	printf "_______________________________________________________________________________________\n\n"
+	rm -r ./Local ./Global ./Meta
 }
 
 runAllConfiguration() {
