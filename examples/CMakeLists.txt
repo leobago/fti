@@ -14,3 +14,29 @@ if(ENABLE_FORTRAN)
     set_property(TARGET hdf.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS})
     set_property(TARGET hdf.exe APPEND PROPERTY LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
 endif()
+
+
+if(NOT $MPIRUN)
+	set(MPIRUN mpirun)
+endif()
+
+add_custom_target(init
+    COMMAND cp configBkp.fti config.fti
+)
+
+add_custom_target(runall
+	DEPENDS hd hd2 hdf
+)
+
+add_custom_target(hd
+	COMMAND ${MPIRUN} -n 16 ./hd.exe 4 config.fti
+)
+
+add_custom_target(hd2
+	COMMAND mkdir results
+	COMMAND ${MPIRUN} -n 16 ./hd2.exe config.fti
+)
+
+add_custom_target(hdf
+	COMMAND ${MPIRUN} -n 16 ./hdf.exe
+)
