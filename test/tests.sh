@@ -27,7 +27,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 runAllConfiguration() {
 	for i in {0..2}
 	do
-		for j in 3 #{1..4}
+		for j in {1..4}
 		do
 		startTest addInArray ${silentConfigs[$i]} $1 $j
 		startTest diffSizes ${silentConfigs[$i]} $1 $j
