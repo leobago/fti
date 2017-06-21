@@ -334,6 +334,7 @@ int main(int argc, char** argv)
             MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
+    iniparser_freedict(ini);
     if (heads > 0) {
         res = FTI_ENDW;
         //sending END WORK to head to stop listening
