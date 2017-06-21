@@ -50,28 +50,11 @@ cd test
 	configs=(configH0I1.fti configH1I1.fti configH1I0.fti)
 	silentConfigs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
-	#runs all configuration with 16 processes
-	if [ "$TEST" = "" ]
+	if  [ -z "$TEST" ] || [ -z "$CONFIG" ]
 	then
 		runAllConfiguration 16
-	elif [ "$TEST" = "heatdis" ]
-	then
-		for i in {0..2}
-		do
-			startTest "$TEST" ${silentConfigs[$i]} 16
-		done
-	else
-		for i in {0..2}
-		do
-			for j in {1..4}
-			do
-				if [ "$TEST" = "nodeFlag" ]; then
-					startTest "$TEST" ${configs[$i]} 16 $j
-				else
-					startTest "$TEST" ${silentConfigs[$i]} 16 $j
-				fi
-			done
-		done
+	else 
+		startTest "$TEST" "$CONFIG" 16 "$LEVEL"
 	fi
 
 #----------------------------------------------------------------------------------------
