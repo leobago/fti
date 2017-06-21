@@ -11,6 +11,7 @@ endif()
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
+option(ENABLE_TESTS "Enables the generation of tests" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -45,7 +46,11 @@ append_property(TARGET fti.static fti.shared
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
 
-find_library(LIBM m DOC "The math library")
+#PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
+#http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
+if("$ENV{USE_PGI}" STREQUAL "")
+	find_library(LIBM m DOC "The math library")
+endif()
 
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
@@ -110,7 +115,9 @@ if(ENABLE_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
-add_subdirectory(test)
+if(ENABLE_TESTS)
+	add_subdirectory(test)
+endif()
 
 # installable config
 
@@ -127,3 +134,11 @@ install(FILES "${WORK_DIR}/FTIConfig.cmake" DESTINATION lib/CMake/FTI)
 set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "FTI Include path")
 export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
+
+# set up exaples in build/examples/
+
+file(COPY examples/config.fti DESTINATION examples)
+file(COPY examples/configBkp.fti DESTINATION examples)
+file(COPY examples/plot.sh DESTINATION examples)
+file(COPY examples/vplot.plg DESTINATION examples)
+file(COPY examples/README.txt DESTINATION examples)
