@@ -88,7 +88,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     int res;
     int j;
     int originSize = its.size;
-    int addToSize = world_rank;
+    int addToSize = world_rank * 1024;
 
     FTI_Protect(1, &its, 1, itersInfo);
     long* buf = malloc (sizeof(long) * its.size);
@@ -256,7 +256,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
                         lastCheckpointIter = (ITERATIONS - 1) - (ITERATIONS - 1) % ITER_CHECK;
                     }
 
-                    expectedSize += ((rank + 1) * INIT_SIZE + lastCheckpointIter * rank) * sizeof(long);
+                    expectedSize += ((rank + 1) * INIT_SIZE + lastCheckpointIter * rank  * 1024) * sizeof(long);
 
                     printf("%d: Last checkpoint file size = %d MB\n", rank, fileSize/1024/1024);
                     if (fileSize != expectedSize) {
