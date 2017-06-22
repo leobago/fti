@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
         write_data(B, &asize, FTI_APP_RANK);
         MPI_Barrier(FTI_COMM_WORLD);
         FTI_Checkpoint(1,level);
-        sleep(2);
+        sleep(5);
         if (crash && FTI_APP_RANK == 0) { 
             exit(CNTRLD_EXIT);
         }
