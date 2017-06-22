@@ -16,6 +16,9 @@
 #include "../deps/jerasure/galois.h"
 #include "../deps/jerasure/jerasure.h"
 
+#include "../deps/md5/md5.h"
+#define MD5_DIGEST_LENGTH 17
+
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
@@ -67,13 +70,19 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 
- int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+                     FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
+                     char* rsChecksum, int group, int level);
+int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                              int rank, char* checksum);
+int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level);
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                 unsigned long *fs, unsigned long *mfs, int group, int level);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      unsigned long *fs, unsigned long mfs, char* fnl);
+                      unsigned long *fs, unsigned long mfs, char* fnl, char* checksums);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                        FTIT_topology* FTI_Topo, int globalTmp);
 
@@ -98,7 +107,7 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 
-int FTI_CheckFile(char *fn, unsigned long fs);
+int FTI_CheckFile(char *fn, unsigned long fs, char* checksum);
 int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                       unsigned long *fs, unsigned long *maxFs, int group,
@@ -106,6 +115,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
+int FTI_Checksum(char* fileName, char* checksum);
+int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
