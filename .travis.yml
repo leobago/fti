@@ -376,7 +376,7 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake
-  - if [[ "$compiler" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
+  - if [[ "$COMPILER" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$TEST" != "" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$MPICC" = "mpiicc" ]] ; then source ./travisScripts/before-script-icc.sh ; fi
   - if [[ "$USE_PGI" = "true" ]] ; then source ./travisScripts/before-script-pgi.sh ; fi
