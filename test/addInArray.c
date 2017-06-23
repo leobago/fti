@@ -25,9 +25,9 @@
 #include <fti.h>
 #include <string.h>
 
-#define ITERATIONS 100          //iterations for every level
+#define ITERATIONS 120          //iterations for every level
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
-#define ITER_STOP 54            //stop work after ITER_STOP iterations
+#define ITER_STOP 63            //stop work after ITER_STOP iterations
 
 #define WORK_DONE 0
 #define CHECKPOINT_FAILED 1
@@ -83,6 +83,9 @@ int do_work(int* array, int world_rank, int world_size, int checkpoint_level, in
 
         //stoping after ITER_STOP iterations
         if(fail && i >= ITER_STOP) {
+            if (world_rank == 0) {
+                printf("Work stopped at i = %d.\n", ITER_STOP);
+            }
             break;
         }
         number += 1;
@@ -147,7 +150,6 @@ int main(int argc, char** argv)
     int rtn = do_work(array, world_rank, world_size, checkpoint_level, fail);
 
     if (world_rank == 0 && rtn == 0 && !fail) {               //verify result
-        printf("All work done. Verifying result... \t");
         rtn = verify(array, world_size);
         if (rtn != VERIFY_SUCCESS) {
             printf("Failure.\n");
