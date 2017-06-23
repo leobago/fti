@@ -7,6 +7,106 @@
 
 #include "interface.h"
 #include <dirent.h>
+#define CHUNK_SIZE 4096
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Calculates checksum of the checkpoint file.
+    @param      fileName        filename of the checkpoint
+    @param      checksumToCmp   checksum that is calculated
+    @return     integer         FTI_SCES if successful
+
+    This function calculates checksum of the checkpoint file based on
+    MD5 algorithm and saves it in checksum.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_Checksum(char* fileName, char* checksum)
+{
+    MD5_CTX mdContext;
+    unsigned char data[CHUNK_SIZE];
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    int bytes;
+    char str[FTI_BUFS];
+    double startTime = MPI_Wtime();
+    int i;
+
+    FILE *fd = fopen(fileName, "rb");
+    if (fd == NULL) {
+        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    MD5_Init (&mdContext);
+    while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
+        MD5_Update (&mdContext, data, bytes);
+    }
+    MD5_Final (hash, &mdContext);
+
+    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
+        sprintf(&checksum[i], "%02x", hash[i]);
+    checksum[i] = '\0'; //to get a proper string
+
+    sprintf(str, "Checksum took %.2f sec.", MPI_Wtime() - startTime);
+    FTI_Print(str, FTI_DBUG);
+
+    fclose (fd);
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Compares checksum of the checkpoint file.
+    @param      fileName        filename of the checkpoint
+    @param      checksumToCmp   checksum to compare
+    @return     integer         FTI_SCES if successful
+
+    This function calculates checksum of the checkpoint file based on
+    MD5 algorithm. It compares calculated hash value with the one saved
+    in the file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
+{
+    MD5_CTX mdContext;
+    unsigned char data[CHUNK_SIZE];
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
+    int bytes;
+    char str[FTI_BUFS];
+    int i;
+
+    FILE *fd = fopen(fileName, "rb");
+    if (fd == NULL) {
+        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    MD5_Init (&mdContext);
+    while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
+        MD5_Update (&mdContext, data, bytes);
+    }
+    MD5_Final (hash, &mdContext);
+
+    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
+        sprintf(&checksum[i], "%02x", hash[i]);
+    checksum[i] = '\0'; //to get a proper string
+
+    if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
+        sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+            fileName, checksum, checksumToCmp);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    fclose (fd);
+
+    return FTI_SCES;
+}
 
 /*-------------------------------------------------------------------------*/
 /**
