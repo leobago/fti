@@ -18,6 +18,7 @@ include(AppendProperty)
 include(FortranCInterface)
 
 find_package(MPI REQUIRED)
+find_package(OPENSSL REQUIRED)
 
 add_subdirectory(deps)
 
@@ -36,10 +37,21 @@ set(SRC_FTI
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}")
 
-add_library(fti.static STATIC ${SRC_FTI}
-    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
-add_library(fti.shared SHARED ${SRC_FTI}
-    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+if(OPENSSL_FOUND)
+	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
+    		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
+    		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+else()
+	add_library(fti.static STATIC ${SRC_FTI}
+	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
+		$<TARGET_OBJECTS:md5>)
+	add_library(fti.shared SHARED ${SRC_FTI}
+	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
+		$<TARGET_OBJECTS:md5>)
+	append_property(TARGET fti.static fti.shared
+		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
+endif()
 
 append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
@@ -52,8 +64,8 @@ if("$ENV{USE_PGI}" STREQUAL "")
 	find_library(LIBM m DOC "The math library")
 endif()
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}") 
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}")
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 
 if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
