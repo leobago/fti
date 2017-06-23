@@ -387,9 +387,12 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         sprintf(str, "%d:Ckpt_file_maxs", i);
         sprintf(buf, "%ld", mfs);
         iniparser_set(ini, str, buf);
-        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
-        sprintf(str, "%d:Ckpt_checksum", i);
-        iniparser_set(ini, str, buf);
+        // TODO Checksums only local currently
+        if (strlen(checksums)) {
+            strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+            sprintf(str, "%d:Ckpt_checksum", i);
+            iniparser_set(ini, str, buf);
+        }
     }
 
     // Remove topology section
@@ -471,7 +474,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else {
         sprintf(buf, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
     }
-    // TODO ugly... FTI_Exec->meta
     if (stat(buf, &fileStatus) == 0) { // Getting size of files
         fs[FTI_Topo->groupRank] = (unsigned long)FTI_Exec->meta[member].fs;
     }
@@ -499,10 +501,18 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meta[0].maxFs; 
     sprintf(str, "Max. file size %ld.", mfs);
     FTI_Print(str, FTI_DBUG);
+    
+    // TODO Checksums only local currently
+    char* checksums;
+    if (!globalTmp) {
+        res = FTI_Checksum(buf, checksum);
+        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
+        MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
+    } else {
+        checksums = talloc(char, FTI_BUFS);
+        checksums[0]=0;
+    }
 
-    res = FTI_Checksum(buf, checksum);
-    char* checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
-    MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
     if (res == FTI_NSCS) {
         free(fnl);
 

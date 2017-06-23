@@ -1114,6 +1114,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(lfd);
 
     sion_parclose_mapped_mpi(sid);
+
     return FTI_SCES;
 
 }

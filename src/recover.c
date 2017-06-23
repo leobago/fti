@@ -79,9 +79,12 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Error getting metadata.", FTI_WARN);
         return FTI_NSCS;
     }
-    FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, group, level);
-    sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
-    FTI_Print(fn, FTI_DBUG);
+    // TODO Checksums only local currently
+    if ( level > 0 && level < 4 ) {
+        FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, group, level);
+        sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
+        FTI_Print(fn, FTI_DBUG);
+    }
     switch (level) {
         case 1:
             sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
@@ -116,7 +119,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             break;
         case 4:
             sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
-            buf = FTI_CheckFile(fn, *fs, checksum);
+            buf = FTI_CheckFile(fn, *fs, "");
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }    
@@ -213,8 +216,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (tres == FTI_SCES) {
                 sprintf(str, "Recovering successfully from level %d.", level);
                 FTI_Print(str, FTI_INFO);
-                if(level == 4) // TODO this is the easy solution which avoids changing too much code...
+                // This is to enable recovering from local for L4 case in FTI_Recover
+                if(level == 4) {
                     FTI_Exec->ckptLvel = 1;
+                }
                 break;
             }
             else {
