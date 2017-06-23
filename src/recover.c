@@ -185,6 +185,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if (tres == FTI_SCES) {
                 sprintf(str, "Recovering successfully from level %d.", level);
                 FTI_Print(str, FTI_INFO);
+                if (level == 4) {
+                    FTI_Exec->ckptLvel = 1;
+                }
                 break;
             }
             else {
