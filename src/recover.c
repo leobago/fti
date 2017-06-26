@@ -140,98 +140,98 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    int f, r, tres = FTI_SCES, id, level = 1;
-    unsigned long fs, maxFs;
-    char str[FTI_BUFS];
-    if (!FTI_Topo->amIaHead) {
-        while (level < 5) {
-            if ((FTI_Exec->reco == 2) && (level != 4)) {
-                tres = FTI_NSCS;
+   int f, r, tres = FTI_SCES, id, level = 1;
+   unsigned long fs, maxFs;
+   char str[FTI_BUFS];
+   if (!FTI_Topo->amIaHead) {
+      while (level < 5) {
+         if ((FTI_Exec->reco == 2) && (level != 4)) {
+            tres = FTI_NSCS;
+         }
+         else {
+            if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->groupID, level) != FTI_SCES) {
+               tres = FTI_NSCS;
             }
             else {
-                if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->groupID, level) != FTI_SCES) {
-                    tres = FTI_NSCS;
-                }
-                else {
-                    FTI_Exec->meta[0].fs = fs;
-                    FTI_Exec->meta[0].maxFs = maxFs;
-                    FTI_Exec->ckptLvel = level;
-                    switch (FTI_Exec->ckptLvel) {
-                        case 4:
-                            FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
-                            MPI_Barrier(FTI_COMM_WORLD);
-                            switch(FTI_Conf->ioMode) {
+               FTI_Exec->meta[0].fs = fs;
+               FTI_Exec->meta[0].maxFs = maxFs;
+               FTI_Exec->ckptLvel = level;
+               switch (FTI_Exec->ckptLvel) {
+                  case 4:
+                     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
+                     MPI_Barrier(FTI_COMM_WORLD);
+                     switch(FTI_Conf->ioMode) {
 
-                                case FTI_IO_POSIX:
+                        case FTI_IO_POSIX:
 
-                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                                    break;
-                                
-                                case FTI_IO_MPI:
-                                    
-                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-mpiio.fti", &id);
-                                    break;
+                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                           break;
+
+                        case FTI_IO_MPI:
+
+                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-mpiio.fti", &id);
+                           break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-                                case FTI_IO_SIONLIB:
+                        case FTI_IO_SIONLIB:
 
-                                    sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
-                    		        break;
+                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
+                           break;
 #endif
-                            }
-                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                   			FTI_Print(str, FTI_DBUG);
-                    		FTI_Exec->ckptID = id;
-                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                            r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                            break;
-                        case 3:
-                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                   			FTI_Print(str, FTI_DBUG);
-                    		FTI_Exec->ckptID = id;
-                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                            r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                            break;
-                        case 2:
-                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                   			FTI_Print(str, FTI_DBUG);
-                    		FTI_Exec->ckptID = id;
-                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                            r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                            break;
-                        case 1:
-                            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                   			FTI_Print(str, FTI_DBUG);
-                    		FTI_Exec->ckptID = id;
-                    		FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                            r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
-                            break;
-                    }
-                    MPI_Allreduce(&r, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-                }
+                     }
+                     sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                     FTI_Print(str, FTI_DBUG);
+                     FTI_Exec->ckptID = id;
+                     FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
+                     r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     break;
+                  case 3:
+                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                     FTI_Print(str, FTI_DBUG);
+                     FTI_Exec->ckptID = id;
+                     FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
+                     r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     break;
+                  case 2:
+                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                     FTI_Print(str, FTI_DBUG);
+                     FTI_Exec->ckptID = id;
+                     FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
+                     r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     break;
+                  case 1:
+                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
+                     FTI_Print(str, FTI_DBUG);
+                     FTI_Exec->ckptID = id;
+                     FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
+                     r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     break;
+               }
+               MPI_Allreduce(&r, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
             }
+         }
 
-            if (tres == FTI_SCES) {
-                sprintf(str, "Recovering successfully from level %d.", level);
-                FTI_Print(str, FTI_INFO);
-                // This is to enable recovering from local for L4 case in FTI_Recover
-                if(level == 4) {
-                    FTI_Exec->ckptLvel = 1;
-                }
-                break;
+         if (tres == FTI_SCES) {
+            sprintf(str, "Recovering successfully from level %d.", level);
+            FTI_Print(str, FTI_INFO);
+            // This is to enable recovering from local for L4 case in FTI_Recover
+            if(level == 4) {
+               FTI_Exec->ckptLvel = 1;
             }
-            else {
-                sprintf(str, "No possible to restart from level %d.", level);
-                FTI_Print(str, FTI_INFO);
-                level++;
-            }
-        }
-    }
-    fs = tres;
-    MPI_Allreduce(&fs, &tres, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-    MPI_Barrier(FTI_Exec->globalComm);
-    sleep(1); // Global barrier and sleep for clearer output
-    return tres;
+            break;
+         }
+         else {
+            sprintf(str, "No possible to restart from level %d.", level);
+            FTI_Print(str, FTI_INFO);
+            level++;
+         }
+      }
+   }
+   fs = tres;
+   MPI_Allreduce(&fs, &tres, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+   MPI_Barrier(FTI_Exec->globalComm);
+   sleep(1); // Global barrier and sleep for clearer output
+   return tres;
 }
