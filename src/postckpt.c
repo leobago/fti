@@ -509,9 +509,11 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             case FTI_IO_MPI:
                MPI_File_close(&FTI_Exec->pfh);
                break;
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
             case FTI_IO_SIONLIB:
                sion_parclose_mapped_mpi(FTI_Exec->sid);
                break;
+#endif
          }
          return FTI_NSCS;
       }
