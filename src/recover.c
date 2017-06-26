@@ -187,6 +187,11 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print(str, FTI_INFO);
                 if (level == 4) {
                     FTI_Exec->ckptLvel = 1;
+                    if (FTI_Topo->splitRank == 0) {
+                        if (rename(FTI_Ckpt[4].metaDir, FTI_Ckpt[1].metaDir) == -1) {
+                    		FTI_Print("Cannot rename L4 metadata folder to L1", FTI_WARN);
+                    	}
+                    }
                 }
                 break;
             }
