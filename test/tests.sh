@@ -101,7 +101,7 @@ startTestCorr () {
 	printResume $1 $2 $4
 	mpirun -n $3 ./$1 config.fti $4 0 &> logFile2
 	if [ $4 = "1" ] || [ $4 = "4" ]; then 	#if L1 or L4 test should fail
-		checkLog logFile2 patterns/L"$4$6"0 1
+		checkLog logFile2 patterns/L"$4$6" 1
 	elif [ $4 = "2" ] && [ $7 = "2" ]; then		#if L2 and corruptLevel=2 test should fail
 		checkLog logFile2 patterns/L2"$6"2 1 
 	else						#else tests should succeed
@@ -116,8 +116,6 @@ startTestCorr () {
 startTestLogVerify () {
 	if [ $5 = "1" ]; then
 		level="4"
-	else
-		level=$4
 	fi
 	printRun $1 $2 $4
 	cp configs/$2 config.fti
