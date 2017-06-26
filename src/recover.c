@@ -122,7 +122,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             buf = FTI_CheckFile(fn, *fs, "");
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
-    }    
+    }
     return FTI_SCES;
 }
 
