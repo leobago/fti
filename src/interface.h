@@ -97,8 +97,6 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                 unsigned long *fs, unsigned long *mfs, int group, int level);
-int FTI_UpdateMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                                 unsigned long fs, unsigned long mfs, char* fn);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       unsigned long *fs, unsigned long mfs, char* fnl, char* checksums, int member);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
