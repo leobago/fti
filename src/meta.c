@@ -250,6 +250,8 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      fs              Pointer to the list of checkpoint sizes.
     @param      mfs             The maximum checkpoint file size.
     @param      fnl             Pointer to the list of checkpoint names.
+    @param      member          0 if application process groupID of
+                                respective application process if head.
     @return     integer         FTI_SCES if successfull.
 
     This function should be executed only by one process per group. It
@@ -258,15 +260,17 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      unsigned long* fs, unsigned long mfs, char* fnl, char* checksums)
+                      unsigned long* fs, unsigned long mfs, char* fnl, char* checksums, int member)
 {
     char str[FTI_BUFS], buf[FTI_BUFS];
     dictionary* ini;
-    int i;
+    int i, groupID;
 
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
+
+    groupID = (FTI_Topo->amIaHead) ? member + 1 : FTI_Topo->groupID;
 
     // To bypass iniparser bug while empty dict.
     ini = iniparser_load(buf);
@@ -288,9 +292,12 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         sprintf(str, "%d:Ckpt_file_maxs", i);
         sprintf(buf, "%ld", mfs);
         iniparser_set(ini, str, buf);
-        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
-        sprintf(str, "%d:Ckpt_checksum", i);
-        iniparser_set(ini, str, buf);
+        // TODO Checksums only local currently
+        if (strlen(checksums)) {
+            strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+            sprintf(str, "%d:Ckpt_checksum", i);
+            iniparser_set(ini, str, buf);
+        }
     }
 
     // Remove topology section
@@ -301,7 +308,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         }
     }
 
-    sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+    sprintf(buf, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, groupID);
     if (remove(buf) == -1) {
         if (errno != ENOENT) {
             FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
@@ -348,6 +355,8 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /**
     @brief      It writes the metadata to recover the data after a failure.
     @param      globalTmp       1 if using global temporary directory.
+    @param      member          0 if application process groupID of
+                                respective application process if head.
     @return     integer         FTI_SCES if successfull.
 
     This function gathers information about the checkpoint files in the
@@ -357,7 +366,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                       FTIT_topology* FTI_Topo, int globalTmp)
+                       FTIT_topology* FTI_Topo, int globalTmp, int member)
 {
     char* fnl = talloc(char, FTI_Topo->groupSize* FTI_BUFS);
     unsigned long fs[FTI_BUFS], mfs, tmpo;
@@ -371,7 +380,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sprintf(buf, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
     }
     if (stat(buf, &fileStatus) == 0) { // Getting size of files
-        fs[FTI_Topo->groupRank] = (unsigned long)fileStatus.st_size;
+        fs[FTI_Topo->groupRank] = (unsigned long)FTI_Exec->meta[member].fs;
     }
     else {
         FTI_Print("Error with stat on the checkpoint file.", FTI_WARN);
@@ -382,6 +391,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo->groupRank]);
     FTI_Print(str, FTI_DBUG);
+    
     sprintf(fnl + (FTI_Topo->groupRank * FTI_BUFS), "%s", FTI_Exec->ckptFile);
     tmpo = fs[FTI_Topo->groupRank]; // Gather all the file sizes
     MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec->groupComm);
@@ -393,12 +403,21 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fs[i]; // Search max. size
         }
     }
+    FTI_Exec->meta[0].maxFs; 
     sprintf(str, "Max. file size %ld.", mfs);
     FTI_Print(str, FTI_DBUG);
+    
+    // TODO Checksums only local currently
+    char* checksums;
+    if (!globalTmp) {
+        res = FTI_Checksum(buf, checksum);
+        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
+        MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
+    } else {
+        checksums = talloc(char, FTI_BUFS);
+        checksums[0]=0;
+    }
 
-    res = FTI_Checksum(buf, checksum);
-    char* checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
-    MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
     if (res == FTI_NSCS) {
         free(fnl);
 
@@ -406,7 +425,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fs, mfs, fnl, checksums), "write the metadata.");
+        res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fs, mfs, fnl, checksums, member), "write the metadata.");
         if (res == FTI_NSCS) {
             free(fnl);
             free(checksums);
