@@ -3,18 +3,13 @@ target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET check.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
-## uncomment after merge with IO branch
-#if(ENABLE_SIONLIB)
-#    set(IO 3)
-#    set(IO_NAMES "POSIX MPIIO SIONLIB")
-#else()
-#    set(IO 2)
-#    set(IO_NAMES "POSIX MPIIO")
-#endif()
-
-## delete after merge with IO branch
-set(IO 1)
-set(IO_NAMES "POSIX")
+if(ENABLE_SIONLIB)
+    set(IO 3)
+    set(IO_NAMES "POSIX MPIIO SIONLIB")
+else()
+    set(IO 2)
+    set(IO_NAMES "POSIX MPIIO")
+endif()
 
 configure_file(run-checks.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks.sh @ONLY)
 
