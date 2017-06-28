@@ -51,6 +51,7 @@ else()
 		$<TARGET_OBJECTS:md5>)
 	append_property(TARGET fti.static fti.shared
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
+	unset(OPENSSL_LIBRARIES)
 endif()
 
 append_property(TARGET fti.static fti.shared
