@@ -37,7 +37,7 @@ set(SRC_FTI
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}")
 
-if(OPENSSL_FOUND)
+if(${OPENSSL_FOUND} AND NOT DEFINED ${NO_OPENSSL})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
