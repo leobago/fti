@@ -1,3 +1,19 @@
+!> @author Kai Keller (kellekai@gmx.de)
+!> @date   June, 2017
+!> @brief  Unitary test program for FTI Fortran
+!! 
+!! The purpose of this code is to test the checkpoint
+!! and restart mechanism in FTI for any case.
+!!
+!! [ USAGE ]
+!! 
+!! ./PROGRAM ARG1=config ARG2=crash ARG3=level ARG4=diff
+!!
+!> @param ARG1 relative/absolute path to FTI config file 
+!> @param ARG2 1/0 (on/off) - simulate failure  
+!> @param ARG3 checkpoint level (1 - 4) 
+!> @param ARG4 1/0 (on/off) - enable/disable different ckpt sizes  
+
 MODULE CHECK_FUNCTIONS
     IMPLICIT NONE
     PRIVATE
