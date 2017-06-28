@@ -30,7 +30,6 @@ runAllConfiguration() {
 		do
 		startTest addInArray ${silentConfigs[$i]} $1 $j
 		startTest diffSizes ${silentConfigs[$i]} $1 $j
-		startTest tokenRing ${silentConfigs[$i]} $1 $j
 		done
 		startTest nodeFlag ${configs[$i]} $1
 
@@ -56,6 +55,8 @@ cd test
 	else 
 		startTest "$TEST" "$CONFIG" 16 "$LEVEL"
 	fi
+	rm -r ./Local ./Global ./Meta
+	echo "Cleaned."
 
 #----------------------------------------------------------------------------------------
 cd ..
