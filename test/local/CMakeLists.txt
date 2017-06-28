@@ -3,6 +3,13 @@ target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET check.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
+if(ENABLE_FORTRAN)
+    add_executable(fcheck.exe check.f90)
+    target_link_libraries(fcheck.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)
+    set_property(TARGET fcheck.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS})
+    set_property(TARGET fcheck.exe APPEND PROPERTY LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
+endif()
+
 ## uncomment after merge with IO branch
 #if(ENABLE_SIONLIB)
 #    set(IO 3)
