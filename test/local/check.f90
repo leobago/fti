@@ -2,25 +2,36 @@ MODULE CHECK_FUNCTIONS
     IMPLICIT NONE
     PRIVATE
     
-    PUBLIC DP, INIT_ARRAYS, VALIDIFY, WRITE_DATA, READ_DATA, &
+    PUBLIC INIT_ARRAYS, VALIDIFY, WRITE_DATA, READ_DATA, &
         BUFFER, IERROR
 
-    INTEGER, PARAMETER      :: DP = KIND(0.D0)
     INTEGER, PARAMETER      :: BUFFER = 256
-
     INTEGER                 :: IERROR
 
     CONTAINS
 
         SUBROUTINE INIT_ARRAYS ( A, B )
-            REAL (DP), INTENT(OUT) :: A(:), B(:)
-            A = 1.0_DP
-            CALL RANDOM_NUMBER(B)
+            REAL, INTENT(OUT) :: A(:), B(:)
+            INTEGER :: VALUES(1:8), K, I=1
+            INTEGER, DIMENSION(:), ALLOCATABLE :: SEED
+
+            CALL DATE_AND_TIME(VALUES=VALUES)
+            CALL RANDOM_SEED(SIZE=K)
+            ALLOCATE(SEED(1:K))
+            SEED(:) = VALUES(8)
+            CALL RANDOM_SEED(PUT=SEED)
+            
+            A = 1.0
+            
+            DO WHILE (I <= SIZE(B))
+                CALL RANDOM_NUMBER(B(I))
+                I = I+1
+            END DO
         END SUBROUTINE 
         
         SUBROUTINE VALIDIFY ( A, B_CHK, ASIZE, RES )
-            REAL (DP), INTENT(IN)       :: A(:), B_CHK(:)
-            INTEGER (DP), INTENT(IN)    :: ASIZE
+            REAL, INTENT(IN)       :: A(:), B_CHK(:)
+            INTEGER (8), INTENT(IN)    :: ASIZE
             INTEGER, INTENT(OUT)        :: RES
             INTEGER                     :: I = 1
 
@@ -36,8 +47,8 @@ MODULE CHECK_FUNCTIONS
         
         SUBROUTINE WRITE_DATA (B, ASIZE, RANK)
             INTEGER, INTENT(IN)         :: RANK
-            INTEGER (DP), INTENT(IN)    :: ASIZE
-            REAL (DP), INTENT(IN)       :: B(:)
+            INTEGER (8), INTENT(IN)     :: ASIZE
+            REAL, INTENT(IN)             :: B(:)
             CHARACTER (LEN=BUFFER)      :: STR
             INTEGER                     :: RECLEN1, RECLEN2, RECLEN, I
             
@@ -58,9 +69,9 @@ MODULE CHECK_FUNCTIONS
         
         SUBROUTINE READ_DATA ( B_CHK, ASIZE_CHK, RANK, ASIZE, RES )
             INTEGER, INTENT(IN)         :: RANK
-            INTEGER (DP), INTENT(IN)    :: ASIZE
-            INTEGER (DP)                :: ASIZE_CHK
-            REAL (DP), INTENT(OUT)      :: B_CHK(:)
+            INTEGER (8), INTENT(IN)     :: ASIZE
+            INTEGER (8)                 :: ASIZE_CHK
+            REAL, INTENT(OUT)           :: B_CHK(:)
             CHARACTER (LEN=BUFFER)      :: STR
             INTEGER                     :: RECLEN1, RECLEN2, RECLEN, I
             INTEGER, INTENT(OUT)        :: RES
@@ -96,7 +107,7 @@ PROGRAM CHECK
     IMPLICIT NONE
 
     !**** CONSTANTS
-    INTEGER, PARAMETER      :: N = 100000
+    INTEGER, PARAMETER      :: N = 10
     INTEGER, PARAMETER      :: CNTRLD_EXIT = 10
     INTEGER, PARAMETER      :: RECOVERY_FAILED = 20
     INTEGER, PARAMETER      :: DATA_CORRUPT = 30
@@ -108,22 +119,22 @@ PROGRAM CHECK
     INTEGER                 :: CRASH, LEVEL, DIFF_SIZES
     INTEGER                 :: RES, TMP, PAR, STATE, SCES = 1
     INTEGER                 :: FTI_APP_RANK, INVALID
-    INTEGER (DP)            :: ASIZE_CHK
+    INTEGER (8)             :: ASIZE_CHK
     INTEGER, TARGET         :: FTI_COMM_WORLD
     CHARACTER (BUFFER)      :: CF
     CHARACTER (1)           :: CRASH_CHAR, LEVEL_CHAR, DIFF_SIZES_CHAR
     
     !**** DYNAMIC ARRAYS
-    REAL (DP), DIMENSION(:), ALLOCATABLE            :: B_CHK
+    REAL, DIMENSION(:), ALLOCATABLE            :: B_CHK
 
     
     !**** FTI PROTECTED VARIABLES
-    REAL (DP), TARGET, DIMENSION(:), ALLOCATABLE    :: A, B 
-    INTEGER (DP), TARGET    :: ASIZE
+    REAL, TARGET, DIMENSION(:), ALLOCATABLE    :: A, B 
+    INTEGER (8), TARGET    :: ASIZE
 
     !**** POINTER FOR FTI PROTECTED VARS
-    REAL (DP), POINTER      :: A_PTR(:), B_PTR(:) 
-    INTEGER (DP), POINTER   :: ASIZE_PTR
+    REAL, POINTER      :: A_PTR(:), B_PTR(:) 
+    INTEGER (8), POINTER   :: ASIZE_PTR
 
     !**** GET ARGUMENTS FROM COMMAND LINE 
     CALL GETARG(1, CF)
@@ -140,7 +151,9 @@ PROGRAM CHECK
     CALL FTI_INIT(CF, FTI_COMM_WORLD, IERROR)
 
     CALL MPI_COMM_RANK(FTI_COMM_WORLD, FTI_APP_RANK, IERROR)
-    
+
+    ASIZE = N 
+
     IF ( DIFF_SIZES == 1 ) THEN
         
         PAR = MOD( FTI_APP_RANK, 7 )
@@ -181,17 +194,17 @@ PROGRAM CHECK
 
     IF (STATE == INIT) THEN
         CALL INIT_ARRAYS ( A, B )
-        CALL WRITE_DATA(B, ASIZE, FTI_APP_RANK);
-        CALL MPI_BARRIER( FTI_COMM_WORLD, IERROR )
-        CALL FTI_Checkpoint( 1, LEVEL, IERROR )
+        CALL WRITE_DATA (B, ASIZE, FTI_APP_RANK);
+        CALL MPI_BARRIER ( FTI_COMM_WORLD, IERROR )
+        CALL FTI_CHECKPOINT ( 1, LEVEL, IERROR )
         CALL SLEEP(2)
         IF ( CRASH == 1 .AND. FTI_APP_RANK == 0 ) THEN 
-            CALL EXIT(CNTRLD_EXIT)
+            CALL EXIT ( CNTRLD_EXIT )
         END IF
     END IF
 
     IF ( STATE == RESTART .OR. STATE == KEEP ) THEN
-        CALL FTI_Recover( IERROR )
+        CALL FTI_RECOVER ( IERROR )
         IF (IERROR /= 0) THEN
             CALL EXIT ( RECOVERY_FAILED )
         END IF
@@ -199,7 +212,7 @@ PROGRAM CHECK
         CALL READ_DATA ( B_CHK, ASIZE_CHK, FTI_APP_RANK, ASIZE, IERROR )
         CALL MPI_BARRIER ( FTI_COMM_WORLD, IERROR )
         IF ( IERROR /= 0 ) THEN
-            CALL EXIT (DATA_CORRUPT)
+            CALL EXIT ( DATA_CORRUPT )
         END IF
     END IF
 
@@ -208,7 +221,7 @@ PROGRAM CHECK
     A = A*B
 
     IF (STATE == RESTART .OR. STATE == KEEP) THEN
-        CALL VALIDIFY ( A, B_CHK, ASIZE, IERROR )
+        CALL VALIDIFY ( A, B_CHK, ASIZE, INVALID )
         CALL MPI_Allreduce( INVALID, TMP, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD, IERROR);
         INVALID = TMP;
     END IF    
