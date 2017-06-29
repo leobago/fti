@@ -19,4 +19,3 @@ file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
-
