@@ -159,17 +159,18 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 }
 
 runAllConfiguration() {
-		for corrORErase in 0 1; do #for corrupt or erase
-			if [ $LEVEL = 1 ] || [ $LEVEL = 4 ]; then #L1 or L4 don't have Ptners files 
-				startTestCorr diffSizes $CONFIG $1 $LEVEL 0 $corrORErase 0 0
-			else
-				for ckptORPtner in 0 1; do #for checkpoint or partner file
-					for corruptionLevel in {0..3}; do #for all corruption levels (one file, non adj nodes, adj nodes, all files)
-						startTestCorr diffSizes $CONFIG $1 $LEVEL $ckptORPtner $corrORErase $corruptionLevel 0
-					done
+	for corrORErase in 0 1; do #for corrupt or erase
+		if [ $LEVEL = 1 ] || [ $LEVEL = 4 ]; then #L1 or L4 don't have Ptners files 
+			startTestCorr diffSizes $CONFIG $1 $LEVEL 0 $corrORErase 0 0
+		else
+			for ckptORPtner in 0 1; do #for checkpoint or partner file
+				for corruptionLevel in {0..3}; do #for all corruption levels (one file, non adj nodes, adj nodes, all files)
+					startTestCorr diffSizes $CONFIG $1 $LEVEL $ckptORPtner $corrORErase $corruptionLevel 0
 				done
-			fi
-		done
+			done
+		fi
+
+	done
 	startTestLogVerify diffSizes $CONFIG $1 $LEVEL 0 #recover from not flushed checkpoints without corrupting
 	startTestLogVerify addInArray $CONFIG $1 $LEVEL 1 #recover from flushed checkpoints without corrupting (L4)
 
@@ -202,6 +203,8 @@ cd test
 		runAllConfiguration 16
 	fi
 	kill -9 $pid
+	rm -r ./Local ./Global ./Meta
+	echo "Cleaned."
 
 #----------------------------------------------------------------------------------------
 cd ..

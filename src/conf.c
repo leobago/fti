@@ -131,6 +131,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
+    FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -257,6 +258,27 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
+#else
+    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_MPI) {
+#endif
+        FTI_Conf->ioMode = FTI_IO_POSIX;
+        FTI_Print("No I/O selected. Set to default (POSIX)", FTI_WARN);
+    } else {
+        switch(FTI_Conf->ioMode) {
+            case FTI_IO_POSIX:
+                FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
+                break;
+            case FTI_IO_MPI:
+                FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
+                break;
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+            case FTI_IO_SIONLIB:
+                FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
+#endif
+        }    
+    }        
     return FTI_SCES;
 }
 
