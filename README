@@ -31,6 +31,10 @@
 *
 * cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
 *
+* To use built-in MD5 rather than OpenSSL, please configure using:
+*
+* cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+*
 *##########   Configure and run a FTI example (as easy as 1,2,3)     ##########
 *
 * 1) Place yourself in the examples directory which contains head distribution
