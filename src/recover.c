@@ -22,6 +22,7 @@
 int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
 {
     struct stat fileStatus;
+    char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         if (stat(fn, &fileStatus) == 0) {
             if (fileStatus.st_size == fs) {
@@ -43,6 +44,8 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
         }
     }
     else {
+        sprintf(str, "Missing file: \"%s\"", fn);
+        FTI_Print(str, FTI_WARN);
         return 1;
     }
 }
