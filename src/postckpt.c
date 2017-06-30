@@ -407,9 +407,9 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    int splitRank = (FTI_Topo->amIaHead) ? gRank - ( (FTI_Topo->splitRank+1) * FTI_Topo->nbHeads ) : FTI_Topo->splitRank;
 
    // align ps to blocksize
-   ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->blockSize) * FTI_Conf->blockSize;
+   ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->transferSize) * FTI_Conf->transferSize;
    if (ps < FTI_Exec->meta[member].maxFs) {
-      ps = ps + FTI_Conf->blockSize;
+      ps = ps + FTI_Conf->transferSize;
    }
 
    switch (level) {
@@ -489,12 +489,12 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
    }
 
-   char *blBuf1 = talloc(char, FTI_Conf->blockSize);
-   unsigned long bSize = FTI_Conf->blockSize;
+   char *blBuf1 = talloc(char, FTI_Conf->transferSize);
+   unsigned long bSize = FTI_Conf->transferSize;
 
    // Checkpoint files exchange
    while (pos < ps) {
-      if ((FTI_Exec->meta[member].fs - pos) < FTI_Conf->blockSize)
+      if ((FTI_Exec->meta[member].fs - pos) < FTI_Conf->transferSize)
          bSize = FTI_Exec->meta[member].fs - pos;
 
       size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
@@ -572,7 +572,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
       }
 
-      pos = pos + FTI_Conf->blockSize;
+      pos = pos + FTI_Conf->transferSize;
 
    }
 
