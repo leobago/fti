@@ -128,7 +128,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
-    FTI_Conf->TransferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
+    FTI_Conf->transferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
