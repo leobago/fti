@@ -172,6 +172,7 @@ frequency                      = 0
 
 [advanced]
 block_size                     = 1024
+transfer_size                  = 16
 mpi_tag                        = 2612
 local_test                     = 1
 EOF
