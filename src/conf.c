@@ -128,7 +128,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
-    FTI_Conf->transferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
+    FTI_Conf->TransferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
@@ -236,8 +236,8 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         return FTI_NSCS;
     }
     if (FTI_Conf->transferSize > (1024 * 1024 * 64) || FTI_Conf->transferSize < (1024 * 1024 * 8)) {
-        FTI_Print("Transfer size needs to be set between 8MB and 64MB.", FTI_WARN);
-        return FTI_NSCS;
+        FTI_Print("Transfer size (default = 16MB) not set in Cofiguration file.", FTI_WARN);
+        FTI_Conf->transferSize = 16 * 1024 * 1024;
     }
     if (FTI_Conf->test != 0 && FTI_Conf->test != 1) {
         FTI_Print("Local test size needs to be set to 0 or 1.", FTI_WARN);
