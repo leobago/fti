@@ -102,6 +102,10 @@ frequency = 0
 # The ckpt files are decomposed in blocks of size Block_size KB
 Block_size = 1024
 
+# The ckpt files are transfered in chunks of size Transfer_size MB 
+# from local to PFS
+Transfer_size = 16
+
 # The tag for MPI communications done within the FTI library
 Mpi_tag = 2612
 
