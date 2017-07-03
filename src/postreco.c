@@ -887,9 +887,9 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // number of blocks
-   nbBlocks = (FTI_Exec->meta[0].fs) / FTI_Conf->blockSize;
+   nbBlocks = (FTI_Exec->meta[0].fs) / FTI_Conf->transferSize;
    block = 0; // For the logic
-   lastBlockBytes = (FTI_Exec->meta[0].fs) % FTI_Conf->blockSize; // modulo for size of last block in bytes
+   lastBlockBytes = (FTI_Exec->meta[0].fs) % FTI_Conf->transferSize; // modulo for size of last block in bytes
 
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
@@ -898,13 +898,13 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
    }
 
-   char *blBuf1 = talloc(char, FTI_Conf->blockSize);
+   char *blBuf1 = talloc(char, FTI_Conf->transferSize);
 
    // Checkpoint files transfer from PFS
    while (block < nbBlocks) {
 
       // read block in parallel file
-      buf = MPI_File_read_at(pfh, offset, blBuf1, FTI_Conf->blockSize, MPI_BYTE, &status);
+      buf = MPI_File_read_at(pfh, offset, blBuf1, FTI_Conf->transferSize, MPI_BYTE, &status);
       // check if successfull
       if (buf != 0) {
          errno = 0;
@@ -916,7 +916,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          return FTI_NSCS;
       }
 
-      fwrite(blBuf1, sizeof(char), FTI_Conf->blockSize, lfd);
+      fwrite(blBuf1, sizeof(char), FTI_Conf->transferSize, lfd);
       if (ferror(lfd)) {
          FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
          free(blBuf1);
@@ -925,7 +925,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          return  FTI_NSCS;
       }
 
-      offset += FTI_Conf->blockSize;
+      offset += FTI_Conf->transferSize;
       block++;
    }
 
