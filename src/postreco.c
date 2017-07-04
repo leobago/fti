@@ -821,7 +821,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L4 ckpt. files from the PFS using MPI-I/O.
+    @brief      It recovers L4 ckpt. files from the PFS using MPI-I/O.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -963,7 +963,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L4 ckpt. files from the PFS using SIONlib.
+    @brief      It recovers L4 ckpt. files from the PFS using SIONlib.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
