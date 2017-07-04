@@ -479,7 +479,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // open parallel file (collective call)
    res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
 
-   // check if successfull
+   // check if successful
    if (res != 0) {
       errno = 0;
       MPI_Error_string(res, mpi_err, &reslen);
@@ -510,7 +510,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
          for (j=1; j<=dCount; j++) {
             res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, dType, &status);
-            // check if successfull
+            // check if successful
             if (res != 0) {
                errno = 0;
                MPI_Error_string(res, mpi_err, &reslen);
@@ -533,7 +533,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MPI_Type_commit(&rType);
             // write ckpt data to file
             res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, rType, &status);
-            // check if successfull
+            // check if successful
             if (res != 0) {
                errno = 0;
                MPI_Error_string(res, mpi_err, &reslen);
@@ -552,7 +552,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
          // write ckpt data to file
          res = MPI_File_write_at(pfh, pfSector, FTI_Data[i].ptr, 1, dType, &status);
-         // check if successfull
+         // check if successful
          if (res != 0) {
             errno = 0;
             MPI_Error_string(res, mpi_err, &reslen);
