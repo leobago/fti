@@ -539,7 +539,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MPI_Type_commit(&dType);
 
             res = MPI_File_write_at(FTI_Exec->pfh, offset, blBuf1, 1, dType, &status);
-            // check if successfull
+            // check if successful
             if (res != 0) {
                errno = 0;
                MPI_Error_string(res, mpi_err, &reslen);
@@ -752,7 +752,7 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // open parallel file (collective call)
    res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(FTI_Exec->pfh));
 
-   // check if successfull
+   // check if successful
    if (res != 0) {
       errno = 0;
       MPI_Error_string(res, mpi_err, &reslen);

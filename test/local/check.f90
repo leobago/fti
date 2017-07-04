@@ -244,9 +244,9 @@ PROGRAM CHECK
 
    IF ( FTI_APP_RANK == 0 .AND. (STATE == RESTART .OR. STATE == KEEP) ) THEN
       IF ( INVALID == 0 ) THEN
-         PRINT *, "[SUCCESSFULL]"
+         PRINT *, "[successful]"
       ELSE
-         PRINT *, "[NOT SUCCESSFULL]"
+         PRINT *, "[NOT successful]"
          SCES = 0
       END IF
    END IF
