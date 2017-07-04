@@ -235,7 +235,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     @brief      It corrupts a bit of the given float.
     @param      target          Pointer to the float to corrupt.
     @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function filps the bit of the target float.
 
@@ -260,7 +260,7 @@ int FTI_FloatBitFlip(float* target, int bit)
     @brief      It corrupts a bit of the given float.
     @param      target          Pointer to the float to corrupt.
     @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function filps the bit of the target float.
 
@@ -284,7 +284,7 @@ int FTI_DoubleBitFlip(double* target, int bit)
 /**
     @brief      Bit-flip injection following the injection instructions.
     @param      datasetID       ID of the dataset where to inject.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function injects the given number of bit-flips, at the given
     frequency and in the given location (rank, dataset, bit position).
@@ -335,7 +335,7 @@ int FTI_BitFlip(int datasetID)
     @brief      It takes the checkpoint and triggers the post-ckpt. work.
     @param      id              Checkpoint ID.
     @param      level           Checkpoint level.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function starts by blocking on a receive if the previous ckpt. was
     offline. Then, it updates the ckpt. information. It writes down the ckpt.
