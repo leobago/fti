@@ -275,7 +275,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     MPI_Status status;
     char str[FTI_BUFS];
-    int i, j, buf, res, flags[7];
+    int i, buf, res, flags[7];
     for (i = 0; i < 7; i++) { // Initialize flags
         flags[i] = 0;
     }
