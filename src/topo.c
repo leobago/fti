@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Writes the topology in a file for recovery.
+    @brief      It writes the topology in a file for recovery.
     @param      nameList        The list of the node names.
     @return     integer         FTI_SCES if successful.
 
@@ -88,7 +88,7 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Reorder the nodes following the previous topology.
+    @brief      It reorders the nodes following the previous topology.
     @param      nodeList        The list of the nodes.
     @param      nameList        The list of the node names.
     @return     integer         FTI_SCES if successful.
@@ -195,7 +195,7 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Build the list of nodes in the current execution.
+    @brief      It builds the list of nodes in the current execution.
     @param      nodeList        The list of the nodes to fill.
     @param      nameList        The list of the node names to fill.
     @return     integer         FTI_SCES if successful.
@@ -267,7 +267,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Build the list of nodes in the current execution.
+    @brief      It builds the list of nodes in the current execution.
     @param      userProcList    The list of the app. processess.
     @param      distProcList    The list of the distributed processes.
     @param      nodeList        The list of the nodes to fill.
@@ -324,7 +324,7 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Builds and saves the topology of the current execution.
+    @brief      It builds and saves the topology of the current execution.
     @return     integer         FTI_SCES if successful.
 
     This function builds the topology of the system, detects and replaces

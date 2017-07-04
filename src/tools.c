@@ -11,7 +11,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Calculates checksum of the checkpoint file.
+    @brief      It calculates checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
     @param      checksumToCmp   checksum that is calculated
     @return     integer         FTI_SCES if successful
@@ -58,7 +58,7 @@ int FTI_Checksum(char* fileName, char* checksum)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Compares checksum of the checkpoint file.
+    @brief      It compares checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
     @param      checksumToCmp   checksum to compare
     @return     integer         FTI_SCES if successful
@@ -110,7 +110,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Receive the return code of a function and print a message.
+    @brief      It receives the return code of a function and prints a message.
     @param      result          Result to check.
     @param      message         Message to print.
     @return     integer         The same result as passed in parameter.
