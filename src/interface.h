@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include "../deps/md5/md5.h"
-#define MD5_DIGEST_LENGTH 17
+#define MD5_DIGEST_LENGTH 17    /**< Hashed string length           */
 
 #include <sys/stat.h>
 #include <string.h>
@@ -109,24 +109,24 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level);
 int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level);
 #endif
 int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level);
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level);
 int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level);
 int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt); 
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 #endif
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
