@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover a set of ckpt. files using RS decoding.
+    @brief      It recovers a set of ckpt. files using RS decoding.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the L3 ckpt. files missing using the
@@ -300,7 +300,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Checks that all L1 ckpt. files are present.
+    @brief      It checks that all L1 ckpt. files are present.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -333,7 +333,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Sends checkpint file.
+    @brief      It sends checkpint file.
     @param      destination     destination group rank
     @param      fs              filesize
     @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt
@@ -394,7 +394,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Receives checkpint file.
+    @brief      It receives checkpint file.
     @param      source          source group rank
     @param      fs              filesize
     @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt
@@ -453,7 +453,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L2 ckpt. files using the partner copy.
+    @brief      It recovers L2 ckpt. files using the partner copy.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -600,7 +600,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L3 ckpt. files ordering the RS decoding algorithm.
+    @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -660,7 +660,7 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L4 ckpt. files from the PFS.
+    @brief      It recovers L4 ckpt. files from the PFS.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -702,7 +702,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recover L4 ckpt. files from the PFS using POSIX.
+    @brief      It recovers L4 ckpt. files from the PFS using POSIX.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -1039,7 +1039,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    }
 
-   sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
+   sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp);
 
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
