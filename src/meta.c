@@ -17,8 +17,8 @@
     @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successfull.
 
-    This function read the metadata file created during checkpointing and
-    recover the checkpoint checksum. If there is no RS file, rsChecksum
+    This function reads the metadata file created during checkpointing and
+    recovers the checkpoint checksum. If there is no RS file, rsChecksum
     string length is 0.
 
  **/
@@ -149,7 +149,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
     return FTI_SCES;
 }
-    
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the ptner file size from metadata.
@@ -158,7 +158,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successfull.
 
-    This function read the metadata file created during checkpointing and
+    This function reads the metadata file created during checkpointing and
     reads partner file size.
 
  **/
@@ -202,9 +202,9 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successfull.
 
-    This function read the metadata file created during checkpointing and
-    recover the checkpoint file name, file size and the size of the largest
-    file in the group (for padding if ncessary during decoding).
+    This function reads the metadata file created during checkpointing and
+    recovers the checkpoint file name, file size and the size of the largest
+    file in the group (for padding if necessary during decoding).
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -391,7 +391,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo->groupRank]);
     FTI_Print(str, FTI_DBUG);
-    
+
     sprintf(fnl + (FTI_Topo->groupRank * FTI_BUFS), "%s", FTI_Exec->ckptFile);
     tmpo = fs[FTI_Topo->groupRank]; // Gather all the file sizes
     MPI_Allgather(&tmpo, 1, MPI_UNSIGNED_LONG, fs, 1, MPI_UNSIGNED_LONG, FTI_Exec->groupComm);
@@ -403,10 +403,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fs[i]; // Search max. size
         }
     }
-    FTI_Exec->meta[0].maxFs; 
+    FTI_Exec->meta[0].maxFs;
     sprintf(str, "Max. file size %ld.", mfs);
     FTI_Print(str, FTI_DBUG);
-    
+
     // TODO Checksums only local currently
     char* checksums;
     if (!globalTmp) {
