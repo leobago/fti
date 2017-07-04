@@ -442,7 +442,7 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	elements to form contiguous data types. It was experienced, that
 	if the size is greater then that, it may lead to problems.
 
- **/
+**/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
