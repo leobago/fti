@@ -146,7 +146,7 @@ int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         if (FTI_Topo->amIaHead) {
             rank = FTI_Topo->body[i];
         }
-        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, level, i + group, rank);
+        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, level);
     }
     return FTI_SCES;
 }

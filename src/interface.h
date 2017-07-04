@@ -161,7 +161,7 @@ int FTI_Try(int result, char* message);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank);
+              FTIT_checkpoint* FTI_Ckpt, int level);
 
 int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char *nameList);
 int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,

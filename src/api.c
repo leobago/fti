@@ -63,7 +63,7 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 void FTI_Abort()
 {
-    FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, 0, FTI_Topo.myRank);
+    FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
     MPI_Abort(MPI_COMM_WORLD, -1);
     MPI_Finalize();
     exit(1);
@@ -213,10 +213,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     else {
         if (FTI_Exec.nbVar >= FTI_BUFS) {
             FTI_Print("Too many variables registered.", FTI_EROR);
-            FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, FTI_Topo.groupID, FTI_Topo.myRank);
-            MPI_Abort(MPI_COMM_WORLD, -1);
-            MPI_Finalize();
-            exit(1);
+            FTI_Abort();
         }
         FTI_Data[FTI_Exec.nbVar].id = id;
         FTI_Data[FTI_Exec.nbVar].ptr = ptr;
@@ -472,10 +469,7 @@ int FTI_Snapshot()
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS) {
             FTI_Print("Impossible to load the checkpoint data.", FTI_EROR);
-            FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, FTI_Topo.groupID, FTI_Topo.myRank);
-            MPI_Abort(MPI_COMM_WORLD, -1);
-            MPI_Finalize();
-            exit(1);
+            FTI_Abort();
         }
     }
     else { // If it is a checkpoint test
@@ -594,7 +588,7 @@ int FTI_Finalize()
         buff = 5; // For cleaning everything
     }
     MPI_Barrier(FTI_Exec.globalComm);
-    FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
+    FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff), "do final clean.");
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
 }

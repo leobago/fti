@@ -161,7 +161,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTI_Exec->ckptLvel = level;
                switch (FTI_Exec->ckptLvel) {
                   case 4:
-                     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
+                     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                      MPI_Barrier(FTI_COMM_WORLD);
                      switch(FTI_Conf->ioMode) {
 

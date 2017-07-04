@@ -228,8 +228,6 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 /**
     @brief      It erases the previous checkpoints and their metadata.
     @param      level           Level of cleaning.
-    @param      group           Group ID of the cleaning target process.
-    @param      rank            Rank of the cleaning target process.
     @return     integer         FTI_SCES if successful.
 
     This function erases previous checkpoint depending on the level of the
@@ -239,7 +237,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank)
+              FTIT_checkpoint* FTI_Ckpt, int level)
 {
     char buf[FTI_BUFS];
     int nodeFlag, globalFlag = !FTI_Topo->splitRank;
