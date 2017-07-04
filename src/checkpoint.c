@@ -79,7 +79,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                   FTIT_dataset* FTI_Data)
 {
-    int i, res;
+    int res;
     char str[FTI_BUFS];
 
     double tt = MPI_Wtime();
