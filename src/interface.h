@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include "../deps/md5/md5.h"
-#define MD5_DIGEST_LENGTH 17    /**< Hashed string length           */
+#define MD5_DIGEST_LENGTH 17    /**< Hashed string length.          */
 
 #include <sys/stat.h>
 #include <string.h>
