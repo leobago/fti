@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+#   @file   tests.sh
+#   @author Karol Sierocinski (ksiero@man.poznan.pl)
+#   @date   July, 2017
+#   @brief  tests FTI library on Travis
+#
 
 checkLog () { # $1 - log file $2 - pattern file $3 - expecting error
 	echo "Checking logs... (Pattern file: $2)"
@@ -38,17 +44,17 @@ checkFinalize () {
 }
 
 printRun () {
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		Running $1 test... ($2) L$3"
 	printf "_______________________________________________________________________________________\n\n"
 }
 printResume () {
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		 Resuming $1 test... ($2) L$3"
 	printf "_______________________________________________________________________________________\n\n"
 }
 printSuccess () {
-	printf "_______________________________________________________________________________________\n\n"	
+	printf "_______________________________________________________________________________________\n\n"
 	echo "		$1 test succeed. ($2) L$3"
 	printf "_______________________________________________________________________________________\n\n"
 }
@@ -60,11 +66,11 @@ printCorrupt () {
 		printf "Erasing "
 	fi
 	printf "L$4 "
-	if [ $3 = 1 ]; then 
+	if [ $3 = 1 ]; then
 		printf "non adjacent nodes\n"
 	elif [ $3 = 2 ]; then
 		printf "adjacent nodes\n"
-	else 
+	else
 		if [ $3 = 0 ]; then
 			printf "one "
 		else
@@ -107,10 +113,10 @@ startTestCorr () {
 			checkLog logFile2 patterns/L"$4$6" 1
 		fi
 	elif [ $4 = "2" ] && [ $7 = "2" ]; then		#if L2 and corruptLevel=2 test should fail
-		checkLog logFile2 patterns/L2"$6"2 1 
+		checkLog logFile2 patterns/L2"$6"2 1
 	else						#else tests should succeed
 		checkLog logFile2 patterns/L"$4$6" 0
-	fi	
+	fi
 	printSuccess $1 $2 $4
 	rm logFile1 logFile2
 	rm -r ./Local ./Global ./Meta
@@ -164,7 +170,7 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 
 runAllConfiguration() {
 	for corrORErase in 0 1; do #for corrupt or erase
-		if [ $LEVEL = 1 ] || [ $LEVEL = 4 ]; then #L1 or L4 don't have Ptners files 
+		if [ $LEVEL = 1 ] || [ $LEVEL = 4 ]; then #L1 or L4 don't have Ptners files
 			startTestCorr diffSizes $CONFIG $1 $LEVEL 0 $corrORErase 0 0
 		else
 			for ckptORPtner in 0 1; do #for checkpoint or partner file
@@ -179,7 +185,7 @@ runAllConfiguration() {
 	startTestLogVerify addInArray $CONFIG $1 $LEVEL 1 #recover from flushed checkpoints without corrupting (L4)
 
 	#run only once for all levels
-	if [ $LEVEL = 1 ]; then	
+	if [ $LEVEL = 1 ]; then
 		startTest nodeFlag $CONFIG $1
 		#slow test at the end
 		startTest heatdis $CONFIG $1
