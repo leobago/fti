@@ -7,7 +7,7 @@
 
 #include "interface.h"
 #include <dirent.h>
-#define CHUNK_SIZE 4096
+#define CHUNK_SIZE 4096    /**< MD5 algorithm chunk size       */
 
 /*-------------------------------------------------------------------------*/
 /**
