@@ -102,7 +102,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         if (FTI_Exec.reco) {
             FTI_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
         }
-        res = 0;
+        int res = 0;
         while (res != FTI_ENDW) {
             res = FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
         }
