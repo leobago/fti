@@ -857,7 +857,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // open parallel file
    buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
-   // check if successfull
+   // check if successful
    if (buf != 0) {
       errno = 0;
       MPI_Error_string(buf, mpi_err, &reslen);
@@ -905,7 +905,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       // read block in parallel file
       buf = MPI_File_read_at(pfh, offset, blBuf1, FTI_Conf->transferSize, MPI_BYTE, &status);
-      // check if successfull
+      // check if successful
       if (buf != 0) {
          errno = 0;
          MPI_Error_string(buf, mpi_err, &reslen);
@@ -931,7 +931,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // read block in parallel file
    buf = MPI_File_read_at(pfh, offset, blBuf1, lastBlockBytes, MPI_BYTE, &status);
-   // check if successfull
+   // check if successful
    if (buf != 0) {
       errno = 0;
       MPI_Error_string(buf, mpi_err, &reslen);
