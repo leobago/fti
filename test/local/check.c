@@ -233,9 +233,9 @@ int main(int argc, char* argv[]) {
 
     if (FTI_APP_RANK == 0 && (state == RESTART || state == KEEP)) {
         if (result == 0) {
-            printf("[successful]\n");
+            printf("[SUCCESSFUL]\n");
         } else {
-            printf("[NOT successful]\n");
+            printf("[NOT SUCCESSFUL]\n");
             success=0;
         }
     }
@@ -246,7 +246,7 @@ int main(int argc, char* argv[]) {
 
     if (success == 1)
         return 0;
-    else 
+    else
         exit(DATA_CORRUPT);
 
 }
