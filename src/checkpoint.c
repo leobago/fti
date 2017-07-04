@@ -16,7 +16,7 @@
     @return     integer         FTI_SCES if successful.
 
     This function updates the local and global mean iteration time. It also
-    recomputes the checkpoint interval in iterations and correct the next
+    recomputes the checkpoint interval in iterations and corrects the next
     checkpointing iteration based on the observed mean iteration duration.
 
  **/
@@ -70,7 +70,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
     @return     integer         FTI_SCES if successful.
 
     This function checks whether the checkpoint needs to be local or remote,
-    opens the target file and write dataset per dataset, the checkpoint data,
+    opens the target file and writes dataset per dataset, the checkpoint data,
     it finally flushes and closes the checkpoint file.
 
  **/
@@ -85,7 +85,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     double tt = MPI_Wtime();
 
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
-    
+
     if (globalTmp) {
         // create global temp directory
         if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
@@ -101,7 +101,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // set serial file name
         snprintf(FTI_Exec->ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
         sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-        
+
         // create local temp directory
         if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
             if (errno != EEXIST) {
@@ -110,10 +110,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         res = FTI_Try(FTI_WriteSer(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data),"Write checkpoint to PFS");
     }
-    
+
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
-    
+
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, globalTmp, 0), "create metadata.");
     return res;
 }
@@ -129,8 +129,8 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     This function cleans the checkpoints of a group or a single process.
     It does that for each group (application process in the node) if executed
     by the head, or only locally if executed by an application process. The
-    parameters pr determine if the for loops have 1 or number of App. procs.
-    iterations. The group parameter help determine the groupID in both cases.
+    parameter pr determines if the for loops have 1 or number of App. procs.
+    iterations. The group parameter helps determine the groupID in both cases.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -159,11 +159,11 @@ int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      pr              Must be 1 if App-proc. or nbApprocs if Head.
     @return     integer         FTI_SCES if successful.
 
-    This function launchs the required action dependeing on the ckpt. level.
+    This function launches the required action dependeing on the ckpt. level.
     It does that for each group (application process in the node) if executed
     by the head, or only locally if executed by an application process. The
-    parameters pr determine if the for loops have 1 or number of App. procs.
-    iterations. The group parameter help determine the groupID in both cases.
+    parameter pr determines if the for loops have 1 or number of App. procs.
+    iterations. The group parameter helps determine the groupID in both cases.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -186,7 +186,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     t1 = MPI_Wtime();
-    
+
     // initialize Flush
     if (FTI_Exec->ckptLvel == 4) {
         res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
@@ -264,7 +264,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @return     integer         FTI_SCES if successful.
 
     This function listens for notifications from the application processes
-    and take the required actions after notification. This function is only
+    and takes the required actions after notification. This function is only
     executed by the head of the nodes and its complementary with the
     FTI_Checkpoint function in terms of communications.
 
@@ -317,7 +317,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 				FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
 
@@ -369,7 +369,7 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
 
@@ -435,12 +435,12 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /**
 @brief      Writes ckpt to PFS using MPI I/O
 @return     integer         FTI_SCES if successful.
-		
+
 	In here it is taken into account, that in MPIIO the count parameter
 	in both, MPI_Type_contiguous and MPI_File_write_at, are integer
-       	types. The ckpt data is split into chunks of maximal (MAX_INT-1)/2
+  types. The ckpt data is split into chunks of maximal (MAX_INT-1)/2
 	elements to form contiguous data types. It was experienced, that
-	if the size is greater then that, it may lead to problems. 	
+	if the size is greater then that, it may lead to problems.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -477,7 +477,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
    // open parallel file (collective call)
-   res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh); 
+   res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
 
    // check if successfull
    if (res != 0) {
@@ -505,7 +505,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       if ( dCount > 0 ) {
 
          // create MPI data type
-         MPI_Type_contiguous(int_max_int, MPI_BYTE, &dType); 
+         MPI_Type_contiguous(int_max_int, MPI_BYTE, &dType);
          MPI_Type_commit(&dType);
 
          for (j=1; j<=dCount; j++) {
@@ -530,7 +530,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             // create MPI data type
             MPI_Type_contiguous(rSize, MPI_BYTE, &rType);
-            MPI_Type_commit(&rType);                
+            MPI_Type_commit(&rType);
             // write ckpt data to file
             res = MPI_File_write_at(pfh, pfSector, dataOffset, 1, rType, &status);
             // check if successfull
@@ -547,7 +547,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          }
       } else {
          // create MPI data type
-         MPI_Type_contiguous(dSize, MPI_BYTE, &dType); 
+         MPI_Type_contiguous(dSize, MPI_BYTE, &dType);
          MPI_Type_commit(&dType);
 
          // write ckpt data to file
@@ -567,8 +567,8 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
 
       MPI_Type_free(&dType);
-      if (dCount > 0 && rSize > 0) { 
-         MPI_Type_free(&rType); 
+      if (dCount > 0 && rSize > 0) {
+         MPI_Type_free(&rType);
       }
 
    }
@@ -639,7 +639,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    FTI_Exec->meta[0].fs = (size_t) ckptSize;
 
    // open parallel file
-   FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL); 
+   FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
    // check if successful
    if (FTI_Exec->sid==-1) {
