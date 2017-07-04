@@ -643,7 +643,7 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-    Initializes for the flush of locally stored checkpoint data to the PFS by POSIX
+    Initializes the flush of locally stored checkpoint data to the PFS by POSIX
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -692,7 +692,7 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-   Initializes for the flush of locally stored checkpoint data to the PFS by MPI I/O
+   Initializes the flush of locally stored checkpoint data to the PFS by MPI I/O
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -772,7 +772,7 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-   Initializes for the flush of locally stored checkpoint data to the PFS by SIONlib
+   Initializes the flush of locally stored checkpoint data to the PFS by SIONlib
 
 **/
 /*-------------------------------------------------------------------------*/
