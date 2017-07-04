@@ -138,6 +138,31 @@ int FTI_Try(int result, char* message)
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      It receives the return code of a critical function.
+    @param      result          Result to check.
+    @param      message         Message to print.
+
+    This function checks the result from a critical function and if result is
+    not success terminates all processes, otherwise print the debug message.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Critical(int result, char* message)
+{
+    char str[FTI_BUFS];
+    if (result == FTI_SCES || result == FTI_DONE) {
+        sprintf(str, "FTI succeeded to %s", message);
+        FTI_Print(str, FTI_DBUG);
+    }
+    else {
+        sprintf(str, "FTI failed to %s", message);
+        FTI_Print(str, FTI_EROR);
+        MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It creates the basic datatypes and the dataset array.
     @param      FTI_Data        Dataset array.
     @return     integer         FTI_SCES if successful.
