@@ -1,5 +1,5 @@
-/** @brief Interface to call FTI from Fortran 
- * 
+/** @brief Interface to call FTI from Fortran
+ *
  * @file   ftif.c
  * @author Faysal Boui <faysal.boui@cea.fr>
  * @author Julien Bigot <julien.bigot@cea.fr>

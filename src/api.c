@@ -76,9 +76,9 @@ void FTI_Abort()
     @param      globalComm      Main MPI communicator of the application.
     @return     integer         FTI_SCES if successful.
 
-    This function initialize the FTI context and prepare the heads to wait
+    This function initializes the FTI context and prepares the heads to wait
     for checkpoints. FTI processes should never get out of this function. In
-    case of restart, checkpoint files should be recovered and in place at the
+    case of a restart, checkpoint files should be recovered and in place at the
     end of this function.
 
  **/
@@ -107,7 +107,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
-        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs); 
+        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -122,7 +122,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Finalize();
     }
     else { // If I am an application process
-        FTI_Exec.meta = talloc(FTIT_metadata,1); 
+        FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -238,7 +238,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     @brief      It corrupts a bit of the given float.
     @param      target          Pointer to the float to corrupt.
     @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function filps the bit of the target float.
 
@@ -263,7 +263,7 @@ int FTI_FloatBitFlip(float* target, int bit)
     @brief      It corrupts a bit of the given float.
     @param      target          Pointer to the float to corrupt.
     @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function filps the bit of the target float.
 
@@ -287,7 +287,7 @@ int FTI_DoubleBitFlip(double* target, int bit)
 /**
     @brief      Bit-flip injection following the injection instructions.
     @param      datasetID       ID of the dataset where to inject.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function injects the given number of bit-flips, at the given
     frequency and in the given location (rank, dataset, bit position).
@@ -338,7 +338,7 @@ int FTI_BitFlip(int datasetID)
     @brief      It takes the checkpoint and triggers the post-ckpt. work.
     @param      id              Checkpoint ID.
     @param      level           Checkpoint level.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function starts by blocking on a receive if the previous ckpt. was
     offline. Then, it updates the ckpt. information. It writes down the ckpt.
@@ -358,7 +358,7 @@ int FTI_Checkpoint(int id, int level)
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
-        FTI_Exec.ckptLvel = level; // (1) TODO #BUG? this should come after (2) 
+        FTI_Exec.ckptLvel = level; // (1) TODO #BUG? this should come after (2)
         // str is set to print ckpt information on stdout
         sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -453,7 +453,7 @@ int FTI_Recover()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Takes an FTI snapshot or recover the data if it is a restart.
+    @brief      Takes an FTI snapshot or recovers the data if it is a restart.
     @return     integer         FTI_SCES if successful.
 
     This function loads the checkpoint data from the checkpoint file in case
@@ -514,7 +514,7 @@ int FTI_Snapshot()
     @brief      It closes FTI properly on the application processes.
     @return     integer         FTI_SCES if successful.
 
-    This function notify the FTI processes that the execution is over, frees
+    This function notifies the FTI processes that the execution is over, frees
     some data structures and it closes. If this function is not called on the
     application processes the FTI processes will never finish (deadlock).
 

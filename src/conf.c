@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Set the exec. ID and failure parameters in the conf. file.
+    @brief      Sets the exec. ID and failure parameters in the conf. file.
     @param      restart         Value to set in the conf. file (0 or 1).
     @return     integer         FTI_SCES if successful.
 
@@ -282,8 +282,8 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             case FTI_IO_SIONLIB:
                 FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
 #endif
-        }    
-    }        
+        }
+    }
     return FTI_SCES;
 }
 
