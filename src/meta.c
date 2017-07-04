@@ -15,7 +15,7 @@
     @param      rsChecksum      Pointer to fill the RS file checksum.
     @param      group           The group in the node.
     @param      level           The level of the ckpt or 0 if tmp.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function reads the metadata file created during checkpointing and
     recovers the checkpoint checksum. If there is no RS file, rsChecksum
@@ -73,7 +73,7 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @brief      It writes the RSed file checksum to metadata.
     @param      rank            global rank of the process
     @param      checksum        Pointer to the checksum.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function should be executed only by one process per group. It
     writes the RSed checksum to the metadata file.
@@ -156,7 +156,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     @param      pfs             Pointer to fill the ptner file size.
     @param      group           The group in the node.
     @param      level           The level of the ckpt or 0 if tmp.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function reads the metadata file created during checkpointing and
     reads partner file size.
@@ -200,7 +200,7 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      mfs             Pointer to fill the maximum file size.
     @param      group           The group in the node.
     @param      level           The level of the ckpt or 0 if tmp.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function reads the metadata file created during checkpointing and
     recovers the checkpoint file name, file size and the size of the largest
@@ -252,7 +252,7 @@ int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      fnl             Pointer to the list of checkpoint names.
     @param      member          0 if application process groupID of
                                 respective application process if head.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function should be executed only by one process per group. It
     writes the metadata file used to recover in case of failure.
@@ -357,7 +357,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      globalTmp       1 if using global temporary directory.
     @param      member          0 if application process groupID of
                                 respective application process if head.
-    @return     integer         FTI_SCES if successfull.
+    @return     integer         FTI_SCES if successful.
 
     This function gathers information about the checkpoint files in the
     group (name and sizes), and creates the metadata file used to recover in
