@@ -107,7 +107,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
-        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs); 
+        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -122,7 +122,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Finalize();
     }
     else { // If I am an application process
-        FTI_Exec.meta = talloc(FTIT_metadata,1); 
+        FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -358,7 +358,7 @@ int FTI_Checkpoint(int id, int level)
     MPI_Status status;
     if ((level > 0) && (level < 5)) {
         t0 = MPI_Wtime();
-        FTI_Exec.ckptLvel = level; // (1) TODO #BUG? this should come after (2) 
+        FTI_Exec.ckptLvel = level; // (1) TODO #BUG? this should come after (2)
         // str is set to print ckpt information on stdout
         sprintf(catstr, "Ckpt. ID %d", FTI_Exec.ckptID);
         sprintf(str, "%s (L%d) (%.2f MB/proc)", catstr, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -453,7 +453,7 @@ int FTI_Recover()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Takes an FTI snapshot or recover the data if it is a restart.
+    @brief      Takes an FTI snapshot or recovers the data if it is a restart.
     @return     integer         FTI_SCES if successful.
 
     This function loads the checkpoint data from the checkpoint file in case
