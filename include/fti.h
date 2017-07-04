@@ -14,13 +14,16 @@
                                   Defines
 ---------------------------------------------------------------------------*/
 
-/** Define colors for FTI output                                           */
+/** Define RED color for FTI output.                                       */
 #define RED   "\x1B[31m"
+/** Define ORANGE color for FTI output.                                    */
 #define ORG   "\x1B[38;5;202m"
+/** Define GREEN color for FTI output.                                     */
 #define GRN   "\x1B[32m"
+/** Define color RESET for FTI output.                                     */
 #define RESET "\x1B[0m"
 
-/** Standard size of buffer and mas node size.                             */
+/** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
@@ -54,13 +57,13 @@
 #define FTI_ENDW 995
 /** Token to reject checkpoint.                                            */
 #define FTI_REJW 996
-/** Token for IO mode Posix                                                */
+/** Token for IO mode Posix.                                               */
 #define FTI_IO_POSIX 1001
-/** Token for IO mode MPI                                                  */
+/** Token for IO mode MPI.                                                 */
 #define FTI_IO_MPI 1002
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    /** Token for IO mode SIONlib                                          */
+    /** Token for IO mode SIONlib.                                         */
     #define FTI_IO_SIONLIB 1003
 #endif
 
@@ -78,11 +81,11 @@ extern "C" {
  *  Double mapped as integer and byte array to allow bit-wise operators so
  *  that we can inject failures on it.
  */
-typedef union FTIT_double {             /** Double mapped as a byte array. */
-    double          value;              /** Double floating point value.   */
-    float           floatval[2];        /** Float mapped to do bit edits.  */
-    int             intval[2];          /** Integer mapped to do bit edits.*/
-    char            byte[8];            /** Byte array for coarser control.*/
+typedef union FTIT_double {
+    double          value;              /**< Double floating point value.   */
+    float           floatval[2];        /**< Float mapped to do bit edits.  */
+    int             intval[2];          /**< Integer mapped to do bit edits.*/
+    char            byte[8];            /**< Byte array for coarser control.*/
 } FTIT_double;
 
 /** @typedef    FTIT_float
@@ -91,10 +94,10 @@ typedef union FTIT_double {             /** Double mapped as a byte array. */
  *  Float mapped as integer and byte array to allow bit-wise operators so
  *  that we can inject failures on it.
  */
-typedef union FTIT_float {              /** Float mapped as a byte array.  */
-    float           value;              /** Floating point value.          */
-    int             intval;             /** Integer mapped to do bit edits.*/
-    char            byte[4];            /** Byte array for coarser control.*/
+typedef union FTIT_float {
+    float           value;              /**< Floating point value.          */
+    int             intval;             /**< Integer mapped to do bit edits.*/
+    char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
 
 /** @typedef    FTIT_type
@@ -102,9 +105,9 @@ typedef union FTIT_float {              /** Float mapped as a byte array.  */
  *
  *  This type allows handling data structures.
  */
-typedef struct FTIT_type {              /** FTI type declarator.           */
-    int             id;                 /** ID of the data type.           */
-    int             size;               /** Size of the data type.         */
+typedef struct FTIT_type {
+    int             id;                 /**< ID of the data type.           */
+    int             size;               /**< Size of the data type.         */
 } FTIT_type;
 
 /** @typedef    FTIT_dataset
@@ -112,13 +115,13 @@ typedef struct FTIT_type {              /** FTI type declarator.           */
  *
  *  This type stores the metadata related with a dataset.
  */
-typedef struct FTIT_dataset {           /** Dataset metadata.              */
-    int             id;                 /** ID to search/update dataset.   */
-    void            *ptr;               /** Pointer to the dataset.        */
-    long            count;              /** Number of elements in dataset. */
-    FTIT_type       type;               /** Data type for the dataset.     */
-    int             eleSize;            /** Element size for the dataset.  */
-    long            size;               /** Total size of the dataset.     */
+typedef struct FTIT_dataset {
+    int             id;                 /**< ID to search/update dataset.   */
+    void            *ptr;               /**< Pointer to the dataset.        */
+    long            count;              /**< Number of elements in dataset. */
+    FTIT_type       type;               /**< Data type for the dataset.     */
+    int             eleSize;            /**< Element size for the dataset.  */
+    long            size;               /**< Total size of the dataset.     */
 } FTIT_dataset;
 
 /** @typedef    FTIT_metadata
@@ -127,9 +130,9 @@ typedef struct FTIT_dataset {           /** Dataset metadata.              */
  *  This type stores all the metadata necessary for the restart.
  */
 typedef struct FTIT_metadata {
-    long            maxFs;              /** maxFs                          */
-    long            fs;                 /** fs                             */
-    char            ckptFile[FTI_BUFS]; /** ckpt file name                 */
+    long            maxFs;              /**< Maximum file size.             */
+    long            fs;                 /**< File size.                     */
+    char            ckptFile[FTI_BUFS]; /**< Ckpt file name.                */
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
@@ -137,38 +140,38 @@ typedef struct FTIT_metadata {
  *
  *  This type stores all the dynamic metadata related to the current execution
  */
-typedef struct FTIT_execution {         /** Execution metadata.            */
-    char            id[FTI_BUFS];       /** Execution ID.                  */
-    char            ckptFile[FTI_BUFS]; /** Checkpoint file name.          */
-    char            fn[FTI_BUFS];       /** Temp file name full path.      */
-    int             ckpt;               /** Checkpoint flag.               */
-    int             reco;               /** Recovery flag.                 */
-    int             ckptLvel;           /** Checkpoint level.              */
-    int             ckptIntv;           /** Ckpt. interval in minutes.     */
-    int             lastCkptLvel;       /** Last checkpoint level.         */
-    int             wasLastOffline;     /** TRUE if last ckpt. offline.    */
+typedef struct FTIT_execution {
+    char            id[FTI_BUFS];       /**< Execution ID.                  */
+    char            ckptFile[FTI_BUFS]; /**< Checkpoint file name.          */
+    char            fn[FTI_BUFS];       /**< Temp file name full path.      */
+    int             ckpt;               /**< Checkpoint flag.               */
+    int             reco;               /**< Recovery flag.                 */
+    int             ckptLvel;           /**< Checkpoint level.              */
+    int             ckptIntv;           /**< Ckpt. interval in minutes.     */
+    int             lastCkptLvel;       /**< Last checkpoint level.         */
+    int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    int             sid;                /** SIONlib filehandle             */
+    int             sid;                /**< SIONlib filehandle             */
 #endif
-    double          iterTime;           /** Current wall time.             */
-    double          lastIterTime;       /** Time spent in the last iter.   */
-    double          meanIterTime;       /** Mean iteration time.           */
-    double          globMeanIter;       /** Global mean iteration time.    */
-    double          totalIterTime;      /** Total main loop time spent.    */
-    unsigned int    syncIter;           /** To check mean iter. time.      */
-    unsigned int    minuteCnt;          /** Checkpoint minute counter.     */
-    unsigned int    ckptCnt;            /** Checkpoint number counter.     */
-    unsigned int    ckptIcnt;           /** Iteration loop counter.        */
-    unsigned int    ckptID;             /** Checkpoint ID.                 */
-    unsigned int    ckptNext;           /** Iteration for next checkpoint. */
-    unsigned int    ckptLast;           /** Iteration for last checkpoint. */
-    long            ckptSize;           /** Checkpoint size.               */
-    unsigned int    nbVar;              /** Number of protected variables. */
-    unsigned int    nbType;             /** Number of data types.          */
-    FTIT_metadata   *meta;              /** Metadata for restart           */
-    MPI_File        pfh;                /** MPI-IO file handle             */
-    MPI_Comm        globalComm;         /** Global communicator.           */
-    MPI_Comm        groupComm;          /** Group communicator.            */
+    double          iterTime;           /**< Current wall time.             */
+    double          lastIterTime;       /**< Time spent in the last iter.   */
+    double          meanIterTime;       /**< Mean iteration time.           */
+    double          globMeanIter;       /**< Global mean iteration time.    */
+    double          totalIterTime;      /**< Total main loop time spent.    */
+    unsigned int    syncIter;           /**< To check mean iter. time.      */
+    unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
+    unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
+    unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
+    unsigned int    ckptID;             /**< Checkpoint ID.                 */
+    unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
+    unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
+    long            ckptSize;           /**< Checkpoint size.               */
+    unsigned int    nbVar;              /**< Number of protected variables. */
+    unsigned int    nbType;             /**< Number of data types.          */
+    FTIT_metadata   *meta;              /**< Metadata for restart           */
+    MPI_File        pfh;                /**< MPI-IO file handle             */
+    MPI_Comm        globalComm;         /**< Global communicator.           */
+    MPI_Comm        groupComm;          /**< Group communicator.            */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
@@ -176,22 +179,22 @@ typedef struct FTIT_execution {         /** Execution metadata.            */
  *
  *  This type stores the general configuration metadata.
  */
-typedef struct FTIT_configuration {     /** Configuration metadata.        */
-    char            cfgFile[FTI_BUFS];  /** Configuration file name.       */
-    int             saveLastCkpt;       /** TRUE to save last checkpoint.  */
-    int             verbosity;          /** Verbosity level.               */
-    int             blockSize;          /** Communication block size.      */
-    int             transferSize;       /** Transfer size local to PFS     */
-    int             tag;                /** Tag for MPI messages in FTI.   */
-    int             test;               /** TRUE if local test.            */
-    int             l3WordSize;         /** RS encoding word size.         */
-    int             ioMode;             /** IO mode for L4 ckpt.           */
-    char            localDir[FTI_BUFS]; /** Local directory.               */
-    char            glbalDir[FTI_BUFS]; /** Global directory.              */
-    char            metadDir[FTI_BUFS]; /** Metadata directory.            */
-    char            lTmpDir[FTI_BUFS];  /** Local temporary directory.     */
-    char            gTmpDir[FTI_BUFS];  /** Global temporary directory.    */
-    char            mTmpDir[FTI_BUFS];  /** Metadata temporary directory.  */
+typedef struct FTIT_configuration {
+    char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
+    int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
+    int             verbosity;          /**< Verbosity level.               */
+    int             blockSize;          /**< Communication block size.      */
+    int             transferSize;       /**< Transfer size local to PFS     */
+    int             tag;                /**< Tag for MPI messages in FTI.   */
+    int             test;               /**< TRUE if local test.            */
+    int             l3WordSize;         /**< RS encoding word size.         */
+    int             ioMode;             /**< IO mode for L4 ckpt.           */
+    char            localDir[FTI_BUFS]; /**< Local directory.               */
+    char            glbalDir[FTI_BUFS]; /**< Global directory.              */
+    char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
+    char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.     */
+    char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.    */
+    char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.  */
 } FTIT_configuration;
 
 /** @typedef    FTIT_topology
@@ -199,25 +202,25 @@ typedef struct FTIT_configuration {     /** Configuration metadata.        */
  *
  *  This type stores the topology metadata.
  */
-typedef struct FTIT_topology {          /** Topology metadata.             */
-    int             nbProc;             /** Total global number of proc.   */
-    int             nbNodes;            /** Total global number of nodes.  */
-    int             myRank;             /** My rank on the global comm.    */
-    int             splitRank;          /** My rank on the FTI comm.       */
-    int             nodeSize;           /** Total number of pro. per node. */
-    int             nbHeads;            /** Number of FTI proc. per node.  */
-    int             nbApprocs;          /** Number of app. proc. per node. */
-    int             groupSize;          /** Group size for L2 and L3.      */
-    int             sectorID;           /** Sector ID in the system.       */
-    int             nodeID;             /** Node ID in the system.         */
-    int             groupID;            /** Group ID in the node.          */
-    int             amIaHead;           /** TRUE if FTI process.           */
-    int             headRank;           /** Rank of the head in this node. */
-    int             nodeRank;           /** Rank of the node.              */
-    int             groupRank;          /** My rank in the group comm      */
-    int             right;              /** Proc. on the right of the ring.*/
-    int             left;               /** Proc. on the left of the ring. */
-    int             body[FTI_BUFS];     /** List of app. proc. in the node.*/
+typedef struct FTIT_topology {
+    int             nbProc;             /**< Total global number of proc.   */
+    int             nbNodes;            /**< Total global number of nodes.  */
+    int             myRank;             /**< My rank on the global comm.    */
+    int             splitRank;          /**< My rank on the FTI comm.       */
+    int             nodeSize;           /**< Total number of pro. per node. */
+    int             nbHeads;            /**< Number of FTI proc. per node.  */
+    int             nbApprocs;          /**< Number of app. proc. per node. */
+    int             groupSize;          /**< Group size for L2 and L3.      */
+    int             sectorID;           /**< Sector ID in the system.       */
+    int             nodeID;             /**< Node ID in the system.         */
+    int             groupID;            /**< Group ID in the node.          */
+    int             amIaHead;           /**< TRUE if FTI process.           */
+    int             headRank;           /**< Rank of the head in this node. */
+    int             nodeRank;           /**< Rank of the node.              */
+    int             groupRank;          /**< My rank in the group comm.     */
+    int             right;              /**< Proc. on the right of the ring.*/
+    int             left;               /**< Proc. on the left of the ring. */
+    int             body[FTI_BUFS];     /**< List of app. proc. in the node.*/
 } FTIT_topology;
 
 
@@ -226,13 +229,13 @@ typedef struct FTIT_topology {          /** Topology metadata.             */
  *
  *  This type stores all the checkpoint metadata.
  */
-typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
-    char            dir[FTI_BUFS];      /** Checkpoint directory.          */
-    char            metaDir[FTI_BUFS];  /** Metadata directory.            */
-    int             isInline;           /** TRUE if work is inline.        */
-    int             ckptIntv;           /** Checkpoint interval.           */
-    int             ckptCnt;            /** Checkpoint counter.            */
-    
+typedef struct FTIT_checkpoint {
+    char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
+    char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
+    int             isInline;           /**< TRUE if work is inline.        */
+    int             ckptIntv;           /**< Checkpoint interval.           */
+    int             ckptCnt;            /**< Checkpoint counter.            */
+
 } FTIT_checkpoint;
 
 /** @typedef    FTIT_injection
@@ -240,14 +243,14 @@ typedef struct FTIT_checkpoint {        /** Checkpoint metadata.           */
  *
  *  This type allows users to describe a SDC failure injection model.
  */
-typedef struct FTIT_injection {         /** FTI type declarator.           */
-    int             rank;               /** Rank of proc. that injects     */
-    int             index;              /** Array index of the bit-flip.   */
-    int             position;           /** Bit position of the bit-flip.  */
-    int             number;             /** Number of bit-flips to inject. */
-    int             frequency;          /** Injection frequency (in min.)  */
-    int             counter;            /** Injection counter.             */
-    double          timer;              /** Timer to measure frequency     */
+typedef struct FTIT_injection {
+    int             rank;               /**< Rank of proc. that injects     */
+    int             index;              /**< Array index of the bit-flip.   */
+    int             position;           /**< Bit position of the bit-flip.  */
+    int             number;             /**< Number of bit-flips to inject. */
+    int             frequency;          /**< Injection frequency (in min.)  */
+    int             counter;            /**< Injection counter.             */
+    double          timer;              /**< Timer to measure frequency     */
 } FTIT_injection;
 
 /*---------------------------------------------------------------------------
