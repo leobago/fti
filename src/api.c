@@ -453,7 +453,7 @@ int FTI_Recover()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Takes an FTI snapshot or recover the data if it is a restart.
+    @brief      Takes an FTI snapshot or recovers the data if it is a restart.
     @return     integer         FTI_SCES if successful.
 
     This function loads the checkpoint data from the checkpoint file in case

@@ -312,8 +312,8 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      Selects I/O to write to the PFS
-@return     integer         FTI_SCES if successful.
+    @brief      Selects I/O to write to the PFS.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -364,8 +364,8 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      Writes ckpt to PFS using POSIX
-@return     integer         FTI_SCES if successful.
+    @brief      Writes ckpt to PFS using POSIX.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -433,8 +433,8 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      Writes ckpt to PFS using MPI I/O
-@return     integer         FTI_SCES if successful.
+  @brief      Writes ckpt to PFS using MPI I/O
+  @return     integer         FTI_SCES if successful.
 
 	In here it is taken into account, that in MPIIO the count parameter
 	in both, MPI_Type_contiguous and MPI_File_write_at, are integer
@@ -442,7 +442,7 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	elements to form contiguous data types. It was experienced, that
 	if the size is greater then that, it may lead to problems.
 
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
