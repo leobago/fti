@@ -284,7 +284,6 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     int* distProcList, int* nodeList)
 {
     MPI_Status status;
-    char str[FTI_BUFS];
     MPI_Group newGroup, origGroup;
     MPI_Comm_group(FTI_Exec->globalComm, &origGroup);
     int i, src, buf, group[FTI_BUFS]; // FTI_BUFS > Max. group size
@@ -336,8 +335,8 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo)
 {
-    int res, nn, found, c1 = 0, c2 = 0, p, i, mypos = -1, posInNode;
-    char str[FTI_BUFS], *nameList = talloc(char, FTI_Topo->nbNodes *FTI_BUFS);
+    int res, c = 0, i, mypos = -1, posInNode;
+    char *nameList = talloc(char, FTI_Topo->nbNodes *FTI_BUFS);
 
     int* nodeList = talloc(int, FTI_Topo->nbNodes* FTI_Topo->nodeSize);
     for (i = 0; i < FTI_Topo->nbProc; i++) {
@@ -382,8 +381,8 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mypos = i;
         }
         if ((i % FTI_Topo->nodeSize != 0) || (FTI_Topo->nbHeads == 0)) {
-            userProcList[c2] = nodeList[i];
-            c2++;
+            userProcList[c] = nodeList[i];
+            c++;
         }
     }
     if (mypos == -1) {
