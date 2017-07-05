@@ -552,7 +552,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             break;
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-         case FTI_IO_SIONLIB:
+         case FTI_IO_SIONLIB: ; //empty statement after label
 
             long data_written = sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
 
