@@ -676,9 +676,10 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // close parallel file
-   res =  sion_parclose_mapped_mpi(FTI_Exec->sid);
-
+   if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
+      return FTI_NSCS;
+   }
+   
    return FTI_SCES;
-
 }
 #endif
