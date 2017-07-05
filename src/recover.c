@@ -143,7 +143,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int f, r, tres = FTI_SCES, id, level = 1;
+   int r, tres = FTI_SCES, id, level = 1;
    unsigned long fs, maxFs;
    char str[FTI_BUFS];
    if (!FTI_Topo->amIaHead) {
