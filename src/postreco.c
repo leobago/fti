@@ -22,7 +22,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                int fs, int maxFs, int* erased)
 {
     int *matrix, *decMatrix, *dm_ids, *tmpmat, i, j, k, m, ps, bs, pos = 0;
-    char **coding, **data, *dataTmp, fn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
+    char **coding, **data, *dataTmp, fn[FTI_BUFS], efn[FTI_BUFS];
     FILE *fd, *efd;
 
     bs = FTI_Conf->blockSize;
@@ -173,7 +173,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     while (pos < ps) {
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
-            size_t data_size = fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
 
             if (ferror(fd)) {
                 FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -201,7 +201,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } // Erasure found
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
-            size_t coding_size = fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
             if (ferror(efd)) {
                 FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
 
@@ -312,7 +312,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    int erased[FTI_BUFS], buf, i, j; // FTI_BUFS > 32*3
+    int erased[FTI_BUFS], buf, j; // FTI_BUFS > 32*3
     unsigned long fs, maxFs;
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 1) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
@@ -347,8 +347,6 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int destination,
                          unsigned long fs, int ptner) {
-    int i, j; //iterators
-    int bytes; //bytes read by fread
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
 
@@ -407,7 +405,6 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int source, unsigned long fs,
                          int ptner) {
-    int i, j; //iterators
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
 
@@ -472,8 +469,6 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
     int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
     int res, tres;
-    char ptnerFilename[FTI_BUFS], str[FTI_BUFS];
-    FILE *ptnerFile;
 
     if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -674,30 +669,21 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
    int res;
-
-   // select IO
    switch(FTI_Conf->ioMode) {
-
       case FTI_IO_POSIX:
-
          res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, group);
          break;
-
       case FTI_IO_MPI:
-
          res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
          break;
-
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
       case FTI_IO_SIONLIB:
-
          res = FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
          break;
 #endif
    }
 
    return res;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -833,11 +819,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int i, j, l, reslen, buf;
+   int i, reslen, buf;
    char gfn[FTI_BUFS], lfn[FTI_BUFS], mpi_err[FTI_BUFS], str[FTI_BUFS];
    FILE *lfd;
    MPI_File pfh;
-   MPI_Offset offset = 0, tfs, sfs, nbBlocks, block = 0, lastBlockBytes, *chunkSizes;
+   MPI_Offset offset = 0, nbBlocks, block = 0, lastBlockBytes, *chunkSizes;
    MPI_Status status;
    MPI_Info info;
 
@@ -954,11 +940,15 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    free(blBuf1);
 
-   buf = MPI_File_close(&pfh);
+   if (MPI_File_close(&pfh) != 0) {
+      fclose(lfd);
+
+      return FTI_NSCS;
+   }
+
    fclose(lfd);
 
    return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -977,11 +967,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
    size_t nbBlocks, block = 0, lastBlockBytes;
-   int j, l, sid, nlocaltasks = 1, numFiles=1, nlocalfiles = 1, res, noFile;
+   int sid, nlocaltasks = 1, numFiles = 1, res;
    int *gRankList, *file_map, *rank_map;
-   char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS], *newfname = NULL;
-   FILE *gfd, *lfd, *dfp;
-   MPI_Comm lComm;
+   char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS];
+   FILE *lfd, *dfp;
    sion_int64 *chunkSizes, chunksize;
    sion_int32 fsblksize=-1;
 
@@ -1054,6 +1043,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (res != SION_SUCCESS) {
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(FTI_Exec->sid);
+      free(blBuf1);
       fclose(lfd);
       return FTI_NSCS;
    }
@@ -1076,6 +1066,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "SIONlib: Unable to read %i Bytes from file", FTI_Conf->blockSize);
             FTI_Print(str, FTI_EROR);
             sion_parclose_mapped_mpi(FTI_Exec->sid);
+            free(blBuf1);
             fclose(lfd);
             return FTI_NSCS;
          }
@@ -1097,6 +1088,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          sprintf(str, "SIONlib: Unable to read data %i Bytes from file", FTI_Conf->blockSize);
          FTI_Print(str, FTI_EROR);
          sion_parclose_mapped_mpi(FTI_Exec->sid);
+         free(blBuf1);
          fclose(lfd);
          return FTI_NSCS;
       }
@@ -1119,6 +1111,5 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    sion_parclose_mapped_mpi(sid);
 
    return FTI_SCES;
-
 }
 #endif
