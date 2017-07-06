@@ -79,7 +79,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                   FTIT_dataset* FTI_Data)
 {
-    int i, res;
+    int res;
     char str[FTI_BUFS];
 
     double tt = MPI_Wtime();
@@ -171,7 +171,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  int group, int fo, int pr)
 {
-    int i, j, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
+    int i, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
     double t0, t1, t2, t3;
     char str[FTI_BUFS];
     char catstr[FTI_BUFS];
@@ -275,7 +275,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     MPI_Status status;
     char str[FTI_BUFS];
-    int i, j, buf, res, flags[7];
+    int i, buf, res, flags[7];
     for (i = 0; i < 7; i++) { // Initialize flags
         flags[i] = 0;
     }
@@ -676,9 +676,10 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // close parallel file
-   res =  sion_parclose_mapped_mpi(FTI_Exec->sid);
-
+   if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
+      return FTI_NSCS;
+   }
+   
    return FTI_SCES;
-
 }
 #endif
