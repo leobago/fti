@@ -267,7 +267,7 @@ env:
      - env:
        - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=3
      - env:
-       - TEST=addInArray CONFIG=configH0I1Silent.fti LEVEL=4
+       - TEST=addInArray CONFIG=configH0I1.fti LEVEL=4
      - env:
        - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=1
      - env:
@@ -275,7 +275,7 @@ env:
      - env:
        - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=3
      - env:
-       - TEST=addInArray CONFIG=configH1I1Silent.fti LEVEL=4
+       - TEST=addInArray CONFIG=configH1I1.fti LEVEL=4
      - env:
        - TEST=addInArray CONFIG=configH1I0Silent.fti LEVEL=1
      - env:
