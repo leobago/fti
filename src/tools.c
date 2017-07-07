@@ -100,6 +100,8 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
         sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
             fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
+        fclose (fd);
+        
         return FTI_NSCS;
     }
 
