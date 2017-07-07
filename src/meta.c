@@ -167,7 +167,7 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level)
 {
     dictionary* ini;
-    char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+    char mfn[FTI_BUFS], str[FTI_BUFS];
     if (level == 0) {
         sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
     }
@@ -287,10 +287,10 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         sprintf(str, "%d:Ckpt_file_name", i);
         iniparser_set(ini, str, buf);
         sprintf(str, "%d:Ckpt_file_size", i);
-        sprintf(buf, "%ld", fs[i]);
+        sprintf(buf, "%lu", fs[i]);
         iniparser_set(ini, str, buf);
         sprintf(str, "%d:Ckpt_file_maxs", i);
-        sprintf(buf, "%ld", mfs);
+        sprintf(buf, "%lu", mfs);
         iniparser_set(ini, str, buf);
         // TODO Checksums only local currently
         if (strlen(checksums)) {
@@ -372,7 +372,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned long fs[FTI_BUFS], mfs, tmpo;
     char str[FTI_BUFS], buf[FTI_BUFS], checksum[MD5_DIGEST_LENGTH];
     struct stat fileStatus;
-    int i, res;
+    int i, res = FTI_SCES;
     if (globalTmp) {
         sprintf(buf, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptFile);
     }
@@ -389,7 +389,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
-    sprintf(str, "Checkpoint file size : %ld bytes.", fs[FTI_Topo->groupRank]);
+    sprintf(str, "Checkpoint file size : %lu bytes.", fs[FTI_Topo->groupRank]);
     FTI_Print(str, FTI_DBUG);
 
     sprintf(fnl + (FTI_Topo->groupRank * FTI_BUFS), "%s", FTI_Exec->ckptFile);
@@ -404,7 +404,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     FTI_Exec->meta[0].maxFs;
-    sprintf(str, "Max. file size %ld.", mfs);
+    sprintf(str, "Max. file size %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
     // TODO Checksums only local currently
@@ -420,6 +420,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (res == FTI_NSCS) {
         free(fnl);
+        free(checksums);
 
         return FTI_NSCS;
     }
