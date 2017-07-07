@@ -31,7 +31,7 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It sends Ckpt file.
+  @brief      Send Ckpt file.
   @param      fs              Ckpt file size
   @param      destination     destination group rank
   @return     integer         FTI_SCES if successful.
@@ -86,7 +86,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It receives Ptner file.
+  @brief      Receive Ptner file.
   @param      pfs             Ptner file size
   @param      source          souce group rank
   @return     integer         FTI_SCES if successful.
@@ -157,6 +157,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int source = FTI_Topo->left; //receive Ckpt file from this process
     int destination = FTI_Topo->right; //send Ckpt file to this process
     int res;
+    char str[FTI_BUFS];
 
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
@@ -204,6 +205,12 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+{
+	return FTI_SCES;
+}
+
+/*int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
     char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
@@ -338,17 +345,17 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         pos = pos + bs;
     }
 
+    if (truncate(lfn, fs) == -1) {
+        FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     free(data);
     free(matrix);
     free(coding);
     free(myData);
     fclose(lfd);
     fclose(efd);
-
-    if (truncate(lfn, fs) == -1) {
-        FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
-        return FTI_NSCS;
-    }
 
     //write checksum in metadata
     char checksum[MD5_DIGEST_LENGTH];
@@ -359,7 +366,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
 
     return res;
-}
+}*/
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -376,6 +383,9 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group, int level)
 {
    int i, res, gRank, member, reslen;
+   size_t fs, maxFs;
+   MPI_Comm lComm;
+   size_t data_written = 0;
    char lfn[FTI_BUFS], gfn[FTI_BUFS], str[FTI_BUFS], mpi_err[FTI_BUFS];
    unsigned long ps, pos = 0;
    FILE *lfd;
@@ -465,7 +475,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             offset += chunkSizes[i];
          }
 
-         break;
+         break; 
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
       case FTI_IO_SIONLIB:
@@ -531,11 +541,11 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
          case FTI_IO_MPI:
 
-            MPI_Type_contiguous(bytes, MPI_BYTE, &dType);
+            MPI_Type_contiguous(bytes, MPI_BYTE, &dType); 
             MPI_Type_commit(&dType);
 
             res = MPI_File_write_at(FTI_Exec->pfh, offset, blBuf1, 1, dType, &status);
-            // check if successful
+            // check if successfull
             if (res != 0) {
                errno = 0;
                MPI_Error_string(res, mpi_err, &reslen);
@@ -552,9 +562,9 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             break;
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-         case FTI_IO_SIONLIB: ; //empty statement after label
+         case FTI_IO_SIONLIB:
 
-            long data_written = sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
+            data_written = sion_fwrite(blBuf1, sizeof(char), bytes, FTI_Exec->sid);
 
             if (data_written < 0) {
                FTI_Print("sionlib: could not write data", FTI_EROR);
@@ -583,7 +593,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It selects I/O and prepares the flush for each I/O
+@brief      Selects I/O and prepares the flush for each I/O
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
@@ -594,6 +604,7 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 
    int res;
+   char str[FTI_BUFS]; 
    if (level == -1) {
       return FTI_SCES; // Fake call for inline PFS checkpoint
    }
@@ -634,16 +645,16 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for POSIX I/O
+@brief      Prepares the Flush for POSIX I/O
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-    Initializes the flush of locally stored checkpoint data to the PFS by POSIX
+Init for the flush of locally stored checkpoint data to the PFS by POSIX
 
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
 	unsigned long maxFs, fs;
     int i, res;
@@ -663,8 +674,8 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         }
 
-    }
-
+    } 
+	
     else {
 
         res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->nodeRank, level), "obtain metadata.");
@@ -683,21 +694,22 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for MPI I/O
+@brief      Prepares the Flush for MPI I/O
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-   Initializes the flush of locally stored checkpoint data to the PFS by MPI I/O
+   Init for the flush of locally stored checkpoint data to the PFS by MPI I/O
 
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
+      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
    char str[FTI_BUFS], mpi_err[FTI_BUFS];
    unsigned long maxFs, fs;
    int i, res, reslen;
    MPI_Info info;
+   MPI_Status status;
 
    if (FTI_Topo->amIaHead) {
 
@@ -744,9 +756,9 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    MPI_Info_set(info, "stripping_unit", "4194304");
 
    // open parallel file (collective call)
-   res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(FTI_Exec->pfh));
+   res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(FTI_Exec->pfh)); 
 
-   // check if successful
+   // check if successfull
    if (res != 0) {
       errno = 0;
       MPI_Error_string(res, mpi_err, &reslen);
@@ -762,17 +774,17 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for SIONlib I/O
+@brief      Prepares the Flush for SIONlib I/O
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
-   Initializes the flush of locally stored checkpoint data to the PFS by SIONlib
+   Init for the flush of locally stored checkpoint data to the PFS by SIONlib
 
 **/
 /*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
+      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
    unsigned long maxFs, fs;
    int i, res, numFiles = 1, fsblksize = -1, nlocaltasks = 1;
@@ -780,6 +792,7 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    int *gRankList;
    int *file_map;
    int *rank_map;
+   char *newfname = NULL;
    char str[FTI_BUFS];
    FILE *dfp;
 
@@ -807,12 +820,6 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, i+1, level), "obtain metadata.");
          if (res != FTI_SCES) {
             FTI_Print("failed to obtain the metadata", FTI_EROR);
-
-            free(gRankList);
-            free(file_map);
-            free(rank_map);
-            free(chunkSizes);
-
             return FTI_NSCS;
          }
          FTI_Exec->meta[i].fs = fs;
@@ -825,18 +832,12 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, str);
 
       // open parallel file in collective call for all heads
-      FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp);
+      FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
       if (FTI_Exec->sid == -1) {
          FTI_Print("PAROPEN MAPPED ERROR", FTI_EROR);
-
-         free(gRankList);
-         free(file_map);
-         free(rank_map);
-         free(chunkSizes);
-
          return FTI_NSCS;
       }
-   }
+   } 
 
    else {
       // set parallel file name
@@ -885,23 +886,12 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTI_Exec->meta[0].maxFs = maxFs;
       strcpy(FTI_Exec->meta[0].ckptFile, FTI_Exec->ckptFile);
 
-      FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+      FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL); 
       if (FTI_Exec->sid == -1) {
          FTI_Print("PAROPEN MAPPED ERROR", FTI_EROR);
-
-         free(gRankList);
-         free(file_map);
-         free(rank_map);
-         free(chunkSizes);
-
          return FTI_NSCS;
       }
    }
-
-   free(gRankList);
-   free(file_map);
-   free(rank_map);
-   free(chunkSizes);
 
    return FTI_SCES;
 }
@@ -909,16 +899,18 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It selects I/O and Finalizes Flush respectively
+@brief      Selects I/O and Finalizes Flush respectively
 @param      level           The level from which ckpt. files are flushed.
 @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
+      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level) 
 {
+
    int res;
+   char str[FTI_BUFS];
 
    if (level == -1 ) {
       return FTI_SCES; // Fake call for inline PFS checkpoint
@@ -929,7 +921,7 @@ int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       case FTI_IO_POSIX:
 
-         res = FTI_SCES;
+         res = FTI_SCES; 
          break;
 
       case FTI_IO_MPI:
@@ -951,19 +943,19 @@ int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It finalizes flush for SIONlib I/O
+@brief      Finalizes flush for SIONlib I/O
 @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
 {
 
-   int res, i;
+   int res, i, j, nbSectors, save_sectorID, save_groupID;
 
-   sion_parclose_mapped_mpi(FTI_Exec->sid);
+   sion_parclose_mapped_mpi(FTI_Exec->sid); 
 
    if (FTI_Topo->amIaHead) {
 
@@ -996,16 +988,17 @@ int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It finalizes flush for MPI I/O
+@brief      Finalizes flush for MPI I/O
 @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_FlushFinalizeMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) 
 {
 
-   int res, i;
+   int res, i, j, nbSectors, save_sectorID, save_groupID;
+   unsigned long *fs, *mfs;
 
    MPI_File_close(&(FTI_Exec->pfh));
 

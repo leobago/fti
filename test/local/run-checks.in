@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-#
+# 
 #  @file   check.c
 #  @author Kai Keller (kellekai@gmx.de)
 #  @date   June, 2017
 #  @brief  FTI testing program.
-#
+#    
 #    The program may test the correct behaviour for checkpoint
-#    and restart for all configurations. The recovered data is also
+#    and restart for all configurations. The recovered data is also 
 #    tested upon correct data fields.
-#
+# 
 #  Hit ./run-checks.sh -h for info
-#
+# 
 TIMEOUT=30
 DFLAG=1
 CFLAG=1
@@ -39,9 +39,9 @@ Checkpoint and restart for all levels with configurations:
 
 HEAD | KEEP | L2 INLINE | L3 INLINE | L4 INLINE
 
-0      0      1           1           1 (L1, L2, L3, L4)
+0      0      1           1           1 (L1, L2, L3, L4) 
 0      1      1           1           1 (L1, L2, L3, L4)
-1      0      1           1           1 (L1, L2, L3, L4)
+1      0      1           1           1 (L1, L2, L3, L4) 
 1      1      1           1           1 (L1, L2, L3, L4)
 1      0      0           1           1 (L2)
 1      1      0           1           1 (L2)
@@ -109,7 +109,7 @@ case $key in
     -t|--set-timeout)
     if [[ $2 -lt "10" ]] || [[ $2 == -* ]]; then
         echo -e "Wrong argument for timeout: "$2
-        echo -e "usage: [command] -t <integer -ge 10>"
+        echo -e "usage: [command] -t <integer -ge 10>" 
         exit 0
     fi
     TIMEOUT="$2"
@@ -124,19 +124,19 @@ esac
 shift # past argument or value
 done
 #							 #
-# ---- HEADER CHECK LOG ---- #
+# ---- HEADER CHECK LOG ---- # 
 #							 #
 cat <<EOF > check.log
 ### FTI TEST FOR $PROCS PROCESSES ###
 EOF
 #							 #
-# ---- HEADER FAULTY LOG ---- #
+# ---- HEADER FAULTY LOG ---- # 
 #							 #
 cat <<EOF > failed.log
 ### FAILED TESTS FOR $PROCS PROCESSES ###
 EOF
 #							   		    #
-# ---- CONFIGURATION FILE TEMPLATE ---- #
+# ---- CONFIGURATION FILE TEMPLATE ---- # 
 #								        #
 cat <<EOF >TMPLT
 [basic]
@@ -177,33 +177,33 @@ mpi_tag                        = 2612
 local_test                     = 1
 EOF
 #								 #
-# ---- FUNCTION DEFINITIONS ---- #
+# ---- FUNCTION DEFINITIONS ---- # 
 #								 #
 should_not_fail() {
 	if [ $1 = 0 ]; then
 	    echo -e "\033[0;32mpassed\033[m"
 		let SUCCEED=SUCCEED+1
 	elif [ $1 = 255 ]; then
-        echo -e "\033[0;31mfailed\033[m (FTI Abort)"
+        echo -e "\033[0;31mfailed\033[m (FTI Abort)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 30 ]; then
-		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
+		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 20 ]; then
-        echo -e "\033[0;31mfailed\033[m (Recovery Failed)"
+        echo -e "\033[0;31mfailed\033[m (Recovery Failed)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 143 ]; then
-        echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
+        echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 40 ]; then
-        echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
+        echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)" 
 		let FAULTY=FAULTY+1
 		testFailed=1
-	else
+	else 
 		echo "Unknown exit status: "$1
 		let FAULTY=FAULTY+1
 		testFailed=1
@@ -219,21 +219,21 @@ should_fail() {
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 30 ]; then
-		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
+		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 143 ]; then
-        echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
+        echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)" 
 		let FAILED=FAILED+1
 		testFailed=1
 	elif [ $1 = 20 ]; then
-        echo -e "\033[0;32mpassed\033[m (Recovery failed)"
+        echo -e "\033[0;32mpassed\033[m (Recovery failed)" 
 		let SUCCEED=SUCCEED+1
 	elif [ $1 = 40 ]; then
-        echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
+        echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)" 
 		let FAULTY=FAULTY+1
 		testFailed=1
-	else
+	else 
 		echo "Unknown exit status: "$1
 		let FAULTY=FAULTY+1
 		testFailed=1
@@ -265,7 +265,7 @@ set_inline() {
     esac
 }
 #						 #
-# ---- TEST SCRIPTS ---- #
+# ---- TEST SCRIPTS ---- # 
 #	#
 LEVEL=(1 2 3 4)
 INLINE_L2=(0 1)
@@ -281,7 +281,7 @@ for io in $(seq 1 @IO@); do
         #                  #
         # --- HEAD = 0 --- #
         #                  #
-        for level in ${LEVEL[*]}; do
+        for level in ${LEVEL[*]}; do    
             awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
             echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}": L"$level", head=0, keep="$keep", inline=(1,1,1)... ***\033[m ]"
             if [ $keep -eq "1" ]; then
@@ -622,7 +622,7 @@ for io in $(seq 1 @IO@); do
         rm $NAME
     done
     for keep in ${KEEP[*]}; do
-        for level in ${LEVEL[*]}; do
+        for level in ${LEVEL[*]}; do    
             for inline in 0 1; do
                 if [ $inline -eq 1 ] || [[ $inline -eq 0 && $level -ne 1 ]]; then
                     set_inline $level $inline

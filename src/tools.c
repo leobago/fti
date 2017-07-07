@@ -7,11 +7,11 @@
 
 #include "interface.h"
 #include <dirent.h>
-#define CHUNK_SIZE 4096    /**< MD5 algorithm chunk size.      */
+#define CHUNK_SIZE 4096
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It calculates checksum of the checkpoint file.
+    @brief      Calculates checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
     @param      checksumToCmp   checksum that is calculated
     @return     integer         FTI_SCES if successful
@@ -58,7 +58,7 @@ int FTI_Checksum(char* fileName, char* checksum)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It compares checksum of the checkpoint file.
+    @brief      Compares checksum of the checkpoint file.
     @param      fileName        filename of the checkpoint
     @param      checksumToCmp   checksum to compare
     @return     integer         FTI_SCES if successful
@@ -100,8 +100,6 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
         sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
             fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
-        fclose (fd);
-        
         return FTI_NSCS;
     }
 
@@ -112,7 +110,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It receives the return code of a function and prints a message.
+    @brief      Receive the return code of a function and print a message.
     @param      result          Result to check.
     @param      message         Message to print.
     @return     integer         The same result as passed in parameter.

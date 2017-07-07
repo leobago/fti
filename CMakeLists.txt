@@ -39,15 +39,15 @@ append_property(SOURCE ${SRC_FTI}
 
 if(${OPENSSL_FOUND} AND NOT DEFINED ${NO_OPENSSL})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
-    		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+    		$<TARGET_OBJECTS:iniparser>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
-    		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+    		$<TARGET_OBJECTS:iniparser>)
 else()
 	add_library(fti.static STATIC ${SRC_FTI}
-	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
+	    $<TARGET_OBJECTS:iniparser>
 		$<TARGET_OBJECTS:md5>)
 	add_library(fti.shared SHARED ${SRC_FTI}
-	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
+	    $<TARGET_OBJECTS:iniparser>
 		$<TARGET_OBJECTS:md5>)
 	append_property(TARGET fti.static fti.shared
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")

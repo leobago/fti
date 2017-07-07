@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It checks if a file exist and that its size is 'correct'.
+    @brief      Check if a file exist and that its size is 'correct'.
     @param      fn              The ckpt. file name to check.
     @param      fs              The ckpt. file size tocheck.
     @return     integer         0 if file exists, 1 if not or wrong size.
@@ -52,7 +52,7 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It detects all the erasures for a particular level.
+    @brief      Detects all the erasures for a particular level.
     @param      fs              The ckpt. file size for this process.
     @param      maxFs           The max. ckpt. file size in the group.
     @param      group           The group ID.
@@ -131,10 +131,10 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It decides wich action take depending on the restart level.
+    @brief      Decides wich action take depending on the restart level.
     @return     integer         FTI_SCES if successful.
 
-    This function launches the required action depending on the recovery
+    This function launchs the required action depending on the recovery
     level. The recovery level is detected from the checkpoint ID of the
     last checkpoint taken.
 
@@ -143,7 +143,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int r, tres = FTI_SCES, id, level = 1;
+   int f, r, tres = FTI_SCES, id, level = 1;
    unsigned long fs, maxFs;
    char str[FTI_BUFS];
    if (!FTI_Topo->amIaHead) {

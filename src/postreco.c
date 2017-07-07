@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers a set of ckpt. files using RS decoding.
+    @brief      Recover a set of ckpt. files using RS decoding.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the L3 ckpt. files missing using the
@@ -21,8 +21,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                int fs, int maxFs, int* erased)
 {
+	return FTI_SCES;	
+}
+
+/*int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+               int fs, int maxFs, int* erased)
+{
     int *matrix, *decMatrix, *dm_ids, *tmpmat, i, j, k, m, ps, bs, pos = 0;
-    char **coding, **data, *dataTmp, fn[FTI_BUFS], efn[FTI_BUFS];
+    char **coding, **data, *dataTmp, fn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
     FILE *fd, *efd;
 
     bs = FTI_Conf->blockSize;
@@ -173,7 +180,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     while (pos < ps) {
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
-            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            size_t data_size = fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
 
             if (ferror(fd)) {
                 FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -201,7 +208,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } // Erasure found
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
-            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            size_t coding_size = fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
             if (ferror(efd)) {
                 FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
 
@@ -296,11 +303,11 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(coding);
 
     return FTI_SCES;
-}
+}*/
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It checks that all L1 ckpt. files are present.
+    @brief      Checks that all L1 ckpt. files are present.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -312,7 +319,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
-    int erased[FTI_BUFS], buf, j; // FTI_BUFS > 32*3
+    int erased[FTI_BUFS], buf, i, j; // FTI_BUFS > 32*3
     unsigned long fs, maxFs;
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, erased, 1) != FTI_SCES) {
         FTI_Print("Error checking erasures.", FTI_DBUG);
@@ -333,7 +340,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It sends checkpint file.
+    @brief      Sends checkpint file.
     @param      destination     destination group rank
     @param      fs              filesize
     @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt
@@ -347,6 +354,8 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int destination,
                          unsigned long fs, int ptner) {
+    int i, j; //iterators
+    int bytes; //bytes read by fread
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
 
@@ -392,7 +401,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It receives checkpint file.
+    @brief      Receives checkpint file.
     @param      source          source group rank
     @param      fs              filesize
     @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt
@@ -405,6 +414,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTIT_checkpoint* FTI_Ckpt, int source, unsigned long fs,
                          int ptner) {
+    int i, j; //iterators
     char filename[FTI_BUFS], str[FTI_BUFS];
     FILE *fileDesc;
 
@@ -450,7 +460,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L2 ckpt. files using the partner copy.
+    @brief      Recover L2 ckpt. files using the partner copy.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -469,6 +479,8 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
     int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
     int res, tres;
+    char ptnerFilename[FTI_BUFS], str[FTI_BUFS];
+    FILE *ptnerFile;
 
     if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -595,7 +607,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
+    @brief      Recover L3 ckpt. files ordering the RS decoding algorithm.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -606,6 +618,12 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+{
+	return FTI_SCES;
+}
+
+/*int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
     int erased[FTI_BUFS], gs, j, l = 0;
@@ -651,11 +669,11 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     return FTI_SCES;
-}
+}*/
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS.
+    @brief      Recover L4 ckpt. files from the PFS.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -669,26 +687,35 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
 {
    int res;
+
+   // select IO
    switch(FTI_Conf->ioMode) {
+
       case FTI_IO_POSIX:
+
          res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, group);
          break;
+
       case FTI_IO_MPI:
+
          res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
          break;
+
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
       case FTI_IO_SIONLIB:
+
          res = FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
          break;
 #endif
    }
 
    return res;
+
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using POSIX.
+    @brief      Recover L4 ckpt. files from the PFS using POSIX.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -807,7 +834,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using MPI-I/O.
+    @brief      Recover L4 ckpt. files from the PFS using MPI-I/O.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -819,11 +846,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int i, reslen, buf;
+   int i, j, l, reslen, buf;
    char gfn[FTI_BUFS], lfn[FTI_BUFS], mpi_err[FTI_BUFS], str[FTI_BUFS];
    FILE *lfd;
    MPI_File pfh;
-   MPI_Offset offset = 0, nbBlocks, block = 0, lastBlockBytes, *chunkSizes;
+   MPI_Offset offset = 0, tfs, sfs, nbBlocks, block = 0, lastBlockBytes, *chunkSizes;
    MPI_Status status;
    MPI_Info info;
 
@@ -843,7 +870,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // open parallel file
    buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
-   // check if successful
+   // check if successfull
    if (buf != 0) {
       errno = 0;
       MPI_Error_string(buf, mpi_err, &reslen);
@@ -891,7 +918,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       // read block in parallel file
       buf = MPI_File_read_at(pfh, offset, blBuf1, FTI_Conf->transferSize, MPI_BYTE, &status);
-      // check if successful
+      // check if successfull
       if (buf != 0) {
          errno = 0;
          MPI_Error_string(buf, mpi_err, &reslen);
@@ -917,7 +944,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // read block in parallel file
    buf = MPI_File_read_at(pfh, offset, blBuf1, lastBlockBytes, MPI_BYTE, &status);
-   // check if successful
+   // check if successfull
    if (buf != 0) {
       errno = 0;
       MPI_Error_string(buf, mpi_err, &reslen);
@@ -940,20 +967,16 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    free(blBuf1);
 
-   if (MPI_File_close(&pfh) != 0) {
-      fclose(lfd);
-
-      return FTI_NSCS;
-   }
-
+   buf = MPI_File_close(&pfh);
    fclose(lfd);
 
    return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using SIONlib.
+    @brief      Recover L4 ckpt. files from the PFS using SIONlib.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -967,10 +990,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
    size_t nbBlocks, block = 0, lastBlockBytes;
-   int sid, nlocaltasks = 1, numFiles = 1, res;
+   int j, l, sid, nlocaltasks = 1, numFiles=1, nlocalfiles = 1, res, noFile;
    int *gRankList, *file_map, *rank_map;
-   char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS];
-   FILE *lfd, *dfp;
+   char str[FTI_BUFS], gfn[FTI_BUFS], lfn[FTI_BUFS], *newfname = NULL;
+   FILE *gfd, *lfd, *dfp;
+   MPI_Comm lComm;
    sion_int64 *chunkSizes, chunksize;
    sion_int32 fsblksize=-1;
 
@@ -1028,7 +1052,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    }
 
-   sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp);
+   sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp); 
 
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
@@ -1043,7 +1067,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (res != SION_SUCCESS) {
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(FTI_Exec->sid);
-      free(blBuf1);
       fclose(lfd);
       return FTI_NSCS;
    }
@@ -1066,7 +1089,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "SIONlib: Unable to read %i Bytes from file", FTI_Conf->blockSize);
             FTI_Print(str, FTI_EROR);
             sion_parclose_mapped_mpi(FTI_Exec->sid);
-            free(blBuf1);
             fclose(lfd);
             return FTI_NSCS;
          }
@@ -1088,7 +1110,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          sprintf(str, "SIONlib: Unable to read data %i Bytes from file", FTI_Conf->blockSize);
          FTI_Print(str, FTI_EROR);
          sion_parclose_mapped_mpi(FTI_Exec->sid);
-         free(blBuf1);
          fclose(lfd);
          return FTI_NSCS;
       }
@@ -1111,5 +1132,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    sion_parclose_mapped_mpi(sid);
 
    return FTI_SCES;
+
 }
 #endif

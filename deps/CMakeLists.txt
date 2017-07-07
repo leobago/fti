@@ -1,5 +1,4 @@
 add_subdirectory(iniparser)
-add_subdirectory(jerasure)
 
 if(DEFINED NO_OPENSSL)
         string(ASCII 27 Esc)

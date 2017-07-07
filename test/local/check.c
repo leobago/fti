@@ -3,9 +3,9 @@
  *  @author Kai Keller (kellekai@gmx.de)
  *  @date   June, 2017
  *  @brief  FTI testing program.
- *
+ *	
  *	The program may test the correct behaviour for checkpoint
- *	and restart for all configurations. The recovered data is also
+ *	and restart for all configurations. The recovered data is also 
  *	tested upon correct data fields.
  *
  *	The program takes four arguments:
@@ -17,7 +17,7 @@
  * If arg2 = 0, the program simulates a clean run of FTI:
  *    FTI_Init
  *    FTI_Protect
- *    if FTI_Status = 0
+ *    if FTI_Status = 0 
  *      FTI_Checkpoint
  *    else
  *      FTI_Recover
@@ -49,7 +49,7 @@
 #define RESTART 1
 #define INIT 0
 
-/**
+/** 
  * function prototypes
  */
 
@@ -60,7 +60,7 @@
     @param      [out] B				Random vector
     @param      [in] asize			Dimension
 
-	Initializes A with 1's and B with random numbers r,  0 <= r <= 5.
+	Initializes A with 1's and B with random numbers r,  0 <= r <= 5. 
 	Dimension of both vectors is 'asize'
  **/
 /*-------------------------------------------------------------------------*/
@@ -86,7 +86,7 @@ void vecmult(double* A, double* B, size_t asize);
     @param      [in] asize			Dimension
     @return     integer             0 if successful, -1 else.
 
-    Checks entry for entry if A equals the POSIX Backup of B, B_chk, from
+    Checks entry for entry if A equals the POSIX Backup of B, B_chk, from 
     the preceding execution. This function must be called after the call to
     vecmult(A, B, asize).
  **/
@@ -105,7 +105,7 @@ int write_data(double* B, size_t* asize, int rank);
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Recovers 'B' and 'asize' to 'B_chk' and 'asize_chk' from file,
+    @brief      Recovers 'B' and 'asize' to 'B_chk' and 'asize_chk' from file, 
                 using POSIX fread.
     @param      [out] B_chk         B backup
     @param      [out] asize_chk     Dimension backup
@@ -121,7 +121,7 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
 
 /**
  * main
- */
+ */ 
 
 int main(int argc, char* argv[]) {
 
@@ -135,15 +135,15 @@ int main(int argc, char* argv[]) {
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[1], MPI_COMM_WORLD);
-
+    
     crash = atoi(argv[2]);
     level = atoi(argv[3]);
     diff_sizes = atoi(argv[4]);
 
     MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
-
+    
     asize = N;
-
+    
     if (diff_sizes) {
         parity = FTI_APP_RANK%7;
 
@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
     FTI_Protect(0, A, asize, FTI_DBLE);
     FTI_Protect(1, B, asize, FTI_DBLE);
     FTI_Protect(2, &asize, 1, FTI_INTG);
-
+    
     state = FTI_Status();
 
     if (state == INIT) {
@@ -195,11 +195,11 @@ int main(int argc, char* argv[]) {
         MPI_Barrier(FTI_COMM_WORLD);
         FTI_Checkpoint(1,level);
         sleep(5);
-        if (crash && FTI_APP_RANK == 0) {
+        if (crash && FTI_APP_RANK == 0) { 
             exit(CNTRLD_EXIT);
         }
     }
-
+    
     if ( state == RESTART || state == KEEP ) {
         result = FTI_Recover();
         if (result != FTI_SCES) {
@@ -212,7 +212,7 @@ int main(int argc, char* argv[]) {
             exit(DATA_CORRUPT);
         }
     }
-
+    
     /*
      * on INIT, B is initialized randomly
      * on RESTART or KEEP, B is recovered and must be equal to B_chk
@@ -227,26 +227,26 @@ int main(int argc, char* argv[]) {
         result = tmp;
         free(B_chk);
     }
-
+    
     free(A);
     free(B);
-
+    
     if (FTI_APP_RANK == 0 && (state == RESTART || state == KEEP)) {
         if (result == 0) {
-            printf("[SUCCESSFUL]\n");
+            printf("[SUCCESSFULL]\n");
         } else {
-            printf("[NOT SUCCESSFUL]\n");
+            printf("[NOT SUCCESSFULL]\n");
             success=0;
         }
     }
-
+    
     MPI_Barrier(FTI_COMM_WORLD);
     FTI_Finalize();
     MPI_Finalize();
 
-    if (success == 1)
+    if (success == 1) 
         return 0;
-    else
+    else 
         exit(DATA_CORRUPT);
 
 }
@@ -260,7 +260,7 @@ void init_arrays(double* A, double* B, size_t asize) {
     double r;
     for (i = 0; i< asize; i++) {
         A[i] = 1.0;
-        B[i] = ((double)rand()/RAND_MAX)*5.0;
+        B[i] = ((double)rand()/RAND_MAX)*5.0; 
     }
 }
 
@@ -318,3 +318,4 @@ int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize) {
 
     return 0;
 }
+
