@@ -55,22 +55,6 @@ FTIT_type FTI_LDBE;
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It aborts the application.
-
-    This function aborts the application after cleaning the file system.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_Abort()
-{
-    FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, 0, FTI_Topo.myRank);
-    MPI_Abort(MPI_COMM_WORLD, -1);
-    MPI_Finalize();
-    exit(1);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Initializes FTI.
     @param      configFile      FTI configuration file.
     @param      globalComm      Main MPI communicator of the application.
@@ -93,15 +77,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Inje.timer = MPI_Wtime();
     FTI_COMM_WORLD = globalComm; // Temporary before building topology
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology
-    int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    if (res == FTI_NSCS) {
-        FTI_Abort();
-    }
-    res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
-    if (res == FTI_NSCS) {
-        FTI_Abort();
-    }
-    FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
+    FTI_InitCritical(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.", &FTI_Exec);
+    FTI_InitCritical(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.", &FTI_Exec);
+    FTI_InitCritical(FTI_InitBasicTypes(FTI_Data), "create the basic data types.", &FTI_Exec);
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
@@ -109,12 +87,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_Abort();
-            }
+            FTI_InitCritical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.", &FTI_Exec);
         }
-        res = 0;
+        int res = 0;
         while (res != FTI_ENDW) {
             res = FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
         }
@@ -124,10 +99,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_Abort();
-            }
+            FTI_InitCritical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.", &FTI_Exec);
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
         }
@@ -212,11 +184,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     }
     else {
         if (FTI_Exec.nbVar >= FTI_BUFS) {
-            FTI_Print("Too many variables registered.", FTI_EROR);
-            FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, FTI_Topo.groupID, FTI_Topo.myRank);
-            MPI_Abort(MPI_COMM_WORLD, -1);
-            MPI_Finalize();
-            exit(1);
+            FTI_Critical(FTI_NSCS, "Too many variables registered.", &FTI_Conf, &FTI_Exec, &FTI_Topo);
         }
         FTI_Data[FTI_Exec.nbVar].id = id;
         FTI_Data[FTI_Exec.nbVar].ptr = ptr;
@@ -469,14 +437,7 @@ int FTI_Snapshot()
     int i, res, level = -1;
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
-        res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
-        if (res == FTI_NSCS) {
-            FTI_Print("Impossible to load the checkpoint data.", FTI_EROR);
-            FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5, FTI_Topo.groupID, FTI_Topo.myRank);
-            MPI_Abort(MPI_COMM_WORLD, -1);
-            MPI_Finalize();
-            exit(1);
-        }
+        FTI_Critical(FTI_Recover(), "recover the checkpointed data.", &FTI_Conf, &FTI_Exec, &FTI_Topo);
     }
     else { // If it is a checkpoint test
         res = FTI_SCES;
@@ -594,7 +555,7 @@ int FTI_Finalize()
         buff = 5; // For cleaning everything
     }
     MPI_Barrier(FTI_Exec.globalComm);
-    FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
+    FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff), "do final clean.");
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
 }
