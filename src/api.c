@@ -55,19 +55,6 @@ FTIT_type FTI_LDBE;
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It aborts the application.
-
-    This function aborts the application after cleaning the file system.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_Abort()
-{
-    MPI_Abort(MPI_COMM_WORLD, -1);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Initializes FTI.
     @param      configFile      FTI configuration file.
     @param      globalComm      Main MPI communicator of the application.
@@ -90,17 +77,17 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Inje.timer = MPI_Wtime();
     FTI_COMM_WORLD = globalComm; // Temporary before building topology
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology
-    FTI_Critical(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    FTI_Critical(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
-    FTI_Critical(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
+    FTI_InitCritical(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.", &FTI_Exec);
+    FTI_InitCritical(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.", &FTI_Exec);
+    FTI_InitCritical(FTI_InitBasicTypes(FTI_Data), "create the basic data types.", &FTI_Exec);
     if (FTI_Topo.myRank == 0) {
-        FTI_Critical(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
+        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
-            FTI_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            FTI_InitCritical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.", &FTI_Exec);
         }
         int res = 0;
         while (res != FTI_ENDW) {
@@ -112,7 +99,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
-            FTI_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            FTI_InitCritical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.", &FTI_Exec);
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
         }
@@ -197,8 +184,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     }
     else {
         if (FTI_Exec.nbVar >= FTI_BUFS) {
-            FTI_Print("Too many variables registered.", FTI_EROR);
-            FTI_Abort();
+            FTI_Critical(FTI_NSCS, "Too many variables registered.", &FTI_Conf, &FTI_Exec, &FTI_Topo);
         }
         FTI_Data[FTI_Exec.nbVar].id = id;
         FTI_Data[FTI_Exec.nbVar].ptr = ptr;
@@ -451,7 +437,7 @@ int FTI_Snapshot()
     int i, res, level = -1;
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
-        FTI_Critical(FTI_Recover(), "recover the checkpointed data.");
+        FTI_Critical(FTI_Recover(), "recover the checkpointed data.", &FTI_Conf, &FTI_Exec, &FTI_Topo);
     }
     else { // If it is a checkpoint test
         res = FTI_SCES;
