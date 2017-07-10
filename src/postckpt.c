@@ -694,7 +694,7 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-   char str[FTI_BUFS], mpi_err[FTI_BUFS];
+   char str[FTI_BUFS], mpi_err[FTI_BUFS], fn[FTI_BUFS];
    unsigned long maxFs, fs;
    int i, res, reslen;
    MPI_Info info;
@@ -715,7 +715,7 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
       // set parallel file name
       snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", (FTI_Exec->ckptID+1));
-      sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, str);
+      sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
 
 
    } else {
@@ -730,7 +730,7 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       // set parallel file name
       snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", (FTI_Exec->ckptID));
-      sprintf(FTI_Exec->fn, "%s/%s", FTI_Conf->gTmpDir, str);
+      sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
 
 
    }
@@ -744,7 +744,7 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    MPI_Info_set(info, "stripping_unit", "4194304");
 
    // open parallel file (collective call)
-   res = MPI_File_open(FTI_COMM_WORLD, FTI_Exec->fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(FTI_Exec->pfh));
+   res = MPI_File_open(FTI_COMM_WORLD, fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(FTI_Exec->pfh));
 
    // check if successful
    if (res != 0) {
