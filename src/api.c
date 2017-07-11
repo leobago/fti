@@ -69,6 +69,38 @@ void FTI_Abort()
     exit(1);
 }
 
+void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    int i, j, k;
+    char str[FTI_BUFS];
+    for (i = 0; i < FTI_Topo->nbProc; i++) {
+        if (FTI_Topo->myRank == i) {
+            if (FTI_Topo->amIaHead) {
+                sprintf(str, "I am a head. Node: %d, Group: %d", FTI_Topo->nodeID, FTI_Topo->groupID);
+                FTI_Print(str, FTI_WARN);
+                for (j = 1; j < FTI_Topo->nodeSize; j++) {
+                    for (k = 1; k < 5; k++) {
+                        sprintf(str, "Approcs %d: Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
+                                j, k, FTI_Exec->bmeta[k].exists[j], FTI_Exec->bmeta[k].fs[j], FTI_Exec->bmeta[k].maxFs[j],
+                                FTI_Exec->bmeta[k].pfs[j], &FTI_Exec->bmeta[k].ckptFile[j * FTI_BUFS]);
+                        FTI_Print(str, FTI_WARN);
+                    }
+                }
+            }
+            else {
+                for (k = 1; k < 5; k++) {
+                    sprintf(str, "Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
+                            k, FTI_Exec->meta[k].exists, FTI_Exec->meta[k].fs, FTI_Exec->meta[k].maxFs,
+                            FTI_Exec->meta[k].pfs, FTI_Exec->meta[k].ckptFile);
+                    FTI_Print(str, FTI_WARN);
+                }
+            }
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Initializes FTI.
@@ -106,9 +138,11 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
+    FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
+    FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
-        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
+            //FTI_PrintMeta(&FTI_Exec, &FTI_Topo);
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Abort();
@@ -122,8 +156,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Finalize();
     }
     else { // If I am an application process
-        FTI_Exec.meta = talloc(FTIT_metadata,1);
+        //FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
+            //FTI_PrintMeta(&FTI_Exec, &FTI_Topo);
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Abort();
@@ -525,6 +560,7 @@ int FTI_Finalize()
     int isCkpt;
 
     if (FTI_Topo.amIaHead) {
+        FTI_FreeMeta(&FTI_Exec, &FTI_Topo);
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
