@@ -192,20 +192,22 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
     }
 
-    for (i = 0; i < pr; i++) {
-        switch (FTI_Exec->ckptLvel) {
-            case 4:
-                res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
-                break;
-            case 3:
-                res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-                break;
-            case 2:
-                res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-                break;
-            case 1:
-                res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-                break;
+    if (FTI_Exec->ckptLvel == 2) {
+        res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    }
+    else {
+        for (i = 0; i < pr; i++) {
+            switch (FTI_Exec->ckptLvel) {
+                case 4:
+                    res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
+                    break;
+                case 3:
+                    res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
+                    break;
+                case 1:
+                    res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
+                    break;
+            }
         }
     }
 
@@ -409,7 +411,7 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // store file size in runtime meta data
-   FTI_Exec->meta[0].fs = glbWritten;
+   FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = glbWritten;
 
    // flush buffer
    if (fflush(fd) != 0) {
@@ -470,7 +472,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       chunkSize += FTI_Data[i].size;
    }
 
-   FTI_Exec->meta[0].fs = chunkSize;
+   FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = chunkSize;
 
    // collect chunksizes of other ranks
    chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
@@ -679,7 +681,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
       return FTI_NSCS;
    }
-   
+
    return FTI_SCES;
 }
 #endif
