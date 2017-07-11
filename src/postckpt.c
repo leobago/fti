@@ -165,52 +165,37 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int res;
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-    if (FTI_Topo->amIaHead) {
-        int i;
-        for (i = 1; i < FTI_Topo->nodeSize; i++) {
-            if (FTI_Topo->groupRank % 2) { //first send, then receive
-                res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
-                if (res != FTI_SCES) {
-                    return FTI_NSCS;
-                }
-                res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
-                if (res != FTI_SCES) {
-                    return FTI_NSCS;
-                }
-            } else { //first receive, then send
-                res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
-                if (res != FTI_SCES) {
-                    return FTI_NSCS;
-                }
-                res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
-                if (res != FTI_SCES) {
-                    return FTI_NSCS;
-                }
-            }
-        }
+    int startProc, endProc;
+    if (FTI_Topo->amIaHead) { //post-processing for every process in the node
+        startProc = 1;
+        endProc = FTI_Topo->nodeSize;
     }
-    else {
+    else { //post-processing only for itself
+        startProc = 0;
+        endProc = 1;
+    }
+    int i;
+    for (i = startProc; i < endProc; i++) {
         if (FTI_Topo->groupRank % 2) { //first send, then receive
-            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 0);
+            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
-            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
+            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         } else { //first receive, then send
-            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
+            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
-            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 0);
+            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     }
-
     return FTI_SCES;
 }
 
@@ -227,7 +212,7 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
     int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf->blockSize, rank;
@@ -238,149 +223,166 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FILE *lfd, *efd;
 
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
-    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
+    res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
-    ps = ((maxFs / bs)) * bs;
-    if (ps < maxFs) {
-        ps = ps + bs;
+
+    int startProc, endProc;
+    if (FTI_Topo->amIaHead) {
+        startProc = 1;
+        endProc = FTI_Topo->nodeSize;
+    }
+    else {
+        startProc = 0;
+        endProc = 1;
     }
 
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
-    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
-    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
+    int proc;
+    for (proc = startProc; proc < endProc; proc++) {
+        long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
+        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
 
-    sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
-    FTI_Print(str, FTI_DBUG);
-
-    //all files in group must have the same size
-    if (truncate(lfn, maxFs) == -1) {
-        FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    lfd = fopen(lfn, "rb");
-    if (lfd == NULL) {
-        FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
-        return FTI_NSCS;
-    }
-
-    efd = fopen(efn, "wb");
-    if (efd == NULL) {
-        FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
-
-        fclose(lfd);
-
-        return FTI_NSCS;
-    }
-
-    myData = talloc(char, bs);
-    coding = talloc(char, bs);
-    data = talloc(char, 2 * bs);
-    matrix = talloc(int, FTI_Topo->groupSize* FTI_Topo->groupSize);
-
-    for (i = 0; i < FTI_Topo->groupSize; i++) {
-        for (j = 0; j < FTI_Topo->groupSize; j++) {
-            matrix[i * FTI_Topo->groupSize + j] = galois_single_divide(1, i ^ (FTI_Topo->groupSize + j), FTI_Conf->l3WordSize);
-        }
-    }
-
-    // For each block
-    while (pos < ps) {
-        if ((maxFs - pos) < bs) {
-            remBsize = maxFs - pos;
+        ps = ((maxFs / bs)) * bs;
+        if (ps < maxFs) {
+            ps = ps + bs;
         }
 
-        // Reading checkpoint files
-        size_t bytes = fread(myData, sizeof(char), remBsize, lfd);
-        if (ferror(lfd)) {
-            FTI_Print("FTI failed to read from L3 ckpt. file.", FTI_EROR);
+        sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
+        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+        sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
 
-            free(data);
-            free(matrix);
-            free(coding);
-            free(myData);
+        sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
+        FTI_Print(str, FTI_DBUG);
+
+        //all files in group must have the same size
+        if (truncate(lfn, maxFs) == -1) {
+            FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+        lfd = fopen(lfn, "rb");
+        if (lfd == NULL) {
+            FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
+            return FTI_NSCS;
+        }
+
+        efd = fopen(efn, "wb");
+        if (efd == NULL) {
+            FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
+
             fclose(lfd);
-            fclose(efd);
 
             return FTI_NSCS;
         }
 
-        dest = FTI_Topo->groupRank;
-        i = FTI_Topo->groupRank;
-        offset = 0;
-        init = 0;
-        cnt = 0;
+        myData = talloc(char, bs);
+        coding = talloc(char, bs);
+        data = talloc(char, 2 * bs);
+        matrix = talloc(int, FTI_Topo->groupSize* FTI_Topo->groupSize);
 
-        // For each encoding
-        while (cnt < FTI_Topo->groupSize) {
-            if (cnt == 0) {
-                memcpy(&(data[offset * bs]), myData, sizeof(char) * bytes);
+        for (i = 0; i < FTI_Topo->groupSize; i++) {
+            for (j = 0; j < FTI_Topo->groupSize; j++) {
+                matrix[i * FTI_Topo->groupSize + j] = galois_single_divide(1, i ^ (FTI_Topo->groupSize + j), FTI_Conf->l3WordSize);
             }
-            else {
-                MPI_Wait(&reqSend, &status);
-                MPI_Wait(&reqRecv, &status);
-            }
-
-            // At every loop *but* the last one we send the data
-            if (cnt != FTI_Topo->groupSize - 1) {
-                dest = (dest + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-                src = (i + 1) % FTI_Topo->groupSize;
-                MPI_Isend(myData, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
-                MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
-            }
-
-            matVal = matrix[FTI_Topo->groupRank * FTI_Topo->groupSize + i];
-            // First copy or xor any data that does not need to be multiplied by a factor
-            if (matVal == 1) {
-                if (init == 0) {
-                    memcpy(coding, &(data[offset * bs]), bs);
-                    init = 1;
-                }
-                else {
-                    galois_region_xor(&(data[offset * bs]), coding, coding, bs);
-                }
-            }
-
-            // Then the data that needs to be multiplied by a factor
-            if (matVal != 0 && matVal != 1) {
-                galois_w16_region_multiply(&(data[offset * bs]), matVal, bs, coding, init);
-                init = 1;
-            }
-
-            i = (i + 1) % FTI_Topo->groupSize;
-            offset = 1 - offset;
-            cnt++;
         }
 
-        // Writting encoded checkpoints
-        fwrite(coding, sizeof(char), remBsize, efd);
+        // For each block
+        while (pos < ps) {
+            if ((maxFs - pos) < bs) {
+                remBsize = maxFs - pos;
+            }
 
-        // Next block
-        pos = pos + bs;
+            // Reading checkpoint files
+            size_t bytes = fread(myData, sizeof(char), remBsize, lfd);
+            if (ferror(lfd)) {
+                FTI_Print("FTI failed to read from L3 ckpt. file.", FTI_EROR);
+
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+
+                return FTI_NSCS;
+            }
+
+            dest = FTI_Topo->groupRank;
+            i = FTI_Topo->groupRank;
+            offset = 0;
+            init = 0;
+            cnt = 0;
+
+            // For each encoding
+            while (cnt < FTI_Topo->groupSize) {
+                if (cnt == 0) {
+                    memcpy(&(data[offset * bs]), myData, sizeof(char) * bytes);
+                }
+                else {
+                    MPI_Wait(&reqSend, &status);
+                    MPI_Wait(&reqRecv, &status);
+                }
+
+                // At every loop *but* the last one we send the data
+                if (cnt != FTI_Topo->groupSize - 1) {
+                    dest = (dest + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+                    src = (i + 1) % FTI_Topo->groupSize;
+                    MPI_Isend(myData, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
+                    MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
+                }
+
+                matVal = matrix[FTI_Topo->groupRank * FTI_Topo->groupSize + i];
+                // First copy or xor any data that does not need to be multiplied by a factor
+                if (matVal == 1) {
+                    if (init == 0) {
+                        memcpy(coding, &(data[offset * bs]), bs);
+                        init = 1;
+                    }
+                    else {
+                        galois_region_xor(&(data[offset * bs]), coding, coding, bs);
+                    }
+                }
+
+                // Then the data that needs to be multiplied by a factor
+                if (matVal != 0 && matVal != 1) {
+                    galois_w16_region_multiply(&(data[offset * bs]), matVal, bs, coding, init);
+                    init = 1;
+                }
+
+                i = (i + 1) % FTI_Topo->groupSize;
+                offset = 1 - offset;
+                cnt++;
+            }
+
+            // Writting encoded checkpoints
+            fwrite(coding, sizeof(char), remBsize, efd);
+
+            // Next block
+            pos = pos + bs;
+        }
+
+        free(data);
+        free(matrix);
+        free(coding);
+        free(myData);
+        fclose(lfd);
+        fclose(efd);
+
+        if (truncate(lfn, fs) == -1) {
+            FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+        //write checksum in metadata
+        char checksum[MD5_DIGEST_LENGTH];
+        res = FTI_Checksum(efn, checksum);
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
+        res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
     }
-
-    free(data);
-    free(matrix);
-    free(coding);
-    free(myData);
-    fclose(lfd);
-    fclose(efd);
-
-    if (truncate(lfn, fs) == -1) {
-        FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    //write checksum in metadata
-    char checksum[MD5_DIGEST_LENGTH];
-    res = FTI_Checksum(efn, checksum);
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
-    }
-    res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
-
+    
     return res;
 }
 
