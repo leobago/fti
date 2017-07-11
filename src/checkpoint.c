@@ -485,6 +485,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       MPI_Error_string(res, mpi_err, &reslen);
       snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
       FTI_Print(str, FTI_EROR);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -517,6 +518,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
                FTI_Print(str, FTI_EROR);
                MPI_File_close(&pfh);
+               free(chunkSizes);
                return FTI_NSCS;
             }
             // increment file pointer
@@ -540,6 +542,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
                FTI_Print(str, FTI_EROR);
                MPI_File_close(&pfh);
+               free(chunkSizes);
                return FTI_NSCS;
             }
             // increment file pointer
@@ -559,6 +562,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
             FTI_Print(str, FTI_EROR);
             MPI_File_close(&pfh);
+            free(chunkSizes);
             return FTI_NSCS;
          }
          // increment file pointer
@@ -575,6 +579,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    MPI_File_close(&pfh);
    MPI_Info_free(&info);
+   free(chunkSizes);
    return FTI_SCES;
 }
 
@@ -645,6 +650,12 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (FTI_Exec->sid==-1) {
       errno = 0;
       FTI_Print("SIONlib: File could no be opened", FTI_EROR);
+
+      free(gRankList);
+      free(chunkSizes);
+      free(file_map);
+      free(rank_map);
+
       return FTI_NSCS;
    }
 
@@ -656,6 +667,12 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       errno = 0;
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(FTI_Exec->sid);
+
+      free(gRankList);
+      free(chunkSizes);
+      free(file_map);
+      free(rank_map);
+
       return FTI_NSCS;
    }
 
@@ -671,15 +688,32 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          errno = 0;
          FTI_Print("SIONlib: Data could not be written", FTI_EROR);
          res =  sion_parclose_mapped_mpi(FTI_Exec->sid);
+
+         free(gRankList);
+         free(chunkSizes);
+         free(file_map);
+         free(rank_map);
+
          return FTI_NSCS;
       }
    }
 
    // close parallel file
    if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
+
+       free(gRankList);
+       free(chunkSizes);
+       free(file_map);
+       free(rank_map);
+
       return FTI_NSCS;
    }
-   
+
+   free(gRankList);
+   free(chunkSizes);
+   free(file_map);
+   free(rank_map);
+
    return FTI_SCES;
 }
 #endif

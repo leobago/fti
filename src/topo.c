@@ -256,6 +256,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (nodeList[i] == -1) {
             sprintf(str, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
             FTI_Print(str, FTI_WARN);
+            free(lhn);
             return FTI_NSCS;
         }
     }
