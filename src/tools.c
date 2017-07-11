@@ -141,29 +141,35 @@ int FTI_Try(int result, char* message)
 
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 {
+    int i;
     if (FTI_Topo->amIaHead) {
-        int i;
-        for (i = 1; i < 5; i++) {
-            FTI_Exec->bmeta[i].exists = calloc(1, sizeof(int));
-            FTI_Exec->bmeta[i].maxFs = calloc(1, sizeof(long));
-            FTI_Exec->bmeta[i].fs = calloc(1, sizeof(long));
-            FTI_Exec->bmeta[i].pfs = calloc(1, sizeof(long));
-            FTI_Exec->bmeta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+        }
+    } else {
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
         }
     }
 }
 
-void FTI_FreeMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 {
-    if (FTI_Topo->amIaHead) {
-        int i;
-        for (i = 1; i < 5; i++) {
-            free(FTI_Exec->bmeta[i].exists);
-            free(FTI_Exec->bmeta[i].maxFs);
-            free(FTI_Exec->bmeta[i].fs);
-            free(FTI_Exec->bmeta[i].pfs);
-            free(FTI_Exec->bmeta[i].ckptFile);
-        }
+    int i;
+    for (i = 0; i < 5; i++) {
+        free(FTI_Exec->meta[i].exists);
+        free(FTI_Exec->meta[i].maxFs);
+        free(FTI_Exec->meta[i].fs);
+        free(FTI_Exec->meta[i].pfs);
+        free(FTI_Exec->meta[i].ckptFile);
     }
 }
 

@@ -43,7 +43,7 @@
 /*---------------------------------------------------------------------------
                             FTI private functions
 ---------------------------------------------------------------------------*/
-
+void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_Abort();
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
@@ -93,6 +93,8 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
                               int rank, char* checksum);
 int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level);
+void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -106,7 +108,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
 int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -160,7 +162,7 @@ int FTI_Checksum(char* fileName, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
-void FTI_FreeMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
+void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
