@@ -194,15 +194,14 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (FTI_Exec->ckptLvel == 2) {
         res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    } else if (FTI_Exec->ckptLvel == 3) {
+        res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
     }
     else {
         for (i = 0; i < pr; i++) {
             switch (FTI_Exec->ckptLvel) {
                 case 4:
                     res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
-                    break;
-                case 3:
-                    res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
                     break;
                 case 1:
                     res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);

@@ -193,7 +193,7 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     return FTI_SCES;
 }
 
-void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     if (!FTI_Topo->amIaHead) {
@@ -206,6 +206,7 @@ void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ini = iniparser_load(mfn);
             if (ini == NULL) {
                 FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                return FTI_NSCS;
             }
             else {
                 FTI_Exec->meta[0].exists[0] = 1;
@@ -220,6 +221,10 @@ void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 iniparser_freedict(ini);
             }
         }
+        else {
+            FTI_Print("Temporary metadata do not exist.", FTI_WARN);
+            return FTI_NSCS;
+        }
     }
     else { //I am a head
         int j;
@@ -233,6 +238,7 @@ void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 ini = iniparser_load(mfn);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                    return FTI_NSCS;
                 }
                 else {
                     FTI_Exec->meta[0].exists[j] = 1;
@@ -247,11 +253,17 @@ void FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     iniparser_freedict(ini);
                 }
             }
+            else {
+                sprintf(str, "Temporary metadata do not exist for node process %d.", j);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NSCS;
+            }
         }
     }
+    return FTI_SCES;
 }
 
-void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     int i, j;
@@ -271,6 +283,7 @@ void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 ini = iniparser_load(mfn);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                    return FTI_NSCS;
                 }
                 else {
                     FTI_Exec->meta[i].exists[0] = 1;
@@ -304,6 +317,7 @@ void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     ini = iniparser_load(mfn);
                     if (ini == NULL) {
                         FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                        return FTI_NSCS;
                     }
                     else {
                         FTI_Exec->meta[i].exists[j] = 1;
@@ -321,6 +335,7 @@ void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
