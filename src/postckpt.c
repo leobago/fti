@@ -34,6 +34,7 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @brief      It sends Ckpt file.
   @param      fs              Ckpt file size
   @param      destination     destination group rank
+  @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
 
   This function sends ckpt file to partner process. Partner should call
@@ -42,15 +43,20 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                 unsigned long fs, int destination)
+                 int destination, int postFlag)
 {
     int bytes; //bytes read by fread
     char lfn[FTI_BUFS], str[FTI_BUFS];
     FILE* lfd;
 
-    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptFile);
+    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS]);
 
-    sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
+    if (postFlag) {
+        sprintf(str, "L2 trying to access process %d local ckpt. file (%s).", postFlag, lfn);
+    }
+    else {
+        sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
+    }
     FTI_Print(str, FTI_DBUG);
 
     lfd = fopen(lfn, "rb");
@@ -60,7 +66,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    unsigned long toSend = fs; //remaining data to send
+    unsigned long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
         bytes = fread(buffer, sizeof(char), sendSize, lfd);
@@ -89,6 +95,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
   @brief      It receives Ptner file.
   @param      pfs             Ptner file size
   @param      source          souce group rank
+  @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
 
   This function receives ckpt file from partner process and saves it as
@@ -97,13 +104,13 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                  unsigned long pfs, int source)
+                  int source, int postFlag)
 {
     int rank;
     char pfn[FTI_BUFS], str[FTI_BUFS];
 
     //heads need to use ckptFile to get ckptID and rank
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
+    sscanf(&FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS], "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
     sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
     sprintf(str, "L2 trying to access Ptner file (%s).", pfn);
     FTI_Print(str, FTI_DBUG);
@@ -115,7 +122,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    unsigned long toRecv = pfs; //remaining data to receive
+    unsigned long toRecv = FTI_Exec->meta[0].pfs[postFlag]; //remaining data to receive
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -151,43 +158,59 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    unsigned long maxFs, fs, pfs; //ckpt file size, partner file size
     int source = FTI_Topo->left; //receive Ckpt file from this process
     int destination = FTI_Topo->right; //send Ckpt file to this process
     int res;
-
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
-    res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
+    FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    if (FTI_Topo->amIaHead) {
+        int i;
+        for (i = 1; i < FTI_Topo->nodeSize; i++) {
+            if (FTI_Topo->groupRank % 2) { //first send, then receive
+                res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
+                if (res != FTI_SCES) {
+                    return FTI_NSCS;
+                }
+                res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
+                if (res != FTI_SCES) {
+                    return FTI_NSCS;
+                }
+            } else { //first receive, then send
+                res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, i);
+                if (res != FTI_SCES) {
+                    return FTI_NSCS;
+                }
+                res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
+                if (res != FTI_SCES) {
+                    return FTI_NSCS;
+                }
+            }
+        }
+    }
+    else {
+        if (FTI_Topo->groupRank % 2) { //first send, then receive
+            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        } else { //first receive, then send
+            res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+            res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 0);
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
     }
 
-    res = FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 0);
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-
-    if (FTI_Topo->groupRank % 2) { //first send, then receive
-        res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, fs, destination);
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-        res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, pfs, source);
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-    } else { //first receive, then send
-        res = FTI_RecvPtner(FTI_Conf, FTI_Exec, FTI_Ckpt, pfs, source);
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-        res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, fs, destination);
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-    }
     return FTI_SCES;
 }
 
@@ -403,8 +426,8 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    int splitRank = (FTI_Topo->amIaHead) ? gRank - ( (FTI_Topo->splitRank+1) * FTI_Topo->nbHeads ) : FTI_Topo->splitRank;
 
    // align ps to blocksize
-   ps = (FTI_Exec->meta[member].maxFs / FTI_Conf->transferSize) * FTI_Conf->transferSize;
-   if (ps < FTI_Exec->meta[member].maxFs) {
+   ps = (FTI_Exec->meta[level].maxFs[member] / FTI_Conf->transferSize) * FTI_Conf->transferSize;
+   if (ps < FTI_Exec->meta[level].maxFs[member]) {
       ps = ps + FTI_Conf->transferSize;
    }
 
@@ -454,7 +477,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          // collect chunksizes of other ranks
          lChunkSizes = talloc(MPI_Offset, nbMembers);
          for (i = 0; i < nbMembers; i++) {
-            lChunkSizes[i] = FTI_Exec->meta[i].fs;
+            lChunkSizes[i] = FTI_Exec->meta[level].fs[i];
          }
 
          chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
@@ -490,8 +513,8 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // Checkpoint files exchange
    while (pos < ps) {
-      if ((FTI_Exec->meta[member].fs - pos) < FTI_Conf->transferSize)
-         bSize = FTI_Exec->meta[member].fs - pos;
+      if ((FTI_Exec->meta[level].fs[member] - pos) < FTI_Conf->transferSize)
+         bSize = FTI_Exec->meta[level].fs[member] - pos;
 
       size_t bytes = fread(blBuf1, sizeof(char), bSize, lfd);
       if (ferror(lfd)) {
@@ -657,9 +680,9 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("failed to obtain the metadata", FTI_EROR);
                 return FTI_NSCS;
             }
-            FTI_Exec->meta[i].fs = fs;
-            FTI_Exec->meta[i].maxFs = maxFs;
-            strcpy(FTI_Exec->meta[i].ckptFile, FTI_Exec->ckptFile);
+            FTI_Exec->meta[level].fs[i] = fs;
+            FTI_Exec->meta[level].maxFs[i] = maxFs;
+            strcpy(&FTI_Exec->meta[level].ckptFile[i * FTI_BUFS], FTI_Exec->ckptFile);
 
         }
 
@@ -671,9 +694,9 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (res != FTI_SCES)
             return FTI_NSCS;
 
-        FTI_Exec->meta[0].fs = fs;
-        FTI_Exec->meta[0].maxFs = maxFs;
-        strcpy(FTI_Exec->meta[0].ckptFile, FTI_Exec->ckptFile);
+        FTI_Exec->meta[level].fs[0] = fs;
+        FTI_Exec->meta[level].maxFs[0] = maxFs;
+        strcpy(FTI_Exec->meta[level].ckptFile, FTI_Exec->ckptFile);
 
     }
 
@@ -708,9 +731,9 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("failed to obtain the metadata", FTI_EROR);
             return FTI_NSCS;
          }
-         FTI_Exec->meta[i].fs = fs;
-         FTI_Exec->meta[i].maxFs = maxFs;
-         strcpy(FTI_Exec->meta[i].ckptFile, FTI_Exec->ckptFile);
+         FTI_Exec->meta[level].fs[i] = fs;
+         FTI_Exec->meta[level].maxFs[i] = maxFs;
+         strcpy(&FTI_Exec->meta[level].ckptFile[i * FTI_BUFS], FTI_Exec->ckptFile);
 
       }
       // set parallel file name
@@ -724,9 +747,9 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       if (res != FTI_SCES)
          return FTI_NSCS;
 
-      FTI_Exec->meta[0].fs = fs;
-      FTI_Exec->meta[0].maxFs = maxFs;
-      strcpy(FTI_Exec->meta[0].ckptFile, FTI_Exec->ckptFile);
+      FTI_Exec->meta[level].fs[0] = fs;
+      FTI_Exec->meta[level].maxFs[0] = maxFs;
+      strcpy(FTI_Exec->meta[level].ckptFile, FTI_Exec->ckptFile);
 
       // set parallel file name
       snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", (FTI_Exec->ckptID));
