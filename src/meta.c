@@ -193,6 +193,70 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     return FTI_SCES;
 }
 
+void FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+{
+    int i, j;
+    if (!FTI_Topo->amIaHead) {
+        //for each level
+        for (i = 1; i < 5; i++) {
+            dictionary* ini;
+            char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+            sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+            sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+            FTI_Print(str, FTI_DBUG);
+            if (access(mfn, R_OK) == 0) {
+                ini = iniparser_load(mfn);
+                if (ini == NULL) {
+                    FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                }
+                else {
+                    FTI_Exec->meta[i].exists = 1;
+                    sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
+                    char* cfn = iniparser_getstring(ini, str, NULL);
+                    snprintf(FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", cfn);
+                    sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
+                    FTI_Exec->meta[i].fs = iniparser_getlint(ini, str, -1);
+                    sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
+                    FTI_Exec->meta[i].pfs = iniparser_getlint(ini, str, -1);
+                    FTI_Exec->meta[i].maxFs = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+                    iniparser_freedict(ini);
+                }
+            }
+        }
+    }
+    else { //I am a head
+        //for each level
+        for (i = 1; i < 5; i++) {
+            for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
+                dictionary* ini;
+                char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+                sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, j);
+                sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+                FTI_Print(str, FTI_DBUG);
+                if (access(mfn, R_OK) == 0) {
+                    ini = iniparser_load(mfn);
+                    if (ini == NULL) {
+                        FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+                    }
+                    else {
+                        FTI_Exec->bmeta[i].exists[j] = 1;
+                        sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
+                        char* cfn = iniparser_getstring(ini, str, NULL);
+                        snprintf(&FTI_Exec->bmeta[i].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", cfn);
+                        sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
+                        FTI_Exec->bmeta[i].fs[j] = iniparser_getlint(ini, str, -1);
+                        sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
+                        FTI_Exec->bmeta[i].pfs[j] = iniparser_getlint(ini, str, -1);
+                        FTI_Exec->bmeta[i].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+                        iniparser_freedict(ini);
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the metadata to recover the data after a failure.
