@@ -101,7 +101,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
             fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
         fclose (fd);
-        
+
         return FTI_NSCS;
     }
 
@@ -136,6 +136,35 @@ int FTI_Try(int result, char* message)
         FTI_Print(str, FTI_WARN);
     }
     return result;
+}
+
+
+void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    if (FTI_Topo->amIaHead) {
+        int i;
+        for (i = 1; i < 5; i++) {
+            FTI_Exec->bmeta[i].exists = calloc(1, sizeof(int));
+            FTI_Exec->bmeta[i].maxFs = calloc(1, sizeof(long));
+            FTI_Exec->bmeta[i].fs = calloc(1, sizeof(long));
+            FTI_Exec->bmeta[i].pfs = calloc(1, sizeof(long));
+            FTI_Exec->bmeta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+        }
+    }
+}
+
+void FTI_FreeMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    if (FTI_Topo->amIaHead) {
+        int i;
+        for (i = 1; i < 5; i++) {
+            free(FTI_Exec->bmeta[i].exists);
+            free(FTI_Exec->bmeta[i].maxFs);
+            free(FTI_Exec->bmeta[i].fs);
+            free(FTI_Exec->bmeta[i].pfs);
+            free(FTI_Exec->bmeta[i].ckptFile);
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
