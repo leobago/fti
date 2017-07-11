@@ -156,9 +156,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                tres = FTI_NSCS;
             }
             else {
-               FTI_Exec->meta[0].fs = fs;
-               FTI_Exec->meta[0].maxFs = maxFs;
                FTI_Exec->ckptLvel = level;
+               FTI_Exec->meta[level].fs[0] = fs;
+               FTI_Exec->meta[level].maxFs[0] = maxFs;
                switch (FTI_Exec->ckptLvel) {
                   case 4:
                      FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
