@@ -873,9 +873,9 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // number of blocks
-   nbBlocks = (FTI_Exec->meta[0].fs) / FTI_Conf->transferSize;
+   nbBlocks = (FTI_Exec->meta[4].fs[0]) / FTI_Conf->transferSize;
    block = 0; // For the logic
-   lastBlockBytes = (FTI_Exec->meta[0].fs) % FTI_Conf->transferSize; // modulo for size of last block in bytes
+   lastBlockBytes = (FTI_Exec->meta[4].fs[0]) % FTI_Conf->transferSize; // modulo for size of last block in bytes
 
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {

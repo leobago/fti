@@ -135,25 +135,12 @@ typedef struct FTIT_dataset {
  *  This type stores all the metadata necessary for the restart.
  */
 typedef struct FTIT_metadata {
-    int             exists;             /**< True if metadata exists        */
-    long            maxFs;              /**< Maximum file size.             */
-    long            fs;                 /**< File size.                     */
-    long            pfs;                /**< Partner file size.             */
-    char            ckptFile[FTI_BUFS]; /**< Ckpt file name.                */
-} FTIT_metadata;
-
-/** @typedef    FTIT_metadata
- *  @brief      Metadata for restart.
- *
- *  This type stores all the metadata necessary for the restart.
- */
-typedef struct FTIT_bodyMeta {
     int*             exists;             /**< True if metadata exists        */
     long*            maxFs;              /**< Maximum file size.             */
     long*            fs;                 /**< File size.                     */
     long*            pfs;                /**< Partner file size.             */
     char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
-} FTIT_bodyMeta;
+} FTIT_metadata;
 
 /** @typedef    FTIT_execution
  *  @brief      Execution metadata
@@ -189,7 +176,6 @@ typedef struct FTIT_execution {
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-    FTIT_bodyMeta   bmeta[5];           /**< Metadata for each body proc    */
     MPI_File        pfh;                /**< MPI-IO file handle             */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
