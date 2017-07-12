@@ -485,6 +485,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       MPI_Error_string(res, mpi_err, &reslen);
       snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
       FTI_Print(str, FTI_EROR);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -492,7 +493,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    for (i=0; i<FTI_Topo->splitRank; i++) {
       pfSector += chunkSizes[i];
    }
-
+   free(chunkSizes);
    for (i=0; i < FTI_Exec->nbVar; i++) {
 
       // determine data types
@@ -641,6 +642,11 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // open parallel file
    FTI_Exec->sid = sion_paropen_mapped_mpi(FTI_Exec->fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
+   free(gRankList);
+   free(chunkSizes);
+   free(file_map);
+   free(rank_map);
+
    // check if successful
    if (FTI_Exec->sid==-1) {
       errno = 0;
@@ -679,7 +685,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
       return FTI_NSCS;
    }
-   
+
    return FTI_SCES;
 }
 #endif

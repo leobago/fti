@@ -871,7 +871,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    for (i=0; i<FTI_Topo->splitRank; i++) {
       offset += chunkSizes[i];
    }
-
+   free(chunkSizes);
    // number of blocks
    nbBlocks = (FTI_Exec->meta[0].fs) / FTI_Conf->transferSize;
    block = 0; // For the logic
@@ -898,6 +898,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
          MPI_File_close(&pfh);
+         free(blBuf1);
          fclose(lfd);
          return FTI_NSCS;
       }
@@ -925,6 +926,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTI_Print(str, FTI_EROR);
       MPI_File_close(&pfh);
       fclose(lfd);
+      free(blBuf1);
       return FTI_NSCS;
    }
 
@@ -1030,6 +1032,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &gRankList, &chunkSizes, &file_map, &rank_map, &fsblksize, &dfp);
 
+   free(gRankList);
+   free(chunkSizes);
+   free(file_map);
+   free(rank_map);
+   
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
       FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
