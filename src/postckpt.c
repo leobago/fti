@@ -22,10 +22,6 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     unsigned long maxFs, fs;
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
-    int res = FTI_Try(FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, group, 0), "obtain metadata.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
     return FTI_SCES;
 }
 
@@ -390,9 +386,20 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    FTI_Print("Starting checkpoint post-processing L4", FTI_DBUG);
-    int res;
-    res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+    if (level == -1) {
+       return FTI_SCES; // Fake call for inline PFS checkpoint
+    }
+    char str[FTI_BUFS];
+    sprintf(str, "Starting checkpoint post-processing L4 for level %d", level);
+    FTI_Print(str, FTI_DBUG);
+    // create global temp directory
+    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+       if (errno != EEXIST) {
+          FTI_Print("Cannot create global directory", FTI_EROR);
+          return FTI_NSCS;
+       }
+    }
+    int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
@@ -662,7 +669,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             splitRanks[proc - startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //[proc - startProc] to get index from 0
         }
         else {
-            splitRanks[proc- startProc] = FTI_Topo->splitRank; //[proc - startProc] to get index from 0
+            splitRanks[proc - startProc] = FTI_Topo->splitRank; //[proc - startProc] to get index from 0
         }
         localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
     }
@@ -686,6 +693,9 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         ranks[i] = splitRanks[i];
         rank_map[i] = splitRanks[i];
     }
+    sprintf(str, "numFiles: %d; nlocaltasks: %d; ranks: %d; chunkSizes: %lld; file_map: %d; rank_map: %d; fsblksize: %d",
+                numFiles, nlocaltasks, ranks[0], chunkSizes[0], file_map[0], rank_map[0], fsblksize);
+    FTI_Print(str, FTI_WARN);
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
     if (sid == -1) {
        FTI_Print("Cannot open with sion_paropen_mapped_mpi.", FTI_EROR);
@@ -713,7 +723,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "SIONlib: unable to set file pointer");
             FTI_Print(str, FTI_EROR);
             fclose(lfd);
-            sion_parclose_mapped_mpi(FTI_Exec->sid);
+            sion_parclose_mapped_mpi(sid);
             return FTI_NSCS;
         }
 
@@ -749,5 +759,6 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             pos = pos + bytes;
         }
     }
+    sion_parclose_mapped_mpi(sid);
 }
 #endif

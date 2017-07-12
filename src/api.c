@@ -464,7 +464,7 @@ int FTI_Recover()
     char fn[FTI_BUFS], str[FTI_BUFS];
     FILE* fd;
     int i;
-    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptFile);
+    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[4].ckptFile);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -602,14 +602,8 @@ int FTI_Finalize()
                 if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
                 }
-                if ( FTI_Conf.ioMode == FTI_IO_POSIX ) {
-                    if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
-                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
-                    }
-                } else {
-                    if (rename(FTI_Conf.mTmpDir, FTI_Ckpt[4].metaDir) == -1) {
-                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
-                    }
+                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
+                    FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
                 }
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) {
                     FTI_Print("cannot save last ckpt. dir", FTI_EROR);
