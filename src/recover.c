@@ -68,61 +68,51 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
 /*-------------------------------------------------------------------------*/
 int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                      unsigned long *fs, unsigned long *maxFs, int group,
-                      int *erased, int level)
+                      int *erased)
 {
     int buf;
+    int level = FTI_Exec->ckptLvel;
     char fn[FTI_BUFS];
     char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
-    unsigned long pfs;
-    if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fs, maxFs, group, level) == FTI_SCES) {
-        FTI_Print("Metadata obtained.", FTI_DBUG);
-    }
-    else {
-        FTI_Print("Error getting metadata.", FTI_WARN);
-        return FTI_NSCS;
-    }
+    long fs = FTI_Exec->meta[level].fs[0];
+    long pfs = FTI_Exec->meta[level].pfs[0];
+    long maxFs = FTI_Exec->meta[level].maxFs[0];
+    char ckptFile[FTI_BUFS];
+    strcpy(ckptFile, FTI_Exec->meta[level].ckptFile);
+
     // TODO Checksums only local currently
     if ( level > 0 && level < 4 ) {
-        FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, group, level);
-        sprintf(fn, "Checking file %s and its erasures.", FTI_Exec->ckptFile);
-        FTI_Print(fn, FTI_DBUG);
+        FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, FTI_Topo->groupID, level);
     }
+    sprintf(fn, "Checking file %s and its erasures.", ckptFile);
+    FTI_Print(fn, FTI_DBUG);
     switch (level) {
         case 1:
-            sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->ckptFile);
-            buf = FTI_CheckFile(fn, *fs, checksum);
+            sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
+            buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 2:
-            sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptFile);
-            buf = FTI_CheckFile(fn, *fs, checksum);
+            sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
+            buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-
-            if (FTI_GetPtnerSize(FTI_Conf, FTI_Topo, FTI_Ckpt, &pfs, group, 2) == FTI_SCES) {
-                FTI_Print("PtnerSize obtained.", FTI_DBUG);
-            }
-            else {
-                FTI_Print("Error getting ptnerSize.", FTI_WARN);
-                return FTI_NSCS;
-            }
-            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
             sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
             buf = FTI_CheckFile(fn, pfs, ptnerChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 3:
-            sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
-            buf = FTI_CheckFile(fn, *fs, checksum);
+            sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
+            buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-            sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
             sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, buf);
-            buf = FTI_CheckFile(fn, *maxFs, rsChecksum);
+            buf = FTI_CheckFile(fn, maxFs, rsChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 4:
-            sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptFile);
-            buf = FTI_CheckFile(fn, *fs, "");
+            sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            buf = FTI_CheckFile(fn, fs, "");
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }
@@ -146,74 +136,51 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    int r, tres = FTI_SCES, id, level = 1;
    unsigned long fs, maxFs;
    char str[FTI_BUFS];
+   FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
    if (!FTI_Topo->amIaHead) {
       while (level < 5) {
          if ((FTI_Exec->reco == 2) && (level != 4)) {
             tres = FTI_NSCS;
          }
          else {
-            if (FTI_GetMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &fs, &maxFs, FTI_Topo->groupID, level) != FTI_SCES) {
-               tres = FTI_NSCS;
-            }
-            else {
                FTI_Exec->ckptLvel = level;
-               FTI_Exec->meta[level].fs[0] = fs;
-               FTI_Exec->meta[level].maxFs[0] = maxFs;
                switch (FTI_Exec->ckptLvel) {
                   case 4:
                      FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
                      MPI_Barrier(FTI_COMM_WORLD);
-                     switch(FTI_Conf->ioMode) {
-
-                        case FTI_IO_POSIX:
-
-                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
-                           break;
-
-                        case FTI_IO_MPI:
-
-                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-mpiio.fti", &id);
-                           break;
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-                        case FTI_IO_SIONLIB:
-
-                           sscanf(FTI_Exec->ckptFile, "Ckpt%d-sionlib.fti", &id);
-                           break;
-#endif
-                     }
+                     sscanf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
                      sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                      FTI_Print(str, FTI_DBUG);
                      FTI_Exec->ckptID = id;
                      FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                     r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                      break;
                   case 3:
-                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
                      sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                      FTI_Print(str, FTI_DBUG);
                      FTI_Exec->ckptID = id;
                      FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                     r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                      break;
                   case 2:
-                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
                      sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                      FTI_Print(str, FTI_DBUG);
                      FTI_Exec->ckptID = id;
                      FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                     r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                      break;
                   case 1:
-                     sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
+                     sscanf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", &id, &r);
                      sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                      FTI_Print(str, FTI_DBUG);
                      FTI_Exec->ckptID = id;
                      FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-                     r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Topo->groupID);
+                     r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                      break;
                }
                MPI_Allreduce(&r, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-            }
          }
 
          if (tres == FTI_SCES) {
