@@ -188,31 +188,16 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     t1 = MPI_Wtime();
 
     // initialize Flush
-    if (FTI_Exec->ckptLvel == 4) {
-        res = FTI_FlushInit(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
-    }
 
     if (FTI_Exec->ckptLvel == 2) {
         res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
     } else if (FTI_Exec->ckptLvel == 3) {
         res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    } else if (FTI_Exec->ckptLvel == 4) {
+        res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 0);
     }
     else {
-        for (i = 0; i < pr; i++) {
-            switch (FTI_Exec->ckptLvel) {
-                case 4:
-                    res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group, fo);
-                    break;
-                case 1:
-                    res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
-                    break;
-            }
-        }
-    }
-
-    // finalize Flush
-    if (FTI_Exec->ckptLvel == 4) {
-        res += FTI_FlushFinalize(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+        res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i + group);
     }
 
     MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
@@ -448,7 +433,7 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
-   int i, j, dCount, res, reslen, int_max_int=(INT_MAX-1)/2, rSize; // somehow biggest datatype is half int_max...
+   /*int i, j, dCount, res, reslen, int_max_int=(INT_MAX-1)/2, rSize; // somehow biggest datatype is half int_max...
    char str[FTI_BUFS], mpi_err[FTI_BUFS];
    void *dataOffset;
    MPI_Datatype dType, rType;
@@ -575,7 +560,7 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    MPI_File_close(&pfh);
-   MPI_Info_free(&info);
+   MPI_Info_free(&info);*/
    return FTI_SCES;
 }
 
@@ -591,7 +576,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
 
-   int i, res, numFiles = 1, nlocaltasks, *file_map, *rank_map, *gRankList;
+   /*int i, res, numFiles = 1, nlocaltasks, *file_map, *rank_map, *gRankList;
    sion_int64 *chunkSizes;
    sion_int32 fsblksize=-1;
    size_t eleSize;
@@ -680,7 +665,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (sion_parclose_mapped_mpi(FTI_Exec->sid) == -1) {
       return FTI_NSCS;
    }
-
+*/
    return FTI_SCES;
 }
 #endif
