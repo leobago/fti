@@ -465,6 +465,9 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             offset += chunkSizes[i];
          }
 
+         free(lChunkSizes);
+         free(chunkSizes);
+
          break;
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
@@ -542,6 +545,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                snprintf(str, FTI_BUFS, "Failed to write data to PFS durin Flush [MPI ERROR - %i] %s", res, mpi_err);
                FTI_Print(str, FTI_EROR);
                MPI_File_close(&FTI_Exec->pfh);
+               free(blBuf1);
                fclose(lfd);
                return FTI_NSCS;
             }
