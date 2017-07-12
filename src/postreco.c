@@ -1052,7 +1052,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // Checkpoint files transfer from PFS
    while (!sion_feof(sid)) {
 
-      chunksize = FTI_Exec->meta[0].fs;
+      chunksize = FTI_Exec->meta[0].fs[0];
 
       nbBlocks = chunksize / FTI_Conf->blockSize;
       block = 0;
