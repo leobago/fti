@@ -125,15 +125,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                int fs, int maxFs, int *erased);
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
@@ -143,8 +143,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_CheckFile(char *fn, unsigned long fs, char* checksum);
 int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                      unsigned long *fs, unsigned long *maxFs, int group,
-                      int *erased, int level);
+                      int *erased);
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 

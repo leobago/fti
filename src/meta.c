@@ -286,6 +286,8 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
                 else {
+                    sprintf(str, "Meta for level %d exists.", i);
+                    FTI_Print(str, FTI_DBUG);
                     FTI_Exec->meta[i].exists[0] = 1;
                     sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
                     char* cfn = iniparser_getstring(ini, str, NULL);
@@ -320,6 +322,8 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         return FTI_NSCS;
                     }
                     else {
+                        sprintf(str, "Meta for level %d exists.", i);
+                        FTI_Print(str, FTI_DBUG);
                         FTI_Exec->meta[i].exists[j] = 1;
                         sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
                         char* cfn = iniparser_getstring(ini, str, NULL);
