@@ -593,9 +593,7 @@ int FTI_Finalize()
     // If we need to keep the last checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
-            FTI_Try(FTI_FlushInit(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Initialize flush to the PFS.");
-            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-            FTI_Try(FTI_FlushFinalize(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Finalize flush to the PFS.");
+            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
