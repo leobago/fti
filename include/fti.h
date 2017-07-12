@@ -176,7 +176,6 @@ typedef struct FTIT_execution {
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-    MPI_File        pfh;                /**< MPI-IO file handle             */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
 } FTIT_execution;
