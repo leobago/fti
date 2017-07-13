@@ -10,6 +10,13 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers a set of ckpt. files using RS decoding.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      fs              The ckpt. file size for this process.
+    @param      maxFs           The max. ckpt. file size in the group.
+    @param      erased          The array of erasures.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the L3 ckpt. files missing using the
@@ -301,6 +308,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It checks that all L1 ckpt. files are present.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -334,9 +345,12 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It sends checkpint file.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      destination     destination group rank
-    @param      fs              filesize
-    @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt
+    @param      fs              Filesize.
+    @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt.
 
     @return     integer         FTI_SCES if successful.
 
@@ -393,9 +407,12 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It receives checkpint file.
-    @param      source          source group rank
-    @param      fs              filesize
-    @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      source          Source group rank.
+    @param      fs              Filesize.
+    @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt.
     @return     integer         FTI_SCES if successful.
 
     This function receives Ckpt or PtnerCkpt file from partner proccess.
@@ -451,6 +468,10 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers L2 ckpt. files using the partner copy.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -596,6 +617,10 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -656,6 +681,10 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers L4 ckpt. files from the PFS.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      group           The group ID.
     @return     integer         FTI_SCES if successful.
 
@@ -690,6 +719,10 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /**
     @brief      It recovers L4 ckpt. files from the PFS using POSIX.
     @param      group           The group ID.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -808,6 +841,10 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers L4 ckpt. files from the PFS using MPI-I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -956,6 +993,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It recovers L4 ckpt. files from the PFS using SIONlib.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tries to recover the ckpt. files using the L4 ckpt. files
@@ -1036,7 +1077,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    free(chunkSizes);
    free(file_map);
    free(rank_map);
-   
+
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
       FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);

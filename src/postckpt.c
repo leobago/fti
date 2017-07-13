@@ -10,6 +10,10 @@
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It returns FTI_SCES.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES.
 
@@ -32,6 +36,9 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It sends Ckpt file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      fs              Ckpt file size
   @param      destination     destination group rank
   @return     integer         FTI_SCES if successful.
@@ -87,6 +94,9 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It receives Ptner file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      pfs             Ptner file size
   @param      source          souce group rank
   @return     integer         FTI_SCES if successful.
@@ -141,6 +151,10 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It copies ckpt. files in to the partner node.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
@@ -194,6 +208,10 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It performs RS encoding with the ckpt. files in to the group.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
@@ -364,6 +382,10 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It flushes the local ckpt. files in to the PFS.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @param      level           The level from which ckpt. files are flushed.
   @return     integer         FTI_SCES if successful.
@@ -587,9 +609,13 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It selects I/O and prepares the flush for each I/O
-@param      level           The level from which ckpt. files are flushed.
-@return     integer         FTI_SCES if successful.
+    @brief      It selects I/O and prepares the flush for each I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -638,9 +664,13 @@ int FTI_FlushInit(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for POSIX I/O
-@param      level           The level from which ckpt. files are flushed.
-@return     integer         FTI_SCES if successful.
+    @brief      It prepares the Flush for POSIX I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
     Initializes the flush of locally stored checkpoint data to the PFS by POSIX
 
@@ -687,9 +717,13 @@ int FTI_FlushInitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for MPI I/O
-@param      level           The level from which ckpt. files are flushed.
-@return     integer         FTI_SCES if successful.
+    @brief      It prepares the Flush for MPI I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
    Initializes the flush of locally stored checkpoint data to the PFS by MPI I/O
 
@@ -766,9 +800,13 @@ int FTI_FlushInitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It prepares the Flush for SIONlib I/O
-@param      level           The level from which ckpt. files are flushed.
-@return     integer         FTI_SCES if successful.
+    @brief      It prepares the Flush for SIONlib I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
    Initializes the flush of locally stored checkpoint data to the PFS by SIONlib
 
@@ -913,9 +951,13 @@ int FTI_FlushInitSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It selects I/O and Finalizes Flush respectively
-@param      level           The level from which ckpt. files are flushed.
-@return     integer         FTI_SCES if successful.
+    @brief      It selects I/O and Finalizes Flush respectively.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -955,8 +997,12 @@ int FTI_FlushFinalize(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It finalizes flush for SIONlib I/O
-@return     integer         FTI_SCES if successful.
+    @brief      It finalizes flush for SIONlib I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
@@ -1000,8 +1046,12 @@ int FTI_FlushFinalizeSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      It finalizes flush for MPI I/O
-@return     integer         FTI_SCES if successful.
+    @brief      It finalizes flush for MPI I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
