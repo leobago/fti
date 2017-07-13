@@ -403,19 +403,23 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
-
-    switch(FTI_Conf->ioMode) {
-        case FTI_IO_POSIX:
-            FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-            break;
-        case FTI_IO_MPI:
-            FTI_FlushMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-            break;
+    if (!FTI_Ckpt[4].isInline) {
+        res = FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+    }
+    else {
+        switch(FTI_Conf->ioMode) {
+            case FTI_IO_POSIX:
+                FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+                break;
+            case FTI_IO_MPI:
+                FTI_FlushMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+                break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-        case FTI_IO_SIONLIB:
-            FTI_FlushSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-            break;
+            case FTI_IO_SIONLIB:
+                FTI_FlushSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+                break;
 #endif
+        }
     }
     return FTI_SCES;
 }
@@ -466,7 +470,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         char *readData = talloc(char, FTI_Conf->transferSize);
-        unsigned long bSize = FTI_Conf->transferSize;
+        long bSize = FTI_Conf->transferSize;
         long fs = FTI_Exec->meta[level].fs[proc];
         sprintf(str, "Local file size for proc %d: %ld", proc, fs);
         FTI_Print(str, FTI_DBUG);
@@ -493,9 +497,10 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 fclose(gfd);
                 return FTI_NSCS;
             }
-
             pos = pos + bytes;
         }
+        sprintf(str, "Written %ld bytes.", pos);
+        FTI_Print(str, FTI_WARN);
     }
     return FTI_SCES;
 }
@@ -516,9 +521,9 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // open parallel file (collective call)
     MPI_File pfh; // MPI-IO file handle
     char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
-    int rank, ckptID;
-    sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-    snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", ckptID);
+    //int rank, ckptID;
+    //sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+    snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, str);
     int res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
     if (res != 0) {
