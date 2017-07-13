@@ -13,6 +13,7 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It updates the local and global mean iteration time.
+    @param      FTI_Exec        Execution metadata.
     @return     integer         FTI_SCES if successful.
 
     This function updates the local and global mean iteration time. It also
@@ -66,7 +67,11 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the checkpoint data in the target file.
-    @param      FTI_Data        Dataset array.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
     This function checks whether the checkpoint needs to be local or remote,
@@ -121,6 +126,9 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Decides wich action start depending on the ckpt. level.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      level           Cleaning checkpoint level.
     @param      group           Must be groupID if App-proc. or 1 if Head.
     @param      pr              Must be 1 if App-proc. or nbApprocs if Head.
@@ -154,6 +162,10 @@ int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Decides wich action start depending on the ckpt. level.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      group           Must be groupID if App-proc. or 1 if Head.
     @param      fo              Must be -1 if App-proc. or 0 if Head.
     @param      pr              Must be 1 if App-proc. or nbApprocs if Head.
@@ -261,6 +273,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It listens for checkpoint notifications.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function listens for notifications from the application processes
@@ -313,6 +329,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Selects I/O to write to the PFS.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
 **/
@@ -365,6 +385,10 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Writes ckpt to PFS using POSIX.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
 **/
@@ -433,7 +457,11 @@ int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using MPI I/O
+  @brief      Writes ckpt to PFS using MPI I/O.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
 	In here it is taken into account, that in MPIIO the count parameter
@@ -581,8 +609,12 @@ int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-@brief      Writes ckpt to PFS using SIONlib
-@return     integer         FTI_SCES if successful.
+    @brief      Writes ckpt to PFS using SIONlib.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Data        Dataset metadata.
+    @return     integer         FTI_SCES if successful.
 
 **/
 /*-------------------------------------------------------------------------*/
