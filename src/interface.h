@@ -57,11 +57,11 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 #endif
-int FTI_WriteMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
-int FTI_WriteSer(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
 int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                    FTIT_checkpoint* FTI_Ckpt, int level, int group, int pr);
@@ -97,13 +97,10 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
-int FTI_GetMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                unsigned long *fs, unsigned long *mfs, int group, int level);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      unsigned long *fs, unsigned long mfs, char* fnl, char* checksums, int member);
+                      unsigned long *fs, unsigned long mfs, char* fnl, char* checksums);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                       FTIT_topology* FTI_Topo, int globalTmp, int member);
+                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group);
