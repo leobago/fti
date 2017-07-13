@@ -89,6 +89,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int globalTmp = (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) ? 1 : 0;
 
+    //update ckpt file name
+    snprintf(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_BUFS,
+                    "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+
     if (globalTmp) {
         // create global temp directory
         if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
@@ -328,7 +332,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    char str[FTI_BUFS], fn[FTI_BUFS];
    FILE *fd;
    int level = FTI_Exec->ckptLvel;
-   snprintf(FTI_Exec->meta[level].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
    if (level == 4 && FTI_Ckpt[4].isInline) {
        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[4].ckptFile);
    }
@@ -422,8 +425,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-   strcpy(FTI_Exec->meta[0].ckptFile, ckptFile);
-   strcpy(FTI_Exec->meta[4].ckptFile, ckptFile);
    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
    // open parallel file (collective call)
    MPI_File pfh;
@@ -505,8 +506,6 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // open parallel file
    char fn[FTI_BUFS], str[FTI_BUFS];
    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-   strcpy(FTI_Exec->meta[0].ckptFile, str);
-   strcpy(FTI_Exec->meta[4].ckptFile, str);
    sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
    int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
@@ -533,10 +532,6 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    long glbWritten = 0;
    for (i = 0; i < FTI_Exec->nbVar; i++) {
       // SIONlib write call
-      if (FTI_Topo->splitRank == 3) {
-          sprintf(str, "Saving data %d, size %ld.", i, FTI_Data[i].size);
-          FTI_Print(str, FTI_WARN);
-      }
       res = sion_fwrite(FTI_Data[i].ptr, FTI_Data[i].size, 1, sid);
 
       // check if successful
