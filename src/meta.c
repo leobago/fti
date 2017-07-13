@@ -198,26 +198,31 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     if (!FTI_Topo->amIaHead) {
         dictionary* ini;
-        char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
-        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
-        sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+        char metaFileName[FTI_BUFS], str[FTI_BUFS];
+        sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+        sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
         FTI_Print(str, FTI_DBUG);
-        if (access(mfn, R_OK) == 0) {
-            ini = iniparser_load(mfn);
+        if (access(metaFileName, R_OK) == 0) {
+            ini = iniparser_load(metaFileName);
             if (ini == NULL) {
                 FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                 return FTI_NSCS;
             }
             else {
                 FTI_Exec->meta[0].exists[0] = 1;
+
                 sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-                char* cfn = iniparser_getstring(ini, str, NULL);
-                snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s", cfn);
+                char* ckptFileName = iniparser_getstring(ini, str, NULL);
+                snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s", ckptFileName);
+
                 sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                 FTI_Exec->meta[0].fs[0] = iniparser_getlint(ini, str, -1);
+
                 sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                 FTI_Exec->meta[0].pfs[0] = iniparser_getlint(ini, str, -1);
+
                 FTI_Exec->meta[0].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+
                 iniparser_freedict(ini);
             }
         }
@@ -230,26 +235,31 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int j;
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
             dictionary* ini;
-            char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
-            sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, j);
-            sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+            char metaFileName[FTI_BUFS], str[FTI_BUFS];
+            sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, j);
+            sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
-            if (access(mfn, R_OK) == 0) {
-                ini = iniparser_load(mfn);
+            if (access(metaFileName, R_OK) == 0) {
+                ini = iniparser_load(metaFileName);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                     return FTI_NSCS;
                 }
                 else {
                     FTI_Exec->meta[0].exists[j] = 1;
+
                     sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-                    char* cfn = iniparser_getstring(ini, str, NULL);
-                    snprintf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", cfn);
+                    char* ckptFileName = iniparser_getstring(ini, str, NULL);
+                    snprintf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", ckptFileName);
+
                     sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[0].fs[j] = iniparser_getlint(ini, str, -1);
+
                     sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                     FTI_Exec->meta[0].pfs[j] = iniparser_getlint(ini, str, -1);
+
                     FTI_Exec->meta[0].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+
                     iniparser_freedict(ini);
                 }
             }
@@ -271,16 +281,16 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         //for each level
         for (i = 0; i < 5; i++) {
             dictionary* ini;
-            char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+            char metaFileName[FTI_BUFS], str[FTI_BUFS];
             if (i == 0) {
-                sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+                sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
             } else {
-                sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+                sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, FTI_Topo->groupID);
             }
-            sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+            sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
-            if (access(mfn, R_OK) == 0) {
-                ini = iniparser_load(mfn);
+            if (access(metaFileName, R_OK) == 0) {
+                ini = iniparser_load(metaFileName);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                     return FTI_NSCS;
@@ -289,14 +299,19 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     sprintf(str, "Meta for level %d exists.", i);
                     FTI_Print(str, FTI_DBUG);
                     FTI_Exec->meta[i].exists[0] = 1;
+
                     sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-                    char* cfn = iniparser_getstring(ini, str, NULL);
-                    snprintf(FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", cfn);
+                    char* ckptFileName = iniparser_getstring(ini, str, NULL);
+                    snprintf(FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", ckptFileName);
+
                     sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[i].fs[0] = iniparser_getlint(ini, str, -1);
+
                     sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                     FTI_Exec->meta[i].pfs[0] = iniparser_getlint(ini, str, -1);
+
                     FTI_Exec->meta[i].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+
                     iniparser_freedict(ini);
                 }
             }
@@ -305,18 +320,18 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else { //I am a head
         //for each level
         for (i = 0; i < 5; i++) {
-            for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
+            for (j = 1; j < FTI_Topo->nodeSize; j++) { //for all body processes
                 dictionary* ini;
-                char mfn[FTI_BUFS], str[FTI_BUFS], *cfn;
+                char metaFileName[FTI_BUFS], str[FTI_BUFS];
                 if (i == 0) {
-                    sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, j);
+                    sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, j);
                 } else {
-                    sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, j);
+                    sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, j);
                 }
-                sprintf(str, "Getting FTI metadata file (%s)...", mfn);
+                sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
                 FTI_Print(str, FTI_DBUG);
-                if (access(mfn, R_OK) == 0) {
-                    ini = iniparser_load(mfn);
+                if (access(metaFileName, R_OK) == 0) {
+                    ini = iniparser_load(metaFileName);
                     if (ini == NULL) {
                         FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                         return FTI_NSCS;
@@ -325,14 +340,19 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         sprintf(str, "Meta for level %d exists.", i);
                         FTI_Print(str, FTI_DBUG);
                         FTI_Exec->meta[i].exists[j] = 1;
+
                         sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-                        char* cfn = iniparser_getstring(ini, str, NULL);
-                        snprintf(&FTI_Exec->meta[i].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", cfn);
+                        char* ckptFileName = iniparser_getstring(ini, str, NULL);
+                        snprintf(&FTI_Exec->meta[i].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", ckptFileName);
+
                         sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                         FTI_Exec->meta[i].fs[j] = iniparser_getlint(ini, str, -1);
+
                         sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                         FTI_Exec->meta[i].pfs[j] = iniparser_getlint(ini, str, -1);
+
                         FTI_Exec->meta[i].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+
                         iniparser_freedict(ini);
                     }
                 }
@@ -454,10 +474,8 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    char tmp[FTI_BUFS], str[FTI_BUFS], lfn[FTI_BUFS], checksum[MD5_DIGEST_LENGTH];
+    char str[FTI_BUFS], lfn[FTI_BUFS], checksum[MD5_DIGEST_LENGTH];
     int i, res = FTI_SCES;
-
-
     int level = FTI_Exec->ckptLvel;
 
     long fs = FTI_Exec->meta[level].fs[0]; // Gather all the file sizes

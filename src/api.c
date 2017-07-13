@@ -145,7 +145,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            //FTI_PrintMeta(&FTI_Exec, &FTI_Topo);
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Abort();
@@ -159,9 +158,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Finalize();
     }
     else { // If I am an application process
-        //FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
-            //FTI_PrintMeta(&FTI_Exec, &FTI_Topo);
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Abort();
