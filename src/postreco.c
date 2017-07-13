@@ -653,18 +653,23 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
    int res;
-   switch(FTI_Conf->ioMode) {
-      case FTI_IO_POSIX:
-         res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-         break;
-      case FTI_IO_MPI:
-         res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-         break;
+   if (!FTI_Ckpt[4].isInline) {
+       res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+   }
+   else {
+       switch(FTI_Conf->ioMode) {
+          case FTI_IO_POSIX:
+             res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+             break;
+          case FTI_IO_MPI:
+             res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+             break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-      case FTI_IO_SIONLIB:
-         res = FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-         break;
+          case FTI_IO_SIONLIB:
+             res = FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+             break;
 #endif
+       }
    }
 
    return res;
@@ -715,18 +720,19 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // Open and resize files
+   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[4].ckptFile);
 
    gfd = fopen(gfn, "rb");
    if (gfd == NULL) {
-      FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_DBUG);
+      FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_WARN);
       return FTI_NSCS;
    }
 
    lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
-      FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+      FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
       fclose(gfd);
       return FTI_NSCS;
    }
@@ -802,13 +808,9 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // set stripping unit to 4MB
    MPI_Info_set(info, "stripping_unit", "4194304");
 
-
-
-   // rename checkpoint file.
-   int ckptID, rank;
-   sscanf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[4].ckptFile);
-   sprintf(gfn, "%s/Ckpt%d-mpiio.fti", FTI_Ckpt[4].dir, ckptID);
+   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+   sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
    // open parallel file
    MPI_File pfh;
@@ -918,11 +920,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        }
    }
 
-   // rename checkpoint file.
-   int ckptID, rank;
-   sscanf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[4].ckptFile);
-   sprintf(gfn, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, ckptID);
+   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+   sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
    // this is done, since sionlib aborts if the file is not readable.
    if (access(gfn, F_OK) != 0) {
@@ -990,6 +989,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          }
 
          pos = pos + bSize;
+      }
+      if (FTI_Topo->splitRank == 3) {
+          sprintf(str, "Read data %ld. S%dG%d", pos, FTI_Topo->sectorID, FTI_Topo->groupID);
+          FTI_Print(str, FTI_WARN);
       }
    }
    free(readData);
