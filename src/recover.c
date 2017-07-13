@@ -143,8 +143,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             tres = FTI_NSCS;
          }
          else {
-               FTI_Exec->ckptLvel = level;
                if (FTI_Exec->meta[level].exists[0]) {
+                   FTI_Exec->ckptLvel = level;
                    switch (FTI_Exec->ckptLvel) {
                       case 4:
                          FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
