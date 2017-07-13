@@ -136,7 +136,7 @@ typedef struct FTIT_metadata {
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
- *  @brief      Execution metadata
+ *  @brief      Execution metadata.
  *
  *  This type stores all the dynamic metadata related to the current execution
  */
