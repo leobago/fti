@@ -40,8 +40,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    sscanf(FTI_Exec->ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &i);
-    sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptFile);
+    sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
     sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, i);
 
     data = talloc(char*, k);
