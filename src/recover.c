@@ -11,7 +11,8 @@
 /**
     @brief      It checks if a file exist and that its size is 'correct'.
     @param      fn              The ckpt. file name to check.
-    @param      fs              The ckpt. file size tocheck.
+    @param      fs              The ckpt. file size to check.
+    @param      checksum        The file checksum to check.
     @return     integer         0 if file exists, 1 if not or wrong size.
 
     This function checks whether a file exist or not and if its size is
@@ -53,6 +54,10 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It detects all the erasures for a particular level.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      fs              The ckpt. file size for this process.
     @param      maxFs           The max. ckpt. file size in the group.
     @param      group           The group ID.
@@ -132,6 +137,10 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It decides wich action take depending on the restart level.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function launches the required action depending on the recovery
