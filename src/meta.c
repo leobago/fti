@@ -232,7 +232,7 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else { //I am a head
-        int j;
+        int j, biggestCkptID = 0;
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
             dictionary* ini;
             char metaFileName[FTI_BUFS], str[FTI_BUFS];
@@ -251,6 +251,12 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
                     char* ckptFileName = iniparser_getstring(ini, str, NULL);
                     snprintf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", ckptFileName);
+
+                    //update heads ckptID
+                    sscanf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], "Ckpt%d", &FTI_Exec->ckptID);
+                    if (FTI_Exec->ckptID < biggestCkptID) {
+                        FTI_Exec->ckptID = biggestCkptID;
+                    }
 
                     sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[0].fs[j] = iniparser_getlint(ini, str, -1);
@@ -318,6 +324,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else { //I am a head
+        int biggestCkptID = FTI_Exec->ckptID;
         //for each level
         for (i = 0; i < 5; i++) {
             for (j = 1; j < FTI_Topo->nodeSize; j++) { //for all body processes
@@ -345,6 +352,12 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         char* ckptFileName = iniparser_getstring(ini, str, NULL);
                         snprintf(&FTI_Exec->meta[i].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", ckptFileName);
 
+                        //update heads ckptID
+                        sscanf(&FTI_Exec->meta[i].ckptFile[j * FTI_BUFS], "Ckpt%d", &FTI_Exec->ckptID);
+                        if (FTI_Exec->ckptID < biggestCkptID) {
+                            FTI_Exec->ckptID = biggestCkptID;
+                        }
+
                         sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                         FTI_Exec->meta[i].fs[j] = iniparser_getlint(ini, str, -1);
 
@@ -354,6 +367,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTI_Exec->meta[i].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
 
                         iniparser_freedict(ini);
+
                     }
                 }
             }
