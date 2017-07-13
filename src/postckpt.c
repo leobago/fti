@@ -18,7 +18,7 @@
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int group)
+              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     unsigned long maxFs, fs;
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);

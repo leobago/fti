@@ -150,16 +150,12 @@ typedef struct FTIT_metadata {
 typedef struct FTIT_execution {
     char            id[FTI_BUFS];       /**< Execution ID.                  */
     char            ckptFile[FTI_BUFS]; /**< Checkpoint file name.          */
-    char            fn[FTI_BUFS];       /**< Temp file name full path.      */
     int             ckpt;               /**< Checkpoint flag.               */
     int             reco;               /**< Recovery flag.                 */
     int             ckptLvel;           /**< Checkpoint level.              */
     int             ckptIntv;           /**< Ckpt. interval in minutes.     */
     int             lastCkptLvel;       /**< Last checkpoint level.         */
     int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    int             sid;                /**< SIONlib filehandle             */
-#endif
     double          iterTime;           /**< Current wall time.             */
     double          lastIterTime;       /**< Time spent in the last iter.   */
     double          meanIterTime;       /**< Mean iteration time.           */
