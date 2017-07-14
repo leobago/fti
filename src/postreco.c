@@ -951,7 +951,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       free(file_map);
       free(ranks);
       free(rank_map);
-      free(chunkSize);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -963,7 +963,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       free(file_map);
       free(ranks);
       free(rank_map);
-      free(chunkSize);
+      free(chunkSizes);
       fclose(lfd);
       return FTI_NSCS;
    }
@@ -987,7 +987,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(file_map);
             free(ranks);
             free(rank_map);
-            free(chunkSize);
+            free(chunkSizes);
             free(readData);
             fclose(lfd);
             return FTI_NSCS;
@@ -1002,7 +1002,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(file_map);
             free(ranks);
             free(rank_map);
-            free(chunkSize);
+            free(chunkSizes);
             return  FTI_NSCS;
          }
 
@@ -1017,7 +1017,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    free(file_map);
    free(ranks);
    free(rank_map);
-   free(chunkSize);
+   free(chunkSizes);
 
    return FTI_SCES;
 }
