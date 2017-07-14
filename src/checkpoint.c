@@ -426,6 +426,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       MPI_Error_string(res, mpi_err, NULL);
       snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
       FTI_Print(str, FTI_EROR);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -435,6 +436,8 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    for (i = 0; i < FTI_Topo->splitRank; i++) {
       offset += chunkSizes[i];
    }
+   free(chunkSizes);
+
    for (i = 0; i < FTI_Exec->nbVar; i++) {
        long pos = 0;
        long varSize = FTI_Data[i].size;
@@ -500,6 +503,11 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (sid == -1) {
       errno = 0;
       FTI_Print("SIONlib: File could no be opened", FTI_EROR);
+
+      free(file_map);
+      free(rank_map);
+      free(ranks);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -511,6 +519,10 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       errno = 0;
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(sid);
+      free(file_map);
+      free(rank_map);
+      free(ranks);
+      free(chunkSizes);
       return FTI_NSCS;
    }
 
@@ -525,6 +537,10 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          errno = 0;
          FTI_Print("SIONlib: Data could not be written", FTI_EROR);
          res =  sion_parclose_mapped_mpi(sid);
+         free(file_map);
+         free(rank_map);
+         free(ranks);
+         free(chunkSizes);
          return FTI_NSCS;
       }
 
@@ -533,8 +549,17 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // close parallel file
    if (sion_parclose_mapped_mpi(sid) == -1) {
        FTI_Print("Cannot close sionlib file.", FTI_WARN);
+       free(file_map);
+       free(rank_map);
+       free(ranks);
+       free(chunkSizes);
       return FTI_NSCS;
    }
+   free(file_map);
+   free(rank_map);
+   free(ranks);
+   free(chunkSizes);
+
    return FTI_SCES;
 }
 #endif

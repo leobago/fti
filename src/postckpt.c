@@ -495,6 +495,9 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             pos = pos + bytes;
         }
+        free(readData);
+        fclose(lfd);
+        fclose(gfd);
     }
     return FTI_SCES;
 }
@@ -561,6 +564,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     MPI_Offset* allFileSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
     MPI_Allgather(localFileSizes, nbProc, MPI_OFFSET, allFileSizes, nbProc, MPI_OFFSET, FTI_COMM_WORLD);
+    free(localFileSizes);
 
     for (proc = startProc; proc < endProc; proc++) {
         MPI_Offset offset = 0;
@@ -572,9 +576,9 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FILE* lfd = fopen(&localFileNames[FTI_BUFS * proc], "rb");
         if (lfd == NULL) {
            FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
-           free(splitRanks);
-           free(localFileSizes);
+           free(localFileNames);
            free(allFileSizes);
+           free(splitRanks);
            return FTI_NSCS;
         }
 
@@ -592,9 +596,9 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             size_t bytes = fread(readData, sizeof(char), bSize, lfd);
             if (ferror(lfd)) {
               FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
-              free(splitRanks);
-              free(localFileSizes);
+              free(localFileNames);
               free(allFileSizes);
+              free(splitRanks);
               free(readData);
               fclose(lfd);
               MPI_File_close(&pfh);
@@ -613,8 +617,8 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 MPI_Error_string(res, mpi_err, &reslen);
                 snprintf(str, FTI_BUFS, "Failed to write data to PFS during MPIIO Flush [MPI ERROR - %i] %s", res, mpi_err);
                 FTI_Print(str, FTI_EROR);
+                free(localFileNames);
                 free(splitRanks);
-                free(localFileSizes);
                 free(allFileSizes);
                 fclose(lfd);
                 MPI_File_close(&pfh);
@@ -624,13 +628,12 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             offset += bytes;
             pos = pos + bytes;
         }
-        free(splitRanks);
-        free(localFileSizes);
-        free(allFileSizes);
         free(readData);
         fclose(lfd);
     }
-
+    free(localFileNames);
+    free(allFileSizes);
+    free(splitRanks);
     MPI_File_close(&pfh);
     return FTI_SCES;
 }
@@ -694,6 +697,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        FTI_Print("Cannot open with sion_paropen_mapped_mpi.", FTI_EROR);
 
        free(file_map);
+       free(ranks);
        free(rank_map);
        free(chunkSizes);
 
@@ -704,8 +708,13 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FILE* lfd = fopen(&localFileNames[FTI_BUFS * proc], "rb");
         if (lfd == NULL) {
            FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
+           free(localFileNames);
            free(splitRanks);
-           free(localFileSizes);
+           sion_parclose_mapped_mpi(sid);
+           free(file_map);
+           free(ranks);
+           free(rank_map);
+           free(chunkSizes);
            return FTI_NSCS;
         }
 
@@ -715,8 +724,14 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             errno = 0;
             sprintf(str, "SIONlib: unable to set file pointer");
             FTI_Print(str, FTI_EROR);
+            free(localFileNames);
+            free(splitRanks);
             fclose(lfd);
             sion_parclose_mapped_mpi(sid);
+            free(file_map);
+            free(ranks);
+            free(rank_map);
+            free(chunkSizes);
             return FTI_NSCS;
         }
 
@@ -733,9 +748,15 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             size_t bytes = fread(readData, sizeof(char), bSize, lfd);
             if (ferror(lfd)) {
                 FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
+                free(localFileNames);
+                free(splitRanks);
                 free(readData);
                 fclose(lfd);
                 sion_parclose_mapped_mpi(sid);
+                free(file_map);
+                free(ranks);
+                free(rank_map);
+                free(chunkSizes);
                 return FTI_NSCS;
             }
 
@@ -743,15 +764,27 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             if (data_written < 0) {
                 FTI_Print("Sionlib: could not write data", FTI_EROR);
+                free(localFileNames);
+                free(splitRanks);
                 free(readData);
                 fclose(lfd);
                 sion_parclose_mapped_mpi(sid);
+                free(file_map);
+                free(ranks);
+                free(rank_map);
+                free(chunkSizes);
                 return FTI_NSCS;
             }
 
             pos = pos + bytes;
         }
     }
+    free(localFileNames);
+    free(splitRanks);
     sion_parclose_mapped_mpi(sid);
+    free(file_map);
+    free(ranks);
+    free(rank_map);
+    free(chunkSizes);
 }
 #endif
