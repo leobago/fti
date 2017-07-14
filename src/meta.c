@@ -252,7 +252,7 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     char* ckptFileName = iniparser_getstring(ini, str, NULL);
                     snprintf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], FTI_BUFS, "%s", ckptFileName);
 
-                    //update heads ckptID
+                    //update head's ckptID
                     sscanf(&FTI_Exec->meta[0].ckptFile[j * FTI_BUFS], "Ckpt%d", &FTI_Exec->ckptID);
                     if (FTI_Exec->ckptID < biggestCkptID) {
                         FTI_Exec->ckptID = biggestCkptID;
@@ -367,7 +367,6 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTI_Exec->meta[i].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
 
                         iniparser_freedict(ini);
-
                     }
                 }
             }
@@ -492,9 +491,17 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, res = FTI_SCES;
     int level = FTI_Exec->ckptLvel;
 
+    FTI_Exec->meta[level].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[level].fs[0]; // Gather all the file sizes
     long fileSizes[FTI_BUFS];
     MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+
+    //update partner file size:
+    if (FTI_Exec->ckptLvel == 2) {
+        int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+        FTI_Exec->meta[2].pfs[0] = fileSizes[ptnerGroupRank];
+    }
+
     long mfs = 0;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         if (fileSizes[i] > mfs) {
