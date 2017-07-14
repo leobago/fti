@@ -40,8 +40,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
+    int ckptID, rank;
+    sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
     sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
-    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, i);
 
     data = talloc(char*, k);
     coding = talloc(char*, m);
@@ -351,9 +353,9 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     long toSend ; // remaining data to send
     if (ptner) {    //if want to send Ptner file
-        int rank;
-        sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
-        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
+        int ckptID, rank;
+        sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank); //do we need this from filename?
+        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
         toSend = FTI_Exec->meta[2].pfs[0];
     } else {    //if want to send Ckpt file
         sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
@@ -411,8 +413,8 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     long toRecv;    //remaining data to receive
     if (ptner) { //if want to receive Ptner file
-        int rank;
-        sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank); //do we need this from filename?
+        int ckptID, rank;
+        sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
         sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
         toRecv = FTI_Exec->meta[2].pfs[0];
     } else { //if want to receive Ckpt file
@@ -652,14 +654,11 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
    int res;
-   if (!FTI_Ckpt[4].isInline) {
+   if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX) {
        res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
    }
    else {
        switch(FTI_Conf->ioMode) {
-          case FTI_IO_POSIX:
-             res = FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-             break;
           case FTI_IO_MPI:
              res = FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
              break;
@@ -796,7 +795,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int i, reslen, buf;
+   int i, buf;
    char gfn[FTI_BUFS], lfn[FTI_BUFS], mpi_err[FTI_BUFS], str[FTI_BUFS];
 
    // TODO enable to set stripping unit in the config file (Maybe also other hints)
@@ -819,9 +818,9 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // check if successful
    if (buf != 0) {
       errno = 0;
-      MPI_Error_string(buf, mpi_err, &reslen);
+      MPI_Error_string(buf, mpi_err, NULL);
       if (buf != MPI_ERR_NO_SUCH_FILE) {
-         snprintf(str, FTI_BUFS, "unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
+         snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
       }
       return FTI_NSCS;
@@ -865,7 +864,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       // check if successful
       if (buf != 0) {
          errno = 0;
-         MPI_Error_string(buf, mpi_err, &reslen);
+         MPI_Error_string(buf, mpi_err, NULL);
          snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
          MPI_File_close(&pfh);
@@ -949,14 +948,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
    }
 
-   char *readData = talloc(char, FTI_Conf->transferSize);
-   MPI_Barrier(FTI_COMM_WORLD);
    res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
    // check if successful
    if (res != SION_SUCCESS) {
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(sid);
-      free(readData);
       fclose(lfd);
       return FTI_NSCS;
    }
@@ -993,8 +989,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
          pos = pos + bSize;
       }
+      free(readData);
    }
-   free(readData);
 
    fclose(lfd);
 

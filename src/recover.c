@@ -71,6 +71,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       int *erased)
 {
     int buf;
+    int ckptID, rank;
     int level = FTI_Exec->ckptLvel;
     char fn[FTI_BUFS];
     char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
@@ -96,8 +97,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-            sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, buf);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+            sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, pfs, ptnerChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -105,8 +106,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &buf);
-            sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, FTI_Exec->ckptID, buf);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+            sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, maxFs, rsChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
