@@ -20,7 +20,6 @@
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    unsigned long maxFs, fs;
     FTI_Print("Starting checkpoint post-processing L1", FTI_DBUG);
     return FTI_SCES;
 }
@@ -48,7 +47,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
     sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS]);
 
     if (postFlag) {
-        sprintf(str, "L2 trying to access process %d local ckpt. file (%s).", postFlag, lfn);
+        sprintf(str, "L2 trying to access process's %d ckpt. file (%s).", postFlag, lfn);
     }
     else {
         sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
@@ -62,7 +61,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    unsigned long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
+    long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
         bytes = fread(buffer, sizeof(char), sendSize, lfd);
@@ -102,12 +101,12 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                   int source, int postFlag)
 {
-    int rank;
+    int ckptID, rank;
     char pfn[FTI_BUFS], str[FTI_BUFS];
 
     //heads need to use ckptFile to get ckptID and rank
-    sscanf(&FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS], "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
-    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, rank);
+    sscanf(&FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
     sprintf(str, "L2 trying to access Ptner file (%s).", pfn);
     FTI_Print(str, FTI_DBUG);
 
@@ -236,8 +235,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int proc;
     for (proc = startProc; proc < endProc; proc++) {
-        long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
         long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
+        long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
 
         ps = ((maxFs / bs)) * bs;
         if (ps < maxFs) {
@@ -403,14 +402,11 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
-    if (!FTI_Ckpt[4].isInline) {
+    if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX) {
         res = FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
     }
     else {
         switch(FTI_Conf->ioMode) {
-            case FTI_IO_POSIX:
-                FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-                break;
             case FTI_IO_MPI:
                 FTI_FlushMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
                 break;
@@ -499,8 +495,6 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             pos = pos + bytes;
         }
-        sprintf(str, "Written %ld bytes.", pos);
-        FTI_Print(str, FTI_WARN);
     }
     return FTI_SCES;
 }
@@ -521,8 +515,6 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // open parallel file (collective call)
     MPI_File pfh; // MPI-IO file handle
     char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
-    //int rank, ckptID;
-    //sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, str);
     int res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
@@ -538,7 +530,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     MPI_Info_free(&info);
 
-    int proc, startProc, endProc, nbProc;
+    int proc, startProc, endProc;
     if (FTI_Topo->amIaHead) {
         startProc = 1;
         endProc = FTI_Topo->nodeSize;
@@ -547,20 +539,16 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         startProc = 0;
         endProc = 1;
     }
-    nbProc = endProc - startProc;
+    int nbProc = endProc - startProc;
     MPI_Offset* localFileSizes = talloc(MPI_Offset, nbProc);
     char* localFileNames = talloc(char, FTI_BUFS * endProc);
     int* splitRanks = talloc(int, endProc); //rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
-        // Open local file case 0:
         if (level == 0) {
             sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         }
         else {
             sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
-            //change meta for flushed level
-            snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-            strcpy(FTI_Exec->meta[4].ckptFile, str);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1;
@@ -651,7 +639,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    int proc, startProc, endProc, nbProc;
+    int proc, startProc, endProc;
     if (FTI_Topo->amIaHead) {
         startProc = 1;
         endProc = FTI_Topo->nodeSize;
@@ -660,7 +648,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         startProc = 0;
         endProc = 1;
     }
-    nbProc = endProc - startProc;
+    int nbProc = endProc - startProc;
 
     long* localFileSizes = talloc(long, nbProc);
     char* localFileNames = talloc(char, FTI_BUFS * nbProc);

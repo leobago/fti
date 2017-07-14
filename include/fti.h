@@ -149,7 +149,6 @@ typedef struct FTIT_metadata {
  */
 typedef struct FTIT_execution {
     char            id[FTI_BUFS];       /**< Execution ID.                  */
-    char            ckptFile[FTI_BUFS]; /**< Checkpoint file name.          */
     int             ckpt;               /**< Checkpoint flag.               */
     int             reco;               /**< Recovery flag.                 */
     int             ckptLvel;           /**< Checkpoint level.              */
