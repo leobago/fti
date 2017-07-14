@@ -842,6 +842,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    for (i = 0; i < FTI_Topo->splitRank; i++) {
       offset += chunkSizes[i];
    }
+   free(chunkSizes);
 
    FILE *lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
@@ -867,6 +868,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          MPI_Error_string(buf, mpi_err, NULL);
          snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
+         free(readData);
          MPI_File_close(&pfh);
          fclose(lfd);
          return FTI_NSCS;
@@ -945,6 +947,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    FILE* lfd = fopen(lfn, "wb");
    if (lfd == NULL) {
       FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+      sion_parclose_mapped_mpi(sid);
+      free(file_map);
+      free(ranks);
+      free(rank_map);
+      free(chunkSize);
       return FTI_NSCS;
    }
 
@@ -953,6 +960,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (res != SION_SUCCESS) {
       FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
       sion_parclose_mapped_mpi(sid);
+      free(file_map);
+      free(ranks);
+      free(rank_map);
+      free(chunkSize);
       fclose(lfd);
       return FTI_NSCS;
    }
@@ -973,6 +984,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "SIONlib: Unable to read %lu Bytes from file", bSize);
             FTI_Print(str, FTI_EROR);
             sion_parclose_mapped_mpi(sid);
+            free(file_map);
+            free(ranks);
+            free(rank_map);
+            free(chunkSize);
             free(readData);
             fclose(lfd);
             return FTI_NSCS;
@@ -984,6 +999,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(readData);
             fclose(lfd);
             sion_parclose_mapped_mpi(sid);
+            free(file_map);
+            free(ranks);
+            free(rank_map);
+            free(chunkSize);
             return  FTI_NSCS;
          }
 
@@ -995,6 +1014,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    fclose(lfd);
 
    sion_parclose_mapped_mpi(sid);
+   free(file_map);
+   free(ranks);
+   free(rank_map);
+   free(chunkSize);
 
    return FTI_SCES;
 }

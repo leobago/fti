@@ -104,6 +104,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     ini = iniparser_load(fileName);
     if (ini == NULL) {
         FTI_Print("Temporary metadata file could NOT be parsed", FTI_WARN);
+        free(checksums);
         return FTI_NSCS;
     }
     // Add metadata to dictionary
