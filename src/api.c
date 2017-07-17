@@ -71,6 +71,48 @@ void FTI_Abort()
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      It prints the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function prints the metadata for each process.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    int i, j, k;
+    char str[FTI_BUFS];
+    for (i = 0; i < FTI_Topo->nbProc; i++) {
+        if (FTI_Topo->myRank == i) {
+            if (FTI_Topo->amIaHead) {
+                sprintf(str, "I am a head. Node: %d, Group: %d", FTI_Topo->nodeID, FTI_Topo->groupID);
+                FTI_Print(str, FTI_WARN);
+                for (j = 1; j < FTI_Topo->nodeSize; j++) {
+                    for (k = 0; k < 5; k++) {
+                        sprintf(str, "Approcs %d: Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
+                                j, k, FTI_Exec->meta[k].exists[j], FTI_Exec->meta[k].fs[j], FTI_Exec->meta[k].maxFs[j],
+                                FTI_Exec->meta[k].pfs[j], &FTI_Exec->meta[k].ckptFile[j * FTI_BUFS]);
+                        FTI_Print(str, FTI_WARN);
+                    }
+                }
+            }
+            else {
+                for (k = 0; k < 5; k++) {
+                    sprintf(str, "Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
+                            k, FTI_Exec->meta[k].exists[0], FTI_Exec->meta[k].fs[0], FTI_Exec->meta[k].maxFs[0],
+                            FTI_Exec->meta[k].pfs[0], FTI_Exec->meta[k].ckptFile);
+                    FTI_Print(str, FTI_WARN);
+                }
+            }
+        }
+        MPI_Barrier(FTI_COMM_WORLD);
+    }
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      Initializes FTI.
     @param      configFile      FTI configuration file.
     @param      globalComm      Main MPI communicator of the application.
@@ -106,8 +148,12 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
+    FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
+    res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+    if (res == FTI_NSCS) {
+        FTI_Abort();
+    }
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
-        FTI_Exec.meta = talloc(FTIT_metadata,FTI_Topo.nbApprocs);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -122,7 +168,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Finalize();
     }
     else { // If I am an application process
-        FTI_Exec.meta = talloc(FTIT_metadata,1);
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
@@ -426,7 +471,7 @@ int FTI_Recover()
     char fn[FTI_BUFS], str[FTI_BUFS];
     FILE* fd;
     int i;
-    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptFile);
+    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -525,6 +570,7 @@ int FTI_Finalize()
     int isCkpt;
 
     if (FTI_Topo.amIaHead) {
+        FTI_FreeMeta(&FTI_Exec);
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
@@ -554,9 +600,7 @@ int FTI_Finalize()
     // If we need to keep the last checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
-            FTI_Try(FTI_FlushInit(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Initialize flush to the PFS.");
-            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-            FTI_Try(FTI_FlushFinalize(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "Finalize flush to the PFS.");
+            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
@@ -565,14 +609,8 @@ int FTI_Finalize()
                 if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].metaDir, 1);
                 }
-                if ( FTI_Conf.ioMode == FTI_IO_POSIX ) {
-                    if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
-                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
-                    }
-                } else {
-                    if (rename(FTI_Conf.mTmpDir, FTI_Ckpt[4].metaDir) == -1) {
-                        FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
-                    }
+                if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) {
+                    FTI_Print("cannot save last ckpt. metaDir", FTI_EROR);
                 }
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) {
                     FTI_Print("cannot save last ckpt. dir", FTI_EROR);
@@ -593,6 +631,7 @@ int FTI_Finalize()
         }
         buff = 5; // For cleaning everything
     }
+    FTI_FreeMeta(&FTI_Exec);
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, buff, FTI_Topo.groupID, FTI_Topo.myRank), "do final clean.");
     FTI_Print("FTI has been finalized.", FTI_INFO);
