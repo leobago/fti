@@ -14,7 +14,6 @@
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      group           The group ID.
   @return     integer         FTI_SCES.
 
   This function just returns FTI_SCES to have homogeneous code.
@@ -34,7 +33,6 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      fs              Ckpt file size
   @param      destination     destination group rank
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
@@ -98,7 +96,6 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      pfs             Ptner file size
   @param      source          souce group rank
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
@@ -157,7 +154,6 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
   This function copies the checkpoint files into the partner node. It
@@ -215,7 +211,6 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
   This function performs the Reed-Solomon encoding for a given group. The
@@ -407,7 +402,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
-  @param      group           The group ID.
   @param      level           The level from which ckpt. files are flushed.
   @return     integer         FTI_SCES if successful.
 

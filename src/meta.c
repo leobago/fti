@@ -212,10 +212,6 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
-    @param      fs              Pointer to fill the checkpoint file size.
-    @param      mfs             Pointer to fill the maximum file size.
-    @param      group           The group in the node.
-    @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successful.
 
     This function reads the temporary metadata file created during checkpointing and
@@ -510,9 +506,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
-    @param      globalTmp       1 if using global temporary directory.
-    @param      member          0 if application process groupID of
-                                respective application process if head.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function gathers information about the checkpoint files in the

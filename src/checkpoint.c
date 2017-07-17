@@ -336,6 +336,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
