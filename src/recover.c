@@ -58,11 +58,7 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
-    @param      fs              The ckpt. file size for this process.
-    @param      maxFs           The max. ckpt. file size in the group.
-    @param      group           The group ID.
     @param      erased          The array of erasures to fill.
-    @param      level           The ckpt. level to check for erasures.
     @return     integer         FTI_SCES if successful.
 
     This function detects all the erasures for L1, L2 and L3. It return the
