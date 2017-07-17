@@ -140,6 +140,60 @@ int FTI_Try(int result, char* message)
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      It mallocs memory for the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function mallocs the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    int i;
+    if (FTI_Topo->amIaHead) {
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+        }
+    } else {
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It frees memory for the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function frees the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_FreeMeta(FTIT_execution* FTI_Exec)
+{
+    int i;
+    for (i = 0; i < 5; i++) {
+        free(FTI_Exec->meta[i].exists);
+        free(FTI_Exec->meta[i].maxFs);
+        free(FTI_Exec->meta[i].fs);
+        free(FTI_Exec->meta[i].pfs);
+        free(FTI_Exec->meta[i].ckptFile);
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It creates the basic datatypes and the dataset array.
     @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
