@@ -10,6 +10,9 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the checksums from metadata.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      checksum        Pointer to fill the checkpoint checksum.
     @param      ptnerChecksum   Pointer to fill the ptner file checksum.
     @param      rsChecksum      Pointer to fill the RS file checksum.
@@ -71,6 +74,10 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the RSed file checksum to metadata.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      rank            global rank of the process
     @param      checksum        Pointer to the checksum.
     @return     integer         FTI_SCES if successful.
@@ -154,6 +161,9 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It gets the ptner file size from metadata.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      pfs             Pointer to fill the ptner file size.
     @param      group           The group in the node.
     @param      level           The level of the ckpt or 0 if tmp.
@@ -194,6 +204,26 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     return FTI_SCES;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It gets the metadata to recover the data after a failure.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      fs              Pointer to fill the checkpoint file size.
+    @param      mfs             Pointer to fill the maximum file size.
+    @param      group           The group in the node.
+    @param      level           The level of the ckpt or 0 if tmp.
+    @return     integer         FTI_SCES if successful.
+
+    This function reads the temporary metadata file created during checkpointing and
+    recovers the checkpoint file name, file size and the size of the largest
+    file in the group (for padding if necessary during decoding).
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
@@ -379,9 +409,12 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the metadata to recover the data after a failure.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      fs              Pointer to the list of checkpoint sizes.
     @param      mfs             The maximum checkpoint file size.
     @param      fnl             Pointer to the list of checkpoint names.
+    @param      checksums       Checksums array.
     @return     integer         FTI_SCES if successful.
 
     This function should be executed only by one process per group. It
@@ -474,6 +507,9 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the metadata to recover the data after a failure.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      globalTmp       1 if using global temporary directory.
     @param      member          0 if application process groupID of
                                 respective application process if head.

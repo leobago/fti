@@ -10,6 +10,10 @@
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It returns FTI_SCES.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES.
 
@@ -27,6 +31,9 @@ int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It sends Ckpt file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      fs              Ckpt file size
   @param      destination     destination group rank
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
@@ -88,6 +95,9 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It receives Ptner file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      pfs             Ptner file size
   @param      source          souce group rank
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
@@ -143,6 +153,10 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It copies ckpt. files in to the partner node.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
@@ -197,6 +211,10 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It performs RS encoding with the ckpt. files in to the group.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
   @param      group           The group ID.
   @return     integer         FTI_SCES if successful.
 
@@ -382,6 +400,21 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It flushes the local ckpt. files in to the PFS.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      group           The group ID.
+  @param      level           The level from which ckpt. files are flushed.
+  @return     integer         FTI_SCES if successful.
+
+  This function flushes the local checkpoint files in to the PFS.
+
+ **/
+ /*-------------------------------------------------------------------------*/
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
