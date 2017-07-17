@@ -10,6 +10,8 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Sets the exec. ID and failure parameters in the conf. file.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
     @param      restart         Value to set in the conf. file (0 or 1).
     @return     integer         FTI_SCES if successful.
 
@@ -78,6 +80,11 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It reads the configuration given in the configuration file.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Inje        Type to describe failure injections in FTI.
     @return     integer         FTI_SCES if successful.
 
     This function reads the configuration given in the FTI configuration
@@ -193,6 +200,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It tests that the configuration given is correct.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tests the FTI configuration to make sure that all
@@ -290,6 +300,8 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It tests that the directories given is correct.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tests that the directories given in the FTI configuration
@@ -341,6 +353,10 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It creates the directories required for current execution.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @return     integer         FTI_SCES if successful.
 
     This function creates the temporary metadata, local and global
@@ -406,6 +422,11 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It reads and tests the configuration given.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Inje        Type to describe failure injections in FTI.
     @return     integer         FTI_SCES if successful.
 
     This function reads the configuration file. Then test that the
