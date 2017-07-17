@@ -10,6 +10,8 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It writes the topology in a file for recovery.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      nameList        The list of the node names.
     @return     integer         FTI_SCES if successful.
 
@@ -89,6 +91,8 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It reorders the nodes following the previous topology.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      nodeList        The list of the nodes.
     @param      nameList        The list of the node names.
     @return     integer         FTI_SCES if successful.
@@ -196,6 +200,9 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It builds the list of nodes in the current execution.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      nodeList        The list of the nodes to fill.
     @param      nameList        The list of the node names to fill.
     @return     integer         FTI_SCES if successful.
@@ -256,6 +263,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (nodeList[i] == -1) {
             sprintf(str, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
             FTI_Print(str, FTI_WARN);
+            free(lhn);
             return FTI_NSCS;
         }
     }
@@ -268,6 +276,9 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It builds the list of nodes in the current execution.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
     @param      userProcList    The list of the app. processess.
     @param      distProcList    The list of the distributed processes.
     @param      nodeList        The list of the nodes to fill.
@@ -324,6 +335,9 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It builds and saves the topology of the current execution.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
     @return     integer         FTI_SCES if successful.
 
     This function builds the topology of the system, detects and replaces
