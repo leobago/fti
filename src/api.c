@@ -69,6 +69,16 @@ void FTI_Abort()
     exit(1);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It prints the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function prints the metadata for each process.
+
+ **/
+/*-------------------------------------------------------------------------*/
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 {
     int i, j, k;
