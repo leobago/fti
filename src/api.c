@@ -174,7 +174,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It returns the current status of the recovery flag.
-    @return     integer         FTI_Exec.reco
+    @return     integer         FTI_Exec.reco.
 
     This function returns the current status of the recovery flag.
 

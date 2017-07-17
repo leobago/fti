@@ -12,9 +12,9 @@
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It calculates checksum of the checkpoint file.
-    @param      fileName        filename of the checkpoint
-    @param      checksumToCmp   checksum that is calculated
-    @return     integer         FTI_SCES if successful
+    @param      fileName        Filename of the checkpoint.
+    @param      checksum        Checksum that is calculated.
+    @return     integer         FTI_SCES if successful.
 
     This function calculates checksum of the checkpoint file based on
     MD5 algorithm and saves it in checksum.
@@ -59,9 +59,9 @@ int FTI_Checksum(char* fileName, char* checksum)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It compares checksum of the checkpoint file.
-    @param      fileName        filename of the checkpoint
-    @param      checksumToCmp   checksum to compare
-    @return     integer         FTI_SCES if successful
+    @param      fileName        Filename of the checkpoint.
+    @param      checksumToCmp   Checksum to compare.
+    @return     integer         FTI_SCES if successful.
 
     This function calculates checksum of the checkpoint file based on
     MD5 algorithm. It compares calculated hash value with the one saved
@@ -176,7 +176,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It creates the basic datatypes and the dataset array.
-    @param      FTI_Data        Dataset array.
+    @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
     This function creates the basic data types using FTIT_Type.
@@ -207,7 +207,7 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
 /**
     @brief      It erases a directory and all its files.
     @param      path            Path to the directory we want to erase.
-    @param      flag            set to 1 to activate.
+    @param      flag            Set to 1 to activate.
     @return     integer         FTI_SCES if successful.
 
     This function erases a directory and all its files. It focusses on the
@@ -264,6 +264,9 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It erases the previous checkpoints and their metadata.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
     @param      level           Level of cleaning.
     @param      group           Group ID of the cleaning target process.
     @param      rank            Rank of the cleaning target process.
