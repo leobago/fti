@@ -207,7 +207,7 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It gets the metadata to recover the data after a failure.
+    @brief      It gets the temporary metadata.
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
@@ -215,8 +215,8 @@ int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     @return     integer         FTI_SCES if successful.
 
     This function reads the temporary metadata file created during checkpointing and
-    recovers the checkpoint file name, file size and the size of the largest
-    file in the group (for padding if necessary during decoding).
+    recovers the checkpoint file name, file size, partner file size and the size
+    of the largest file in the group (for padding if necessary during decoding).
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -306,6 +306,21 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It gets the metadata to recover the data after a failure.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
+
+    This function reads the metadata file created during checkpointing and
+    recovers the checkpoint file name, file size, partner file size and the size
+    of the largest file in the group (for padding if necessary during decoding).
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
