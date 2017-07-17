@@ -447,6 +447,20 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It flushes the local ckpt. files in to the PFS using POSIX.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
+
+    This function flushes the local checkpoint files in to the PFS.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
@@ -529,7 +543,20 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It flushes the local ckpt. files in to the PFS using MPI-I/O.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
 
+    This function flushes the local checkpoint files in to the PFS.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
@@ -665,6 +692,20 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It flushes the local ckpt. files in to the PFS using SIONlib.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      level           The level from which ckpt. files are flushed.
+    @return     integer         FTI_SCES if successful.
+
+    This function flushes the local checkpoint files in to the PFS.
+
+ **/
+/*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
