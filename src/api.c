@@ -71,48 +71,6 @@ void FTI_Abort()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It prints the metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-
-    This function prints the metadata for each process.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
-{
-    int i, j, k;
-    char str[FTI_BUFS];
-    for (i = 0; i < FTI_Topo->nbProc; i++) {
-        if (FTI_Topo->myRank == i) {
-            if (FTI_Topo->amIaHead) {
-                sprintf(str, "I am a head. Node: %d, Group: %d", FTI_Topo->nodeID, FTI_Topo->groupID);
-                FTI_Print(str, FTI_WARN);
-                for (j = 1; j < FTI_Topo->nodeSize; j++) {
-                    for (k = 0; k < 5; k++) {
-                        sprintf(str, "Approcs %d: Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
-                                j, k, FTI_Exec->meta[k].exists[j], FTI_Exec->meta[k].fs[j], FTI_Exec->meta[k].maxFs[j],
-                                FTI_Exec->meta[k].pfs[j], &FTI_Exec->meta[k].ckptFile[j * FTI_BUFS]);
-                        FTI_Print(str, FTI_WARN);
-                    }
-                }
-            }
-            else {
-                for (k = 0; k < 5; k++) {
-                    sprintf(str, "Level: %d; Exists: %d; fs: %ld; maxFs: %ld, pfs: %ld; ckptFile: %s",
-                            k, FTI_Exec->meta[k].exists[0], FTI_Exec->meta[k].fs[0], FTI_Exec->meta[k].maxFs[0],
-                            FTI_Exec->meta[k].pfs[0], FTI_Exec->meta[k].ckptFile);
-                    FTI_Print(str, FTI_WARN);
-                }
-            }
-        }
-        MPI_Barrier(FTI_COMM_WORLD);
-    }
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Initializes FTI.
     @param      configFile      FTI configuration file.
     @param      globalComm      Main MPI communicator of the application.
