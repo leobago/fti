@@ -361,18 +361,19 @@ int FTI_Checkpoint(int id, int level)
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
     t0 = MPI_Wtime(); //Start time
+    int lastCkptLvel = FTI_Exec.ckptLvel; //Store last checkpoint level in case of failure
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
         MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
-            FTI_Exec.lastCkptLvel = lastLevel;
+            lastCkptLvel = lastLevel;
             sprintf(str, "LastCkptLvel received from head: %d", lastLevel);
             FTI_Print(str, FTI_DBUG);
         } else {
             FTI_Print("Head failed to do post-processing after previous checkpoint.", FTI_WARN);
         }
     } else { //If last post-processing done inline
-        FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Update lastCkptLvel
+        lastCkptLvel = FTI_Exec.ckptLvel; //Update lastCkptLvel
     }
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
@@ -382,7 +383,7 @@ int FTI_Checkpoint(int id, int level)
         FTI_Exec.wasLastOffline = 1;
         int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
         if (res != FTI_SCES) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_Exec.lastCkptLvel; //Set previous ckptLvel
+            FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
             value = FTI_REJW; //Send reject checkpoint token to head
         }
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
@@ -394,7 +395,7 @@ int FTI_Checkpoint(int id, int level)
         }
         res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, -1, 1), "postprocess the checkpoint.");
         if (res != FTI_SCES) { //If post-processing failed
-            FTI_Exec.ckptLvel = FTI_Exec.lastCkptLvel; //Set previous ckptLvel
+            FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
         }
     }
     t3 = MPI_Wtime(); //Time after post-processing
@@ -538,7 +539,7 @@ int FTI_Finalize()
         int lastLevel;
         MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
-            FTI_Exec.lastCkptLvel = lastLevel;
+            FTI_Exec.ckptLvel = lastLevel;
         }
     }
 
@@ -550,8 +551,8 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
-            if (FTI_Exec.lastCkptLvel != 4) {
-                FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            if (FTI_Exec.ckptLvel != 4) {
+                FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.ckptLvel), "save the last ckpt. in the PFS.");
                 MPI_Barrier(FTI_COMM_WORLD);
                 if (FTI_Topo.splitRank == 0) {
                     if (access(FTI_Ckpt[4].dir, 0) == 0) {
@@ -563,7 +564,7 @@ int FTI_Finalize()
                     if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
                         FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
                     }
-                    if (rename(FTI_Ckpt[FTI_Exec.lastCkptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
+                    if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
                         FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
                     }
                 }
