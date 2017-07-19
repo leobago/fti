@@ -89,10 +89,10 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
-    FTI_Conf.verbosity = 1;
+    FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
     FTI_Inje.timer = MPI_Wtime();
-    FTI_COMM_WORLD = globalComm; // Temporary before building topology
-    FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology
+    FTI_COMM_WORLD = globalComm; // Temporary before building topology. Needed in FTI_LoadConf and FTI_Topology to communicate.
+    FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology. Needed in FTI_Print.
     int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
     if (res == FTI_NSCS) {
         FTI_Abort();
