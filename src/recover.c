@@ -159,7 +159,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                          sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                          FTI_Print(str, FTI_DBUG);
                          FTI_Exec->ckptID = id;
-                         FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                          r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                          break;
                       case 3:
@@ -167,7 +166,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                          sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                          FTI_Print(str, FTI_DBUG);
                          FTI_Exec->ckptID = id;
-                         FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                          r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                          break;
                       case 2:
@@ -175,7 +173,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                          sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                          FTI_Print(str, FTI_DBUG);
                          FTI_Exec->ckptID = id;
-                         FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                          r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                          break;
                       case 1:
@@ -183,7 +180,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                          sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
                          FTI_Print(str, FTI_DBUG);
                          FTI_Exec->ckptID = id;
-                         FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
                          r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                          break;
                    }
