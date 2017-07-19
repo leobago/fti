@@ -153,7 +153,6 @@ typedef struct FTIT_execution {
     int             reco;               /**< Recovery flag.                 */
     int             ckptLvel;           /**< Checkpoint level.              */
     int             ckptIntv;           /**< Ckpt. interval in minutes.     */
-    int             lastCkptLvel;       /**< Last checkpoint level.         */
     int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
     double          iterTime;           /**< Current wall time.             */
     double          lastIterTime;       /**< Time spent in the last iter.   */

@@ -64,11 +64,8 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
-int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt, int level, int group, int pr);
 int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 int group, int fo, int pr);
+                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
@@ -152,7 +149,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank);
+              FTIT_checkpoint* FTI_Ckpt, int level);
 
 int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char *nameList);
 int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
