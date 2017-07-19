@@ -84,20 +84,23 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                   FTIT_dataset* FTI_Data)
 {
-    int res;
-    char str[FTI_BUFS];
+    char str[FTI_BUFS]; //For console output
     sprintf(str, "Starting writing checkpoint (ID: %d, Lvl: %d)",
                     FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
-    double tt = MPI_Wtime();
+    double tt = MPI_Wtime(); //Start time
 
     //update ckpt file name
     snprintf(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
+    //If checkpoint is inlin and level 4 save directly to PFS
+    int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-        // create global temp directory
+        FTI_Print("Saving to temporary global directory", FTI_DBUG);
+
+        //Create global temp directory
         if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
             if (errno != EEXIST) {
                 FTI_Print("Cannot create global directory", FTI_EROR);
@@ -107,29 +110,34 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         switch (FTI_Conf->ioMode) {
            case FTI_IO_POSIX:
-              res = FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+              res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
               break;
            case FTI_IO_MPI:
-              res = FTI_WriteMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+              res = FTI_Try(FTI_WriteMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (MPI-IO).");
               break;
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+#ifdef ENABLE_SIONLIB //If SIONlib is installed
            case FTI_IO_SIONLIB:
-              res = FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data);
+              res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
               break;
 #endif
         }
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
     }
     else {
-        // create local temp directory
+        FTI_Print("Saving to temporary local directory", FTI_DBUG);
+        //Create local temp directory
         if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
             if (errno != EEXIST) {
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
         }
-        res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint to PFS");
+        res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+    }
+
+    //Check if all processes have written correctly (every process must succeed)
+    int allRes;
+    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if (allRes != FTI_SCES) {
+        return FTI_NSCS;
     }
 
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
@@ -143,48 +151,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /**
     @brief      Decides wich action start depending on the ckpt. level.
     @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      level           Cleaning checkpoint level.
-    @param      group           Must be groupID if App-proc. or 1 if Head.
-    @param      pr              Must be 1 if App-proc. or nbApprocs if Head.
-    @return     integer         FTI_SCES if successful.
-
-    This function cleans the checkpoints of a group or a single process.
-    It does that for each group (application process in the node) if executed
-    by the head, or only locally if executed by an application process. The
-    parameter pr determines if the for loops have 1 or number of App. procs.
-    iterations. The group parameter helps determine the groupID in both cases.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt, int level, int group, int pr)
-{
-    int i, rank;
-    if (level == 0) {
-        FTI_Print("Error postprocessing checkpoint. Discarding checkpoint...", FTI_WARN);
-    }
-    rank = FTI_Topo->myRank;
-    for (i = 0; i < pr; i++) {
-        if (FTI_Topo->amIaHead) {
-            rank = FTI_Topo->body[i];
-        }
-        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, level, i + group, rank);
-    }
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Decides wich action start depending on the ckpt. level.
-    @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
-    @param      group           Must be groupID if App-proc. or 1 if Head.
     @param      fo              Must be -1 if App-proc. or 0 if Head.
-    @param      pr              Must be 1 if App-proc. or nbApprocs if Head.
     @return     integer         FTI_SCES if successful.
 
     This function launches the required action dependeing on the ckpt. level.
@@ -196,56 +166,48 @@ int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 int group, int fo, int pr)
+                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    int i, tres, res, level, nodeFlag, globalFlag = !FTI_Topo->splitRank;
-    double t0, t1, t2, t3;
-    char str[FTI_BUFS];
-    char catstr[FTI_BUFS];
+    char str[FTI_BUFS]; //For console output
 
-    t0 = MPI_Wtime();
+    double t1 = MPI_Wtime(); //Start time
 
-    res = (FTI_Exec->ckptLvel == (FTI_REJW - FTI_BASE)) ? FTI_NSCS : FTI_SCES;
-    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (tres != FTI_SCES) {
-        FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0, group, pr);
-        return FTI_NSCS;
-    }
-
-    t1 = MPI_Wtime();
-
+    int res; //Response from post-processing functions
     switch (FTI_Exec->ckptLvel) {
         case 4:
-            res += FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fo);
+            res = FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 0);
             break;
         case 3:
-            res += FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             break;
         case 2:
-            res += FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             break;
         case 1:
-            res += FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             break;
     }
 
-    MPI_Allreduce(&res, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (tres != FTI_SCES) {
-        FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0, group, pr);
+    //Check if all processes done post-processing correctly
+    int allRes;
+    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if (allRes != FTI_SCES) {
+        FTI_Print("Error postprocessing checkpoint. Discarding current checkpoint...", FTI_WARN);
+        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
         return FTI_NSCS;
     }
 
-    t2 = MPI_Wtime();
+    double t2 = MPI_Wtime(); //Post-processing time
 
-    FTI_GroupClean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel, group, pr);
-    nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
-    if (nodeFlag) {
+    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
+    int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
         sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
         FTI_Print(str, FTI_DBUG);
         if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
-            level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1;
+            //checkpoint was not saved in global temporary directory
+            int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
             if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
                 FTI_Print("Cannot rename local directory", FTI_EROR);
             }
@@ -254,9 +216,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
-    if (globalFlag) {
+    int globalFlag = !FTI_Topo->splitRank;
+    if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
         if (FTI_Exec->ckptLvel == 4) {
-            if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].dir) == -1) {
+            if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {
                 FTI_Print("Cannot rename global directory", FTI_EROR);
             }
         }
@@ -264,12 +227,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Cannot rename meta directory", FTI_EROR);
         }
     }
-    MPI_Barrier(FTI_COMM_WORLD);
+    MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
 
-    t3 = MPI_Wtime();
+    double t3 = MPI_Wtime(); //Renaming directories time
 
-    sprintf(catstr, "Post-checkpoint took %.2f sec.", t3 - t0);
-    sprintf(str, "%s (Ag:%.2fs, Pt:%.2fs, Cl:%.2fs)", catstr, t1 - t0, t2 - t1, t3 - t2);
+    sprintf(str, "Post-checkpoint took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
+            t3 - t1, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
     return FTI_SCES;
 }
@@ -293,41 +256,55 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    MPI_Status status;
-    char str[FTI_BUFS];
-    int i, buf, res, flags[7];
-    for (i = 0; i < 7; i++) { // Initialize flags
-        flags[i] = 0;
-    }
-    FTI_Print("Head listening...", FTI_DBUG);
-    for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
-        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, &status);
-        sprintf(str, "The head received a %d message", buf);
-        FTI_Print(str, FTI_DBUG);
-        fflush(stdout);
-        flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
-    }
-    for (i = 1; i < 7; i++) {
-        if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
-            FTI_Exec->ckptLvel = i;
+    FTI_Print("Head starts listening...", FTI_DBUG);
+    while (1) { //heads can stop only by receiving FTI_ENDW
+        char str[FTI_BUFS]; //For console output
+        int flags[7]; //Increment index if get corresponding value from application process
+        //(index (1 - 4): checkpoint level; index 5: stops head; index 6: reject checkpoint)
+        int i;
+        for (i = 0; i < 7; i++) { // Initialize flags
+            flags[i] = 0;
+        }
+        FTI_Print("Head waits for message...", FTI_DBUG);
+        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+            int buf;
+            MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            sprintf(str, "The head received a %d message", buf);
+            FTI_Print(str, FTI_DBUG);
+            flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
+        }
+        for (i = 1; i < 7; i++) {
+            if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
+                FTI_Exec->ckptLvel = i;
+            }
+        }
+        if (flags[6] > 0) {
+            FTI_Exec->ckptLvel = 6;
+        }
+        if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
+            FTI_Print("Head stopped listening.", FTI_DBUG);
+            FTI_Finalize();
+        }
+
+        //Check if checkpoint was written correctly by all processes
+        int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
+        int allRes;
+        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+        if (allRes == FTI_SCES) { //If checkpoint was written correctly do post-processing
+            res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+            if (res == FTI_SCES) {
+                res = FTI_Exec->ckptLvel; //return ckptLvel if post-processing succeeds
+            }
+        }
+        else {  //If checkpoint wasn't written correctly
+            FTI_Print("Checkpoint have not been witten correctly. Discarding current checkpoint...", FTI_WARN);
+            FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
+            res = FTI_NSCS;
+        }
+        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
+            MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm);
         }
     }
-    if (flags[6] > 0) {
-        FTI_Exec->ckptLvel = 6;
-    }
-    if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
-        return FTI_ENDW;
-    }
-    res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 1, 0, FTI_Topo->nbApprocs), "postprocess the checkpoint.");
-    if (res == FTI_SCES) {
-        FTI_Exec->wasLastOffline = 1;
-        FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
-        res = FTI_Exec->ckptLvel;
-    }
-    for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
-        MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm);
-    }
-    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -349,7 +326,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    FTI_Print("I/O mode: Posix.", FTI_DBUG);
    char str[FTI_BUFS], fn[FTI_BUFS];
    int level = FTI_Exec->ckptLvel;
-   if (level == 4 && FTI_Ckpt[4].isInline) {
+   if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[4].ckptFile);
    }
    else {
@@ -431,8 +408,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    MPI_Info_set(info, "stripping_unit", "4194304");
 
    MPI_Offset chunkSize = FTI_Exec->ckptSize;
-
-   FTI_Exec->meta[4].fs[0] = chunkSize;
 
    // collect chunksizes of other ranks
    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);

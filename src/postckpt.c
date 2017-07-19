@@ -412,8 +412,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    if (level == -1) {
-       return FTI_SCES; // Fake call for inline PFS checkpoint
+    if (!FTI_Topo->amIaHead && level == 0) {
+        return FTI_SCES; //inline L4 saves directly to PFS (nothing to flush)
     }
     char str[FTI_BUFS];
     sprintf(str, "Starting checkpoint post-processing L4 for level %d", level);
