@@ -354,7 +354,9 @@ int FTI_Checkpoint(int id, int level)
     char str[FTI_BUFS]; //For console output
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
+
     double t0 = MPI_Wtime(); //Start time
+
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last checkpoint level in case of failure
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;

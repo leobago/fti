@@ -171,6 +171,9 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     if (FTI_Topo->amIaHead) {
         res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
     }
     int startProc, endProc;
     if (FTI_Topo->amIaHead) { //post-processing for every process in the node
@@ -235,9 +238,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     if (FTI_Topo->amIaHead) {
         res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
-    }
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
     }
 
     int startProc, endProc;
