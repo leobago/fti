@@ -537,15 +537,15 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, res = FTI_SCES;
     int level = FTI_Exec->ckptLvel;
 
-    FTI_Exec->meta[level].fs[0] = FTI_Exec->ckptSize;
-    long fs = FTI_Exec->meta[level].fs[0]; // Gather all the file sizes
+    FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
+    long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
     long fileSizes[FTI_BUFS];
     MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
 
     //update partner file size:
     if (FTI_Exec->ckptLvel == 2) {
         int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-        FTI_Exec->meta[2].pfs[0] = fileSizes[ptnerGroupRank];
+        FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
     }
 
     long mfs = 0;
@@ -554,18 +554,18 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fileSizes[i]; // Search max. size
         }
     }
-    FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = mfs;
+    FTI_Exec->meta[0].maxFs[0] = mfs;
     sprintf(str, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
     char* ckptFileNames = talloc(char, FTI_Topo->groupSize * FTI_BUFS);
-    strcpy(str, FTI_Exec->meta[level].ckptFile); // Gather all the file names
+    strcpy(str, FTI_Exec->meta[0].ckptFile); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
     // TODO Checksums only local currently
     char* checksums;
     if (!(level == 4 && FTI_Ckpt[4].isInline)) {
-        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[level].ckptFile);
+        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
         res = FTI_Checksum(lfn, checksum);
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
         MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
@@ -590,6 +590,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
+
+    //Flush metadata
+    FTI_Exec->meta[level].fs[0] = FTI_Exec->meta[0].fs[0];
+    FTI_Exec->meta[level].pfs[0] = FTI_Exec->meta[0].pfs[0];
+    FTI_Exec->meta[level].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
+    strcpy(FTI_Exec->meta[level].ckptFile, FTI_Exec->meta[0].ckptFile);
 
     free(ckptFileNames);
     free(checksums);
