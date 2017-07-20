@@ -696,7 +696,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   FTI_Print("Starting recovery L4 using MPI-IO.", FTI_DBUG);
+   FTI_Print("Starting recovery L4 using Posix I/O.", FTI_DBUG);
    if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
      if (errno != EEXIST) {
          FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
