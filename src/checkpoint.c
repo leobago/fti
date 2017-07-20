@@ -92,7 +92,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     double tt = MPI_Wtime(); //Start time
 
     //update ckpt file name
-    snprintf(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_BUFS,
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     //If checkpoint is inlin and level 4 save directly to PFS
@@ -327,10 +327,10 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    char str[FTI_BUFS], fn[FTI_BUFS];
    int level = FTI_Exec->ckptLvel;
    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-       sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[4].ckptFile);
+       sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
    }
    else {
-       sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[level].ckptFile);
+       sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
    }
 
    // open task local ckpt file
