@@ -368,8 +368,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 offset = 1 - offset;
                 cnt++;
             }
-            MPI_Request_free(&reqSend);
-            MPI_Request_free(&reqRecv);
 
             // Writting encoded checkpoints
             fwrite(coding, sizeof(char), remBsize, efd);
