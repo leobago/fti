@@ -425,7 +425,14 @@ int FTI_Recover()
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 
-    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    }
+
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
