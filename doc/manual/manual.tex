@@ -47,7 +47,7 @@ In contrast to the safety level L2, in level L3 it is irrelevant which of nodes 
 L4 denotes the fourth safety level of checkpointing. All the checkpoint files are flushed to the parallel file system (PFS).
 \chapter{API Reference}\label{ch:apireference}
 \section{FTI Datatypes and FTI Constants}\label{sec:datatypesandconstants}
-\subsection{FTI Datatypes}
+\subsection{FTI Datatypes}\label{sec:datatypes}
 \begin{description}
 \item[\textbf{FTI\_CHAR}] FTI data type for chars
 \item[\textbf{FTI\_SHRT}] FTI data type for short integers.
@@ -88,8 +88,8 @@ char* configFile
 MPI_Comm globalComm
 \end{lstlisting}
 \begin{description}
-\item[\textbf{configfile}] Path to the config file
-\item[\textbf{globalcomm}] MPI communicator used for the execution
+\item[\textbf{configFile}] Path to the config file
+\item[\textbf{globalComm}] MPI communicator used for the execution
 \end{description}
 \subsection*{On return}
 \begin{lstlisting}[frame=single]
@@ -107,8 +107,8 @@ This function initializes the FTI context. It should be called before other FTI 
 \begin{lstlisting}[frame=single]
 int main(int argc, char** argv){
     MPI_Init(&argc, &argv);
-    //assuming 1st argument is path to config.fti
-    FTI_Init(argv[1], MPI_COMM_WORLD);
+    char* path = "config.fti"; //config file path
+    FTI_Init(path, MPI_COMM_WORLD);
     .
     .
     .
@@ -117,7 +117,7 @@ int main(int argc, char** argv){
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_InitType( $\dots$ )}\label{sec:ftisnapshot}
+\section{\asciifamily FTI\_InitType( $\dots$ )}\label{sec:ftiinittype}
 \begin{framed}
 \begin{itemize}
 \item[--] initializes a data type.
@@ -144,7 +144,7 @@ FTI_SCES
 \item[\textbf{FTI\_SCES}] On success.
 \end{description}
 \subsection*{Description}
-This function initalizes a data type. A variable's type which isn't defined by default by FTI should be added using this function before adding this variable to protected variables.
+This function initalizes a data type. A variable's type which isn't defined by default by FTI (see: \ref{sec:datatypes}) should be added using this function before adding this variable to protected variables.
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
@@ -205,7 +205,7 @@ FTI_Protect(2, &B, 10, FTI_SFLT);
 \section{\asciifamily FTI\_Checkpoint( $\dots$ )}\label{sec:fticheckpoint}
 \begin{framed}
 \begin{itemize}
-\item[--] Writes values of protected runtime variables to a checkpoint file of requested level. Depending on the checkpoint level file is stored in local, partner node or global directory. Checkpoint's ID must be positive integer and it is assumed that more recent checkpoint has greater ID. 
+\item[--] Writes values of protected runtime variables to a checkpoint file of requested level.
 \end{itemize}
 \end{framed}
 \subsection*{Definition}
@@ -231,14 +231,14 @@ FTI_NSCS
 \item[\textbf{FTI\_NSCS}] On failure
 \end{description}
 \subsection*{Description}
-This function is used to store current values of protected variables into a checkpoint file.
+This function is used to store current values of protected variables into a checkpoint file. Depending on the checkpoint level file is stored in local, partner node or global directory. Checkpoint's id must be different from 0.
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
 int i;
 for (i = 0; i < 100; i++) {
-    if (i % 10) {
-        FTI_Checkpoint(i/10, 1);
+    if (i % 10 == 0) {
+        FTI_Checkpoint(i/10 + 1, 1);
     }
     .
     . //some computations
@@ -247,7 +247,39 @@ for (i = 0; i < 100; i++) {
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Recover()}\label{sec:ftisnapshot}
+\section{\asciifamily FTI\_Status()}\label{sec:ftistatus}
+\begin{framed}
+\begin{itemize}
+\item[--] Returns the current status of the recovery flag.
+\end{itemize}
+\end{framed}
+\subsection*{Definition}
+\begin{lstlisting}[frame=single]
+int FTI_Status()
+\end{lstlisting}
+\subsection*{On return}
+\begin{lstlisting}[frame=single]
+int
+\end{lstlisting}
+\begin{description}
+\item[\textbf{0}] No checkpoints taken yet or recovered successfully.
+\item[\textbf{1}] At least one checkpoint is taken. If execution fails, the next start will be a restart.
+\item[\textbf{2}] The execution is a restart from checkpoint level L4 and keep\_last\_checkpoint was enabled during the last execution.
+\end{description}
+\subsection*{Description}
+This function returns the current status of the recovery flag.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+if (FTI_Status() == 1) {
+    .
+    . //this section will be executed during restart
+    .
+}
+\end{lstlisting}
+\end{center}
+\newpage
+\section{\asciifamily FTI\_Recover()}\label{sec:ftirecover}
 \begin{framed}
 \begin{itemize}
 \item[--] Loads checkpoint data from the checkpoint file and initializes the runtime variables of the execution.
@@ -273,38 +305,6 @@ This function loads the checkpoint data from the checkpoint file and it updates 
 \begin{lstlisting}[frame=single]
 if (FTI_Status() == 1) {
     Recover();
-}
-\end{lstlisting}
-\end{center}
-\newpage
-\section{\asciifamily FTI\_Status()}\label{sec:ftisnapshot}
-\begin{framed}
-\begin{itemize}
-\item[--] Returns the current status of the recovery flag.
-\end{itemize}
-\end{framed}
-\subsection*{Definition}
-\begin{lstlisting}[frame=single]
-int FTI_Status()
-\end{lstlisting}
-\subsection*{On return}
-\begin{lstlisting}[frame=single]
-int
-\end{lstlisting}
-\begin{description}
-\item[\textbf{0}] No checkpoints taken yet.
-\item[\textbf{1}] At least one checkpoint is taken. If execution fails, the next start will be a restart.
-\item[\textbf{2}] The execution is a restart from checkpoint level L4 and keep\_last\_checkpoint was enabled during the last execution.
-\end{description}
-\subsection*{Description}
-This function returns the current status of the recovery flag.
-\subsection*{Example}
-\begin{center}
-\begin{lstlisting}[frame=single]
-if (FTI_Status() == 1) {
-    .
-    .
-    .
 }
 \end{lstlisting}
 \end{center}
@@ -336,14 +336,22 @@ This function loads the checkpoint data from the checkpoint file in case of rest
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
-    .
-    .//some computations
-    .
-Snapshot();
+int res = Snapshot();
+if (res == FTI_SCES){
+.
+. //executed after successfull recover
+. //or when checkpoint is not required
+}
+else { //res == FTI_DONE
+.
+. //executed after successfull checkpointing
+. 
+}
+
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Abort()}\label{sec:ftisnapshot}
+\section{\asciifamily FTI\_Abort()}\label{sec:abort}
 \begin{framed}
 \begin{itemize}
 \item[--] Aborts the application after cleaning the file system.
@@ -365,6 +373,10 @@ This function aborts the application after cleaning the file system.
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
+int fail = 0;
+.
+. //some computations
+.
 if (fail == 1) {
     FTI_Abort();
 }
@@ -397,7 +409,7 @@ This function notifies the FTI processes that the execution is over, frees some 
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
-int main(int argc, char **argv){
+int main(int argc, char** argv){
     .
     .
     .
@@ -659,14 +671,15 @@ FTI is building the topology of the execution, by determining the hostnames of t
 #include <stdlib.h>
 #include <fti.h>
 
-int main(int argc, char **argv){
+int main(int argc, char** argv){
     MPI_Init(&argc, &argv);
-    FTI_Init(argv[1], MPI_COMM_WORLD); 
-    int world_rank, world_size;//FTI_COMM rank and size
+    char* path = "config.fti"; //config file path
+    FTI_Init(path, MPI_COMM_WORLD); 
+    int world_rank, world_size; //FTI_COMM rank & size
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
-    int *array = (int*)malloc(sizeof(int) * world_size);
+    int *array = malloc(sizeof(int) * world_size);
     int number = world_rank;
     int i = 0;
     //adding variables to protect
