@@ -191,7 +191,7 @@ exit(1)
 \item[\textbf{exit(1)}] Number of protected variables is > FTI\_BUFS
 \end{description}
 \subsection*{Description}
-This function should be used to add data structure to the list of protected variables. This list of structures is the data that will be stored during a checkpoint and loaded during a recovery. It resets the dataset with given id if it was already previously registered. When size of a variable changes during execution it should be updated using this function before checkpoint to properly store data.
+This function should be used to add data structure to the list of protected variables. This list of structures is the data that will be stored during a checkpoint and loaded during a recovery. It resets the dataset with given id if it was already previously registered. When size of a variable changes during execution it should be updated using this function before next checkpoint to properly store data.
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
@@ -303,7 +303,7 @@ FTI_NSCS
 \item[\textbf{FTI\_NSCS}] on failure.
 \end{description}
 \subsection*{Description}
-This function loads the checkpoint data from the checkpoint file and it updates some basic checkpoint information. It should be called after initialization of protected variables after a failure. If a variable changes it's size during execution Recover should be called twice. First to recover size of variable (must be added to protected list, see: \ref{sec:ftiprotect}). Second to recover variable's data (after an update of protected list). 
+This function loads the checkpoint data from the checkpoint file and it updates some basic checkpoint information. It should be called after initialization of protected variables after a failure. If a variable changes it's size during execution it must have the latest size before Recover. The easiest way to do so is to add size of variable as another variable to protected list, and then call Recover twice. First to recover size of variable. Second to recover variable's data (after an update of protected list).
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
