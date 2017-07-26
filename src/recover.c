@@ -145,7 +145,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if (!FTI_Topo->amIaHead) {
       FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
       int level;
-      for (level = 4; level > 0; level--) { //For every level (from 4 to 1, because of reliability)
+      for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
           if (FTI_Exec->meta[level].exists[0]) {
               //Get ckptID from checkpoint file name
               int ckptID;
