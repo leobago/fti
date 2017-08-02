@@ -392,10 +392,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
         }
         res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Topo.groupID, -1, 1), "postprocess the checkpoint.");
-        if (res != FTI_SCES) { //If post-processing failed
-            FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
-        }
-        else { //If post-processing succeed
+        if (res == FTI_SCES) { //If post-processing succeed
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
