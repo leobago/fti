@@ -165,8 +165,8 @@ FTI_InitType(&structAinfo, 2 * sizeof(int));
 \end{framed}
 \subsection*{Definition}
 \begin{lstlisting}[frame=single]
-int FTI_Protect(int id, void* ptr, long count, \
-  FTIT_type type)
+int FTI_Protect(int id, void* ptr, long count,
+                FTIT_type type)
 \end{lstlisting}
 \subsection*{On entry}
 \begin{lstlisting}[frame=single]
@@ -369,38 +369,6 @@ else { //res == FTI_DONE
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Abort()}\label{sec:abort}
-\begin{framed}
-\begin{itemize}
-\item[--] Aborts the application after cleaning the file system.
-\end{itemize}
-\end{framed}
-\subsection*{Definition}
-\begin{lstlisting}[frame=single]
-int FTI_Abort()
-\end{lstlisting}
-\subsection*{On return}
-\begin{lstlisting}[frame=single]
-exit(1)
-\end{lstlisting}
-\begin{description}
-\item[\textbf{exit(1)}] After call.
-\end{description}
-\subsection*{Description}
-This function aborts the application after cleaning the file system.
-\subsection*{Example}
-\begin{center}
-\begin{lstlisting}[frame=single]
-int fail = 0;
-.
-. //some computations
-.
-if (fail == 1) {
-    FTI_Abort();
-}
-\end{lstlisting}
-\end{center}
-\newpage
 \section{\asciifamily FTI\_Finalize()}\label{sec:ftifinalize}
 \begin{framed}
 \begin{itemize}
@@ -492,7 +460,7 @@ string & Path to the meta files directory. (notice: The directory has to be crea
 \end{center}
 (\textit{default = /home/username/.fti})
 \subsection{Ckpt\_L1}\label{subsec:ckptl1}
-Here, the user sets the checkpoint frequency of L1 checkpoints.
+Here, the user sets the checkpoint frequency of L1 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -502,7 +470,7 @@ L1 freq. (int $\geq$ 0)  & L1 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{center}
 (\textit{default = 3})
 \subsection{Ckpt\_L2}\label{subsec:ckptl2}
-Here, the user sets the checkpoint frequency of L2 checkpoints.
+Here, the user sets the checkpoint frequency of L2 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -512,7 +480,7 @@ L2 freq. (int $\geq$ 0)  & L2 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{center}
 (\textit{default = 5})
 \subsection{Ckpt\_L3}\label{subsec:ckptl3}
-Here, the user sets the checkpoint frequency of L3 checkpoints.
+Here, the user sets the checkpoint frequency of L3 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -522,7 +490,7 @@ L3 freq. (int $\geq$ 0)  & L3 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{center}
 (\textit{default = 7})
 \subsection{Ckpt\_L4}\label{subsec:ckptl4}
-Here, the user sets the checkpoint frequency of L4 checkpoints.
+Here, the user sets the checkpoint frequency of L4 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -598,7 +566,7 @@ Sets the verbosity level
 \end{tabular}
 \end{center}
 (\textit{default = 2})
-\subsection{Ckpt\_io}\label{subsec:ckptio}
+\subsection{ckpt\_io}\label{subsec:ckptio}
 Sets the IO mode
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -683,8 +651,282 @@ FTI is building the topology of the execution, by determining the hostnames of t
 \end{center}
 (\textit{default = 1})
 \newpage
+\section{Configuration Examples}\label{sec:configurationexamples}
+\subsection{Default config}\label{subsec:configdefault}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+This configuration is made of default values (see: \ref{ch:configuration}). FTI processes are not created (Head = 0, notice: if there is no FTI processes, all checkpoints must be done synchronously, thus Inline\_L2, Inline\_L3 and Inline\_L4 are set to 1), last checkpoint won't be kept (keep\_last\_ckpt = 0), FTI\_Snapshot() will take L1 checkpoint every 3 min,L2 - every 5 min, L3 - every 7 min and L4 - every 11 min, FTI will print errors and some few important information (Verbosity = 2) and IO mode is set to POSIX (ckpt\_io = 1). This is a normal launch of a job, because failure is set to 0 and Exec\_ID is NULL. Local\_test = 1 makes this a local test.
+\newpage
+\subsection{Using FTI processes (synchronously)}\label{subsec:configftiproccessynch}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 1
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI processes are created (Head = 1) checkpointing is done synchronously, thus Inline\_L2, Inline\_L3 and Inline\_L4 are set to 1.
+\newpage
+\subsection{Using FTI processes (asynchronously)}\label{subsec:configftiproccesasynch}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 1
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 0
+Inline_L3 = 0
+Inline_L4 = 0
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI processes are created (Head = 1) checkpointing is done synchronously, thus Inline\_L2, Inline\_L3 and Inline\_L4 are set to 0. Note that it is possible to make one checkpoint level synchronus and other asynchronus (e.g. L2 synch., L3, L4 asynch.).
+\newpage
+\subsection{Using only selected ckpt level with FTI\_Snapshot()}\label{subsec:configoneckptlvl}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 0
+Ckpt_L2 = 5
+Ckpt_L3 = 0
+Ckpt_L4 = 0
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI\_Snapshot() will take only L2 checkpoint every 5 min Notice that other configurations are also possible (e.g. take L1 ckpt every 5 min and L4 ckpt every 30 min).
+\newpage
+\subsection{Keeping last checkpoint}\label{subsec:configkeeplastckpt}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 1
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI will keep last checkpoint (keep\_last\_ckpt = 1), thus after finishing the job Failure will be set to 2.
+\newpage
+\subsection{Using different IO mode (e.g MPI IO)}\label{subsec:configmpiio}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI IO mode is set to MPI IO (ckpt\_io = 2). Third option is SIONlib IO mode (ckpt\_io = 3).
+\newpage
+\subsection{Restart after a failure}\label{subsec:configkeeplastckpt}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = ./Local
+Glbl_dir = ./Global
+Meta_dir = ./Meta
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+keep_last_ckpt = 0
+Group_size = 4
+Verbosity = 2
+ckpt_io = 1
+
+[Restart]
+
+Failure = 1
+Exec_ID = 2017-07-26_13-22-11
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+This config tells FTI that this job is a restart after a failure (Failure set to 1 and Exec\_ID is some date in a format "YYYY-MM-DD\_HH-mm-ss", where YYYY - year, MM - month, DD - day, HH - hours, mm - minutes, ss - seconds). When recovery is not possible, FTI will abort the job (when using FTI\_Snapshot()) and/or signal failed recovery by FTI\_Status().
+\newpage
 \chapter{Examples}\label{ch:example}
-\section{Using Snapshot}\label{subsec:usingsnapshot}
+\section{Using FTI\_Snapshot()}\label{subsec:usingsnapshot}
 \begin{center}
 \begin{lstlisting}[frame=single]
 #include <stdlib.h>
@@ -717,8 +959,10 @@ int main(int argc, char** argv){
 }
 \end{lstlisting}
 \end{center}
+\subsection*{Description}
+FTI\_Snapshot() makes a checkpoint by given time and also recovers data after a failure, thus makes the code shorter. Checkpoints intervals can be set in configuration file (see: ref{subsec:ckptl1}.
 \newpage
-\section{Using Checkpoint}\label{sec:usingcheckpoint}
+\section{Using FTI\_Checkpoint( $\dots$ )}\label{sec:usingcheckpoint}
 \begin{center}
 \begin{lstlisting}[frame=single]
 #include <stdlib.h>
@@ -757,7 +1001,6 @@ int main(int argc, char** argv){
 }
 \end{lstlisting}
 \end{center}
-\newpage
-\section{Configuration example}\label{sec:configexample}
-
+\subsection*{Description}
+FTI\_Checkpoint( $\dots$ ) allows to checkpoint at precise application intervals. Note that when using FTI\_Checkpoint( $\dots$ ), Ckpt\_L1, Ckpt\_L2, Ckpt\_L3 and Ckpt\_L4 are not taken into account.
 \end{document}
