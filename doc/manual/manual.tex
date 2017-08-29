@@ -36,7 +36,7 @@ FTI is a multi-level checkpointing interface. It provides an api which is easy t
 \section{L1}\label{sec:l1}
 L1 denotes the first safety level in the multilevel checkpointing strategy of FTI. The checkpoint of each process is written on the local SSD of the respective node. This is fast but possesses the drawback, that in case of a data loss and corrupted checkpoint data even in only one node, the execution cannot successfully restarted.
 \section{L2}\label{sec:l2}
-L2 denotes the second safety level of checkpointing. On initialisation, FTI creates a virtual ring for each group of nodes with user defined size (see \ref{subsec:groupsize}). The first step of L2 is just a L1 checkpoint. In the second step, the checkpoints are duplicated and the copies stored on the neighbouring node in the group.
+L2 denotes the second safety level of checkpointing. On initialization, FTI creates a virtual ring for each group of nodes with user defined size (see \ref{subsec:groupsize}). The first step of L2 is just a L1 checkpoint. In the second step, the checkpoints are duplicated and the copies stored on the neighbouring node in the group.
 \\{}\\
 That means, in case of a failure and data loss in the nodes, the execution still can be successfully restarted, as long as the data loss does not happen on two neighbouring nodes at the same time.
 \section{L3}\label{sec:l3}
@@ -59,7 +59,7 @@ L4 denotes the fourth safety level of checkpointing. All the checkpoint files ar
 \item[\textbf{FTI\_ULNG}] FTI data type for unsigned long integers.
 \item[\textbf{FTI\_SFLT}] FTI data type for single floating point.
 \item[\textbf{FTI\_DBLE}] FTI data type for double floating point.
-\item[\textbf{FTI\_LDBE}] FTI data type for long doble floating point.
+\item[\textbf{FTI\_LDBE}] FTI data type for long double floating point.
 \end{description}
 \subsection{FTI Constants}
 \begin{description}
@@ -144,7 +144,7 @@ FTI_SCES
 \item[\textbf{FTI\_SCES}] On success.
 \end{description}
 \subsection*{Description}
-This function initalizes a data type. A variable's type which isn't defined by default by FTI (see: \ref{sec:datatypes}) should be added using this function before adding this variable to protected variables.
+This function initializes a data type. A variable's type which isn't defined by default by FTI (see: \ref{sec:datatypes}) should be added using this function before adding this variable to protected variables.
 \subsection*{Example}
 \begin{center}
 \begin{lstlisting}[frame=single]
@@ -357,12 +357,12 @@ This function loads the checkpoint data from the checkpoint file in case of rest
 int res = Snapshot();
 if (res == FTI_SCES){
 .
-. //executed after successfull recover
+. //executed after successful recover
 . //or when checkpoint is not required
 }
 else { //res == FTI_DONE
 .
-. //executed after successfull checkpointing
+. //executed after successful checkpointing
 .
 }
 
@@ -408,7 +408,7 @@ int main(int argc, char** argv){
 \chapter{Configuration}\label{ch:configuration}
 \section{[Basic]}\label{sec:basic}
 \subsection{Head}\label{subsec:head}
-The checkpointing safety levels L2, L3 and L4 produce additional overhead due to the necessary postprocessing work on the checkpoints. FTI offers the possibility to create an mpi process, called \emph{HEAD}, in which this postprocessing will be accomplished. This allows it for the application processes to continue the execution immediately after the checkpointing.
+The checkpointing safety levels L2, L3 and L4 produce additional overhead due to the necessary postprocessing work on the checkpoints. FTI offers the possibility to create an MPI process, called \emph{HEAD}, in which this postprocessing will be accomplished. This allows it for the application processes to continue the execution immediately after the checkpointing.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -450,7 +450,7 @@ string & Path to the checkpoint directory on the PFS (notice: The directory has 
 \end{center}
 (\textit{default = /path/to/global/storage/})
 \subsection{Meta\_dir}\label{subsec:metadir}
-This entry defines the path to the meta files directory. The directory has to be accessible from each node. It keeps files with informations about the topology of the execution.
+This entry defines the path to the meta files directory. The directory has to be accessible from each node. It keeps files with information about the topology of the execution.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -559,8 +559,8 @@ Sets the verbosity level
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-1 & Debug sensitive. Beside warnings, errors and informations, FTI debugging information will be printed.  \\ \hline
-2 & Information sensitive. FTI prints warnings, errors and informations. \\ \hline
+1 & Debug sensitive. Beside warnings, errors and information, FTI debugging information will be printed.  \\ \hline
+2 & Information sensitive. FTI prints warnings, errors and information. \\ \hline
 3 & FTI prints only warnings and errors.  \\ \hline
 4 & FTI prints only errors.  \\ \hline
 \end{tabular}
@@ -615,7 +615,7 @@ FTI temporarily copies small blocks of the L2 and L3 checkpoints to send them th
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-int & Size in KB of the data blocks send by FTI through MPI for the checkpopoint levels L2 and L3. \\ \hline
+int & Size in KB of the data blocks send by FTI through MPI for the checkpoint levels L2 and L3. \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 1024})
@@ -630,7 +630,7 @@ int & Size in MB of the chunks send by FTI from local to PFS. \\ \hline
 \end{center}
 (\textit{default = 16})
 \subsection{Mpi\_tag}\label{subsec:mpitag}
-FTI uses a certain tag for the MPI messages. This tag can ge set here.
+FTI uses a certain tag for the MPI messages. This tag can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
@@ -645,7 +645,7 @@ FTI is building the topology of the execution, by determining the hostnames of t
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-0 & Local test is disabled. FTI will simulate the situation set in the cofiguration. \\ \hline
+0 & Local test is disabled. FTI will simulate the situation set in the configuration. \\ \hline
 1 & Local test is enabled (notice: FTI will check if the settings are correct on initialization and if necessary stop the execution). \\ \hline
 \end{tabular}
 \end{center}
