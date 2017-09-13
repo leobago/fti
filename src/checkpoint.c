@@ -321,7 +321,6 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 1, 0, FTI_Topo->nbApprocs), "postprocess the checkpoint.");
     if (res == FTI_SCES) {
         FTI_Exec->wasLastOffline = 1;
-        FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
         res = FTI_Exec->ckptLvel;
     }
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
