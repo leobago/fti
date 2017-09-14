@@ -169,7 +169,12 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int destination = FTI_Topo->right; //send Ckpt file to this process
     int res;
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
-    FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    if (FTI_Topo->amIaHead) {
+        res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
+    }
     int startProc, endProc;
     if (FTI_Topo->amIaHead) { //post-processing for every process in the node
         startProc = 1;
@@ -231,9 +236,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FILE *lfd, *efd;
 
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
-    res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
+    if (FTI_Topo->amIaHead) {
+        res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
     }
 
     int startProc, endProc;
@@ -412,8 +419,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    if (level == -1) {
-       return FTI_SCES; // Fake call for inline PFS checkpoint
+    if (!FTI_Topo->amIaHead && level == 0) {
+        return FTI_SCES; //inline L4 saves directly to PFS (nothing to flush)
     }
     char str[FTI_BUFS];
     sprintf(str, "Starting checkpoint post-processing L4 for level %d", level);
