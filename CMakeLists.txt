@@ -16,6 +16,7 @@ option(ENABLE_TESTS "Enables the generation of tests" ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 include(FortranCInterface)
+include(CheckFortranCompilerFlag)
 
 find_package(MPI REQUIRED)
 find_package(OPENSSL REQUIRED)
@@ -88,6 +89,12 @@ install(FILES "include/fti.h"
 	DESTINATION include)
 
 if(ENABLE_FORTRAN)
+    CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
+    if(NOT FC_HAS_CPP_FLAG)
+        message(FATAL_ERROR "
+        ** Fortran compiler does not support -cpp flag.
+        ** Please use a newer version!")
+    endif()
     try_compile(MPI_USE_MOD ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/checkMPImodule.f90
 	    LINK_LIBRARIES ${MPI_Fortran_LIBRARIES}
 	    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${MPI_Fortran_INCLUDE_PATH}")
