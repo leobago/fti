@@ -845,7 +845,8 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // check if successful
    if (buf != 0) {
       errno = 0;
-      MPI_Error_string(buf, mpi_err, NULL);
+      int reslen;
+      MPI_Error_string(buf, mpi_err, &reslen);
       if (buf != MPI_ERR_NO_SUCH_FILE) {
          snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
@@ -892,7 +893,8 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       // check if successful
       if (buf != 0) {
          errno = 0;
-         MPI_Error_string(buf, mpi_err, NULL);
+         int reslen;
+         MPI_Error_string(buf, mpi_err, &reslen);
          snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
          FTI_Print(str, FTI_EROR);
          free(readData);
