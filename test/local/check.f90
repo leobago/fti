@@ -51,8 +51,6 @@ MODULE CHECK_FUNCTIONS
       INTEGER, INTENT(OUT)       :: RES
       INTEGER                    :: I = 1
 
-      RES = 0
-
       DO
       IF ( A(I) /= B_CHK(I) ) THEN
          RES = -1
@@ -93,8 +91,6 @@ MODULE CHECK_FUNCTIONS
       CHARACTER (LEN=BUFFER)      :: STR
       INTEGER                     :: RECLEN1, RECLEN2, RECLEN, I
       INTEGER, INTENT(OUT)        :: RES
-        
-      RES = 0
 
       WRITE ( STR, '(a,I5.5,a)') 'chk/check-', RANK, ".tst"
 
@@ -120,20 +116,14 @@ MODULE CHECK_FUNCTIONS
 END MODULE
 
 PROGRAM CHECK
+   USE MPI
    USE FTI
    USE CHECK_FUNCTIONS
-#ifndef MPI_USE_HEADER
-   USE MPI
-#endif
 
    IMPLICIT NONE
 
-#ifdef MPI_USE_HEADER
-   INCLUDE 'mpif.h'
-#endif
-
    !**** CONSTANTS
-   INTEGER, PARAMETER      :: N = 100000
+   INTEGER, PARAMETER      :: N = 10
    INTEGER, PARAMETER      :: CNTRLD_EXIT = 10
    INTEGER, PARAMETER      :: RECOVERY_FAILED = 20
    INTEGER, PARAMETER      :: DATA_CORRUPT = 30
