@@ -24,24 +24,23 @@ Download, compile and install FTI (as easy as 1,2,3)
  3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
 
 > **REMARK 1** (Intel and GCC)
-> For the case that both, **intel and gnu** compilers are installed, please confi-
-> gure using:
+> For the case that both, **Intel and GCC**, compilers are installed, please configure using:
 > `cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
 > **REMARK 2** (OpenSSL)
-> To use built-in MD5 rather than OpenSSL, please configure using:
+> To use the built-in MD5 rather than OpenSSL, please configure using:
 > `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
 > **REMARK 1** (GNU versions)
-> The usage of different GNU compiler versions for C and Fortran, leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
+> The usage of different GNU compiler versions for C and Fortran leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
 
 ---
 
 Configure and run a FTI example
 =
 
-Place yourself in the examples directory which contains head distribution
-examples in both C and Fortran. Futher instructions in "examples/README".
+The build/examples directory contains heat distribution simulations as simple
+examples in both, C and Fortran. Usage instructions in file "examples/README".
 
 ---
 
@@ -49,7 +48,7 @@ Acknowledgement (send us a postal card! \\(\^-\^)/)
 =
 
 If you use FTI please consider sending us an email to let us know what you
-liked and what could be improved (leonardo (dot) bautista (at) bsc (dot) es), 
+liked and what could be improved ( :email: leonardo (dot) bautista (at) bsc (dot) es), 
 your feedback is important. 
 If you use FTI for any research work, please make sure to acknowledge our paper:
 Bautista-Gomez, Leonardo, et al. "FTI: high performance fault tolerance interface 
