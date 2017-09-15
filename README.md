@@ -39,7 +39,7 @@ Download, compile and install FTI (as easy as 1,2,3)
 Configure and run a FTI example
 =
 
-The build/examples directory contains heat distribution simulations as simple
+The "build/examples" directory contains heat distribution simulations as simple
 examples in both, C and Fortran. Usage instructions in file "examples/README".
 
 ---
@@ -57,10 +57,12 @@ Acknowledgement (send us a postal card! \\(\^-\^)/)
 If you use FTI please consider sending us an email to let us know what you
 liked and what could be improved ( :email: leonardo (dot) bautista (at) bsc (dot) es), 
 your feedback is important. 
+
 If you use FTI for any research work, please make sure to acknowledge our paper:
-Bautista-Gomez, Leonardo, et al. "FTI: high performance fault tolerance interface 
-for hybrid systems." Proceedings of 2011 international conference for high 
+Bautista-Gomez, Leonardo, et al. ***"FTI: high performance fault tolerance interface 
+for hybrid systems."*** Proceedings of 2011 international conference for high 
 performance computing, networking, storage and analysis. ACM, 2011.  
+
 Finally, don't hesitate to send us a postal card to :
 Dr. Leonardo Bautista-Gomez (Leo)
 Barcelona Supercomputing Center
