@@ -466,6 +466,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        long pos = 0;
        long varSize = FTI_Data[i].size;
        long bSize = FTI_Conf->transferSize;
+       char *data_ptr = FTI_Data[i].ptr;
        while (pos < varSize) {
            if ((varSize - pos) < FTI_Conf->transferSize) {
                bSize = varSize - pos;
@@ -486,6 +487,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                return FTI_NSCS;
            }
            MPI_Type_free(&dType);
+           data_ptr += bSize;
            offset += bSize;
            pos = pos + bSize;
        }
