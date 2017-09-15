@@ -1,5 +1,6 @@
 What is FTI?
 =
+
 FTI stands for Fault Tolerance Interface and is a library that aims to give
 computational scientists the means to perform fast and efficient multilevel
 checkpointing in large scale supercomputers. FTI leverages local storage plus
@@ -17,6 +18,7 @@ asynchronously.
 
 Download, compile and install FTI (as easy as 1,2,3)
 =
+
  1) git clone https://github.com/leobago/fti.git
  2) mkdir fti/build && cd fti/build
  3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
@@ -25,17 +27,24 @@ Download, compile and install FTI (as easy as 1,2,3)
 > For the case that both, **intel and gnu** compilers are installed, please confi-
 > gure using:
 > `cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
->> **REMARK 2** (OpenSSL)
->> To use built-in MD5 rather than OpenSSL, please configure using:
->> `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
->>> **REMARK 1** (GNU versions)
->>> The usage of different GNU compiler versions for C and Fortran, leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
+
+> **REMARK 2** (OpenSSL)
+> To use built-in MD5 rather than OpenSSL, please configure using:
+> `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
+
+> **REMARK 1** (GNU versions)
+> The usage of different GNU compiler versions for C and Fortran, leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
+
 ---
+
 Configure and run a FTI example
 =
+
 Place yourself in the examples directory which contains head distribution
 examples in both C and Fortran. Futher instructions in "examples/README".
+
 ---
+
 Acknowledgement (send us a postal card! \\(\^-\^)/)
 =
 
