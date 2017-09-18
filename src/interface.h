@@ -13,8 +13,8 @@
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
-#include "../deps/jerasure/galois.h"
-#include "../deps/jerasure/jerasure.h"
+#include "../deps/jerasure/include/galois.h"
+#include "../deps/jerasure/include/jerasure.h"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     #include <sion.h>
