@@ -423,7 +423,8 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // check if successful
    if (res != 0) {
       errno = 0;
-      MPI_Error_string(res, mpi_err, NULL);
+      int reslen;
+      MPI_Error_string(res, mpi_err, &reslen);
       snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
       FTI_Print(str, FTI_EROR);
       free(chunkSizes);
@@ -442,6 +443,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        long pos = 0;
        long varSize = FTI_Data[i].size;
        long bSize = FTI_Conf->transferSize;
+       char *data_ptr = FTI_Data[i].ptr;
        while (pos < varSize) {
            if ((varSize - pos) < FTI_Conf->transferSize) {
                bSize = varSize - pos;
@@ -451,17 +453,19 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
            MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
            MPI_Type_commit(&dType);
 
-           res = MPI_File_write_at(pfh, offset, FTI_Data[i].ptr, 1, dType, MPI_STATUS_IGNORE);
+           res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
            // check if successful
            if (res != 0) {
                errno = 0;
-               MPI_Error_string(res, mpi_err, NULL);
+               int reslen;
+               MPI_Error_string(res, mpi_err, &reslen);
                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
                FTI_Print(str, FTI_EROR);
                MPI_File_close(&pfh);
                return FTI_NSCS;
            }
            MPI_Type_free(&dType);
+           data_ptr += bSize;
            offset += bSize;
            pos = pos + bSize;
        }
