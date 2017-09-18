@@ -864,4 +864,3 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(chunkSizes);
 }
 #endif
-
