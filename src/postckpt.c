@@ -225,6 +225,16 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+<<<<<<< HEAD
+=======
+    char *myData, *data, *coding, lfn[FTI_BUFS], efn[FTI_BUFS], str[FTI_BUFS];
+    int *matrix, cnt, i, j, init, src, offset, dest, matVal, res, bs = FTI_Conf->blockSize, rank;
+    unsigned long maxFs, fs, ps;
+    MPI_Request reqSend, reqRecv;
+    MPI_Status status;
+    FILE *lfd, *efd;
+
+>>>>>>> master
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     if (FTI_Topo->amIaHead) {
         int res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
@@ -245,9 +255,22 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int proc;
     for (proc = startProc; proc < endProc; proc++) {
+<<<<<<< HEAD
         int ckptID, rank;
         sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
+=======
+        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
+        long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
+
+        int remBsize = bs;
+        ps = ((maxFs / bs)) * bs;
+        if (ps < maxFs) {
+            ps = ps + bs;
+        }
+
+        sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &FTI_Exec->ckptID, &rank);
+>>>>>>> master
         sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
 
