@@ -161,6 +161,7 @@ typedef struct FTIT_execution {
     double          globMeanIter;       /**< Global mean iteration time.    */
     double          totalIterTime;      /**< Total main loop time spent.    */
     unsigned int    syncIter;           /**< To check mean iter. time.      */
+    int             syncIterMax;        /**< Maximal synch. intervall.      */
     unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
     unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
