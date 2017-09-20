@@ -207,7 +207,6 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                    FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
     int l;
-    short i;
     int check = 1;
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
