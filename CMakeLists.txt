@@ -9,9 +9,12 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
+option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
+
+set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -19,6 +22,10 @@ include(FortranCInterface)
 
 find_package(MPI REQUIRED)
 find_package(OPENSSL REQUIRED)
+
+if(ENABLE_LUSTRE)
+    find_package(LUSTREAPI REQUIRED)
+endif()
 
 add_subdirectory(deps)
 
@@ -58,6 +65,8 @@ append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
+append_property(TARGET fti.static fti.shared
+    PROPERTY COMPILE_FLAGS -fPIC)
 
 #PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
 #http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
@@ -68,8 +77,15 @@ endif()
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 
+if(LUSTREAPI_FOUND)
+    append_property(SOURCE PROPERTY INCLUDE_DIRECTORIES ${LUSTREAPI_INCLUDE_DIRS})
+    append_property(SOURCE PROPERTY COMPILE_DEFINITIONS -DLUSTRE)
+    target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
+    target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
+endif()
+
 if(ENABLE_SIONLIB)
-    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
+    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
     include_directories("${SIONLIB_INCLUDE_DIR}")
     set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
@@ -89,12 +105,12 @@ install(FILES "include/fti.h"
 
 if(ENABLE_FORTRAN)
 	add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-	
+
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
-		
+
 	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
-	
+
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
@@ -116,6 +132,8 @@ if(ENABLE_FORTRAN)
 		PROPERTY LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
 	set_property(TARGET fti_f90.static fti_f90.shared
 		PROPERTY OUTPUT_NAME fti_f90)
+    append_property(TARGET fti_f90.static fti_f90.shared
+        PROPERTY COMPILE_FLAGS -fPIC)
 
 	list(APPEND FTI_TARGETS fti_f90.static fti_f90.shared)
 	install(TARGETS fti_f90.static fti_f90.shared
