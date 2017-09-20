@@ -18,7 +18,11 @@ include(AppendProperty)
 include(FortranCInterface)
 
 find_package(MPI REQUIRED)
-find_package(OPENSSL REQUIRED)
+if(NOT DEFINED NO_OPENSSL) 
+	find_package(OPENSSL REQUIRED)
+else()
+	set(OPENSSL_FOUND false)
+endif()
 
 add_subdirectory(deps)
 
@@ -35,9 +39,9 @@ set(SRC_FTI
 	src/tools.c src/topo.c)
 
 append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}")
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" -fPIC)
 
-if(${OPENSSL_FOUND} AND NOT DEFINED ${NO_OPENSSL})
+if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
@@ -98,7 +102,7 @@ if(ENABLE_FORTRAN)
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
-		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
+		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}" -fPIC)
 
 	add_library(fti_f90.static STATIC ${SRC_FTI_F90})
 	add_dependencies(fti_f90.static bpp_file) # to serialize src generation
