@@ -430,8 +430,12 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             char error_msg[FTI_BUFS];
             error_msg[0] = 0;
             strerror_r(-res, error_msg, FTI_BUFS);
-            sprintf(str, "[Lustre] %s.", error_msg);
+            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
             FTI_Print(str, FTI_WARN);
+        } else {
+            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i", 
+                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
+            FTI_Print(str, FTI_DBUG);
         }
     }
 #endif
