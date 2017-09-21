@@ -8,6 +8,16 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
 
+set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION}")
+set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}")
+string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
+if(${COMPILER_VER_DIFFER})
+    message(FATAL_ERROR "
+    ** You are using different compiler idetifications for Fortran and C!
+        *  This leads to undefined behavior.
+        *  Pleas ensure the versions are identical!")
+endif()
+
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
