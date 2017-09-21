@@ -580,9 +580,9 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // open parallel file (collective call)
     MPI_File pfh; // MPI-IO file handle
-    char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, str);
+    char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 #ifdef LUSTRE
     if (FTI_Topo->splitRank == 0) {
         res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
@@ -592,6 +592,10 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             strerror_r(-res, error_msg, FTI_BUFS);
             sprintf(str, "[Lustre] %s.", error_msg);
             FTI_Print(str, FTI_WARN);
+        } else {
+            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i", 
+                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
+            FTI_Print(str, FTI_DBUG);
         }
     }
 #endif
