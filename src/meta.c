@@ -26,18 +26,17 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                    FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
-                    char* rsChecksum, int group, int level)
+int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                    char* checksum, char* ptnerChecksum, char* rsChecksum)
 {
-    dictionary* ini;
-    char* checksumTemp;
-    char mfn[FTI_BUFS], str[FTI_BUFS];
-    if (level == 0) {
-        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
+    char mfn[FTI_BUFS]; //Path to the metadata file
+    char str[FTI_BUFS]; //For console output
+    if (FTI_Exec->ckptLvel == 0) {
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
     }
     else {
-        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
+        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[FTI_Exec->ckptLvel].metaDir, FTI_Topo->sectorID, FTI_Topo->groupID);
     }
 
     sprintf(str, "Getting FTI metadata file (%s)...", mfn);
@@ -46,20 +45,27 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("FTI metadata file NOT accessible.", FTI_WARN);
         return FTI_NSCS;
     }
-    ini = iniparser_load(mfn);
+    dictionary* ini = iniparser_load(mfn);
     if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
         return FTI_NSCS;
     }
 
+    //Get checksum of checkpoint file
     sprintf(str, "%d:Ckpt_checksum", FTI_Topo->groupRank);
-    checksumTemp = iniparser_getstring(ini, str, NULL);
+    char* checksumTemp = iniparser_getstring(ini, str, NULL);
     strncpy(checksum, checksumTemp, MD5_DIGEST_LENGTH);
+
+    //Get checksum of partner checkpoint file
     sprintf(str, "%d:Ckpt_checksum", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
     checksumTemp = iniparser_getstring(ini, str, NULL);
     strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+
+    //Get checksum of Reed-Salomon file
     sprintf(str, "%d:RSed_checksum", FTI_Topo->groupRank);
     checksumTemp = iniparser_getstring(ini, str, NULL);
+
+    //If RS checksum don't exists length set to 0;
     if (checksumTemp != NULL) {
         strncpy(rsChecksum, checksumTemp, MD5_DIGEST_LENGTH);
     } else {
@@ -91,38 +97,41 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
                             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                              int rank, char* checksum)
 {
-    char str[FTI_BUFS], buf[FTI_BUFS], fileName[FTI_BUFS];
-    dictionary* ini;
-    char* checksums;
-    int i;
+    char str[FTI_BUFS], fileName[FTI_BUFS];
+
+    //Calcuate which groupID rank belongs
     int sectorID = rank / (FTI_Topo->groupSize * FTI_Topo->nodeSize);
     int node = rank / FTI_Topo->nodeSize;
     int rankInGroup = node - (sectorID * FTI_Topo->groupSize);
     int groupID = rank % FTI_Topo->nodeSize;
 
-    checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
+    char* checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
     MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
+
+    //Only first process in group save RS checksum
     if (rankInGroup) {
         free(checksums);
         return FTI_SCES;
     }
 
     sprintf(fileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, groupID);
-    ini = iniparser_load(fileName);
+    dictionary* ini = iniparser_load(fileName);
     if (ini == NULL) {
         FTI_Print("Temporary metadata file could NOT be parsed", FTI_WARN);
         free(checksums);
         return FTI_NSCS;
     }
     // Add metadata to dictionary
+    int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
+        char buf[FTI_BUFS];
         strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
         sprintf(str, "%d:RSed_checksum", i);
         iniparser_set(ini, str, buf);
     }
     free(checksums);
 
-    sprintf(str, "Recreating metadata file (%s)...", buf);
+    sprintf(str, "Recreating metadata file (%s)...", fileName);
     FTI_Print(str, FTI_DBUG);
 
     FILE* fd = fopen(fileName, "w");
@@ -137,14 +146,6 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     // Write metadata
     iniparser_dump_ini(ini, fd);
 
-    if (fflush(fd) != 0) {
-        FTI_Print("Metadata file could NOT be flushed.", FTI_WARN);
-
-        iniparser_freedict(ini);
-        fclose(fd);
-
-        return FTI_NSCS;
-    }
     if (fclose(fd) != 0) {
         FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
 
@@ -157,53 +158,6 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
     return FTI_SCES;
 }
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It gets the ptner file size from metadata.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      pfs             Pointer to fill the ptner file size.
-    @param      group           The group in the node.
-    @param      level           The level of the ckpt or 0 if tmp.
-    @return     integer         FTI_SCES if successful.
-
-    This function reads the metadata file created during checkpointing and
-    reads partner file size.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level)
-{
-    dictionary* ini;
-    char mfn[FTI_BUFS], str[FTI_BUFS];
-    if (level == 0) {
-        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, group);
-    }
-    else {
-        sprintf(mfn, "%s/sector%d-group%d.fti", FTI_Ckpt[level].metaDir, FTI_Topo->sectorID, group);
-    }
-    sprintf(str, "Getting Ptner file size (%s)...", mfn);
-    FTI_Print(str, FTI_DBUG);
-    if (access(mfn, R_OK) != 0) {
-        FTI_Print("FTI metadata file NOT accessible.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    ini = iniparser_load(mfn);
-    if (ini == NULL) {
-        FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    //get Ptner file size
-    sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
-    *pfs = iniparser_getlint(ini, str, -1);
-    iniparser_freedict(ini);
-
-    return FTI_SCES;
-}
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -224,13 +178,12 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     if (!FTI_Topo->amIaHead) {
-        dictionary* ini;
         char metaFileName[FTI_BUFS], str[FTI_BUFS];
         sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
         sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
         FTI_Print(str, FTI_DBUG);
         if (access(metaFileName, R_OK) == 0) {
-            ini = iniparser_load(metaFileName);
+            dictionary* ini = iniparser_load(metaFileName);
             if (ini == NULL) {
                 FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                 return FTI_NSCS;
@@ -259,15 +212,14 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else { //I am a head
-        int j, biggestCkptID = 0;
+        int j, biggestCkptID = 0; //Need to find biggest CkptID
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
-            dictionary* ini;
             char metaFileName[FTI_BUFS], str[FTI_BUFS];
             sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, j);
             sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
             if (access(metaFileName, R_OK) == 0) {
-                ini = iniparser_load(metaFileName);
+                dictionary* ini = iniparser_load(metaFileName);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                     return FTI_NSCS;
@@ -324,11 +276,9 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    int i, j;
     if (!FTI_Topo->amIaHead) {
-        //for each level
-        for (i = 0; i < 5; i++) {
-            dictionary* ini;
+        int i;
+        for (i = 0; i < 5; i++) { //for each level
             char metaFileName[FTI_BUFS], str[FTI_BUFS];
             if (i == 0) {
                 sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
@@ -338,7 +288,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
             if (access(metaFileName, R_OK) == 0) {
-                ini = iniparser_load(metaFileName);
+                dictionary* ini = iniparser_load(metaFileName);
                 if (ini == NULL) {
                     FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
                     return FTI_NSCS;
@@ -366,9 +316,10 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else { //I am a head
-        int biggestCkptID = FTI_Exec->ckptID;
-        //for each level
-        for (i = 0; i < 5; i++) {
+        int biggestCkptID = 0;
+        int i;
+        for (i = 0; i < 5; i++) {        //for each level
+            int j;
             for (j = 1; j < FTI_Topo->nodeSize; j++) { //for all body processes
                 dictionary* ini;
                 char metaFileName[FTI_BUFS], str[FTI_BUFS];
@@ -437,21 +388,19 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                       unsigned long* fs, unsigned long mfs, char* fnl, char* checksums)
 {
     char str[FTI_BUFS], buf[FTI_BUFS];
-    dictionary* ini;
-    int i;
-
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
 
     // To bypass iniparser bug while empty dict.
-    ini = iniparser_load(buf);
+    dictionary* ini = iniparser_load(buf);
     if (ini == NULL) {
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
         return FTI_NSCS;
     }
 
     // Add metadata to dictionary
+    int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
         sprintf(str, "%d", i);
@@ -533,10 +482,6 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    char str[FTI_BUFS], lfn[FTI_BUFS], checksum[MD5_DIGEST_LENGTH];
-    int i, res = FTI_SCES;
-    int level = FTI_Exec->ckptLvel;
-
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
     long fileSizes[FTI_BUFS];
@@ -548,13 +493,15 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
     }
 
-    long mfs = 0;
+    long mfs = 0; //Max file size in group
+    int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         if (fileSizes[i] > mfs) {
             mfs = fileSizes[i]; // Search max. size
         }
     }
     FTI_Exec->meta[0].maxFs[0] = mfs;
+    char str[FTI_BUFS]; //For console output
     sprintf(str, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
@@ -564,9 +511,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // TODO Checksums only local currently
     char* checksums;
-    if (!(level == 4 && FTI_Ckpt[4].isInline)) {
+    if (!(FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].isInline)) {
+        char lfn[FTI_BUFS];
         sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-        res = FTI_Checksum(lfn, checksum);
+        char checksum[MD5_DIGEST_LENGTH];
+        int res = FTI_Checksum(lfn, checksum);
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
         MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
         if (res == FTI_NSCS) {
@@ -576,13 +525,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     } else {
-        //sprintf(lfn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[level].ckptFile);
         checksums = talloc(char, FTI_BUFS);
         checksums[0]=0;
     }
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fileSizes, mfs, ckptFileNames, checksums), "write the metadata.");
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fileSizes, mfs, ckptFileNames, checksums), "write the metadata.");
         if (res == FTI_NSCS) {
             free(ckptFileNames);
             free(checksums);
@@ -591,11 +539,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    //Flush metadata
-    FTI_Exec->meta[level].fs[0] = FTI_Exec->meta[0].fs[0];
-    FTI_Exec->meta[level].pfs[0] = FTI_Exec->meta[0].pfs[0];
-    FTI_Exec->meta[level].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
-    strcpy(FTI_Exec->meta[level].ckptFile, FTI_Exec->meta[0].ckptFile);
+    //Flush metadata in case postCkpt done inline
+    FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = FTI_Exec->meta[0].fs[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
+    strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
 
     free(ckptFileNames);
     free(checksums);
