@@ -84,7 +84,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // TODO Checksums only local currently
     if ( level > 0 && level < 4 ) {
-        FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, FTI_Topo->groupID, level);
+        FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     }
     sprintf(fn, "Checking file %s and its erasures.", ckptFile);
     FTI_Print(fn, FTI_DBUG);
