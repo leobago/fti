@@ -16,7 +16,7 @@ find_path(
 
 find_library(
     LUSTREAPI_LIBRARY
-    NAMES liblustreapi.so ${LUSTREAPI_CMAKE_LIBRARIES}
+    NAMES liblustreapi.a ${LUSTREAPI_CMAKE_LIBRARIES}
     HINTS /usr/lib ${LUSTREAPI_CMAKE_LIBRARY_DIRS})
 
 include(

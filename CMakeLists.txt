@@ -24,7 +24,7 @@ find_package(MPI REQUIRED)
 find_package(OPENSSL REQUIRED)
 
 if(ENABLE_LUSTRE)
-    find_package(LUSTREAPI REQUIRED)
+    find_package(LUSTREAPI)
 endif()
 
 add_subdirectory(deps)
@@ -77,11 +77,19 @@ endif()
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 
-if(LUSTREAPI_FOUND)
-    append_property(SOURCE PROPERTY INCLUDE_DIRECTORIES ${LUSTREAPI_INCLUDE_DIRS})
-    append_property(SOURCE PROPERTY COMPILE_DEFINITIONS -DLUSTRE)
-    target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
-    target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
+if(ENABLE_LUSTRE)
+    if(LUSTREAPI_FOUND)
+        include_directories(${LUSTREAPI_INCLUDE_DIRS})
+        append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_DEFINITIONS LUSTRE)
+        target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
+        target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
+    else()
+        message(WARNING    "** Lustre could not be found!
+                            *  You may specify:
+                            *  -DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>
+                            *  and
+                            *  -DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
+    endif()
 endif()
 
 if(ENABLE_SIONLIB)
