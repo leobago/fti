@@ -65,8 +65,6 @@ append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 set_property(TARGET fti.static fti.shared
 	PROPERTY OUTPUT_NAME fti)
-append_property(TARGET fti.static fti.shared
-    PROPERTY COMPILE_FLAGS -fPIC)
 
 #PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
 #http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
@@ -141,8 +139,6 @@ if(ENABLE_FORTRAN)
 		PROPERTY LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
 	set_property(TARGET fti_f90.static fti_f90.shared
 		PROPERTY OUTPUT_NAME fti_f90)
-    append_property(TARGET fti_f90.static fti_f90.shared
-        PROPERTY COMPILE_FLAGS -fPIC)
 
 	list(APPEND FTI_TARGETS fti_f90.static fti_f90.shared)
 	install(TARGETS fti_f90.static fti_f90.shared
