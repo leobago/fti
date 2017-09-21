@@ -84,11 +84,12 @@ if(ENABLE_LUSTRE)
         target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
         target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
     else()
-        message(WARNING    "** Lustre could not be found!
-                            *  You may specify:
-                            *  -DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>
-                            *  and
-                            *  -DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
+        message(WARNING    "
+        ** Lustre could not be found!
+        *  You may specify:
+        *  -DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>
+        *  and
+        *  -DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
     endif()
 endif()
 
