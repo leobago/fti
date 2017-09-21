@@ -5,7 +5,10 @@
  *  @brief  Checkpointing functions for the FTI library.
  */
 
-#define _POSIX_C_SOURCE 200809L
+#ifndef LUSTRE
+#    define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <string.h>
 
 #include "interface.h"
@@ -395,6 +398,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
+   int res;
    FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
    char str[FTI_BUFS], mpi_err[FTI_BUFS];
 
@@ -418,7 +422,20 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
    // open parallel file (collective call)
    MPI_File pfh;
-   int res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
+
+#ifdef LUSTRE
+    if (FTI_Topo->splitRank == 0) {
+        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
+        if (res) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(-res, error_msg, FTI_BUFS);
+            sprintf(str, "[Lustre] %s.", error_msg);
+            FTI_Print(str, FTI_WARN);
+        }
+    }
+#endif
+   res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
 
    // check if successful
    if (res != 0) {
