@@ -140,6 +140,60 @@ int FTI_Try(int result, char* message)
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      It mallocs memory for the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function mallocs the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+{
+    int i;
+    if (FTI_Topo->amIaHead) {
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+        }
+    } else {
+        for (i = 0; i < 5; i++) {
+            FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
+            FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
+            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It frees memory for the metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+
+    This function frees the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_FreeMeta(FTIT_execution* FTI_Exec)
+{
+    int i;
+    for (i = 0; i < 5; i++) {
+        free(FTI_Exec->meta[i].exists);
+        free(FTI_Exec->meta[i].maxFs);
+        free(FTI_Exec->meta[i].fs);
+        free(FTI_Exec->meta[i].pfs);
+        free(FTI_Exec->meta[i].ckptFile);
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It creates the basic datatypes and the dataset array.
     @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
@@ -233,8 +287,6 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
     @param      level           Level of cleaning.
-    @param      group           Group ID of the cleaning target process.
-    @param      rank            Rank of the cleaning target process.
     @return     integer         FTI_SCES if successful.
 
     This function erases previous checkpoint depending on the level of the
@@ -244,10 +296,10 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank)
+              FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    char buf[FTI_BUFS];
-    int nodeFlag, globalFlag = !FTI_Topo->splitRank;
+    int nodeFlag; //only one process in the node has set it to 1
+    int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
 
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
 
@@ -287,6 +339,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
         rmdir(FTI_Conf->glbalDir);
+        char buf[FTI_BUFS];
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1) {
             if (errno != ENOENT) {
