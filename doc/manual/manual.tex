@@ -1,6 +1,6 @@
 \documentclass{refrep}
 %%%%%%%%%% TITLE
-\title{FTI - User Manual  \\ {\small(Release 0.9.8)}}
+\title{FTI - User Manual  \\ {\small(Release 0.9.9)}}
 \author{Authors: Kai Keller, Tomasz Paluszkiewicz}
 \date{\small (Revision date: \today)}
 %%%%%%%%%% FRAMES
@@ -91,17 +91,6 @@ In contrast to the safety level L2, in level L3 it is irrelevant which of nodes 
 \section{L4}\label{sec:l4}
 L4 denotes the fourth safety level of checkpointing. All the checkpoint files are flushed to the parallel file system (PFS).
 
-
-
-
-
-
-
-
-
-
-
-
 \chapter{Compilation}
 FTI uses Cmake to configure the installation. The recommended way to perform the installation is to create a build directory within the base directory of FTI and perform the cmake command in there. \\
 In the following you will find configuration examples. The commands are performed in the build directory within the FTI base directory.
@@ -153,14 +142,6 @@ make all install
 \begin{tcolorbox}
     \textsc{{\bf Notice:} Modify {\tt x86-64} if you are using a different architecture. Also the option {\tt CMAKE\_SYSTEM\_NAME=CrayLinuxEnvironment} is available for Cmake versions 3.5.2 and above.}
 \end{tcolorbox}
-
-
-
-
-
-
-
-
 
 \chapter{API Reference}\label{ch:apireference}
 \section{FTI Datatypes and FTI Constants}\label{sec:datatypesandconstants}
