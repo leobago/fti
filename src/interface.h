@@ -17,7 +17,7 @@
 #include "../deps/jerasure/jerasure.h"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    #include <sion.h>
+#   include <sion.h>
 #endif
 
 #include <stdint.h>
@@ -32,6 +32,11 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
+
+#ifdef LUSTRE
+#   include "lustreapi.h"
+#endif
+
 
 /*---------------------------------------------------------------------------
                                   Defines
