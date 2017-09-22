@@ -52,11 +52,16 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             sprintf(str, "Current iter : %d ckpt iter. : %d . Next ckpt. at iter. %d",
                     FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext);
             FTI_Print(str, FTI_DBUG);
-            if (FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) {
+            if ((FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) && (FTI_Exec->syncIter < FTI_Exec->syncIterMax)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
                     FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
                 FTI_Print(str, FTI_DBUG);
+                if (FTI_Exec->syncIter == FTI_Exec->syncIterMax) {
+                    sprintf(str, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
+                    FTI_Print(str, FTI_DBUG);
+                }
+
             }
         }
     }
