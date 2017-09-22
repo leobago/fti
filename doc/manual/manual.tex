@@ -436,7 +436,7 @@ int main(int argc, char** argv){
 \end{center}
 \chapter{Configuration}\label{ch:configuration}
 \section{[Basic]}\label{sec:basic}
-\subsection{Head}\label{subsec:head}
+\subsection{head}\label{subsec:head}
 The checkpointing safety levels L2, L3 and L4 produce additional overhead due to the necessary postprocessing work on the checkpoints. FTI offers the possibility to create an MPI process, called \emph{HEAD}, in which this postprocessing will be accomplished. This allows it for the application processes to continue the execution immediately after the checkpointing.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -448,7 +448,7 @@ The checkpointing safety levels L2, L3 and L4 produce additional overhead due to
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Node\_size}\label{subsec:nodesize}
+\subsection{node\_size}\label{subsec:nodesize}
 Lets FTI know, how many processes will run on each node (\emph{npp}). In most cases this will be the amount of processing units within the node (e.g. 2 CPU's/node and 8 cores/CPU $\rightarrow$ 16 processes/node).
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -458,7 +458,7 @@ npp (int > 0) & Number of processing units within each node (notice: The total n
 \end{tabular}
 \end{center}
 (\textit{default = 2})
-\subsection{Ckpt\_dir}\label{subsec:ckptdir}
+\subsection{ckpt\_dir}\label{subsec:ckptdir}
 This entry defines the path to the local hard drive on the nodes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -468,7 +468,7 @@ string & Path to the local hard drive on the nodes \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = \_BLANK\_})
-\subsection{Glbl\_dir}\label{subsec:glbldir}
+\subsection{glbl\_dir}\label{subsec:glbldir}
 This entry defines the path to the checkpoint folder on the PFS (L4 checkpoints).
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -478,7 +478,7 @@ string & Path to the checkpoint directory on the PFS (notice: The directory has 
 \end{tabular}
 \end{center}
 (\textit{default = /path/to/global/storage/})
-\subsection{Meta\_dir}\label{subsec:metadir}
+\subsection{meta\_dir}\label{subsec:metadir}
 This entry defines the path to the meta files directory. The directory has to be accessible from each node. It keeps files with information about the topology of the execution.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -488,7 +488,7 @@ string & Path to the meta files directory. (notice: The directory has to be crea
 \end{tabular}
 \end{center}
 (\textit{default = /home/username/.fti/})
-\subsection{Ckpt\_L1}\label{subsec:ckptl1}
+\subsection{ckpt\_L1}\label{subsec:ckptl1}
 Here, the user sets the checkpoint frequency of L1 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -498,7 +498,7 @@ L1 freq. (int $\geq$ 0)  & L1 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 3})
-\subsection{Ckpt\_L2}\label{subsec:ckptl2}
+\subsection{ckpt\_L2}\label{subsec:ckptl2}
 Here, the user sets the checkpoint frequency of L2 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -508,7 +508,7 @@ L2 freq. (int $\geq$ 0)  & L2 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 5})
-\subsection{Ckpt\_L3}\label{subsec:ckptl3}
+\subsection{ckpt\_L3}\label{subsec:ckptl3}
 Here, the user sets the checkpoint frequency of L3 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -518,7 +518,7 @@ L3 freq. (int $\geq$ 0)  & L3 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 7})
-\subsection{Ckpt\_L4}\label{subsec:ckptl4}
+\subsection{ckpt\_L4}\label{subsec:ckptl4}
 Here, the user sets the checkpoint frequency of L4 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -528,7 +528,7 @@ L4 freq. (int $\geq$ 0)  & L4 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 11})
-\subsection{Inline\_L2}\label{subsec:inlinel2}
+\subsection{inline\_L2}\label{subsec:inlinel2}
 In this entry, the user decides, whether the post-processing work on the L2 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -539,7 +539,7 @@ In this entry, the user decides, whether the post-processing work on the L2 chec
 \end{tabular}
 \end{center}
 (\textit{default = 1})
-\subsection{Inline\_L3}\label{subsec:inlinel3}
+\subsection{inline\_L3}\label{subsec:inlinel3}
 In this entry, the user decides, whether the post-processing work on the L3 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -550,7 +550,7 @@ In this entry, the user decides, whether the post-processing work on the L3 chec
 \end{tabular}
 \end{center}
 (\textit{default = 1})
-\subsection{Inline\_L4}\label{subsec:inlinel4}
+\subsection{inline\_L4}\label{subsec:inlinel4}
 In this entry, the user decides, whether the post-processing work on the L4 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -561,7 +561,7 @@ In this entry, the user decides, whether the post-processing work on the L4 chec
 \end{tabular}
 \end{center}
 (\textit{default = 1})
-\subsection{Keep\_last\_ckpt}\label{subsec:keeplastckpt}
+\subsection{keep\_last\_ckpt}\label{subsec:keeplastckpt}
 This setting tells FTI whether the last checkpoint taken during the execution will be kept in the case of a successful run or not.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -572,7 +572,7 @@ This setting tells FTI whether the last checkpoint taken during the execution wi
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Group\_size}\label{subsec:groupsize}
+\subsection{group\_size}\label{subsec:groupsize}
 The group size entry sets, how many nodes (members) forming a group.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -582,7 +582,29 @@ int i (2 $\leq$ i $\leq$ 32) & Number of nodes contained in a group (notice: The
 \end{tabular}
 \end{center}
 (\textit{default = 4})
-\subsection{Verbosity}\label{subsec:verbosity}
+\subsection{max\_sync\_intv}\label{subsec:maxsynchintv}
+Sets the maximum number of iterations between synchronisations of the iteration length (used for FTI\_Snapshot()).
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ 30) & maximum number of iterations, 2$^{\textsf i}$, between measurements of the global mean iteration time (MPI\_Allreduce call).  \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 9} // 512 iterations)
+\subsection{ckpt\_io}\label{subsec:ckptio}
+Sets the IO mode
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+1 & POSIX IO mode.  \\ \hline
+2 & MPI IO mode. \\ \hline
+3 & SIONlib IO mode.  \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 1})
+\subsection{verbosity}\label{subsec:verbosity}
 Sets the verbosity level
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -595,20 +617,8 @@ Sets the verbosity level
 \end{tabular}
 \end{center}
 (\textit{default = 2})
-\subsection{Ckpt\_io}\label{subsec:ckptio}
-Sets the IO mode
-\begin{center}
-\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
-\hline
-\textbf{Value} & \textbf{Meaning} \\ \hline
-1 & POSIX IO mode.  \\ \hline
-2 & MPI IO mode. \\ \hline
-3 & SIONlib IO mode.  \\ \hline
-\end{tabular}
-\end{center}
-(\textit{default = 1})
 \section{[Restart]}\label{sec:restart}
-\subsection{Failure}\label{subsec:failure}
+\subsection{failure}\label{subsec:failure}
 This setting should mainly set by FTI itself. The behaviour within FTI is the following:
 \begin{itemize}
 \item Within {\tt FTI\_Init()}, it remains on it initial value.
@@ -626,7 +636,7 @@ This setting should mainly set by FTI itself. The behaviour within FTI is the fo
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Exec\_ID}\label{subsec:execid}
+\subsection{exec\_ID}\label{subsec:execid}
 This setting should mainly set by FTI itself. During {\tt FTI\_Init()} the execution ID is set if the application starts for the first time (failure = 0) \emph{or} the execution ID is used by FTI in order to find the checkpoint files for the case of a restart (failure = 1,2).
 \begin{center}
 \begin{tabular}[h!]{|p{0.35\textwidth}|p{0.65\textwidth}|}
@@ -638,7 +648,7 @@ yyyy-mm-dd\_hh-mm-ss & Execution ID (notice: If variate checkpoint data is avail
 (\textit{default = XXXX-XX-XX\_XX-XX-XX})
 \section{[Advanced]}\label{sec:advanced}
 The settings in this section, should \emph{ONLY} be changed by advanced users.
-\subsection{Block\_size}\label{subsec:blocksize}
+\subsection{block\_size}\label{subsec:blocksize}
 FTI temporarily copies small blocks of the L2 and L3 checkpoints to send them through MPI. The size of the data blocks can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
@@ -648,7 +658,7 @@ int & Size in KB of the data blocks send by FTI through MPI for the checkpoint l
 \end{tabular}
 \end{center}
 (\textit{default = 1024})
-\subsection{Transfer\_size}\label{subsec:transfersize}
+\subsection{transfer\_size}\label{subsec:transfersize}
 FTI transfers in chunks local checkpoint files to PFS. The size of the chunk can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
@@ -658,7 +668,7 @@ int & Size in MB of the chunks send by FTI from local to PFS. \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 16})
-\subsection{Mpi\_tag}\label{subsec:mpitag}
+\subsection{mpi\_tag}\label{subsec:mpitag}
 FTI uses a certain tag for the MPI messages. This tag can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
@@ -668,7 +678,41 @@ int & Tag, used for MPI messages within FTI. \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 2612})
-\subsection{Local\_test}\label{subsec:localtest}
+\subsection{lustre\_stiping\_unit}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping unit for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping size in Bytes. The default in Lustre systems is 1MB (1048576), FTI uses 4MB (4194304 Bytes) as the dafault value. \\ \hline
+    0 & Assigns the Lustre default value. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 4194304})
+\subsection{lustre\_stiping\_factor}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping factor for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping factor. The striping factor determines the number of OST's to use for striping. \\ \hline
+    -1 & Stripe over all available OST's. This is the default in FTI. \\ \hline
+    0 & Assigns the Lustre default value. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = -1})
+\subsection{lustre\_stiping\_offset}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping offset for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping factor. The striping factor determines the number of OST's to use for striping. \\ \hline
+    -1 & Assigns the Lustre default value. This is the default in FTI. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = -1})
+\subsection{local\_test}\label{subsec:localtest}
 FTI is building the topology of the execution, by determining the hostnames of the nodes on which each process runs. Depending on the settings for Group\_size, Node\_size and Head, FTI assigns each particular process to a group and decides which process will be Head or Application dedicated. This is meant to be a local test. In certain situations (e.g. to run FTI on a local machine) it is necessary to disable this function.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
@@ -700,8 +744,9 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-Verbosity = 2
+max_sync_iter = 9
 Ckpt_io = 1
+Verbosity = 2
 
 [Restart]
 
@@ -714,6 +759,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
@@ -739,8 +787,9 @@ Inline_L3 = 0
 Inline_L4 = 0
 Keep_last_ckpt = 0
 Group_size = 4
-Verbosity = 2
+max_sync_intv = 9
 Ckpt_io = 1
+Verbosity = 2
 
 [Restart]
 
@@ -753,6 +802,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
@@ -778,8 +830,9 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-Verbosity = 2
+max_sync_intv = 9
 Ckpt_io = 1
+Verbosity = 2
 
 [Restart]
 
@@ -792,6 +845,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
@@ -817,8 +873,9 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 1
 Group_size = 4
-Verbosity = 2
+max_sync_intv = 9
 Ckpt_io = 1
+Verbosity = 2
 
 [Restart]
 
@@ -831,6 +888,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
@@ -856,8 +916,9 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-Verbosity = 2
+max_sync_intv = 9
 Ckpt_io = 2
+Verbosity = 2
 
 [Restart]
 
@@ -870,6 +931,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
@@ -895,8 +959,9 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-Verbosity = 2
+max_sync_intv = 9
 Ckpt_io = 1
+Verbosity = 2
 
 [Restart]
 
@@ -909,6 +974,9 @@ Block_size = 1024
 Transfer_size = 16
 Mpi_tag = 2612
 Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
 
 \end{lstlisting}
 \end{center}
