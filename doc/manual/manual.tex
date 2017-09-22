@@ -652,15 +652,16 @@ int i (2 $\leq$ i $\leq$ 32) & Number of nodes contained in a group (notice: The
 \end{center}
 (\textit{default = 4})
 \subsection{max\_sync\_intv}\label{subsec:maxsynchintv}
-Sets the maximum number of iterations between synchronisations of the iteration length (used for FTI\_Snapshot()).
+Sets the maximum number of iterations between synchronisations of the iteration length (used for FTI\_Snapshot()). Internally the value will be rounded to a value which is a power of 2.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-    int i (0 $\leq$ i $\leq$ 30) & maximum number of iterations, 2$^{\textsf i}$, between measurements of the global mean iteration time (MPI\_Allreduce call).  \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & maximum number of iterations between measurements of the global mean iteration time (MPI\_Allreduce call).  \\ \hline
+    0 & Sets the value to 512, the default value for FTI.  \\ \hline
 \end{tabular}
 \end{center}
-(\textit{default = 9} // 512 iterations)
+(\textit{default = 0})
 \subsection{ckpt\_io}\label{subsec:ckptio}
 Sets the IO mode
 \begin{center}
@@ -813,7 +814,7 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-max_sync_iter = 9
+max_sync_intv = 0
 Ckpt_io = 1
 Verbosity = 2
 
@@ -856,7 +857,7 @@ Inline_L3 = 0
 Inline_L4 = 0
 Keep_last_ckpt = 0
 Group_size = 4
-max_sync_intv = 9
+max_sync_intv = 0
 Ckpt_io = 1
 Verbosity = 2
 
@@ -899,7 +900,7 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-max_sync_intv = 9
+max_sync_intv = 0
 Ckpt_io = 1
 Verbosity = 2
 
@@ -942,7 +943,7 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 1
 Group_size = 4
-max_sync_intv = 9
+max_sync_intv = 0
 Ckpt_io = 1
 Verbosity = 2
 
@@ -985,7 +986,7 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-max_sync_intv = 9
+max_sync_intv = 0
 Ckpt_io = 2
 Verbosity = 2
 
@@ -1028,7 +1029,7 @@ Inline_L3 = 1
 Inline_L4 = 1
 Keep_last_ckpt = 0
 Group_size = 4
-max_sync_intv = 9
+max_sync_intv = 0
 Ckpt_io = 1
 Verbosity = 2
 
