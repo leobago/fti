@@ -2,34 +2,63 @@
 %%%%%%%%%% TITLE
 \title{FTI - User Manual  \\ {\small(Release 0.9.8)}}
 \author{Authors: Kai Keller, Tomasz Paluszkiewicz}
-\date{July, 2017}
+\date{\small (Revision date: \today)}
 %%%%%%%%%% FRAMES
 \usepackage{framed}
-%%%%%%%%%% CODE FONTS
-\usepackage{ascii}
+%%%%%%%%%% FONTS
+%\usepackage{ascii}
 \usepackage[T1]{fontenc}
+\usepackage{helvet}
 %%%%%%%%%% CODE LISTINGS
 \usepackage{listings}
 %%%%%%%%%% COLORS
 \usepackage[dvipsnames]{xcolor}
 \definecolor{beaublue}{rgb}{0.74, 0.83, 0.9}
 \definecolor{ceruleanblue}{rgb}{0.16, 0.32, 0.75}
+\definecolor{verde}{rgb}{0.25,0.5,0.35}
+\definecolor{jpurple}{rgb}{0.5,0,0.35}
+\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
 %%%%%%%%%% HYPERLINKS REFERENCES
 \usepackage[colorlinks,linkcolor=RoyalBlue]{hyperref}
-\begin{document}
-\lstset{%
-keywordstyle=\color{ceruleanblue},
-language=C,
-escapeinside={(*@}{@*)},
-backgroundcolor=\color{beaublue}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\lstset{
+    language=C,
+    basicstyle=\tt\scriptsize,
+    keywordstyle=\color{jpurple}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{verde},
+    morecomment=[s][\color{blue}]{/**}{*/},
+    extendedchars=true,
+    showspaces=false,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny,
+    breaklines=true,
+    backgroundcolor=\color{cyan!10},
+    breakautoindent=true,
+    captionpos=b,
+    xleftmargin=0pt,
+    tabsize=2,
+    numberblanklines=false,
 }
+
+\begin{document}
+%\lstset{%
+%keywordstyle=\color{ceruleanblue},
+%language=C,
+%escapeinside={(*@}{@*)},
+%backgroundcolor=\color{beaublue}
+%}
 \maketitle
 \tableofcontents
 \newpage
 \chapter{Introduction}\label{ch:introduction}
 In high performance computing (HPC), systems are built from highly reliable components. However, the overall failure rate of supercomputers increases with component count. Nowadays, petascale machines have a mean time between failures (MTBF) measured in hours or days and fault tolerance (FT) is a well-known issue. Long running large applications rely on FT techniques to successfully finish their long executions. Checkpoint/Restart (CR) is a popular technique in which the applications save their state in stable storage, frequently a parallel file system (PFS); upon a failure, the application restarts from the last saved checkpoint. CR is a relatively inexpensive technique in comparison with the process-replication scheme that imposes over 100\% of overhead.
 \\{}\\
-However, when a large application is checkpointed, tens of thousands of processes will each write several GBs of data and the total checkpoint size will be in the order of several tens of TBs. Since the I/O bandwidth of supercomputers does not increase at the same speed as computational capabilities, large checkpoints can lead to an I/O bottleneck, which causes up to 25\% of overhead in current petascale systems. Post-petascale systems will have a significantly larger number of components and an important amount of memory. This will have an impact on the system’s reliability. With a shorter MTBF, those systems may require a higher checkpoint frequency and at the same time they will have significantly larger amounts of data to save. Although the overall failure rate of future post-petascale systems is a common factor to study when designing FT-techniques, another important point to take into account is the pattern of the failures. Indeed, when moving from 90nm to 16nm technology, the soft error rate (SER) is likely to increase significantly, as shown in a recent study from Intel. A recent study by Dong et al. explains how this provides an opportunity for local/global hybrid checkpoint using new technologies such as phase change memories (PCM). Moreover, some hard failures can be tolerated using solid-state-drives (SSD) and cross-node redundancy schemes, such as checkpoint replication or XOR encoding which allows to leverage multi-level checkpointing, as proposed by Moody et al.. Furthermore, Cheng et al. demonstrated that more complex erasure codes such as Reed-Solomon (RS) encoding can be used to further increase the percentage of hard failures tolerated without stressing the PFS.
+However, when a large application is checkpointed, tens of thousands of processes will each write several GBs of data and the total checkpoint size will be in the order of several tens of TBs. Since the I/O bandwidth of supercomputers does not increase at the same speed as computational capabilities, large checkpoints can lead to an I/O bottleneck, which causes up to 25\% of overhead in current petascale systems. Post-petascale systems will have a significantly larger number of components and an
+important amount of memory. This will have an impact on the system's reliability. With a shorter MTBF, those systems may require a higher checkpoint frequency and at the same time they will have significantly larger amounts of data to save. Although the overall failure rate of future post-petascale systems is a common factor to study when designing FT-techniques, another important point to take into account is the pattern of the failures. Indeed, when moving from 90nm to 16nm technology, the soft error rate (SER) is likely to increase significantly, as shown in a recent study from Intel. A recent study by Dong et al. explains how this provides an opportunity for local/global hybrid checkpoint using new technologies such as phase change memories (PCM). Moreover, some hard failures can be tolerated using solid-state-drives (SSD) and cross-node redundancy schemes, such as checkpoint replication or XOR encoding which allows to leverage multi-level checkpointing, as proposed by Moody et al.. Furthermore, Cheng et al. demonstrated that more complex erasure codes such as Reed-Solomon (RS) encoding can be used to further increase the percentage of hard failures tolerated without stressing the PFS.
 \\{}\\
 FTI is a multi-level checkpointing interface. It provides an api which is easy to apply and offers a flexible configuration to enable the user to select the checkpointing strategy which fits best to the problem.
 \chapter{Multilevel Checkpointing}\label{ch:multilevelcheckpointing}
@@ -49,27 +78,27 @@ L4 denotes the fourth safety level of checkpointing. All the checkpoint files ar
 \section{FTI Datatypes and FTI Constants}\label{sec:datatypesandconstants}
 \subsection{FTI Datatypes}\label{sec:datatypes}
 \begin{description}
-\item[\textbf{FTI\_CHAR}] FTI data type for chars
-\item[\textbf{FTI\_SHRT}] FTI data type for short integers.
-\item[\textbf{FTI\_INTG}] FTI data type for integers.
-\item[\textbf{FTI\_LONG}] FTI data type for long integers.
-\item[\textbf{FTI\_UCHR}] FTI data type for unsigned chars.
-\item[\textbf{FTI\_USHT}] FTI data type for unsigned short integers.
-\item[\textbf{FTI\_UINT}] FTI data type for unsigned integers.
-\item[\textbf{FTI\_ULNG}] FTI data type for unsigned long integers.
-\item[\textbf{FTI\_SFLT}] FTI data type for single floating point.
-\item[\textbf{FTI\_DBLE}] FTI data type for double floating point.
-\item[\textbf{FTI\_LDBE}] FTI data type for long double floating point.
+\item[\tt{FTI\_CHAR}] FTI data type for chars
+\item[\tt{FTI\_SHRT}] FTI data type for short integers.
+\item[\tt{FTI\_INTG}] FTI data type for integers.
+\item[\tt{FTI\_LONG}] FTI data type for long integers.
+\item[\tt{FTI\_UCHR}] FTI data type for unsigned chars.
+\item[\tt{FTI\_USHT}] FTI data type for unsigned short integers.
+\item[\tt{FTI\_UINT}] FTI data type for unsigned integers.
+\item[\tt{FTI\_ULNG}] FTI data type for unsigned long integers.
+\item[\tt{FTI\_SFLT}] FTI data type for single floating point.
+\item[\tt{FTI\_DBLE}] FTI data type for double floating point.
+\item[\tt{FTI\_LDBE}] FTI data type for long double floating point.
 \end{description}
 \subsection{FTI Constants}
 \begin{description}
-\item[\textbf{FTI\_BUFS}] 256
-\item[\textbf{FTI\_DONE}] 1
-\item[\textbf{FTI\_SCES}] 0
-\item[\textbf{FTI\_NSCS}] -1
+\item[\tt{FTI\_BUFS}] 256
+\item[\tt{FTI\_DONE}] 1
+\item[\tt{FTI\_SCES}] 0
+\item[\tt{FTI\_NSCS}] -1
 \end{description}
 \newpage
-\section{\asciifamily FTI\_Init( $\dots$ )}\label{sec:ftiinit}
+\section{\tt FTI\_Init( $\dots$ )}\label{sec:ftiinit}
 \begin{framed}
 \begin{itemize}
 \item[--] Reads configuration file.
@@ -117,7 +146,7 @@ int main(int argc, char** argv){
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_InitType( $\dots$ )}\label{sec:ftiinittype}
+\section{\tt FTI\_InitType( $\dots$ )}\label{sec:ftiinittype}
 \begin{framed}
 \begin{itemize}
 \item[--] initializes a data type.
@@ -157,7 +186,7 @@ FTI_InitType(&structAinfo, 2 * sizeof(int));
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Protect( $\dots$ )}\label{sec:ftiprotect}
+\section{\tt FTI\_Protect( $\dots$ )}\label{sec:ftiprotect}
 \begin{framed}
 \begin{itemize}
 \item[--] Stores metadata concerning the variable to protect.
@@ -206,7 +235,7 @@ FTI_Protect(2, B, 20, FTI_SFLT);
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Checkpoint( $\dots$ )}\label{sec:fticheckpoint}
+\section{\tt FTI\_Checkpoint( $\dots$ )}\label{sec:fticheckpoint}
 \begin{framed}
 \begin{itemize}
 \item[--] Writes values of protected runtime variables to a checkpoint file of requested level.
@@ -251,7 +280,7 @@ for (i = 0; i < 100; i++) {
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Status()}\label{sec:ftistatus}
+\section{\tt FTI\_Status()}\label{sec:ftistatus}
 \begin{framed}
 \begin{itemize}
 \item[--] Returns the current status of the recovery flag.
@@ -283,7 +312,7 @@ if (FTI_Status() != 0) {
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Recover()}\label{sec:ftirecover}
+\section{\tt FTI\_Recover()}\label{sec:ftirecover}
 \begin{framed}
 \begin{itemize}
 \item[--] Loads checkpoint data from the checkpoint file and initializes the runtime variables of the execution.
@@ -327,7 +356,7 @@ if (FTI_Status() != 0) {
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Snapshot()}\label{sec:ftisnapshot}
+\section{\tt FTI\_Snapshot()}\label{sec:ftisnapshot}
 \begin{framed}
 \begin{itemize}
 \item[--] Loads checkpoint data and initializes runtime variables upon recovery.
@@ -369,7 +398,7 @@ else { //res == FTI_DONE
 \end{lstlisting}
 \end{center}
 \newpage
-\section{\asciifamily FTI\_Finalize()}\label{sec:ftifinalize}
+\section{\tt FTI\_Finalize()}\label{sec:ftifinalize}
 \begin{framed}
 \begin{itemize}
 \item[--] Frees the allocated memory.
@@ -538,8 +567,8 @@ This setting tells FTI whether the last checkpoint taken during the execution wi
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-0 & After {\asciifamily FTI\_Finalize()}, the meta files and checkpoints will be removed. No checkpoint data will be kept on the PFS or on the local hard drives of the nodes.  \\ \hline
-1 & After {\asciifamily FTI\_Finalize()}, the last checkpoint will be kept and stored on the PFS as a L4 checkpoint (notice: Additionally, the setting \emph{failure} in the configuration file is set to 2. This will lead to a restart from the last checkpoint if the application is executed again).  \\ \hline
+0 & After {\tt FTI\_Finalize()}, the meta files and checkpoints will be removed. No checkpoint data will be kept on the PFS or on the local hard drives of the nodes.  \\ \hline
+1 & After {\tt FTI\_Finalize()}, the last checkpoint will be kept and stored on the PFS as a L4 checkpoint (notice: Additionally, the setting \emph{failure} in the configuration file is set to 2. This will lead to a restart from the last checkpoint if the application is executed again).  \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 0})
@@ -582,10 +611,10 @@ Sets the IO mode
 \subsection{Failure}\label{subsec:failure}
 This setting should mainly set by FTI itself. The behaviour within FTI is the following:
 \begin{itemize}
-\item Within {\asciifamily FTI\_Init()}, it remains on it initial value.
+\item Within {\tt FTI\_Init()}, it remains on it initial value.
 \item After the first checkpoint is taken, it is set to 1.
-\item After {\asciifamily FTI\_Finalize()} and keep\_last\_ckpt = 0, it is set to 0.
-\item After {\asciifamily FTI\_Finalize()} and keep\_last\_ckpt = 1, it is set to 2.
+\item After {\tt FTI\_Finalize()} and keep\_last\_ckpt = 0, it is set to 0.
+\item After {\tt FTI\_Finalize()} and keep\_last\_ckpt = 1, it is set to 2.
 \end{itemize}
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -598,7 +627,7 @@ This setting should mainly set by FTI itself. The behaviour within FTI is the fo
 \end{center}
 (\textit{default = 0})
 \subsection{Exec\_ID}\label{subsec:execid}
-This setting should mainly set by FTI itself. During {\asciifamily FTI\_Init()} the execution ID is set if the application starts for the first time (failure = 0) \emph{or} the execution ID is used by FTI in order to find the checkpoint files for the case of a restart (failure = 1,2).
+This setting should mainly set by FTI itself. During {\tt FTI\_Init()} the execution ID is set if the application starts for the first time (failure = 0) \emph{or} the execution ID is used by FTI in order to find the checkpoint files for the case of a restart (failure = 1,2).
 \begin{center}
 \begin{tabular}[h!]{|p{0.35\textwidth}|p{0.65\textwidth}|}
 \hline
