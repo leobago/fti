@@ -20,6 +20,22 @@
 \definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
 %%%%%%%%%% HYPERLINKS REFERENCES
 \usepackage[colorlinks,linkcolor=RoyalBlue]{hyperref}
+\usepackage[most]{tcolorbox}
+
+\tcbset{
+    frame code={}
+    center title,
+    left=0pt,
+    right=0pt,
+    top=0pt,
+    bottom=0pt,
+    colback=gray!70,
+    colframe=white,
+    width=\dimexpr\textwidth\relax,
+    enlarge left by=0mm,
+    boxsep=5pt,
+    arc=0pt,outer arc=0pt,
+}
 
 \renewcommand{\familydefault}{\sfdefault}
 
@@ -74,6 +90,78 @@ L3 denotes the third safety level of checkpointing. In this level, the checkpoin
 In contrast to the safety level L2, in level L3 it is irrelevant which of nodes encounters the failure. The missing data can get reconstructed from the remaining RS-encoded data files.
 \section{L4}\label{sec:l4}
 L4 denotes the fourth safety level of checkpointing. All the checkpoint files are flushed to the parallel file system (PFS).
+
+
+
+
+
+
+
+
+
+
+
+
+\chapter{Compilation}
+FTI uses Cmake to configure the installation. The recommended way to perform the installation is to create a build directory within the base directory of FTI and perform the cmake command in there. \\
+In the following you will find configuration examples. The commands are performed in the build directory within the FTI base directory.
+
+\vspace{2mm}
+{\bf Default}
+The default configuration builds the FTI library with Fortran and MPI-IO support for GNU compilers:
+\begin{lstlisting}[language=bash]
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+make all install
+\end{lstlisting}
+\begin{tcolorbox}
+    \textsc{{\bf Notice:} The two dots at the end invoke cmake in the top directory.}
+\end{tcolorbox}
+
+\vspace{2mm}
+{\bf Intel compilers}
+Fortran and MPI-IO support for Intel compilers:
+\begin{lstlisting}[language=bash]
+cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Disable Fortran}
+Only build FTI C library:
+\begin{lstlisting}[language=bash]
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DENABLE_FORTRAN=OFF ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Lustre}
+For Lustre user who want to use MPI-IO, it is strongly recommended to configure with Lustre support:
+\begin{lstlisting}[language=bash]
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DENABLE_LUSTRE=ON ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Cray}
+For Cray systems, make sure that the modules craype/* and PrgEnv* are loaded (if available). The configuration should be done as:
+\begin{lstlisting}[language=bash]
+export CRAY_CPU_TARGET=x86-64
+export CRAYPE_LINK_TYPE=dynamic
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment ..
+make all install
+\end{lstlisting}
+\begin{tcolorbox}
+    \textsc{{\bf Notice:} Modify {\tt x86-64} if you are using a different architecture. Also the option {\tt CMAKE\_SYSTEM\_NAME=CrayLinuxEnvironment} is available for Cmake versions 3.5.2 and above.}
+\end{tcolorbox}
+
+
+
+
+
+
+
+
+
 \chapter{API Reference}\label{ch:apireference}
 \section{FTI Datatypes and FTI Constants}\label{sec:datatypesandconstants}
 \subsection{FTI Datatypes}\label{sec:datatypes}
