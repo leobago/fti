@@ -62,6 +62,9 @@
 /** Token for IO mode MPI.                                                 */
 #define FTI_IO_MPI 1002
 
+/** Hashed string length.                                                */
+#define MD5_DIGEST_LENGTH 17
+
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     /** Token for IO mode SIONlib.                                         */
     #define FTI_IO_SIONLIB 1003
@@ -122,6 +125,8 @@ typedef struct FTIT_dataset {
     FTIT_type       type;               /**< Data type for the dataset.     */
     int             eleSize;            /**< Element size for the dataset.  */
     long            size;               /**< Total size of the dataset.     */
+    /** MD5 Checksum                    */
+    char            checksum[MD5_DIGEST_LENGTH];
 } FTIT_dataset;
 
 /** @typedef    FTIT_metadata
@@ -130,9 +135,11 @@ typedef struct FTIT_dataset {
  *  This type stores all the metadata necessary for the restart.
  */
 typedef struct FTIT_metadata {
-    long            maxFs;              /**< Maximum file size.             */
-    long            fs;                 /**< File size.                     */
-    char            ckptFile[FTI_BUFS]; /**< Ckpt file name.                */
+    int*             exists;             /**< True if metadata exists        */
+    long*            maxFs;              /**< Maximum file size.             */
+    long*            fs;                 /**< File size.                     */
+    long*            pfs;                /**< Partner file size.             */
+    char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
@@ -142,23 +149,19 @@ typedef struct FTIT_metadata {
  */
 typedef struct FTIT_execution {
     char            id[FTI_BUFS];       /**< Execution ID.                  */
-    char            ckptFile[FTI_BUFS]; /**< Checkpoint file name.          */
-    char            fn[FTI_BUFS];       /**< Temp file name full path.      */
     int             ckpt;               /**< Checkpoint flag.               */
     int             reco;               /**< Recovery flag.                 */
     int             ckptLvel;           /**< Checkpoint level.              */
     int             ckptIntv;           /**< Ckpt. interval in minutes.     */
     int             lastCkptLvel;       /**< Last checkpoint level.         */
     int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    int             sid;                /**< SIONlib filehandle             */
-#endif
     double          iterTime;           /**< Current wall time.             */
     double          lastIterTime;       /**< Time spent in the last iter.   */
     double          meanIterTime;       /**< Mean iteration time.           */
     double          globMeanIter;       /**< Global mean iteration time.    */
     double          totalIterTime;      /**< Total main loop time spent.    */
     unsigned int    syncIter;           /**< To check mean iter. time.      */
+    int             syncIterMax;        /**< Maximal synch. intervall.      */
     unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
     unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
@@ -168,8 +171,7 @@ typedef struct FTIT_execution {
     long            ckptSize;           /**< Checkpoint size.               */
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
-    FTIT_metadata   *meta;              /**< Metadata for restart           */
-    MPI_File        pfh;                /**< MPI-IO file handle             */
+    FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
 } FTIT_execution;

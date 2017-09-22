@@ -26,11 +26,10 @@
 /*-------------------------------------------------------------------------*/
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int restart)
 {
-    char str[FTI_BUFS];
-    dictionary* ini;
+    char str[FTI_BUFS]; //For console output
 
     // Load dictionary
-    ini = iniparser_load(FTI_Conf->cfgFile);
+    dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
     sprintf(str, "Updating configuration file (%s)...", FTI_Conf->cfgFile);
     FTI_Print(str, FTI_DBUG);
     if (ini == NULL) {
@@ -55,14 +54,7 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 
     // Write new configuration
     iniparser_dump_ini(ini, fd);
-    if (fflush(fd) != 0) {
-        FTI_Print("FTI failed to flush the configuration file.", FTI_EROR);
 
-        iniparser_freedict(ini);
-        fclose(fd);
-
-        return FTI_NSCS;
-    }
     if (fclose(fd) != 0) {
         FTI_Print("FTI failed to close the configuration file.", FTI_EROR);
 
@@ -96,23 +88,23 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection* FTI_Inje)
 {
-    // Check access to FTI configuration file and load dictionary
-    dictionary* ini;
-    char *par, str[FTI_BUFS];
+    char str[FTI_BUFS]; //For console output
     sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
     FTI_Print(str, FTI_INFO);
+
+    // Check access to FTI configuration file and load dictionary
     if (access(FTI_Conf->cfgFile, F_OK) != 0) {
         FTI_Print("FTI configuration file NOT accessible.", FTI_WARN);
         return FTI_NSCS;
     }
-    ini = iniparser_load(FTI_Conf->cfgFile);
+    dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
     if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the conf. file.", FTI_WARN);
         return FTI_NSCS;
     }
 
     // Setting/reading checkpoint configuration metadata
-    par = iniparser_getstring(ini, "Basic:ckpt_dir", NULL);
+    char *par = iniparser_getstring(ini, "Basic:ckpt_dir", NULL);
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s", par);
     par = iniparser_getstring(ini, "Basic:glbl_dir", NULL);
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s", par);
@@ -155,6 +147,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->ckptNext = 0;
     FTI_Exec->ckptLast = 0;
     FTI_Exec->syncIter = 1;
+    FTI_Exec->syncIterMax = (int)iniparser_getint(ini, "Basic:max_sync_intv", -1);
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
@@ -211,8 +204,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt)
+                   FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
+    int l;
+    int check = 1;
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
@@ -257,7 +252,6 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Keep last ckpt. needs to be set to 0 or 1.", FTI_WARN);
         return FTI_NSCS;
     }
-    int l;
     for (l = 1; l < 5; l++) {
         if (FTI_Ckpt[l].ckptIntv == 0) {
             FTI_Ckpt[l].ckptIntv = -1;
@@ -270,6 +264,19 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
+    if (FTI_Exec->syncIterMax < 0) {
+        FTI_Exec->syncIterMax = 512; 
+        FTI_Print("Variable 'Basic:max_sync_intv' is not set. Set to default (512 iterations).", FTI_WARN);
+    } else if ((FTI_Exec->syncIterMax & (FTI_Exec->syncIterMax-1)) != 0) {
+        while (((check<<1) < FTI_Exec->syncIterMax) && ((check<<1) > 0)) {
+            check = check << 1;
+        }
+        FTI_Exec->syncIterMax = check;
+        FTI_Print("Maximal sync. intv. has to be a power of 2. Set to nearest lower value", FTI_WARN);
+    } else if (FTI_Exec->syncIterMax == 0) {
+        FTI_Exec->syncIterMax = 512; 
+        FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
+    }
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
@@ -279,7 +286,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_MPI) {
 #endif
         FTI_Conf->ioMode = FTI_IO_POSIX;
-        FTI_Print("No I/O selected. Set to default (POSIX)", FTI_WARN);
+        FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
     } else {
         switch(FTI_Conf->ioMode) {
             case FTI_IO_POSIX:
@@ -311,7 +318,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 {
-    char str[FTI_BUFS];
+    char str[FTI_BUFS]; //For console output
 
     // Checking local directory
     sprintf(str, "Checking the local directory (%s)...", FTI_Conf->localDir);
@@ -367,7 +374,7 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    char fn[FTI_BUFS];
+    char fn[FTI_BUFS]; //Path of metadata directory
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
@@ -438,25 +445,20 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje)
 {
-    int res;
-    res = FTI_Try(FTI_ReadConf(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Inje), "read configuration.");
+    int res = FTI_Try(FTI_ReadConf(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Inje), "read configuration.");
     if (res == FTI_NSCS) {
-        FTI_Print("Impossible to read configuration.", FTI_WARN);
         return FTI_NSCS;
     }
-    res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt), "pass the configuration test.");
+    res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec), "pass the configuration test.");
     if (res == FTI_NSCS) {
-        FTI_Print("Wrong configuration.", FTI_WARN);
         return FTI_NSCS;
     }
     res = FTI_Try(FTI_TestDirectories(FTI_Conf, FTI_Topo), "pass the directories test.");
     if (res == FTI_NSCS) {
-        FTI_Print("Problem with the directories.", FTI_WARN);
         return FTI_NSCS;
     }
     res = FTI_Try(FTI_CreateDirs(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "create checkpoint directories.");
     if (res == FTI_NSCS) {
-        FTI_Print("Problem creating the directories.", FTI_WARN);
         return FTI_NSCS;
     }
     return FTI_SCES;
