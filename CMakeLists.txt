@@ -9,9 +9,12 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
+option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
+
+set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -22,6 +25,10 @@ if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
 else()
 	set(OPENSSL_FOUND false)
+endif()
+
+if(ENABLE_LUSTRE)
+    find_package(LUSTREAPI)
 endif()
 
 add_subdirectory(deps)
@@ -72,8 +79,24 @@ endif()
 target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
 
+if(ENABLE_LUSTRE)
+    if(LUSTREAPI_FOUND)
+        include_directories(${LUSTREAPI_INCLUDE_DIRS})
+        append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_DEFINITIONS LUSTRE)
+        target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
+        target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
+    else()
+        message(WARNING    "
+        ** Lustre could not be found!
+        *  You may specify:
+        *  -DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>
+        *  and
+        *  -DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
+    endif()
+endif()
+
 if(ENABLE_SIONLIB)
-    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation") 
+    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
     include_directories("${SIONLIB_INCLUDE_DIR}")
     set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
@@ -93,12 +116,12 @@ install(FILES "include/fti.h"
 
 if(ENABLE_FORTRAN)
 	add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-	
+
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
-		
+
 	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
-	
+
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
