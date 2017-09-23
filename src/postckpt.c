@@ -572,6 +572,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
+    int res;
     FTI_Print("Starting checkpoint post-processing L4 using MPI-IO.", FTI_DBUG);
     // enable collective buffer optimization
     MPI_Info info;
@@ -583,10 +584,26 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // open parallel file (collective call)
     MPI_File pfh; // MPI-IO file handle
-    char gfn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, str);
-    int res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
+    char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+#ifdef LUSTRE
+    if (FTI_Topo->splitRank == 0) {
+        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
+        if (res) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(-res, error_msg, FTI_BUFS);
+            sprintf(str, "[Lustre] %s.", error_msg);
+            FTI_Print(str, FTI_WARN);
+        } else {
+            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i", 
+                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
+            FTI_Print(str, FTI_DBUG);
+        }
+    }
+#endif
+    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
     if (res != 0) {
        errno = 0;
        char mpi_err[FTI_BUFS];
