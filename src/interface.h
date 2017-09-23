@@ -17,7 +17,7 @@
 #include "../deps/jerasure/jerasure.h"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    #include <sion.h>
+#   include <sion.h>
 #endif
 
 #include <stdint.h>
@@ -32,6 +32,11 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
+
+#ifdef LUSTRE
+#   include "lustreapi.h"
+#endif
+
 
 /*---------------------------------------------------------------------------
                                   Defines
@@ -75,7 +80,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt);
+                   FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec);
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo);
 int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
