@@ -5,7 +5,10 @@
  *  @brief  Checkpointing functions for the FTI library.
  */
 
-#define _POSIX_C_SOURCE 200809L
+#ifndef LUSTRE
+#    define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <string.h>
 
 #include "interface.h"
@@ -52,11 +55,16 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             sprintf(str, "Current iter : %d ckpt iter. : %d . Next ckpt. at iter. %d",
                     FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext);
             FTI_Print(str, FTI_DBUG);
-            if (FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) {
+            if ((FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) && (FTI_Exec->syncIter < FTI_Exec->syncIterMax)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
                     FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
                 FTI_Print(str, FTI_DBUG);
+                if (FTI_Exec->syncIter == FTI_Exec->syncIterMax) {
+                    sprintf(str, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
+                    FTI_Print(str, FTI_DBUG);
+                }
+
             }
         }
     }
@@ -395,6 +403,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
+   int res;
    FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
    char str[FTI_BUFS], mpi_err[FTI_BUFS];
 
@@ -418,12 +427,30 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
    // open parallel file (collective call)
    MPI_File pfh;
-   int res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
+
+#ifdef LUSTRE
+    if (FTI_Topo->splitRank == 0) {
+        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
+        if (res) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(-res, error_msg, FTI_BUFS);
+            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
+            FTI_Print(str, FTI_WARN);
+        } else {
+            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i", 
+                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
+            FTI_Print(str, FTI_DBUG);
+        }
+    }
+#endif
+   res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
 
    // check if successful
    if (res != 0) {
       errno = 0;
-      MPI_Error_string(res, mpi_err, NULL);
+      int reslen;
+      MPI_Error_string(res, mpi_err, &reslen);
       snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
       FTI_Print(str, FTI_EROR);
       free(chunkSizes);
@@ -442,6 +469,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        long pos = 0;
        long varSize = FTI_Data[i].size;
        long bSize = FTI_Conf->transferSize;
+       char *data_ptr = FTI_Data[i].ptr;
        while (pos < varSize) {
            if ((varSize - pos) < FTI_Conf->transferSize) {
                bSize = varSize - pos;
@@ -451,17 +479,19 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
            MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
            MPI_Type_commit(&dType);
 
-           res = MPI_File_write_at(pfh, offset, FTI_Data[i].ptr, 1, dType, MPI_STATUS_IGNORE);
+           res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
            // check if successful
            if (res != 0) {
                errno = 0;
-               MPI_Error_string(res, mpi_err, NULL);
+               int reslen;
+               MPI_Error_string(res, mpi_err, &reslen);
                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
                FTI_Print(str, FTI_EROR);
                MPI_File_close(&pfh);
                return FTI_NSCS;
            }
            MPI_Type_free(&dType);
+           data_ptr += bSize;
            offset += bSize;
            pos = pos + bSize;
        }
