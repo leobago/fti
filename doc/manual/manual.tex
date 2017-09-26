@@ -1,42 +1,87 @@
 \documentclass{refrep}
 %%%%%%%%%% TITLE
-\title{FTI - Usermanual  \\ {\small(Release 0.9.7)}}
-\author{Author: Kai Keller}
-\date{November, 2016}
+\title{FTI - User Manual  \\ {\small(Release 0.9.9)}}
+\author{Authors: Kai Keller, Tomasz Paluszkiewicz}
+\date{\small (Revision date: \today)}
 %%%%%%%%%% FRAMES
 \usepackage{framed}
-%%%%%%%%%% CODE FONTS
-\usepackage{ascii}
+%%%%%%%%%% FONTS
+%\usepackage{ascii}
 \usepackage[T1]{fontenc}
+\usepackage{helvet}
 %%%%%%%%%% CODE LISTINGS
 \usepackage{listings}
 %%%%%%%%%% COLORS
 \usepackage[dvipsnames]{xcolor}
 \definecolor{beaublue}{rgb}{0.74, 0.83, 0.9}
 \definecolor{ceruleanblue}{rgb}{0.16, 0.32, 0.75}
+\definecolor{verde}{rgb}{0.25,0.5,0.35}
+\definecolor{jpurple}{rgb}{0.5,0,0.35}
+\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
 %%%%%%%%%% HYPERLINKS REFERENCES
 \usepackage[colorlinks,linkcolor=RoyalBlue]{hyperref}
-\begin{document}
-\lstset{%
-keywordstyle=\color{ceruleanblue},
-language=C,
-escapeinside={(*@}{@*)},
-backgroundcolor=\color{beaublue}
+\usepackage[most]{tcolorbox}
+
+\tcbset{
+    frame code={}
+    center title,
+    left=0pt,
+    right=0pt,
+    top=0pt,
+    bottom=0pt,
+    colback=gray!70,
+    colframe=white,
+    width=\dimexpr\textwidth\relax,
+    enlarge left by=0mm,
+    boxsep=5pt,
+    arc=0pt,outer arc=0pt,
 }
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\lstset{
+    language=C,
+    basicstyle=\tt\scriptsize,
+    keywordstyle=\color{jpurple}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{verde},
+    morecomment=[s][\color{blue}]{/**}{*/},
+    extendedchars=true,
+    showspaces=false,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny,
+    breaklines=true,
+    backgroundcolor=\color{cyan!10},
+    breakautoindent=true,
+    captionpos=b,
+    xleftmargin=0pt,
+    tabsize=2,
+    numberblanklines=false,
+}
+
+\begin{document}
+%\lstset{%
+%keywordstyle=\color{ceruleanblue},
+%language=C,
+%escapeinside={(*@}{@*)},
+%backgroundcolor=\color{beaublue}
+%}
 \maketitle
 \tableofcontents
 \newpage
 \chapter{Introduction}\label{ch:introduction}
 In high performance computing (HPC), systems are built from highly reliable components. However, the overall failure rate of supercomputers increases with component count. Nowadays, petascale machines have a mean time between failures (MTBF) measured in hours or days and fault tolerance (FT) is a well-known issue. Long running large applications rely on FT techniques to successfully finish their long executions. Checkpoint/Restart (CR) is a popular technique in which the applications save their state in stable storage, frequently a parallel file system (PFS); upon a failure, the application restarts from the last saved checkpoint. CR is a relatively inexpensive technique in comparison with the process-replication scheme that imposes over 100\% of overhead.
 \\{}\\
-However, when a large application is checkpointed, tens of thousands of processes will each write several GBs of data and the total checkpoint size will be in the order of several tens of TBs. Since the I/O bandwidth of supercomputers does not increase at the same speed as computational capabilities, large checkpoints can lead to an I/O bottleneck, which causes up to 25\% of overhead in current petascale systems. Post-petascale systems will have a significantly larger number of components and an important amount of memory. This will have an impact on the system’s reliability. With a shorter MTBF, those systems may require a higher checkpoint frequency and at the same time they will have significantly larger amounts of data to save. Although the overall failure rate of future post-petascale systems is a common factor to study when designing FT-techniques, another important point to take into account is the pattern of the failures. Indeed, when moving from 90nm to 16nm technology, the soft error rate (SER) is likely to increase significantly, as shown in a recent study from Intel. A recent study by Dong et al. explains how this provides an opportunity for local/global hybrid checkpoint using new technologies such as phase change memories (PCM). Moreover, some hard failures can be tolerated using solid-state-drives (SSD) and cross-node redundancy schemes, such as checkpoint replication or XOR encoding which allows to leverage multi-level checkpointing, as proposed by Moody et al.. Furthermore, Cheng et al. demonstrated that more complex erasure codes such as Reed-Solomon (RS) encoding can be used to further increase the percentage of hard failures tolerated without stressing the PFS.
+However, when a large application is checkpointed, tens of thousands of processes will each write several GBs of data and the total checkpoint size will be in the order of several tens of TBs. Since the I/O bandwidth of supercomputers does not increase at the same speed as computational capabilities, large checkpoints can lead to an I/O bottleneck, which causes up to 25\% of overhead in current petascale systems. Post-petascale systems will have a significantly larger number of components and an
+important amount of memory. This will have an impact on the system's reliability. With a shorter MTBF, those systems may require a higher checkpoint frequency and at the same time they will have significantly larger amounts of data to save. Although the overall failure rate of future post-petascale systems is a common factor to study when designing FT-techniques, another important point to take into account is the pattern of the failures. Indeed, when moving from 90nm to 16nm technology, the soft error rate (SER) is likely to increase significantly, as shown in a recent study from Intel. A recent study by Dong et al. explains how this provides an opportunity for local/global hybrid checkpoint using new technologies such as phase change memories (PCM). Moreover, some hard failures can be tolerated using solid-state-drives (SSD) and cross-node redundancy schemes, such as checkpoint replication or XOR encoding which allows to leverage multi-level checkpointing, as proposed by Moody et al.. Furthermore, Cheng et al. demonstrated that more complex erasure codes such as Reed-Solomon (RS) encoding can be used to further increase the percentage of hard failures tolerated without stressing the PFS.
 \\{}\\
 FTI is a multi-level checkpointing interface. It provides an api which is easy to apply and offers a flexible configuration to enable the user to select the checkpointing strategy which fits best to the problem.
 \chapter{Multilevel Checkpointing}\label{ch:multilevelcheckpointing}
 \section{L1}\label{sec:l1}
 L1 denotes the first safety level in the multilevel checkpointing strategy of FTI. The checkpoint of each process is written on the local SSD of the respective node. This is fast but possesses the drawback, that in case of a data loss and corrupted checkpoint data even in only one node, the execution cannot successfully restarted.
 \section{L2}\label{sec:l2}
-L2 denotes the second safety level of checkpointing. On initialisation, FTI creates a virtual ring for each group of nodes with user defined size (see \ref{subsec:groupsize}). The first step of L2 is just a L1 checkpoint. In the second step, the checkpoints are duplicated and the copies stored on the neighbouring node in the group.
+L2 denotes the second safety level of checkpointing. On initialization, FTI creates a virtual ring for each group of nodes with user defined size (see \ref{subsec:groupsize}). The first step of L2 is just a L1 checkpoint. In the second step, the checkpoints are duplicated and the copies stored on the neighbouring node in the group.
 \\{}\\
 That means, in case of a failure and data loss in the nodes, the execution still can be successfully restarted, as long as the data loss does not happen on two neighbouring nodes at the same time.
 \section{L3}\label{sec:l3}
@@ -45,31 +90,84 @@ L3 denotes the third safety level of checkpointing. In this level, the checkpoin
 In contrast to the safety level L2, in level L3 it is irrelevant which of nodes encounters the failure. The missing data can get reconstructed from the remaining RS-encoded data files.
 \section{L4}\label{sec:l4}
 L4 denotes the fourth safety level of checkpointing. All the checkpoint files are flushed to the parallel file system (PFS).
+
+\chapter{Compilation}
+FTI uses Cmake to configure the installation. The recommended way to perform the installation is to create a build directory within the base directory of FTI and perform the cmake command in there. \\
+In the following you will find configuration examples. The commands are performed in the build directory within the FTI base directory.
+
+\vspace{2mm}
+{\bf Default}
+The default configuration builds the FTI library with Fortran and MPI-IO support for GNU compilers:
+\begin{lstlisting}[language=bash]
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+make all install
+\end{lstlisting}
+\begin{tcolorbox}
+    \textsc{{\bf Notice:} The two dots at the end invoke cmake in the top directory.}
+\end{tcolorbox}
+
+\vspace{2mm}
+{\bf Intel compilers}
+Fortran and MPI-IO support for Intel compilers:
+\begin{lstlisting}[language=bash]
+cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Disable Fortran}
+Only build FTI C library:
+\begin{lstlisting}[language=bash]
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DENABLE_FORTRAN=OFF ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Lustre}
+For Lustre user who want to use MPI-IO, it is strongly recommended to configure with Lustre support:
+\begin{lstlisting}[language=bash]
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DENABLE_LUSTRE=ON ..
+make all install
+\end{lstlisting}
+
+\vspace{2mm}
+{\bf Cray}
+For Cray systems, make sure that the modules craype/* and PrgEnv* are loaded (if available). The configuration should be done as:
+\begin{lstlisting}[language=bash]
+export CRAY_CPU_TARGET=x86-64
+export CRAYPE_LINK_TYPE=dynamic
+cmake [-C ../intel.cmake] -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment ..
+make all install
+\end{lstlisting}
+\begin{tcolorbox}
+    \textsc{{\bf Notice:} Modify {\tt x86-64} if you are using a different architecture. Also the option {\tt CMAKE\_SYSTEM\_NAME=CrayLinuxEnvironment} is available for Cmake versions 3.5.2 and above.}
+\end{tcolorbox}
+
 \chapter{API Reference}\label{ch:apireference}
 \section{FTI Datatypes and FTI Constants}\label{sec:datatypesandconstants}
-\subsection{FTI Datatypes}
+\subsection{FTI Datatypes}\label{sec:datatypes}
 \begin{description}
-\item[\textbf{FTI\_CHAR}] FTI data type for chars
-\item[\textbf{FTI\_SHRT}] FTI data type for short integers.
-\item[\textbf{FTI\_INTG}] FTI data type for integers.
-\item[\textbf{FTI\_LONG}] FTI data type for long integers.
-\item[\textbf{FTI\_UCHR}] FTI data type for unsigned chars.
-\item[\textbf{FTI\_USHT}] FTI data type for unsigned short integers.
-\item[\textbf{FTI\_UINT}] FTI data type for unsigned integers.
-\item[\textbf{FTI\_ULNG}] FTI data type for unsigned long integers.
-\item[\textbf{FTI\_SFLT}] FTI data type for single floating point.
-\item[\textbf{FTI\_DBLE}] FTI data type for double floating point.
-\item[\textbf{FTI\_LDBE}] FTI data type for long doble floating point.
+\item[\tt{FTI\_CHAR}] FTI data type for chars
+\item[\tt{FTI\_SHRT}] FTI data type for short integers.
+\item[\tt{FTI\_INTG}] FTI data type for integers.
+\item[\tt{FTI\_LONG}] FTI data type for long integers.
+\item[\tt{FTI\_UCHR}] FTI data type for unsigned chars.
+\item[\tt{FTI\_USHT}] FTI data type for unsigned short integers.
+\item[\tt{FTI\_UINT}] FTI data type for unsigned integers.
+\item[\tt{FTI\_ULNG}] FTI data type for unsigned long integers.
+\item[\tt{FTI\_SFLT}] FTI data type for single floating point.
+\item[\tt{FTI\_DBLE}] FTI data type for double floating point.
+\item[\tt{FTI\_LDBE}] FTI data type for long double floating point.
 \end{description}
 \subsection{FTI Constants}
 \begin{description}
-\item[\textbf{FTI\_BUFS}] 256
-\item[\textbf{FTI\_DONE}] 1
-\item[\textbf{FTI\_SCES}] 0
-\item[\textbf{FTI\_NSCS}] -1
+\item[\tt{FTI\_BUFS}] 256
+\item[\tt{FTI\_DONE}] 1
+\item[\tt{FTI\_SCES}] 0
+\item[\tt{FTI\_NSCS}] -1
 \end{description}
 \newpage
-\section{\asciifamily FTI\_Init()}\label{sec:ftiinit}
+\section{\tt FTI\_Init( $\dots$ )}\label{sec:ftiinit}
 \begin{framed}
 \begin{itemize}
 \item[--] Reads configuration file.
@@ -88,8 +186,8 @@ char* configFile
 MPI_Comm globalComm
 \end{lstlisting}
 \begin{description}
-\item[\textbf{configfile}] Path to the config file
-\item[\textbf{globalcomm}] MPI communicator used for the execution
+\item[\textbf{configFile}] Path to the config file
+\item[\textbf{globalComm}] MPI communicator used for the execution
 \end{description}
 \subsection*{On return}
 \begin{lstlisting}[frame=single]
@@ -100,8 +198,24 @@ FTI_NSCS
 \item[\textbf{FTI\_SCES}] On success
 \item[\textbf{FTI\_NSCS}] On failure
 \end{description}
+\subsection*{Description}
+This function initializes the FTI context. It should be called before other FTI functions, right after MPI initialization.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+int main(int argc, char** argv){
+    MPI_Init(&argc, &argv);
+    char* path = "config.fti"; //config file path
+    FTI_Init(path, MPI_COMM_WORLD);
+    .
+    .
+    .
+    return 0;
+}
+\end{lstlisting}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_InitType()}\label{sec:ftisnapshot}
+\section{\tt FTI\_InitType( $\dots$ )}\label{sec:ftiinittype}
 \begin{framed}
 \begin{itemize}
 \item[--] initializes a data type.
@@ -127,8 +241,21 @@ FTI_SCES
 \begin{description}
 \item[\textbf{FTI\_SCES}] On success.
 \end{description}
+\subsection*{Description}
+This function initializes a data type. A variable's type which isn't defined by default by FTI (see: \ref{sec:datatypes}) should be added using this function before adding this variable to protected variables.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+typedef struct A {
+    int a;
+    int b;
+} A;
+FTIT_type structAinfo;
+FTI_InitType(&structAinfo, 2 * sizeof(int));
+\end{lstlisting}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_Protect( $\dots$ )}\label{sec:ftiprotect}
+\section{\tt FTI\_Protect( $\dots$ )}\label{sec:ftiprotect}
 \begin{framed}
 \begin{itemize}
 \item[--] Stores metadata concerning the variable to protect.
@@ -136,8 +263,8 @@ FTI_SCES
 \end{framed}
 \subsection*{Definition}
 \begin{lstlisting}[frame=single]
-int FTI_Protect(int id, void* ptr, long count, \
-  FTIT_type type)
+int FTI_Protect(int id, void* ptr, long count,
+                FTIT_type type)
 \end{lstlisting}
 \subsection*{On entry}
 \begin{lstlisting}[frame=single]
@@ -161,8 +288,23 @@ exit(1)
 \item[\textbf{FTI\_SCES}] On success
 \item[\textbf{exit(1)}] Number of protected variables is > FTI\_BUFS
 \end{description}
+\subsection*{Description}
+This function should be used to add data structure to the list of protected variables. This list of structures is the data that will be stored during a checkpoint and loaded during a recovery. It resets the dataset with given id if it was already previously registered. When size of a variable changes during execution it should be updated using this function before next checkpoint to properly store data.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+int A;
+float* B = malloc(sizeof(float) * 10);
+FTI_Protect(1, &A, 1, FTI_INTG);
+FTI_Protect(2, B, 10, FTI_SFLT);
+//changing B size
+B = realloc (B, sizeof(float) * 20);
+//updating B size in protected list
+FTI_Protect(2, B, 20, FTI_SFLT);
+\end{lstlisting}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_Checkpoint( $\dots$ )}\label{sec:fticheckpoint}
+\section{\tt FTI\_Checkpoint( $\dots$ )}\label{sec:fticheckpoint}
 \begin{framed}
 \begin{itemize}
 \item[--] Writes values of protected runtime variables to a checkpoint file of requested level.
@@ -190,8 +332,56 @@ FTI_NSCS
 \item[\textbf{FTI\_DONE}] On success
 \item[\textbf{FTI\_NSCS}] On failure
 \end{description}
+\subsection*{Description}
+This function is used to store current values of protected variables into a checkpoint file. Depending on the checkpoint level file is stored in local, partner node or global directory. Checkpoint's id must be different from 0.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+int i;
+for (i = 0; i < 100; i++) {
+    if (i % 10 == 0) {
+        FTI_Checkpoint(i/10 + 1, 1);
+    }
+    .
+    . //some computations
+    .
+}
+\end{lstlisting}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_Recover()}\label{sec:ftisnapshot}
+\section{\tt FTI\_Status()}\label{sec:ftistatus}
+\begin{framed}
+\begin{itemize}
+\item[--] Returns the current status of the recovery flag.
+\end{itemize}
+\end{framed}
+\subsection*{Definition}
+\begin{lstlisting}[frame=single]
+int FTI_Status()
+\end{lstlisting}
+\subsection*{On return}
+\begin{lstlisting}[frame=single]
+int
+\end{lstlisting}
+\begin{description}
+\item[\textbf{0}] No checkpoints taken yet or recovered successfully.
+\item[\textbf{1}] At least one checkpoint is taken. If execution fails, the next start will be a restart.
+\item[\textbf{2}] The execution is a restart from checkpoint level L4 and keep\_last\_checkpoint was enabled during the last execution.
+\end{description}
+\subsection*{Description}
+This function returns the current status of the recovery flag.
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+if (FTI_Status() != 0) {
+    .
+    . //this section will be executed during restart
+    .
+}
+\end{lstlisting}
+\end{center}
+\newpage
+\section{\tt FTI\_Recover()}\label{sec:ftirecover}
 \begin{framed}
 \begin{itemize}
 \item[--] Loads checkpoint data from the checkpoint file and initializes the runtime variables of the execution.
@@ -210,28 +400,32 @@ FTI_NSCS
 \item[\textbf{FTI\_SCES}] Checkpoint data is successfully restored.
 \item[\textbf{FTI\_NSCS}] on failure.
 \end{description}
-\newpage
-\section{\asciifamily FTI\_Status()}\label{sec:ftisnapshot}
-\begin{framed}
-\begin{itemize}
-\item[--] Returns the current status of the recovery flag.
-\end{itemize}
-\end{framed}
-\subsection*{Definition}
+\subsection*{Description}
+This function loads the checkpoint data from the checkpoint file and it updates some basic checkpoint information. It should be called after initialization of protected variables after a failure. If a variable changes it's size during execution it must have the latest size before Recover. The easiest way to do so is to add size of variable as another variable to protected list, and then call Recover twice. First to recover size of variable. Second to recover variable's data (after an update of protected list).
+\subsection*{Example}
+\begin{center}
 \begin{lstlisting}[frame=single]
-int FTI_Status()
+if (FTI_Status() == 1) {
+    Recover();
+}
+//when variable changed it's size during execution
+int* A;
+int Asize;
+.
+.
+.
+if (FTI_Status() != 0) {
+    FTI_Recover(); //to recover size of variable
+    A = realloc (A, sizeof(int) * Asize);
+    //updating protected list
+    FTI_Protect(2, buf, Asize, FTI_INTG);
+    FTI_Recover(); //to recover variable A
+}
+
 \end{lstlisting}
-\subsection*{On return}
-\begin{lstlisting}[frame=single]
-int
-\end{lstlisting}
-\begin{description}
-\item[\textbf{0}] No checkpoints taken yet.
-\item[\textbf{1}] At least one checkpoint is taken. If execution fails, the next start will be a restart.
-\item[\textbf{2}] The execution is a restart from checkpoint level L4 and keep\_last\_checkpoint was enabled during the last execution.
-\end{description}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_Snapshot()}\label{sec:ftisnapshot}
+\section{\tt FTI\_Snapshot()}\label{sec:ftisnapshot}
 \begin{framed}
 \begin{itemize}
 \item[--] Loads checkpoint data and initializes runtime variables upon recovery.
@@ -253,26 +447,27 @@ exit(1)
 \item[\textbf{FTI\_DONE}] If checkpoint was taken successfully.
 \item[\textbf{exit(1)}] If recovery unsuccessful.
 \end{description}
-\newpage
-\section{\asciifamily FTI\_Abort()}\label{sec:ftisnapshot}
-\begin{framed}
-\begin{itemize}
-\item[--] Aborts the application after cleaning the file system.
-\end{itemize}
-\end{framed}
-\subsection*{Definition}
+\subsection*{Description}
+This function loads the checkpoint data from the checkpoint file in case of restart. Otherwise, it checks if the current iteration requires checkpointing (see: \ref{subsec:ckptl1}) and performs a checkpoint if needed. Should be called after initialization of protected variables.
+\subsection*{Example}
+\begin{center}
 \begin{lstlisting}[frame=single]
-int FTI_Abort()
+int res = Snapshot();
+if (res == FTI_SCES){
+.
+. //executed after successful recover
+. //or when checkpoint is not required
+}
+else { //res == FTI_DONE
+.
+. //executed after successful checkpointing
+.
+}
+
 \end{lstlisting}
-\subsection*{On return}
-\begin{lstlisting}[frame=single]
-exit(1)
-\end{lstlisting}
-\begin{description}
-\item[\textbf{exit(1)}] After call.
-\end{description}
+\end{center}
 \newpage
-\section{\asciifamily FTI\_Finalize()}\label{sec:ftifinalize}
+\section{\tt FTI\_Finalize()}\label{sec:ftifinalize}
 \begin{framed}
 \begin{itemize}
 \item[--] Frees the allocated memory.
@@ -293,10 +488,25 @@ exit(0)
 \item[\textbf{FTI\_SCES}] For an application process.
 \item[\textbf{exit(0)}] For a head process.
 \end{description}
+\subsection*{Description}
+This function notifies the FTI processes that the execution is over, frees some data structures and it closes. If this function is not called on the end of the program the FTI processes will never finish (deadlock). Should be called before MPI\_Finalize().
+\subsection*{Example}
+\begin{center}
+\begin{lstlisting}[frame=single]
+int main(int argc, char** argv){
+    .
+    .
+    .
+    FTI_Finalize();
+    MPI_Finalize();
+    return 0;
+}
+\end{lstlisting}
+\end{center}
 \chapter{Configuration}\label{ch:configuration}
 \section{[Basic]}\label{sec:basic}
-\subsection{Head}\label{subsec:head}
-The checkpointing safety levels L2, L3 and L4 produce additional overhead due to the necessary postprocessing work on the checkpoints. FTI offers the possibility to create an mpi process, called \emph{HEAD}, in which this postprocessing will be accomplished. This allows it for the application processes to continue the execution immediately after the checkpointing.
+\subsection{head}\label{subsec:head}
+The checkpointing safety levels L2, L3 and L4 produce additional overhead due to the necessary postprocessing work on the checkpoints. FTI offers the possibility to create an MPI process, called \emph{HEAD}, in which this postprocessing will be accomplished. This allows it for the application processes to continue the execution immediately after the checkpointing.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -307,7 +517,7 @@ The checkpointing safety levels L2, L3 and L4 produce additional overhead due to
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Node\_size}\label{subsec:nodesize}
+\subsection{node\_size}\label{subsec:nodesize}
 Lets FTI know, how many processes will run on each node (\emph{npp}). In most cases this will be the amount of processing units within the node (e.g. 2 CPU's/node and 8 cores/CPU $\rightarrow$ 16 processes/node).
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -317,7 +527,7 @@ npp (int > 0) & Number of processing units within each node (notice: The total n
 \end{tabular}
 \end{center}
 (\textit{default = 2})
-\subsection{Ckpt\_dir}\label{subsec:ckptdir}
+\subsection{ckpt\_dir}\label{subsec:ckptdir}
 This entry defines the path to the local hard drive on the nodes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -327,7 +537,7 @@ string & Path to the local hard drive on the nodes \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = \_BLANK\_})
-\subsection{Glbl\_dir}\label{subsec:glbldir}
+\subsection{glbl\_dir}\label{subsec:glbldir}
 This entry defines the path to the checkpoint folder on the PFS (L4 checkpoints).
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -337,8 +547,8 @@ string & Path to the checkpoint directory on the PFS (notice: The directory has 
 \end{tabular}
 \end{center}
 (\textit{default = /path/to/global/storage/})
-\subsection{Meta\_dir}\label{subsec:metadir}
-This entry defines the path to the meta files directory. The directory has to be accessible from each node. It keeps files with informations about the topology of the execution.
+\subsection{meta\_dir}\label{subsec:metadir}
+This entry defines the path to the meta files directory. The directory has to be accessible from each node. It keeps files with information about the topology of the execution.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -346,9 +556,9 @@ This entry defines the path to the meta files directory. The directory has to be
 string & Path to the meta files directory. (notice: The directory has to be created before execution). \\ \hline
 \end{tabular}
 \end{center}
-(\textit{default = /home/username/.fti})
-\subsection{Ckpt\_L1}\label{subsec:ckptl1}
-Here, the user sets the checkpoint frequency of L1 checkpoints.
+(\textit{default = /home/username/.fti/})
+\subsection{ckpt\_L1}\label{subsec:ckptl1}
+Here, the user sets the checkpoint frequency of L1 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -357,8 +567,8 @@ L1 freq. (int $\geq$ 0)  & L1 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 3})
-\subsection{Ckpt\_L2}\label{subsec:ckptl2}
-Here, the user sets the checkpoint frequency of L2 checkpoints.
+\subsection{ckpt\_L2}\label{subsec:ckptl2}
+Here, the user sets the checkpoint frequency of L2 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -367,8 +577,8 @@ L2 freq. (int $\geq$ 0)  & L2 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 5})
-\subsection{Ckpt\_L3}\label{subsec:ckptl3}
-Here, the user sets the checkpoint frequency of L3 checkpoints.
+\subsection{ckpt\_L3}\label{subsec:ckptl3}
+Here, the user sets the checkpoint frequency of L3 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -377,8 +587,8 @@ L3 freq. (int $\geq$ 0)  & L3 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 7})
-\subsection{Ckpt\_L4}\label{subsec:ckptl4}
-Here, the user sets the checkpoint frequency of L4 checkpoints.
+\subsection{ckpt\_L4}\label{subsec:ckptl4}
+Here, the user sets the checkpoint frequency of L4 checkpoints when using FTI\_Snapshot().
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
@@ -387,7 +597,7 @@ L4 freq. (int $\geq$ 0)  & L4 checkpointing frequency in $\textit{min}^{-1}$. If
 \end{tabular}
 \end{center}
 (\textit{default = 11})
-\subsection{Inline\_L2}\label{subsec:inlinel2}
+\subsection{inline\_L2}\label{subsec:inlinel2}
 In this entry, the user decides, whether the post-processing work on the L2 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -398,7 +608,7 @@ In this entry, the user decides, whether the post-processing work on the L2 chec
 \end{tabular}
 \end{center}
 (\textit{default = 1})
-\subsection{Inline\_L3}\label{subsec:inlinel3}
+\subsection{inline\_L3}\label{subsec:inlinel3}
 In this entry, the user decides, whether the post-processing work on the L3 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -409,7 +619,7 @@ In this entry, the user decides, whether the post-processing work on the L3 chec
 \end{tabular}
 \end{center}
 (\textit{default = 1})
-\subsection{Inline\_L4}\label{subsec:inlinel4}
+\subsection{inline\_L4}\label{subsec:inlinel4}
 In this entry, the user decides, whether the post-processing work on the L4 checkpoints is done by the HEAD or by the application processes.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -426,12 +636,12 @@ This setting tells FTI whether the last checkpoint taken during the execution wi
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-0 & After {\asciifamily FTI\_Finalize()}, the meta files and checkpoints will be removed. No checkpoint data will be kept on the PFS or on the local hard drives of the nodes.  \\ \hline
-1 & After {\asciifamily FTI\_Finalize()}, the last checkpoint will be kept and stored on the PFS as a L4 checkpoint (notice: Additionally, the setting \emph{failure} in the configuration file is set to 2. This will lead to a restart from the last checkpoint if the application is executed again).  \\ \hline
+0 & After {\tt FTI\_Finalize()}, the meta files and checkpoints will be removed. No checkpoint data will be kept on the PFS or on the local hard drives of the nodes.  \\ \hline
+1 & After {\tt FTI\_Finalize()}, the last checkpoint will be kept and stored on the PFS as a L4 checkpoint (notice: Additionally, the setting \emph{failure} in the configuration file is set to 2. This will lead to a restart from the last checkpoint if the application is executed again).  \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Group\_size}\label{subsec:groupsize}
+\subsection{group\_size}\label{subsec:groupsize}
 The group size entry sets, how many nodes (members) forming a group.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -441,27 +651,50 @@ int i (2 $\leq$ i $\leq$ 32) & Number of nodes contained in a group (notice: The
 \end{tabular}
 \end{center}
 (\textit{default = 4})
-\subsection{Verbosity}\label{subsec:verbosity}
+\subsection{max\_sync\_intv}\label{subsec:maxsynchintv}
+Sets the maximum number of iterations between synchronisations of the iteration length (used for FTI\_Snapshot()). Internally the value will be rounded to a value which is a power of 2.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & maximum number of iterations between measurements of the global mean iteration time (MPI\_Allreduce call).  \\ \hline
+    0 & Sets the value to 512, the default value for FTI.  \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 0})
+\subsection{ckpt\_io}\label{subsec:ckptio}
+Sets the IO mode
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+1 & POSIX IO mode.  \\ \hline
+2 & MPI IO mode. \\ \hline
+3 & SIONlib IO mode.  \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 1})
+\subsection{verbosity}\label{subsec:verbosity}
 Sets the verbosity level
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-1 & Debug sensitive. Beside warnings, errors and informations, FTI debugging information will be printed.  \\ \hline
-2 & Information sensitive. FTI prints warnings, errors and informations. \\ \hline
+1 & Debug sensitive. Beside warnings, errors and information, FTI debugging information will be printed.  \\ \hline
+2 & Information sensitive. FTI prints warnings, errors and information. \\ \hline
 3 & FTI prints only warnings and errors.  \\ \hline
 4 & FTI prints only errors.  \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 2})
 \section{[Restart]}\label{sec:restart}
-\subsection{Failure}\label{subsec:failure}
+\subsection{failure}\label{subsec:failure}
 This setting should mainly set by FTI itself. The behaviour within FTI is the following:
 \begin{itemize}
-\item Within {\asciifamily FTI\_Init()}, it remains on it initial value.
+\item Within {\tt FTI\_Init()}, it remains on it initial value.
 \item After the first checkpoint is taken, it is set to 1.
-\item After {\asciifamily FTI\_Finalize()} and keep\_last\_ckpt = 0, it is set to 0.
-\item After {\asciifamily FTI\_Finalize()} and keep\_last\_ckpt = 1, it is set to 2.
+\item After {\tt FTI\_Finalize()} and keep\_last\_ckpt = 0, it is set to 0.
+\item After {\tt FTI\_Finalize()} and keep\_last\_ckpt = 1, it is set to 2.
 \end{itemize}
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.7\textwidth}|}
@@ -473,8 +706,8 @@ This setting should mainly set by FTI itself. The behaviour within FTI is the fo
 \end{tabular}
 \end{center}
 (\textit{default = 0})
-\subsection{Exec\_ID}\label{subsec:execid}
-This setting should mainly set by FTI itself. During {\asciifamily FTI\_Init()} the execution ID is set if the application starts for the first time (failure = 0) \emph{or} the execution ID is used by FTI in order to find the checkpoint files for the case of a restart (failure = 1,2).
+\subsection{exec\_ID}\label{subsec:execid}
+This setting should mainly set by FTI itself. During {\tt FTI\_Init()} the execution ID is set if the application starts for the first time (failure = 0) \emph{or} the execution ID is used by FTI in order to find the checkpoint files for the case of a restart (failure = 1,2).
 \begin{center}
 \begin{tabular}[h!]{|p{0.35\textwidth}|p{0.65\textwidth}|}
 \hline
@@ -485,18 +718,28 @@ yyyy-mm-dd\_hh-mm-ss & Execution ID (notice: If variate checkpoint data is avail
 (\textit{default = XXXX-XX-XX\_XX-XX-XX})
 \section{[Advanced]}\label{sec:advanced}
 The settings in this section, should \emph{ONLY} be changed by advanced users.
-\subsection{Block\_size}\label{subsec:blockzize}
+\subsection{block\_size}\label{subsec:blocksize}
 FTI temporarily copies small blocks of the L2 and L3 checkpoints to send them through MPI. The size of the data blocks can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-int & Size in KB of the data blocks send by FTI through MPI for the checkpopoint levels L2 and L3 \\ \hline
+int & Size in KB of the data blocks send by FTI through MPI for the checkpoint levels L2 and L3. \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 1024})
-\subsection{Mpi\_tag}\label{subsec:mpitag}
-FTI uses a certain tag for the MPI messages. This tag can ge set here.
+\subsection{transfer\_size}\label{subsec:transfersize}
+FTI transfers in chunks local checkpoint files to PFS. The size of the chunk can be set here.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+int & Size in MB of the chunks send by FTI from local to PFS. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 16})
+\subsection{mpi\_tag}\label{subsec:mpitag}
+FTI uses a certain tag for the MPI messages. This tag can be set here.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
@@ -505,15 +748,387 @@ int & Tag, used for MPI messages within FTI. \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 2612})
-\subsection{Local\_test}\label{subsec:localtest}
+\subsection{lustre\_stiping\_unit}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping unit for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping size in Bytes. The default in Lustre systems is 1MB (1048576), FTI uses 4MB (4194304 Bytes) as the dafault value. \\ \hline
+    0 & Assigns the Lustre default value. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = 4194304})
+\subsection{lustre\_stiping\_factor}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping factor for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping factor. The striping factor determines the number of OST's to use for striping. \\ \hline
+    -1 & Stripe over all available OST's. This is the default in FTI. \\ \hline
+    0 & Assigns the Lustre default value. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = -1})
+\subsection{lustre\_stiping\_offset}\label{subsec:localtest}
+This option only impacts if {\tt -DENABLE\_LUSTRE} was added to the Cmake command. It sets the striping offset for the MPI-IO file.
+\begin{center}
+\begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
+\hline
+\textbf{Value} & \textbf{Meaning} \\ \hline
+    int i (0 $\leq$ i $\leq$ {\tt INT\_MAX}) & Striping factor. The striping factor determines the number of OST's to use for striping. \\ \hline
+    -1 & Assigns the Lustre default value. This is the default in FTI. \\ \hline
+\end{tabular}
+\end{center}
+(\textit{default = -1})
+\subsection{local\_test}\label{subsec:localtest}
 FTI is building the topology of the execution, by determining the hostnames of the nodes on which each process runs. Depending on the settings for Group\_size, Node\_size and Head, FTI assigns each particular process to a group and decides which process will be Head or Application dedicated. This is meant to be a local test. In certain situations (e.g. to run FTI on a local machine) it is necessary to disable this function.
 \begin{center}
 \begin{tabular}[h!]{|p{0.3\textwidth}|p{0.6\textwidth}|}
 \hline
 \textbf{Value} & \textbf{Meaning} \\ \hline
-0 & Local test is disabled. FTI will simulate the situation set in the cofiguration. \\ \hline
+0 & Local test is disabled. FTI will simulate the situation set in the configuration. \\ \hline
 1 & Local test is enabled (notice: FTI will check if the settings are correct on initialization and if necessary stop the execution). \\ \hline
 \end{tabular}
 \end{center}
 (\textit{default = 1})
+\newpage
+\section{Configuration Examples}\label{sec:configurationexamples}
+\subsection{Default config}\label{subsec:configdefault}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+Keep_last_ckpt = 0
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 1
+Verbosity = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+This configuration is made of default values (see: \ref{ch:configuration}). FTI processes are not created (Head = 0, notice: if there is no FTI processes, all post-checkpoints must be done by application processes, thus Inline\_L2, Inline\_L3 and Inline\_L4 are set to 1), last checkpoint won't be kept (Keep\_last\_ckpt = 0), FTI\_Snapshot() will take L1 checkpoint every 3 min,L2 - every 5 min, L3 - every 7 min and L4 - every 11 min, FTI will print errors and some few important information (Verbosity = 2) and IO mode is set to POSIX (Ckpt\_io = 1). This is a normal launch of a job, because failure is set to 0 and Exec\_ID is NULL. Local\_test = 1 makes this a local test.
+\newpage
+\subsection{Using FTI processes}\label{subsec:configftiprocces}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 1
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 0
+Inline_L3 = 0
+Inline_L4 = 0
+Keep_last_ckpt = 0
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 1
+Verbosity = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI processes are created (Head = 1) and all post-checkpointing is done by them, thus Inline\_L2, Inline\_L3 and Inline\_L4 are set to 0. Note that it is possible to select which checkpoint levels should be post-processed by heads and which by application processes (e.g. Inline\_L2 = 1, Inline\_L3 = 0, Inline\_L4 = 0). L1 post-checkpoint is always done by application processes, because it's a local checkpoint. Be aware, when Head = 1, and Inline\_L2, Inline\_L3 and Inline\_L4 are set to 1 all post-checkpoint is still made by application processes.
+\newpage
+\subsection{Using only selected ckpt level with FTI\_Snapshot()}\label{subsec:configoneckptlvl}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 0
+Ckpt_L2 = 5
+Ckpt_L3 = 0
+Ckpt_L4 = 0
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+Keep_last_ckpt = 0
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 1
+Verbosity = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI\_Snapshot() will take only L2 checkpoint every 5 min Notice that other configurations are also possible (e.g. take L1 ckpt every 5 min and L4 ckpt every 30 min).
+\newpage
+\subsection{Keeping last checkpoint}\label{subsec:configkeeplastckpt}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+Keep_last_ckpt = 1
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 1
+Verbosity = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI will keep last checkpoint (Keep\_last\_ckpt = 1), thus after finishing the job Failure will be set to 2.
+\newpage
+\subsection{Using different IO mode (e.g MPI IO)}\label{subsec:configmpiio}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+Keep_last_ckpt = 0
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 2
+Verbosity = 2
+
+[Restart]
+
+Failure = 0
+Exec_ID = NULL
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI IO mode is set to MPI IO (ckpt\_io = 2). Third option is SIONlib IO mode (ckpt\_io = 3).
+\newpage
+\subsection{Restart after a failure}\label{subsec:configkeeplastckpt}
+\begin{center}
+\begin{lstlisting}[frame=single]
+[Basic]
+
+Head = 0
+Node_size = 2
+Ckpt_dir = /scratch/username/
+Glbl_dir = /work/project/
+Meta_dir = /home/username/.fti/
+Ckpt_L1 = 3
+Ckpt_L2 = 5
+Ckpt_L3 = 7
+Ckpt_L4 = 11
+Inline_L2 = 1
+Inline_L3 = 1
+Inline_L4 = 1
+Keep_last_ckpt = 0
+Group_size = 4
+max_sync_intv = 0
+Ckpt_io = 1
+Verbosity = 2
+
+[Restart]
+
+Failure = 1
+Exec_ID = 2017-07-26_13-22-11
+
+[Advanced]
+
+Block_size = 1024
+Transfer_size = 16
+Mpi_tag = 2612
+Local_test = 1
+lustre_striping_unit = 4194304 
+lustre_striping_factor = -1 
+lustre_striping_offset = -1 
+
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+This config tells FTI that this job is a restart after a failure (Failure set to 1 and Exec\_ID is some date in a format "YYYY-MM-DD\_HH-mm-ss", where YYYY - year, MM - month, DD - day, HH - hours, mm - minutes, ss - seconds). When recovery is not possible, FTI will abort the job (when using FTI\_Snapshot()) and/or signal failed recovery by FTI\_Status().
+\newpage
+\chapter{Examples}\label{ch:example}
+\section{Using FTI\_Snapshot()}\label{subsec:usingsnapshot}
+\begin{center}
+\begin{lstlisting}[frame=single]
+#include <stdlib.h>
+#include <fti.h>
+
+int main(int argc, char** argv){
+    MPI_Init(&argc, &argv);
+    char* path = "config.fti"; //config file path
+    FTI_Init(path, MPI_COMM_WORLD);
+    int world_rank, world_size; //FTI_COMM rank & size
+    MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
+
+    int *array = malloc(sizeof(int) * world_size);
+    int number = world_rank;
+    int i = 0;
+    //adding variables to protect
+    FTI_Protect(1, &i, 1, FTI_INTG);
+    FTI_Protect(2, &number, 1, FTI_INTG);
+    for (; i < 100; i++) {
+        FTI_Snapshot();
+        MPI_Allgather(&number, 1, MPI_INT, array,
+		      1, MPI_INT, FTI_COMM_WORLD);
+	number += 1;
+    }
+    free(array);
+    FTI_Finalize();
+    MPI_Finalize();
+    return 0;
+}
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI\_Snapshot() makes a checkpoint by given time and also recovers data after a failure, thus makes the code shorter. Checkpoints intervals can be set in configuration file (see: \ref{subsec:ckptl1}-\ref{subsec:ckptl4}).
+\newpage
+\section{Using FTI\_Checkpoint( $\dots$ )}\label{sec:usingcheckpoint}
+\begin{center}
+\begin{lstlisting}[frame=single]
+#include <stdlib.h>
+#include <fti.h>
+#define ITER_CHECK 10
+
+int main(int argc, char** argv){
+    MPI_Init(&argc, &argv);
+    char* path = "config.fti"; //config file path
+    FTI_Init(path, MPI_COMM_WORLD);
+    int world_rank, world_size; //FTI_COMM rank & size
+    MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(FTI_COMM_WORLD, &world_size);
+
+    int *array = malloc(sizeof(int) * world_size);
+    int number = world_rank;
+    int i = 0;
+    //adding variables to protect
+    FTI_Protect(1, &i, 1, FTI_INTG);
+    FTI_Protect(2, &number, 1, FTI_INTG);
+    if (FTI_Status() != 0) {
+        FTI_Recover();
+    }
+    for (; i < 100; i++) {
+        if (i % ITER_CHECK == 0) {
+            FTI_Checkpoint(i / ITER_CHECK + 1, 2);
+        }
+        MPI_Allgather(&number, 1, MPI_INT, array,
+		      1, MPI_INT, FTI_COMM_WORLD);
+	number += 1;
+    }
+    free(array);
+    FTI_Finalize();
+    MPI_Finalize();
+    return 0;
+}
+\end{lstlisting}
+\end{center}
+\subsection*{Description}
+FTI\_Checkpoint( $\dots$ ) allows to checkpoint at precise application intervals. Note that when using FTI\_Checkpoint( $\dots$ ), Ckpt\_L1, Ckpt\_L2, Ckpt\_L3 and Ckpt\_L4 are not taken into account.
 \end{document}

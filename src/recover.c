@@ -84,7 +84,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // TODO Checksums only local currently
     if ( level > 0 && level < 4 ) {
-        FTI_GetChecksums(FTI_Conf, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum, FTI_Topo->groupID, level);
+        FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     }
     sprintf(fn, "Checking file %s and its erasures.", ckptFile);
     FTI_Print(fn, FTI_DBUG);
@@ -153,7 +153,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                    FTI_Exec->ckptLvel = level;
                    switch (FTI_Exec->ckptLvel) {
                       case 4:
-                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1, FTI_Topo->groupID, FTI_Topo->myRank);
+                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                          MPI_Barrier(FTI_COMM_WORLD);
                          sscanf(FTI_Exec->meta[4].ckptFile, "Ckpt%d", &id);
                          sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
