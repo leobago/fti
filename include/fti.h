@@ -161,6 +161,7 @@ typedef struct FTIT_execution {
     double          globMeanIter;       /**< Global mean iteration time.    */
     double          totalIterTime;      /**< Total main loop time spent.    */
     unsigned int    syncIter;           /**< To check mean iter. time.      */
+    int             syncIterMax;        /**< Maximal synch. intervall.      */
     unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
     unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
@@ -186,6 +187,11 @@ typedef struct FTIT_configuration {
     int             verbosity;          /**< Verbosity level.               */
     int             blockSize;          /**< Communication block size.      */
     int             transferSize;       /**< Transfer size local to PFS     */
+#ifdef LUSTRE    
+    int             stripeUnit;         /**< Striping Unit for Lustre FS    */
+    int             stripeOffset;       /**< Striping Offset for Lustre FS  */
+    int             stripeFactor;       /**< Striping Factor for Lustre FS  */
+#endif
     int             tag;                /**< Tag for MPI messages in FTI.   */
     int             test;               /**< TRUE if local test.            */
     int             l3WordSize;         /**< RS encoding word size.         */

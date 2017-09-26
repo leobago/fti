@@ -17,7 +17,7 @@
 #include "../deps/jerasure/jerasure.h"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    #include <sion.h>
+#   include <sion.h>
 #endif
 
 #include <stdint.h>
@@ -32,6 +32,11 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
+
+#ifdef LUSTRE
+#   include "lustreapi.h"
+#endif
+
 
 /*---------------------------------------------------------------------------
                                   Defines
@@ -64,11 +69,8 @@ int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
-int FTI_GroupClean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt, int level, int group, int pr);
 int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 int group, int fo, int pr);
+                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
@@ -78,7 +80,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt);
+                   FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec);
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo);
 int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
@@ -86,14 +88,12 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
 
-int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                     FTIT_checkpoint* FTI_Ckpt, char* checksum, char* ptnerChecksum,
-                     char* rsChecksum, int group, int level);
+int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                     char* checksum, char* ptnerChecksum, char* rsChecksum);
 int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                              FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                               int rank, char* checksum);
-int FTI_GetPtnerSize(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      FTIT_checkpoint* FTI_Ckpt, unsigned long* pfs, int group, int level);
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -152,7 +152,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-              FTIT_checkpoint* FTI_Ckpt, int level, int group, int rank);
+              FTIT_checkpoint* FTI_Ckpt, int level);
 
 int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char *nameList);
 int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
