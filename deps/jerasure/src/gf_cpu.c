@@ -38,7 +38,7 @@ int gf_cpu_supports_arm_neon = 0;
 
 #define cpuid(info, x)    __cpuidex(info, x, 0)
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) || defined(__PGI)
 
 #include <cpuid.h>
 void cpuid(int info[4], int InfoType){

@@ -8,6 +8,8 @@
  * Internal code for Galois field routines.  This is not meant for 
  * users to include, but for the internal GF files to use. 
  */
+#ifndef __GF_INT_H
+#define __GF_INT_H
 
 #pragma once
 
@@ -19,7 +21,9 @@ extern void     timer_start (double *t);
 extern double   timer_split (const double *t);
 extern void     galois_fill_random (void *buf, int len, unsigned int seed);
 
-typedef struct {
+typedef struct _gf_internal_t gf_internal_t; 
+
+struct _gf_internal_t {
   int mult_type;
   int region_type;
   int divide_type;
@@ -37,7 +41,7 @@ typedef struct {
   const char *multiply_region;
   const char *extract_word;
 #endif
-} gf_internal_t;
+};
 
 #ifdef DEBUG_FUNCTIONS
 #define SET_FUNCTION(gf,method,size,func) \
@@ -214,3 +218,4 @@ typedef enum {GF_E_MDEFDIV, /* Dev != Default && Mult == Default */
               GF_E_GROUPNU, /* Arguments not integers in GROUP. */
               GF_E_DEFAULT } gf_error_type_t;
 
+#endif
