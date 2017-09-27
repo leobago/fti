@@ -374,7 +374,15 @@ cache:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y cmake
+  - wget -q http://cmake.org/files/v3.3/cmake-3.3.2.tar.gz
+  - tar -xzf cmake-3.3.2.tar.gz
+  - cd cmake-3.3.2/
+  - ./configure > /dev/null
+  - make > /dev/null
+  - sudo make install > /dev/null
+  - sudo update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 1 --force
+  - cd ..
+  - cmake --version
   - if [[ -z "$COMPILER" ]] ; then sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$COMPILER" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$COMPILER" = "icc" ]] ; then export MPICC=mpiicc && export MPIFC=ifort && source ./travisScripts/before-script-icc.sh ; fi

@@ -20,11 +20,10 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
+int FTI_CheckFile(char* fn, long fs, char* checksum)
 {
-    struct stat fileStatus;
-    char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
+        struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
             if (fileStatus.st_size == fs) {
                 if (strlen(checksum)) {
@@ -45,6 +44,7 @@ int FTI_CheckFile(char* fn, unsigned long fs, char* checksum)
         }
     }
     else {
+        char str[FTI_BUFS];
         sprintf(str, "Missing file: \"%s\"", fn);
         FTI_Print(str, FTI_WARN);
         return 1;
@@ -71,11 +71,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                       int *erased)
 {
-    int buf;
-    int ckptID, rank;
     int level = FTI_Exec->ckptLvel;
-    char fn[FTI_BUFS];
-    char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
     long fs = FTI_Exec->meta[level].fs[0];
     long pfs = FTI_Exec->meta[level].pfs[0];
     long maxFs = FTI_Exec->meta[level].maxFs[0];
@@ -83,11 +79,16 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     strcpy(ckptFile, FTI_Exec->meta[level].ckptFile);
 
     // TODO Checksums only local currently
+    char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
     if ( level > 0 && level < 4 ) {
         FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     }
-    sprintf(fn, "Checking file %s and its erasures.", ckptFile);
-    FTI_Print(fn, FTI_DBUG);
+    char str[FTI_BUFS];
+    sprintf(str, "Checking file %s and its erasures.", ckptFile);
+    FTI_Print(str, FTI_DBUG);
+    char fn[FTI_BUFS]; //Path to the checkpoint/partner file name
+    int buf;
+    int ckptID, rank; //Variables for proper partner file name
     switch (level) {
         case 1:
             sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
@@ -98,6 +99,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
             sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, pfs, ptnerChecksum);
@@ -107,6 +109,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
+
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
             sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, maxFs, rsChecksum);
@@ -139,81 +142,79 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   int r, tres = FTI_SCES, id, level = 1;
-   unsigned long fs, maxFs;
-   char str[FTI_BUFS];
-   FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
    if (!FTI_Topo->amIaHead) {
-      while (level < 5) {
-         if ((FTI_Exec->reco == 2) && (level != 4)) {
-            tres = FTI_NSCS;
-         }
-         else {
-               if (FTI_Exec->meta[level].exists[0]) {
-                   FTI_Exec->ckptLvel = level;
-                   switch (FTI_Exec->ckptLvel) {
-                      case 4:
-                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
-                         MPI_Barrier(FTI_COMM_WORLD);
-                         sscanf(FTI_Exec->meta[4].ckptFile, "Ckpt%d", &id);
-                         sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                         FTI_Print(str, FTI_DBUG);
-                         FTI_Exec->ckptID = id;
-                         r = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                         break;
-                      case 3:
-                         sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d", &id);
-                         sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                         FTI_Print(str, FTI_DBUG);
-                         FTI_Exec->ckptID = id;
-                         r = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                         break;
-                      case 2:
-                         sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d", &id);
-                         sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                         FTI_Print(str, FTI_DBUG);
-                         FTI_Exec->ckptID = id;
-                         r = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                         break;
-                      case 1:
-                         sscanf(FTI_Exec->meta[1].ckptFile, "Ckpt%d", &id);
-                         sprintf(str, "Trying recovery with Ckpt. %d at level %d.", id, level);
-                         FTI_Print(str, FTI_DBUG);
-                         FTI_Exec->ckptID = id;
-                         r = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                         break;
-                   }
-                   MPI_Allreduce(&r, &tres, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+      FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+      int level;
+      for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+          if (FTI_Exec->meta[level].exists[0]) {
+              //Get ckptID from checkpoint file name
+              int ckptID;
+              sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
+
+              //Temporary for Recover functions
+              FTI_Exec->ckptLvel = level;
+              FTI_Exec->ckptID = ckptID;
+
+              char str[FTI_BUFS];
+              sprintf(str, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
+              FTI_Print(str, FTI_DBUG);
+
+              int res;
+              switch (level) {
+                  case 4:
+                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
+                        MPI_Barrier(FTI_COMM_WORLD);
+                        res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        break;
+                   case 3:
+                        res = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        break;
+                   case 2:
+                        res = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        break;
+                   case 1:
+                        res = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        break;
+               }
+               int allRes;
+               MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+               if (allRes == FTI_SCES) {
+                     //Inform heads that recovered successfully
+                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+
+                     sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
+                     FTI_Print(str, FTI_INFO);
+
+                     //Update ckptID and ckptLevel
+                     FTI_Exec->ckptID = ckptID;
+                     FTI_Exec->ckptLvel = level;
+                     return FTI_SCES; //Recovered successfully
                }
                else {
-                   tres = FTI_NSCS;
+                    sprintf(str, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
+                    FTI_Print(str, FTI_INFO);
                }
-         }
-
-         if (tres == FTI_SCES) {
-            sprintf(str, "Recovering successfully from level %d.", level);
-            FTI_Print(str, FTI_INFO);
-            // This is to enable recovering from local for L4 case in FTI_Recover
-            if (level == 4) {
-                FTI_Exec->ckptLvel = 1;
-                if (FTI_Topo->splitRank == 0) {
-                    if (rename(FTI_Ckpt[4].metaDir, FTI_Ckpt[1].metaDir) == -1) {
-                        FTI_Print("Cannot rename L4 metadata folder to L1", FTI_WARN);
-                    }
-                }
-            }
-            break;
-         }
-         else {
-            sprintf(str, "No possible to restart from level %d.", level);
-            FTI_Print(str, FTI_INFO);
-            level++;
-         }
+           }
       }
-   }
-   fs = tres;
-   MPI_Allreduce(&fs, &tres, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-   MPI_Barrier(FTI_Exec->globalComm);
-   sleep(1); // Global barrier and sleep for clearer output
-   return tres;
+      //Looped all levels with no success
+      FTI_Print("Cannot recover from any checkpoint level.", FTI_INFO);
+
+      //Inform heads that cannot recover
+      int res = FTI_NSCS, allRes;
+      MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+
+      //Reset ckptID and ckptLevel
+      FTI_Exec->ckptLvel = 0;
+      FTI_Exec->ckptID = 0;
+      return FTI_NSCS;
+  }
+  else { //Head processes
+      int res = FTI_SCES, allRes;
+      MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+      if (allRes != FTI_SCES) {
+         //Recover not successful
+         return FTI_NSCS;
+      }
+      return FTI_SCES;
+  }
 }
