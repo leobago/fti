@@ -8,8 +8,38 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 	project(FTI C Fortran)
 endif()
 
-set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION}")
-set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}")
+## [START] DETERMINE COMPILER MAJOR VERSIONS
+string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
+string(REGEX MATCH "[0-9]+" CMAKE_Fortran_COMPILER_VERSION_MAJOR ${CMAKE_Fortran_COMPILER_VERSION} )
+
+if (NOT CMAKE_Fortran_COMPILER_VERSION_MAJOR)
+  
+  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "Intel" COMPILER_IDENT_INTEL)
+  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" COMPILER_IDENT_GNU)
+  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" COMPILER_IDENT_PGI)
+  if(${COMPILER_IDENT_INTEL})
+    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/intel_major_ver.f90")
+  elseif(${COMPILER_IDENT_GNU})
+    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/gnu_major_ver.f90")
+  elseif(${COMPILER_IDENT_PGI})
+    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/pgi_major_ver.f90")
+  endif()
+  
+  set(CMAKE_Fortran_FLAGS "-cpp")
+  try_run( PROG_RAN COMPILE_SUCCESS
+      "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
+    RUN_OUTPUT_VARIABLE VER_STRING
+  )
+  if ( COMPILE_SUCCESS )
+    string( REGEX MATCH "[0-9]+"
+      DETECTED_VER "${VER_STRING}"
+    )
+  endif()
+  set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
+endif()
+
+set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION_MAJOR}")
+set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION_MAJOR}")
 string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
 if(${COMPILER_VER_DIFFER})
     message(FATAL_ERROR "
@@ -17,6 +47,7 @@ if(${COMPILER_VER_DIFFER})
         *  This leads to undefined behavior.
         *  Pleas ensure the versions are identical!")
 endif()
+## [END] DETERMINE COMPILER MAJOR VERSIONS
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON) 
