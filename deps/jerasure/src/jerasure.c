@@ -1,38 +1,53 @@
-/* jerasure.c
- * James S. Plank
+/* *
+ * Copyright (c) 2014, James S. Plank and Kevin Greenan
+ * All rights reserved.
+ *
+ * Jerasure - A C/C++ Library for a Variety of Reed-Solomon and RAID-6 Erasure
+ * Coding Techniques
+ *
+ * Revision 2.0: Galois Field backend now links to GF-Complete
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *  - Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ *  - Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ *  - Neither the name of the University of Tennessee nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
-Jerasure - A C/C++ Library for a Variety of Reed-Solomon and RAID-6 Erasure Coding Techniques
-Copright (C) 2007 James S. Plank
+/* Jerasure's authors:
 
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-James S. Plank
-Department of Electrical Engineering and Computer Science
-University of Tennessee
-Knoxville, TN 37996
-plank@cs.utk.edu
-*/
-
-/*
- * $Revision: 1.2 $
- * $Date: 2008/08/19 17:40:58 $
+   Revision 2.x - 2014: James S. Plank and Kevin M. Greenan
+   Revision 1.2 - 2008: James S. Plank, Scott Simmerman and Catherine D. Schuman.
+   Revision 1.0 - 2007: James S. Plank
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "galois.h"
 #include "jerasure.h"
@@ -61,7 +76,7 @@ void jerasure_print_matrix(int *m, int rows, int cols, int w)
   for (i = 0; i < rows; i++) {
     for (j = 0; j < cols; j++) {
       if (j != 0) printf(" ");
-      printf("%*u", fw, m[i*cols+j]);
+      printf("%*u", fw, m[i*cols+j]); 
     }
     printf("\n");
   }
@@ -75,7 +90,7 @@ void jerasure_print_bitmatrix(int *m, int rows, int cols, int w)
     if (i != 0 && i%w == 0) printf("\n");
     for (j = 0; j < cols; j++) {
       if (j != 0 && j%w == 0) printf(" ");
-      printf("%d", m[i*cols+j]);
+      printf("%d", m[i*cols+j]); 
     }
     printf("\n");
   }
@@ -153,7 +168,7 @@ int jerasure_make_decoding_bitmatrix(int k, int m, int w, int *matrix, int *eras
 int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int *erasures,
                           char **data_ptrs, char **coding_ptrs, int size)
 {
-  int i, j, edd, lastdrive;
+  int i, edd, lastdrive;
   int *tmpids;
   int *erased, *decoding_matrix, *dm_ids;
 
@@ -173,7 +188,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
       lastdrive = i;
     }
   }
-
+    
   /* You only need to create the decoding matrix in the following cases:
 
       1. edd > 0 and row_k_ones is false.
@@ -183,7 +198,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
       We're going to use lastdrive to denote when to stop decoding data.
       At this point in the code, it is equal to the last erased data device.
       However, if we can't use the parity row to decode it (i.e. row_k_ones=0
-         or erased[k] = 1, we're going to set it to k so that the decoding
+         or erased[k] = 1, we're going to set it to k so that the decoding 
          pass will decode all data.
    */
 
@@ -214,7 +229,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
     }
   }
 
-  /* Decode the data drives.
+  /* Decode the data drives.  
      If row_k_ones is true and coding device 0 is intact, then only decode edd-1 drives.
      This is done by stopping at lastdrive.
      We test whether edd > 0 so that we can exit the loop early if we're done.
@@ -231,13 +246,19 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
 
   if (edd > 0) {
     tmpids = talloc(int, k);
+    if (!tmpids) {
+      free(erased);
+      free(dm_ids);
+      free(decoding_matrix);
+      return -1;
+    }
     for (i = 0; i < k; i++) {
       tmpids[i] = (i < lastdrive) ? i : i+1;
     }
     jerasure_matrix_dotprod(k, w, matrix, tmpids, lastdrive, data_ptrs, coding_ptrs, size);
     free(tmpids);
   }
-
+  
   /* Finally, re-encode any erased coding devices */
 
   for (i = 0; i < m; i++) {
@@ -254,16 +275,15 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
 }
 
 
-int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix)
+int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix) 
 {
   int *bitmatrix;
   int rowelts, rowindex, colindex, elt, i, j, l, x;
 
+  if (matrix == NULL) { return NULL; }
+
   bitmatrix = talloc(int, k*m*w*w);
-  if (matrix == NULL) {
-    free(bitmatrix);
-    return NULL;
-  }
+  if (!bitmatrix) return NULL;
 
   rowelts = k * w;
   rowindex = 0;
@@ -288,12 +308,11 @@ int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix)
 void jerasure_matrix_encode(int k, int m, int w, int *matrix,
                           char **data_ptrs, char **coding_ptrs, int size)
 {
-  int *init;
-  int i, j;
-
+  int i;
+  
   if (w != 8 && w != 16 && w != 32) {
     fprintf(stderr, "ERROR: jerasure_matrix_encode() and w is not 8, 16 or 32\n");
-    exit(1);
+    assert(0);
   }
 
   for (i = 0; i < m; i++) {
@@ -309,8 +328,8 @@ void jerasure_bitmatrix_dotprod(int k, int w, int *bitmatrix_row,
   char *dptr, *pptr, *bdptr, *bpptr;
 
   if (size%(w*packetsize) != 0) {
-    fprintf(stderr, "jerasure_bitmatrix_dotprod - size%%(w*packetsize)) must = 0\n");
-    exit(1);
+    fprintf(stderr, "jerasure_bitmatrix_dotprod - size%c(w*packetsize)) must = 0\n", '%');
+    assert(0);
   }
 
   bpptr = (dest_id < k) ? data_ptrs[dest_id] : coding_ptrs[dest_id-k];
@@ -336,7 +355,7 @@ void jerasure_bitmatrix_dotprod(int k, int w, int *bitmatrix_row,
               jerasure_total_memcpy_bytes += packetsize;
               pstarted = 1;
             } else {
-              galois_region_xor(pptr, dptr, pptr, packetsize);
+              galois_region_xor(dptr, pptr, packetsize);
               jerasure_total_xor_bytes += packetsize;
             }
           }
@@ -347,15 +366,15 @@ void jerasure_bitmatrix_dotprod(int k, int w, int *bitmatrix_row,
   }
 }
 
-void jerasure_do_parity(int k, char **data_ptrs, char *parity_ptr, int size)
+void jerasure_do_parity(int k, char **data_ptrs, char *parity_ptr, int size) 
 {
   int i;
 
   memcpy(parity_ptr, data_ptrs[0], size);
   jerasure_total_memcpy_bytes += size;
-
+  
   for (i = 1; i < k; i++) {
-    galois_region_xor(data_ptrs[i], parity_ptr, parity_ptr, size);
+    galois_region_xor(data_ptrs[i], parity_ptr, size);
     jerasure_total_xor_bytes += size;
   }
 }
@@ -364,7 +383,7 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
 {
   int cols, i, j, k, x, rs2;
   int row_start, tmp, inverse;
-
+ 
   cols = rows;
 
   k = 0;
@@ -379,10 +398,10 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
   for (i = 0; i < cols; i++) {
     row_start = cols*i;
 
-    /* Swap rows if we ave a zero i,i element.  If we can't swap, then the
+    /* Swap rows if we ave a zero i,i element.  If we can't swap, then the 
        matrix was not invertible  */
 
-    if (mat[row_start+i] == 0) {
+    if (mat[row_start+i] == 0) { 
       for (j = i+1; j < rows && mat[cols*j+i] == 0; j++) ;
       if (j == rows) return -1;
       rs2 = j*cols;
@@ -395,14 +414,12 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
         inv[rs2+k] = tmp;
       }
     }
-
+ 
     /* Multiply the row by 1/element i,i  */
     tmp = mat[row_start+i];
     if (tmp != 1) {
       inverse = galois_single_divide(1, tmp, w);
-      if (inverse < 0)
-        return -1;
-      for (j = 0; j < cols; j++) {
+      for (j = 0; j < cols; j++) { 
         mat[row_start+j] = galois_single_multiply(mat[row_start+j], inverse, w);
         inv[row_start+j] = galois_single_multiply(inv[row_start+j], inverse, w);
       }
@@ -439,7 +456,7 @@ int jerasure_invert_matrix(int *mat, int *inv, int rows, int w)
       rs2 = j*cols;
       if (mat[rs2+i] != 0) {
         tmp = mat[rs2+i];
-        mat[rs2+i] = 0;
+        mat[rs2+i] = 0; 
         for (k = 0; k < cols; k++) {
           inv[rs2+k] ^= galois_single_multiply(tmp, inv[row_start+k], w);
         }
@@ -453,17 +470,17 @@ int jerasure_invertible_matrix(int *mat, int rows, int w)
 {
   int cols, i, j, k, x, rs2;
   int row_start, tmp, inverse;
-
+ 
   cols = rows;
 
   /* First -- convert into upper triangular  */
   for (i = 0; i < cols; i++) {
     row_start = cols*i;
 
-    /* Swap rows if we ave a zero i,i element.  If we can't swap, then the
+    /* Swap rows if we ave a zero i,i element.  If we can't swap, then the 
        matrix was not invertible  */
 
-    if (mat[row_start+i] == 0) {
+    if (mat[row_start+i] == 0) { 
       for (j = i+1; j < rows && mat[cols*j+i] == 0; j++) ;
       if (j == rows) return 0;
       rs2 = j*cols;
@@ -473,12 +490,12 @@ int jerasure_invertible_matrix(int *mat, int rows, int w)
         mat[rs2+k] = tmp;
       }
     }
-
+ 
     /* Multiply the row by 1/element i,i  */
     tmp = mat[row_start+i];
     if (tmp != 1) {
       inverse = galois_single_divide(1, tmp, w);
-      for (j = 0; j < cols; j++) {
+      for (j = 0; j < cols; j++) { 
         mat[row_start+j] = galois_single_multiply(mat[row_start+j], inverse, w);
       }
     }
@@ -535,7 +552,7 @@ int *jerasure_erasures_to_erased(int k, int m, int *erasures)
   }
   return erased;
 }
-
+  
 void jerasure_free_schedule(int **schedule)
 {
   int i;
@@ -551,7 +568,7 @@ void jerasure_free_schedule_cache(int k, int m, int ***cache)
 
   if (m != 2) {
     fprintf(stderr, "jerasure_free_schedule_cache(): m must equal 2\n");
-    exit(1);
+    assert(0);
   }
 
   for (e1 = 0; e1 < k+m; e1++) {
@@ -573,7 +590,7 @@ void jerasure_matrix_dotprod(int k, int w, int *matrix_row,
 
   if (w != 1 && w != 8 && w != 16 && w != 32) {
     fprintf(stderr, "ERROR: jerasure_matrix_dotprod() called and w is not 1, 8, 16 or 32\n");
-    exit(1);
+    assert(0);
   }
 
   init = 0;
@@ -596,7 +613,7 @@ void jerasure_matrix_dotprod(int k, int w, int *matrix_row,
         jerasure_total_memcpy_bytes += size;
         init = 1;
       } else {
-        galois_region_xor(sptr, dptr, dptr, size);
+        galois_region_xor(sptr, dptr, size);
         jerasure_total_xor_bytes += size;
       }
     }
@@ -628,12 +645,12 @@ void jerasure_matrix_dotprod(int k, int w, int *matrix_row,
 int jerasure_bitmatrix_decode(int k, int m, int w, int *bitmatrix, int row_k_ones, int *erasures,
                             char **data_ptrs, char **coding_ptrs, int size, int packetsize)
 {
-  int i, j;
+  int i;
   int *erased;
   int *decoding_matrix;
   int *dm_ids;
   int edd, *tmpids, lastdrive;
-
+  
   erased = jerasure_erasures_to_erased(k, m, erasures);
   if (erased == NULL) return -1;
 
@@ -641,20 +658,20 @@ int jerasure_bitmatrix_decode(int k, int m, int w, int *bitmatrix, int row_k_one
      it, but calls the bitmatrix ops instead */
 
   lastdrive = k;
-
+    
   edd = 0;
   for (i = 0; i < k; i++) {
     if (erased[i]) {
       edd++;
       lastdrive = i;
-    }
+    } 
   }
 
   if (row_k_ones != 1 || erased[k]) lastdrive = k;
-
+  
   dm_ids = NULL;
   decoding_matrix = NULL;
-
+  
   if (edd > 1 || (edd > 0 && (row_k_ones != 1 || erased[k]))) {
 
     dm_ids = talloc(int, k);
@@ -662,14 +679,14 @@ int jerasure_bitmatrix_decode(int k, int m, int w, int *bitmatrix, int row_k_one
       free(erased);
       return -1;
     }
-
+  
     decoding_matrix = talloc(int, k*k*w*w);
     if (decoding_matrix == NULL) {
       free(erased);
       free(dm_ids);
       return -1;
     }
-
+  
     if (jerasure_make_decoding_bitmatrix(k, m, w, bitmatrix, erased, decoding_matrix, dm_ids) < 0) {
       free(erased);
       free(dm_ids);
@@ -687,6 +704,12 @@ int jerasure_bitmatrix_decode(int k, int m, int w, int *bitmatrix, int row_k_one
 
   if (edd > 0) {
     tmpids = talloc(int, k);
+    if (!tmpids) {
+      free(erased);
+      free(dm_ids);
+      free(decoding_matrix);
+      return -1;
+    }
     for (i = 0; i < k; i++) {
       tmpids[i] = (i < lastdrive) ? i : i+1;
     }
@@ -719,25 +742,29 @@ static char **set_up_ptrs_for_scheduled_decoding(int k, int m, int *erasures, ch
   for (i = 0; erasures[i] != -1; i++) {
     if (erasures[i] < k) ddf++; else cdf++;
   }
-
+  
   erased = jerasure_erasures_to_erased(k, m, erasures);
   if (erased == NULL) return NULL;
 
   /* Set up ptrs.  It will be as follows:
 
        - If data drive i has not failed, then ptrs[i] = data_ptrs[i].
-       - If data drive i has failed, then ptrs[i] = coding_ptrs[j], where j is the
+       - If data drive i has failed, then ptrs[i] = coding_ptrs[j], where j is the 
             lowest unused non-failed coding drive.
        - Elements k to k+ddf-1 are data_ptrs[] of the failed data drives.
        - Elements k+ddf to k+ddf+cdf-1 are coding_ptrs[] of the failed data drives.
 
        The array row_ids contains the ids of ptrs.
        The array ind_to_row_ids contains the row_id of drive i.
-
+  
        However, we're going to set row_ids and ind_to_row in a different procedure.
    */
-
+         
   ptrs = talloc(char *, k+m);
+  if (!ptrs) {
+    free(erased);
+    return NULL;
+  }
 
   j = k;
   x = k;
@@ -766,7 +793,6 @@ static int set_up_ids_for_scheduled_decoding(int k, int m, int *erasures, int *r
 {
   int ddf, cdf;
   int *erased;
-  char **ptrs;
   int i, j, x;
 
   ddf = 0;
@@ -774,7 +800,7 @@ static int set_up_ids_for_scheduled_decoding(int k, int m, int *erasures, int *r
   for (i = 0; erasures[i] != -1; i++) {
     if (erasures[i] < k) ddf++; else cdf++;
   }
-
+  
   erased = jerasure_erasures_to_erased(k, m, erasures);
   if (erased == NULL) return -1;
 
@@ -817,7 +843,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
   int ddf, cdf;
   int **schedule;
   int *b1, *b2;
-
+ 
  /* First, figure out the number of data drives that have failed, and the
     number of coding drives that have failed: ddf and cdf */
 
@@ -826,9 +852,14 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
   for (i = 0; erasures[i] != -1; i++) {
     if (erasures[i] < k) ddf++; else cdf++;
   }
-
+  
   row_ids = talloc(int, k+m);
+  if (!row_ids) return NULL;
   ind_to_row = talloc(int, k+m);
+  if (!ind_to_row) {
+    free(row_ids);
+    return NULL;
+  }
 
   if (set_up_ids_for_scheduled_decoding(k, m, erasures, row_ids, ind_to_row) < 0) {
     free(row_ids);
@@ -836,33 +867,49 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
     return NULL;
   }
 
-  /* Now, we're going to create one decoding matrix which is going to
+  /* Now, we're going to create one decoding matrix which is going to 
      decode everything with one call.  The hope is that the scheduler
      will do a good job.    This matrix has w*e rows, where e is the
      number of erasures (ddf+cdf) */
 
   real_decoding_matrix = talloc(int, k*w*(cdf+ddf)*w);
+  if (!real_decoding_matrix) {
+    free(row_ids);
+    free(ind_to_row);
+    return NULL;
+  }
 
   /* First, if any data drives have failed, then initialize the first
      ddf*w rows of the decoding matrix from the standard decoding
      matrix inversion */
 
   if (ddf > 0) {
-
+    
     decoding_matrix = talloc(int, k*k*w*w);
+    if (!decoding_matrix) {
+      free(row_ids);
+      free(ind_to_row);
+      return NULL;
+    }
     ptr = decoding_matrix;
     for (i = 0; i < k; i++) {
       if (row_ids[i] == i) {
         bzero(ptr, k*w*w*sizeof(int));
         for (x = 0; x < w; x++) {
           ptr[x+i*w+x*k*w] = 1;
-        }
+        } 
       } else {
         memcpy(ptr, bitmatrix+k*w*w*(row_ids[i]-k), k*w*w*sizeof(int));
       }
       ptr += (k*w*w);
     }
     inverse = talloc(int, k*k*w*w);
+    if (!inverse) {
+      free(row_ids);
+      free(ind_to_row);
+      free(decoding_matrix);
+      return NULL;
+    }
     jerasure_invert_bitmatrix(decoding_matrix, inverse, k*w);
 
 /*    printf("\nMatrix to invert\n");
@@ -879,7 +926,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
       ptr += (k*w*w);
     }
     free(inverse);
-  }
+  } 
 
   /* Next, here comes the hard part.  For each coding node that needs
      to be decoded, you start by putting its rows of the distribution
@@ -903,7 +950,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
         for (j = 0; j < w; j++) {
           bzero(ptr+j*k*w+i*w, sizeof(int)*w);
         }
-      }
+      }  
     }
 
     /* There's the yucky part */
@@ -922,7 +969,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
             }
           }
         }
-      }
+      }  
     }
   }
 
@@ -942,13 +989,13 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
 }
 
 int jerasure_schedule_decode_lazy(int k, int m, int w, int *bitmatrix, int *erasures,
-                            char **data_ptrs, char **coding_ptrs, int size, int packetsize,
+                            char **data_ptrs, char **coding_ptrs, int size, int packetsize, 
                             int smart)
 {
   int i, tdone;
   char **ptrs;
   int **schedule;
-
+ 
   ptrs = set_up_ptrs_for_scheduled_decoding(k, m, erasures, data_ptrs, coding_ptrs);
   if (ptrs == NULL) return -1;
 
@@ -976,7 +1023,7 @@ int jerasure_schedule_decode_cache(int k, int m, int w, int ***scache, int *eras
   char **ptrs;
   int **schedule;
   int index;
-
+ 
   if (erasures[1] == -1) {
     index = erasures[0]*(k+m) + erasures[0];
   } else if (erasures[2] == -1) {
@@ -1005,26 +1052,23 @@ int jerasure_schedule_decode_cache(int k, int m, int w, int ***scache, int *eras
 
 int ***jerasure_generate_schedule_cache(int k, int m, int w, int *bitmatrix, int smart)
 {
-  int i, tdone;
-  char **ptrs;
-  int **schedule;
   int ***scache;
   int erasures[3];
   int e1, e2;
-
+ 
   /* Ok -- this is yucky, but it's how I'm doing it.  You will make an index out
      of erasures, which will be  e1*(k+m)+(e2).  If there is no e2, then e2 = e1.
      Isn't that clever and confusing.  Sorry.
 
      We're not going to worry about ordering -- in other words, the schedule for
-     e1,e2 will be the same as e2,e1.  They will have the same pointer -- the
+     e1,e2 will be the same as e2,e1.  They will have the same pointer -- the 
      schedule will not be duplicated. */
 
   if (m != 2) return NULL;
 
   scache = talloc(int **, (k+m)*(k+m+1));
   if (scache == NULL) return NULL;
-
+  
   for (e1 = 0; e1 < k+m; e1++) {
     erasures[0] = e1;
     for (e2 = 0; e2 < e1; e2++) {
@@ -1044,7 +1088,7 @@ int jerasure_invert_bitmatrix(int *mat, int *inv, int rows)
 {
   int cols, i, j, k;
   int tmp;
-
+ 
   cols = rows;
 
   k = 0;
@@ -1059,10 +1103,10 @@ int jerasure_invert_bitmatrix(int *mat, int *inv, int rows)
 
   for (i = 0; i < cols; i++) {
 
-    /* Swap rows if we have a zero i,i element.  If we can't swap, then the
+    /* Swap rows if we have a zero i,i element.  If we can't swap, then the 
        matrix was not invertible */
 
-    if ((mat[i*cols+i]) == 0) {
+    if ((mat[i*cols+i]) == 0) { 
       for (j = i+1; j < rows && (mat[j*cols+i]) == 0; j++) ;
       if (j == rows) return -1;
       for (k = 0; k < cols; k++) {
@@ -1070,12 +1114,12 @@ int jerasure_invert_bitmatrix(int *mat, int *inv, int rows)
         tmp = inv[i*cols+k]; inv[i*cols+k] = inv[j*cols+k]; inv[j*cols+k] = tmp;
       }
     }
-
+ 
     /* Now for each j>i, add A_ji*Ai to Aj */
     for (j = i+1; j != rows; j++) {
       if (mat[j*cols+i] != 0) {
         for (k = 0; k < cols; k++) {
-          mat[j*cols+k] ^= mat[i*cols+k];
+          mat[j*cols+k] ^= mat[i*cols+k]; 
           inv[j*cols+k] ^= inv[i*cols+k];
         }
       }
@@ -1088,12 +1132,12 @@ int jerasure_invert_bitmatrix(int *mat, int *inv, int rows)
     for (j = 0; j < i; j++) {
       if (mat[j*cols+i]) {
         for (k = 0; k < cols; k++) {
-          mat[j*cols+k] ^= mat[i*cols+k];
+          mat[j*cols+k] ^= mat[i*cols+k]; 
           inv[j*cols+k] ^= inv[i*cols+k];
         }
       }
     }
-  }
+  } 
   return 0;
 }
 
@@ -1101,29 +1145,29 @@ int jerasure_invertible_bitmatrix(int *mat, int rows)
 {
   int cols, i, j, k;
   int tmp;
-
+ 
   cols = rows;
 
   /* First -- convert into upper triangular */
 
   for (i = 0; i < cols; i++) {
 
-    /* Swap rows if we have a zero i,i element.  If we can't swap, then the
+    /* Swap rows if we have a zero i,i element.  If we can't swap, then the 
        matrix was not invertible */
 
-    if ((mat[i*cols+i]) == 0) {
+    if ((mat[i*cols+i]) == 0) { 
       for (j = i+1; j < rows && (mat[j*cols+i]) == 0; j++) ;
       if (j == rows) return 0;
       for (k = 0; k < cols; k++) {
         tmp = mat[i*cols+k]; mat[i*cols+k] = mat[j*cols+k]; mat[j*cols+k] = tmp;
       }
     }
-
+ 
     /* Now for each j>i, add A_ji*Ai to Aj */
     for (j = i+1; j != rows; j++) {
       if (mat[j*cols+i] != 0) {
         for (k = 0; k < cols; k++) {
-          mat[j*cols+k] ^= mat[i*cols+k];
+          mat[j*cols+k] ^= mat[i*cols+k]; 
         }
       }
     }
@@ -1131,10 +1175,10 @@ int jerasure_invertible_bitmatrix(int *mat, int rows)
   return 1;
 }
 
-
+  
 int *jerasure_matrix_multiply(int *m1, int *m2, int r1, int c1, int r2, int c2, int w)
 {
-  int *product, i, j, k, l;
+  int *product, i, j, k;
 
   product = (int *) malloc(sizeof(int)*r1*c2);
   for (i = 0; i < r1*c2; i++) product[i] = 0;
@@ -1169,26 +1213,26 @@ void jerasure_do_scheduled_operations(char **ptrs, int **operations, int packets
     sptr = ptrs[operations[op][0]] + operations[op][1]*packetsize;
     dptr = ptrs[operations[op][2]] + operations[op][3]*packetsize;
     if (operations[op][4]) {
-/*      printf("%d,%d %d,%d\n", operations[op][0],
-      operations[op][1],
-      operations[op][2],
-      operations[op][3]);
+/*      printf("%d,%d %d,%d\n", operations[op][0], 
+      operations[op][1], 
+      operations[op][2], 
+      operations[op][3]); 
       printf("xor(0x%x, 0x%x -> 0x%x, %d)\n", sptr, dptr, dptr, packetsize); */
-      galois_region_xor(sptr, dptr, dptr, packetsize);
+      galois_region_xor(sptr, dptr, packetsize);
       jerasure_total_xor_bytes += packetsize;
     } else {
 /*      printf("memcpy(0x%x <- 0x%x)\n", dptr, sptr); */
       memcpy(dptr, sptr, packetsize);
       jerasure_total_memcpy_bytes += packetsize;
     }
-  }
+  }  
 }
 
 void jerasure_schedule_encode(int k, int m, int w, int **schedule,
                                    char **data_ptrs, char **coding_ptrs, int size, int packetsize)
 {
   char **ptr_copy;
-  int i, j, tdone;
+  int i, tdone;
 
   ptr_copy = talloc(char *, (k+m));
   for (i = 0; i < k; i++) ptr_copy[i] = data_ptrs[i];
@@ -1199,7 +1243,7 @@ void jerasure_schedule_encode(int k, int m, int w, int **schedule,
   }
   free(ptr_copy);
 }
-
+    
 int **jerasure_dumb_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
 {
   int **operations;
@@ -1207,14 +1251,19 @@ int **jerasure_dumb_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   int index, optodo, i, j;
 
   operations = talloc(int *, k*m*w*w+1);
+  if (!operations) return NULL;
   op = 0;
-
+  
   index = 0;
   for (i = 0; i < m*w; i++) {
     optodo = 0;
     for (j = 0; j < k*w; j++) {
       if (bitmatrix[index]) {
         operations[op] = talloc(int, 5);
+	if (!operations[op]) {
+	  // -ENOMEM
+          goto error;
+        }
         operations[op][4] = optodo;
         operations[op][0] = j/w;
         operations[op][1] = j%w;
@@ -1222,14 +1271,25 @@ int **jerasure_dumb_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
         operations[op][3] = i%w;
         optodo = 1;
         op++;
-
+        
       }
       index++;
     }
   }
   operations[op] = talloc(int, 5);
+  if (!operations[op]) {
+    // -ENOMEM
+    goto error;
+  }
   operations[op][0] = -1;
   return operations;
+
+error:
+  for (i = 0; i <= op; i++) {
+    free(operations[op]);
+  }
+  free(operations);
+  return NULL;
 }
 
 int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
@@ -1240,23 +1300,45 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   int *diff, *from, *b1, *flink, *blink;
   int *ptr, no, row;
   int optodo;
-  int bestrow, bestdiff, top;
+  int bestrow = 0, bestdiff, top;
 
 /*   printf("Scheduling:\n\n");
   jerasure_print_bitmatrix(bitmatrix, m*w, k*w, w); */
 
   operations = talloc(int *, k*m*w*w+1);
+  if (!operations) return NULL;
   op = 0;
-
+  
   diff = talloc(int, m*w);
+  if (!diff) {
+    free(operations);
+    return NULL;
+  }
   from = talloc(int, m*w);
+  if (!from) {
+    free(operations);
+    free(diff);
+    return NULL;
+  }
   flink = talloc(int, m*w);
+  if (!flink) {
+    free(operations);
+    free(diff);
+    free(from);
+    return NULL;
+  }
   blink = talloc(int, m*w);
+  if (!blink) {
+    free(operations);
+    free(diff);
+    free(from);
+    free(flink);
+    return NULL;
+  }
 
   ptr = bitmatrix;
 
   bestdiff = k*w+1;
-  bestrow = -1;
   top = 0;
   for (i = 0; i < m*w; i++) {
     no = 0;
@@ -1275,7 +1357,7 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   }
 
   flink[m*w-1] = -1;
-
+  
   while (top != -1) {
     row = bestrow;
     /* printf("Doing row %d - %d from %d\n", row, diff[row], from[row]);  */
@@ -1296,6 +1378,7 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
       for (j = 0; j < k*w; j++) {
         if (ptr[j]) {
           operations[op] = talloc(int, 5);
+          if (!operations[op]) goto error;
           operations[op][4] = optodo;
           operations[op][0] = j/w;
           operations[op][1] = j%w;
@@ -1307,6 +1390,7 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
       }
     } else {
       operations[op] = talloc(int, 5);
+      if (!operations[op]) goto error;
       operations[op][4] = 0;
       operations[op][0] = k+from[row]/w;
       operations[op][1] = from[row]%w;
@@ -1317,13 +1401,13 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
       for (j = 0; j < k*w; j++) {
         if (ptr[j] ^ b1[j]) {
           operations[op] = talloc(int, 5);
+          if (!operations[op]) goto error;
           operations[op][4] = 1;
           operations[op][0] = j/w;
           operations[op][1] = j%w;
           operations[op][2] = k+row/w;
           operations[op][3] = row%w;
-          // unused value
-          //optodo = 1;
+          optodo = 1;
           op++;
         }
       }
@@ -1343,8 +1427,9 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
       }
     }
   }
-
+  
   operations[op] = talloc(int, 5);
+  if (!operations[op]) goto error;
   operations[op][0] = -1;
   free(from);
   free(diff);
@@ -1352,22 +1437,32 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   free(flink);
 
   return operations;
+
+error:
+  for (i = 0; i <= op; i++) {
+    free(operations[op]);
+  }
+  free(operations);
+  free(from);
+  free(diff);
+  free(blink);
+  free(flink);
+  return NULL;
 }
 
 void jerasure_bitmatrix_encode(int k, int m, int w, int *bitmatrix,
                             char **data_ptrs, char **coding_ptrs, int size, int packetsize)
 {
-  int i, j, x, y, sptr, pstarted, index;
-  char *dptr, *pptr;
+  int i;
 
   if (packetsize%sizeof(long) != 0) {
-    fprintf(stderr, "jerasure_bitmatrix_encode - packetsize(%d) %% sizeof(long) != 0\n", packetsize);
-    exit(1);
+    fprintf(stderr, "jerasure_bitmatrix_encode - packetsize(%d) %c sizeof(long) != 0\n", packetsize, '%');
+    assert(0);
   }
   if (size%(packetsize*w) != 0) {
-    fprintf(stderr, "jerasure_bitmatrix_encode - size(%d) %% (packetsize(%d)*w(%d))) != 0\n",
-         size, packetsize, w);
-    exit(1);
+    fprintf(stderr, "jerasure_bitmatrix_encode - size(%d) %c (packetsize(%d)*w(%d))) != 0\n", 
+         size, '%', packetsize, w);
+    assert(0);
   }
 
   for (i = 0; i < m; i++) {
@@ -1375,4 +1470,16 @@ void jerasure_bitmatrix_encode(int k, int m, int w, int *bitmatrix,
   }
 }
 
+/*
+ * Exported function for use by autoconf to perform quick 
+ * spot-check.
+ */
+int jerasure_autoconf_test()
+{
+  int x = galois_single_multiply(1, 2, 8);
+  if (x != 2) {
+    return -1;
+  }
+  return 0;
+}
 
