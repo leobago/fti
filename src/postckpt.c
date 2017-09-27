@@ -355,7 +355,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         init = 1;
                     }
                     else {
-                        galois_region_xor(&(data[offset * bs]), coding, coding, bs);
+                        galois_region_xor(&(data[offset * bs]), coding, bs);
                     }
                 }
 
