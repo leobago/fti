@@ -132,6 +132,11 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
+#ifdef LUSTRE
+    FTI_Conf->stripeUnit = (int)iniparser_getint(ini, "Advanced:lustre_stiping_unit", 4194304);
+    FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
+    FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
+#endif
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -147,6 +152,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->ckptNext = 0;
     FTI_Exec->ckptLast = 0;
     FTI_Exec->syncIter = 1;
+    FTI_Exec->syncIterMax = (int)iniparser_getint(ini, "Basic:max_sync_intv", -1);
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
@@ -203,8 +209,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt)
+                   FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
+    int l;
+    int check = 1;
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
@@ -249,7 +257,6 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Keep last ckpt. needs to be set to 0 or 1.", FTI_WARN);
         return FTI_NSCS;
     }
-    int l;
     for (l = 1; l < 5; l++) {
         if (FTI_Ckpt[l].ckptIntv == 0) {
             FTI_Ckpt[l].ckptIntv = -1;
@@ -262,6 +269,19 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             return FTI_NSCS;
         }
     }
+    if (FTI_Exec->syncIterMax < 0) {
+        FTI_Exec->syncIterMax = 512; 
+        FTI_Print("Variable 'Basic:max_sync_intv' is not set. Set to default (512 iterations).", FTI_WARN);
+    } else if ((FTI_Exec->syncIterMax & (FTI_Exec->syncIterMax-1)) != 0) {
+        while (((check<<1) < FTI_Exec->syncIterMax) && ((check<<1) > 0)) {
+            check = check << 1;
+        }
+        FTI_Exec->syncIterMax = check;
+        FTI_Print("Maximal sync. intv. has to be a power of 2. Set to nearest lower value", FTI_WARN);
+    } else if (FTI_Exec->syncIterMax == 0) {
+        FTI_Exec->syncIterMax = 512; 
+        FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
+    }
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
@@ -271,7 +291,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_MPI) {
 #endif
         FTI_Conf->ioMode = FTI_IO_POSIX;
-        FTI_Print("No I/O selected. Set to default (POSIX)", FTI_WARN);
+        FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
     } else {
         switch(FTI_Conf->ioMode) {
             case FTI_IO_POSIX:
@@ -434,7 +454,7 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt), "pass the configuration test.");
+    res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec), "pass the configuration test.");
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
