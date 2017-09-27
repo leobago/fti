@@ -42,10 +42,9 @@ set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION_MAJOR}")
 set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION_MAJOR}")
 string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
 if(${COMPILER_VER_DIFFER})
-    message(FATAL_ERROR "
+    message(WARNING "
     ** You are using different compiler idetifications for Fortran and C!
-        *  This leads to undefined behavior.
-        *  Pleas ensure the versions are identical!")
+        *  This might lead to undefined behavior!")
 endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
