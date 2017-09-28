@@ -3,10 +3,12 @@
 !> @brief  Heat distribution code to test FTI Fortran
 
 program heat
-
   use FTI
+#ifndef MPI_USE_HEADER
   use MPI
-
+#else
+  include 'mpif.h'
+#endif
   real(8), parameter :: PREC       = 0.005
   integer, parameter :: ITER_TIMES = 2000
   integer, parameter :: ITER_OUT   = 100
