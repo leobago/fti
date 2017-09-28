@@ -13,6 +13,10 @@ if(ENABLE_FORTRAN)
     target_link_libraries(hdf.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)
     set_property(TARGET hdf.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS})
     set_property(TARGET hdf.exe APPEND PROPERTY LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
+    if(NOT MPI_USE_MOD)
+	    target_compile_definitions(hdf.exe PRIVATE -DMPI_USE_HEADER)
+    endif()
+	target_compile_options(hdf.exe PRIVATE -cpp)
 endif()
 
 
