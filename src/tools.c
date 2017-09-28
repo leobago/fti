@@ -23,31 +23,33 @@
 /*-------------------------------------------------------------------------*/
 int FTI_Checksum(char* fileName, char* checksum)
 {
-    MD5_CTX mdContext;
-    unsigned char data[CHUNK_SIZE];
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    int bytes;
-    char str[FTI_BUFS];
     double startTime = MPI_Wtime();
-    int i;
 
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
+        char str[FTI_BUFS];
         sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
+    MD5_CTX mdContext;
     MD5_Init (&mdContext);
+
+    int bytes;
+    unsigned char data[CHUNK_SIZE];
     while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
         MD5_Update (&mdContext, data, bytes);
     }
+    unsigned char hash[MD5_DIGEST_LENGTH];
     MD5_Final (hash, &mdContext);
 
+    int i;
     for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
         sprintf(&checksum[i], "%02x", hash[i]);
     checksum[i] = '\0'; //to get a proper string
 
+    char str[FTI_BUFS];
     sprintf(str, "Checksum took %.2f sec.", MPI_Wtime() - startTime);
     FTI_Print(str, FTI_DBUG);
 
@@ -71,35 +73,37 @@ int FTI_Checksum(char* fileName, char* checksum)
 /*-------------------------------------------------------------------------*/
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 {
-    MD5_CTX mdContext;
-    unsigned char data[CHUNK_SIZE];
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
-    int bytes;
-    char str[FTI_BUFS];
-    int i;
-
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
+        char str[FTI_BUFS];
         sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
+    MD5_CTX mdContext;
     MD5_Init (&mdContext);
+
+    int bytes;
+    unsigned char data[CHUNK_SIZE];
     while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
         MD5_Update (&mdContext, data, bytes);
     }
+    unsigned char hash[MD5_DIGEST_LENGTH];
     MD5_Final (hash, &mdContext);
 
+    int i;
+    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
     for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
         sprintf(&checksum[i], "%02x", hash[i]);
     checksum[i] = '\0'; //to get a proper string
 
     if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
+        char str[FTI_BUFS];
         sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
             fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
+
         fclose (fd);
 
         return FTI_NSCS;
@@ -239,21 +243,21 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
     if (flag) {
-        char buf[FTI_BUFS], fn[FTI_BUFS], fil[FTI_BUFS];
-        DIR* dp = NULL;
-        struct dirent* ep = NULL;
+        char str[FTI_BUFS];
+        sprintf(str, "Removing directory %s and its files.", path);
+        FTI_Print(str, FTI_DBUG);
 
-        sprintf(buf, "Removing directory %s and its files.", path);
-        FTI_Print(buf, FTI_DBUG);
-
-        dp = opendir(path);
+        DIR* dp = opendir(path);
         if (dp != NULL) {
+            struct dirent* ep = NULL;
             while ((ep = readdir(dp)) != NULL) {
+                char fil[FTI_BUFS];
                 sprintf(fil, "%s", ep->d_name);
                 if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
+                    char fn[FTI_BUFS];
                     sprintf(fn, "%s/%s", path, fil);
-                    sprintf(buf, "File %s will be removed.", fn);
-                    FTI_Print(buf, FTI_DBUG);
+                    sprintf(str, "File %s will be removed.", fn);
+                    FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {
                             FTI_Print("Error removing target file.", FTI_EROR);
