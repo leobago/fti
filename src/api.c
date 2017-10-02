@@ -97,31 +97,27 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
     }
+    FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_FreeMeta(&FTI_Exec);
-                return FTI_NSCS;
-            }
+            FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
         }
-        FTI_Exec.initSCES = 1;
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_FreeMeta(&FTI_Exec);
-                return FTI_NSCS;
-            }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
+            if (res != FTI_SCES) {
+                FTI_Exec.initSCES = 2; //Could not recover all ckpt files
+                FTI_Print("FTI has been initialized.", FTI_INFO);
+                return FTI_NREC;
+            }
         }
+        FTI_Print("FTI has been initialized.", FTI_INFO);
+        return FTI_SCES;
     }
-    FTI_Exec.initSCES = 1;
-    FTI_Print("FTI has been initialized.", FTI_INFO);
-    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -489,6 +485,7 @@ int FTI_Checkpoint(int id, int level)
     if (ckptFirst && FTI_Topo.splitRank == 0) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
     return FTI_DONE;
 }
@@ -507,6 +504,10 @@ int FTI_Recover()
 {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (FTI_Exec.initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
         return FTI_NSCS;
     }
 
