@@ -271,7 +271,7 @@ long FTI_GetStoredSize(int id)
 void* FTI_Realloc(int id, void* ptr) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
-        return NULL;
+        return ptr;
     }
 
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
