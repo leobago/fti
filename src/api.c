@@ -92,7 +92,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
-    FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+    res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
     if (res == FTI_NSCS) {
         FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
@@ -100,7 +100,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res == FTI_NSCS) {
+            if (res != FTI_SCES) {
                 FTI_FreeMeta(&FTI_Exec);
                 return FTI_NSCS;
             }
@@ -111,7 +111,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res == FTI_NSCS) {
+            if (res != FTI_SCES) {
                 FTI_FreeMeta(&FTI_Exec);
                 return FTI_NSCS;
             }
