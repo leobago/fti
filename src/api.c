@@ -55,65 +55,6 @@ FTIT_type FTI_LDBE;
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Aborts execution.
-    @param      result          Result to check.
-    @param      message         Message to print.
-
-    This function aborts the application after cleaning the file system.
-    This function should be called after heads called FTI_Listen. App processes
-    sends FTI_ENDW status to heads to end work.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_App_Critical(int result, char* message)
-{
-    if (result != FTI_SCES) {
-        FTI_Print(message, FTI_EROR);
-    }
-    int allResults;
-    MPI_Allreduce(&result, &allResults, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allResults != FTI_SCES) {
-        if (FTI_Topo.nbHeads) {
-            //send head message to end work
-            int value = FTI_ENDW;
-            MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-        }
-        FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
-        FTI_FreeMeta(&FTI_Exec);
-        MPI_Barrier(FTI_Exec.globalComm); //for heads barrier
-        MPI_Finalize();
-        exit(1);
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Aborts execution.
-    @param      result          Result to check.
-    @param      message         Message to print.
-
-    This function aborts the application after cleaning the file system.
-    This function should be called before heads called FTI_Listen.
-
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_All_Critical(int result, char* message)
-{
-    if (result != FTI_SCES) {
-        FTI_Print(message, FTI_EROR);
-    }
-    int allResults;
-    MPI_Allreduce(&result, &allResults, 1, MPI_INT, MPI_SUM, FTI_Exec.globalComm);
-    if (allResults != FTI_SCES) {
-        FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
-        FTI_FreeMeta(&FTI_Exec);
-        MPI_Finalize();
-        exit(1);
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Initializes FTI.
     @param      configFile      FTI configuration file.
     @param      globalComm      Main MPI communicator of the application.
@@ -133,31 +74,49 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
     FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
+    FTI_Exec.initSCES = 0;
     FTI_Inje.timer = MPI_Wtime();
     FTI_COMM_WORLD = globalComm; // Temporary before building topology. Needed in FTI_LoadConf and FTI_Topology to communicate.
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology. Needed in FTI_Print.
-    FTI_All_Critical(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    FTI_All_Critical(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
+    int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
+    if (res != FTI_SCES) {
+        return FTI_NSCS;
+    }
+    res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
+    if (res != FTI_SCES) {
+        return FTI_NSCS;
+    }
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
-    FTI_All_Critical(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+    FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+    if (res != FTI_SCES) {
+        return FTI_NSCS;
+    }
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            FTI_All_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
         }
+        FTI_Exec.initSCES = 1;
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
     else { // If I am an application process
         if (FTI_Exec.reco) {
-            FTI_All_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
         }
     }
+    FTI_Exec.initSCES = 1;
     FTI_Print("FTI has been initialized.", FTI_INFO);
     return FTI_SCES;
 }
@@ -216,6 +175,11 @@ int FTI_InitType(FTIT_type* type, int size)
 /*-------------------------------------------------------------------------*/
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     char str[FTI_BUFS]; //For console output
 
     int i;
@@ -237,7 +201,8 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     //If too many variables exit FTI.
     if (FTI_Exec.nbVar >= FTI_BUFS) {
-        FTI_App_Critical(1, "Too many variables registered.");
+        FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
+        return FTI_NSCS;
     }
 
     //Adding new variable to protect
@@ -269,6 +234,11 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 /*-------------------------------------------------------------------------*/
 long FTI_GetStoredSize(int id)
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return 0;
+    }
+
     int i;
     //Search first in temporary metadata (always the newest)
     for (i = 0; i < FTI_BUFS; i++) {
@@ -300,6 +270,11 @@ long FTI_GetStoredSize(int id)
  **/
 /*-------------------------------------------------------------------------*/
 void* FTI_Realloc(int id, void* ptr) {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return NULL;
+    }
+
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
     if (FTI_Exec.reco) {
         char fn[FTI_BUFS], str[FTI_BUFS];
@@ -389,6 +364,11 @@ int FTI_DoubleBitFlip(double* target, int bit)
 /*-------------------------------------------------------------------------*/
 int FTI_BitFlip(int datasetID)
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     if (FTI_Inje.rank == FTI_Topo.splitRank) {
         if (datasetID >= FTI_Exec.nbVar) {
             return FTI_NSCS;
@@ -442,6 +422,11 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     if ((level < 1) || (level > 4)) {
         FTI_Print("Level of checkpoint must be 1, 2, 3 or 4.", FTI_WARN);
         return FTI_NSCS;
@@ -517,6 +502,11 @@ int FTI_Checkpoint(int id, int level)
 /*-------------------------------------------------------------------------*/
 int FTI_Recover()
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 
@@ -576,12 +566,17 @@ int FTI_Recover()
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot()
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     int i, res, level = -1;
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS) {
-            FTI_App_Critical(1, "Impossible to load the checkpoint data.");
+            return FTI_NREC;
         }
     }
     else { // If it is a checkpoint test
@@ -628,6 +623,11 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
         MPI_Barrier(FTI_Exec.globalComm);

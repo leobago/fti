@@ -33,6 +33,8 @@
 #define FTI_SCES 0
 /** Token returned if a FTI function fails.                                */
 #define FTI_NSCS -1
+/** Token returned if recovery fails.                                      */
+#define FTI_NREC -2
 
 /** Verbosity level to print only errors.                                  */
 #define FTI_EROR 4
@@ -175,6 +177,7 @@ typedef struct FTIT_execution {
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
     int             metaAlloc;          /**< True if meta allocated.        */
+    int             initSCES;           /**< True if FTI initialized.       */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
