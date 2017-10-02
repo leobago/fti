@@ -177,41 +177,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    if (!FTI_Topo->amIaHead) {
-        char metaFileName[FTI_BUFS], str[FTI_BUFS];
-        sprintf(metaFileName, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
-        sprintf(str, "Getting FTI metadata file (%s)...", metaFileName);
-        FTI_Print(str, FTI_DBUG);
-        if (access(metaFileName, R_OK) == 0) {
-            dictionary* ini = iniparser_load(metaFileName);
-            if (ini == NULL) {
-                FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
-                return FTI_NSCS;
-            }
-            else {
-                FTI_Exec->meta[0].exists[0] = 1;
-
-                sprintf(str, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-                char* ckptFileName = iniparser_getstring(ini, str, NULL);
-                snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s", ckptFileName);
-
-                sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
-                FTI_Exec->meta[0].fs[0] = iniparser_getlint(ini, str, -1);
-
-                sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
-                FTI_Exec->meta[0].pfs[0] = iniparser_getlint(ini, str, -1);
-
-                FTI_Exec->meta[0].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
-
-                iniparser_freedict(ini);
-            }
-        }
-        else {
-            FTI_Print("Temporary metadata do not exist.", FTI_WARN);
-            return FTI_NSCS;
-        }
-    }
-    else { //I am a head
+    if (FTI_Topo->amIaHead) { //I am a head
         int j, biggestCkptID = 0; //Need to find biggest CkptID
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
             char metaFileName[FTI_BUFS], str[FTI_BUFS];
@@ -244,6 +210,23 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Exec->meta[0].pfs[j] = iniparser_getlint(ini, str, -1);
 
                     FTI_Exec->meta[0].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+
+                    int k;
+                    for (k = 0; k < FTI_BUFS; k++) {
+                        sprintf(str, "%d:Var%d_id", FTI_Topo->groupRank, k);
+                        int id = iniparser_getint(ini, str, -1);
+                        if (id == -1) {
+                            //No more variables
+                            break;
+                        }
+                        //Variable exists
+                        FTI_Exec->meta[0].varID[j * FTI_BUFS + k] = id;
+
+                        sprintf(str, "%d:Var%d_size", FTI_Topo->groupRank, k);
+                        FTI_Exec->meta[0].varSize[j * FTI_BUFS + k] = iniparser_getlint(ini, str, -1);
+                    }
+                    //Save number of variables in metadata
+                    FTI_Exec->meta[0].nbVar[j] = k;
 
                     iniparser_freedict(ini);
                 }
@@ -310,6 +293,23 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                     FTI_Exec->meta[i].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
 
+                    int k;
+                    for (k = 0; k < FTI_BUFS; k++) {
+                        sprintf(str, "%d:Var%d_id", FTI_Topo->groupRank, k);
+                        int id = iniparser_getint(ini, str, -1);
+                        if (id == -1) {
+                            //No more variables
+                            break;
+                        }
+                        //Variable exists
+                        FTI_Exec->meta[i].varID[k] = id;
+
+                        sprintf(str, "%d:Var%d_size", FTI_Topo->groupRank, k);
+                        FTI_Exec->meta[i].varSize[k] = iniparser_getlint(ini, str, -1);
+                    }
+                    //Save number of variables in metadata
+                    FTI_Exec->meta[i].nbVar[0] = k;
+
                     iniparser_freedict(ini);
                 }
             }
@@ -358,6 +358,22 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTI_Exec->meta[i].pfs[j] = iniparser_getlint(ini, str, -1);
 
                         FTI_Exec->meta[i].maxFs[j] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
+                        int k;
+                        for (k = 0; k < FTI_BUFS; k++) {
+                            sprintf(str, "%d:Var%d_id", FTI_Topo->groupRank, k);
+                            int id = iniparser_getint(ini, str, -1);
+                            if (id == -1) {
+                                //No more variables
+                                break;
+                            }
+                            //Variable exists
+                            FTI_Exec->meta[i].varID[j * FTI_BUFS + k] = id;
+
+                            sprintf(str, "%d:Var%d_size", FTI_Topo->groupRank, k);
+                            FTI_Exec->meta[i].varSize[j * FTI_BUFS + k] = iniparser_getlint(ini, str, -1);
+                        }
+                        //Save number of variables in metadata
+                        FTI_Exec->meta[i].nbVar[j] = k;
 
                         iniparser_freedict(ini);
                     }
@@ -384,8 +400,9 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                      unsigned long* fs, unsigned long mfs, char* fnl, char* checksums)
+int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                      FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
+                      char* checksums, int* allVarIDs, long* allVarSizes)
 {
     char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
@@ -417,6 +434,18 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         if (strlen(checksums)) {
             strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
             sprintf(str, "%d:Ckpt_checksum", i);
+            iniparser_set(ini, str, buf);
+        }
+        int j;
+        for (j = 0; j < FTI_Exec->nbVar; j++) {
+            //Save id of variable
+            sprintf(str, "%d:Var%d_id", i, j);
+            sprintf(buf, "%d", allVarIDs[i * FTI_Exec->nbVar + j]);
+            iniparser_set(ini, str, buf);
+
+            //Save size of variable
+            sprintf(str, "%d:Var%d_size", i, j);
+            sprintf(buf, "%ld", allVarSizes[i * FTI_Exec->nbVar + j]);
             iniparser_set(ini, str, buf);
         }
     }
@@ -480,7 +509,8 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                       FTIT_dataset* FTI_Data)
 {
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
@@ -529,14 +559,37 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         checksums[0]=0;
     }
 
+    //Every process has the same number of protected variables
+    int* myVarIDs = talloc(int, FTI_Exec->nbVar);
+    int* allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+    long* myVarSizes = talloc(long, FTI_Exec->nbVar);
+    long* allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        myVarIDs[i] = FTI_Data[i].id;
+        myVarSizes[i] =  FTI_Data[i].size;
+    }
+    //Gather variables IDs
+    MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar, MPI_INT, 0, FTI_Exec->groupComm);
+    //Gather variables sizes
+    MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+
+    free(myVarIDs);
+    free(myVarSizes);
+
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Topo, fileSizes, mfs, ckptFileNames, checksums), "write the metadata.");
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
+                    ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
+        free(allVarIDs);
+        free(allVarSizes);
         if (res == FTI_NSCS) {
             free(ckptFileNames);
             free(checksums);
 
             return FTI_NSCS;
         }
+    } else {
+        free(allVarIDs);
+        free(allVarSizes);
     }
 
     //Flush metadata in case postCkpt done inline
@@ -544,6 +597,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
     strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
+        FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
+    }
 
     free(ckptFileNames);
     free(checksums);
