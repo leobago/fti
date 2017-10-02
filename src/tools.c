@@ -178,6 +178,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
         }
     }
+    FTI_Exec->metaAlloc = 1;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -192,16 +193,19 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 /*-------------------------------------------------------------------------*/
 void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 {
-    int i;
-    for (i = 0; i < 5; i++) {
-        free(FTI_Exec->meta[i].exists);
-        free(FTI_Exec->meta[i].maxFs);
-        free(FTI_Exec->meta[i].fs);
-        free(FTI_Exec->meta[i].pfs);
-        free(FTI_Exec->meta[i].ckptFile);
-        free(FTI_Exec->meta[i].nbVar);
-        free(FTI_Exec->meta[i].varID);
-        free(FTI_Exec->meta[i].varSize);
+    if (FTI_Exec->metaAlloc == 1) {
+        int i;
+        for (i = 0; i < 5; i++) {
+            free(FTI_Exec->meta[i].exists);
+            free(FTI_Exec->meta[i].maxFs);
+            free(FTI_Exec->meta[i].fs);
+            free(FTI_Exec->meta[i].pfs);
+            free(FTI_Exec->meta[i].ckptFile);
+            free(FTI_Exec->meta[i].nbVar);
+            free(FTI_Exec->meta[i].varID);
+            free(FTI_Exec->meta[i].varSize);
+        }
+        FTI_Exec->metaAlloc = 0;
     }
 }
 
