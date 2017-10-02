@@ -55,18 +55,61 @@ FTIT_type FTI_LDBE;
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It aborts the application.
+    @brief      Aborts execution.
+    @param      result          Result to check.
+    @param      message         Message to print.
 
     This function aborts the application after cleaning the file system.
+    This function should be called after heads called FTI_Listen. App processes
+    sends FTI_ENDW status to heads to end work.
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_Abort()
+void FTI_App_Critical(int result, char* message)
 {
-    FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
-    MPI_Abort(MPI_COMM_WORLD, -1);
-    MPI_Finalize();
-    exit(1);
+    if (result != FTI_SCES) {
+        FTI_Print(message, FTI_EROR);
+    }
+    int allResults;
+    MPI_Allreduce(&result, &allResults, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if (allResults != FTI_SCES) {
+        if (FTI_Topo.nbHeads) {
+            //send head message to end work
+            int value = FTI_ENDW;
+            MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        }
+        FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
+        FTI_FreeMeta(&FTI_Exec);
+        MPI_Barrier(FTI_Exec.globalComm); //for heads barrier
+        MPI_Finalize();
+        exit(1);
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Aborts execution.
+    @param      result          Result to check.
+    @param      message         Message to print.
+
+    This function aborts the application after cleaning the file system.
+    This function should be called before heads called FTI_Listen.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_All_Critical(int result, char* message)
+{
+    if (result != FTI_SCES) {
+        FTI_Print(message, FTI_EROR);
+    }
+    int allResults;
+    MPI_Allreduce(&result, &allResults, 1, MPI_INT, MPI_SUM, FTI_Exec.globalComm);
+    if (allResults != FTI_SCES) {
+        FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
+        FTI_FreeMeta(&FTI_Exec);
+        MPI_Finalize();
+        exit(1);
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -93,39 +136,24 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Inje.timer = MPI_Wtime();
     FTI_COMM_WORLD = globalComm; // Temporary before building topology. Needed in FTI_LoadConf and FTI_Topology to communicate.
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology. Needed in FTI_Print.
-    int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    if (res == FTI_NSCS) {
-        FTI_Abort();
-    }
-    res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
-    if (res == FTI_NSCS) {
-        FTI_Abort();
-    }
+    FTI_All_Critical(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
+    FTI_All_Critical(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
-    res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
-    if (res == FTI_NSCS) {
-        FTI_Abort();
-    }
+    FTI_All_Critical(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_Abort();
-            }
+            FTI_All_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
         }
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
     else { // If I am an application process
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
-                FTI_Abort();
-            }
+            FTI_All_Critical(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
         }
@@ -209,11 +237,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     //If too many variables exit FTI.
     if (FTI_Exec.nbVar >= FTI_BUFS) {
-        FTI_Print("Too many variables registered.", FTI_EROR);
-        FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
-        MPI_Abort(MPI_COMM_WORLD, -1);
-        MPI_Finalize();
-        exit(1);
+        FTI_App_Critical(1, "Too many variables registered.");
     }
 
     //Adding new variable to protect
@@ -557,11 +581,7 @@ int FTI_Snapshot()
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NSCS) {
-            FTI_Print("Impossible to load the checkpoint data.", FTI_EROR);
-            FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5);
-            MPI_Abort(MPI_COMM_WORLD, -1);
-            MPI_Finalize();
-            exit(1);
+            FTI_App_Critical(1, "Impossible to load the checkpoint data.");
         }
     }
     else { // If it is a checkpoint test

@@ -156,6 +156,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
+    FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
     if (FTI_Exec->reco == 0) {
         time_t tim = time(NULL);
@@ -270,7 +271,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         }
     }
     if (FTI_Exec->syncIterMax < 0) {
-        FTI_Exec->syncIterMax = 512; 
+        FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is not set. Set to default (512 iterations).", FTI_WARN);
     } else if ((FTI_Exec->syncIterMax & (FTI_Exec->syncIterMax-1)) != 0) {
         while (((check<<1) < FTI_Exec->syncIterMax) && ((check<<1) > 0)) {
@@ -279,7 +280,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Exec->syncIterMax = check;
         FTI_Print("Maximal sync. intv. has to be a power of 2. Set to nearest lower value", FTI_WARN);
     } else if (FTI_Exec->syncIterMax == 0) {
-        FTI_Exec->syncIterMax = 512; 
+        FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
     }
     if (FTI_Topo->groupSize < 1) {

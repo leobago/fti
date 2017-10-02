@@ -174,6 +174,7 @@ typedef struct FTIT_execution {
     long            ckptSize;           /**< Checkpoint size.               */
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
+    int             metaAlloc;          /**< True if meta allocated.        */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
