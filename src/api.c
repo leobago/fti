@@ -79,11 +79,11 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_COMM_WORLD = globalComm; // Temporary before building topology. Needed in FTI_LoadConf and FTI_Topology to communicate.
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology. Needed in FTI_Print.
     int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
-    if (res != FTI_SCES) {
+    if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
     res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
-    if (res != FTI_SCES) {
+    if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
@@ -93,13 +93,15 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
     FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
-    if (res != FTI_SCES) {
+    if (res == FTI_NSCS) {
+        FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
     }
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
+            if (res == FTI_NSCS) {
+                FTI_FreeMeta(&FTI_Exec);
                 return FTI_NSCS;
             }
         }
@@ -109,7 +111,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (res != FTI_SCES) {
+            if (res == FTI_NSCS) {
+                FTI_FreeMeta(&FTI_Exec);
                 return FTI_NSCS;
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
@@ -515,7 +518,7 @@ int FTI_Recover()
         sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
                 FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
         FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
+        return FTI_NREC;
     }
 
     //Recovering from local for L4 case in FTI_Recover
@@ -532,7 +535,7 @@ int FTI_Recover()
     FILE* fd = fopen(fn, "rb");
     if (fd == NULL) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NSCS;
+        return FTI_NREC;
     }
     int i;
     for (i = 0; i < FTI_Exec.nbVar; i++) {
@@ -540,12 +543,12 @@ int FTI_Recover()
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
-            return FTI_NSCS;
+            return FTI_NREC;
         }
     }
     if (fclose(fd) != 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NSCS;
+        return FTI_NREC;
     }
     FTI_Exec.reco = 0;
     return FTI_SCES;
@@ -575,7 +578,7 @@ int FTI_Snapshot()
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
         res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
-        if (res == FTI_NSCS) {
+        if (res == FTI_NREC) {
             return FTI_NREC;
         }
     }
