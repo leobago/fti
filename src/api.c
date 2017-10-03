@@ -100,7 +100,11 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            if (res != FTI_SCES) {
+                FTI_Exec.reco = 0;
+                FTI_Exec.initSCES = 2; //Could not recover all ckpt files
+            }
         }
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
@@ -110,6 +114,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
             if (res != FTI_SCES) {
+                FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
