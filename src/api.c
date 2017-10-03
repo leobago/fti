@@ -286,6 +286,11 @@ void* FTI_Realloc(int id, void* ptr) {
                 FTI_Data[i].size = FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
                 sprintf(str, "Reallocated size: %ld", FTI_Data[i].size);
                 FTI_Print(str, FTI_DBUG);
+                if (FTI_Data[i].size == 0) {
+                    sprintf(str, "Cannot allocate 0 size.");
+                    FTI_Print(str, FTI_DBUG);
+                    return ptr;
+                }
                 ptr = realloc (ptr, FTI_Data[i].size);
                 FTI_Data[i].ptr = ptr;
                 FTI_Data[i].count = FTI_Data[i].size / FTI_Data[i].eleSize;
