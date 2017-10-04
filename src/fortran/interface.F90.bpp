@@ -42,7 +42,8 @@ module FTI
       $(fti_type ${T}), &
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
-      FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize
+      FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
+			FTI_GetStoredSize
 
 
 
@@ -93,7 +94,19 @@ module FTI
 
   endinterface
 
+	interface
+		
+		function FTI_GetStoredSize_impl(id_F) &
+						bind(c, name='FTI_GetStoredSize')
+			
+			use ISO_C_BINDING
 
+			integer(c_long)				:: FTI_GetStoredSize_impl
+			integer(c_int), value	:: id_F
+
+		endfunction FTI_GetStoredSize_impl
+	
+	endinterface
 
   interface
 
@@ -245,7 +258,14 @@ contains
 
   endsubroutine FTI_InitType
 
+	subroutine FTI_GetStoredSize(id_F, size)
+		
+		integer, intent(IN)	:: id_F
+		integer(4)					:: size
 
+		size = long(FTI_GetStoredSize_impl(int(id_F,c_int)))
+	
+	endsubroutine FTI_GetStoredSize
 
   subroutine FTI_Protect_Ptr(id_F, ptr, count_F, type_F, err)
 
