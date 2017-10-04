@@ -23,7 +23,6 @@ env:
     - TEST=addInArray CONFIG=configH0I1.fti LEVEL=1 CMAKEVERSION=3.8
 
     - TEST=addInArray CONFIG=configH0I1.fti LEVEL=1 CMAKEVERSION=3.9
-	
 
 addons:
   coverity_scan:
@@ -44,7 +43,7 @@ cache:
 before_install:
   - sudo apt-get update -qq
   - if [[ -z "$CMAKEVERSION" ]] ; then export CMAKEVERSION=3.3 ; fi
-  - wget -q http://cmake.org/files/v3.3/cmake-$CMAKEVERSION.2.tar.gz
+  - wget -q http://cmake.org/files/v$CMAKEVERSION/cmake-$CMAKEVERSION.2.tar.gz
   - tar -xzf cmake-$CMAKEVERSION.2.tar.gz
   - cd cmake-$CMAKEVERSION.2/
   - ./configure > /dev/null
