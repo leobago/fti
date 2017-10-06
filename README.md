@@ -23,16 +23,32 @@ Download, compile and install FTI (as easy as 1,2,3)
  2) mkdir fti/build && cd fti/build
  3) cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti .. && make all install
 
-> **REMARK 1** (Intel and GCC)
-> For the case that both, **Intel and GCC**, compilers are installed, please configure using:
+> **REMARK 1** (Intel and GCC)  
+> For the case that both, **Intel and GCC**, compilers are installed, please configure using:  
 > `cmake -C ../intel.cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
-> **REMARK 2** (OpenSSL)
-> To use the built-in MD5 rather than OpenSSL, please configure using:
+> **REMARK 2** (OpenSSL)  
+> To use the built-in MD5 rather than OpenSSL, please configure using:  
 > `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
-> **REMARK 3** (GNU versions)
+> **REMARK 3** (GNU versions)  
 > The usage of different GNU compiler versions for C and Fortran leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
+
+> **REMARK 4** (Cray System)  
+> FTI works on Cray system with these modules  
+> GNU environment:  
+> `module load gcc/5.3.0 CMake/3.6.2 craype/2.5.8 cray-mpich/7.5.0 PrgEnv-gnu/6.0.3 `  
+> `export CRAY_CPU_TARGET=x86-64`  
+> `export CRAYPE_LINK_TYPE=dynamic`  
+> Flag for CMake: `-CMAKE_SYSTEM_NAME=CrayLinuxEnvironment`  
+>  
+> Intel environment:  
+> `module load intel/17.0.1.132 CMake/3.6.2 craype/2.5.8 cray-mpich/7.5.0 PrgEnv-intel/6.0.3`  
+> `export CRAY_CPU_TARGET=x86-64`  
+> `export CRAYPE_LINK_TYPE=dynamic`  
+> Flag for CMake: `-CMAKE_SYSTEM_NAME=CrayLinuxEnvironment`  
+>  
+> The most important is CMake version: the newer the better.  
 
 ---
 

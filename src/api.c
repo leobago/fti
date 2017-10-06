@@ -232,6 +232,78 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Returns size saved in metadata of variable
+    @param      id              Variable ID.
+    @return     long            Returns size of variable or 0 if size not saved.
+
+    This function returns size of variable of given ID that is saved in metadata.
+    This may be different from size of variable that is in the program. If this
+    function it's called when recovery it returns size from metadata file, if it's
+    called after checkpoint it returns size saved in temporary metadata. If there
+    is no size saved in metadata it returns 0.
+ **/
+/*-------------------------------------------------------------------------*/
+long FTI_GetStoredSize(int id)
+{
+    int i;
+    //Search first in temporary metadata (always the newest)
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (FTI_Exec.meta[0].varID[i] == id) {
+            if (FTI_Exec.meta[0].varSize[i] != 0) {
+                return FTI_Exec.meta[0].varSize[i];
+            }
+            break;
+        }
+    }
+    //If couldn't find in temporary metadata, search in last level checkpoint
+    //(this means no checkpoint was taken in current execution)
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i] == id) {
+            return FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+        }
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Reallocates dataset to last checkpoint size.
+    @param      id              Variable ID.
+    @param      ptr             Pointer to the variable.
+    @return     ptr             Pointer if successful, NULL otherwise
+    This function loads the checkpoint data size from the metadata
+    file, reallacates memory and updates data size information.
+ **/
+/*-------------------------------------------------------------------------*/
+void* FTI_Realloc(int id, void* ptr) {
+    FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
+    if (FTI_Exec.reco) {
+        char fn[FTI_BUFS], str[FTI_BUFS];
+        int i;
+        for (i = 0; i < FTI_BUFS; i++) {
+            if (id == FTI_Data[i].id) {
+                long oldSize = FTI_Data[i].size;
+                FTI_Data[i].size = FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+                sprintf(str, "Reallocated size: %ld", FTI_Data[i].size);
+                FTI_Print(str, FTI_DBUG);
+                ptr = realloc (ptr, FTI_Data[i].size);
+                FTI_Data[i].ptr = ptr;
+                FTI_Data[i].count = FTI_Data[i].size / FTI_Data[i].eleSize;
+                FTI_Exec.ckptSize += FTI_Data[i].size - oldSize;
+                sprintf(str, "Dataset #%d reallocated.", FTI_Data[i].id);
+                FTI_Print(str, FTI_INFO);
+                break;
+            }
+        }
+    }
+    else {
+        FTI_Print("This is not a recovery. Couldn't reallocate memory.", FTI_WARN);
+    }
+    return ptr;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It corrupts a bit of the given float.
     @param      target          Pointer to the float to corrupt.
     @param      bit             Position of the bit to corrupt.
@@ -423,6 +495,14 @@ int FTI_Recover()
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
+
+    //Check if nubmer of protected variables matches
+    if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
+        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {

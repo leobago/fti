@@ -151,7 +151,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
 
-    res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "create metadata.");
+    res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     return res;
 }
 
