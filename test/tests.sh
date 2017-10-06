@@ -206,6 +206,12 @@ cd test
 			else
 				startTestLogVerify diffSizes "$CONFIG" 16 "$LEVEL"
 			fi
+		elif [ "$TEST" = "syncIntv" ]; then
+			printRun $TEST "$CONFIG"
+			./syncIntvTest.sh "$CONFIG" 16
+			if [ $? -eq 0 ]; then
+				printSuccess $TEST "$CONFIG"
+			fi
 		else
 			startTest "$TEST" "$CONFIG" 16 "$LEVEL"
 		fi
