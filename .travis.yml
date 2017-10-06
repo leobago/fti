@@ -370,6 +370,8 @@ env:
 
     - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.9
 
+    - TEST=syncIntv CONFIG configH1I0.fti
+
 addons:
   coverity_scan:
     project:
