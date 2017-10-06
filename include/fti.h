@@ -140,6 +140,9 @@ typedef struct FTIT_metadata {
     long*            fs;                 /**< File size.                     */
     long*            pfs;                /**< Partner file size.             */
     char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
+    int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
+    int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
+    long*            varSize;            /**< Variable size. [FTI_BUFS]      */
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
@@ -187,7 +190,7 @@ typedef struct FTIT_configuration {
     int             verbosity;          /**< Verbosity level.               */
     int             blockSize;          /**< Communication block size.      */
     int             transferSize;       /**< Transfer size local to PFS     */
-#ifdef LUSTRE    
+#ifdef LUSTRE
     int             stripeUnit;         /**< Striping Unit for Lustre FS    */
     int             stripeOffset;       /**< Striping Offset for Lustre FS  */
     int             stripeFactor;       /**< Striping Factor for Lustre FS  */
@@ -298,6 +301,8 @@ int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
+long FTI_GetStoredSize(int id);
+void* FTI_Realloc(int id, void* ptr);
 int FTI_BitFlip(int datasetID);
 int FTI_Checkpoint(int id, int level);
 int FTI_Recover();
