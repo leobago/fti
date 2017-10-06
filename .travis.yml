@@ -356,6 +356,20 @@ env:
 
     - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=4
 
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.3
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.4
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.5
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.6
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.7
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.8
+
+    - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.9
+
 addons:
   coverity_scan:
     project:
@@ -374,9 +388,10 @@ cache:
 
 before_install:
   - sudo apt-get update -qq
-  - wget -q http://cmake.org/files/v3.3/cmake-3.3.2.tar.gz
-  - tar -xzf cmake-3.3.2.tar.gz
-  - cd cmake-3.3.2/
+  - if [[ -z "$CMAKEVERSION" ]] ; then export CMAKEVERSION=3.3 ; fi
+  - wget -q http://cmake.org/files/v$CMAKEVERSION/cmake-$CMAKEVERSION.2.tar.gz
+  - tar -xzf cmake-$CMAKEVERSION.2.tar.gz
+  - cd cmake-$CMAKEVERSION.2/
   - ./configure > /dev/null
   - make > /dev/null
   - sudo make install > /dev/null
