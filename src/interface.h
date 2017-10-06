@@ -49,7 +49,6 @@
                             FTI private functions
 ---------------------------------------------------------------------------*/
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
-void FTI_Abort();
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
 void FTI_Print(char *msg, int priority);
