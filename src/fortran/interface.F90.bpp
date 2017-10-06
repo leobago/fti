@@ -16,9 +16,8 @@ module FTI
 
 
   type, public :: FTI_type
-
-    private
-    type(c_ptr) :: raw_type
+    
+    type(c_ptr), private :: raw_type
 
   endtype FTI_type
 
@@ -205,6 +204,7 @@ module FTI
 
   interface FTI_Realloc
 
+    module procedure FTI_Realloc_Ptr
 !$SH for T in ${FORTTYPES}; do
 !$SH   for D in $(seq 0 ${MAXDIM}); do
     module procedure FTI_Realloc_${T}${D}
@@ -292,64 +292,79 @@ contains
 	
 	endsubroutine FTI_GetStoredSize
 
+  subroutine FTI_Realloc_Ptr(id_F, ptr, ierr)
 
+    integer, intent(IN)  :: id_F
+    type(c_ptr)          :: ptr
+    integer, intent(OUT) :: ierr
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    ierr = 0
     
+    ptr = FTI_Realloc_impl(id_F, ptr)
+    if (.not. c_associated(ptr)) then
+        ierr = -1
+    end if
+
+  endsubroutine FTI_Realloc_Ptr
 
 !$SH for T in ${FORTTYPES}; do
 
-  subroutine FTI_Realloc_${T}0(id_F, data)
+  subroutine FTI_Realloc_${T}0(id_F, data, ierr)
 
     integer, intent(IN)        :: id_F
     $(fort_type ${T}), pointer :: data
     type(c_ptr)                :: ptr
+    integer, intent(OUT)       :: ierr
+
+    ierr = 0
 
     ptr = FTI_Realloc_impl(id_F, c_loc(data))
     
-    call c_f_pointer(ptr, data)
+    if (.not. c_associated(ptr)) then
+        ierr = -1
+        data => null()
+    else
+        call c_f_pointer(ptr, data)
+    end if
 
   endsubroutine FTI_Realloc_${T}0
 
-  subroutine FTI_Realloc_${T}1(id_F, data)
+  subroutine FTI_Realloc_${T}1(id_F, data, ierr)
 
     integer, intent(IN) :: id_F
     $(fort_type ${T}), pointer :: data(:)
     integer(4)                 :: n
     type(c_ptr)                :: ptr
     $(fort_type ${T})          :: typeF
+    integer, intent(OUT)       :: ierr
+
+    ierr = 0
 
     n = FTI_GetStoredSize_impl(id_F)/sizeof(typeF)
     
     ptr = FTI_Realloc_impl(id_F, c_loc(data))
     
-    call c_f_pointer(ptr, data, [n])
+    if (.not. c_associated(ptr)) then
+        ierr = -1
+        data => null()
+    else
+        call c_f_pointer(ptr, data, [n])
+    end if
 
   endsubroutine FTI_Realloc_${T}1
 
 !$SH   for D in $(seq 2 ${MAXDIM}); do
 
-  subroutine FTI_Realloc_${T}${D}(id_F, data)
+  subroutine FTI_Realloc_${T}${D}(id_F, data, ierr)
 
     integer, intent(IN) :: id_F
     $(fort_type ${T}), pointer :: data$(str_repeat ':' 1 ${D} ',' '(' ')')
     integer(4)                 :: n
     type(c_ptr)                :: ptr
     $(fort_type ${T})          :: typeF
+    integer, intent(OUT)       :: ierr
+
+    ierr = 0
 
     n = FTI_GetStoredSize_impl(id_F)/sizeof(typeF)
     
@@ -357,29 +372,18 @@ contains
     ! the best since not much better can be done
     ptr = FTI_Realloc_impl(id_F, &
             c_loc(data$(str_repeat 'lbound(data, @N)' 1 ${D} $',&\n' '(' ')')))
-    call c_f_pointer(ptr, data, [n,$(str_repeat_reverse '1' 1 $(($D-1)) ',' )])
+    
+    if (.not. c_associated(ptr)) then
+        ierr = -1
+        data => null()
+    else
+        call c_f_pointer(ptr, data, [n,$(str_repeat_reverse '1' 1 $(($D-1)) ',' )])
+    end if
 
   endsubroutine FTI_Realloc_${T}${D}
 
-
 !$SH   done
 !$SH done
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   subroutine FTI_Protect_Ptr(id_F, ptr, count_F, type_F, err)
 
