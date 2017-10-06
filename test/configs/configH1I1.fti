@@ -11,7 +11,7 @@ Head = 1
 
 # The number of processes launched per node (Same for every node)
 # including FTI-dedicated process.
-Node_size = 2
+Node_size = 4
 
 # LOCAL directory where the local checkpoints will be stored
 # This directory MUST exist and have write access
@@ -62,6 +62,10 @@ Group_size = 4
 # 2 (Print errors and some few important information)
 # 1 (Print debug messages, very verbose)
 Verbosity = 1
+
+Ckpt_io = 1
+
+Max_sync_intv = 512
 
 # *****************************************************************
 # *** Change these parameters ONLY in case of restart   ***********
