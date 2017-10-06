@@ -109,9 +109,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
             return RECOVERY_FAILED;
         }
-    }
-    //if recovery, but recover values don't match
-    if (fail == 0) {
+
         int expectedI = ITER_STOP - ITER_STOP % ITER_CHECK;
         if (its.i != expectedI){
             printf("%d: i = %d, should be %d\n", world_rank, its.i, expectedI);
