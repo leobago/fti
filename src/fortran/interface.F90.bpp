@@ -342,7 +342,7 @@ contains
 
     n = FTI_GetStoredSize_impl(id_F)/sizeof(typeF)
     
-    ptr = FTI_Realloc_impl(id_F, c_loc(data(lbound(data))))
+    ptr = FTI_Realloc_impl(id_F, c_loc(data(lbound(data,1))))
     
     if (.not. c_associated(ptr)) then
         ierr = -1
