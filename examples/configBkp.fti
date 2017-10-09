@@ -26,7 +26,7 @@ Glbl_dir = ./Global 	#/path/to/global/storage/
 Meta_dir = ./Meta	#/home/username/.fti
 
 # Level 1 ckpt interval in minutes of L1 ckpts (Local write)
-Ckpt_L1 = 3
+Ckpt_L1 = 1
 
 # Level 2 ckpt interval in minutes of L2 ckpts (Partner copy)
 Ckpt_L2 = 5
@@ -58,7 +58,7 @@ Group_size = 4
 # 3 (Print only errors, silent mode)
 # 2 (Print errors and some few important information)
 # 1 (Print debug messages, very verbose)
-Verbosity = 2
+Verbosity = 1
 
 # *****************************************************************
 # *** Change these parameters ONLY in case of restart   ***********

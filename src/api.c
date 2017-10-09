@@ -52,6 +52,11 @@ FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
 
+/** Activated after soft error introduced ~ when checkpoint generated */
+int triggerSoftError=0;
+/** Rank affected by soft error */
+int failed_rank;
+int* status_array;
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -72,6 +77,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
+
+    failed_rank=FTI_Topo.nbProc-1;
+
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
     FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
     FTI_Exec.initSCES = 0;
@@ -588,7 +596,7 @@ int FTI_Snapshot()
     int i, res, level = -1;
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
-        res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
+        res = FTI_Try(FTI_Recover(), "recover the checkpointed data from snapshot.");
         if (res == FTI_NREC) {
             return FTI_NREC;
         }
@@ -613,6 +621,7 @@ int FTI_Snapshot()
             if (level != -1) {
                 res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
                 if (res == FTI_DONE) {
+                    triggerSoftError=1;
                     FTI_Exec.ckptCnt++;
                 }
             }
@@ -744,4 +753,97 @@ void FTI_Print(char* msg, int priority)
         }
     }
     fflush(stdout);
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Check is last checkpoint was taken
+    @return     void
+ **/
+/*-------------------------------------------------------------------------*/
+/** triggerSoftError set to 1 when ckpt generated **/
+int count=0;
+
+int FTI_CheckCheckpointDone(){
+    return triggerSoftError;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Set to zero the indicated variable
+    @param      prt        pointer to var
+    @param      sz         size in bytes of variable
+    @return     void
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_DestroyData(void* ptr, int sz){
+    if(count>0) return;
+    if(triggerSoftError == 1){
+        if(failed_rank == FTI_Topo.myRank){
+            memset(ptr, 0, sz);
+            char str[FTI_BUFS];
+            sprintf(str, "** SOFT ERROR ** at var %p ", ptr);
+            FTI_Print(str, FTI_DBUG);
+
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Global knowledge of the soft error
+    @return     int*       status of each rank in the app (1=Failed|0=otherwise)
+ **/
+/*-------------------------------------------------------------------------*/
+int* FTI_GlobalErrDetected(){
+    if(triggerSoftError == 1){
+        count++;
+        status_array = (int*)malloc(sizeof(int)*FTI_Topo.myRank);
+        memset(status_array, 0, sizeof(int)*FTI_Topo.nbProc);
+        if(failed_rank ==  FTI_Topo.myRank){
+            status_array[failed_rank]=1;
+            FTI_Exec.reco=1;
+        }
+        triggerSoftError=0;
+        return status_array;
+    }
+    return NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover *ALL* local data of the process from the last ckpt
+    @return     int*       status of each rank in the app (1=Failed|0=otherwise)
+ **/
+/*-------------------------------------------------------------------------*/
+//int FTI_RecoverLocalCkpt(void* ptr);
+int FTI_RecoverLocalCkpt(){
+    char str[FTI_BUFS];
+    sprintf(str, "** SOFT ERROR ** recovering all data from last ckpt");
+    FTI_Print(str, FTI_DBUG);
+    FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
+    /* Find checkpoint file */
+    int level;
+    /* We assume last checkpoint will be there */
+    for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+        if (FTI_Exec.meta[level].exists[0]) {
+            //Get ckptID from checkpoint file name
+            int ckptID;
+            sscanf(FTI_Exec.meta[level].ckptFile, "Ckpt%d", &ckptID);
+            //Temporary for Recover functions
+            FTI_Exec.ckptLvel = level;
+            FTI_Exec.ckptID = ckptID;
+            sprintf(str, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
+            FTI_Print(str, FTI_DBUG);
+        }
+    }
+
+    int res = FTI_Try(FTI_Recover(), "recover the checkpointed data after soft error.");
+    if (res == FTI_NREC) {
+        return FTI_NREC;
+    }
+    FTI_Exec.reco=0;
+    return res;
 }

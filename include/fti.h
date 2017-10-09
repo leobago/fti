@@ -313,6 +313,11 @@ int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();
 
+int FTI_CheckCheckpointDone();
+void FTI_DestroyData(void* ptr, int sz);
+int* FTI_GlobalErrDetected();
+int FTI_RecoverLocalCkpt();
+
 #ifdef __cplusplus
 }
 #endif
