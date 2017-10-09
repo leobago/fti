@@ -170,6 +170,14 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 
 runAllConfiguration() {
 	for corrORErase in 0 1; do #for corrupt or erase
+		if [ ! -z "$PART" ]; then
+			if [ $PART = 0 ] && [ $corrORErase = 1 ]; then
+				return 0
+			fi
+			if [ $PART = 1 ] && [ $corrORErase = 0 ]; then
+				continue
+			fi
+		fi
 		if [ $LEVEL = 1 ] || [ $LEVEL = 4 ]; then #L1 or L4 don't have Ptners files
 			startTestCorr diffSizes $CONFIG $1 $LEVEL 0 $corrORErase 0 0
 		else
@@ -179,7 +187,6 @@ runAllConfiguration() {
 				done
 			done
 		fi
-
 	done
 	startTestLogVerify diffSizes $CONFIG $1 $LEVEL 0 #recover from not flushed checkpoints without corrupting
 	startTestLogVerify addInArray $CONFIG $1 $LEVEL 1 #recover from flushed checkpoints without corrupting (L4)
