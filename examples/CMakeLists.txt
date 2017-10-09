@@ -33,7 +33,7 @@ add_custom_target(runall
 )
 
 add_custom_target(hd
-	COMMAND ${MPIRUN} -n 16 ./hd.exe 4 config.fti
+	COMMAND ${MPIRUN} -n 8 ./hd.exe 4 config.fti
 )
 
 add_custom_target(hd2

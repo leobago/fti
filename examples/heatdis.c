@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fti.h>
-
+#include <assert.h>
+#include <string.h>
 
 #define PRECISION   0.005
 #define ITER_TIMES  5000
@@ -94,6 +95,11 @@ int main(int argc, char *argv[])
     nbLines = (M / nbProcs)+3;
     h = (double *) malloc(sizeof(double *) * M * nbLines);
     g = (double *) malloc(sizeof(double *) * M * nbLines);
+
+    double *aux_h,*aux_g;int j;
+    aux_h = (double *) malloc(sizeof(double *) * M * nbLines);
+    aux_g = (double *) malloc(sizeof(double *) * M * nbLines);
+
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
@@ -110,6 +116,27 @@ int main(int argc, char *argv[])
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
         int checkpointed = FTI_Snapshot();
+        if(FTI_CheckCheckpointDone()){
+            memcpy(aux_h, h, M*nbLines*sizeof(double));
+            memcpy(aux_g, g, M*nbLines*sizeof(double));
+            j=i;
+        }
+        FTI_DestroyData(&i, 1*sizeof(int));
+        FTI_DestroyData(h, M*nbLines*sizeof(double));
+        FTI_DestroyData(g, M*nbLines*sizeof(double));
+        int *status_array = FTI_GlobalErrDetected();
+        if(status_array!=NULL){
+            if(status_array[rank]==1){
+                FTI_RecoverLocalCkpt();
+                assert( memcmp(h,aux_h,M*nbLines*sizeof(double)) ==0);
+                assert( memcmp(g,aux_g,M*nbLines*sizeof(double)) ==0);
+                assert(i==j);
+            }
+            /*application recovery routine*/
+            MPI_Barrier(MPI_COMM_WORLD);
+            free(status_array);
+            status_array=NULL;
+        }
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) {
             printf("Step : %d, error = %f\n", i, globalerror);
@@ -127,6 +154,8 @@ int main(int argc, char *argv[])
 
     free(h);
     free(g);
+    free(aux_h);
+    free(aux_g);
 
     FTI_Finalize();
     MPI_Finalize();
