@@ -5,7 +5,9 @@
  *  @brief  Heat distribution code to test FTI.
  *
  *  Program tests FTI_Snapshot.
- *
+ *  Slight modification of heatdis.c to make one iterations slower than others
+ *  and remove fail/recovery since it's not needed in this test. This Program
+ *  generates necessary output for syncIntvtest.sh.
  */
 
 
