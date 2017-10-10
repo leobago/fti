@@ -124,8 +124,8 @@ int main(int argc, char *argv[])
         FTI_DestroyData(&i, 1*sizeof(int));
         FTI_DestroyData(h, M*nbLines*sizeof(double));
         FTI_DestroyData(g, M*nbLines*sizeof(double));
-        int *status_array = FTI_GlobalErrDetected();
-        if(status_array!=NULL){
+        int *status_array;
+        if(FTI_GlobalErrDetected(&status_array)==FTI_SCES){
             if(status_array[rank]==1){
                 FTI_RecoverLocalCkpt();
                 assert( memcmp(h,aux_h,M*nbLines*sizeof(double)) ==0);
@@ -133,9 +133,8 @@ int main(int argc, char *argv[])
                 assert(i==j);
             }
             /*application recovery routine*/
-            MPI_Barrier(MPI_COMM_WORLD);
-            free(status_array);
-            status_array=NULL;
+            /* ... */
+            FTI_FinishRecovery(&status_array);
         }
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) {

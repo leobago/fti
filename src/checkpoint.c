@@ -25,6 +25,8 @@
 
  **/
 /*-------------------------------------------------------------------------*/
+
+#define SMALL_TESTS
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 {
     int nbProcs, res;
@@ -43,7 +45,11 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
                 FTI_Exec->ckptIntv = 1;
             }
             else {
+#ifdef SMALL_TESTS
+                FTI_Exec->ckptIntv = 1000;
+#else
                 FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
+#endif
             }
             res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
             if (FTI_Exec->ckptLast == 0) {
