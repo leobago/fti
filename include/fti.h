@@ -20,6 +20,9 @@
 #define ORG   "\x1B[38;5;202m"
 /** Define GREEN color for FTI output.                                     */
 #define GRN   "\x1B[32m"
+
+#define BLU  "\x1B[34m"
+
 /** Define color RESET for FTI output.                                     */
 #define RESET "\x1B[0m"
 
@@ -44,6 +47,9 @@
 #define FTI_INFO 2
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
+
+/** Verbosity level to print only test info.                                  */
+#define FTI_TEST 5
 
 /** Token for checkpoint Baseline.                                         */
 #define FTI_BASE 990
@@ -315,8 +321,9 @@ int FTI_Finalize();
 
 int FTI_CheckCheckpointDone();
 void FTI_DestroyData(void* ptr, int sz);
-int* FTI_GlobalErrDetected();
+int FTI_GlobalErrDetected(int **status_array);
 int FTI_RecoverLocalCkpt();
+void FTI_FinishRecovery(int**status_array);
 
 #ifdef __cplusplus
 }
