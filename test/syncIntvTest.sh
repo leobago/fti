@@ -1,7 +1,11 @@
 #!/bin/bash
-
+#
+#   @file   syncIntvTest.sh
+#   @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl)
+#   @date   October, 2017
+#   @brief  tests FTI_Snapshot
+#
 check () { #$1 - log name $2 - config name
-    #check if checkpointing is done at right iterations
     nextCkptArray=($(grep "Next ckpt. at iter." $1 | awk '{ print $(NF-5) }' | sort -nu))
     ckptMadeArray=($(grep "Checkpoint made i" $1 | awk '{ print $NF }' | sort -nu))
     ckptIntvArray=($(grep "Next ckpt. at iter." $1 | awk '{ print $(NF-11) }' | sort -nu))
@@ -22,7 +26,6 @@ check () { #$1 - log name $2 - config name
         i=$i+1
     done
     echo "All checkpoints done at correct iterations."
-    #check if resync is done at right iterations and SyncIntv is less than maxSyncIntv
     maxSyncIntv=$(grep "max_sync_intv" $2 | awk '{ print $NF }')
     if [ -z "$maxSyncIntv" ]; then
         maxSyncIntv=512
@@ -31,10 +34,12 @@ check () { #$1 - log name $2 - config name
     while read -r line ; do
         iter=$(echo $line | awk '{ print $9 }')
         sync=$(echo $line | awk '{ print $NF }')
+        #check if SyncIntv is less than maxSyncIntv
         if [ $sync -gt $maxSyncIntv ]; then
             echo "SyncIntv ($sync) should be less than maxSyncIntv ($maxSyncIntv)."
             return 1
         fi
+        #check if resync is done at right iterations
         if [ $(($iter%$sync)) -ne 0 ]; then
             echo "Resync doesnt match."
             return 1
@@ -43,7 +48,7 @@ check () { #$1 - log name $2 - config name
     echo "All resync done at correct iterations."
 }
 
-containsElement () {
+containsElement () { #$1 - element $2 - array
     local e match="$1"
     shift
     for e; do [[ "$e" == "$match" ]] && return 0; done
