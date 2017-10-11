@@ -254,35 +254,19 @@ int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTI_Exec->ckptID = lastCkpt;
         char str[FTI_BUFS];
         sprintf(str, "** SOFT ERROR ** Trying recovery with Ckpt. %d at level %d. File %s", lastCkpt, lastLevel, FTI_Exec->meta[lastLevel].ckptFile);
+        FTI_Print(str, FTI_TEST);
 
         int res;
         switch (lastLevel) {
             case 4:
-//                  FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
-//                  MPI_Barrier(FTI_COMM_WORLD);
-//                  res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                sprintf(str, "** SOFT ERROR ** Trying recovery with Ckpt. %d at level %d. NO MPI I/O SUPPORTED", lastCkpt, lastLevel);
-                FTI_Print(str, FTI_TEST);
-                assert(1==0);
-
-                  break;
-             case 3:
-                 sprintf(str, "** SOFT ERROR ** Trying recovery with Ckpt. %d at level %d. NO L2 and L3 right now", lastCkpt, lastLevel);
-                 FTI_Print(str, FTI_TEST);
-                 assert(1==0);
-
-//                  res = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                  break;
-             case 2:
-                 sprintf(str, "** SOFT ERROR ** Trying recovery with Ckpt. %d at level %d. NO L2 and L3 right now", lastCkpt, lastLevel);
-                 FTI_Print(str, FTI_TEST);
-                 assert(1==0);
-
-//                  res = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                  break;
-             case 1:
-                  res = FTI_SCES;
-                  break;
+                /*FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);*/
+                FTI_Exec->localRecoveryNoSyncs=1;
+                res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                FTI_Exec->localRecoveryNoSyncs=0;
+                break;
+            default:
+                res = FTI_SCES;
+                break;
          }
 
         return res;

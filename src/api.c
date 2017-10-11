@@ -53,8 +53,6 @@ FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
 
-/*-------------------------------------------------------------------------*/
-/*-------------------------------------------------------------------------*/
 //#define SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
 #ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
 int count=0;
@@ -65,10 +63,10 @@ void* corrupted_vars[10];
 
 /** Activated after soft error introduced ~ when checkpoint generated */
 int triggerSoftError=0;
-/** Ranks affected by soft error */
+/** This rank status (whether or not affected by soft error) */
 int rankStatus=0;
-/** Activated for partial recovery */
-int partialRecovery=0;
+
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Initializes FTI.
@@ -88,6 +86,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
+
+    FTI_Exec.partialRecovery=0;
+    FTI_Exec.localRecoveryNoSyncs=0;
 
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
     FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
@@ -566,7 +567,7 @@ int FTI_Recover()
         return FTI_NREC;
     }
     int i;
-    if(partialRecovery==0){
+    if(FTI_Exec.partialRecovery==0){
         for (i = 0; i < FTI_Exec.nbVar; i++) {
             fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
             if (ferror(fd)) {
@@ -892,9 +893,9 @@ int FTI_RecoverAllCheckpointedData()
 
 int FTI_RecoverCorruptedData()
 {
-    partialRecovery=1;
+    FTI_Exec.partialRecovery=1;
     int res = FTI_Recover();
-    partialRecovery=0;
+    FTI_Exec.partialRecovery=0;
     return res;
 }
 
@@ -903,8 +904,8 @@ int FTI_RecoverLocalCkpt(){
         int res = FTI_Try(FTI_FindLastCheckpointFile(&FTI_Conf, &FTI_Exec,
                 &FTI_Topo, FTI_Ckpt), "last checkpoint file found.");
         assert(res==FTI_SCES);
-        res = FTI_Try(FTI_RecoverAllCheckpointedData(), "recover all checkpointed data after soft error.");
-//        res = FTI_Try(FTI_RecoverCorruptedData(),"recover only corrupted data after soft error.");
+//        res = FTI_Try(FTI_RecoverAllCheckpointedData(), "recover all checkpointed data after soft error.");
+        res = FTI_Try(FTI_RecoverCorruptedData(),"recover only corrupted data after soft error.");
         assert(res==FTI_SCES);
         FTI_Exec.reco=0;
     }

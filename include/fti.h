@@ -142,6 +142,7 @@ typedef struct FTIT_dataset {
  *
  *  This type stores all the metadata necessary for the restart.
  */
+#define MPIIO_OFFSET_METADATA
 typedef struct FTIT_metadata {
     int*             exists;             /**< True if metadata exists        */
     long*            maxFs;              /**< Maximum file size.             */
@@ -151,6 +152,9 @@ typedef struct FTIT_metadata {
     int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
     int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
     long*            varSize;            /**< Variable size. [FTI_BUFS]      */
+#ifdef MPIIO_OFFSET_METADATA
+    long mpiio_offset;
+#endif
 } FTIT_metadata;
 
 /** @typedef    FTIT_execution
@@ -187,6 +191,8 @@ typedef struct FTIT_execution {
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
+    int             localRecoveryNoSyncs;      /**< Used for local recovery: no syncs */
+    int             partialRecovery;    /**< Recovering only corrupted data after soft error */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
@@ -255,7 +261,6 @@ typedef struct FTIT_checkpoint {
     int             isInline;           /**< TRUE if work is inline.        */
     int             ckptIntv;           /**< Checkpoint interval.           */
     int             ckptCnt;            /**< Checkpoint counter.            */
-
 } FTIT_checkpoint;
 
 /** @typedef    FTIT_injection

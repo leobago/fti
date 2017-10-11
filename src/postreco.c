@@ -703,24 +703,26 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      }
    }
 
-   // Checking erasures
-   int erased[FTI_BUFS];
-   if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-      FTI_Print("Error checking erasures.", FTI_DBUG);
-      return FTI_NSCS;
-   }
+   if(FTI_Exec->localRecoveryNoSyncs==0){
+       // Checking erasures
+       int erased[FTI_BUFS];
+       if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+          FTI_Print("Error checking erasures.", FTI_DBUG);
+          return FTI_NSCS;
+       }
 
-   int l = 0;
-   int i;
-   // Counting erasures
-   for (i = 0; i < FTI_Topo->groupSize; i++) {
-      if (erased[i]) {
-         l++;
-     }
-   }
-   if (l > 0) {
-      FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
-      return FTI_NSCS;
+       int l = 0;
+       int i;
+       // Counting erasures
+       for (i = 0; i < FTI_Topo->groupSize; i++) {
+          if (erased[i]) {
+             l++;
+         }
+       }
+       if (l > 0) {
+          FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
+          return FTI_NSCS;
+       }
    }
 
    // Open files
@@ -831,7 +833,12 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
    // open parallel file
    MPI_File pfh;
-   int buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
+   int buf;
+   if(FTI_Exec->localRecoveryNoSyncs==0){
+       buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
+   }else{
+       buf = MPI_File_open(MPI_COMM_SELF, gfn, MPI_MODE_RDWR, info, &pfh);
+   }
    // check if successful
    if (buf != 0) {
       errno = 0;
@@ -846,17 +853,27 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
    }
 
-   // collect chunksizes of other ranks
-   MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-   MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-
    MPI_Offset offset = 0;
-   // set file offset
-   int i;
-   for (i = 0; i < FTI_Topo->splitRank; i++) {
-      offset += chunkSizes[i];
+   if(FTI_Exec->localRecoveryNoSyncs==0){
+       // collect chunksizes of other ranks
+       MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
+       MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+
+       // set file offset
+       int i;
+       for (i = 0; i < FTI_Topo->splitRank; i++) {
+          offset += chunkSizes[i];
+       }
+       free(chunkSizes);
    }
-   free(chunkSizes);
+   else{
+#ifdef MPIIO_OFFSET_METADATA
+       offset = FTI_Exec->meta[0].mpiio_offset;
+#else
+       /* No alternative */
+       assert(1=0);
+#endif
+   }
 
    FILE *lfd = fopen(lfn, "wb");
    if (lfd == NULL) {

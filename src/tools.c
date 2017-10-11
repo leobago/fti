@@ -176,6 +176,10 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+
+#ifdef MPIIO_OFFSET_METADATA
+            FTI_Exec->meta[i].mpiio_offset=-1;
+#endif
         }
     }
     FTI_Exec->metaAlloc = 1;

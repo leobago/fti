@@ -99,7 +99,11 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
-                    char* checksums, int* allVarIDs, long* allVarSizes);
+                    char* checksums, int* allVarIDs, long* allVarSizes
+#ifdef MPIIO_OFFSET_METADATA
+                    ,long *allOffsets
+#endif
+);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                        FTIT_dataset* FTI_Data);
@@ -168,6 +172,10 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
 
+/*-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+
+#define FORCE_SMALLER_CHECKPOINTING_FREQUENCY
 
 int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
@@ -175,6 +183,5 @@ int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 int FTI_RecoverAllCheckpointedData();
 
 int FTI_RecoverCorruptedData();
-
 
 #endif

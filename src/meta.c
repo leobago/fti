@@ -288,6 +288,14 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     sprintf(str, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[i].fs[0] = iniparser_getlint(ini, str, -1);
 
+#ifdef MPIIO_OFFSET_METADATA
+                    sprintf(str, "%d:Ckpt_mpiio_offset", FTI_Topo->groupRank);
+                    FTI_Exec->meta[0].mpiio_offset = iniparser_getlint(ini, str, -1);
+                    char str[FTI_BUFS];
+                    sprintf(str, "** SOFT ERROR ** OFFSET MPI I/O %ld ",FTI_Exec->meta[0].mpiio_offset);
+                    FTI_Print(str, FTI_TEST);
+#endif
+
                     sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                     FTI_Exec->meta[i].pfs[0] = iniparser_getlint(ini, str, -1);
 
@@ -402,7 +410,11 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
-                      char* checksums, int* allVarIDs, long* allVarSizes)
+                      char* checksums, int* allVarIDs, long* allVarSizes
+#ifdef MPIIO_OFFSET_METADATA
+                    , long* allOffsets
+#endif
+                    )
 {
     char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
@@ -415,7 +427,6 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
         return FTI_NSCS;
     }
-
     // Add metadata to dictionary
     int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
@@ -430,6 +441,11 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sprintf(str, "%d:Ckpt_file_maxs", i);
         sprintf(buf, "%lu", mfs);
         iniparser_set(ini, str, buf);
+#ifdef MPIIO_OFFSET_METADATA
+        sprintf(str, "%d:Ckpt_mpiio_offset", i);
+        sprintf(buf, "%ld", allOffsets[i]);
+        iniparser_set(ini, str, buf);
+#endif
         // TODO Checksums only local currently
         if (strlen(checksums)) {
             strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
@@ -575,10 +591,19 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     free(myVarIDs);
     free(myVarSizes);
+#ifdef MPIIO_OFFSET_METADATA
+    long *allOffsets = talloc(long, FTI_Topo->groupSize);
+    MPI_Gather(&(FTI_Exec->meta[FTI_Exec->ckptLvel].mpiio_offset), 1,
+            MPI_LONG, allOffsets, 1, MPI_LONG, 0, FTI_Exec->groupComm);
+#endif
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
         int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
-                    ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
+                    ckptFileNames, checksums, allVarIDs, allVarSizes
+#ifdef MPIIO_OFFSET_METADATA
+                    , allOffsets
+#endif
+        ), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
         if (res == FTI_NSCS) {

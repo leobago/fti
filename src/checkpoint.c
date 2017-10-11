@@ -26,8 +26,6 @@
  **/
 /*-------------------------------------------------------------------------*/
 
-#define FORCE_SMALLER_CHECKPOINTING_FREQUENCY
-
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 {
     int nbProcs, res;
@@ -47,7 +45,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             }
             else {
 #ifdef FORCE_SMALLER_CHECKPOINTING_FREQUENCY
-                FTI_Exec->ckptIntv = 1000;
+                FTI_Exec->ckptIntv = 500;
 #else
                 FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
 #endif
@@ -109,6 +107,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+
+#ifdef MPIIO_OFFSET_METADATA
+   FTI_Exec->meta[FTI_Exec->ckptLvel].mpiio_offset=-1;
+#endif
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
@@ -471,6 +473,10 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       offset += chunkSizes[i];
    }
    free(chunkSizes);
+
+#ifdef MPIIO_OFFSET_METADATA
+   FTI_Exec->meta[FTI_Exec->ckptLvel].mpiio_offset=offset;
+#endif
 
    for (i = 0; i < FTI_Exec->nbVar; i++) {
        long pos = 0;
