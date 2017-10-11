@@ -12,6 +12,7 @@
 #include <fti.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #define PRECISION   0.005
 #define ITER_TIMES  5000
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
 {
     int rank, nbProcs, nbLines, i, M, arg;
     double wtime, *h, *g, memSize, localerror, globalerror = 1;
+    srand(time(NULL));
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[2], MPI_COMM_WORLD);
@@ -120,22 +122,38 @@ int main(int argc, char *argv[])
             memcpy(aux_h, h, M*nbLines*sizeof(double));
             memcpy(aux_g, g, M*nbLines*sizeof(double));
             j=i;
+//            int r;
+//            r = rand();
+//            if((r%3)==0){
+//                FTI_DestroyData(&i, 1*sizeof(int));
+//                FTI_DestroyData(h, M*nbLines*sizeof(double));
+//                FTI_DestroyData(g, M*nbLines*sizeof(double));
+//            }
+            if(rank==4){
+                FTI_DestroyData(&i, 1*sizeof(int));
+                FTI_DestroyData(h, M*nbLines*sizeof(double));
+            }
+            if(rank==7){
+                FTI_DestroyData(&i, 1*sizeof(int));
+//                FTI_DestroyData(h, M*nbLines*sizeof(double));
+                FTI_DestroyData(g, M*nbLines*sizeof(double));
+            }
+
         }
-        FTI_DestroyData(&i, 1*sizeof(int));
-        FTI_DestroyData(h, M*nbLines*sizeof(double));
-        FTI_DestroyData(g, M*nbLines*sizeof(double));
+
         int *status_array;
         if(FTI_GlobalErrDetected(&status_array)==FTI_SCES){
             if(status_array[rank]==1){
                 FTI_RecoverLocalCkpt();
-                assert( memcmp(h,aux_h,M*nbLines*sizeof(double)) ==0);
-                assert( memcmp(g,aux_g,M*nbLines*sizeof(double)) ==0);
-                assert(i==j);
             }
+            assert( memcmp(h,aux_h,M*nbLines*sizeof(double)) ==0);
+            assert( memcmp(g,aux_g,M*nbLines*sizeof(double)) ==0);
+            assert(i==j);
             /*application recovery routine*/
             /* ... */
             FTI_FinishRecovery(&status_array);
         }
+
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) {
             printf("Step : %d, error = %f\n", i, globalerror);

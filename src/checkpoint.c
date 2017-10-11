@@ -26,7 +26,8 @@
  **/
 /*-------------------------------------------------------------------------*/
 
-#define SMALL_TESTS
+#define FORCE_SMALLER_CHECKPOINTING_FREQUENCY
+
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 {
     int nbProcs, res;
@@ -45,7 +46,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
                 FTI_Exec->ckptIntv = 1;
             }
             else {
-#ifdef SMALL_TESTS
+#ifdef FORCE_SMALLER_CHECKPOINTING_FREQUENCY
                 FTI_Exec->ckptIntv = 1000;
 #else
                 FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
