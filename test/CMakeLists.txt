@@ -13,9 +13,13 @@ target_link_libraries(nodeFlag fti.static)
 add_executable(corrupt corrupt.c)
 target_link_libraries(corrupt fti.static)
 
+add_executable(syncIntv syncIntv.c)
+target_link_libraries(syncIntv fti.static)
+
 add_subdirectory(local)
 
 file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
+file(COPY syncIntvTest.sh DESTINATION .)

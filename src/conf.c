@@ -212,11 +212,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                    FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
-    int l;
-    int check = 1;
-    // Check if Reed-Salomon and L2 checkpointing is requested.
-    int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
-    int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
     // Check requirements.
     if (FTI_Topo->nbHeads != 0 && FTI_Topo->nbHeads != 1) {
         FTI_Print("The number of heads needs to be set to 0 or 1.", FTI_WARN);
@@ -230,6 +225,9 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
         return FTI_NSCS;
     }
+    // Check if Reed-Salomon and L2 checkpointing is requested.
+    int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
+    int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
     if (FTI_Topo->groupSize <= 2 && (L2req || RSreq)) {
         FTI_Print("The group size must be bigger than 2", FTI_WARN);
         return FTI_NSCS;
@@ -258,14 +256,15 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Keep last ckpt. needs to be set to 0 or 1.", FTI_WARN);
         return FTI_NSCS;
     }
-    for (l = 1; l < 5; l++) {
-        if (FTI_Ckpt[l].ckptIntv == 0) {
-            FTI_Ckpt[l].ckptIntv = -1;
+    int i;
+    for (i = 1; i < 5; i++) {
+        if (FTI_Ckpt[i].ckptIntv == 0) {
+            FTI_Ckpt[i].ckptIntv = -1;
         }
-        if (FTI_Ckpt[l].isInline != 0 && FTI_Ckpt[l].isInline != 1) {
-            FTI_Ckpt[l].isInline = 1;
+        if (FTI_Ckpt[i].isInline != 0 && FTI_Ckpt[i].isInline != 1) {
+            FTI_Ckpt[i].isInline = 1;
         }
-        if (FTI_Ckpt[l].isInline == 0 && FTI_Topo->nbHeads != 1) {
+        if (FTI_Ckpt[i].isInline == 0 && FTI_Topo->nbHeads != 1) {
             FTI_Print("If inline is set to 0 then head should be set to 1.", FTI_WARN);
             return FTI_NSCS;
         }
@@ -273,12 +272,15 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Exec->syncIterMax < 0) {
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is not set. Set to default (512 iterations).", FTI_WARN);
-    } else if ((FTI_Exec->syncIterMax & (FTI_Exec->syncIterMax-1)) != 0) {
-        while (((check<<1) < FTI_Exec->syncIterMax) && ((check<<1) > 0)) {
+    } else if ((FTI_Exec->syncIterMax & (FTI_Exec->syncIterMax - 1)) != 0) {
+        int check = 1;
+        while (((check << 1 ) < FTI_Exec->syncIterMax) && ((check << 1) > 0)) {
             check = check << 1;
         }
         FTI_Exec->syncIterMax = check;
-        FTI_Print("Maximal sync. intv. has to be a power of 2. Set to nearest lower value", FTI_WARN);
+        char str[FTI_BUFS];
+        sprintf(str,"Maximal sync. intv. has to be a power of 2. Set to nearest lower value (%d iterations)", FTI_Exec->syncIterMax);
+        FTI_Print(str, FTI_WARN);
     } else if (FTI_Exec->syncIterMax == 0) {
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
