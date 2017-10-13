@@ -191,8 +191,8 @@ typedef struct FTIT_execution {
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
-    int             localRecoveryNoSyncs;      /**< Used for local recovery: no syncs */
-    int             partialRecovery;    /**< Recovering only corrupted data after soft error */
+    int             FORWARDREC_uncoordinatedRecovery;     /**< Selecting checkpoint files without  */
+    int             FORWARDREC_partialRecovery;           /**< Recovering only corrupted data after soft error */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
