@@ -235,9 +235,9 @@ int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
     int lastCkpt=-1;
     int lastLevel=-1;
     for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-        char str[FTI_BUFS];
-        sprintf(str, "** SOFT ERROR ** level %d, file %s", level,FTI_Exec->meta[level].ckptFile);
-        FTI_Print(str, FTI_TEST);
+//        char str[FTI_BUFS];
+//        sprintf(str, "** SOFT ERROR ** level %d, file %s", level,FTI_Exec->meta[level].ckptFile);
+//        FTI_Print(str, FTI_TEST);
         if (FTI_Exec->meta[level].exists[0]) {
             //Get ckptID from checkpoint file name
             int ckptID;
@@ -253,16 +253,18 @@ int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTI_Exec->ckptLvel = lastLevel;
         FTI_Exec->ckptID = lastCkpt;
         char str[FTI_BUFS];
-        sprintf(str, "** SOFT ERROR ** Trying recovery with Ckpt. %d at level %d. File %s", lastCkpt, lastLevel, FTI_Exec->meta[lastLevel].ckptFile);
+        sprintf(str, "** SOFT ERROR ** Trying recovery using Ckpt. %d at level %d. File %s", lastCkpt, lastLevel, FTI_Exec->meta[lastLevel].ckptFile);
         FTI_Print(str, FTI_TEST);
 
         int res;
         switch (lastLevel) {
+            /* If we were to used L2/L3 extra resilience features, it should be
+             * done here. All processes should reach this code. */
             case 4:
                 /*FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);*/
-                FTI_Exec->localRecoveryNoSyncs=1;
+                FTI_Exec->FORWARDREC_uncoordinatedRecovery=1;
                 res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                FTI_Exec->localRecoveryNoSyncs=0;
+                FTI_Exec->FORWARDREC_uncoordinatedRecovery=0;
                 break;
             default:
                 res = FTI_SCES;

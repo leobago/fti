@@ -703,7 +703,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      }
    }
 
-   if(FTI_Exec->localRecoveryNoSyncs==0){
+   if(FTI_Exec->FORWARDREC_uncoordinatedRecovery==0){
        // Checking erasures
        int erased[FTI_BUFS];
        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
@@ -834,10 +834,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // open parallel file
    MPI_File pfh;
    int buf;
-   if(FTI_Exec->localRecoveryNoSyncs==0){
+   if(FTI_Exec->FORWARDREC_uncoordinatedRecovery==0){
        buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
    }else{
-       buf = MPI_File_open(MPI_COMM_SELF, gfn, MPI_MODE_RDWR, info, &pfh);
+       buf = MPI_File_open(MPI_COMM_SELF, gfn, MPI_MODE_RDONLY, info, &pfh);
    }
    // check if successful
    if (buf != 0) {
@@ -854,7 +854,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    MPI_Offset offset = 0;
-   if(FTI_Exec->localRecoveryNoSyncs==0){
+   if(FTI_Exec->FORWARDREC_uncoordinatedRecovery==0){
        // collect chunksizes of other ranks
        MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
        MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);

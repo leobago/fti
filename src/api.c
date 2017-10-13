@@ -87,8 +87,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
 
-    FTI_Exec.partialRecovery=0;
-    FTI_Exec.localRecoveryNoSyncs=0;
+    FTI_Exec.FORWARDREC_partialRecovery=0;
+    FTI_Exec.FORWARDREC_uncoordinatedRecovery=0;
 
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
     FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
@@ -515,6 +515,9 @@ int FTI_Checkpoint(int id, int level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
+
+    triggerSoftError=1;
+
     return FTI_DONE;
 }
 
@@ -567,16 +570,11 @@ int FTI_Recover()
         return FTI_NREC;
     }
     int i;
-    if(FTI_Exec.partialRecovery==0){
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-            if (ferror(fd)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                fclose(fd);
-                return FTI_NREC;
-            }
-        }
-    }else{/* Partial recovery: recovering only those variables corrupted */
+    if(FTI_Exec.FORWARDREC_partialRecovery==1){
+        /* Partial recovery: recovering only those variables corrupted */
+        char str_rec[FTI_BUFS*4];
+        sprintf(str_rec, "** SOFT ERROR ** recovering: ");
+
         long int offset=0;
         int found=0;
         for (i = 0; i < FTI_Exec.nbVar; i++) {
@@ -589,9 +587,10 @@ int FTI_Recover()
                         && (corrupted_vars[j]<(FTI_Data[i].ptr+FTI_Data[i].size)))
                 {
                     found=1;
-                    sprintf(str, "** SOFT ERROR ** Recovering variable %p containing corrupted data %p",
-                            FTI_Data[i].ptr, corrupted_vars[j]);
-                    FTI_Print(str, FTI_TEST);
+                    sprintf(str_rec, "%s | RECO %p ", str_rec, FTI_Data[i].ptr);
+//                    sprintf(str, "** SOFT ERROR ** Recovering variable %p containing corrupted data %p",
+//                            FTI_Data[i].ptr, corrupted_vars[j]);
+//                    FTI_Print(str, FTI_TEST);
                     break;
                     /*Removed recovered from corrupted list? Aliasing?*/
                 }
@@ -606,12 +605,24 @@ int FTI_Recover()
                     return FTI_NREC;
                 }
             }else{
-                sprintf(str, "** SOFT ERROR ** Skipping recovery of non-corrupted variable %p ",
-                        FTI_Data[i].ptr);
-                FTI_Print(str, FTI_TEST);
+                sprintf(str_rec, "%s | SKIP %p ", str_rec, FTI_Data[i].ptr);
+//                sprintf(str, "** SOFT ERROR ** Skipping recovery of non-corrupted variable %p ",
+//                        FTI_Data[i].ptr);
+//                FTI_Print(str, FTI_TEST);
             }
 
             offset+=FTI_Data[i].size;
+        }
+        FTI_Print(str_rec, FTI_TEST);
+    }else{
+        /* Recovering all data from checkpoint */
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
         }
     }
     if (fclose(fd) != 0) {
@@ -670,7 +681,6 @@ int FTI_Snapshot()
             if (level != -1) {
                 res = FTI_Try(FTI_Checkpoint(FTI_Exec.ckptCnt, level), "take checkpoint.");
                 if (res == FTI_DONE) {
-                    triggerSoftError=1;
                     FTI_Exec.ckptCnt++;
                 }
             }
@@ -865,12 +875,14 @@ int FTI_GlobalErrDetected(int **status_array){
         MPI_Allgather(&rankStatus, 1, MPI_INT, (*status_array), 1,
                 MPI_INT, FTI_COMM_WORLD);
         int i;
-        char str[FTI_BUFS];
-        sprintf(str, "** SOFT ERROR ** globally detected ");
-        for(i=0;i<FTI_Topo.nbProc;i++){
-            sprintf(str, "%s |[%d] %d",str,i,(*status_array)[i]);
+        if(FTI_Topo.myRank==0){
+            char str[FTI_BUFS];
+            sprintf(str, "** SOFT ERROR ** globally detected ");
+            for(i=0;i<FTI_Topo.nbProc;i++){
+                sprintf(str, "%s |[%d] %d",str,i,(*status_array)[i]);
+            }
+            FTI_Print(str, FTI_TEST);
         }
-        FTI_Print(str, FTI_TEST);
 
         triggerSoftError=0;
         return FTI_SCES;
@@ -893,19 +905,18 @@ int FTI_RecoverAllCheckpointedData()
 
 int FTI_RecoverCorruptedData()
 {
-    FTI_Exec.partialRecovery=1;
+    FTI_Exec.FORWARDREC_partialRecovery=1;
     int res = FTI_Recover();
-    FTI_Exec.partialRecovery=0;
+    FTI_Exec.FORWARDREC_partialRecovery=0;
     return res;
 }
 
 int FTI_RecoverLocalCkpt(){
     if (FTI_Exec.reco) {
-        int res = FTI_Try(FTI_FindLastCheckpointFile(&FTI_Conf, &FTI_Exec,
-                &FTI_Topo, FTI_Ckpt), "last checkpoint file found.");
+        int res = FTI_FindLastCheckpointFile(&FTI_Conf, &FTI_Exec,&FTI_Topo, FTI_Ckpt);
         assert(res==FTI_SCES);
-//        res = FTI_Try(FTI_RecoverAllCheckpointedData(), "recover all checkpointed data after soft error.");
-        res = FTI_Try(FTI_RecoverCorruptedData(),"recover only corrupted data after soft error.");
+//        res = FTI_RecoverAllCheckpointedData();
+        res = FTI_RecoverCorruptedData();
         assert(res==FTI_SCES);
         FTI_Exec.reco=0;
     }

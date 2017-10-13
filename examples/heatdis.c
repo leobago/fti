@@ -124,11 +124,15 @@ int main(int argc, char *argv[])
             j=i;
 //            int r;
 //            r = rand();
-//            if((r%3)==0){
+//            if((r%3)==0)
 //                FTI_DestroyData(&i, 1*sizeof(int));
+//            r = rand();
+//            if((r%3)==0)
 //                FTI_DestroyData(h, M*nbLines*sizeof(double));
+//            r = rand();
+//            if((r%3)==0)
 //                FTI_DestroyData(g, M*nbLines*sizeof(double));
-//            }
+
             if(rank==4){
                 FTI_DestroyData(&i, 1*sizeof(int));
                 FTI_DestroyData(h, M*nbLines*sizeof(double));
