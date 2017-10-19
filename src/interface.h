@@ -180,8 +180,5 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
-int FTI_RecoverAllCheckpointedData();
-
-int FTI_RecoverCorruptedData();
 
 #endif

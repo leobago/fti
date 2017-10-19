@@ -1,3 +1,5 @@
+set(CMAKE_BUILD_TYPE Debug)
+
 add_executable(hd.exe heatdis.c)
 target_link_libraries(hd.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET hd.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
