@@ -8,6 +8,8 @@
 #include "interface.h"
 #include "assert.h"
 
+
+
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
 
@@ -53,18 +55,16 @@ FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
 
-//#define SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
+#define SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
 #ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
-int count=0;
+int count_for_number_SE=0;
 #endif
-
-int n_corrupted_vars=0;
-void* corrupted_vars[10];
 
 /** Activated after soft error introduced ~ when checkpoint generated */
 int triggerSoftError=0;
 /** This rank status (whether or not affected by soft error) */
-int rankStatus=0;
+int rankStatus=FTI_SURVIVOR;
+int *internal_status_array=NULL;
 
 
 /*-------------------------------------------------------------------------*/
@@ -87,7 +87,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
 
-    FTI_Exec.FORWARDREC_partialRecovery=0;
     FTI_Exec.FORWARDREC_uncoordinatedRecovery=0;
 
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
@@ -516,7 +515,11 @@ int FTI_Checkpoint(int id, int level)
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
 
-    triggerSoftError=1;
+#ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
+    count_for_number_SE++;
+    if(count_for_number_SE==1)
+#endif
+        triggerSoftError=1;
 
     return FTI_DONE;
 }
@@ -570,61 +573,17 @@ int FTI_Recover()
         return FTI_NREC;
     }
     int i;
-    if(FTI_Exec.FORWARDREC_partialRecovery==1){
-        /* Partial recovery: recovering only those variables corrupted */
-        char str_rec[FTI_BUFS*4];
-        sprintf(str_rec, "** SOFT ERROR ** recovering: ");
 
-        long int offset=0;
-        int found=0;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            int j;
-            for(j = 0; j<n_corrupted_vars; j++){
-                /* Now: corrupted variable contained in protected variable?
-                 * Future: if we now address of page corrupted: protected variable contained in corrupted page?
-                 * */
-                if((corrupted_vars[j]>=FTI_Data[i].ptr)
-                        && (corrupted_vars[j]<(FTI_Data[i].ptr+FTI_Data[i].size)))
-                {
-                    found=1;
-                    sprintf(str_rec, "%s | RECO %p ", str_rec, FTI_Data[i].ptr);
-//                    sprintf(str, "** SOFT ERROR ** Recovering variable %p containing corrupted data %p",
-//                            FTI_Data[i].ptr, corrupted_vars[j]);
-//                    FTI_Print(str, FTI_TEST);
-                    break;
-                    /*Removed recovered from corrupted list? Aliasing?*/
-                }
-            }
-            if(found==1){
-                found=0;
-                fseek(fd, offset, SEEK_SET);
-                fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-                if (ferror(fd)) {
-                    FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                    fclose(fd);
-                    return FTI_NREC;
-                }
-            }else{
-                sprintf(str_rec, "%s | SKIP %p ", str_rec, FTI_Data[i].ptr);
-//                sprintf(str, "** SOFT ERROR ** Skipping recovery of non-corrupted variable %p ",
-//                        FTI_Data[i].ptr);
-//                FTI_Print(str, FTI_TEST);
-            }
-
-            offset+=FTI_Data[i].size;
-        }
-        FTI_Print(str_rec, FTI_TEST);
-    }else{
-        /* Recovering all data from checkpoint */
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-            if (ferror(fd)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                fclose(fd);
-                return FTI_NREC;
-            }
+    /* Recovering all data from checkpoint */
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return FTI_NREC;
         }
     }
+
     if (fclose(fd) != 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
@@ -648,6 +607,8 @@ int FTI_Recover()
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot()
 {
+    triggerSoftError=0; /* Temporary testing devel */
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -689,6 +650,29 @@ int FTI_Snapshot()
             FTI_Exec.iterTime = MPI_Wtime(); // Reset iteration duration timer
         }
     }
+
+    /* Temporary checking of soft errors
+     * NOTE: These collectives will be run within the signal handler
+     * So if I was a failed one, don't run them again */
+//    if(rankStatus==FTI_FAILED) return FTI_SB_FAIL;
+    int softErrorDetected=0;
+    MPI_Allreduce(&rankStatus, &softErrorDetected, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if(softErrorDetected>0){
+        char str_rec[FTI_BUFS];
+        sprintf(str_rec, "** SOFT ERROR ** DETECTED ** ");
+        FTI_Print(str_rec, FTI_TEST);
+
+        if(internal_status_array==NULL)
+            internal_status_array = (int*)malloc(sizeof(int)*FTI_Topo.nbProc);
+        /* Rank status set to 1=Failed in the handler */
+        MPI_Allgather(&rankStatus, 1, MPI_INT, internal_status_array, 1,
+                MPI_INT, FTI_COMM_WORLD);
+
+        /* Temporary: acknowledge failure: act as if survived */
+        rankStatus=FTI_SURVIVOR;
+        return FTI_SB_FAIL;
+    }
+
     return res;
 }
 
@@ -821,7 +805,168 @@ void FTI_Print(char* msg, int priority)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Check is last checkpoint was taken
+    @brief      Recover all local data of the process from the last ckpt
+    @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+
+int FTI_RecoverLocalCkpt( ){
+    int *ids = (int*)malloc(sizeof(int)*FTI_Exec.nbVar);
+    int count = FTI_Exec.nbVar;
+    int i;
+    for(i=0; i<FTI_Exec.nbVar; i++){
+        ids[i] = FTI_Data[i].id;
+    }
+    int res = FTI_RecoverLocalCkptVars(ids, count);
+    free(ids);
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover just the <ID> protected variable of the process from the last ckpt
+                If ID -1 recovering all variables.
+    @param      id              ID of variable to recover.
+    @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverLocalCkptVar(int id){
+    int *ids = (int*)malloc(sizeof(int)*1);
+    int count = 1;
+    ids[0]=id;
+    int res = FTI_RecoverLocalCkptVars(ids, count);
+    free(ids);
+    return res;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Recover a list of variables.
+    @param      ids             list of IDs of variables to recover.
+    @param      count           number of variables to recover.
+    @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverLocalCkptVars(int *ids, int count){
+
+    /* Find last ckpt. Note, this may include cp remote ckpt to local disk. */
+    int res = FTI_Try(FTI_FindLastCheckpointFile(&FTI_Conf, &FTI_Exec,&FTI_Topo, FTI_Ckpt), "find last checkpoint.");
+    if (res == FTI_NSCS) {
+        return FTI_NSCS;
+    }
+
+    /* Open file, recovered selected variable. Next code is basically FTI_Recover. */
+
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (FTI_Exec.initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+    char str[FTI_BUFS]; //For console output
+
+    //Check if nubmer of protected variables matches
+    if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
+        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    }
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+    int i;
+    /* Partial recovery: recovering only those variables corrupted */
+    char str_rec[FTI_BUFS*4];
+    sprintf(str_rec, "** SOFT ERROR ** recovering: ");
+
+
+    long int offset=0;
+    int found=0;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        int j;
+        for(j = 0; j<count; j++){
+            /* Note: if ids were in same order as protected variables, these loop could start
+             * at last found instead of 0 */
+            if(ids[j]==FTI_Data[i].id)
+            {
+                found=1;
+                sprintf(str_rec, "%s | RECO %p ", str_rec, FTI_Data[i].ptr);
+                break;
+            }
+        }
+        if(found==1){
+            found=0;
+            fseek(fd, offset, SEEK_SET);
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
+        }else{
+            sprintf(str_rec, "%s | SKIP %p ", str_rec, FTI_Data[i].ptr);
+        }
+        offset+=FTI_Data[i].size;
+    }
+    FTI_Print(str_rec, FTI_TEST);
+
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Get world status after soft error detection.
+    @return     int*       status of each rank in the app (1=Failed|0=otherwise)
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetGlobalStatus(int **status_array){
+    if(internal_status_array!=NULL){
+        *status_array=internal_status_array;
+        return FTI_SCES;
+    }
+    return FTI_NSCS;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Notification of a soft error. As application controls handler
+                we do need to be notify in order to propaget error detection to
+                the other ranks
+    @return     void
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_RankAffectedBySoftError(){
+    rankStatus=FTI_FAILED;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Check if last checkpoint was taken
     @return     void
  **/
 /*-------------------------------------------------------------------------*/
@@ -834,99 +979,23 @@ int FTI_CheckCheckpointDone(){
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Set to zero the indicated variable
-    @param      prt        pointer to var
-    @param      sz         size in bytes of variable
+    @brief      Destroy the indicated vars
+    @param      ids             list of IDs of variables to destroy.
+    @param      count           number of variables to destroy.
     @return     void
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_DestroyData(void* ptr, int sz){
-#ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
-    if(count>0) return;
-#endif
-    memset(ptr, 0, sz);
-    rankStatus = 1;
-    char str[FTI_BUFS];
-    sprintf(str, "** SOFT ERROR ** at var %p ", ptr);
-    FTI_Print(str, FTI_TEST);
-
-    corrupted_vars[n_corrupted_vars]=ptr;
-    n_corrupted_vars++;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Global knowledge of soft error
-    @return     int*       status of each rank in the app (1=Failed|0=otherwise)
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_GlobalErrDetected(int **status_array){
-#ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
-    if(count>0) return FTI_NSCS;
-#endif
-    if(triggerSoftError == 1){
-#ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
-        count++;
-#endif
-        (*status_array) = (int*)malloc(sizeof(int)*FTI_Topo.nbProc);
-        if(rankStatus == 1){
-            FTI_Exec.reco = 1;
-        }
-        MPI_Allgather(&rankStatus, 1, MPI_INT, (*status_array), 1,
-                MPI_INT, FTI_COMM_WORLD);
-        int i;
-        if(FTI_Topo.myRank==0){
-            char str[FTI_BUFS];
-            sprintf(str, "** SOFT ERROR ** globally detected ");
-            for(i=0;i<FTI_Topo.nbProc;i++){
-                sprintf(str, "%s |[%d] %d",str,i,(*status_array)[i]);
+void FTI_DestroyData(int *ids, int count){
+    int i,j;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        for(j=0; j<count; j++){
+            if(FTI_Data[i].id==ids[j]){
+                memset(FTI_Data[i].ptr, -1, FTI_Data[i].size);
+                char str[FTI_BUFS];
+                sprintf(str, "** SOFT ERROR ** at var %p id %d ", FTI_Data[i].ptr,  FTI_Data[i].id);
+                FTI_Print(str, FTI_TEST);
             }
-            FTI_Print(str, FTI_TEST);
         }
-
-        triggerSoftError=0;
-        return FTI_SCES;
     }
-    return FTI_NSCS;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Recover local data of the process from the last ckpt
-    @return     int*       status of each rank in the app (1=Failed|0=otherwise)
- **/
-/*-------------------------------------------------------------------------*/
-
-
-int FTI_RecoverAllCheckpointedData()
-{
-    return FTI_Recover();
-}
-
-int FTI_RecoverCorruptedData()
-{
-    FTI_Exec.FORWARDREC_partialRecovery=1;
-    int res = FTI_Recover();
-    FTI_Exec.FORWARDREC_partialRecovery=0;
-    return res;
-}
-
-int FTI_RecoverLocalCkpt(){
-    if (FTI_Exec.reco) {
-        int res = FTI_FindLastCheckpointFile(&FTI_Conf, &FTI_Exec,&FTI_Topo, FTI_Ckpt);
-        assert(res==FTI_SCES);
-//        res = FTI_RecoverAllCheckpointedData();
-        res = FTI_RecoverCorruptedData();
-        assert(res==FTI_SCES);
-        FTI_Exec.reco=0;
-    }
-    return FTI_SCES;
-}
-
-void FTI_FinishRecovery(int**status_array){
-    MPI_Barrier(FTI_COMM_WORLD);
-    free(*status_array);
-    *status_array=NULL;
-    rankStatus=0;
-    n_corrupted_vars=0;
-}

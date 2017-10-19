@@ -291,9 +291,9 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef MPIIO_OFFSET_METADATA
                     sprintf(str, "%d:Ckpt_mpiio_offset", FTI_Topo->groupRank);
                     FTI_Exec->meta[0].mpiio_offset = iniparser_getlint(ini, str, -1);
-                    char str[FTI_BUFS];
-                    sprintf(str, "** SOFT ERROR ** OFFSET MPI I/O %ld ",FTI_Exec->meta[0].mpiio_offset);
-                    FTI_Print(str, FTI_TEST);
+//                    char str[FTI_BUFS];
+//                    sprintf(str, "** SOFT ERROR ** OFFSET MPI I/O %ld ",FTI_Exec->meta[0].mpiio_offset);
+//                    FTI_Print(str, FTI_TEST);
 #endif
 
                     sprintf(str, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);

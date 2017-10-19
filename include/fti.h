@@ -39,6 +39,13 @@
 /** Token returned if recovery fails.                                      */
 #define FTI_NREC -2
 
+/** Token returned FTI_Snapshot: somebody suffered soft error                */
+#define FTI_SB_FAIL 11
+/** Token returned FTI_Snapshot: status of process affected by soft error                */
+#define FTI_FAILED 1
+/** Token returned FTI_Snapshot: status of process not affected by soft error                */
+#define FTI_SURVIVOR 0
+
 /** Verbosity level to print only errors.                                  */
 #define FTI_EROR 4
 /** Verbosity level to print only warning and errors.                      */
@@ -192,7 +199,6 @@ typedef struct FTIT_execution {
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
     int             FORWARDREC_uncoordinatedRecovery;     /**< Selecting checkpoint files without  */
-    int             FORWARDREC_partialRecovery;           /**< Recovering only corrupted data after soft error */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
@@ -324,11 +330,18 @@ int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();
 
-int FTI_CheckCheckpointDone();
-void FTI_DestroyData(void* ptr, int sz);
-int FTI_GlobalErrDetected(int **status_array);
+
+
+int FTI_RecoverLocalCkptVar(int id);
+int FTI_RecoverLocalCkptVars(int *ids, int count);
 int FTI_RecoverLocalCkpt();
-void FTI_FinishRecovery(int**status_array);
+int FTI_GetGlobalStatus(int **status_array);
+
+void FTI_RankAffectedBySoftError();
+
+/* Temporary, for tests only */
+int FTI_CheckCheckpointDone();
+void FTI_DestroyData(int *ids, int count);
 
 #ifdef __cplusplus
 }
