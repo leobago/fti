@@ -532,6 +532,18 @@ int FTI_Recover()
         return FTI_NREC;
     }
 
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                    FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                    FTI_Data[i].size);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+    }
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -548,7 +560,7 @@ int FTI_Recover()
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    int i;
+
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
@@ -739,8 +751,22 @@ int FTI_Recover_variable(int id){
         return FTI_NSCS;
     }
 
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+                char str[FTI_BUFS];
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
+        }
+    }
+
     char fn[FTI_BUFS]; //Path to the checkpoint file
-    char str[FTI_BUFS]; //For console output
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
@@ -750,6 +776,7 @@ int FTI_Recover_variable(int id){
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
+    char str[FTI_BUFS];
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -758,14 +785,14 @@ int FTI_Recover_variable(int id){
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    int i;
+
     long offset = 0;
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if(id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]){
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
             sprintf(str, "Recovering var %d ", id);
             FTI_Print(str, FTI_DBUG);
             fseek(fd, offset, SEEK_SET);
-            fread(FTI_Data[i].ptr, 1, FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], fd);
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
             if (ferror(fd)) {
                 FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
                 fclose(fd);
