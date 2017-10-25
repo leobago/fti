@@ -98,16 +98,20 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     FTI_Protect(2, buf, its.size, FTI_LONG);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0) {
-        buf = FTI_Realloc(2, buf);
-        if (buf == NULL) {
-            printf("%d: Reallocation failed!\n", world_rank);
-            return RECOVERY_FAILED;
-        }
-
         res = FTI_Recover();
         if (res != 0) {
-            printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
-            return RECOVERY_FAILED;
+            buf = FTI_Realloc(2, buf);
+            if (buf == NULL) {
+                printf("%d: Reallocation failed!\n", world_rank);
+                return RECOVERY_FAILED;
+            } else {
+                printf("%d: Variable #2 reallocated!\n", world_rank);
+            }
+            res = FTI_Recover();
+            if (res != 0) {
+                printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
+                return RECOVERY_FAILED;
+            }
         }
 
         int expectedI = ITER_STOP - ITER_STOP % ITER_CHECK;
