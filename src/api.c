@@ -759,13 +759,13 @@ int FTI_Recover_variable(int id){
         return FTI_NREC;
     }
     int i;
-    int offset=0;
+    long offset = 0;
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if(id==FTI_Data[i].id){
+        if(id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]){
             sprintf(str, "Recovering var %d ", id);
             FTI_Print(str, FTI_DBUG);
             fseek(fd, offset, SEEK_SET);
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            fread(FTI_Data[i].ptr, 1, FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], fd);
             if (ferror(fd)) {
                 FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
                 fclose(fd);
@@ -773,10 +773,10 @@ int FTI_Recover_variable(int id){
             }
             break;
         }
-        offset+=FTI_Data[i].size;
+        offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
     }
 
-    if(i==FTI_Exec.nbVar){
+    if (i == FTI_Exec.nbVar) {
         FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
         fclose(fd);
         return FTI_NREC;
