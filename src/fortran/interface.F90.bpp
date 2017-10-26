@@ -42,7 +42,7 @@ module FTI
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
-			FTI_GetStoredSize, FTI_Realloc
+			FTI_GetStoredSize, FTI_Realloc, FTI_Recover_variable
 
 
 
@@ -172,6 +172,20 @@ module FTI
   endinterface
 
 
+  interface
+
+    function FTI_Recover_variable_impl(id) &
+            bind(c, name='FTI_Recover_variable')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_Recover_variable_impl
+      integer(c_int), value :: id
+
+    endfunction FTI_Recover_variable_impl
+
+  endinterface
+  
 
   interface
 
@@ -205,11 +219,6 @@ module FTI
   interface FTI_Realloc
 
     module procedure FTI_Realloc_Ptr
-!$SH for T in ${FORTTYPES}; do
-!$SH   for D in $(seq 0 ${MAXDIM}); do
-    module procedure FTI_Realloc_${T}${D}
-!$SH   done
-!$SH done
 
   endinterface FTI_Realloc
 
@@ -307,84 +316,6 @@ contains
 
   endsubroutine FTI_Realloc_Ptr
 
-!$SH for T in ${FORTTYPES}; do
-
-  subroutine FTI_Realloc_${T}0(id_F, data, ierr)
-
-    integer, intent(IN)        :: id_F
-    $(fort_type ${T}), pointer :: data
-    type(c_ptr)                :: ptr
-    integer, intent(OUT)       :: ierr
-
-    ierr = 0
-
-    ptr = FTI_Realloc_impl(id_F, c_loc(data))
-    
-    if (.not. c_associated(ptr)) then
-        ierr = -1
-        data => null()
-    else
-        call c_f_pointer(ptr, data)
-    end if
-
-  endsubroutine FTI_Realloc_${T}0
-
-  subroutine FTI_Realloc_${T}1(id_F, data, ierr)
-
-    integer, intent(IN) :: id_F
-    $(fort_type ${T}), pointer :: data(:)
-    integer(4)                 :: n
-    type(c_ptr)                :: ptr
-    $(fort_type ${T})          :: typeF
-    integer, intent(OUT)       :: ierr
-
-    ierr = 0
-
-    n = FTI_GetStoredSize_impl(id_F)/sizeof(typeF)
-    
-    ptr = FTI_Realloc_impl(id_F, c_loc(data(lbound(data,1))))
-    
-    if (.not. c_associated(ptr)) then
-        ierr = -1
-        data => null()
-    else
-        call c_f_pointer(ptr, data, [n])
-    end if
-
-  endsubroutine FTI_Realloc_${T}1
-
-!$SH   for D in $(seq 2 ${MAXDIM}); do
-
-  subroutine FTI_Realloc_${T}${D}(id_F, data, ierr)
-
-    integer, intent(IN) :: id_F
-    $(fort_type ${T}), pointer :: data$(str_repeat ':' 1 ${D} ',' '(' ')')
-    integer(4)                 :: n
-    type(c_ptr)                :: ptr
-    $(fort_type ${T})          :: typeF
-    integer, intent(OUT)       :: ierr
-
-    ierr = 0
-
-    n = FTI_GetStoredSize_impl(id_F)/sizeof(typeF)
-    
-    ! workaround, we take the address of the first array element and hope for
-    ! the best since not much better can be done
-    ptr = FTI_Realloc_impl(id_F, &
-            c_loc(data$(str_repeat 'lbound(data, @N)' 1 ${D} $',&\n' '(' ')')))
-    
-    if (.not. c_associated(ptr)) then
-        ierr = -1
-        data => null()
-    else
-        call c_f_pointer(ptr, data, [n,$(str_repeat_reverse '1' 1 $(($D-1)) ',' )])
-    end if
-
-  endsubroutine FTI_Realloc_${T}${D}
-
-!$SH   done
-!$SH done
-
   subroutine FTI_Protect_Ptr(id_F, ptr, count_F, type_F, err)
 
     integer, intent(IN) :: id_F
@@ -451,6 +382,17 @@ contains
     err = int(FTI_Recover_impl())
 
   endsubroutine FTI_Recover
+
+
+
+  subroutine FTI_Recover_variable(id,err)
+
+    integer, intent(IN) :: id
+    integer, intent(OUT) :: err
+
+    err = int(FTI_Recover_variable_impl(id))
+
+  endsubroutine FTI_Recover_variable
 
 
 
