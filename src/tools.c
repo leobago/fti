@@ -185,7 +185,6 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 /**
     @brief      It frees memory for the metadata.
     @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
 
     This function frees the memory used for the metadata storage.
 
