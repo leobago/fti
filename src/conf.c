@@ -202,6 +202,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Exec        Execution metadata.
     @return     integer         FTI_SCES if successful.
 
     This function tests the FTI configuration to make sure that all
