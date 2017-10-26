@@ -162,7 +162,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
-    @param      fo              Must be -1 if App-proc. or 0 if Head.
     @return     integer         FTI_SCES if successful.
 
     This function launches the required action dependeing on the ckpt. level.
