@@ -735,7 +735,7 @@ int FTI_Finalize()
         checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Recover_variable(int id){
+int FTI_RecoverVar(int id){
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
