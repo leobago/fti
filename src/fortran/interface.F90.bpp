@@ -8,6 +8,11 @@
 !$SH   echo "FTI_${1}"
 !$SH }
 
+!> \file interface.F90
+!! \brief Fortran interface for the FTI checkpoint library
+
+!> Modul: FTI
+
 module FTI
 
   use ISO_C_BINDING
@@ -236,7 +241,18 @@ module FTI
 
 
 contains
-
+  
+  !> This function initializes the FTI context and prepares the heads to wait
+  !> for checkpoints. FTI processes should never get out of this function. In
+  !> case of a restart, checkpoint files should be recovered and in place at the
+  !> end of this function.
+  
+  !> \brief Initializes FTI
+  !> \param      config_File      FTI configuration file.
+  !> \param      global_Comm      Main MPI communicator of the application.
+  !> \param      err              Token for error handling.
+  !> \return     integer          FTI_SCES if successful.
+  
   subroutine FTI_Init(config_file, global_comm, err)
 
     include 'mpif.h'
