@@ -101,8 +101,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
         if (world_rank % 2 == 0) {
             res = FTI_Recover();
         } else {
-            res = FTI_Recover_variable(1);
-            res += FTI_Recover_variable(2);
+            res = FTI_RecoverVar(1);
+            res += FTI_RecoverVar(2);
         }
         if (res != 0) {
             buf = FTI_Realloc(2, buf);
@@ -115,8 +115,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             if (world_rank % 2 == 0) {
                 res = FTI_Recover();
             } else {
-                res = FTI_Recover_variable(1);
-                res = FTI_Recover_variable(2);
+                res = FTI_RecoverVar(1);
+                res = FTI_RecoverVar(2);
             }
             if (res != 0) {
                 printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
