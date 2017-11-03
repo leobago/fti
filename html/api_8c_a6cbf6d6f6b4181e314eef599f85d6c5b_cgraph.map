@@ -1,0 +1,10 @@
+<map id="FTI_Snapshot" name="FTI_Snapshot">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="533,60,612,87"/>
+<area shape="rect" id="node3" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="389,85,456,112"/>
+<area shape="rect" id="node4" href="$api_8c.html#ab761c55656aab212daf8e6f447ec2214" title="It loads the checkpoint data. " alt="" coords="187,35,287,61"/>
+<area shape="rect" id="node5" href="$checkpoint_8c.html#a8479ea8ec8132ae55da9a6573f3d7440" title="It updates the local and global mean iteration time. " alt="" coords="161,136,312,163"/>
+<area shape="rect" id="node6" href="$api_8c.html#a85ccf559fcbee51bd335ba2c6671eadf" title="It takes the checkpoint and triggers the post&#45;ckpt. work. " alt="" coords="176,187,297,213"/>
+<area shape="rect" id="node7" href="$checkpoint_8c.html#a656858362954a335040262a54a0235ce" title="It writes the checkpoint data in the target file. " alt="" coords="367,136,479,163"/>
+<area shape="rect" id="node8" href="$checkpoint_8c.html#a304411ac19756871bac1eec1517bc57b" title="Decides wich action start depending on the ckpt. level. " alt="" coords="369,187,476,213"/>
+<area shape="rect" id="node9" href="$conf_8c.html#a072119e00ecaef96e6b516174beb0321" title="Sets the exec. ID and failure parameters in the conf. file. " alt="" coords="360,237,485,264"/>
+</map>
