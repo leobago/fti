@@ -1,15 +1,9 @@
 <map id="FTI_Finalize" name="FTI_Finalize">
-<area shape="rect" id="node2" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="306,130,374,156"/>
-<area shape="rect" id="node3" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="475,104,551,131"/>
-<area shape="rect" id="node4" href="$postckpt_8c.html#a2e93ca78c1ede39396bf24611d710230" title="It flushes the local ckpt. files in to the PFS. " alt="" coords="150,180,231,207"/>
-<area shape="rect" id="node10" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="297,28,383,55"/>
-<area shape="rect" id="node11" href="$conf_8c.html#aed78cc2bc81b5b1ec88d4b7aec3a115f" title="Set the exec. ID and failure parameters in the conf. file. " alt="" coords="281,307,399,334"/>
-<area shape="rect" id="node14" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="149,28,232,55"/>
-<area shape="rect" id="node5" href="$meta_8c.html#aded40228f27b54245ba7e64123fbac6f" title="It gets the metadata to recover the data after a failure. " alt="" coords="291,231,389,258"/>
-<area shape="rect" id="node6" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="462,256,565,283"/>
-<area shape="rect" id="node7" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="449,155,577,182"/>
-<area shape="rect" id="node8" href="$iniparser_8h.html#a694eb1110f4200db8648820a0bb405fa" title="Get the string associated to a key, convert to an int. " alt="" coords="458,206,569,232"/>
-<area shape="rect" id="node9" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="453,307,574,334"/>
-<area shape="rect" id="node12" href="$iniparser_8h.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary. " alt="" coords="465,358,561,384"/>
-<area shape="rect" id="node13" href="$iniparser_8h.html#aece0e32de371c9e9592d8333f816dfac" title="Save a dictionary to a loadable ini file. " alt="" coords="448,408,579,435"/>
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="324,85,403,112"/>
+<area shape="rect" id="node3" href="$interface_8h.html#a099b42118594b7ec8469348819bfaf93" title="It frees memory for the metadata. " alt="" coords="160,34,267,61"/>
+<area shape="rect" id="node4" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="180,85,247,112"/>
+<area shape="rect" id="node5" href="$interface_8h.html#af7ae0209528e53e50e05c8cb94262474" title="It flushes the local ckpt. files in to the PFS. " alt="" coords="172,136,255,162"/>
+<area shape="rect" id="node6" href="$interface_8h.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="169,186,258,213"/>
+<area shape="rect" id="node7" href="$conf_8c.html#a072119e00ecaef96e6b516174beb0321" title="Sets the exec. ID and failure parameters in the conf. file. " alt="" coords="151,237,276,264"/>
+<area shape="rect" id="node8" href="$interface_8h.html#a09811bb56f318eab67b3d37bff86cf7f" title="It erases the previous checkpoints and their metadata. " alt="" coords="171,288,256,314"/>
 </map>

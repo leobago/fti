@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['galois_2eh',['galois.h',['../galois_8h.html',1,'']]]
+  ['make_2emd',['make.md',['../make_8md.html',1,'']]],
+  ['meta_2ec',['meta.c',['../meta_8c.html',1,'']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['introduction',['Introduction',['../index.html',1,'']]]
+  ['cmake_20configuration',['CMake configuration',['../cmake.html',1,'']]]
 ];

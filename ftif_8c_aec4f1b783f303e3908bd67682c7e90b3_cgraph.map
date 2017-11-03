@@ -1,6 +1,0 @@
-<map id="FTI_Protect_wrapper" name="FTI_Protect_wrapper">
-<area shape="rect" id="node2" href="$fti_8h.html#a913b8cd6e29a152eceaeaec35e21e677" title="It sets/resets the pointer and type to a protected variable. " alt="" coords="197,5,288,32"/>
-<area shape="rect" id="node3" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="603,5,679,32"/>
-<area shape="rect" id="node4" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="336,31,419,57"/>
-<area shape="rect" id="node5" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="467,31,554,57"/>
-</map>

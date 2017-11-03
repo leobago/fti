@@ -1,9 +1,5 @@
 var searchData=
 [
-  ['galois_5fdiv_5ftables',['galois_div_tables',['../galois_8h.html#a195b54400c1338c050cc0f3eef6509d1',1,'galois.h']]],
-  ['galois_5filog_5ftables',['galois_ilog_tables',['../galois_8h.html#a7b6067490e4bcc8af67148e76e42a9f2',1,'galois.h']]],
-  ['galois_5flog_5ftables',['galois_log_tables',['../galois_8h.html#a4ba05a8dcf6b6983af5cb6e5f7d0c5de',1,'galois.h']]],
-  ['galois_5fmult_5ftables',['galois_mult_tables',['../galois_8h.html#ac64ff68480f32943658969277a5ab51d',1,'galois.h']]],
   ['glbaldir',['glbalDir',['../structFTIT__configuration.html#a9f5fdc68c73f688072cc4eb32d1ed9e7',1,'FTIT_configuration']]],
   ['globalcomm',['globalComm',['../structFTIT__execution.html#a9cbca3e2e49bb808bc73569db3fdecb2',1,'FTIT_execution']]],
   ['globmeaniter',['globMeanIter',['../structFTIT__execution.html#a8b37e551e657be4102f47d2362ffe712',1,'FTIT_execution']]],

@@ -1,9 +1,0 @@
-<map id="FTI_CheckErasures" name="FTI_CheckErasures">
-<area shape="rect" id="node2" href="$meta_8c.html#aded40228f27b54245ba7e64123fbac6f" title="It gets the metadata to recover the data after a failure. " alt="" coords="197,95,296,121"/>
-<area shape="rect" id="node3" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="375,5,451,32"/>
-<area shape="rect" id="node8" href="$recover_8c.html#a888fd5a379af7c7a6dd14f3c543d683b" title="Check if a file exist and that its size is &#39;correct&#39;. " alt="" coords="193,145,301,172"/>
-<area shape="rect" id="node4" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="362,56,465,83"/>
-<area shape="rect" id="node5" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="349,107,477,133"/>
-<area shape="rect" id="node6" href="$iniparser_8h.html#a694eb1110f4200db8648820a0bb405fa" title="Get the string associated to a key, convert to an int. " alt="" coords="358,157,469,184"/>
-<area shape="rect" id="node7" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="353,208,474,235"/>
-</map>

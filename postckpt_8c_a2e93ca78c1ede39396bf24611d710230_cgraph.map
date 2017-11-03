@@ -1,9 +1,0 @@
-<map id="FTI_Flush" name="FTI_Flush">
-<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="309,5,385,32"/>
-<area shape="rect" id="node3" href="$tools_8c.html#a950803008f7cef4892fbba9b2069928e" title="Receive the return code of a function and print a message. " alt="" coords="151,56,219,83"/>
-<area shape="rect" id="node4" href="$meta_8c.html#aded40228f27b54245ba7e64123fbac6f" title="It gets the metadata to recover the data after a failure. " alt="" coords="136,107,235,133"/>
-<area shape="rect" id="node5" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="295,56,398,83"/>
-<area shape="rect" id="node6" href="$iniparser_8h.html#a7894f8480e1f254d4a1b4a31bdc51b46" title="Get the string associated to a key. " alt="" coords="283,107,411,133"/>
-<area shape="rect" id="node7" href="$iniparser_8h.html#a694eb1110f4200db8648820a0bb405fa" title="Get the string associated to a key, convert to an int. " alt="" coords="291,157,402,184"/>
-<area shape="rect" id="node8" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="286,208,407,235"/>
-</map>

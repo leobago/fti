@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['jerasure_2eh',['jerasure.h',['../jerasure_8h.html',1,'']]]
+  ['readme_2emd',['README.md',['../README_8md.html',1,'']]],
+  ['recover_2ec',['recover.c',['../recover_8c.html',1,'']]]
 ];

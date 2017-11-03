@@ -1,8 +1,0 @@
-<map id="FTI_SaveTopo" name="FTI_SaveTopo">
-<area shape="rect" id="node2" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="190,5,266,32"/>
-<area shape="rect" id="node3" href="$iniparser_8h.html#ab0be559bfb769224b3f1b75e26242a67" title="Parse an ini file and return an allocated dictionary object. " alt="" coords="177,56,279,83"/>
-<area shape="rect" id="node4" href="$iniparser_8h.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary. " alt="" coords="180,107,276,133"/>
-<area shape="rect" id="node5" href="$iniparser_8h.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary. " alt="" coords="173,157,283,184"/>
-<area shape="rect" id="node6" href="$iniparser_8h.html#aece0e32de371c9e9592d8333f816dfac" title="Save a dictionary to a loadable ini file. " alt="" coords="163,208,293,235"/>
-<area shape="rect" id="node7" href="$iniparser_8h.html#a90549ee518523921886b74454ff872eb" title="Free all memory associated to an ini dictionary. " alt="" coords="167,259,289,285"/>
-</map>

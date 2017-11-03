@@ -1,5 +1,0 @@
-<map id="FTI_Abort" name="FTI_Abort">
-<area shape="rect" id="node2" href="$tools_8c.html#a8cbc6d4dbac880f834ca50d04191c194" title="It erases the previous checkpoints and their metadata. " alt="" coords="133,5,216,32"/>
-<area shape="rect" id="node3" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="265,5,351,32"/>
-<area shape="rect" id="node4" href="$tools_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="401,5,477,32"/>
-</map>
