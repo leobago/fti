@@ -47,7 +47,7 @@ module FTI
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
-			FTI_GetStoredSize, FTI_Realloc, FTI_Recover_variable
+			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar
 
 
 
@@ -179,15 +179,15 @@ module FTI
 
   interface
 
-    function FTI_Recover_variable_impl(id) &
-            bind(c, name='FTI_Recover_variable')
+    function FTI_RecoverVar_impl(id) &
+            bind(c, name='FTI_RecoverVar')
 
       use ISO_C_BINDING
 
-      integer(c_int) :: FTI_Recover_variable_impl
+      integer(c_int) :: FTI_RecoverVar_impl
       integer(c_int), value :: id
 
-    endfunction FTI_Recover_variable_impl
+    endfunction FTI_RecoverVar_impl
 
   endinterface
   
@@ -473,14 +473,14 @@ contains
   !!  \param    id      (IN)    ID of variable to recover
   !!  \param    err     (INOUT) Token for error handling.
   !!  \return   integer         FTI_SCES if successful.
-  subroutine FTI_Recover_variable(id,err)
+  subroutine FTI_RecoverVar(id,err)
 
     integer, intent(IN) :: id
     integer, intent(OUT) :: err
 
-    err = int(FTI_Recover_variable_impl(id))
+    err = int(FTI_RecoverVar_impl(id))
 
-  endsubroutine FTI_Recover_variable
+  endsubroutine FTI_RecoverVar
 
   !>  This function loads the checkpoint data from the checkpoint file in case
   !!  of restart. Otherwise, it checks if the current iteration requires
