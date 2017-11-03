@@ -58,7 +58,7 @@ PROJECT_LOGO           =
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/doc/Doxy 
+OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/doc/Doxygen 
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -248,7 +248,7 @@ OPTIMIZE_OUTPUT_JAVA   = NO
 # sources. Doxygen will then generate output that is tailored for Fortran.
 # The default value is: NO.
 
-OPTIMIZE_FOR_FORTRAN   = YES
+OPTIMIZE_FOR_FORTRAN   = NO
 
 # Set the OPTIMIZE_OUTPUT_VHDL tag to YES if your project consists of VHDL
 # sources. Doxygen will then generate output that is tailored for VHDL.
@@ -404,7 +404,7 @@ EXTRACT_ALL            = YES
 # be included in the documentation.
 # The default value is: NO.
 
-EXTRACT_PRIVATE        = NO
+EXTRACT_PRIVATE        = YES
 
 # If the EXTRACT_PACKAGE tag is set to YES all members with package or internal
 # scope will be included in the documentation.
@@ -661,7 +661,7 @@ FILE_VERSION_FILTER    =
 # DoxygenLayout.xml, doxygen will parse it automatically even if the LAYOUT_FILE
 # tag is left empty.
 
-LAYOUT_FILE            =
+LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/doxyLayout.xml
 
 # The CITE_BIB_FILES tag can be used to specify one or more bib files containing
 # the reference definitions. This must be a list of .bib files. The .bib
@@ -746,7 +746,10 @@ WARN_LOGFILE           =
 INPUT                  = @CMAKE_SOURCE_DIR@/README.md \
                          @CMAKE_SOURCE_DIR@/include/ \
                          @CMAKE_SOURCE_DIR@/src \
-                         @CMAKE_BINARY_DIR@/interface.F90
+                         @CMAKE_BINARY_DIR@/interface.F90 \
+                         @CMAKE_CURRENT_SOURCE_DIR@/cmake.md \
+                         @CMAKE_CURRENT_SOURCE_DIR@/config.md \   
+                         @CMAKE_CURRENT_SOURCE_DIR@/make.md  
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
