@@ -64,6 +64,11 @@ User manual
 ===
 
 In folder "doc/manual" you will find a user manual, which contains the API description and code snippets for the implementation of FTI as checkpoint I/O. 
+  
+To generate the documentation wit Doxygen, configure with `-DENABLE_DOCU=ON` and execute in the build directory:  
+```
+    make doc  
+```
 
 ---
 
