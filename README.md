@@ -1,5 +1,5 @@
 What is FTI?
-=
+===
 
 FTI stands for Fault Tolerance Interface and is a library that aims to give
 computational scientists the means to perform fast and efficient multilevel
@@ -17,7 +17,7 @@ asynchronously.
 ---
 
 Download, compile and install FTI (as easy as 1,2,3)
-=
+===
 
  1) git clone https://github.com/leobago/fti.git
  2) mkdir fti/build && cd fti/build
@@ -53,7 +53,7 @@ Download, compile and install FTI (as easy as 1,2,3)
 ---
 
 Configure and run a FTI example
-=
+===
 
 The "build/examples" directory contains heat distribution simulations as simple
 examples in both, C and Fortran. Usage instructions in file "examples/README".
@@ -61,14 +61,14 @@ examples in both, C and Fortran. Usage instructions in file "examples/README".
 ---
 
 User manual
-=
+===
 
 In folder "doc/manual" you will find a user manual, which contains the API description and code snippets for the implementation of FTI as checkpoint I/O. 
 
 ---
 
-Acknowledgement (send us a postal card! \\(\^-\^)/)
-=
+Acknowledgement (send us a postal card! \\\(^-^\)/\)
+===
 
 If you use FTI please consider sending us an email to let us know what you
 liked and what could be improved ( :email: leonardo (dot) bautista (at) bsc (dot) es), 
