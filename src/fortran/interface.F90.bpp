@@ -8,6 +8,11 @@
 !$SH   echo "FTI_${1}"
 !$SH }
 
+!> \file interface.F90
+!! \brief Fortran interface for the FTI checkpoint library
+
+!> Modul: FTI
+
 module FTI
 
   use ISO_C_BINDING
@@ -236,7 +241,16 @@ module FTI
 
 
 contains
-
+  
+  !> This function initializes the FTI context and prepares the heads to wait
+  !! for checkpoints. FTI processes should never get out of this function. In
+  !! case of a restart, checkpoint files should be recovered and in place at the
+  !! end of this function.
+  !! \brief     Initializes FTI
+  !! \param     config_File     (IN)    FTI configuration file.
+  !! \param     global_Comm     (INOUT) Main MPI communicator of the application.
+  !! \param     err             (OUT)   Token for error handling.
+  !! \return    integer         FTI_SCES if successful.
   subroutine FTI_Init(config_file, global_comm, err)
 
     include 'mpif.h'
@@ -270,8 +284,10 @@ contains
 
   endsubroutine FTI_Init
 
-
-
+  !>  This function returns the current status of the recovery flag.
+  !!  \brief    It returns the current status of the recovery flag.
+  !!  \param    status  (OUT)   status token of the recovery flag.
+  !!  \return   integer         FTI_Exec.reco.
   subroutine FTI_Status(status)
 
     integer, intent(OUT) :: status
@@ -280,8 +296,13 @@ contains
 
   endsubroutine FTI_Status
 
-
-
+  !>  This function initalizes a data type. the only information needed is the
+  !!  size of the data type, the rest is black box for FTI.
+  !!  \brief    It initializes a data type.
+  !!  \param    type_F  (IN)    The data type to be intialized.
+  !!  \param    size_F  (IN)    The size of the data type to be intialized.
+  !!  \param    err     (OUT)   Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_InitType(type_F, size_F, err)
 
     type(FTI_type), intent(OUT) :: type_F
@@ -292,15 +313,31 @@ contains
 
   endsubroutine FTI_InitType
 
-	subroutine FTI_GetStoredSize(id_F, size)
-		
-		integer, intent(IN)	:: id_F
-		integer(4)					:: size
+  !>  This function returns size of variable of given ID that is saved in metadata.
+  !!  This may be different from size of variable that is in the program. If this
+  !!  function it's called when recovery it returns size from metadata file, if it's
+  !!  called after checkpoint it returns size saved in temporary metadata. If there
+  !!  is no size saved in metadata it returns 0.
+  !!  \brief    Returns size saved in metadata of variable
+  !!  \param    id_F    (IN)    Variable ID.
+  !!  \param    size    (OUT)   Size of variable or 0 if size not saved.
+  !!  \return   long            Returns size of variable or 0 if size not saved.
+  subroutine FTI_GetStoredSize(id_F, size)
+  	
+  	integer, intent(IN)	:: id_F
+  	integer(4)					:: size
+  
+  	size = long(FTI_GetStoredSize_impl(int(id_F,c_int)))
+  
+  endsubroutine FTI_GetStoredSize
 
-		size = long(FTI_GetStoredSize_impl(int(id_F,c_int)))
-	
-	endsubroutine FTI_GetStoredSize
-
+  !>  This function loads the checkpoint data size from the metadata
+  !!  file, reallacates memory and updates data size information.
+  !!  \brief    Reallocates dataset to last checkpoint size.
+  !!  \param    id_F    (IN)    Variable ID.
+  !!  \param    ptr     (INOUT) C-Pointer to the variable.
+  !!  \param    ierr    (OUT)   Token for error handling.
+  !!  \return   pointer         Pointer if successful, NULL otherwise
   subroutine FTI_Realloc_Ptr(id_F, ptr, ierr)
 
     integer, intent(IN)  :: id_F
@@ -316,6 +353,19 @@ contains
 
   endsubroutine FTI_Realloc_Ptr
 
+  !>  This function stores a pointer to a data structure, its size, its ID,
+  !!  its number of elements and the type of the elements. This list of
+  !!  structures is the data that will be stored during a checkpoint and
+  !!  loaded during a recovery. It resets the pointer to a data structure,
+  !!  its size, its number of elements and the type of the elements if the
+  !!  dataset was already previously registered.
+  !!  \brief    It sets/resets the pointer and type to a protected variable.
+  !!  \param    id_F    (IN)    ID for searches and update.
+  !!  \param    ptr     (IN)    C-Pointer to the data structure.
+  !!  \param    count_F (IN)    Number of elements in the data structure.
+  !!  \param    type_F  (IN)    Type of elements in the data structure.
+  !!  \param    err     (OUT)   Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Protect_Ptr(id_F, ptr, count_F, type_F, err)
 
     integer, intent(IN) :: id_F
@@ -328,10 +378,19 @@ contains
             type_F%raw_type))
 
   endsubroutine FTI_Protect_Ptr
-
-
 !$SH for T in ${FORTTYPES}; do
 
+  !>  This function stores a pointer to a data structure, its size, its ID,
+  !!  its number of elements and the type of the elements. This list of
+  !!  structures is the data that will be stored during a checkpoint and
+  !!  loaded during a recovery. It resets the pointer to a data structure,
+  !!  its size, its number of elements and the type of the elements if the
+  !!  dataset was already previously registered.
+  !!  \brief    It sets/resets the pointer and type to a protected variable.
+  !!  \param    id_F    (IN)    ID for searches and update.
+  !!  \param    data    (IN)    data field to protect.
+  !!  \param    err     (OUT)   Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Protect_${T}0(id_F, data, err)
 
     integer, intent(IN) :: id_F
@@ -342,9 +401,18 @@ contains
 
   endsubroutine FTI_Protect_${T}0
 
-
 !$SH   for D in $(seq 1 ${MAXDIM}); do
-
+  !>  This function stores a pointer to a data structure, its size, its ID,
+  !!  its number of elements and the type of the elements. This list of
+  !!  structures is the data that will be stored during a checkpoint and
+  !!  loaded during a recovery. It resets the pointer to a data structure,
+  !!  its size, its number of elements and the type of the elements if the
+  !!  dataset was already previously registered.
+  !!  \brief    It sets/resets the pointer and type to a protected variable.
+  !!  \param    id_F    (IN)    ID for searches and update.
+  !!  \param    data    (IN)    data field to protect.
+  !!  \param    err     (OUT)   Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Protect_${T}${D}(id_F, data, err)
 
     integer, intent(IN) :: id_F
@@ -359,10 +427,17 @@ contains
 
   endsubroutine FTI_Protect_${T}${D}
 
-
 !$SH   done
 !$SH done
-
+  !>  This function starts by blocking on a receive if the previous ckpt. was
+  !!  offline. Then, it updates the ckpt. information. It writes down the ckpt.
+  !!  data, creates the metadata and the post-processing work. This function
+  !!  is complementary with the FTI_Listen function in terms of communications.
+  !!  \brief    It takes the checkpoint and triggers the post-ckpt. work.
+  !!  \param    id_F    (IN)    Checkpoint ID.
+  !!  \param    level   (IN)    Checkpoint level.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Checkpoint(id_F, level, err)
 
     integer, intent(IN) :: id_F
@@ -373,8 +448,11 @@ contains
 
   endsubroutine FTI_Checkpoint
 
-
-
+  !>  This function loads the checkpoint data from the checkpoint file and
+  !!  it updates some basic checkpoint information.
+  !!  \brief    It loads the checkpoint data.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Recover(err)
 
     integer, intent(OUT) :: err
@@ -383,8 +461,18 @@ contains
 
   endsubroutine FTI_Recover
 
-
-
+  !>  During a restart process, this function recovers the variable specified
+  !!  by the given id. No effect during a regular execution.
+  !!  The variable must have already been protected, otherwise, FTI_NSCS is returned.
+  !!  Improvements to be done:
+  !!  Open checkpoint file at FTI_Init, close it at FTI_Snapshot
+  !!  Maintain a variable accumulating the offset as variable are protected during
+  !!  the restart to avoid doing the loop to calculate the offset in the
+  !!  checkpoint file.
+  !!  \brief    During the restart, recovers the given variable
+  !!  \param    id      (IN)    ID of variable to recover
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_RecoverVar(id,err)
 
     integer, intent(IN) :: id
@@ -394,8 +482,14 @@ contains
 
   endsubroutine FTI_RecoverVar
 
-
-
+  !>  This function loads the checkpoint data from the checkpoint file in case
+  !!  of restart. Otherwise, it checks if the current iteration requires
+  !!  checkpointing, if it does it checks which checkpoint level, write the
+  !!  data in the files and it communicates with the head of the node to inform
+  !!  that a checkpoint has been taken. Checkpoint ID and counters are updated.
+  !!  \brief    Takes an FTI snapshot or recovers the data if it is a restart.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Snapshot(err)
 
     integer, intent(OUT) :: err
@@ -404,8 +498,12 @@ contains
 
   endsubroutine FTI_Snapshot
 
-
-
+  !>  This function notifies the FTI processes that the execution is over, frees
+  !!  some data structures and it closes. If this function is not called on the
+  !!  application processes the FTI processes will never finish (deadlock).
+  !!  \brief    It closes FTI properly on the application processes.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer FTI_SCES if successful.
   subroutine FTI_Finalize(err)
 
     integer, intent(OUT) :: err
