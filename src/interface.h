@@ -53,6 +53,7 @@
 
 #include <stdint.h>
 #include "../deps/md5/md5.h"
+#define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
 #include <sys/stat.h>
 #include <string.h>
@@ -176,7 +177,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
-int FTI_Checksum(char* fileName, char* checksum);
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);

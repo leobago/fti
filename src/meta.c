@@ -463,12 +463,9 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sprintf(str, "%d:Ckpt_file_maxs", i);
         sprintf(buf, "%lu", mfs);
         iniparser_set(ini, str, buf);
-        // TODO Checksums only local currently
-        if (strlen(checksums)) {
-            strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
-            sprintf(str, "%d:Ckpt_checksum", i);
-            iniparser_set(ini, str, buf);
-        }
+        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+        sprintf(str, "%d:Ckpt_checksum", i);
+        iniparser_set(ini, str, buf);
         int j;
         for (j = 0; j < FTI_Exec->nbVar; j++) {
             //Save id of variable
@@ -569,35 +566,32 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     sprintf(str, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
-    char* ckptFileNames = talloc(char, FTI_Topo->groupSize * FTI_BUFS);
+    char* ckptFileNames;
+    if (FTI_Topo->groupRank == 0) {
+        ckptFileNames = talloc(char, FTI_Topo->groupSize * FTI_BUFS);
+    }
     strcpy(str, FTI_Exec->meta[0].ckptFile); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
-    // TODO Checksums only local currently
+    char checksum[MD5_DIGEST_LENGTH];
+    FTI_Checksum(FTI_Exec, FTI_Data, checksum);
     char* checksums;
-    if (!(FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].isInline)) {
-        char lfn[FTI_BUFS];
-        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-        char checksum[MD5_DIGEST_LENGTH];
-        int res = FTI_Checksum(lfn, checksum);
+    if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
-        MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
-        if (res == FTI_NSCS) {
-            free(ckptFileNames);
-            free(checksums);
-
-            return FTI_NSCS;
-        }
-    } else {
-        checksums = talloc(char, FTI_BUFS);
-        checksums[0]=0;
     }
+    MPI_Gather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
+
 
     //Every process has the same number of protected variables
+
+    int* allVarIDs;
+    long* allVarSizes;
+    if (FTI_Topo->groupRank == 0) {
+         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+    }
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
-    int* allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);
-    long* allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         myVarIDs[i] = FTI_Data[i].id;
         myVarSizes[i] =  FTI_Data[i].size;
@@ -615,15 +609,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
+        free(ckptFileNames);
+        free(checksums);
         if (res == FTI_NSCS) {
-            free(ckptFileNames);
-            free(checksums);
-
             return FTI_NSCS;
         }
-    } else {
-        free(allVarIDs);
-        free(allVarSizes);
     }
 
     //Flush metadata in case postCkpt done inline
@@ -635,9 +625,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
         FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
     }
-
-    free(ckptFileNames);
-    free(checksums);
 
     return FTI_SCES;
 }
