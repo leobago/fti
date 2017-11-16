@@ -329,6 +329,7 @@ int FTI_Checkpoint(int id, int level);
 int FTI_Recover();
 int FTI_Snapshot();
 int FTI_Finalize();
+int FTI_RecoverVar(int id);
 
 
 

@@ -54,6 +54,13 @@ keep_last_ckpt = 0
 # The total number of nodes MUST be multiple of this parameter
 Group_size = 4
 
+# Number of iterations between iteration length sync (0 => 512 iterations)
+# If you app has iterations of varying length set this value between (1 and 10)
+max_sync_intv               = 0
+
+# Set to 1 for POSIX, 2 for MPI-IO or 3 for SIONLib.
+ckpt_io                     = 1
+
 # The verbosity of FTI. (2 is recommended)
 # 3 (Print only errors, silent mode)
 # 2 (Print errors and some few important information)
@@ -102,7 +109,7 @@ frequency = 0
 # The ckpt files are decomposed in blocks of size Block_size KB
 Block_size = 1024
 
-# The ckpt files are transfered in chunks of size Transfer_size MB 
+# The ckpt files are transfered in chunks of size Transfer_size MB
 # from local to PFS
 Transfer_size = 16
 
@@ -111,4 +118,17 @@ Mpi_tag = 2612
 
 # Set to 1 if you are doing a test in local in a single computer
 Local_test = 1
+
+#This option only impacts if -DENABLE_LUSTRE was added to the Cmake command.
+#It sets the striping unit for the MPI-IO file.
+lustre_striping_unit        = 4194304
+
+#This option only impacts if -DENABLE_LUSTRE was added to the Cmake command.
+#It sets the striping factor for the MPI-IO file.
+lustre_striping_factor      = -1
+
+#This option only impacts if -DENABLE_LUSTRE was added to the Cmake command.
+#It sets the striping offset for the MPI-IO file.
+lustre_striping_offset      = -1
+
 

@@ -1,14 +1,43 @@
 /**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  *  @file   api.c
- *  @author Leonardo A. Bautista Gomez (leobago@gmail.com)
- *  @date   December, 2013
+ *  @date   October, 2017
  *  @brief  API functions for the FTI library.
  */
 
+
 #include "interface.h"
-#include "assert.h"
-
-
 
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
@@ -83,6 +112,7 @@ int *internal_status_array=NULL;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
+    FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
@@ -514,13 +544,6 @@ int FTI_Checkpoint(int id, int level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
-
-#ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
-    count_for_number_SE++;
-    if(count_for_number_SE==1)
-#endif
-        triggerSoftError=1;
-
     return FTI_DONE;
 }
 
@@ -556,6 +579,18 @@ int FTI_Recover()
         return FTI_NREC;
     }
 
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                    FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                    FTI_Data[i].size);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+    }
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -572,9 +607,7 @@ int FTI_Recover()
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    int i;
 
-    /* Recovering all data from checkpoint */
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
@@ -583,7 +616,6 @@ int FTI_Recover()
             return FTI_NREC;
         }
     }
-
     if (fclose(fd) != 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
@@ -617,7 +649,7 @@ int FTI_Snapshot()
     int i, res, level = -1;
 
     if (FTI_Exec.reco) { // If this is a recovery load icheckpoint data
-        res = FTI_Try(FTI_Recover(), "recover the checkpointed data from snapshot.");
+        res = FTI_Try(FTI_Recover(), "recover the checkpointed data.");
         if (res == FTI_NREC) {
             return FTI_NREC;
         }
@@ -756,6 +788,102 @@ int FTI_Finalize()
     FTI_FreeMeta(&FTI_Exec);
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      During the restart, recovers the given variable
+    @param      id              Variable to recover
+    @return     int             FTI_SCES if successful.
+
+    During a restart process, this function recovers the variable specified
+    by the given id. No effect during a regular execution.
+    The variable must have already been protected, otherwise, FTI_NSCS is returned.
+    Improvements to be done:
+    - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
+    - Maintain a variable accumulating the offset as variable are protected during
+        the restart to avoid doing the loop to calculate the offset in the
+        checkpoint file.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVar(int id){
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if(FTI_Exec.reco==0){
+        /* This is not a restart: no actions performed */
+        return FTI_SCES;
+    }
+
+    if (FTI_Exec.initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+                char str[FTI_BUFS];
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
+        }
+    }
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    }
+
+    char str[FTI_BUFS];
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    long offset = 0;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            sprintf(str, "Recovering var %d ", id);
+            FTI_Print(str, FTI_DBUG);
+            fseek(fd, offset, SEEK_SET);
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
+            break;
+        }
+        offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+    }
+
+    if (i == FTI_Exec.nbVar) {
+        FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
+        fclose(fd);
+        return FTI_NREC;
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
     return FTI_SCES;
 }
 

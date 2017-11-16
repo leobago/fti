@@ -288,7 +288,9 @@ env:
 
     - COMPILER=clang CONFIG=configH0I1.fti LEVEL=2
 
-    - COMPILER=clang CONFIG=configH0I1.fti LEVEL=3
+    - COMPILER=clang CONFIG=configH0I1.fti LEVEL=3 PART=0
+
+    - COMPILER=clang CONFIG=configH0I1.fti LEVEL=3 PART=1
 
     - COMPILER=clang CONFIG=configH0I1.fti LEVEL=4
 
@@ -296,7 +298,9 @@ env:
 
     - COMPILER=clang CONFIG=configH1I1.fti LEVEL=2
 
-    - COMPILER=clang CONFIG=configH1I1.fti LEVEL=3
+    - COMPILER=clang CONFIG=configH1I1.fti LEVEL=3 PART=0
+
+    - COMPILER=clang CONFIG=configH1I1.fti LEVEL=3 PART=1
 
     - COMPILER=clang CONFIG=configH1I1.fti LEVEL=4
 
@@ -304,7 +308,9 @@ env:
 
     - COMPILER=clang CONFIG=configH1I0.fti LEVEL=2
 
-    - COMPILER=clang CONFIG=configH1I0.fti LEVEL=3
+    - COMPILER=clang CONFIG=configH1I0.fti LEVEL=3 PART=0
+
+    - COMPILER=clang CONFIG=configH1I0.fti LEVEL=3 PART=0
 
     - COMPILER=clang CONFIG=configH1I0.fti LEVEL=4
 
@@ -336,7 +342,9 @@ env:
 
     - COMPILER=pgi CONFIG=configH0I1.fti LEVEL=2
 
-    - COMPILER=pgi CONFIG=configH0I1.fti LEVEL=3
+    - COMPILER=pgi CONFIG=configH0I1.fti LEVEL=3 PART=0
+
+    - COMPILER=pgi CONFIG=configH0I1.fti LEVEL=3 PART=1
 
     - COMPILER=pgi CONFIG=configH0I1.fti LEVEL=4
 
@@ -344,7 +352,9 @@ env:
 
     - COMPILER=pgi CONFIG=configH1I1.fti LEVEL=2
 
-    - COMPILER=pgi CONFIG=configH1I1.fti LEVEL=3
+    - COMPILER=pgi CONFIG=configH1I1.fti LEVEL=3 PART=0
+
+    - COMPILER=pgi CONFIG=configH1I1.fti LEVEL=3 PART=1
 
     - COMPILER=pgi CONFIG=configH1I1.fti LEVEL=4
 
@@ -352,7 +362,9 @@ env:
 
     - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=2
 
-    - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=3
+    - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=3 PART=0
+
+    - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=3 PART=1
 
     - COMPILER=pgi CONFIG=configH1I0.fti LEVEL=4
 
@@ -369,6 +381,8 @@ env:
     - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.8
 
     - TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 CMAKEVERSION=3.9
+
+    - TEST=syncIntv CONFIG=configH1I0.fti
 
 addons:
   coverity_scan:

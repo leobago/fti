@@ -76,6 +76,7 @@ option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
+option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
@@ -237,6 +238,10 @@ endif()
 
 if(ENABLE_TESTS)
 	add_subdirectory(test)
+endif()
+
+if(ENABLE_DOCU)
+    add_subdirectory(doc/Doxygen)
 endif()
 
 # installable config

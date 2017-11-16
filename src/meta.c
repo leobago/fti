@@ -1,7 +1,38 @@
 /**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  *  @file   meta.c
- *  @author Leonardo A. Bautista Gomez (leobago@gmail.com)
- *  @date   December, 2013
+ *  @date   October, 2017
  *  @brief  Metadata functions for the FTI library.
  */
 
@@ -11,13 +42,12 @@
 /**
     @brief      It gets the checksums from metadata.
     @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
     @param      checksum        Pointer to fill the checkpoint checksum.
     @param      ptnerChecksum   Pointer to fill the ptner file checksum.
     @param      rsChecksum      Pointer to fill the RS file checksum.
-    @param      group           The group in the node.
-    @param      level           The level of the ckpt or 0 if tmp.
     @return     integer         FTI_SCES if successful.
 
     This function reads the metadata file created during checkpointing and
@@ -396,11 +426,14 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /**
     @brief      It writes the metadata to recover the data after a failure.
     @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      fs              Pointer to the list of checkpoint sizes.
     @param      mfs             The maximum checkpoint file size.
     @param      fnl             Pointer to the list of checkpoint names.
     @param      checksums       Checksums array.
+    @param      allVarIDs       IDs of vars from all processes in group.
+    @param      allVarSizes     Sizes of vars from all processes in group.
     @return     integer         FTI_SCES if successful.
 
     This function should be executed only by one process per group. It
@@ -516,6 +549,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.
     @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
     This function gathers information about the checkpoint files in the
