@@ -109,11 +109,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char ckptFile[FTI_BUFS];
     strcpy(ckptFile, FTI_Exec->meta[level].ckptFile);
 
-    // TODO Checksums only local currently
     char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
-    if ( level > 0 && level < 4 ) {
-        FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
-    }
+    FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     char str[FTI_BUFS];
     sprintf(str, "Checking file %s and its erasures.", ckptFile);
     FTI_Print(str, FTI_DBUG);
@@ -148,7 +145,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             break;
         case 4:
             sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
-            buf = FTI_CheckFile(fn, fs, "");
+            buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }
