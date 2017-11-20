@@ -38,7 +38,6 @@
 
 #include "interface.h"
 #include <dirent.h>
-#define CHUNK_SIZE 4096    /**< MD5 algorithm chunk size.      */
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -164,7 +163,8 @@ return FTI_SCES;
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It calculates checksum of the checkpoint file.
-    @param      fileName        Filename of the checkpoint.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Data        Dataset metadata.
     @param      checksum        Checksum that is calculated.
     @return     integer         FTI_SCES if successful.
 
@@ -173,39 +173,22 @@ return FTI_SCES;
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(char* fileName, char* checksum)
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum)
 {
-    double startTime = MPI_Wtime();
-
-    FILE *fd = fopen(fileName, "rb");
-    if (fd == NULL) {
-        char str[FTI_BUFS];
-        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
-    }
-
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
 
-    int bytes;
-    unsigned char data[CHUNK_SIZE];
-    while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
-        MD5_Update (&mdContext, data, bytes);
+    int i; //iterate all variables
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
     }
+
     unsigned char hash[MD5_DIGEST_LENGTH];
     MD5_Final (hash, &mdContext);
 
-    int i;
-    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
+    for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
         sprintf(&checksum[i], "%02x", hash[i]);
     checksum[i] = '\0'; //to get a proper string
-
-    char str[FTI_BUFS];
-    sprintf(str, "Checksum took %.2f sec.", MPI_Wtime() - startTime);
-    FTI_Print(str, FTI_DBUG);
-
-    fclose (fd);
 
     return FTI_SCES;
 }

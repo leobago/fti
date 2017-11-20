@@ -331,6 +331,10 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ps = ps + bs;
         }
 
+        //for MD5 checksum
+        MD5_CTX mdContext;
+        MD5_Init (&mdContext);
+
         // For each block
         long pos = 0;
         while (pos < ps) {
@@ -403,6 +407,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             // Writting encoded checkpoints
             fwrite(coding, sizeof(char), remBsize, efd);
+            MD5_Update (&mdContext, coding, remBsize);
 
             // Next block
             pos = pos + bs;
@@ -422,12 +427,15 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         //write checksum in metadata
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &mdContext);
+
         char checksum[MD5_DIGEST_LENGTH];
-        int res = FTI_Checksum(efn, checksum);
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-        res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
+        for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
+            sprintf(&checksum[i], "%02x", hash[i]);
+        checksum[i] = '\0'; //to get a proper string
+
+        int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
