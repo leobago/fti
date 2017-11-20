@@ -320,6 +320,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
+//    FTI_Conf->ioMode = FTI_IO_MPI;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
 #else

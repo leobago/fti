@@ -28,6 +28,8 @@
 
 /** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
+/** Standard size of buffer in memory.                                     */
+#define FTI_BUFS_MEM 16
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
@@ -144,6 +146,24 @@ typedef struct FTIT_dataset {
     char            checksum[MD5_DIGEST_LENGTH];
 } FTIT_dataset;
 
+
+
+/** @typedef    FTIT_memdataset
+ *  @brief      MemDataset metadata.
+ *
+ *  This type stores the metadata related with a dataset of data to keep in memory.
+ */
+typedef struct FTIT_memdataset {
+    int             id;                 /**< ID to search/update dataset.   */
+    void            *ptr;               /**< Pointer to the dataset.        */
+    long            count;              /**< Number of elements in dataset. */
+    FTIT_type       type;               /**< Data type for the dataset.     */
+    int             eleSize;            /**< Element size for the dataset.  */
+    long            size;               /**< Total size of the dataset.     */
+    void            *buff;               /**< Pointer to the buffer.        */
+} FTIT_memdataset;
+
+
 /** @typedef    FTIT_metadata
  *  @brief      Metadata for restart.
  *
@@ -192,6 +212,7 @@ typedef struct FTIT_execution {
     unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
     long            ckptSize;           /**< Checkpoint size.               */
     unsigned int    nbVar;              /**< Number of protected variables. */
+    unsigned int    nbVarMem;              /**< Number of memory protected variables. */
     unsigned int    nbType;             /**< Number of data types.          */
     int             metaAlloc;          /**< True if meta allocated.        */
     int             initSCES;           /**< True if FTI initialized.       */
@@ -340,9 +361,9 @@ int FTI_GetGlobalStatus(int **status_array);
 
 void FTI_RankAffectedBySoftError();
 
-/* Temporary, for tests only */
-int FTI_CheckCheckpointDone();
-void FTI_DestroyData(int *ids, int count);
+int FTI_MemSave(int id, void* ptr, long count, FTIT_type type);
+int FTI_MemLoad(int id);
+
 
 #ifdef __cplusplus
 }

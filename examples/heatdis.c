@@ -21,16 +21,18 @@
 #define WORKTAG     50
 #define REDUCE      5
 //#define PRINT_RESULTS
-#define PRINT_THERMOMETER
+//#define PRINT_THERMOMETER
+#define PRINT_THERMOMETER_JUSTFAILED
 
-#define N_THERMOMETER 2000
-#define N_THERMOMETER_LINES 20
+#define N_THERMOMETER 100
+#define N_THERMOMETER_LINES 10
 
 
 //#define GRIDSIZE    4096
 #define GRIDSIZE    512
 
-#define FAILURE
+//#define FAILURE
+#define RANK_TO_FAIL 0
 
 #ifdef PRINT_RESULTS
 void print_solution (char *filename, double *grid)
@@ -62,20 +64,11 @@ void print_solution (char *filename, double *grid, int procs, int index)
         printf("Can't open output file.");
         exit(-1);
     }
-//    fprintf(outfile, "\n");
-//    fprintf(outfile, " %d ", index);
-//    for (j = 0; j < N_THERMOMETER; j++) {
-//        for (i = 0; i < procs; i++) {
-//            fprintf (outfile, "P%dT%d %6.2f ", j,i, grid[(i*N_THERMOMETER)+j]);
-//        }
-//    }
-
 
     if(index==0){
         fprintf(outfile, "# PROCS %d SamplesIter %d \n", procs, N_THERMOMETER);
     }
 
-//    fprintf(outfile, "\n");
     for (i = 0; i < procs; i++) {
         for (j = 0; j < N_THERMOMETER; j++) {
             fprintf (outfile, "%d %d %6.2f \n", index, (i*N_THERMOMETER)+j, grid[(i*N_THERMOMETER)+j] );
@@ -83,11 +76,34 @@ void print_solution (char *filename, double *grid, int procs, int index)
     }
     fprintf (outfile, "\n");
 
+    fclose(outfile);
+}
+#else
+#ifdef PRINT_THERMOMETER_JUSTFAILED
 
-//    fprintf(outfile, "\n");
+void print_solution (char *filename, double *grid, int procs, int index)
+{
+    int i, j;
+    FILE *outfile;
+    outfile = fopen(filename,"aw");
+    if (outfile == NULL) {
+        printf("Can't open output file.");
+        exit(-1);
+    }
+
+    if(index==0){
+        fprintf(outfile, "# PROCS %d SamplesIter %d FAILED %d \n", procs, N_THERMOMETER, RANK_TO_FAIL);
+    }
+
+    fprintf (outfile, "%d ", index );
+    for (j = 0; j < N_THERMOMETER; j++) {
+        fprintf (outfile, "%6.2f ", grid[j] );
+    }
+    fprintf (outfile, "\n");
 
     fclose(outfile);
 }
+#endif
 #endif
 #endif
 
@@ -176,7 +192,7 @@ void sig_handler(int signo)
         count=2;
         ids[0]=1; ids[1]=2;
 
-        FTI_DestroyData(ids, count);
+//        FTI_DestroyData(ids, count);
 
 //        /* Recover could be invoke in the handler or after snapshot */
 //        FTI_RecoverLocalCkptVars(ids, count);
@@ -197,6 +213,10 @@ int main(int argc, char *argv[])
     double *grid;
     double *aux_grid;
 #endif
+#ifdef PRINT_THERMOMETER_JUSTFAILED
+    char fn[32];
+    double *grid;
+#endif
 
     if (signal (SIGUSR1, sig_handler) == SIG_IGN)
         signal (SIGINT, SIG_IGN);
@@ -210,7 +230,7 @@ int main(int argc, char *argv[])
 
 
     arg = atoi(argv[1]);
-#if defined(PRINT_RESULTS)||defined(PRINT_THERMOMETER)
+#if defined(PRINT_RESULTS)||defined(PRINT_THERMOMETER)||defined(PRINT_THERMOMETER_JUSTFAILED)
     M = GRIDSIZE;
     int N = GRIDSIZE;
     nbLines = (N / nbProcs)+3;
@@ -226,6 +246,10 @@ int main(int argc, char *argv[])
 #ifdef PRINT_THERMOMETER
     grid = (double *) malloc(sizeof(double) * N_THERMOMETER * nbProcs);
     aux_grid =  (double *) malloc(sizeof(double) * N_THERMOMETER );
+#else
+#ifdef PRINT_THERMOMETER_JUSTFAILED
+    grid = (double *) malloc(sizeof(double) * N_THERMOMETER);
+#endif
 #endif
 #endif
 
@@ -272,7 +296,7 @@ int main(int argc, char *argv[])
             itersAfterCKPT=0;
         }
         if(itersAfterCKPT==401){
-            if(rank==4){
+            if(rank==RANK_TO_FAIL){
                 int pid = getpid();
                 char buffS[100];
                 sprintf(buffS,"./signal_soft_error.sh %d &",  pid);
@@ -317,6 +341,22 @@ int main(int argc, char *argv[])
             }
 
 #endif
+#ifdef PRINT_THERMOMETER_JUSTFAILED
+            if(rank==RANK_TO_FAIL){
+                int auxi,auxj, pos=0, c=0;
+                for(auxi=0; auxi<N_THERMOMETER_LINES;auxi++){
+                    pos= auxi*(nbLines/N_THERMOMETER_LINES)*M + M ; /* row */
+                    for(auxj= 0; auxj<N_THERMOMETER/N_THERMOMETER_LINES; auxj++){
+                        pos+= (M/(N_THERMOMETER/N_THERMOMETER_LINES));
+                        grid[c]=g[pos];
+                        c++;
+                    }
+                }
+                sprintf(fn, "results/vis-thermometers.dat");
+                print_solution(fn, grid, nbProcs, i);
+            }
+
+#endif
         }
         if(globalerror < PRECISION) {
             printf("Step : %d, error = %f: done, less than precision %f \n", i, globalerror, PRECISION);
@@ -337,7 +377,9 @@ int main(int argc, char *argv[])
     free(grid);
     free(aux_grid);
 #endif
-
+#ifdef PRINT_THERMOMETER_JUSTFAILED
+    free(grid);
+#endif
     FTI_Finalize();
     MPI_Finalize();
     return 0;

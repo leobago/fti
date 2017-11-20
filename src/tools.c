@@ -79,6 +79,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /* unsigned int  */ FTI_Exec->ckptLast              =0;       
 /* long          */ FTI_Exec->ckptSize              =0;    
 /* unsigned int  */ FTI_Exec->nbVar                 =0;       
+/* unsigned int  */ FTI_Exec->nbVarMem              =0;
 /* unsigned int  */ FTI_Exec->nbType                =0;    
 /* int           */ FTI_Exec->metaAlloc             =0;     
 /* int           */ FTI_Exec->initSCES              =0;       

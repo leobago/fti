@@ -54,6 +54,11 @@ static FTIT_topology FTI_Topo;
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];
 
+
+/** Array of datasets and all their internal information. for data in memory */
+static FTIT_memdataset FTI_MemData[FTI_BUFS];
+
+
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
@@ -84,13 +89,11 @@ FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
 
-#define SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
+//#define SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
 #ifdef SOFT_ERROR_ONCE_AFTER_FIRST_CHECKPOINT
 int count_for_number_SE=0;
 #endif
 
-/** Activated after soft error introduced ~ when checkpoint generated */
-int triggerSoftError=0;
 /** This rank status (whether or not affected by soft error) */
 int rankStatus=FTI_SURVIVOR;
 int *internal_status_array=NULL;
@@ -639,8 +642,6 @@ int FTI_Recover()
 /*-------------------------------------------------------------------------*/
 int FTI_Snapshot()
 {
-    triggerSoftError=0; /* Temporary testing devel */
-
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -691,7 +692,7 @@ int FTI_Snapshot()
     MPI_Allreduce(&rankStatus, &softErrorDetected, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if(softErrorDetected>0){
         char str_rec[FTI_BUFS];
-        sprintf(str_rec, "** SOFT ERROR ** DETECTED ** ");
+        sprintf(str_rec, "** SOFT ERROR ** GLOBALLY DETECTED ** %s ", (rankStatus==FTI_FAILED? "FAILED": "SURVIVOR"));
         FTI_Print(str_rec, FTI_TEST);
 
         if(internal_status_array==NULL)
@@ -785,6 +786,12 @@ int FTI_Finalize()
         //Cleaning everything
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
+
+    int i;
+    for (i = 0; i < FTI_Exec.nbVarMem; i++) {
+        free(FTI_MemData[i].buff);
+    }
+
     FTI_FreeMeta(&FTI_Exec);
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
@@ -1025,8 +1032,7 @@ int FTI_RecoverLocalCkptVars(int *ids, int count){
     int i;
     /* Partial recovery: recovering only those variables corrupted */
     char str_rec[FTI_BUFS*4];
-    sprintf(str_rec, "** SOFT ERROR ** recovering: ");
-
+    sprintf(str_rec, "** SOFT ERROR ** recovering: %d vars(", count);
 
     long int offset=0;
     int found=0;
@@ -1037,8 +1043,12 @@ int FTI_RecoverLocalCkptVars(int *ids, int count){
              * at last found instead of 0 */
             if(ids[j]==FTI_Data[i].id)
             {
+                sprintf(str_rec, "%s %d", str_rec, ids[j]);
+
                 found=1;
-                sprintf(str_rec, "%s | RECO %p ", str_rec, FTI_Data[i].ptr);
+                //sprintf(str_rec, "%s | RECO %p ", str_rec, FTI_Data[i].ptr);
+//                sprintf(str_rec, " RECO %p ", FTI_Data[i].ptr);
+//                FTI_Print(str_rec, FTI_TEST);
                 break;
             }
         }
@@ -1051,9 +1061,13 @@ int FTI_RecoverLocalCkptVars(int *ids, int count){
                 fclose(fd);
                 return FTI_NREC;
             }
-        }else{
-            sprintf(str_rec, "%s | SKIP %p ", str_rec, FTI_Data[i].ptr);
         }
+//        else{
+////            sprintf(str_rec, "%s | SKIP %p ", str_rec, FTI_Data[i].ptr);
+//            sprintf(str_rec, " SKIP %p ", FTI_Data[i].ptr);
+//            FTI_Print(str_rec, FTI_TEST);
+//
+//        }
         offset+=FTI_Data[i].size;
     }
     FTI_Print(str_rec, FTI_TEST);
@@ -1092,38 +1106,77 @@ void FTI_RankAffectedBySoftError(){
     rankStatus=FTI_FAILED;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Check if last checkpoint was taken
-    @return     void
- **/
-/*-------------------------------------------------------------------------*/
-/** triggerSoftError set to 1 when ckpt generated **/
-
-int FTI_CheckCheckpointDone(){
-    return triggerSoftError;
-}
 
 
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      Destroy the indicated vars
-    @param      ids             list of IDs of variables to destroy.
-    @param      count           number of variables to destroy.
-    @return     void
- **/
-/*-------------------------------------------------------------------------*/
-void FTI_DestroyData(int *ids, int count){
-    int i,j;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        for(j=0; j<count; j++){
-            if(FTI_Data[i].id==ids[j]){
-                memset(FTI_Data[i].ptr, -1, FTI_Data[i].size);
-                char str[FTI_BUFS];
-                sprintf(str, "** SOFT ERROR ** at var %p id %d ", FTI_Data[i].ptr,  FTI_Data[i].id);
-                FTI_Print(str, FTI_TEST);
+int FTI_MemSave(int id, void* ptr, long count, FTIT_type type){
+
+
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    char str[FTI_BUFS]; //For console output
+
+    int i;
+    for (i = 0; i < FTI_Exec.nbVarMem; i++) {
+        if (id == FTI_MemData[i].id) { //Search for dataset with given id
+            long prevSize = FTI_MemData[i].size;
+            FTI_MemData[i].ptr = ptr;
+            FTI_MemData[i].count = count;
+            FTI_MemData[i].type = type;
+            FTI_MemData[i].eleSize = type.size;
+            FTI_MemData[i].size = type.size * count;
+            /* memory copy of the data */
+            if(prevSize!=FTI_MemData[i].size){
+                FTI_MemData[i].buff = realloc(FTI_MemData[i].buff, FTI_MemData[i].size);
             }
+            memcpy(FTI_MemData[i].buff, ptr, FTI_MemData[i].size);
+            return FTI_SCES;
         }
     }
+    //Id could not be found in datasets
+
+    //If too many variables exit FTI.
+    if (FTI_Exec.nbVarMem >= FTI_BUFS) {
+        FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //Adding new variable to protect
+    FTI_MemData[FTI_Exec.nbVarMem].id = id;
+    FTI_MemData[FTI_Exec.nbVarMem].ptr = ptr;
+    FTI_MemData[FTI_Exec.nbVarMem].count = count;
+    FTI_MemData[FTI_Exec.nbVarMem].type = type;
+    FTI_MemData[FTI_Exec.nbVarMem].eleSize = type.size;
+    FTI_MemData[FTI_Exec.nbVarMem].size = type.size * count;
+    /* memory copy of the data */
+    FTI_MemData[FTI_Exec.nbVarMem].buff = malloc(FTI_MemData[FTI_Exec.nbVarMem].size);
+    memcpy(FTI_MemData[FTI_Exec.nbVarMem].buff, ptr, FTI_MemData[FTI_Exec.nbVarMem].size);
+
+    FTI_Exec.nbVarMem = FTI_Exec.nbVarMem + 1;
+
+    return FTI_SCES;
 }
 
+
+int FTI_MemLoad(int id){
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int i;
+    for (i = 0; i < FTI_Exec.nbVarMem; i++) {
+        if (id == FTI_MemData[i].id) { //Search for dataset with given id
+            /* memory copy of the data */
+            memcpy(FTI_MemData[i].ptr, FTI_MemData[i].buff, FTI_MemData[i].size);
+            return FTI_SCES;
+        }
+    }
+
+    //Variable not found
+    FTI_Print("Unable to load variable. It has not been protected.", FTI_WARN);
+    return FTI_NSCS;
+
+}
