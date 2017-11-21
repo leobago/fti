@@ -72,6 +72,12 @@
     #define FTI_IO_SIONLIB 1003
 #endif
 
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+    /** Token for IO mode SIONlib.                                         */
+    #define FTI_IO_HDF5 1004
+    #include "hdf5.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,6 +119,10 @@ typedef union FTIT_float {
 typedef struct FTIT_type {
     int             id;                 /**< ID of the data type.           */
     int             size;               /**< Size of the data type.         */
+    int             complex[FTI_BUFS];  /**< Types ID for complex datatype  */
+#ifdef ENABLE_HDF5
+    hid_t           h5datatype;         /**< Complex HDF5 type.             */
+#endif
 } FTIT_type;
 
 /** @typedef    FTIT_dataset
@@ -198,6 +208,9 @@ typedef struct FTIT_configuration {
     int             stripeUnit;         /**< Striping Unit for Lustre FS    */
     int             stripeOffset;       /**< Striping Offset for Lustre FS  */
     int             stripeFactor;       /**< Striping Factor for Lustre FS  */
+#endif
+#ifdef ENABLE_HDF5
+    int             useHDF5;            /**< TRUE to save as HDF5.          */
 #endif
     int             tag;                /**< Tag for MPI messages in FTI.   */
     int             test;               /**< TRUE if local test.            */
@@ -304,6 +317,7 @@ extern FTIT_type FTI_LDBE;
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
+int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 long FTI_GetStoredSize(int id);
 void* FTI_Realloc(int id, void* ptr);

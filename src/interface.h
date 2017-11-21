@@ -51,6 +51,13 @@
 #   include <sion.h>
 #endif
 
+#ifdef ENABLE_HDF5
+#include "hdf5.h"
+#include "hdf5_hl.h"
+/** Maps FTI types to HDF5 types                                           */
+hid_t FTI_TypesMap[11];
+#endif
+
 #include <stdint.h>
 #include "../deps/md5/md5.h"
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
@@ -118,6 +125,12 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection *FTI_Inje);
+
+int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                  FTIT_dataset* FTI_Data);
+int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                    FTIT_dataset* FTI_Data);
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,

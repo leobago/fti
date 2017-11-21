@@ -13,7 +13,7 @@ string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VE
 set(FORTRAN_VER_UNKNOWN 0)
 
 if (NOT CMAKE_Fortran_COMPILER_VERSION)
-  
+
   message(AUTHOR_WARNING "
   ** Cmake variable 'CMAKE_Fortran_COMPILER_VERSION' is unset
   *  attempt to determine it manually...")
@@ -28,7 +28,7 @@ if (NOT CMAKE_Fortran_COMPILER_VERSION)
   elseif(${COMPILER_IDENT_PGI})
     set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/pgi_major_ver.f90")
   endif()
-  
+
   set(CMAKE_Fortran_FLAGS "-cpp")
   try_run( PROG_RAN COMPILE_SUCCESS
       "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
@@ -38,9 +38,9 @@ if (NOT CMAKE_Fortran_COMPILER_VERSION)
     string( REGEX MATCH "[0-9]+"
       DETECTED_VER "${VER_STRING}"
     )
-  
+
   set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
-  
+
   message(AUTHOR_WARNING "
   ** The major version was determined as: ${VER_STRING}")
   else()
@@ -49,7 +49,7 @@ if (NOT CMAKE_Fortran_COMPILER_VERSION)
   set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
   message(AUTHOR_WARNING "
   ** The Fortran version could not be determined!")
-  
+
   endif()
 else()
 
@@ -74,6 +74,7 @@ endif()
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
+option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" ON)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
@@ -86,7 +87,7 @@ include(FortranCInterface)
 include(CheckFortranCompilerFlag)
 
 find_package(MPI REQUIRED)
-if(NOT DEFINED NO_OPENSSL) 
+if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
 else()
 	set(OPENSSL_FOUND false)
@@ -106,7 +107,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(SRC_FTI
-	src/api.c src/checkpoint.c src/conf.c src/meta.c
+	src/api.c src/checkpoint.c src/conf.c src/hdf5.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c)
 
@@ -174,6 +175,26 @@ if(ENABLE_SIONLIB)
     add_definitions(-DENABLE_SIONLIB)
 endif()
 
+
+if(ENABLE_HDF5)
+	find_package(HDF5 COMPONENTS HL REQUIRED)
+	if(HDF5_FOUND)
+		add_definitions(-DENABLE_HDF5)
+		include_directories(${HDF5_INCLUDE_DIRS})
+		append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_DEFINITIONS HDF5)
+		target_link_libraries(fti.static ${HDF5_LIBRARIES})
+		target_link_libraries(fti.shared ${HDF5_LIBRARIES})
+		target_link_libraries(fti.static ${HDF5_HL_LIBRARIES})
+		target_link_libraries(fti.shared ${HDF5_HL_LIBRARIES})
+	else()
+		message(WARNING "
+		** HDF5 could not be found!
+		*  You may specify:
+		*  -DHDF5_ROOT as the path to the HDF5 installation to use.
+		**")
+	endif()
+endif()
+
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
@@ -195,9 +216,9 @@ if(ENABLE_FORTRAN)
   *  The Fortran examples and tests will be build using 'include mpif.h'!")
 
 	endif()
-	
+
     add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
-	
+
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
 

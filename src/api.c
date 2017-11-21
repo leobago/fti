@@ -188,6 +188,91 @@ int FTI_InitType(FTIT_type* type, int size)
 {
     type->id = FTI_Exec.nbType;
     type->size = size;
+    memset(type->complex, -1, FTI_BUFS);
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It initializes a data type.
+    @param      type            The data type to be intialized.
+    @param      type            The data type to be intialized.
+    @param      size            The size of the data type to be intialized.
+    @return     integer         FTI_SCES if successful.
+
+    This function initalizes a data type. the only information needed is the
+    size of the data type, the rest is black box for FTI.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length)
+{
+    type->id = FTI_Exec.nbType;
+    memset(type->complex, -1, FTI_BUFS);
+    int i;
+    int sumSize = 0;
+    for (i = 0; i < length; i++) {
+        type->complex[i] = types[i]->id;
+        sumSize += types[i]->size;
+    }
+    type->size = sumSize;
+
+    type->h5datatype = H5Tcreate(H5T_COMPOUND, type->size);
+    if (type->h5datatype < 0) {
+        FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    size_t offset = 0;
+    for (i = 0; i < length; i++) {
+        char name[FTI_BUFS];
+        sprintf(name, "T%d", i);
+        herr_t res = H5Tinsert(type->h5datatype, name, offset, types[i]->h5datatype);
+        if (res < 0) {
+            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+        }
+        offset += types[i]->size;
+    }
+
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    return FTI_SCES;
+}
+
+
+int FTI_InitComplexTypeWithArrays(FTIT_type* type, FTIT_type** types, int* typeCount, int length)
+{
+    type->id = FTI_Exec.nbType;
+    memset(type->complex, -1, FTI_BUFS);
+    int i;
+    int sumSize = 0;
+    for (i = 0; i < length; i++) {
+        type->complex[i] = types[i]->id;
+        sumSize += (types[i]->size * typeCount[i]);
+    }
+    type->size = sumSize;
+
+    type->h5datatype = H5Tcreate(H5T_COMPOUND, type->size);
+    if (type->h5datatype < 0) {
+        FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    size_t offset = 0;
+    for (i = 0; i < length; i++) {
+        char name[FTI_BUFS];
+        sprintf(name, "T%d", i);
+        hid_t partType = types[i]->h5datatype;
+        if (typeCount[i] > 1) {
+            hsize_t typeSize = typeCount[i];
+            partType = H5Tarray_create(types[i]->h5datatype, 1, &typeSize);
+        }
+        herr_t res = H5Tinsert(type->h5datatype, name, offset, partType);
+        if (res < 0) {
+            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+        }
+        offset += (types[i]->size * typeCount[i]);
+    }
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
     return FTI_SCES;
 }
@@ -577,37 +662,44 @@ int FTI_Recover()
         }
     }
 
-    //Recovering from local for L4 case in FTI_Recover
-    if (FTI_Exec.ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
-    }
-    else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
-    }
+    switch (FTI_Conf.ioMode) {
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+        case FTI_IO_HDF5:
+            return FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
+#endif
+        default:
+            //Recovering from local for L4 case in FTI_Recover
+            if (FTI_Exec.ckptLvel == 4) {
+                sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+            }
+            else {
+                sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+            }
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
+            sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+            FTI_Print(str, FTI_DBUG);
 
-    FILE* fd = fopen(fn, "rb");
-    if (fd == NULL) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
+            FILE* fd = fopen(fn, "rb");
+            if (fd == NULL) {
+                FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+                return FTI_NREC;
+            }
 
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-        if (ferror(fd)) {
-            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
+            for (i = 0; i < FTI_Exec.nbVar; i++) {
+                fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+                if (ferror(fd)) {
+                    FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                    fclose(fd);
+                    return FTI_NREC;
+                }
+            }
+            if (fclose(fd) != 0) {
+                FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+                return FTI_NREC;
+            }
+            FTI_Exec.reco = 0;
+            return FTI_SCES;
     }
-    if (fclose(fd) != 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    FTI_Exec.reco = 0;
-    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -134,6 +134,13 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+    }
+#endif
+
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
@@ -159,6 +166,11 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
               break;
 #endif
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+           case FTI_IO_HDF5:
+              res = FTI_Try(FTI_WriteHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (HDF5).");
+              break;
+#endif
         }
     }
     else {
@@ -169,7 +181,17 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
         }
-        res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+        switch (FTI_Conf->ioMode) {
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+            case FTI_IO_HDF5:
+                res = FTI_Try(FTI_WriteHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint (HDF5).");
+                break;
+#endif
+            default:
+                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+                break;
+        }
+
     }
 
     //Check if all processes have written correctly (every process must succeed)

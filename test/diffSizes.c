@@ -82,8 +82,11 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     } cIters;
     cIters its = {0, (world_rank + 1) * INIT_SIZE};
     FTIT_type itersInfo;
-    //creating new FTI type
-    FTI_InitType(&itersInfo, 2 * sizeof(int));
+    //creating new FTI type int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length)
+    FTIT_type* typesIN[2];
+    typesIN[0] = &FTI_INTG;
+    typesIN[1] = &FTI_INTG;
+    FTI_InitComplexType(&itersInfo, typesIN, 2);
 
     int res;
     int j;
@@ -98,6 +101,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     FTI_Protect(2, buf, its.size, FTI_LONG);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0) {
+        res = FTI_Recover();
         if (world_rank % 2 == 0) {
             res = FTI_Recover();
         } else {
