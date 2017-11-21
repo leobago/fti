@@ -29,6 +29,7 @@ typedef struct db_struct_raw {
     dbvar_struct *dbvars;
 } db_struct; // defines datablock
 
+void finalize();
 void checkpoint(); // perform checkpoint
 void protect_var(uint32_t id, uint64_t size, uint64_t disp); // protect variable
 void edit_pvar(uint32_t id, uint64_t new_size); // edit protect variable
@@ -56,6 +57,7 @@ const uint8_t dbvarstructsize
 
 // init datablock list
 db_struct *firstdb = NULL;
+db_struct *lastdb = NULL;
 
 int main() {
     protect_var(1, 100, 8);  
@@ -69,6 +71,8 @@ int main() {
     checkpoint();
     protect_var(5, 700, 8); 
     checkpoint();
+
+    finalize();
 }
 
 void protect_var(uint32_t id, uint64_t size, uint64_t disp) {
@@ -91,8 +95,7 @@ void edit_pvar(uint32_t id, uint64_t new_size) {
 void checkpoint() {
     printf("< CHECKPOINT BEGIN >\n\n");
     // variable definitions
-    int i, dbvar_idx, pvar_idx, db_idx = 0, num_dblocks = 0, isnewdblock = 0;
-    int num_edit_pvars = 0;
+    int dbvar_idx, pvar_idx, num_edit_pvars = 0;
     int *editflags = (int*) calloc( num_pvars, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
     dbvar_struct *dbvars = NULL;
     uint8_t isnextdb;
@@ -107,19 +110,20 @@ void checkpoint() {
         dblock->next = NULL;
         dblock->numvars = num_pvars;
         dblock->dbvars = dbvars;
-        for(i=0;i<dblock->numvars;i++) {
-            dbvars[i].start = dbsize;
-            dbvars[i].id = pvars[i].id;
-            dbvars[i].idx = i;
-            dbsize += pvars[i].size;
-            dbvars[i].end = dbsize;
-            printf("var-id: %i, start: %" PRIu64 " end: %" PRIu64 "\n", dbvars[i].id, dbvars[i].start, dbvars[i].end);
+        for(dbvar_idx=0;dbvar_idx<dblock->numvars;dbvar_idx++) {
+            dbvars[dbvar_idx].start = dbsize;
+            dbvars[dbvar_idx].id = pvars[dbvar_idx].id;
+            dbvars[dbvar_idx].idx = dbvar_idx;
+            dbsize += pvars[dbvar_idx].size;
+            dbvars[dbvar_idx].end = dbsize;
+            printf("var-id: %dbvar_idx, start: %" PRIu64 " end: %" PRIu64 "\n", dbvars[dbvar_idx].id, dbvars[dbvar_idx].start, dbvars[dbvar_idx].end);
         }
         num_pvars_old = num_pvars;
         dblock->dbsize = dbsize;
         
         // set as first datablock
         firstdb = dblock;
+        lastdb = dblock;
     
     } else {
        
@@ -129,7 +133,7 @@ void checkpoint() {
          */
         
         pvar_oldsizes = (uint64_t*) calloc( num_pvars_old, sizeof(uint64_t) );
-        db_struct *lastdb = firstdb;
+        lastdb = firstdb;
         // iterate though datablock list
         do {
             isnextdb = 0;
@@ -153,9 +157,6 @@ void checkpoint() {
         // check for new protected variables
         for(pvar_idx=num_pvars_old;pvar_idx<num_pvars;pvar_idx++) {
             editflags[pvar_idx] = 1;
-            if(!isnewdblock) {
-                isnewdblock = 1;
-            }
             num_edit_pvars++;
         }
         
@@ -163,9 +164,6 @@ void checkpoint() {
         for(pvar_idx=0;pvar_idx<num_pvars_old;pvar_idx++) {
             if(pvar_oldsizes[pvar_idx] != pvars[pvar_idx].size) {
                 editflags[pvar_idx] = 2;
-                if(!isnewdblock) {
-                    isnewdblock = 1;
-                }
                 num_edit_pvars++;
             }
         }
@@ -181,7 +179,7 @@ void checkpoint() {
         dbsize = dbstructsize + dbvarstructsize * num_edit_pvars;
        
         int evar_idx = 0;
-        if(isnewdblock) {
+        if( num_edit_pvars ) {
             for(pvar_idx=0; pvar_idx<num_pvars; pvar_idx++) {
                 switch(editflags[pvar_idx]) {
 
@@ -225,6 +223,7 @@ void checkpoint() {
             dblock->numvars = num_edit_pvars;
             dblock->dbsize = dbsize;
             dblock->dbvars = dbvars;
+            lastdb = dblock;
         
         }
 
@@ -233,8 +232,38 @@ void checkpoint() {
         free(pvar_oldsizes);
     
     }
+
+    free(editflags);
     
     printf("\n< CHECKPOINT END >\n");
+}
+
+void finalize() {
+
+    int ispreviousdb, dbvar_idx, pvar_idx, counter=0;
+
+    if(firstdb) {
+        do {
+            ispreviousdb = 0;
+            printf("%i\n",counter);
+            counter++;
+            free(lastdb->dbvars);
+
+            if (lastdb->previous) {
+                lastdb = lastdb->previous;
+                free(lastdb->next);
+                ispreviousdb = 1;
+            } else {
+                free(lastdb);
+            }
+        } while( ispreviousdb );
+    }
+
+    if (pvars) {
+        free(pvars);
+    }
+
+
 }
                 
 
