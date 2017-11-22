@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 
 // INSTEAD OF FLAG IN DATABLOCK, WRITE ONLY ZEROS IN THE END
@@ -32,10 +33,11 @@ typedef struct db_struct_raw {
 } db_struct; // defines datablock
 
 void update_metadata();
+void recover();
 void finalize();
 void checkpoint(); // perform checkpoint
 void protect_var(uint32_t id, void *buffer, uint64_t size, uint64_t disp); // protect variable
-void edit_pvar(uint32_t id, uint64_t new_size); // edit protect variable
+void edit_pvar(uint32_t id, void *buffer, uint64_t new_size); // edit protect variable
 
 /*
  * global variables
@@ -65,47 +67,160 @@ db_struct *lastdb = NULL;
 
 int main() {
     
+    int i;
     int arr1[100];
+    for(i=0;i<100;i++){arr1[i]=i;}
+
     int *arr2 = (int*) malloc( 200 * sizeof(int) );
+    for(i=0;i<200;i++){arr2[i]=i;}
+    
     int *arr3 = (int*) malloc( 300 * sizeof(int) );
+    for(i=0;i<300;i++){arr3[i]=i;}
+    
     int arr4[400];
+    for(i=0;i<400;i++){arr4[i]=i;}
+    
     int arr5[700];
+    for(i=0;i<700;i++){arr5[i]=i;}
 
     protect_var(1, arr1, 100, sizeof(int));  
     protect_var(2, arr2, 200, sizeof(int));  
     protect_var(3, arr3, 300, sizeof(int)); 
+    
     checkpoint();
+    
     protect_var(4, arr4, 400, sizeof(int)); 
+    
     checkpoint();
 
     arr2 = (int*) realloc(arr2, sizeof(int) * 500);
+    for(i=200;i<500;i++){arr2[i]=i;}
+    
     arr3 = (int*) realloc(arr3, sizeof(int) * 600);
-    edit_pvar(2, 500);
-    edit_pvar(3, 600);
+    for(i=300;i<600;i++){arr3[i]=i;}
+    
+    edit_pvar(2, arr2, 500);
+    edit_pvar(3, arr3, 600);
+    
     checkpoint();
+    
     protect_var(5, arr5, 700, sizeof(int)); 
+    
     checkpoint();
 
+    printf("expected value arr1[67] is 67. we have -> %i\n",arr1[67]);
+    
     finalize();
+    
+    for(i=0;i<100;i++){arr1[i]=0;}
+
+    for(i=0;i<500;i++){arr2[i]=0;}
+    
+    for(i=0;i<600;i++){arr3[i]=0;}
+    
+    for(i=0;i<400;i++){arr4[i]=0;}
+    
+    for(i=0;i<700;i++){arr5[i]=0;}
+
+    recover();
+
+    printf("expected value arr1[67] is 67. we have -> %i\n",arr1[67]);
+
+    if (pvars) {
+        free(pvars);
+    }
 
     free(arr2);
     free(arr3);
 }
 
+void recover() {
+    FILE *ckpt_file = fopen("test.ckpt", "rb");
+
+
+    db_struct *currentdb, *nextdb;
+    dbvar_struct *currentdbvar = NULL;
+    char *dptr;
+    int dbvar_idx, pvar_idx, dbcounter=0;
+    char *zeros = (char*) calloc(1, dbstructsize); 
+
+    uint64_t endoffile = 0, mdoffset;
+    
+    uint8_t isnextdb;
+    
+    currentdb = (db_struct*) malloc( sizeof(db_struct) );
+    firstdb = currentdb;
+    long read;
+
+    do {
+        
+        nextdb = (db_struct*) malloc( sizeof(db_struct) );
+
+        isnextdb = 0;
+        
+        mdoffset = endoffile;
+        printf("[RECOVER] db->mdoffset: %" PRIu64 "\n", mdoffset);
+        
+        fseek( ckpt_file, mdoffset, SEEK_SET );
+        fread( currentdb, dbstructsize, 1, ckpt_file );
+        mdoffset += dbstructsize;
+        printf("[RECOVER] db->numvars: %" PRIu32 " db->dbsize: %" PRIu64 "\n", currentdb->numvars, currentdb->dbsize);
+        
+        currentdb->dbvars = (dbvar_struct*) malloc( sizeof(dbvar_struct) * currentdb->numvars );
+        
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+            
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            fseek( ckpt_file, mdoffset, SEEK_SET );
+            fread( currentdbvar, dbvarstructsize, 1, ckpt_file );
+            //printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
+            //        dbcounter, currentdbvar->id, mdoffset);
+            mdoffset += dbvarstructsize;
+            dptr =(void*)((uintptr_t)pvars[currentdbvar->idx].buffer + currentdbvar->dptr);
+            printf("[RECOVER] dbvar->id: %" PRIu32 " dbvar->fstart: %" PRIu32 ", dbvar->fend: %" PRIu64 ", write to buffer at 0x%" PRIxPTR " compare: 0x%" PRIxPTR "\n", 
+                    currentdbvar->id, currentdbvar->fptr, currentdbvar->fptr+currentdbvar->chunksize, pvars[currentdbvar->idx].buffer, dptr);
+            fseek( ckpt_file, currentdbvar->fptr, SEEK_SET );
+            
+            read = fread( dptr, currentdbvar->chunksize, 1, ckpt_file );
+            printf("read: %ld\n", read);
+        
+        }
+        
+        endoffile += currentdb->dbsize;
+        fseek( ckpt_file, endoffile, SEEK_SET );
+        fread( nextdb, dbstructsize, 1, ckpt_file );
+        
+        if ( memcmp( nextdb, zeros, dbstructsize ) != 0 ) {
+            currentdb->next = nextdb;
+            nextdb->previous = currentdb;
+            currentdb = nextdb;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+    
+    } while( isnextdb );
+
+    lastdb = currentdb;
+
+}
+
 void protect_var(uint32_t id, void *buffer, uint64_t size, uint64_t disp) {
     pvars = (pvar_struct*)realloc(pvars, (num_pvars+1)*sizeof(pvar_struct));
     pvars[num_pvars].buffer = buffer;
+    printf("[PROTECT] id: %i, buffer address: 0x%" PRIxPTR "\n", id, buffer);
     pvars[num_pvars].id = id;
     pvars[num_pvars].size = size;
     pvars[num_pvars].disp = disp;
     num_pvars++;
 }
 
-void edit_pvar(uint32_t id, uint64_t new_size) {
+void edit_pvar(uint32_t id, void *buffer, uint64_t new_size) {
     int i;
     for(i=0;i<num_pvars;i++){
         if(pvars[i].id == id) {
             pvars[i].size = new_size;
+            pvars[i].buffer = buffer;
         }
     }
 }
@@ -118,11 +233,15 @@ void checkpoint() {
 
     printf("< CHECKPOINT BEGIN >\n\n");
    
-    FILE *ckpt_file = fopen("test.ckpt", "wb+");
+    FILE *ckpt_file;
 
-    uint64_t mdoffset = 0;
+    uint64_t mdoffset;
+    uint64_t endoffile = 0;
+    char *zeros = (char*) calloc(1, dbstructsize); 
+
     if(firstdb) {
-
+        
+        ckpt_file = fopen("test.ckpt", "wb+");
         db_struct *currentdb = firstdb;
         dbvar_struct *currentdbvar = NULL;
         char *dptr;
@@ -134,6 +253,8 @@ void checkpoint() {
             
             isnextdb = 0;
             
+            mdoffset = endoffile;
+
             fseek( ckpt_file, mdoffset, SEEK_SET );
             fwrite( currentdb, dbstructsize, 1, ckpt_file );
             mdoffset += dbstructsize;
@@ -146,11 +267,13 @@ void checkpoint() {
                 printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
                         dbcounter, currentdbvar->id, mdoffset);
                 mdoffset += dbvarstructsize;
-                dptr = (char*)&(pvars[currentdbvar->idx]) + currentdb->dbvars[dbvar_idx].dptr;
+                dptr = (char*)(pvars[currentdbvar->idx].buffer) + currentdb->dbvars[dbvar_idx].dptr;
                 fseek( ckpt_file, currentdbvar->fptr, SEEK_SET );
                 fwrite( dptr, currentdbvar->chunksize, 1, ckpt_file );
             
             }
+            
+            endoffile += currentdb->dbsize;
             
             if (currentdb->next) {
                 currentdb = currentdb->next;
@@ -160,7 +283,12 @@ void checkpoint() {
             dbcounter++;
         
         } while( isnextdb );
-    
+
+        fseek( ckpt_file, endoffile, SEEK_SET );
+        fwrite( zeros, dbstructsize, 1, ckpt_file );
+        fflush( ckpt_file );
+        fclose( ckpt_file );
+
     }
     printf("\n< CHECKPOINT END >\n");
 }
@@ -337,9 +465,9 @@ void finalize() {
         } while( ispreviousdb );
     }
 
-    if (pvars) {
-        free(pvars);
-    }
+    //if (pvars) {
+    //    free(pvars);
+    //}
 
 
 }
