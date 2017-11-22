@@ -17,9 +17,10 @@ typedef struct pvar_struct_raw {
 
 typedef struct dbvar_struct_raw {
     uint32_t id;
-    uint32_t idx;
-    uint64_t start;
-    uint64_t end;
+    uint32_t idx;   // index to corresponding id in pvar array
+    uint64_t dptr;  // data pointer
+    uint64_t fptr;  // file pointer
+    uint64_t chunksize;
 } dbvar_struct; // defines variable chunk in datablock
 
 typedef struct db_struct_raw {
@@ -54,8 +55,9 @@ const uint8_t dbstructsize
 const uint8_t dbvarstructsize 
     = sizeof(uint32_t)  /* id */ 
     + sizeof(uint32_t)  /* idx */ 
-    + sizeof(uint64_t)  /* start */ 
-    + sizeof(uint64_t); /* end */ 
+    + sizeof(uint64_t)  /* dptr */ 
+    + sizeof(uint64_t)  /* fptr */ 
+    + sizeof(uint64_t); /* chunksize */ 
 
 // init datablock list
 db_struct *firstdb = NULL;
@@ -116,13 +118,15 @@ void checkpoint() {
 
     printf("< CHECKPOINT BEGIN >\n\n");
    
-    FILE *ckpt_file = open("test.ckpt", "wb+");
+    FILE *ckpt_file = fopen("test.ckpt", "wb+");
 
-    uint64_t offset = 0;
+    uint64_t mdoffset = 0;
     if(firstdb) {
 
         db_struct *currentdb = firstdb;
         dbvar_struct *currentdbvar = NULL;
+        char *dptr;
+        int dbvar_idx, pvar_idx, dbcounter=0;
 
         uint8_t isnextdb;
 
@@ -130,31 +134,30 @@ void checkpoint() {
             
             isnextdb = 0;
             
-            fseek( ckpt_file, offset, SEEK_SET);
+            fseek( ckpt_file, mdoffset, SEEK_SET );
             fwrite( currentdb, dbstructsize, 1, ckpt_file );
-            offset += dbstructsize;
+            mdoffset += dbstructsize;
             
-            for(dbvar_idx=0;dbvar_idx<numvars;dbvar_idx++) {
+            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
                 
-                currentdbvar = &(currentdb->dbvar[dbvar_idx]);
-                fseek( ckpt_file, offset, SEEK_SET);
+                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                fseek( ckpt_file, mdoffset, SEEK_SET );
                 fwrite( currentdbvar, dbvarstructsize, 1, ckpt_file );
-                offset += dbvarstructsize;
-                fseek( ckpt_file, pvar[currentdbvar->idx], SEEK_SET);
-
-
-                for(pvar_idx=0;pvar_idx<num_pvars_old;pvar_idx++) {
-                
-                }
+                printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
+                        dbcounter, currentdbvar->id, mdoffset);
+                mdoffset += dbvarstructsize;
+                dptr = (char*)&(pvars[currentdbvar->idx]) + currentdb->dbvars[dbvar_idx].dptr;
+                fseek( ckpt_file, currentdbvar->fptr, SEEK_SET );
+                fwrite( dptr, currentdbvar->chunksize, 1, ckpt_file );
             
             }
             
-            offset += lastdb->dbsize;
-            
-            if (lastdb->next) {
-                lastdb = lastdb->next;
+            if (currentdb->next) {
+                currentdb = currentdb->next;
                 isnextdb = 1;
             }
+
+            dbcounter++;
         
         } while( isnextdb );
     
@@ -180,12 +183,15 @@ void update_metadata() {
         dblock->numvars = num_pvars;
         dblock->dbvars = dbvars;
         for(dbvar_idx=0;dbvar_idx<dblock->numvars;dbvar_idx++) {
-            dbvars[dbvar_idx].start = dbsize;
+            dbvars[dbvar_idx].fptr = dbsize;
+            dbvars[dbvar_idx].dptr = 0;
             dbvars[dbvar_idx].id = pvars[dbvar_idx].id;
             dbvars[dbvar_idx].idx = dbvar_idx;
-            dbsize += (pvars[dbvar_idx].size * pvars[dbvar_idx].disp);
-            dbvars[dbvar_idx].end = dbsize;
-            printf("var-id: %i, start: %" PRIu64 " end: %" PRIu64 "\n", dbvars[dbvar_idx].id, dbvars[dbvar_idx].start, dbvars[dbvar_idx].end);
+            dbvars[dbvar_idx].chunksize = (pvars[dbvar_idx].size * pvars[dbvar_idx].disp);
+            dbsize += dbvars[dbvar_idx].chunksize; 
+            printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                    dbvars[dbvar_idx].id, dbvars[dbvar_idx].fptr, dbvars[dbvar_idx].fptr + dbvars[dbvar_idx].chunksize, 
+                    dbvars[dbvar_idx].dptr, dbvars[dbvar_idx].dptr + dbvars[dbvar_idx].chunksize);
         }
         num_pvars_old = num_pvars;
         dblock->dbsize = dbsize;
@@ -209,7 +215,7 @@ void update_metadata() {
             for(dbvar_idx=0;dbvar_idx<lastdb->numvars;dbvar_idx++) {
                 for(pvar_idx=0;pvar_idx<num_pvars_old;pvar_idx++) {
                     if(lastdb->dbvars[dbvar_idx].id == pvars[pvar_idx].id) {
-                        chunksize = lastdb->dbvars[dbvar_idx].end - lastdb->dbvars[dbvar_idx].start;
+                        chunksize = lastdb->dbvars[dbvar_idx].chunksize;
                         pvar_oldsizes[pvar_idx] += chunksize;
                     }
                 }
@@ -255,13 +261,15 @@ void update_metadata() {
                     case 1:
                         // add new protected variable in next datablock
                         dbvars = (dbvar_struct*) realloc( dbvars, (evar_idx+1) * sizeof(dbvar_struct) );
-                        dbvars[evar_idx].start = offset + dbsize;
+                        dbvars[evar_idx].fptr = offset + dbsize;
+                        dbvars[evar_idx].dptr = 0;
                         dbvars[evar_idx].id = pvars[pvar_idx].id;
                         dbvars[evar_idx].idx = pvar_idx;
-                        dbsize += (pvars[pvar_idx].size * pvars[pvar_idx].disp);
-                        dbvars[evar_idx].end = offset + dbsize;
-                        printf("var-id: %i, start: %" PRIu64 " end: %" PRIu64 "\n", 
-                                dbvars[evar_idx].id, dbvars[evar_idx].start, dbvars[evar_idx].end);
+                        dbvars[evar_idx].chunksize = (pvars[pvar_idx].size * pvars[pvar_idx].disp);
+                        dbsize += dbvars[evar_idx].chunksize; 
+                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;
@@ -270,13 +278,15 @@ void update_metadata() {
                         
                         // create data chunk info
                         dbvars = (dbvar_struct*) realloc( dbvars, (evar_idx+1) * sizeof(dbvar_struct) );
-                        dbvars[evar_idx].start = offset + dbsize;
+                        dbvars[evar_idx].fptr = offset + dbsize;
+                        dbvars[evar_idx].dptr = pvar_oldsizes[pvar_idx];
                         dbvars[evar_idx].id = pvars[pvar_idx].id;
                         dbvars[evar_idx].idx = pvar_idx;
-                        dbsize += pvars[pvar_idx].size * pvars[pvar_idx].disp - pvar_oldsizes[pvar_idx];
-                        dbvars[evar_idx].end = offset + dbsize;
-                        printf("var-id: %i, start: %" PRIu64 " end: %" PRIu64 "\n", 
-                                dbvars[evar_idx].id, dbvars[evar_idx].start, dbvars[evar_idx].end);
+                        dbvars[evar_idx].chunksize = pvars[pvar_idx].size * pvars[pvar_idx].disp - pvar_oldsizes[pvar_idx];
+                        dbsize += dbvars[evar_idx].chunksize; 
+                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;
