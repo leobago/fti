@@ -628,3 +628,173 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     return FTI_SCES;
 }
+
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      updates datablock structure for FTI File Format.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Data        Dataset metadata.
+    @return     integer         FTI_SCES if successful.
+    
+    Updates information about the checkpoint file. Updates file pointers
+    in the dbvar structures and updates the db structure.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, 
+      FTIT_dataset* FTI_Data )
+{
+
+    int dbvar_idx, pvar_idx, num_edit_pvars = 0;
+    int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
+    FTIT_dbvar *dbvars = NULL;
+    int isnextdb;
+    long offset = 0, chunksize;
+    long *FTI_Data_oldsize, dbsize;
+    // first call, init first datablock
+    if(!FTI_Exec->firstdb) { // init file info
+        dbsize = FTI_dbstructsize + FTI_dbvarstructsize * FTI_Exec->nbVar;
+        FTIT_db *dblock = (FTIT_db*) malloc( sizeof(FTIT_db) );
+        dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * FTI_Exec->nbVar );
+        dblock->previous = NULL;
+        dblock->next = NULL;
+        dblock->numvars = FTI_Exec->nbVar;
+        dblock->dbvars = dbvars;
+        for(dbvar_idx=0;dbvar_idx<dblock->numvars;dbvar_idx++) {
+            dbvars[dbvar_idx].fptr = dbsize;
+            dbvars[dbvar_idx].dptr = 0;
+            dbvars[dbvar_idx].id = FTI_Data[dbvar_idx].id;
+            dbvars[dbvar_idx].idx = dbvar_idx;
+            dbvars[dbvar_idx].chunksize = FTI_Data[dbvar_idx].size;
+            dbsize += dbvars[dbvar_idx].chunksize; 
+            printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                    dbvars[dbvar_idx].id, dbvars[dbvar_idx].fptr, dbvars[dbvar_idx].fptr + dbvars[dbvar_idx].chunksize, 
+                    dbvars[dbvar_idx].dptr, dbvars[dbvar_idx].dptr + dbvars[dbvar_idx].chunksize);
+        }
+        FTI_Exec->nbVarStored = FTI_Exec->nbVar;
+        dblock->dbsize = dbsize;
+        
+        // set as first datablock
+        FTI_Exec->firstdb = dblock;
+        FTI_Exec->lastdb = dblock;
+    
+    } else {
+       
+        /*
+         *  - check if protected variable is in file info
+         *  - check if size has changed
+         */
+        
+        FTI_Data_oldsize = (long*) calloc( FTI_Exec->nbVarStored, sizeof(long) );
+        FTI_Exec->lastdb = FTI_Exec->firstdb;
+        // iterate though datablock list
+        do {
+            isnextdb = 0;
+            for(dbvar_idx=0;dbvar_idx<FTI_Exec->lastdb->numvars;dbvar_idx++) {
+                for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
+                    if(FTI_Exec->lastdb->dbvars[dbvar_idx].id == FTI_Data[pvar_idx].id) {
+                        chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize;
+                        FTI_Data_oldsize[pvar_idx] += chunksize;
+                    }
+                }
+            }
+            offset += FTI_Exec->lastdb->dbsize;
+            if (FTI_Exec->lastdb->next) {
+                FTI_Exec->lastdb = FTI_Exec->lastdb->next;
+                isnextdb = 1;
+            }
+        } while( isnextdb );
+        
+        printf("offset: %" PRIu64 "\n", offset);
+
+        // check for new protected variables
+        for(pvar_idx=FTI_Exec->nbVarStored;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
+            editflags[pvar_idx] = 1;
+            num_edit_pvars++;
+        }
+        
+        // check if size changed
+        for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
+            if(FTI_Data_oldsize[pvar_idx] != FTI_Data[pvar_idx].size) {
+                editflags[pvar_idx] = 2;
+                num_edit_pvars++;
+            }
+        }
+                
+        // check for edit flags
+        for(pvar_idx=0;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
+            printf("%i,",editflags[pvar_idx]);
+        }
+        printf("\n");
+
+        // if size changed or we have new variables to protect, create new block.
+        
+        dbsize = FTI_dbstructsize + FTI_dbvarstructsize * num_edit_pvars;
+       
+        int evar_idx = 0;
+        if( num_edit_pvars ) {
+            for(pvar_idx=0; pvar_idx<FTI_Exec->nbVar; pvar_idx++) {
+                switch(editflags[pvar_idx]) {
+
+                    case 1:
+                        // add new protected variable in next datablock
+                        dbvars = (FTIT_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIT_dbvar) );
+                        dbvars[evar_idx].fptr = offset + dbsize;
+                        dbvars[evar_idx].dptr = 0;
+                        dbvars[evar_idx].id = FTI_Data[pvar_idx].id;
+                        dbvars[evar_idx].idx = pvar_idx;
+                        dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size;
+                        dbsize += dbvars[evar_idx].chunksize; 
+                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
+                        evar_idx++;
+
+                        break;
+
+                    case 2:
+                        
+                        // create data chunk info
+                        dbvars = (FTIT_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIT_dbvar) );
+                        dbvars[evar_idx].fptr = offset + dbsize;
+                        dbvars[evar_idx].dptr = FTI_Data_oldsize[pvar_idx];
+                        dbvars[evar_idx].id = FTI_Data[pvar_idx].id;
+                        dbvars[evar_idx].idx = pvar_idx;
+                        dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx];
+                        dbsize += dbvars[evar_idx].chunksize; 
+                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
+                        evar_idx++;
+
+                        break;
+
+                }
+
+            }
+
+            FTIT_db  *dblock = (FTIT_db*) malloc( sizeof(FTIT_db) );
+            FTI_Exec->lastdb->next = dblock;
+            dblock->previous = FTI_Exec->lastdb;
+            dblock->next = NULL;
+            dblock->numvars = num_edit_pvars;
+            dblock->dbsize = dbsize;
+            dblock->dbvars = dbvars;
+            FTI_Exec->lastdb = dblock;
+        
+        }
+
+        FTI_Exec->nbVarStored = FTI_Exec->nbVar;
+        
+        free(FTI_Data_oldsize);
+    
+    }
+
+    free(editflags);
+    return FTI_SCES;
+
+}

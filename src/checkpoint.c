@@ -169,7 +169,8 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
         }
-        res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+        //res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+        res = FTI_Try(FTI_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -627,3 +628,105 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    return FTI_SCES;
 }
 #endif
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Writes ckpt to PFS using FTIFF.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Data        Dataset metadata.
+    @return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                    FTIT_dataset* FTI_Data)
+{
+   long mdoffset;
+   long endoffile = 0;
+   char *zeros = (char*) calloc(1, FTI_dbstructsize); 
+
+   FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
+   char str[FTI_BUFS], fn[FTI_BUFS];
+   int level = FTI_Exec->ckptLvel;
+   if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+      sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+   }
+   else {
+      sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+   }
+   
+   FTI_UpdateDatastructFTIFF( FTI_Exec, FTI_Data );
+
+   if(FTI_Exec->firstdb) {
+      
+      // open task local ckpt file
+      FILE* fd = fopen(fn, "wb+");
+      if (fd == NULL) {
+         sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+         FTI_Print(str, FTI_EROR);
+
+         return FTI_NSCS;
+      }
+
+      FTIT_db *currentdb = FTI_Exec->firstdb;
+      FTIT_dbvar *currentdbvar = NULL;
+      char *dptr;
+      int dbvar_idx, pvar_idx, dbcounter=0;
+
+      int isnextdb;
+
+      do {
+
+         if(FTI_Topo->splitRank) {
+            printf("%ld\n", FTI_dbstructsize);
+         }
+         
+         isnextdb = 0;
+
+         mdoffset = endoffile;
+
+         fseek( fd, mdoffset, SEEK_SET );
+         fwrite( currentdb, FTI_dbstructsize, 1, fd );
+         mdoffset += FTI_dbstructsize;
+
+         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            fseek( fd, mdoffset, SEEK_SET );
+            fwrite( currentdbvar, FTI_dbvarstructsize, 1, fd );
+            if(FTI_Topo->splitRank) {
+               printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
+                     dbcounter, currentdbvar->id, mdoffset);
+            }
+            mdoffset += FTI_dbvarstructsize;
+            dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+            fseek( fd, currentdbvar->fptr, SEEK_SET );
+            fwrite( dptr, currentdbvar->chunksize, 1, fd );
+
+         }
+
+         endoffile += currentdb->dbsize;
+
+         if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+         }
+
+         dbcounter++;
+
+      } while( isnextdb );
+
+      fseek( fd, endoffile, SEEK_SET );
+      fwrite( zeros, FTI_dbstructsize, 1, fd );
+      fflush( fd );
+      fclose( fd );
+
+   }
+
+   return FTI_SCES;
+
+}

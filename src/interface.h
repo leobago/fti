@@ -64,6 +64,7 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
+#include <inttypes.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -77,10 +78,28 @@
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
 
+// datablock size in file
+extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
+//    = sizeof(uint32_t)  /* numvars */ 
+//    + sizeof(uint64_t); /* dbsize */ 
+
+// var info element size in file
+extern int FTI_dbvarstructsize;   /**< size of FTIT_dbvar struct in file */ 
+//    = sizeof(uint32_t)  /* id */ 
+//    + sizeof(uint32_t)  /* idx */ 
+//    + sizeof(uint64_t)  /* dptr */ 
+//    + sizeof(uint64_t)  /* fptr */ 
+//    + sizeof(uint64_t); /* chunksize */ 
+
 /*---------------------------------------------------------------------------
                             FTI private functions
 ---------------------------------------------------------------------------*/
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
+int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, 
+      FTIT_dataset* FTI_Data );
+int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                    FTIT_dataset* FTI_Data);
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
 void FTI_Print(char *msg, int priority);

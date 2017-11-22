@@ -39,6 +39,8 @@
 #include "interface.h"
 #include <dirent.h>
 
+int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
+int FTI_dbvarstructsize;   /**< size of FTIT_dbvar struct in file */ 
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Init of the static variables
@@ -51,6 +53,19 @@
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                  FTIT_injection* FTI_Inje) {
+
+// datablock size in file
+FTI_dbstructsize
+    = sizeof(int)  /* numvars */ 
+    + sizeof(long); /* dbsize */ 
+
+// var info element size in file
+FTI_dbvarstructsize
+    = sizeof(int)  /* id */ 
+    + sizeof(int)  /* idx */ 
+    + sizeof(long)  /* dptr */ 
+    + sizeof(long)  /* fptr */ 
+    + sizeof(long); /* chunksize */ 
 
 // +--------- +
 // | FTI_Exec |

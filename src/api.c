@@ -57,7 +57,6 @@ static FTIT_dataset FTI_Data[FTI_BUFS];
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
-
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
 
