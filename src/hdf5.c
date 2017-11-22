@@ -118,4 +118,41 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     return FTI_SCES;
 }
 
+int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                       FTIT_dataset* FTI_Data, int id)
+{
+    char str[FTI_BUFS], fn[FTI_BUFS];
+    sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file_id < 0) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if (FTI_Data[i].id == id) {
+            break;
+        }
+    }
+
+    sprintf(str, "/dataset%d", i);
+    herr_t res = H5LTread_dataset(file_id, str, FTI_Data[i].type.h5datatype, FTI_Data[i].ptr);
+    if (res < 0) {
+        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+        H5Fclose(file_id);
+        return FTI_NREC;
+    }
+
+    if (H5Fclose(file_id) < 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+    return FTI_SCES;
+}
+
 #endif

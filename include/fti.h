@@ -130,6 +130,14 @@ typedef struct FTIT_type {
 #endif
 } FTIT_type;
 
+typedef struct FTIT_complexType {
+    FTIT_type*          type[FTI_BUFS];
+    int                 typeDimensions[FTI_BUFS];
+    int                 typeDimensionLength[FTI_BUFS][32];
+    int                 length;
+    char                name[FTI_BUFS][FTI_BUFS];
+} FTIT_complexType;
+
 /** @typedef    FTIT_dataset
  *  @brief      Dataset metadata.
  *
@@ -322,12 +330,9 @@ extern FTIT_type FTI_LDBE;
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
-int FTI_InitSimpleType(FTIT_type* type, FTIT_type** types, int length);
-int FTI_InitComplexType(FTIT_type* newType, FTIT_type** types, int* typeDimensions,
-                        int** typeDimensionLength, int length);
-int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types,
-                                 int* typeDimensions, int** typeDimensionLength,
-                                 char** name, int length);
+int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition);
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition);
+int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 long FTI_GetStoredSize(int id);
 void* FTI_Realloc(int id, void* ptr);

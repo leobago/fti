@@ -206,15 +206,15 @@ int FTI_InitType(FTIT_type* type, int size)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitSimpleType(FTIT_type* type, FTIT_type** types, int length)
+int FTI_InitSimpleType(FTIT_type* type, FTIT_complexType* typeDefinition)
 {
     type->id = FTI_Exec.nbType;
     memset(type->complex, -1, FTI_BUFS);
     int i;
     int sumSize = 0;
-    for (i = 0; i < length; i++) {
-        type->complex[i] = types[i]->id;
-        sumSize += types[i]->size;
+    for (i = 0; i < typeDefinition->length; i++) {
+        type->complex[i] = typeDefinition->type[i]->id;
+        sumSize += typeDefinition->type[i]->size;
     }
     type->size = sumSize;
 
@@ -225,69 +225,61 @@ int FTI_InitSimpleType(FTIT_type* type, FTIT_type** types, int length)
     }
 
     size_t offset = 0;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < typeDefinition->length; i++) {
         char name[FTI_BUFS];
         sprintf(name, "T%d", i);
-        herr_t res = H5Tinsert(type->h5datatype, name, offset, types[i]->h5datatype);
+        herr_t res = H5Tinsert(type->h5datatype, name, offset, typeDefinition->type[i]->h5datatype);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }
-        offset += types[i]->size;
+        offset += typeDefinition->type[i]->size;
     }
-
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
     return FTI_SCES;
 }
 
-int FTI_InitComplexType(FTIT_type* newType, FTIT_type** types, int* typeDimensions, int** typeDimensionLength, int length)
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
-    if (length < 1) {
+    if (typeDefinition->length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (length > 255) {
+    if (typeDefinition->length > 255) {
         FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    char** name = malloc(length * sizeof(char*));
     int i;
-    for (i = 0; i < length; i++) {
-        name[i] = malloc(FTI_BUFS);
-        sprintf(name[i], "T%d", i);
+    for (i = 0; i < typeDefinition->length; i++) {
+        sprintf(typeDefinition->name[i], "T%d", i);
     }
 
-    int res = FTI_InitComplexTypeWithNames(newType, types, typeDimensions, typeDimensionLength, name, length);
-
-    for (i = 0; i < length; i++) {
-        free(name[i]);
-    }
-    return res;
+    return FTI_InitComplexTypeWithNames(newType, typeDefinition);
 }
 
-int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types, int* typeDimensions, int** typeDimensionLength,  char** name, int length)
+int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
-    if (length < 1) {
+    if (typeDefinition->length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (length > 255) {
+    if (typeDefinition->length > 255) {
         FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
         return FTI_NSCS;
     }
     int i;
-    for (i = 0; i < length; i++) {
-        if (typeDimensions[i] < 1) {
+    for (i = 0; i < typeDefinition->length; i++) {
+        if (typeDefinition->typeDimensions[i] < 1) {
             FTI_Print("Type dimention must be greater than 0.", FTI_WARN);
             return FTI_NSCS;
         }
-        if (typeDimensions[i] > 31) {
+        if (typeDefinition->typeDimensions[i] > 31) {
             FTI_Print("Maximum type dimention is 32.", FTI_WARN);
             return FTI_NSCS;
         }
         int j;
-        for (j = 0; j < typeDimensions[i]; j++) {
-            if (typeDimensionLength[i][j] < 1) {
+        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
+            if (typeDefinition->typeDimensionLength[i][j] < 1) {
                 FTI_Print("Type dimention length must be greater than 0.", FTI_WARN);
                 return FTI_NSCS;
             }
@@ -300,17 +292,17 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types, int* typ
     memset(newType->dimensionLength, -1, FTI_BUFS * 32);
 
     int sumSize = 0;
-    for (i = 0; i < length; i++) {
-        newType->complex[i] = types[i]->id;
-        newType->dimensions[i] = typeDimensions[i];
-        strncpy(newType->name[i], name[i], FTI_BUFS);
+    for (i = 0; i < typeDefinition->length; i++) {
+        newType->complex[i] = typeDefinition->type[i]->id;
+        newType->dimensions[i] = typeDefinition->typeDimensions[i];
+        strncpy(newType->name[i], typeDefinition->name[i], FTI_BUFS);
         int typeCount = 0;
         int j;
-        for (j = 0; j < typeDimensions[i]; j++) {
-            newType->dimensionLength[i][j] = typeDimensionLength[i][j];
-            typeCount += typeDimensionLength[i][j];
+        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
+            newType->dimensionLength[i][j] = typeDefinition->typeDimensionLength[i][j];
+            typeCount += typeDefinition->typeDimensionLength[i][j];
         }
-        sumSize += (types[i]->size * typeCount);
+        sumSize += (typeDefinition->type[i]->size * typeCount);
     }
     newType->size = sumSize;
 
@@ -322,10 +314,10 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types, int* typ
 
 #ifdef ENABLE_HDF5
     size_t offset = 0;
-    for (i = 0; i < length; i++) {
-        hid_t partType = types[i]->h5datatype;
-        if (typeDimensions[i] > 1) {
-            partType = H5Tarray_create(types[i]->h5datatype, typeDimensions[i], (hsize_t *) typeDimensionLength[i]);
+    for (i = 0; i < typeDefinition->length; i++) {
+        hid_t partType = typeDefinition->type[i]->h5datatype;
+        if (typeDefinition->typeDimensions[i] > 1) {
+            partType = H5Tarray_create(typeDefinition->type[i]->h5datatype, typeDefinition->typeDimensions[i], (hsize_t *) typeDefinition->typeDimensionLength[i]);
         }
         herr_t res = H5Tinsert(newType->h5datatype, newType->name[i], offset, partType);
         if (res < 0) {
@@ -335,10 +327,10 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types, int* typ
 
         int typeCount = 0;
         int j;
-        for (j = 0; j < typeDimensions[i]; j++) {
-            typeCount += typeDimensionLength[i][j];
+        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
+            typeCount += typeDefinition->typeDimensionLength[i][j];
         }
-        offset += (types[i]->size * typeCount);
+        offset += (typeDefinition->type[i]->size * typeCount);
     }
 #endif
 
@@ -959,6 +951,12 @@ int FTI_RecoverVar(int id){
             }
         }
     }
+
+#ifdef ENABLE_HDF5
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
+    }
+#endif
 
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
