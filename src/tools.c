@@ -39,8 +39,9 @@
 #include "interface.h"
 #include <dirent.h>
 
-int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
-int FTI_dbvarstructsize;   /**< size of FTIT_dbvar struct in file */ 
+int FTI_dbstructsize;		        /**< size of FTIT_db struct in file    */
+int FTI_dbvarstructsize;            /**< size of FTIT_dbvar struct in file */ 
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Init of the static variables
@@ -56,16 +57,16 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 // datablock size in file
 FTI_dbstructsize
-    = sizeof(int)  /* numvars */ 
-    + sizeof(long); /* dbsize */ 
+    = sizeof(int)               /* numvars */ 
+    + sizeof(long);             /* dbsize */ 
 
 // var info element size in file
 FTI_dbvarstructsize
-    = sizeof(int)  /* id */ 
-    + sizeof(int)  /* idx */ 
-    + sizeof(long)  /* dptr */ 
-    + sizeof(long)  /* fptr */ 
-    + sizeof(long); /* chunksize */ 
+    = sizeof(int)               /* id */ 
+    + sizeof(int)               /* idx */ 
+    + sizeof(long)              /* dptr */ 
+    + sizeof(long)              /* fptr */ 
+    + sizeof(long);             /* chunksize */ 
 
 // +--------- +
 // | FTI_Exec |
@@ -188,22 +189,76 @@ return FTI_SCES;
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum)
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
+      FTIT_configuration* FTI_Conf, char* checksum)
 {
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
 
-    int i; //iterate all variables
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+    if (FTI_Conf->ioMode == FTI_IO_POSIX) {
+       int i; //iterate all variables
+       for (i = 0; i < FTI_Exec->nbVar; i++) {
+          MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+       }
+
+       unsigned char hash[MD5_DIGEST_LENGTH];
+       MD5_Final (hash, &mdContext);
+
+       for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
+          sprintf(&checksum[i], "%02x", hash[i]);
+       checksum[i] = '\0'; //to get a proper string
     }
+    
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
 
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_Final (hash, &mdContext);
+      FTIT_db *currentdb = FTI_Exec->firstdb;
+      FTIT_dbvar *currentdbvar = NULL;
+      char *dptr;
+      int dbvar_idx, pvar_idx, dbcounter=0;
+      char *zeros = (char*) calloc(1, FTI_dbstructsize); 
 
-    for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-        sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0'; //to get a proper string
+      int isnextdb;
+
+      do {
+
+         isnextdb = 0;
+
+         MD5_Update (&mdContext, currentdb, FTI_dbstructsize);
+         
+         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            MD5_Update (&mdContext, currentdbvar, FTI_dbvarstructsize);
+            
+         }
+         
+         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+            
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+            MD5_Update (&mdContext, dptr, currentdbvar->chunksize);
+
+         }
+
+         if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+         }
+
+         dbcounter++;
+
+      } while( isnextdb );
+            
+      MD5_Update (&mdContext, zeros, FTI_dbstructsize);
+      
+      unsigned char hash[MD5_DIGEST_LENGTH];
+      MD5_Final (hash, &mdContext);
+      int i;
+      for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
+         sprintf(&checksum[i], "%02x", hash[i]);
+      checksum[i] = '\0'; //to get a proper string
+    
+    }
 
     return FTI_SCES;
 }

@@ -63,14 +63,17 @@
 #define FTI_IO_POSIX 1001
 /** Token for IO mode MPI.                                                 */
 #define FTI_IO_MPI 1002
+/** Token for IO mode FTI-FF.                                                 */
+#define FTI_IO_FTIFF 1003
 
 /** Hashed string length.                                                */
 #define MD5_DIGEST_LENGTH 17
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     /** Token for IO mode SIONlib.                                         */
-    #define FTI_IO_SIONLIB 1003
+    #define FTI_IO_SIONLIB 1004
 #endif
+
 
 #ifdef __cplusplus
 extern "C" {

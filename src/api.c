@@ -573,7 +573,7 @@ int FTI_Recover()
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
-        }
+	   }
     }
 
     //Recovering from local for L4 case in FTI_Recover
@@ -583,29 +583,105 @@ int FTI_Recover()
     else {
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
+    
+	FILE* fd = fopen(fn, "rb");
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
+    if (FTI_Conf.ioMode == FTI_IO_POSIX) {
 
-    FILE* fd = fopen(fn, "rb");
-    if (fd == NULL) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
+       sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+       FTI_Print(str, FTI_DBUG);
+
+       if (fd == NULL) {
+          FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+          return FTI_NREC;
+       }
+
+       for (i = 0; i < FTI_Exec.nbVar; i++) {
+          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+          if (ferror(fd)) {
+             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+             fclose(fd);
+             return FTI_NREC;
+          }
+       }
+       if (fclose(fd) != 0) {
+          FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+          return FTI_NREC;
+	   }
+	  FTI_Exec.reco = 0;
+
     }
 
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-        if (ferror(fd)) {
-            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
-    }
-    if (fclose(fd) != 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    FTI_Exec.reco = 0;
+	if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+
+	   FTIT_db *currentdb, *nextdb;
+	   FTIT_dbvar *currentdbvar = NULL;
+	   char *dptr;
+	   int dbvar_idx, pvar_idx, dbcounter=0;
+	   char *zeros = (char*) calloc(1, FTI_dbstructsize); 
+
+	   long endoffile = 0, mdoffset;
+
+	   int isnextdb;
+
+	   currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+	   FTI_Exec.firstdb = currentdb;
+
+	   long read;
+
+	   do {
+
+		  nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+
+		  isnextdb = 0;
+
+		  mdoffset = endoffile;
+		  printf("[RECOVER] db->mdoffset: %" PRIu64 "\n", mdoffset);
+
+		  fseek( fd, mdoffset, SEEK_SET );
+		  fread( currentdb, FTI_dbstructsize, 1, fd );
+		  mdoffset += FTI_dbstructsize;
+		  printf("[RECOVER] db->numvars: %" PRIu32 " db->dbsize: %" PRIu64 "\n", currentdb->numvars, currentdb->dbsize);
+
+		  currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
+
+		  for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+			 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+			 fseek( fd, mdoffset, SEEK_SET );
+			 fread( currentdbvar, FTI_dbvarstructsize, 1, fd );
+			 //printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
+			 //        dbcounter, currentdbvar->id, mdoffset);
+			 mdoffset += FTI_dbvarstructsize;
+			 dptr =(void*)((uintptr_t)FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr);
+			 printf("[RECOVER] dbvar->id: %" PRIu32 " dbvar->fstart: %" PRIu32 ", dbvar->fend: %" PRIu64 ", write to buffer at 0x%" PRIxPTR " compare: 0x%" PRIxPTR "\n", 
+				   currentdbvar->id, currentdbvar->fptr, currentdbvar->fptr+currentdbvar->chunksize, FTI_Data[currentdbvar->idx].ptr, dptr);
+			 fseek( fd, currentdbvar->fptr, SEEK_SET );
+
+			 read = fread( dptr, currentdbvar->chunksize, 1, fd );
+			 printf("read: %ld\n", read);
+
+		  }
+
+		  endoffile += currentdb->dbsize;
+		  fseek( fd, endoffile, SEEK_SET );
+		  fread( nextdb, FTI_dbstructsize, 1, fd );
+
+		  if ( memcmp( nextdb, zeros, FTI_dbstructsize ) != 0 ) {
+			 currentdb->next = nextdb;
+			 nextdb->previous = currentdb;
+			 currentdb = nextdb;
+			 isnextdb = 1;
+		  }
+
+		  dbcounter++;
+
+	   } while( isnextdb );
+
+	   FTI_Exec.lastdb = currentdb;
+
+
+	}
     return FTI_SCES;
 }
 

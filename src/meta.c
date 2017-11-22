@@ -574,7 +574,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
     char checksum[MD5_DIGEST_LENGTH];
-    FTI_Checksum(FTI_Exec, FTI_Data, checksum);
+    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
     char* checksums;
     if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
@@ -671,9 +671,9 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             dbvars[dbvar_idx].idx = dbvar_idx;
             dbvars[dbvar_idx].chunksize = FTI_Data[dbvar_idx].size;
             dbsize += dbvars[dbvar_idx].chunksize; 
-            printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-                    dbvars[dbvar_idx].id, dbvars[dbvar_idx].fptr, dbvars[dbvar_idx].fptr + dbvars[dbvar_idx].chunksize, 
-                    dbvars[dbvar_idx].dptr, dbvars[dbvar_idx].dptr + dbvars[dbvar_idx].chunksize);
+            //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+            //        dbvars[dbvar_idx].id, dbvars[dbvar_idx].fptr, dbvars[dbvar_idx].fptr + dbvars[dbvar_idx].chunksize, 
+            //        dbvars[dbvar_idx].dptr, dbvars[dbvar_idx].dptr + dbvars[dbvar_idx].chunksize);
         }
         FTI_Exec->nbVarStored = FTI_Exec->nbVar;
         dblock->dbsize = dbsize;
@@ -709,7 +709,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             }
         } while( isnextdb );
         
-        printf("offset: %" PRIu64 "\n", offset);
+        //printf("offset: %" PRIu64 "\n", offset);
 
         // check for new protected variables
         for(pvar_idx=FTI_Exec->nbVarStored;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
@@ -726,10 +726,10 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         }
                 
         // check for edit flags
-        for(pvar_idx=0;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
-            printf("%i,",editflags[pvar_idx]);
-        }
-        printf("\n");
+        //for(pvar_idx=0;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
+        //    printf("%i,",editflags[pvar_idx]);
+        //}
+        //printf("\n");
 
         // if size changed or we have new variables to protect, create new block.
         
@@ -749,9 +749,9 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].idx = pvar_idx;
                         dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size;
                         dbsize += dbvars[evar_idx].chunksize; 
-                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
-                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
+                        //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                        //        dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                        //        dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;
@@ -766,9 +766,9 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].idx = pvar_idx;
                         dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx];
                         dbsize += dbvars[evar_idx].chunksize; 
-                        printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-                                dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
-                                dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
+                        //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
+                        //        dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
+                        //        dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;
