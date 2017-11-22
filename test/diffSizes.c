@@ -86,7 +86,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     FTIT_type* typesIN[2];
     typesIN[0] = &FTI_INTG;
     typesIN[1] = &FTI_INTG;
-    FTI_InitComplexType(&itersInfo, typesIN, 2);
+    FTI_InitSimpleType(&itersInfo, typesIN, 2);
 
     int res;
     int j;

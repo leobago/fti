@@ -206,7 +206,7 @@ int FTI_InitType(FTIT_type* type, int size)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length)
+int FTI_InitSimpleType(FTIT_type* type, FTIT_type** types, int length)
 {
     type->id = FTI_Exec.nbType;
     memset(type->complex, -1, FTI_BUFS);
@@ -239,40 +239,109 @@ int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length)
     return FTI_SCES;
 }
 
-
-int FTI_InitComplexTypeWithArrays(FTIT_type* type, FTIT_type** types, int* typeCount, int length)
+int FTI_InitComplexType(FTIT_type* newType, FTIT_type** types, int* typeDimensions, int** typeDimensionLength, int length)
 {
-    type->id = FTI_Exec.nbType;
-    memset(type->complex, -1, FTI_BUFS);
+    if (length < 1) {
+        FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (length > 255) {
+        FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    char** name = malloc(length * sizeof(char*));
     int i;
+    for (i = 0; i < length; i++) {
+        name[i] = malloc(FTI_BUFS);
+        sprintf(name[i], "T%d", i);
+    }
+
+    int res = FTI_InitComplexTypeWithNames(newType, types, typeDimensions, typeDimensionLength, name, length);
+
+    for (i = 0; i < length; i++) {
+        free(name[i]);
+    }
+    return res;
+}
+
+int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types, int* typeDimensions, int** typeDimensionLength,  char** name, int length)
+{
+    if (length < 1) {
+        FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (length > 255) {
+        FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    int i;
+    for (i = 0; i < length; i++) {
+        if (typeDimensions[i] < 1) {
+            FTI_Print("Type dimention must be greater than 0.", FTI_WARN);
+            return FTI_NSCS;
+        }
+        if (typeDimensions[i] > 31) {
+            FTI_Print("Maximum type dimention is 32.", FTI_WARN);
+            return FTI_NSCS;
+        }
+        int j;
+        for (j = 0; j < typeDimensions[i]; j++) {
+            if (typeDimensionLength[i][j] < 1) {
+                FTI_Print("Type dimention length must be greater than 0.", FTI_WARN);
+                return FTI_NSCS;
+            }
+        }
+    }
+
+    newType->id = FTI_Exec.nbType;
+    memset(newType->complex, -1, FTI_BUFS);
+    memset(newType->dimensions, -1, FTI_BUFS);
+    memset(newType->dimensionLength, -1, FTI_BUFS * 32);
+
     int sumSize = 0;
     for (i = 0; i < length; i++) {
-        type->complex[i] = types[i]->id;
-        sumSize += (types[i]->size * typeCount[i]);
+        newType->complex[i] = types[i]->id;
+        newType->dimensions[i] = typeDimensions[i];
+        strncpy(newType->name[i], name[i], FTI_BUFS);
+        int typeCount = 0;
+        int j;
+        for (j = 0; j < typeDimensions[i]; j++) {
+            newType->dimensionLength[i][j] = typeDimensionLength[i][j];
+            typeCount += typeDimensionLength[i][j];
+        }
+        sumSize += (types[i]->size * typeCount);
     }
-    type->size = sumSize;
+    newType->size = sumSize;
 
-    type->h5datatype = H5Tcreate(H5T_COMPOUND, type->size);
-    if (type->h5datatype < 0) {
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+    if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
     }
 
+#ifdef ENABLE_HDF5
     size_t offset = 0;
     for (i = 0; i < length; i++) {
-        char name[FTI_BUFS];
-        sprintf(name, "T%d", i);
         hid_t partType = types[i]->h5datatype;
-        if (typeCount[i] > 1) {
-            hsize_t typeSize = typeCount[i];
-            partType = H5Tarray_create(types[i]->h5datatype, 1, &typeSize);
+        if (typeDimensions[i] > 1) {
+            partType = H5Tarray_create(types[i]->h5datatype, typeDimensions[i], (hsize_t *) typeDimensionLength[i]);
         }
-        herr_t res = H5Tinsert(type->h5datatype, name, offset, partType);
+        herr_t res = H5Tinsert(newType->h5datatype, newType->name[i], offset, partType);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+            return FTI_NSCS;
         }
-        offset += (types[i]->size * typeCount[i]);
+
+        int typeCount = 0;
+        int j;
+        for (j = 0; j < typeDimensions[i]; j++) {
+            typeCount += typeDimensionLength[i][j];
+        }
+        offset += (types[i]->size * typeCount);
     }
+#endif
+
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
     return FTI_SCES;
 }

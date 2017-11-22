@@ -117,11 +117,16 @@ typedef union FTIT_float {
  *  This type allows handling data structures.
  */
 typedef struct FTIT_type {
-    int             id;                 /**< ID of the data type.           */
-    int             size;               /**< Size of the data type.         */
-    int             complex[FTI_BUFS];  /**< Types ID for complex datatype  */
+    int             id;                         /**< ID of the data type.           */
+    int             size;                       /**< Size of the data type.         */
+
+    //fileds for HDF5 conversion
+    int             complex[FTI_BUFS];          /**< Types ID for complex datatype  */
+    int             dimensions[FTI_BUFS];
+    int             dimensionLength[FTI_BUFS][32];
+    char            name[FTI_BUFS][FTI_BUFS];
 #ifdef ENABLE_HDF5
-    hid_t           h5datatype;         /**< Complex HDF5 type.             */
+    hid_t           h5datatype;                 /**< Complex HDF5 type.             */
 #endif
 } FTIT_type;
 
@@ -317,7 +322,12 @@ extern FTIT_type FTI_LDBE;
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
-int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length);
+int FTI_InitSimpleType(FTIT_type* type, FTIT_type** types, int length);
+int FTI_InitComplexType(FTIT_type* newType, FTIT_type** types, int* typeDimensions,
+                        int** typeDimensionLength, int length);
+int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_type** types,
+                                 int* typeDimensions, int** typeDimensionLength,
+                                 char** name, int length);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 long FTI_GetStoredSize(int id);
 void* FTI_Realloc(int id, void* ptr);
