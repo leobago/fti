@@ -154,7 +154,7 @@ typedef struct FTIT_dataset {
     int             eleSize;            /**< Element size for the dataset.  */
     long            size;               /**< Total size of the dataset.     */
     /** MD5 Checksum                    */
-    char            checksum[MD5_DIGEST_LENGTH];
+    char            name[MD5_DIGEST_LENGTH];
 } FTIT_dataset;
 
 /** @typedef    FTIT_metadata
@@ -338,6 +338,7 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* type, FTIT_complexType* typeDefinitio
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
+int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name);
 long FTI_GetStoredSize(int id);
 void* FTI_Realloc(int id, void* ptr);
 int FTI_BitFlip(int datasetID);

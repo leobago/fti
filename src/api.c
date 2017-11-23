@@ -379,6 +379,24 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
+    char name[FTI_BUFS];
+    sprintf(name, "Dataset_%d", id);
+    int i;
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (id == FTI_Data[i].id) { //Search for dataset with given id
+            strncpy(name, FTI_Data[i].name, FTI_BUFS);
+        }
+    }
+
+    return FTI_ProtectWithName(id, ptr, count, type, name);
+}
+
+int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name)
+{
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
     char str[FTI_BUFS]; //For console output
 
@@ -391,6 +409,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].type = type;
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
+            strncpy(FTI_Data[i].name, name, FTI_BUFS);
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -412,6 +431,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].type = type;
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    strncpy(FTI_Data[FTI_Exec.nbVar].name, name, FTI_BUFS);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
