@@ -64,9 +64,14 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    // write data into ckpt file
    int i;
    for (i = 0; i < FTI_Exec->nbVar; i++) {
+      hid_t h5Type = FTI_Data[i].type.h5datatype;
+      if (FTI_Data[i].type.structure == NULL) {
+          //save as binary
+          h5Type = H5Tcopy(H5T_NATIVE_CHAR);
+      }
       sprintf(str, "/dataset%d", i);
-      herr_t res = H5LTmake_dataset(file_id, str, 1, (hsize_t*) &FTI_Data[i].count,
-                               FTI_Data[i].type.h5datatype , FTI_Data[i].ptr);
+      hsize_t datasetSize = FTI_Data[i].size;
+      herr_t res = H5LTmake_dataset(file_id, str, 1, &datasetSize, h5Type, FTI_Data[i].ptr);
       if (res < 0) {
          sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
          FTI_Print(str, FTI_EROR);
@@ -102,8 +107,13 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
 
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
+        hid_t h5Type = FTI_Data[i].type.h5datatype;
+        if (FTI_Data[i].type.structure == NULL) {
+            //save as binary
+            h5Type = H5Tcopy(H5T_NATIVE_CHAR);
+        }
         sprintf(str, "/dataset%d", i);
-        herr_t res = H5LTread_dataset(file_id, str, FTI_Data[i].type.h5datatype, FTI_Data[i].ptr);
+        herr_t res = H5LTread_dataset(file_id, str, h5Type, FTI_Data[i].ptr);
         if (res < 0) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             H5Fclose(file_id);
@@ -141,7 +151,12 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     }
 
     sprintf(str, "/dataset%d", i);
-    herr_t res = H5LTread_dataset(file_id, str, FTI_Data[i].type.h5datatype, FTI_Data[i].ptr);
+    hid_t h5Type = FTI_Data[i].type.h5datatype;
+    if (FTI_Data[i].type.structure == NULL) {
+        //save as binary
+        h5Type = H5Tcopy(H5T_NATIVE_CHAR);
+    }
+    herr_t res = H5LTread_dataset(file_id, str, h5Type, FTI_Data[i].ptr);
     if (res < 0) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
         H5Fclose(file_id);

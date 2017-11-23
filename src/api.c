@@ -188,7 +188,7 @@ int FTI_InitType(FTIT_type* type, int size)
 {
     type->id = FTI_Exec.nbType;
     type->size = size;
-    memset(type->complex, -1, FTI_BUFS);
+    type->structure = NULL;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
     return FTI_SCES;
 }
@@ -206,35 +206,45 @@ int FTI_InitType(FTIT_type* type, int size)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitSimpleType(FTIT_type* type, FTIT_complexType* typeDefinition)
+int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
-    type->id = FTI_Exec.nbType;
-    memset(type->complex, -1, FTI_BUFS);
+    int i;
+    for (i = 0; i < typeDefinition->length; i++) {
+        sprintf(typeDefinition->field[i].name, "T%d", i);
+    }
+
+    return FTI_InitSimpleTypeWithNames(newType, typeDefinition);
+}
+
+int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
+{
+    newType->id = FTI_Exec.nbType;
     int i;
     int sumSize = 0;
     for (i = 0; i < typeDefinition->length; i++) {
-        type->complex[i] = typeDefinition->type[i]->id;
-        sumSize += typeDefinition->type[i]->size;
+        sumSize += typeDefinition->field[i].type->size;
     }
-    type->size = sumSize;
+    newType->size = sumSize;
+    newType->structure = typeDefinition;
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
-    type->h5datatype = H5Tcreate(H5T_COMPOUND, type->size);
-    if (type->h5datatype < 0) {
+#ifdef ENABLE_HDF5
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+    if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
     }
 
     size_t offset = 0;
     for (i = 0; i < typeDefinition->length; i++) {
-        char name[FTI_BUFS];
-        sprintf(name, "T%d", i);
-        herr_t res = H5Tinsert(type->h5datatype, name, offset, typeDefinition->type[i]->h5datatype);
+        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, offset, typeDefinition->field[i].type->h5datatype);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }
-        offset += typeDefinition->type[i]->size;
+        offset += typeDefinition->field[i].type->size;
     }
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+#endif
+
     return FTI_SCES;
 }
 
@@ -251,7 +261,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 
     int i;
     for (i = 0; i < typeDefinition->length; i++) {
-        sprintf(typeDefinition->name[i], "T%d", i);
+        sprintf(typeDefinition->field[i].name, "T%d", i);
     }
 
     return FTI_InitComplexTypeWithNames(newType, typeDefinition);
@@ -269,72 +279,79 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     }
     int i;
     for (i = 0; i < typeDefinition->length; i++) {
-        if (typeDefinition->typeDimensions[i] < 1) {
-            FTI_Print("Type dimention must be greater than 0.", FTI_WARN);
+        if (typeDefinition->field[i].rank < 1) {
+            FTI_Print("Type rank must be greater than 0.", FTI_WARN);
             return FTI_NSCS;
         }
-        if (typeDefinition->typeDimensions[i] > 31) {
-            FTI_Print("Maximum type dimention is 32.", FTI_WARN);
+        if (typeDefinition->field[i].rank > 32) {
+            FTI_Print("Maximum rank is 32.", FTI_WARN);
             return FTI_NSCS;
         }
         int j;
-        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
-            if (typeDefinition->typeDimensionLength[i][j] < 1) {
-                FTI_Print("Type dimention length must be greater than 0.", FTI_WARN);
+        for (j = 0; j < typeDefinition->field[i].rank; j++) {
+            if (typeDefinition->field[i].dimLength[j] < 1) {
+                char str[FTI_BUFS];
+                sprintf(str, "(%s, index: %d) Type dimention length must be greater than 0.", typeDefinition->field[i].name, i);
+                FTI_Print(str, FTI_WARN);
                 return FTI_NSCS;
             }
         }
     }
 
     newType->id = FTI_Exec.nbType;
-    memset(newType->complex, -1, FTI_BUFS);
-    memset(newType->dimensions, -1, FTI_BUFS);
-    memset(newType->dimensionLength, -1, FTI_BUFS * 32);
 
     int sumSize = 0;
     for (i = 0; i < typeDefinition->length; i++) {
-        newType->complex[i] = typeDefinition->type[i]->id;
-        newType->dimensions[i] = typeDefinition->typeDimensions[i];
-        strncpy(newType->name[i], typeDefinition->name[i], FTI_BUFS);
         int typeCount = 0;
         int j;
-        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
-            newType->dimensionLength[i][j] = typeDefinition->typeDimensionLength[i][j];
-            typeCount += typeDefinition->typeDimensionLength[i][j];
+        for (j = 0; j < typeDefinition->field[i].rank; j++) {
+            typeCount += typeDefinition->field[i].dimLength[j];
         }
-        sumSize += (typeDefinition->type[i]->size * typeCount);
+        sumSize += (typeDefinition->field[i].type->size * typeCount);
     }
     newType->size = sumSize;
+    newType->structure = typeDefinition;
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+#ifdef ENABLE_HDF5
+    size_t offset = 0;
+    hid_t partTypes[FTI_BUFS];
+    size_t myOffset[FTI_BUFS];
+    for (i = 0; i < typeDefinition->length; i++) {
+        partTypes[i] = typeDefinition->field[i].type->h5datatype;
+        if (typeDefinition->field[i].rank > 1) {
+            hsize_t dims[FTI_BUFS];
+            int j;
+            for (j = 0; j < typeDefinition->field[i].rank; j++) {
+                dims[j] = typeDefinition->field[i].dimLength[j];
+            }
+            partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, typeDefinition->field[i].rank, dims);
+        } else {
+            if (typeDefinition->field[i].dimLength[0] > 1) {
+                hsize_t dim = typeDefinition->field[i].dimLength[0];
+                partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, 1, &dim);
+            }
+        }
+        myOffset[i] = offset;
+        offset += H5Tget_size(partTypes[i]);
+    }
+
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, offset);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
     }
 
-#ifdef ENABLE_HDF5
-    size_t offset = 0;
     for (i = 0; i < typeDefinition->length; i++) {
-        hid_t partType = typeDefinition->type[i]->h5datatype;
-        if (typeDefinition->typeDimensions[i] > 1) {
-            partType = H5Tarray_create(typeDefinition->type[i]->h5datatype, typeDefinition->typeDimensions[i], (hsize_t *) typeDefinition->typeDimensionLength[i]);
-        }
-        herr_t res = H5Tinsert(newType->h5datatype, newType->name[i], offset, partType);
+        //printf("Inserting %d type with offset %d, partType size = %d\n", i, (int)myOffset[i], (int)(H5Tget_size(partTypes[i])));
+        herr_t res = H5Tinsert(newType->h5datatype, newType->structure->field[i].name, myOffset[i], partTypes[i]);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
             return FTI_NSCS;
         }
-
-        int typeCount = 0;
-        int j;
-        for (j = 0; j < typeDefinition->typeDimensions[i]; j++) {
-            typeCount += typeDefinition->typeDimensionLength[i][j];
-        }
-        offset += (typeDefinition->type[i]->size * typeCount);
     }
 #endif
 
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
     return FTI_SCES;
 }
 

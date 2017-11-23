@@ -82,12 +82,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     } cIters;
     cIters its = {0, (world_rank + 1) * INIT_SIZE};
     FTIT_type itersInfo;
-    //creating new FTI type int FTI_InitComplexType(FTIT_type* type, FTIT_type** types, int length)
-    FTIT_complexType typesIN;
-    typesIN.type[0] = &FTI_INTG;
-    typesIN.type[1] = &FTI_INTG;
-    typesIN.length = 2;
-    FTI_InitSimpleType(&itersInfo, &typesIN);
+    //creating new FTI type
+    FTI_InitType(&itersInfo, 2 * sizeof(int));
 
     int res;
     int j;

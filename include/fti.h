@@ -111,31 +111,34 @@ typedef union FTIT_float {
     char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
 
+typedef struct FTIT_complexType FTIT_complexType;
 /** @typedef    FTIT_type
  *  @brief      Type recognized by FTI.
  *
  *  This type allows handling data structures.
  */
 typedef struct FTIT_type {
-    int             id;                         /**< ID of the data type.           */
-    int             size;                       /**< Size of the data type.         */
+    int                 id;                         /**< ID of the data type.           */
+    int                 size;                       /**< Size of the data type.         */
 
     //fileds for HDF5 conversion
-    int             complex[FTI_BUFS];          /**< Types ID for complex datatype  */
-    int             dimensions[FTI_BUFS];
-    int             dimensionLength[FTI_BUFS][32];
-    char            name[FTI_BUFS][FTI_BUFS];
+    FTIT_complexType*   structure;
 #ifdef ENABLE_HDF5
     hid_t           h5datatype;                 /**< Complex HDF5 type.             */
 #endif
 } FTIT_type;
 
+typedef struct FTIT_TypeField {
+    FTIT_type*          type;
+    int                 rank;
+    int                 dimLength[32];
+    char                name[FTI_BUFS];
+} FTIT_TypeField;
+
 typedef struct FTIT_complexType {
-    FTIT_type*          type[FTI_BUFS];
-    int                 typeDimensions[FTI_BUFS];
-    int                 typeDimensionLength[FTI_BUFS][32];
+    FTIT_TypeField      field[FTI_BUFS];
+    char                name[FTI_BUFS];
     int                 length;
-    char                name[FTI_BUFS][FTI_BUFS];
 } FTIT_complexType;
 
 /** @typedef    FTIT_dataset
@@ -331,6 +334,7 @@ int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
 int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition);
+int FTI_InitSimpleTypeWithNames(FTIT_type* type, FTIT_complexType* typeDefinition);
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
