@@ -332,11 +332,15 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                 FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
                 break;
 #endif
-#ifdef ENABLE_HDF5 // --> If SIONlib is installed
+
             case FTI_IO_HDF5:
-                FTI_Print("Selected Ckpt I/O is HDF5", FTI_INFO);
+                #ifdef ENABLE_HDF5 // --> If HDF5 is installed
+                    FTI_Print("Selected Ckpt I/O is HDF5", FTI_INFO);
+                #else
+                    FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 not enabled in cmake. Setting IO mode to POSIX.", FTI_WARN);
+                    FTI_Conf->ioMode = FTI_IO_POSIX;
+                #endif
                 break;
-#endif
             default:
                 FTI_Conf->ioMode = FTI_IO_POSIX;
                 FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
