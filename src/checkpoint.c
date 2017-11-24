@@ -173,18 +173,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         
-        switch (FTI_Conf->ioMode) {
-           
-            case FTI_IO_POSIX:
-               
-                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
-                break;
-                
-            case FTI_IO_FTIFF:
-                
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
                 res = FTI_Try(FTI_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
-                break;
-        
+        } else {
+                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
         }
     
     }

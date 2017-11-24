@@ -195,20 +195,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
 
-    if (FTI_Conf->ioMode == FTI_IO_POSIX) {
-       int i; //iterate all variables
-       for (i = 0; i < FTI_Exec->nbVar; i++) {
-          MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-       }
-
-       unsigned char hash[MD5_DIGEST_LENGTH];
-       MD5_Final (hash, &mdContext);
-
-       for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-          sprintf(&checksum[i], "%02x", hash[i]);
-       checksum[i] = '\0'; //to get a proper string
-    }
-    
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
 
       FTIT_db *currentdb = FTI_Exec->firstdb;
@@ -259,6 +245,18 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
          sprintf(&checksum[i], "%02x", hash[i]);
       checksum[i] = '\0'; //to get a proper string
     
+    } else {
+       int i; //iterate all variables
+       for (i = 0; i < FTI_Exec->nbVar; i++) {
+          MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+       }
+
+       unsigned char hash[MD5_DIGEST_LENGTH];
+       MD5_Final (hash, &mdContext);
+
+       for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
+          sprintf(&checksum[i], "%02x", hash[i]);
+       checksum[i] = '\0'; //to get a proper string
     }
 
     return FTI_SCES;

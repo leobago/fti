@@ -40,11 +40,11 @@ int main() {
         FTI_Protect(2, arr2, size2, FTI_INTG);  
         FTI_Protect(3, arr3, size3, FTI_INTG); 
 
-        FTI_Checkpoint(1,1);
+        FTI_Checkpoint(1,3);
 
         FTI_Protect(4, arr4, size4, FTI_INTG); 
 
-        FTI_Checkpoint(2,1);
+        FTI_Checkpoint(2,3);
 
         arr2 = (int*) realloc(arr2, sizeof(int) * size22);
         for(i=size2;i<size22;i++){arr2[i]=i+1;}
@@ -55,11 +55,11 @@ int main() {
         FTI_Protect(2, arr2, size22, FTI_INTG);
         FTI_Protect(3, arr3, size32, FTI_INTG);
         
-        FTI_Checkpoint(3,1);
+        FTI_Checkpoint(3,3);
 
         FTI_Protect(5, arr5, size5, FTI_INTG); 
 
-        FTI_Checkpoint(4,1);
+        FTI_Checkpoint(4,3);
 
         for(i=0;i<size1;i++){arr1[i]=0;}
         for(i=0;i<size22;i++){arr2[i]=0;}

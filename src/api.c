@@ -582,34 +582,6 @@ int FTI_Recover()
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
-    if (FTI_Conf.ioMode == FTI_IO_POSIX) {
-
-        FILE* fd = fopen(fn, "rb");
-
-        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-
-        if (fd == NULL) {
-            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-            if (ferror(fd)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                fclose(fd);
-                return FTI_NREC;
-            }
-        }
-        if (fclose(fd) != 0) {
-            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-        FTI_Exec.reco = 0;
-
-    }
-
     if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
         
         FILE* fd = fopen(fn, "rb");
@@ -716,7 +688,34 @@ int FTI_Recover()
 
         FTI_Exec.reco = 0;
 
+    } else {
+
+        FILE* fd = fopen(fn, "rb");
+
+        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+        FTI_Print(str, FTI_DBUG);
+
+        if (fd == NULL) {
+            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+            return FTI_NREC;
+        }
+
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
+        }
+        if (fclose(fd) != 0) {
+            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+            return FTI_NREC;
+        }
+        FTI_Exec.reco = 0;
+
     }
+
     return FTI_SCES;
 }
 
