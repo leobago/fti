@@ -65,12 +65,14 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    int i;
    for (i = 0; i < FTI_Exec->nbVar; i++) {
       hid_t h5Type = FTI_Data[i].type.h5datatype;
+      hsize_t count = FTI_Data[i].count;
       if (FTI_Data[i].type.structure == NULL) {
           //save as binary
           h5Type = H5Tcopy(H5T_NATIVE_CHAR);
           H5Tset_size(h5Type, FTI_Data[i].size);
+          count = 1;
       }
-      herr_t res = H5LTmake_dataset(file_id, FTI_Data[i].name, H5S_ALL, H5S_ALL, h5Type, FTI_Data[i].ptr);
+      herr_t res = H5LTmake_dataset(file_id, FTI_Data[i].name, 1, &count, h5Type, FTI_Data[i].ptr);
       if (res < 0) {
          sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
          FTI_Print(str, FTI_EROR);
