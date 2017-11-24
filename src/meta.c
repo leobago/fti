@@ -655,6 +655,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     int isnextdb;
     long offset = 0, chunksize;
     long *FTI_Data_oldsize, dbsize;
+    
     // first call, init first datablock
     if(!FTI_Exec->firstdb) { // init file info
         dbsize = FTI_dbstructsize + FTI_dbvarstructsize * FTI_Exec->nbVar;
@@ -671,9 +672,6 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             dbvars[dbvar_idx].idx = dbvar_idx;
             dbvars[dbvar_idx].chunksize = FTI_Data[dbvar_idx].size;
             dbsize += dbvars[dbvar_idx].chunksize; 
-            //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-            //        dbvars[dbvar_idx].id, dbvars[dbvar_idx].fptr, dbvars[dbvar_idx].fptr + dbvars[dbvar_idx].chunksize, 
-            //        dbvars[dbvar_idx].dptr, dbvars[dbvar_idx].dptr + dbvars[dbvar_idx].chunksize);
         }
         FTI_Exec->nbVarStored = FTI_Exec->nbVar;
         dblock->dbsize = dbsize;
@@ -691,6 +689,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         
         FTI_Data_oldsize = (long*) calloc( FTI_Exec->nbVarStored, sizeof(long) );
         FTI_Exec->lastdb = FTI_Exec->firstdb;
+        
         // iterate though datablock list
         do {
             isnextdb = 0;
@@ -708,8 +707,6 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 isnextdb = 1;
             }
         } while( isnextdb );
-        
-        //printf("offset: %" PRIu64 "\n", offset);
 
         // check for new protected variables
         for(pvar_idx=FTI_Exec->nbVarStored;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
@@ -725,14 +722,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             }
         }
                 
-        // check for edit flags
-        //for(pvar_idx=0;pvar_idx<FTI_Exec->nbVar;pvar_idx++) {
-        //    printf("%i,",editflags[pvar_idx]);
-        //}
-        //printf("\n");
-
-        // if size changed or we have new variables to protect, create new block.
-        
+        // if size changed or we have new variables to protect, create new block. 
         dbsize = FTI_dbstructsize + FTI_dbvarstructsize * num_edit_pvars;
        
         int evar_idx = 0;
@@ -749,9 +739,6 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].idx = pvar_idx;
                         dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size;
                         dbsize += dbvars[evar_idx].chunksize; 
-                        //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-                        //        dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
-                        //        dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;
@@ -766,9 +753,6 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].idx = pvar_idx;
                         dbvars[evar_idx].chunksize = FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx];
                         dbsize += dbvars[evar_idx].chunksize; 
-                        //printf("var-id: %i, fstart: %" PRIu64 " fend: %" PRIu64 ", dstart: %" PRIu64 " dend: %" PRIu64 "\n", 
-                        //        dbvars[evar_idx].id, dbvars[evar_idx].fptr, dbvars[evar_idx].fptr + dbvars[evar_idx].chunksize, 
-                        //        dbvars[evar_idx].dptr, dbvars[evar_idx].dptr + dbvars[evar_idx].chunksize);
                         evar_idx++;
 
                         break;

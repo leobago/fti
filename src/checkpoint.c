@@ -744,9 +744,9 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             fseek( fd, currentdbvar->fptr, SEEK_SET );
             clearerr(fd);
             errno = 0;
-            writeFailed += ( fwrite( dptr, currentdbvar->chunksize, 1, fd ) == 1 ) ? 0 : 1;
+            fwrite( dptr, currentdbvar->chunksize, 1, fd );
             
-            // if error for writing the data, print error and exit.
+            // if error for writing the data, print error and exit to calling function.
             if (ferror(fd)) {
                 int fwrite_errno = errno;
          		char error_msg[FTI_BUFS];
@@ -762,7 +762,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(str, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", dptr: %ld, fptr: %ld, chunksize: %ld, "
                     "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " write failed: %i", 
-                    FTI_Topo->splitRank, FTI_Exec->ckptID, dbcounter, dbvar_idx,  
+                    FTI_Exec->ckptID, dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize,
                     FTI_Data[currentdbvar->idx].ptr, dptr, writeFailed);

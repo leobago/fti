@@ -611,7 +611,7 @@ int FTI_Recover()
     }
 
     if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-
+        
         FILE* fd = fopen(fn, "rb");
 
         FTIT_db *currentdb, *nextdb;
@@ -621,6 +621,8 @@ int FTI_Recover()
         char *zeros = (char*) calloc(1, FTI_dbstructsize); 
 
         long endoffile = 0, mdoffset;
+
+        int readFailed = 0;
 
         int isnextdb;
 
@@ -636,36 +638,55 @@ int FTI_Recover()
             isnextdb = 0;
 
             mdoffset = endoffile;
-
+            
             fseek( fd, mdoffset, SEEK_SET );
-            fread( &(currentdb->numvars), sizeof(int), 1, fd );
+            readFailed += ( fread( &(currentdb->numvars), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
             mdoffset += sizeof(int);
             fseek( fd, mdoffset, SEEK_SET );
-            fread( &(currentdb->dbsize), sizeof(long), 1, fd );
+            readFailed += ( fread( &(currentdb->dbsize), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
             mdoffset += sizeof(long);
-            printf("[%i - RECOVER - %i] db->numvars: %i db->dbsize: %ld db->mdoffset: %ld FTI_dbstructsize: %i, FTI_dbvarstructsize: %i\n", 
-                     FTI_Topo.splitRank, dbcounter, currentdb->numvars, currentdb->dbsize, mdoffset, FTI_dbstructsize, FTI_dbvarstructsize);
+        
+            sprintf(str, "FTIFF: Recovery - dataBlock:%i, dbsize: %ld, numvars: %i read failed: %i\n", 
+                    dbcounter, currentdb->dbsize, currentdb->numvars, readFailed);
+            FTI_Print(str, FTI_DBUG);
 
             currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
 
             for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
                 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                
                 fseek( fd, mdoffset, SEEK_SET );
-                fread( currentdbvar, FTI_dbvarstructsize, 1, fd );
+                readFailed += ( fread( currentdbvar, FTI_dbvarstructsize, 1, fd ) == 1 ) ? 0 : 1;
                 mdoffset += FTI_dbvarstructsize;
                 dptr =(void*)((uintptr_t)FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr);
+                
                 fseek( fd, currentdbvar->fptr, SEEK_SET );
-
-                read = fread( dptr, currentdbvar->chunksize, 1, fd );
-                printf("read: %ld\n", read);
-                printf("[%i - RECOVER - %i/%i] id: %i, idx: %i"
-                        ", dptr: %ld, fptr: %ld, chunksize: %ld, written: %i"
-                        "ptr_var: 0x%" PRIxPTR " dptr: %" PRIxPTR "\n", 
-                        FTI_Topo.splitRank, dbcounter, dbvar_idx,  
+                clearerr(fd);
+                errno = 0;
+                fread( dptr, currentdbvar->chunksize, 1, fd );
+                
+                // if error for reading the data, print error and exit to calling function.
+                if (ferror(fd)) {
+                    int fwrite_errno = errno;
+         	    	char error_msg[FTI_BUFS];
+         	    	error_msg[0] = 0;
+         	    	strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+         	    	sprintf(str, "Dataset #%d could not be written: %s.", currentdbvar->id, error_msg);
+         	    	FTI_Print(str, FTI_EROR);
+         	    	fclose(fd);
+         	    	return FTI_NREC;
+                }
+            
+                // debug information
+                sprintf(str, "FTIFF: Recovery -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                        ", dptr: %ld, fptr: %ld, chunksize: %ld, "
+                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " read failed: %i", 
+                        dbcounter, dbvar_idx,  
                         currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-                        currentdbvar->fptr, currentdbvar->chunksize, read,
-                        FTI_Data[currentdbvar->idx].ptr, dptr);
+                        currentdbvar->fptr, currentdbvar->chunksize,
+                        FTI_Data[currentdbvar->idx].ptr, dptr, readFailed);
+                FTI_Print(str, FTI_DBUG);
 
             }
 
@@ -673,7 +694,6 @@ int FTI_Recover()
             fseek( fd, endoffile, SEEK_SET );
             fread( nextdb, FTI_dbstructsize, 1, fd );
 
-            //if ( memcmp( nextdb, zeros, FTI_dbstructsize ) != 0 ) {
             if ( !feof(fd) ) {
                 currentdb->next = nextdb;
                 nextdb->previous = currentdb;
@@ -686,6 +706,13 @@ int FTI_Recover()
         } while( isnextdb );
 
         FTI_Exec.lastdb = currentdb;
+        
+        if (readFailed) {
+            sprintf(str, "FTIFF: An error occured. Recovery not possible");
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+
 
         FTI_Exec.reco = 0;
 
