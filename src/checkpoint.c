@@ -134,7 +134,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
-#ifdef ENABLE_HDF5 //If HDF5 is installed
+#ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
         snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
                     "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
@@ -369,7 +369,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Writes ckpt to PFS using POSIX.
+    @brief      Writes ckpt using POSIX.
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
     @param      FTI_Topo        Topology metadata.

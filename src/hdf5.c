@@ -39,6 +39,18 @@
 #ifdef ENABLE_HDF5
 #include "interface.h"
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Writes ckpt to using HDF5 file format.
+    @param      FTI_Conf        Configuration metadata.
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @param      FTI_Data        Dataset metadata.
+    @return     integer         FTI_SCES if successful.
+
+**/
+/*-------------------------------------------------------------------------*/
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data)
@@ -53,6 +65,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
        sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
    }
 
+   //Creating new hdf5 file
    hid_t file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
    if (file_id < 0) {
       sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
@@ -67,11 +80,12 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       hid_t h5Type = FTI_Data[i].type.h5datatype;
       hsize_t count = FTI_Data[i].count;
       if (FTI_Data[i].type.structure == NULL) {
-          //save as binary
+          //if used FTI_InitType() save as binary (using chars)
           h5Type = H5Tcopy(H5T_NATIVE_CHAR);
           H5Tset_size(h5Type, FTI_Data[i].size);
-          count = 1;
+          count = 1; //only 1 array of chars
       }
+      //rank will be always 1 <= can protect only 1 dimension array
       herr_t res = H5LTmake_dataset(file_id, FTI_Data[i].name, 1, &count, h5Type, FTI_Data[i].ptr);
       if (res < 0) {
          sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
@@ -91,6 +105,16 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It loads the HDF5 checkpoint data.
+    @return     integer         FTI_SCES if successful.
+
+    This function loads the checkpoint data from the checkpoint file and
+    it updates checkpoint information.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                    FTIT_dataset* FTI_Data)
 {
@@ -110,7 +134,7 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         hid_t h5Type = FTI_Data[i].type.h5datatype;
         if (FTI_Data[i].type.structure == NULL) {
-            //save as binary
+            //if used FTI_InitType() read as binary (using chars)
             h5Type = H5Tcopy(H5T_NATIVE_CHAR);
             H5Tset_size(h5Type, FTI_Data[i].size);
         }
@@ -130,6 +154,17 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      During the restart, recovers the given variable
+    @param      id              Variable to recover
+    @return     int             FTI_SCES if successful.
+
+    During a restart process, this function recovers the variable specified
+    by the given id.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                        FTIT_dataset* FTI_Data, int id)
 {
@@ -154,7 +189,7 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
 
     hid_t h5Type = FTI_Data[i].type.h5datatype;
     if (FTI_Data[i].type.structure == NULL) {
-        //save as binary
+        //if used FTI_InitType() save as binary
         h5Type = H5Tcopy(H5T_NATIVE_CHAR);
         H5Tset_size(h5Type, FTI_Data[i].size);
     }

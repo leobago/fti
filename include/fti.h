@@ -111,34 +111,48 @@ typedef union FTIT_float {
     char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
 
+/** @typedef    FTIT_complexType
+ *  @brief      Type that consists of other FTI types
+ *
+ *  This type allows creating complex datatypes.
+ */
 typedef struct FTIT_complexType FTIT_complexType;
+
 /** @typedef    FTIT_type
  *  @brief      Type recognized by FTI.
  *
  *  This type allows handling data structures.
  */
 typedef struct FTIT_type {
-    int                 id;                         /**< ID of the data type.           */
-    int                 size;                       /**< Size of the data type.         */
-
-    //fileds for HDF5 conversion
-    FTIT_complexType*   structure;
+    int                 id;                     /**< ID of the data type.           */
+    int                 size;                   /**< Size of the data type.         */
+    FTIT_complexType*   structure;              /**< Logical structure for HDF5.    */
 #ifdef ENABLE_HDF5
-    hid_t           h5datatype;                 /**< Complex HDF5 type.             */
+    hid_t           h5datatype;                 /**< HDF5 datatype.                 */
 #endif
 } FTIT_type;
 
-typedef struct FTIT_TypeField {
-    FTIT_type*          type;
-    int                 rank;
-    int                 dimLength[32];
-    char                name[FTI_BUFS];
-} FTIT_TypeField;
+/** @typedef    FTIT_typeField
+ *  @brief      Holds info about field in complex type
+ *
+ *  This type simplify creating complex datatypes.
+ */
+typedef struct FTIT_typeField {
+    FTIT_type*          type;                   /**< Field FTI type.                */
+    int                 rank;                   /**< Field rank (max. 32)           */
+    int                 dimLength[32];          /**< Lenght of each dimention       */
+    char                name[FTI_BUFS];         /**< Name of the field              */
+} FTIT_typeField;
 
+/** @typedef    FTIT_complexType
+ *  @brief      Type that consists of other FTI types
+ *
+ *  This type allows creating complex datatypes.
+ */
 typedef struct FTIT_complexType {
-    FTIT_TypeField      field[FTI_BUFS];
-    char                name[FTI_BUFS];
-    int                 length;
+    FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
+    char                name[FTI_BUFS];         /**< Name of the complex type.          */
+    int                 length;                 /**< Number of types in complex type.   */
 } FTIT_complexType;
 
 /** @typedef    FTIT_dataset
@@ -153,8 +167,7 @@ typedef struct FTIT_dataset {
     FTIT_type       type;               /**< Data type for the dataset.     */
     int             eleSize;            /**< Element size for the dataset.  */
     long            size;               /**< Total size of the dataset.     */
-    /** MD5 Checksum                    */
-    char            name[MD5_DIGEST_LENGTH];
+    char            name[FTI_BUFS];     /**< Name of the dataset.           */
 } FTIT_dataset;
 
 /** @typedef    FTIT_metadata
@@ -224,9 +237,6 @@ typedef struct FTIT_configuration {
     int             stripeUnit;         /**< Striping Unit for Lustre FS    */
     int             stripeOffset;       /**< Striping Offset for Lustre FS  */
     int             stripeFactor;       /**< Striping Factor for Lustre FS  */
-#endif
-#ifdef ENABLE_HDF5
-    int             useHDF5;            /**< TRUE to save as HDF5.          */
 #endif
     int             tag;                /**< Tag for MPI messages in FTI.   */
     int             test;               /**< TRUE if local test.            */

@@ -179,8 +179,8 @@ int FTI_Status()
     @param      size            The size of the data type to be intialized.
     @return     integer         FTI_SCES if successful.
 
-    This function initalizes a data type. the only information needed is the
-    size of the data type, the rest is black box for FTI.
+    This function initalizes a data type. The only information needed is the
+    size of the data type. Types saved as byte array in case of HDF5 format.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -195,20 +195,22 @@ int FTI_InitType(FTIT_type* type, int size)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It initializes a data type.
-    @param      type            The data type to be intialized.
-    @param      type            The data type to be intialized.
-    @param      size            The size of the data type to be intialized.
+    @brief      It initializes a simple data type.
+    @param      newType         The data type to be intialized.
+    @param      typeDefinition  Structure definition of the new type.
     @return     integer         FTI_SCES if successful.
 
-    This function initalizes a data type. the only information needed is the
-    size of the data type, the rest is black box for FTI.
+    This function initalizes a simple data type. New type can only consists
+    fields of flat FTI types (no arrays). Type definition must include:
+    - length        => number of fields in the new type
+    - field[].type  => types of the field in the new type
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
     int i;
+    //Give default names to types (needed for HDF5)
     for (i = 0; i < typeDefinition->length; i++) {
         sprintf(typeDefinition->field[i].name, "T%d", i);
     }
@@ -216,19 +218,37 @@ int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
     return FTI_InitSimpleTypeWithNames(newType, typeDefinition);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It initializes a simple data type.
+    @param      newType         The data type to be intialized.
+    @param      typeDefinition  Structure definition of the new type.
+    @return     integer         FTI_SCES if successful.
+
+    This function initalizes a simple data type. New type can only consists
+    fields of flat FTI types (no arrays). Type definition must include:
+    - length            => number of fields in the new type
+    - field[].type      => types of the field in the new type
+    - field[].name      => name of the field in the new type
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
     newType->id = FTI_Exec.nbType;
     int i;
     int sumSize = 0;
+    //calculate size of the new type
     for (i = 0; i < typeDefinition->length; i++) {
         sumSize += typeDefinition->field[i].type->size;
     }
     newType->size = sumSize;
+    //assign type definition to type structure (types and names)
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
 #ifdef ENABLE_HDF5
+    //if hdf5 is enabled create HDF5 datatype
     newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -236,6 +256,7 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
     }
 
     size_t offset = 0;
+    //Inserting defined field into new type
     for (i = 0; i < typeDefinition->length; i++) {
         herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, offset, typeDefinition->field[i].type->h5datatype);
         if (res < 0) {
@@ -247,6 +268,7 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
 
     return FTI_SCES;
 }
+
 
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
@@ -260,6 +282,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
     }
 
     int i;
+    //Give default names to types (needed for HDF5)
     for (i = 0; i < typeDefinition->length; i++) {
         sprintf(typeDefinition->field[i].name, "T%d", i);
     }
@@ -267,6 +290,23 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
     return FTI_InitComplexTypeWithNames(newType, typeDefinition);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It initializes a complex data type.
+    @param      newType         The data type to be intialized.
+    @param      typeDefinition  Structure definition of the new type.
+    @return     integer         FTI_SCES if successful.
+
+    This function initalizes a simple data type. New type can only consists
+    fields of flat FTI types (no arrays). Type definition must include:
+        - length                => number of fields in the new type
+        - field[].type          => types of the field in the new type
+        - field[].name          => name of the field in the new type
+        - field[].rank          => number of dimentions of the field
+        - field[].dimLength[]   => length of each dimention of the field
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
     if (typeDefinition->length < 1) {
@@ -301,6 +341,7 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     newType->id = FTI_Exec.nbType;
 
     int sumSize = 0;
+    //calculate size of the new type
     for (i = 0; i < typeDefinition->length; i++) {
         int typeCount = 0;
         int j;
@@ -310,16 +351,20 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
         sumSize += (typeDefinition->field[i].type->size * typeCount);
     }
     newType->size = sumSize;
+    //assign type definition to type structure (types, names, ranks, dimLengths)
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
 #ifdef ENABLE_HDF5
+    //if hdf5 is enabled create HDF5 datatype
     size_t offset = 0;
     hid_t partTypes[FTI_BUFS];
     size_t myOffset[FTI_BUFS];
+    //for each field create and rank-dimension array if needed
     for (i = 0; i < typeDefinition->length; i++) {
-        partTypes[i] = typeDefinition->field[i].type->h5datatype;
+        partTypes[i] = typeDefinition->field[i].type->h5datatype; //default create 1 dim 1 dimLength type
         if (typeDefinition->field[i].rank > 1) {
+            //need to create rank-dimension array type
             hsize_t dims[FTI_BUFS];
             int j;
             for (j = 0; j < typeDefinition->field[i].rank; j++) {
@@ -328,22 +373,25 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
             partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, typeDefinition->field[i].rank, dims);
         } else {
             if (typeDefinition->field[i].dimLength[0] > 1) {
+                //need to create 1-dimension array type
                 hsize_t dim = typeDefinition->field[i].dimLength[0];
                 partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, 1, &dim);
             }
         }
+        //every field have its own offset
         myOffset[i] = offset;
         offset += H5Tget_size(partTypes[i]);
     }
 
+    //create new HDF5 datatype (last offset is the size)
     newType->h5datatype = H5Tcreate(H5T_COMPOUND, offset);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
     }
 
+    //inserting fields into the new type
     for (i = 0; i < typeDefinition->length; i++) {
-        //printf("Inserting %d type with offset %d, partType size = %d\n", i, (int)myOffset[i], (int)(H5Tget_size(partTypes[i])));
         herr_t res = H5Tinsert(newType->h5datatype, newType->structure->field[i].name, myOffset[i], partTypes[i]);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
@@ -391,6 +439,25 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     return FTI_ProtectWithName(id, ptr, count, type, name);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It sets/resets the pointer and type to a protected variable.
+    @param      id              ID for searches and update.
+    @param      ptr             Pointer to the data structure.
+    @param      count           Number of elements in the data structure.
+    @param      type            Type of elements in the data structure.
+    @param      name            Name of the dataset in HDF5 file.
+    @return     integer         FTI_SCES if successful.
+
+    This function stores a pointer to a data structure, its size, its ID,
+    its number of elements and the type of the elements. This list of
+    structures is the data that will be stored during a checkpoint and
+    loaded during a recovery. It resets the pointer to a data structure,
+    its size, its number of elements,the type and the name of the elements
+    if the dataset was already previously registered.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name)
 {
     if (FTI_Exec.initSCES == 0) {
@@ -760,44 +827,43 @@ int FTI_Recover()
         }
     }
 
-    switch (FTI_Conf.ioMode) {
 #ifdef ENABLE_HDF5 //If HDF5 is installed
-        case FTI_IO_HDF5:
-            return FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
-#endif
-        default:
-            //Recovering from local for L4 case in FTI_Recover
-            if (FTI_Exec.ckptLvel == 4) {
-                sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
-            }
-            else {
-                sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
-            }
-
-            sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-            FTI_Print(str, FTI_DBUG);
-
-            FILE* fd = fopen(fn, "rb");
-            if (fd == NULL) {
-                FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-                return FTI_NREC;
-            }
-
-            for (i = 0; i < FTI_Exec.nbVar; i++) {
-                fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-                if (ferror(fd)) {
-                    FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                    fclose(fd);
-                    return FTI_NREC;
-                }
-            }
-            if (fclose(fd) != 0) {
-                FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-                return FTI_NREC;
-            }
-            FTI_Exec.reco = 0;
-            return FTI_SCES;
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
     }
+#endif
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    }
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return FTI_NREC;
+        }
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+    FTI_Exec.reco = 0;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -989,7 +1055,7 @@ int FTI_RecoverVar(int id){
         }
     }
 
-#ifdef ENABLE_HDF5
+#ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
         return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
     }
