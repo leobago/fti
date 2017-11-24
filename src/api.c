@@ -563,7 +563,6 @@ int FTI_Recover()
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }
-
     //Check if sizes of protected variables matches
     int i;
     for (i = 0; i < FTI_Exec.nbVar; i++) {
@@ -573,9 +572,8 @@ int FTI_Recover()
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
-	   }
+        }
     }
-
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -583,105 +581,115 @@ int FTI_Recover()
     else {
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
-    
-	FILE* fd = fopen(fn, "rb");
 
     if (FTI_Conf.ioMode == FTI_IO_POSIX) {
 
-       sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-       FTI_Print(str, FTI_DBUG);
+        FILE* fd = fopen(fn, "rb");
 
-       if (fd == NULL) {
-          FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-          return FTI_NREC;
-       }
+        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+        FTI_Print(str, FTI_DBUG);
 
-       for (i = 0; i < FTI_Exec.nbVar; i++) {
-          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-          if (ferror(fd)) {
-             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-             fclose(fd);
-             return FTI_NREC;
-          }
-       }
-       if (fclose(fd) != 0) {
-          FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-          return FTI_NREC;
-	   }
-	  FTI_Exec.reco = 0;
+        if (fd == NULL) {
+            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+            return FTI_NREC;
+        }
+
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
+        }
+        if (fclose(fd) != 0) {
+            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+            return FTI_NREC;
+        }
+        FTI_Exec.reco = 0;
 
     }
 
-	if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
 
-	   FTIT_db *currentdb, *nextdb;
-	   FTIT_dbvar *currentdbvar = NULL;
-	   char *dptr;
-	   int dbvar_idx, pvar_idx, dbcounter=0;
-	   char *zeros = (char*) calloc(1, FTI_dbstructsize); 
+        FILE* fd = fopen(fn, "rb");
 
-	   long endoffile = 0, mdoffset;
+        FTIT_db *currentdb, *nextdb;
+        FTIT_dbvar *currentdbvar = NULL;
+        char *dptr;
+        int dbvar_idx, pvar_idx, dbcounter=0;
+        char *zeros = (char*) calloc(1, FTI_dbstructsize); 
 
-	   int isnextdb;
+        long endoffile = 0, mdoffset;
 
-	   currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
-	   FTI_Exec.firstdb = currentdb;
+        int isnextdb;
 
-	   long read;
+        currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+        FTI_Exec.firstdb = currentdb;
 
-	   do {
+        long read;
 
-		  nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+        do {
 
-		  isnextdb = 0;
+            nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
 
-		  mdoffset = endoffile;
-		  printf("[RECOVER] db->mdoffset: %" PRIu64 "\n", mdoffset);
+            isnextdb = 0;
 
-		  fseek( fd, mdoffset, SEEK_SET );
-		  fread( currentdb, FTI_dbstructsize, 1, fd );
-		  mdoffset += FTI_dbstructsize;
-		  printf("[RECOVER] db->numvars: %" PRIu32 " db->dbsize: %" PRIu64 "\n", currentdb->numvars, currentdb->dbsize);
+            mdoffset = endoffile;
 
-		  currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
+            fseek( fd, mdoffset, SEEK_SET );
+            fread( &(currentdb->numvars), sizeof(int), 1, fd );
+            mdoffset += sizeof(int);
+            fseek( fd, mdoffset, SEEK_SET );
+            fread( &(currentdb->dbsize), sizeof(long), 1, fd );
+            mdoffset += sizeof(long);
+            printf("[%i - RECOVER - %i] db->numvars: %i db->dbsize: %ld db->mdoffset: %ld FTI_dbstructsize: %i, FTI_dbvarstructsize: %i\n", 
+                     FTI_Topo.splitRank, dbcounter, currentdb->numvars, currentdb->dbsize, mdoffset, FTI_dbstructsize, FTI_dbvarstructsize);
 
-		  for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+            currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
 
-			 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-			 fseek( fd, mdoffset, SEEK_SET );
-			 fread( currentdbvar, FTI_dbvarstructsize, 1, fd );
-			 //printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
-			 //        dbcounter, currentdbvar->id, mdoffset);
-			 mdoffset += FTI_dbvarstructsize;
-			 dptr =(void*)((uintptr_t)FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr);
-			 printf("[RECOVER] dbvar->id: %" PRIu32 " dbvar->fstart: %" PRIu32 ", dbvar->fend: %" PRIu64 ", write to buffer at 0x%" PRIxPTR " compare: 0x%" PRIxPTR "\n", 
-				   currentdbvar->id, currentdbvar->fptr, currentdbvar->fptr+currentdbvar->chunksize, FTI_Data[currentdbvar->idx].ptr, dptr);
-			 fseek( fd, currentdbvar->fptr, SEEK_SET );
+            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
-			 read = fread( dptr, currentdbvar->chunksize, 1, fd );
-			 printf("read: %ld\n", read);
+                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                fseek( fd, mdoffset, SEEK_SET );
+                fread( currentdbvar, FTI_dbvarstructsize, 1, fd );
+                mdoffset += FTI_dbvarstructsize;
+                dptr =(void*)((uintptr_t)FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr);
+                fseek( fd, currentdbvar->fptr, SEEK_SET );
 
-		  }
+                read = fread( dptr, currentdbvar->chunksize, 1, fd );
+                printf("read: %ld\n", read);
+                printf("[%i - RECOVER - %i/%i] id: %i, idx: %i"
+                        ", dptr: %ld, fptr: %ld, chunksize: %ld, written: %i"
+                        "ptr_var: 0x%" PRIxPTR " dptr: %" PRIxPTR "\n", 
+                        FTI_Topo.splitRank, dbcounter, dbvar_idx,  
+                        currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+                        currentdbvar->fptr, currentdbvar->chunksize, read,
+                        FTI_Data[currentdbvar->idx].ptr, dptr);
 
-		  endoffile += currentdb->dbsize;
-		  fseek( fd, endoffile, SEEK_SET );
-		  fread( nextdb, FTI_dbstructsize, 1, fd );
+            }
 
-		  if ( memcmp( nextdb, zeros, FTI_dbstructsize ) != 0 ) {
-			 currentdb->next = nextdb;
-			 nextdb->previous = currentdb;
-			 currentdb = nextdb;
-			 isnextdb = 1;
-		  }
+            endoffile += currentdb->dbsize;
+            fseek( fd, endoffile, SEEK_SET );
+            fread( nextdb, FTI_dbstructsize, 1, fd );
 
-		  dbcounter++;
+            //if ( memcmp( nextdb, zeros, FTI_dbstructsize ) != 0 ) {
+            if ( !feof(fd) ) {
+                currentdb->next = nextdb;
+                nextdb->previous = currentdb;
+                currentdb = nextdb;
+                isnextdb = 1;
+            }
 
-	   } while( isnextdb );
+            dbcounter++;
 
-	   FTI_Exec.lastdb = currentdb;
+        } while( isnextdb );
 
+        FTI_Exec.lastdb = currentdb;
 
-	}
+        FTI_Exec.reco = 0;
+
+    }
     return FTI_SCES;
 }
 

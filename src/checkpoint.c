@@ -677,7 +677,14 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    if(FTI_Exec->firstdb) {
       
       // open task local ckpt file
-      FILE* fd = fopen(fn, "wb+");
+      FILE* fd;
+      
+      if (access(fn,R_OK) != 0) {
+         fd = fopen(fn, "wb+");
+      } else {
+         fd = fopen(fn, "rb+");
+      }
+
       if (fd == NULL) {
          sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
          FTI_Print(str, FTI_EROR);
@@ -696,6 +703,8 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       int isnextdb;
 
+      int written;
+      
       do {
 
          //if(FTI_Topo->splitRank) {
@@ -707,22 +716,33 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          mdoffset = endoffile;
 
          fseek( fd, mdoffset, SEEK_SET );
-         fwrite( currentdb, FTI_dbstructsize, 1, fd );
-         mdoffset += FTI_dbstructsize;
+         written = fwrite( &(currentdb->numvars), sizeof(int), 1, fd );
+         mdoffset += sizeof(int);
+         fseek( fd, mdoffset, SEEK_SET );
+         written = fwrite( &(currentdb->dbsize), sizeof(long), 1, fd );
+         mdoffset += sizeof(long);
+         
+         printf("[%i - CKPT:%i - %i] dbsize: %ld, numvar: %i\n", 
+                 FTI_Topo->splitRank, 
+                 FTI_Exec->ckptID, dbcounter, currentdb->dbsize, 
+                 currentdb->numvars, written);
 
          for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
             fseek( fd, mdoffset, SEEK_SET );
-            fwrite( currentdbvar, FTI_dbvarstructsize, 1, fd );
-            if(FTI_Topo->splitRank) {
-               //printf("datablock-id: %i, var-id: %i, mdoffset: %" PRIu64 "\n",
-               //      dbcounter, currentdbvar->id, mdoffset);
-            }
+            written = fwrite( currentdbvar, FTI_dbvarstructsize, 1, fd );
             mdoffset += FTI_dbvarstructsize;
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
             fseek( fd, currentdbvar->fptr, SEEK_SET );
             fwrite( dptr, currentdbvar->chunksize, 1, fd );
+            printf("[%i - CKPT:%i - %i/%i] id: %i, idx: %i"
+                    ", dptr: %ld, fptr: %ld, chunksize: %ld, written: %i"
+                    "ptr_var: 0x%" PRIxPTR " dptr: %" PRIxPTR "\n", 
+                    FTI_Topo->splitRank, FTI_Exec->ckptID, dbcounter, dbvar_idx,  
+                    currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+                    currentdbvar->fptr, currentdbvar->chunksize, written,
+                    FTI_Data[currentdbvar->idx].ptr, dptr);
 
          }
 
@@ -737,13 +757,19 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       } while( isnextdb );
 
-      fseek( fd, endoffile, SEEK_SET );
-      fwrite( zeros, FTI_dbstructsize, 1, fd );
-      FTI_Exec->ckptSize = endoffile + FTI_dbstructsize;
-      fflush( fd );
+      //fseek( fd, endoffile, SEEK_SET );
+      //written = fwrite( zeros, FTI_dbstructsize, 1, fd );
+      printf("[%i - CKPT:%i - %i] dbstructsize: %i, dbvarstructsize: %i, written: %i\n",
+              FTI_Topo->splitRank, 
+              FTI_Exec->ckptID, dbcounter, FTI_dbstructsize, FTI_dbvarstructsize, written);
+      FTI_Exec->ckptSize = endoffile;// + FTI_dbstructsize;
+      fflush(fd);
       fclose( fd );
 
    }
+
+   //MPI_Barrier(FTI_COMM_WORLD);
+   //MPI_Abort(FTI_COMM_WORLD,-1);
 
    return FTI_SCES;
 

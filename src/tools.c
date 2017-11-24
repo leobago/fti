@@ -223,7 +223,8 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
          isnextdb = 0;
 
-         MD5_Update (&mdContext, currentdb, FTI_dbstructsize);
+         MD5_Update (&mdContext, &(currentdb->numvars), sizeof(int));
+         MD5_Update (&mdContext, &(currentdb->dbsize), sizeof(long));
          
          for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
@@ -249,7 +250,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
       } while( isnextdb );
             
-      MD5_Update (&mdContext, zeros, FTI_dbstructsize);
+      //MD5_Update (&mdContext, zeros, FTI_dbstructsize);
       
       unsigned char hash[MD5_DIGEST_LENGTH];
       MD5_Final (hash, &mdContext);
