@@ -257,8 +257,8 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
 
     //Inserting defined field into new type
     for (i = 0; i < typeDefinition->length; i++) {
-        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, typeDefinition->field[i].offset, typeDefinition->field[i].type->h5datatype);
-        printf("[%d] %d\n", i, typeDefinition->field[i].offset);
+        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name,
+                     typeDefinition->field[i].offset, typeDefinition->field[i].type->h5datatype);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }

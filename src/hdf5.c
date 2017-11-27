@@ -74,8 +74,38 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
    }
 
-   // write data into ckpt file
+   hid_t datasetsGroup_id = H5Gcreate2(file_id, "dataset", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+   hid_t typesGroup_id = H5Gcreate2(file_id, "datatype", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+   //commit datatypes
    int i;
+   hid_t typesCommited[FTI_BUFS];
+   memset(typesCommited, -1, FTI_BUFS);
+   for (i = 0; i < FTI_Exec->nbVar; i++) {
+       int j;
+       int commited = 0;
+       for (j = 0; j < i; j++) {
+           if (typesCommited[j] == FTI_Data[i].type.h5datatype) {
+               commited = 1;
+               break;
+           }
+       }
+       if (commited) {
+           continue;
+       }
+       herr_t res = H5Tcommit(typesGroup_id, FTI_Data[i].type.structure->name, FTI_Data[i].type.h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+       if (res < 0) {
+          sprintf(str, "Datatype #%d could not be commited", FTI_Data[i].id);
+          FTI_Print(str, FTI_EROR);
+          H5Gclose(typesGroup_id);
+          H5Gclose(datasetsGroup_id);
+          H5Fclose(file_id);
+          return FTI_NSCS;
+       }
+       typesCommited[i] = FTI_Data[i].type.h5datatype;
+   }
+
+   // write data into ckpt file
    for (i = 0; i < FTI_Exec->nbVar; i++) {
       hid_t h5Type = FTI_Data[i].type.h5datatype;
       hsize_t count = FTI_Data[i].count;
@@ -86,15 +116,19 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
           count = 1; //only 1 array of chars
       }
       //rank will be always 1 <= can protect only 1 dimension array
-      herr_t res = H5LTmake_dataset(file_id, FTI_Data[i].name, 1, &count, h5Type, FTI_Data[i].ptr);
+      herr_t res = H5LTmake_dataset(datasetsGroup_id, FTI_Data[i].name, 1, &count, h5Type, FTI_Data[i].ptr);
       if (res < 0) {
          sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
          FTI_Print(str, FTI_EROR);
+         H5Gclose(typesGroup_id);
+         H5Gclose(datasetsGroup_id);
          H5Fclose(file_id);
          return FTI_NSCS;
       }
    }
 
+   H5Gclose(typesGroup_id);
+   H5Gclose(datasetsGroup_id);
    // close file
    if (H5Fclose(file_id) < 0) {
       FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
