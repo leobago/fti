@@ -55,6 +55,9 @@
 #include "../deps/md5/md5.h"
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
@@ -82,14 +85,6 @@
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
 //    = sizeof(uint32_t)  /* numvars */ 
 //    + sizeof(uint64_t); /* dbsize */ 
-
-// var info element size in file
-extern int FTI_dbvarstructsize;   /**< size of FTIT_dbvar struct in file */ 
-//    = sizeof(uint32_t)  /* id */ 
-//    + sizeof(uint32_t)  /* idx */ 
-//    + sizeof(uint64_t)  /* dptr */ 
-//    + sizeof(uint64_t)  /* fptr */ 
-//    + sizeof(uint64_t); /* chunksize */ 
 
 /*---------------------------------------------------------------------------
                             FTI private functions

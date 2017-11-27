@@ -583,90 +583,161 @@ int FTI_Recover()
     }
 
     if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-        
-        FILE* fd = fopen(fn, "rb");
+
+        // get filesize
+        struct stat st;
+        stat(fn, &st);
+        int ferr;
+        char strerr[FTI_BUFS];
+
+        // block size for memcpy of pointer.
+        long membs = 1024*1024*16; // 16 MB
+        long cpybuf, cpynow, cpycnt;
+
+        // open checkpoint file for read only
+        int fd = open( fn, O_RDONLY, 0 );
+        if (fd == -1) {
+            sprintf( strerr, "FTIFF: Recovery - could not open '%s' for reading.", fn);
+            FTI_Print(strerr, FTI_EROR);
+            return FTI_NREC;
+        }
+
+        // map file into memory
+        char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        if (fmmap == MAP_FAILED) {
+            sprintf( strerr, "FTIFF: Recovery - could not map '%s' to memory.", fn);
+            FTI_Print(strerr, FTI_EROR);
+            close(fd);
+            return FTI_NREC;
+        }
+
+        // file is mapped, we can close it.
+        close(fd);
 
         FTIT_db *currentdb, *nextdb;
         FTIT_dbvar *currentdbvar = NULL;
-        char *dptr;
+        char *destptr, *srcptr;
         int dbvar_idx, pvar_idx, dbcounter=0;
-        char *zeros = (char*) calloc(1, FTI_dbstructsize); 
+
+        // MD5 context for checksum of data chunks
+        MD5_CTX mdContext;
+        unsigned char hash[MD5_DIGEST_LENGTH];
 
         long endoffile = 0, mdoffset;
-
-        int readFailed = 0;
 
         int isnextdb;
 
         currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
-        FTI_Exec.firstdb = currentdb;
+        if (!currentdb) {
+            sprintf( strerr, "FTIFF: Recovery - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIT_db));
+            FTI_Print(strerr, FTI_EROR);
+            return FTI_NREC;
+        }
 
-        long read;
+        FTI_Exec.firstdb = currentdb;
 
         do {
 
             nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+            if (!currentdb) {
+                sprintf( strerr, "FTIFF: Recovery - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIT_db));
+                FTI_Print(strerr, FTI_EROR);
+                return FTI_NREC;
+            }
 
             isnextdb = 0;
 
             mdoffset = endoffile;
             
-            fseek( fd, mdoffset, SEEK_SET );
-            readFailed += ( fread( &(currentdb->numvars), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
+            memcpy( &(currentdb->numvars), fmmap+mdoffset, sizeof(int) ); 
             mdoffset += sizeof(int);
-            fseek( fd, mdoffset, SEEK_SET );
-            readFailed += ( fread( &(currentdb->dbsize), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
+            memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
             mdoffset += sizeof(long);
         
-            sprintf(str, "FTIFF: Recovery - dataBlock:%i, dbsize: %ld, numvars: %i read failed: %i\n", 
-                    dbcounter, currentdb->dbsize, currentdb->numvars, readFailed);
+            sprintf(str, "FTIFF: Recovery - dataBlock:%i, dbsize: %ld, numvars: %i.", 
+                    dbcounter, currentdb->dbsize, currentdb->numvars);
             FTI_Print(str, FTI_DBUG);
 
             currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
+            if (!currentdb) {
+                sprintf( strerr, "FTIFF: Recovery - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIT_dbvar));
+                FTI_Print(strerr, FTI_EROR);
+                return FTI_NREC;
+            }
 
             for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
                 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                currentdbvar->hash = (char*) malloc(MD5_DIGEST_LENGTH*sizeof(char)); 
                 
-                fseek( fd, mdoffset, SEEK_SET );
-                readFailed += ( fread( currentdbvar, FTI_dbvarstructsize, 1, fd ) == 1 ) ? 0 : 1;
-                mdoffset += FTI_dbvarstructsize;
-                dptr =(void*)((uintptr_t)FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr);
+                memcpy( &(currentdbvar->id), fmmap+mdoffset, sizeof(int) );
+                mdoffset += sizeof(int);
+                memcpy( &(currentdbvar->idx), fmmap+mdoffset, sizeof(int) );
+                mdoffset += sizeof(int);
+                memcpy( &(currentdbvar->dptr), fmmap+mdoffset, sizeof(long) );
+                mdoffset += sizeof(long);
+                memcpy( &(currentdbvar->fptr), fmmap+mdoffset, sizeof(long) );
+                mdoffset += sizeof(long);
+                memcpy( &(currentdbvar->chunksize), fmmap+mdoffset, sizeof(long) );
+                mdoffset += sizeof(long);
+                memcpy( currentdbvar->hash, fmmap+mdoffset, MD5_DIGEST_LENGTH );
+                mdoffset += MD5_DIGEST_LENGTH;
                 
-                fseek( fd, currentdbvar->fptr, SEEK_SET );
-                clearerr(fd);
-                errno = 0;
-                fread( dptr, currentdbvar->chunksize, 1, fd );
+                //int i;
+                //char checksum[MD5_DIGEST_LENGTH];
+                //for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++) {
+                //    sprintf(&checksum[i], "%02x", currentdbvar->hash[i]);
+                //}
+                //checksum[i] = '\0'; //to get a proper string
+                //printf("hash: %s\n", checksum);
+
+                // get source and destination pointer
+                destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+                srcptr = (char*) fmmap + currentdbvar->fptr;
                 
-                // if error for reading the data, print error and exit to calling function.
-                if (ferror(fd)) {
-                    int fwrite_errno = errno;
-         	    	char error_msg[FTI_BUFS];
-         	    	error_msg[0] = 0;
-         	    	strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-         	    	sprintf(str, "Dataset #%d could not be written: %s.", currentdbvar->id, error_msg);
-         	    	FTI_Print(str, FTI_EROR);
-         	    	fclose(fd);
-         	    	return FTI_NREC;
+                MD5_Init( &mdContext );
+                cpycnt = 0;
+                while ( cpycnt < currentdbvar->chunksize ) {
+                    cpybuf = currentdbvar->chunksize - cpycnt;
+                    cpynow = ( cpybuf > membs ) ? membs : cpybuf;
+                    cpycnt += cpynow;
+                    memcpy( destptr, srcptr, cpynow );
+                    MD5_Update( &mdContext, destptr, cpynow );
+                    destptr += cpynow;
+                    srcptr += cpynow;
                 }
-            
+                
                 // debug information
                 sprintf(str, "FTIFF: Recovery -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-                        ", dptr: %ld, fptr: %ld, chunksize: %ld, "
-                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " read failed: %i", 
+                        ", destptr: %ld, fptr: %ld, chunksize: %ld, "
+                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
                         dbcounter, dbvar_idx,  
                         currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                         currentdbvar->fptr, currentdbvar->chunksize,
-                        FTI_Data[currentdbvar->idx].ptr, dptr, readFailed);
+                        FTI_Data[currentdbvar->idx].ptr, destptr);
                 FTI_Print(str, FTI_DBUG);
 
+                MD5_Final( hash, &mdContext );
+                
+                char checksum[MD5_DIGEST_LENGTH];
+                for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++) {
+                    sprintf(&checksum[i], "%02x", hash[i]);
+                }
+                checksum[i] = '\0'; //to get a proper string
+                printf("hash: %s, checksum: %s\n", currentdbvar->hash, checksum);
+                
+                if ( strcmp( currentdbvar->hash, checksum ) != 0 ) {
+                    sprintf( strerr, "FTIFF: Recovery - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    FTI_Print(strerr, FTI_WARN);
+                    return FTI_NREC;
+                }
+            
             }
 
             endoffile += currentdb->dbsize;
-            fseek( fd, endoffile, SEEK_SET );
-            fread( nextdb, FTI_dbstructsize, 1, fd );
 
-            if ( !feof(fd) ) {
+            if ( endoffile < st.st_size ) {
+                memcpy( nextdb, fmmap+endoffile, FTI_dbstructsize );
                 currentdb->next = nextdb;
                 nextdb->previous = currentdb;
                 currentdb = nextdb;
@@ -678,13 +749,11 @@ int FTI_Recover()
         } while( isnextdb );
 
         FTI_Exec.lastdb = currentdb;
-        
-        if (readFailed) {
-            sprintf(str, "FTIFF: An error occured. Recovery not possible");
-            FTI_Print(str, FTI_WARN);
-            return FTI_NREC;
+       
+        // unmap memory
+        if ( munmap( fmmap, st.st_size ) == -1 ) {
+            FTI_Print("FTIFF: Recovery - unable to unmap memory", FTI_WARN);
         }
-
 
         FTI_Exec.reco = 0;
 

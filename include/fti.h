@@ -122,6 +122,7 @@ typedef struct FTIT_dbvar {
     long dptr;			   /**< data pointer offset				        */
     long fptr;			   /**< file pointer offset                     */
     long chunksize;
+    char *hash;
 } FTIT_dbvar;
 
 /** @typedef    FTIT_db

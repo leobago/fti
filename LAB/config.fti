@@ -15,13 +15,13 @@ inline_l4                      = 1
 keep_last_ckpt                 = 0
 group_size                     = 4
 max_sync_intv                  = 0
-ckpt_io                        = 2
+ckpt_io                        = 3
 verbosity                      = 2
 
 
 [restart]
 failure                        = 0
-exec_id                        = 2017-11-24_15-44-50
+exec_id                        = 2017-11-27_10-42-24
 
 
 [injection]

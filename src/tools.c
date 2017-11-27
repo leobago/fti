@@ -40,7 +40,6 @@
 #include <dirent.h>
 
 int FTI_dbstructsize;		        /**< size of FTIT_db struct in file    */
-int FTI_dbvarstructsize;            /**< size of FTIT_dbvar struct in file */ 
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -59,14 +58,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 FTI_dbstructsize
     = sizeof(int)               /* numvars */ 
     + sizeof(long);             /* dbsize */ 
-
-// var info element size in file
-FTI_dbvarstructsize
-    = sizeof(int)               /* id */ 
-    + sizeof(int)               /* idx */ 
-    + sizeof(long)              /* dptr */ 
-    + sizeof(long)              /* fptr */ 
-    + sizeof(long);             /* chunksize */ 
 
 // +--------- +
 // | FTI_Exec |
@@ -201,7 +192,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
       FTIT_dbvar *currentdbvar = NULL;
       char *dptr;
       int dbvar_idx, pvar_idx, dbcounter=0;
-      char *zeros = (char*) calloc(1, FTI_dbstructsize); 
 
       int isnextdb;
 
@@ -215,7 +205,12 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
          for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            MD5_Update (&mdContext, currentdbvar, FTI_dbvarstructsize);
+            MD5_Update (&mdContext, &(currentdbvar->id), sizeof(int));
+            MD5_Update (&mdContext, &(currentdbvar->idx), sizeof(int));
+            MD5_Update (&mdContext, &(currentdbvar->dptr), sizeof(long));
+            MD5_Update (&mdContext, &(currentdbvar->fptr), sizeof(long));
+            MD5_Update (&mdContext, &(currentdbvar->chunksize), sizeof(long));
+            MD5_Update (&mdContext, currentdbvar->hash, MD5_DIGEST_LENGTH);
             
          }
          

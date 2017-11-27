@@ -658,7 +658,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     
     // first call, init first datablock
     if(!FTI_Exec->firstdb) { // init file info
-        dbsize = FTI_dbstructsize + FTI_dbvarstructsize * FTI_Exec->nbVar;
+        dbsize = FTI_dbstructsize + (2 * sizeof(int) + 3 * sizeof(long) + MD5_DIGEST_LENGTH) * FTI_Exec->nbVar;
         FTIT_db *dblock = (FTIT_db*) malloc( sizeof(FTIT_db) );
         dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * FTI_Exec->nbVar );
         dblock->previous = NULL;
@@ -723,7 +723,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         }
                 
         // if size changed or we have new variables to protect, create new block. 
-        dbsize = FTI_dbstructsize + FTI_dbvarstructsize * num_edit_pvars;
+        dbsize = FTI_dbstructsize + (2 * sizeof(int) + 3 * sizeof(long) + MD5_DIGEST_LENGTH) * num_edit_pvars;
        
         int evar_idx = 0;
         if( num_edit_pvars ) {
