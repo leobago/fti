@@ -164,6 +164,8 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         return FTI_NREC;
     }
 
+    hid_t datasetsGroup_id = H5Gopen(file_id, "dataset", H5P_DEFAULT);
+
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         hid_t h5Type = FTI_Data[i].type.h5datatype;
@@ -173,13 +175,16 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
             H5Tset_size(h5Type, FTI_Data[i].size);
         }
 
-        herr_t res = H5LTread_dataset(file_id, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
+        herr_t res = H5LTread_dataset(datasetsGroup_id, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
         if (res < 0) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            H5Gclose(datasetsGroup_id);
             H5Fclose(file_id);
             return FTI_NREC;
         }
     }
+
+    H5Gclose(datasetsGroup_id);
     if (H5Fclose(file_id) < 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
@@ -214,6 +219,8 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         return FTI_NREC;
     }
 
+    hid_t datasetsGroup_id = H5Gopen(file_id, "dataset", H5P_DEFAULT);
+
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         if (FTI_Data[i].id == id) {
@@ -227,13 +234,15 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         h5Type = H5Tcopy(H5T_NATIVE_CHAR);
         H5Tset_size(h5Type, FTI_Data[i].size);
     }
-    herr_t res = H5LTread_dataset(file_id, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
+    herr_t res = H5LTread_dataset(datasetsGroup_id, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
     if (res < 0) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+        H5Gclose(datasetsGroup_id);
         H5Fclose(file_id);
         return FTI_NREC;
     }
 
+    H5Gclose(datasetsGroup_id);
     if (H5Fclose(file_id) < 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
