@@ -250,24 +250,22 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
 #ifdef ENABLE_HDF5
     //if hdf5 is enabled create HDF5 datatype
     //calculate the size of new type
-    hsize_t h5sumSize = 0;
+    /*hsize_t h5sumSize = 0;
     for (i = 0; i < typeDefinition->length; i++) {
         h5sumSize += H5Tget_size(typeDefinition->field[i].type->h5datatype);
-    }
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, h5sumSize);
+    }*/
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    size_t offset = 0;
     //Inserting defined field into new type
     for (i = 0; i < typeDefinition->length; i++) {
-        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, offset, typeDefinition->field[i].type->h5datatype);
+        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, typeDefinition->field[i].offset, typeDefinition->field[i].type->h5datatype);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }
-        offset += H5Tget_size(typeDefinition->field[i].type->h5datatype);
     }
 #endif
 
@@ -362,9 +360,7 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
 
 #ifdef ENABLE_HDF5
     //if hdf5 is enabled create HDF5 datatype
-    size_t offset = 0;
     hid_t partTypes[FTI_BUFS];
-    size_t myOffset[FTI_BUFS];
     //for each field create and rank-dimension array if needed
     for (i = 0; i < typeDefinition->length; i++) {
         partTypes[i] = typeDefinition->field[i].type->h5datatype; //default create 1 dim 1 dimLength type
@@ -383,13 +379,10 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
                 partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, 1, &dim);
             }
         }
-        //every field have its own offset
-        myOffset[i] = offset;
-        offset += H5Tget_size(partTypes[i]);
     }
 
     //create new HDF5 datatype (last offset is the size)
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, offset);
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
@@ -397,7 +390,7 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
 
     //inserting fields into the new type
     for (i = 0; i < typeDefinition->length; i++) {
-        herr_t res = H5Tinsert(newType->h5datatype, newType->structure->field[i].name, myOffset[i], partTypes[i]);
+        herr_t res = H5Tinsert(newType->h5datatype, newType->structure->field[i].name, typeDefinition->field[i].offset, partTypes[i]);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
             return FTI_NSCS;

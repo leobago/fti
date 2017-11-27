@@ -73,7 +73,8 @@
 /** Hashed string length.                                                */
 #define MD5_DIGEST_LENGTH 17
 
-
+//offset for H5Tinsert
+#define F_OFFSET(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
     #include "hdf5.h"
 #endif
@@ -138,10 +139,11 @@ typedef struct FTIT_type {
  *  This type simplify creating complex datatypes.
  */
 typedef struct FTIT_typeField {
-    FTIT_type*          type;                   /**< Field FTI type.                */
-    int                 rank;                   /**< Field rank (max. 32)           */
-    int                 dimLength[32];          /**< Lenght of each dimention       */
-    char                name[FTI_BUFS];         /**< Name of the field              */
+    FTIT_type*          type;                   /**< Field FTI type.                    */
+    int                 offset;                 /**< Offset of the field in structure.  */
+    int                 rank;                   /**< Field rank (max. 32)               */
+    int                 dimLength[32];          /**< Lenght of each dimention           */
+    char                name[FTI_BUFS];         /**< Name of the field                  */
 } FTIT_typeField;
 
 /** @typedef    FTIT_complexType
