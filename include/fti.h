@@ -128,7 +128,7 @@ typedef struct FTIT_type {
     int                 size;                   /**< Size of the data type.         */
     FTIT_complexType*   structure;              /**< Logical structure for HDF5.    */
 #ifdef ENABLE_HDF5
-    hid_t           h5datatype;                 /**< HDF5 datatype.                 */
+    hid_t               h5datatype;             /**< HDF5 datatype.                 */
 #endif
 } FTIT_type;
 

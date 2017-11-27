@@ -373,7 +373,6 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
 #ifdef ENABLE_HDF5
     // Maps FTI types to HDF5 types
     FTI_CHAR.h5datatype = H5T_NATIVE_CHAR;
-    FTI_CHAR.h5datatype = H5T_NATIVE_CHAR;
     FTI_SHRT.h5datatype = H5T_NATIVE_SHORT;
     FTI_INTG.h5datatype = H5T_NATIVE_INT;
     FTI_LONG.h5datatype = H5T_NATIVE_LONG;

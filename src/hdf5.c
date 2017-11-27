@@ -79,7 +79,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    for (i = 0; i < FTI_Exec->nbVar; i++) {
       hid_t h5Type = FTI_Data[i].type.h5datatype;
       hsize_t count = FTI_Data[i].count;
-      if (FTI_Data[i].type.structure == NULL) {
+      if (FTI_Data[i].type.id > 10 && FTI_Data[i].type.structure == NULL) {
           //if used FTI_InitType() save as binary (using chars)
           h5Type = H5Tcopy(H5T_NATIVE_CHAR);
           H5Tset_size(h5Type, FTI_Data[i].size);
@@ -133,7 +133,7 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         hid_t h5Type = FTI_Data[i].type.h5datatype;
-        if (FTI_Data[i].type.structure == NULL) {
+        if (FTI_Data[i].type.id > 10 && FTI_Data[i].type.structure == NULL) {
             //if used FTI_InitType() read as binary (using chars)
             h5Type = H5Tcopy(H5T_NATIVE_CHAR);
             H5Tset_size(h5Type, FTI_Data[i].size);
@@ -188,7 +188,7 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     }
 
     hid_t h5Type = FTI_Data[i].type.h5datatype;
-    if (FTI_Data[i].type.structure == NULL) {
+    if (FTI_Data[i].type.id > 10 && FTI_Data[i].type.structure == NULL) {
         //if used FTI_InitType() save as binary
         h5Type = H5Tcopy(H5T_NATIVE_CHAR);
         H5Tset_size(h5Type, FTI_Data[i].size);

@@ -249,7 +249,12 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
 
 #ifdef ENABLE_HDF5
     //if hdf5 is enabled create HDF5 datatype
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+    //calculate the size of new type
+    hsize_t h5sumSize = 0;
+    for (i = 0; i < typeDefinition->length; i++) {
+        h5sumSize += H5Tget_size(typeDefinition->field[i].type->h5datatype);
+    }
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, h5sumSize);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
@@ -262,7 +267,7 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }
-        offset += typeDefinition->field[i].type->size;
+        offset += H5Tget_size(typeDefinition->field[i].type->h5datatype);
     }
 #endif
 
