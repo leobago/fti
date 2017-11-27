@@ -155,6 +155,7 @@ typedef struct FTIT_complexType {
     FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
     char                name[FTI_BUFS];         /**< Name of the complex type.          */
     int                 length;                 /**< Number of types in complex type.   */
+    int                 size;                   /**< Size of the complex type.          */
 } FTIT_complexType;
 
 /** @typedef    FTIT_dataset

@@ -236,13 +236,7 @@ int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
     newType->id = FTI_Exec.nbType;
-    int i;
-    int sumSize = 0;
-    //calculate size of the new type
-    for (i = 0; i < typeDefinition->length; i++) {
-        sumSize += typeDefinition->field[i].type->size;
-    }
-    newType->size = sumSize;
+    newType->size = typeDefinition->size;
     //assign type definition to type structure (types and names)
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
@@ -250,11 +244,12 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
 #ifdef ENABLE_HDF5
     //if hdf5 is enabled create HDF5 datatype
     //calculate the size of new type
-    /*hsize_t h5sumSize = 0;
+    hsize_t h5sumSize = 0;
+    int i;
     for (i = 0; i < typeDefinition->length; i++) {
         h5sumSize += H5Tget_size(typeDefinition->field[i].type->h5datatype);
-    }*/
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+    }
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, typeDefinition->size);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
@@ -263,6 +258,7 @@ int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefini
     //Inserting defined field into new type
     for (i = 0; i < typeDefinition->length; i++) {
         herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name, typeDefinition->field[i].offset, typeDefinition->field[i].type->h5datatype);
+        printf("[%d] %d\n", i, typeDefinition->field[i].offset);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
         }
@@ -342,18 +338,7 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     }
 
     newType->id = FTI_Exec.nbType;
-
-    int sumSize = 0;
-    //calculate size of the new type
-    for (i = 0; i < typeDefinition->length; i++) {
-        int typeCount = 0;
-        int j;
-        for (j = 0; j < typeDefinition->field[i].rank; j++) {
-            typeCount += typeDefinition->field[i].dimLength[j];
-        }
-        sumSize += (typeDefinition->field[i].type->size * typeCount);
-    }
-    newType->size = sumSize;
+    newType->size = typeDefinition->size;
     //assign type definition to type structure (types, names, ranks, dimLengths)
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
@@ -382,7 +367,7 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     }
 
     //create new HDF5 datatype (last offset is the size)
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, newType->size);
+    newType->h5datatype = H5Tcreate(H5T_COMPOUND, typeDefinition->size);
     if (newType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
         return FTI_NSCS;
