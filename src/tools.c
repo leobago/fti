@@ -186,9 +186,11 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksu
     unsigned char hash[MD5_DIGEST_LENGTH];
     MD5_Final (hash, &mdContext);
 
-    for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-        sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0'; //to get a proper string
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
+    }
 
     return FTI_SCES;
 }
@@ -228,12 +230,14 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
     MD5_Final (hash, &mdContext);
 
     int i;
-    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
-    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
-        sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0'; //to get a proper string
+    char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
+    }
 
-    if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
+    if (strcmp(checksum, checksumToCmp) != 0) {
         char str[FTI_BUFS];
         sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
             fileName, checksum, checksumToCmp);
