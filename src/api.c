@@ -621,7 +621,7 @@ int FTI_Recover()
 
         // MD5 context for checksum of data chunks
         MD5_CTX mdContext;
-        unsigned char hash[MD5_DIGEST_LENGTH];
+        unsigned char hash[MD5_HASH_LENGTH];
 
         long endoffile = 0, mdoffset;
 
@@ -635,6 +635,8 @@ int FTI_Recover()
         }
 
         FTI_Exec.firstdb = currentdb;
+        FTI_Exec.firstdb->next = NULL;
+        FTI_Exec.firstdb->previous = NULL;
 
         do {
 
@@ -668,29 +670,10 @@ int FTI_Recover()
             for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
                 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                currentdbvar->hash = (char*) malloc(MD5_DIGEST_LENGTH*sizeof(char)); 
                 
-                memcpy( &(currentdbvar->id), fmmap+mdoffset, sizeof(int) );
-                mdoffset += sizeof(int);
-                memcpy( &(currentdbvar->idx), fmmap+mdoffset, sizeof(int) );
-                mdoffset += sizeof(int);
-                memcpy( &(currentdbvar->dptr), fmmap+mdoffset, sizeof(long) );
-                mdoffset += sizeof(long);
-                memcpy( &(currentdbvar->fptr), fmmap+mdoffset, sizeof(long) );
-                mdoffset += sizeof(long);
-                memcpy( &(currentdbvar->chunksize), fmmap+mdoffset, sizeof(long) );
-                mdoffset += sizeof(long);
-                memcpy( currentdbvar->hash, fmmap+mdoffset, MD5_DIGEST_LENGTH );
-                mdoffset += MD5_DIGEST_LENGTH;
+                memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIT_dbvar) );
+                mdoffset += sizeof(FTIT_dbvar);
                 
-                //int i;
-                //char checksum[MD5_DIGEST_LENGTH];
-                //for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++) {
-                //    sprintf(&checksum[i], "%02x", currentdbvar->hash[i]);
-                //}
-                //checksum[i] = '\0'; //to get a proper string
-                //printf("hash: %s\n", checksum);
-
                 // get source and destination pointer
                 destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
                 srcptr = (char*) fmmap + currentdbvar->fptr;
@@ -719,14 +702,7 @@ int FTI_Recover()
 
                 MD5_Final( hash, &mdContext );
                 
-                char checksum[MD5_DIGEST_LENGTH];
-                for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++) {
-                    sprintf(&checksum[i], "%02x", hash[i]);
-                }
-                checksum[i] = '\0'; //to get a proper string
-                printf("hash: %s, checksum: %s\n", currentdbvar->hash, checksum);
-                
-                if ( strcmp( currentdbvar->hash, checksum ) != 0 ) {
+                if ( memcmp( currentdbvar->hash, hash, MD5_HASH_LENGTH ) != 0 ) {
                     sprintf( strerr, "FTIFF: Recovery - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
                     FTI_Print(strerr, FTI_WARN);
                     return FTI_NREC;
@@ -749,6 +725,7 @@ int FTI_Recover()
         } while( isnextdb );
 
         FTI_Exec.lastdb = currentdb;
+        FTI_Exec.lastdb->next = NULL;
        
         // unmap memory
         if ( munmap( fmmap, st.st_size ) == -1 ) {
@@ -925,6 +902,9 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     FTI_FreeMeta(&FTI_Exec);
+    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        FTI_FreeDbFTIFF(FTI_Exec.lastdb);
+    }
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;

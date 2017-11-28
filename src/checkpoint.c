@@ -703,7 +703,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
-    unsigned char hash[MD5_DIGEST_LENGTH];
+    unsigned char hash[MD5_HASH_LENGTH];
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
@@ -735,7 +735,6 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            currentdbvar->hash = (unsigned char*) malloc(MD5_DIGEST_LENGTH*sizeof(char)); 
 
             clearerr(fd);
             errno = 0;
@@ -767,33 +766,12 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 dptr += cpynow;
                 fptr += cpynow;
             }
-            MD5_Final( hash, &mdContext );
-            
-            int i;
-            for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++) {
-                sprintf(&(currentdbvar->hash[i]), "%02x", hash[i]);
-            }
-            currentdbvar->hash[i] = '\0'; //to get a proper string
+            MD5_Final( currentdbvar->hash, &mdContext );
             
             fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( &(currentdbvar->id), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += sizeof(int);
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( &(currentdbvar->idx), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += sizeof(int);
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( &(currentdbvar->dptr), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += sizeof(long);
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( &(currentdbvar->fptr), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += sizeof(long);
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( &(currentdbvar->chunksize), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += sizeof(long);
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( currentdbvar->hash, MD5_DIGEST_LENGTH, 1, fd ) == 1 ) ? 0 : 1;
-            mdoffset += MD5_DIGEST_LENGTH;
-             
+            writeFailed += ( fwrite( currentdbvar, sizeof(FTIT_dbvar), 1, fd ) == 1 ) ? 0 : 1;
+            mdoffset += sizeof(FTIT_dbvar);
+            
             // debug information
             sprintf(str, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", dptr: %ld, fptr: %ld, chunksize: %ld, "

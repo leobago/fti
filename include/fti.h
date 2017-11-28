@@ -68,6 +68,7 @@
 
 /** Hashed string length.                                                */
 #define MD5_DIGEST_LENGTH 17
+#define MD5_HASH_LENGTH 16
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     /** Token for IO mode SIONlib.                                         */
@@ -122,7 +123,7 @@ typedef struct FTIT_dbvar {
     long dptr;			   /**< data pointer offset				        */
     long fptr;			   /**< file pointer offset                     */
     long chunksize;
-    char *hash;
+    unsigned char hash[MD5_HASH_LENGTH];
 } FTIT_dbvar;
 
 /** @typedef    FTIT_db

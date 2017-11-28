@@ -205,12 +205,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
          for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            MD5_Update (&mdContext, &(currentdbvar->id), sizeof(int));
-            MD5_Update (&mdContext, &(currentdbvar->idx), sizeof(int));
-            MD5_Update (&mdContext, &(currentdbvar->dptr), sizeof(long));
-            MD5_Update (&mdContext, &(currentdbvar->fptr), sizeof(long));
-            MD5_Update (&mdContext, &(currentdbvar->chunksize), sizeof(long));
-            MD5_Update (&mdContext, currentdbvar->hash, MD5_DIGEST_LENGTH);
+            MD5_Update (&mdContext, currentdbvar, sizeof(FTIT_dbvar));
             
          }
          
@@ -231,8 +226,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
       } while( isnextdb );
             
-      //MD5_Update (&mdContext, zeros, FTI_dbstructsize);
-      
       unsigned char hash[MD5_DIGEST_LENGTH];
       MD5_Final (hash, &mdContext);
       int i;
@@ -404,6 +397,20 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].varSize);
         }
         FTI_Exec->metaAlloc = 0;
+    }
+}
+
+void FTI_FreeDbFTIFF(FTIT_db* last)
+{
+    if (last) {
+        FTIT_db *current = last;
+        FTIT_db *previous;
+        while( current ) {
+            previous = current->previous;
+            free(current->dbvars);
+            free(current);
+            current = previous;
+        }
     }
 }
 
