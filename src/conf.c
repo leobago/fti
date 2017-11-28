@@ -137,6 +137,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Setting/reading checkpoint configuration metadata
     char *par = iniparser_getstring(ini, "Basic:ckpt_dir", NULL);
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s", par);
+    snprintf(FTI_Conf->baseLocalDir, FTI_BUFS, "%s", par);
     par = iniparser_getstring(ini, "Basic:glbl_dir", NULL);
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s", par);
     par = iniparser_getstring(ini, "Basic:meta_dir", NULL);
@@ -184,6 +185,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->ckptLast = 0;
     FTI_Exec->syncIter = 1;
     FTI_Exec->syncIterMax = (int)iniparser_getint(ini, "Basic:max_sync_intv", -1);
+    FTI_Exec->detectionFrequency = (int)iniparser_getint(ini, "Basic:detection_frequency", 1);
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
@@ -317,6 +319,12 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
     }
+
+    if (FTI_Exec->detectionFrequency <= 0) {
+        FTI_Exec->detectionFrequency = 1;
+        FTI_Print("Variable 'Basic:detection_frequency' is set to default (1 iteration).", FTI_DBUG);
+    }
+
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }

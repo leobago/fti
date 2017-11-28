@@ -76,7 +76,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             }
             else {
 #ifdef FORCE_SMALLER_CHECKPOINTING_FREQUENCY
-                //FTI_Exec->ckptIntv = 1; Don't do anything, just use ckptIntv from conf file
+                //FTI_Exec->ckptIntv = 1; /* Don't do anything, just use ckptIntv from conf file*/
 #else
                 FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
 #endif

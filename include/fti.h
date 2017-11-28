@@ -219,7 +219,9 @@ typedef struct FTIT_execution {
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
-    int             FORWARDREC_uncoordinatedRecovery;     /**< Selecting checkpoint files without  */
+    int             FORWARDREC_uncoordinatedRecovery; /**< Selecting checkpoint files without syncs */
+    unsigned int    detectionFrequency;               /**< Frequency to perform global error detection of soft erros. */
+    unsigned int    countDetectionFrequency;               /**< Frequency to perform global error detection of soft erros. */
 } FTIT_execution;
 
 /** @typedef    FTIT_configuration
@@ -242,6 +244,7 @@ typedef struct FTIT_configuration {
     int             test;               /**< TRUE if local test.            */
     int             l3WordSize;         /**< RS encoding word size.         */
     int             ioMode;             /**< IO mode for L4 ckpt.           */
+    char            baseLocalDir[FTI_BUFS]; /**< Local directory.               */
     char            localDir[FTI_BUFS]; /**< Local directory.               */
     char            glbalDir[FTI_BUFS]; /**< Global directory.              */
     char            metadDir[FTI_BUFS]; /**< Metadata directory.            */

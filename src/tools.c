@@ -56,7 +56,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 // +--------- +
 // | FTI_Exec |
 // +--------- +
-
+    FTI_Exec->detectionFrequency=0;
+    FTI_Exec->countDetectionFrequency=0;
 /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);  
 /* int           */ FTI_Exec->ckpt                  =0;           
 /* int           */ FTI_Exec->reco                  =0;          

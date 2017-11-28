@@ -36,6 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
+#include <stdlib.h>
 
 #include "interface.h"
 
@@ -688,22 +689,25 @@ int FTI_Snapshot()
      * NOTE: These collectives will be run within the signal handler
      * So if I was a failed one, don't run them again */
 //    if(rankStatus==FTI_FAILED) return FTI_SB_FAIL;
-    int softErrorDetected=0;
-    MPI_Allreduce(&rankStatus, &softErrorDetected, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if(softErrorDetected>0){
-        char str_rec[FTI_BUFS];
-        sprintf(str_rec, "** SOFT ERROR ** GLOBALLY DETECTED ** %s ", (rankStatus==FTI_FAILED? "FAILED": "SURVIVOR"));
-        FTI_Print(str_rec, FTI_TEST);
+    FTI_Exec.countDetectionFrequency++;
+    if(FTI_Exec.countDetectionFrequency%FTI_Exec.detectionFrequency == 0){
+        int softErrorDetected=0;
+        MPI_Allreduce(&rankStatus, &softErrorDetected, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+        if(softErrorDetected>0){
+            char str_rec[FTI_BUFS];
+            sprintf(str_rec, "** SOFT ERROR ** GLOBALLY DETECTED ** %s ", (rankStatus==FTI_FAILED? "FAILED": "SURVIVOR"));
+            FTI_Print(str_rec, FTI_TEST);
 
-        if(internal_status_array==NULL)
-            internal_status_array = (int*)malloc(sizeof(int)*FTI_Topo.nbProc);
-        /* Rank status set to 1=Failed in the handler */
-        MPI_Allgather(&rankStatus, 1, MPI_INT, internal_status_array, 1,
-                MPI_INT, FTI_COMM_WORLD);
+            if(internal_status_array==NULL)
+                internal_status_array = (int*)malloc(sizeof(int)*FTI_Topo.nbProc);
+            /* Rank status set to 1=Failed in the handler */
+            MPI_Allgather(&rankStatus, 1, MPI_INT, internal_status_array, 1,
+                    MPI_INT, FTI_COMM_WORLD);
 
-        /* Temporary: acknowledge failure: act as if survived */
-        rankStatus=FTI_SURVIVOR;
-        return FTI_SB_FAIL;
+            /* Temporary: acknowledge failure: act as if survived */
+            rankStatus=FTI_SURVIVOR;
+            return FTI_SB_FAIL;
+        }
     }
 
     return res;

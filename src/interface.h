@@ -209,7 +209,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------*/
 
-#define FORCE_SMALLER_CHECKPOINTING_FREQUENCY
+//#define FORCE_SMALLER_CHECKPOINTING_FREQUENCY
 
 int FTI_FindLastCheckpointFile(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
