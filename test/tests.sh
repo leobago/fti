@@ -219,6 +219,12 @@ cd test
 			if [ $? -eq 0 ]; then
 				printSuccess $TEST "$CONFIG"
 			fi
+		elif [ "$TEST" = "hdf5" ]; then
+			printRun $TEST
+			./hdf5Test.sh
+			if [ $? -eq 0 ]; then
+				printSuccess $TEST
+			fi
 		else
 			startTest "$TEST" "$CONFIG" 16 "$LEVEL"
 		fi

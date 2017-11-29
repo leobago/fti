@@ -4,6 +4,9 @@ target_link_libraries(addInArray fti.static)
 add_executable(diffSizes diffSizes.c)
 target_link_libraries(diffSizes fti.static)
 
+add_executable(hdf5Test hdf5Test.c)
+target_link_libraries(hdf5Test fti.static)
+
 add_executable(heatdis heatdis.c)
 target_link_libraries(heatdis fti.static)
 
@@ -23,3 +26,4 @@ file(COPY patterns DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
+file(COPY hdf5Test.sh DESTINATION .)

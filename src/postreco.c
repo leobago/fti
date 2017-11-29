@@ -759,8 +759,10 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
 #ifdef ENABLE_HDF5
-    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+        sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+        sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+    }
 #endif
 
    char gfn[FTI_BUFS], lfn[FTI_BUFS];

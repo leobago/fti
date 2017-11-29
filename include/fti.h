@@ -167,7 +167,7 @@ typedef struct FTIT_dataset {
     int             id;                 /**< ID to search/update dataset.   */
     void            *ptr;               /**< Pointer to the dataset.        */
     long            count;              /**< Number of elements in dataset. */
-    FTIT_type       type;               /**< Data type for the dataset.     */
+    FTIT_type*      type;               /**< Data type for the dataset.     */
     int             eleSize;            /**< Element size for the dataset.  */
     long            size;               /**< Total size of the dataset.     */
     char            name[FTI_BUFS];     /**< Name of the dataset.           */

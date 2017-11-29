@@ -54,6 +54,9 @@ static FTIT_topology FTI_Topo;
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];
 
+/** Array of types defined by user.                                        */
+static FTIT_type* FTI_Type[FTI_BUFS];
+
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
@@ -190,6 +193,11 @@ int FTI_InitType(FTIT_type* type, int size)
     type->size = size;
     type->structure = NULL;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    FTI_Type[type->id] = type;
+
+#ifdef ENABLE_HDF5
+    type->h5datatype = -1; //to mark as closed
+#endif
     return FTI_SCES;
 }
 
@@ -235,37 +243,16 @@ int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 /*-------------------------------------------------------------------------*/
 int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
-    newType->id = FTI_Exec.nbType;
-    newType->size = typeDefinition->size;
-    //assign type definition to type structure (types and names)
-    newType->structure = typeDefinition;
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
-
-#ifdef ENABLE_HDF5
-    //if hdf5 is enabled create HDF5 datatype
-    //calculate the size of new type
-    hsize_t h5sumSize = 0;
     int i;
     for (i = 0; i < typeDefinition->length; i++) {
-        h5sumSize += H5Tget_size(typeDefinition->field[i].type->h5datatype);
-    }
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, typeDefinition->size);
-    if (newType->h5datatype < 0) {
-        FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    //Inserting defined field into new type
-    for (i = 0; i < typeDefinition->length; i++) {
-        herr_t res = H5Tinsert(newType->h5datatype, typeDefinition->field[i].name,
-                     typeDefinition->field[i].offset, typeDefinition->field[i].type->h5datatype);
-        if (res < 0) {
-            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+        typeDefinition->field[i].rank = 1;
+        int j;
+        for (j = 0; j < typeDefinition->field[i].rank; j++) {
+            typeDefinition->field[i].dimLength[j] = 1;
         }
     }
-#endif
 
-    return FTI_SCES;
+    return FTI_InitComplexTypeWithNames(newType, typeDefinition);
 }
 
 
@@ -342,46 +329,11 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     //assign type definition to type structure (types, names, ranks, dimLengths)
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    FTI_Type[newType->id] = newType;
 
-#ifdef ENABLE_HDF5
-    //if hdf5 is enabled create HDF5 datatype
-    hid_t partTypes[FTI_BUFS];
-    //for each field create and rank-dimension array if needed
-    for (i = 0; i < typeDefinition->length; i++) {
-        partTypes[i] = typeDefinition->field[i].type->h5datatype; //default create 1 dim 1 dimLength type
-        if (typeDefinition->field[i].rank > 1) {
-            //need to create rank-dimension array type
-            hsize_t dims[FTI_BUFS];
-            int j;
-            for (j = 0; j < typeDefinition->field[i].rank; j++) {
-                dims[j] = typeDefinition->field[i].dimLength[j];
-            }
-            partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, typeDefinition->field[i].rank, dims);
-        } else {
-            if (typeDefinition->field[i].dimLength[0] > 1) {
-                //need to create 1-dimension array type
-                hsize_t dim = typeDefinition->field[i].dimLength[0];
-                partTypes[i] = H5Tarray_create(typeDefinition->field[i].type->h5datatype, 1, &dim);
-            }
-        }
-    }
-
-    //create new HDF5 datatype (last offset is the size)
-    newType->h5datatype = H5Tcreate(H5T_COMPOUND, typeDefinition->size);
-    if (newType->h5datatype < 0) {
-        FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    //inserting fields into the new type
-    for (i = 0; i < typeDefinition->length; i++) {
-        herr_t res = H5Tinsert(newType->h5datatype, newType->structure->field[i].name, typeDefinition->field[i].offset, partTypes[i]);
-        if (res < 0) {
-            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
-            return FTI_NSCS;
-        }
-    }
-#endif
+    #ifdef ENABLE_HDF5
+        newType->h5datatype = -1; //to mark as closed
+    #endif
 
     return FTI_SCES;
 }
@@ -456,7 +408,7 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
             long prevSize = FTI_Data[i].size;
             FTI_Data[i].ptr = ptr;
             FTI_Data[i].count = count;
-            FTI_Data[i].type = type;
+            FTI_Data[i].type = FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
             strncpy(FTI_Data[i].name, name, FTI_BUFS);
@@ -478,7 +430,7 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
     FTI_Data[FTI_Exec.nbVar].id = id;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
     FTI_Data[FTI_Exec.nbVar].count = count;
-    FTI_Data[FTI_Exec.nbVar].type = type;
+    FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
     strncpy(FTI_Data[FTI_Exec.nbVar].name, name, FTI_BUFS);
@@ -652,7 +604,7 @@ int FTI_BitFlip(int datasetID)
             if ((MPI_Wtime() - FTI_Inje.timer) > FTI_Inje.frequency) {
                 if (FTI_Inje.index < FTI_Data[datasetID].count) {
                     char str[FTI_BUFS];
-                    if (FTI_Data[datasetID].type.id == 9) { // If it is a double
+                    if (FTI_Data[datasetID].type->id == 9) { // If it is a double
                         double* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
                         double ori = *target;
                         int res = FTI_DoubleBitFlip(target, FTI_Inje.position);
@@ -663,7 +615,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
-                    if (FTI_Data[datasetID].type.id == 8) { // If it is a float
+                    if (FTI_Data[datasetID].type->id == 8) { // If it is a float
                         float* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
                         float ori = *target;
                         int res = FTI_FloatBitFlip(target, FTI_Inje.position);
