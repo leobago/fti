@@ -29,13 +29,13 @@ for config in ${configs[*]}; do
 	for level in 1 2 3 4; do
 		printRun $config $level
 		cp configs/$config config.fti
-		mpirun -n 16 ./hdf5Test config.fti $level 1 &> logFile1
+		mpirun -n 16 ./hdf5Test config.fti $level 1 #&> logFile1
 		if [ $? != 0 ]; then
 			cat logFile1
 			exit 1
 		fi
 		printResume $config $level
-		mpirun -n 16 ./hdf5Test config.fti $level 0 &> logFile2
+		mpirun -n 16 ./hdf5Test config.fti $level 0 #&> logFile2
 		if [ $? != 0 ]; then
 			cat logFile2
 			exit 1
