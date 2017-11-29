@@ -23,23 +23,51 @@ printSuccess () {
 	printf "_______________________________________________________________________________________\n\n"
 }
 
-configs=("configH1I1.h5" "configH0I1.h5" "configH1I0.h5")
+configs=("configH0I1.h5" "configH1I1.h5" "configH1I0.h5")
 
 for config in ${configs[*]}; do
 	for level in 1 2 3 4; do
 		printRun $config $level
 		cp configs/$config config.fti
-		mpirun -n 16 ./hdf5Test config.fti $level 1 #&> logFile1
+		mpirun -n 16 ./hdf5Test config.fti $level 1 &> logFile1
+		if [ $? != 0 ]; then
+			cat logFile1
+			exit 1
+		fi
+		execid=$(grep "The execution ID is" logFile1 | tail -c 21 | head -c 19)
+		if [ $level != 4 ]; then
+			file="Local/node0/$execid/l$level/Ckpt2-Rank1.h5"
+		else
+			file="Global/$execid/l4/Ckpt2-Rank1.h5"
+		fi
+
+		h5dump $file | tail -n +2 > h5dump.log
+		if [ $? != 0 ]; then
+			exit 1
+		fi
+
+		diff -q h5dump.log patterns/h5dumpOrigin.log
 		if [ $? != 0 ]; then
 			cat logFile1
 			exit 1
 		fi
 		printResume $config $level
-		mpirun -n 16 ./hdf5Test config.fti $level 0 #&> logFile2
+		mpirun -n 16 ./hdf5Test config.fti $level 0 &> logFile2
 		if [ $? != 0 ]; then
 			cat logFile2
 			exit 1
 		fi
+
+		h5dump Global/$execid/l4/Ckpt3-Rank1.h5 | tail -n +2 > h5dump.log
+		if [ $? != 0 ]; then
+			exit 1
+		fi
+		diff -q h5dump.log patterns/h5dumpOrigin.log
+		if [ $? != 0 ]; then
+			cat logFile1
+			exit 1
+		fi
+		rm h5dump.log
 		rm logFile1 logFile2
 		rm -r ./Local ./Global ./Meta
 		printSuccess $config $level
