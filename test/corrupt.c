@@ -110,7 +110,7 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
         printf("Could not find checkpoint files");
         return CORRUPT_FAIL;
     }
-    sprintf(file_path, "%s/Ckpt%d-%s%d.h5", folder_path, ckpt_id, buff, target_rank);
+    sprintf(file_path, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
 
     if (corrORErase == 0) {
         res = corruptFile(file_path);
