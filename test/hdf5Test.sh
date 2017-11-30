@@ -46,7 +46,7 @@ for config in ${configs[*]}; do
 			exit 1
 		fi
 
-		diff -q h5dump.log patterns/h5dumpOrigin.log
+		diff h5dump.log patterns/h5dumpOrigin.log
 		if [ $? != 0 ]; then
 			echo "h5dump.log:"
 			cat h5dump.log
