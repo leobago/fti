@@ -423,7 +423,7 @@ before_install:
 before_script:
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
-  - cmake ..
+  - if [[ "$TEST" = "hdf5" ]]; then cmake -DENABLE_HDF5=ON .. ; else cmake .. ; fi
   - make all
   - sudo make install
 
