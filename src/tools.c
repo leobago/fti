@@ -85,10 +85,13 @@ FTI_dbstructsize
 /* unsigned int  */ FTI_Exec->ckptLast              =0;       
 /* long          */ FTI_Exec->ckptSize              =0;    
 /* unsigned int  */ FTI_Exec->nbVar                 =0;       
+/* unsigned int  */ FTI_Exec->nbVarStored           =0;       
 /* unsigned int  */ FTI_Exec->nbType                =0;    
 /* int           */ FTI_Exec->metaAlloc             =0;     
 /* int           */ FTI_Exec->initSCES              =0;       
 /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
+/* FTIT_db       */ FTI_Exec->firstdb               =NULL;
+/* FTIT_db       */ FTI_Exec->lastdb                =NULL;
 /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
 /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
 

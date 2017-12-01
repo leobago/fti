@@ -104,7 +104,7 @@ typedef union FTIT_double {
  *  that we can inject failures on it.
  */
 typedef union FTIT_float {
-    float           value;			    /**< Floating point value.          */
+    float           value;              /**< Floating point value.          */
     int             intval;             /**< Integer mapped to do bit edits.*/
     char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
