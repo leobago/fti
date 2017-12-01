@@ -46,13 +46,13 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It updates the local and global mean iteration time.
-    @param      FTI_Exec        Execution metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It updates the local and global mean iteration time.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function updates the local and global mean iteration time. It also
-    recomputes the checkpoint interval in iterations and corrects the next
-    checkpointing iteration based on the observed mean iteration duration.
+  This function updates the local and global mean iteration time. It also
+  recomputes the checkpoint interval in iterations and corrects the next
+  checkpointing iteration based on the observed mean iteration duration.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -89,7 +89,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             if ((FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) && (FTI_Exec->syncIter < FTI_Exec->syncIterMax)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
                 sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
-                    FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
+                        FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
                 FTI_Print(str, FTI_DBUG);
                 if (FTI_Exec->syncIter == FTI_Exec->syncIterMax) {
                     sprintf(str, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
@@ -105,34 +105,34 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It writes the checkpoint data in the target file.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Data        Dataset metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It writes the checkpoint data in the target file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function checks whether the checkpoint needs to be local or remote,
-    opens the target file and writes dataset per dataset, the checkpoint data,
-    it finally flushes and closes the checkpoint file.
+  This function checks whether the checkpoint needs to be local or remote,
+  opens the target file and writes dataset per dataset, the checkpoint data,
+  it finally flushes and closes the checkpoint file.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                  FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS]; //For console output
     sprintf(str, "Starting writing checkpoint (ID: %d, Lvl: %d)",
-                    FTI_Exec->ckptID, FTI_Exec->ckptLvel);
+            FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
     double tt = MPI_Wtime(); //Start time
 
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                    "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
@@ -148,16 +148,16 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         switch (FTI_Conf->ioMode) {
-           case FTI_IO_POSIX:
-              res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
-              break;
-           case FTI_IO_MPI:
-              res = FTI_Try(FTI_WriteMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (MPI-IO).");
-              break;
+            case FTI_IO_POSIX:
+                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
+                break;
+            case FTI_IO_MPI:
+                res = FTI_Try(FTI_WriteMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (MPI-IO).");
+                break;
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
-           case FTI_IO_SIONLIB:
-              res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
-              break;
+            case FTI_IO_SIONLIB:
+                res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
+                break;
 #endif
         }
     }
@@ -188,23 +188,23 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Decides wich action start depending on the ckpt. level.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      Decides wich action start depending on the ckpt. level.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function launches the required action dependeing on the ckpt. level.
-    It does that for each group (application process in the node) if executed
-    by the head, or only locally if executed by an application process. The
-    parameter pr determines if the for loops have 1 or number of App. procs.
-    iterations. The group parameter helps determine the groupID in both cases.
+  This function launches the required action dependeing on the ckpt. level.
+  It does that for each group (application process in the node) if executed
+  by the head, or only locally if executed by an application process. The
+  parameter pr determines if the for loops have 1 or number of App. procs.
+  iterations. The group parameter helps determine the groupID in both cases.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     char str[FTI_BUFS]; //For console output
 
@@ -277,22 +277,22 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It listens for checkpoint notifications.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It listens for checkpoint notifications.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function listens for notifications from the application processes
-    and takes the required actions after notification. This function is only
-    executed by the head of the nodes and its complementary with the
-    FTI_Checkpoint function in terms of communications.
+  This function listens for notifications from the application processes
+  and takes the required actions after notification. This function is only
+  executed by the head of the nodes and its complementary with the
+  FTI_Checkpoint function in terms of communications.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
@@ -347,69 +347,69 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Writes ckpt to PFS using POSIX.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Data        Dataset metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      Writes ckpt to PFS using POSIX.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
 
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
 {
-   FTI_Print("I/O mode: Posix.", FTI_DBUG);
-   char str[FTI_BUFS], fn[FTI_BUFS];
-   int level = FTI_Exec->ckptLvel;
-   if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-       sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-   }
-   else {
-       sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-   }
+    FTI_Print("I/O mode: Posix.", FTI_DBUG);
+    char str[FTI_BUFS], fn[FTI_BUFS];
+    int level = FTI_Exec->ckptLvel;
+    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
 
-   // open task local ckpt file
-   FILE* fd = fopen(fn, "wb");
-   if (fd == NULL) {
-      sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
-      FTI_Print(str, FTI_EROR);
+    // open task local ckpt file
+    FILE* fd = fopen(fn, "wb");
+    if (fd == NULL) {
+        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+        FTI_Print(str, FTI_EROR);
 
-      return FTI_NSCS;
-   }
+        return FTI_NSCS;
+    }
 
-   // write data into ckpt file
-   int i;
-   for (i = 0; i < FTI_Exec->nbVar; i++) {
-      clearerr(fd);
-      size_t written = 0;
-      int fwrite_errno;
-      while (written < FTI_Data[i].count && !ferror(fd)) {
-         errno = 0;
-         written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
-         fwrite_errno = errno;
-      }
-      if (ferror(fd)) {
-         char error_msg[FTI_BUFS];
-         error_msg[0] = 0;
-         strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-         sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
-         FTI_Print(str, FTI_EROR);
-         fclose(fd);
-         return FTI_NSCS;
-      }
-   }
+    // write data into ckpt file
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        clearerr(fd);
+        size_t written = 0;
+        int fwrite_errno;
+        while (written < FTI_Data[i].count && !ferror(fd)) {
+            errno = 0;
+            written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+            fwrite_errno = errno;
+        }
+        if (ferror(fd)) {
+            char error_msg[FTI_BUFS];
+            error_msg[0] = 0;
+            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
+            FTI_Print(str, FTI_EROR);
+            fclose(fd);
+            return FTI_NSCS;
+        }
+    }
 
-   // close file
-   if (fclose(fd) != 0) {
-      FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
+    // close file
+    if (fclose(fd) != 0) {
+        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
 
-      return FTI_NSCS;
-   }
+        return FTI_NSCS;
+    }
 
-   return FTI_SCES;
+    return FTI_SCES;
 
 }
 
@@ -422,41 +422,41 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-	In here it is taken into account, that in MPIIO the count parameter
-	in both, MPI_Type_contiguous and MPI_File_write_at, are integer
+  In here it is taken into account, that in MPIIO the count parameter
+  in both, MPI_Type_contiguous and MPI_File_write_at, are integer
   types. The ckpt data is split into chunks of maximal (MAX_INT-1)/2
-	elements to form contiguous data types. It was experienced, that
-	if the size is greater then that, it may lead to problems.
+  elements to form contiguous data types. It was experienced, that
+  if the size is greater then that, it may lead to problems.
 
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
-   int res;
-   FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-   char str[FTI_BUFS], mpi_err[FTI_BUFS];
+    int res;
+    FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
+    char str[FTI_BUFS], mpi_err[FTI_BUFS];
 
-   // enable collective buffer optimization
-   MPI_Info info;
-   MPI_Info_create(&info);
-   MPI_Info_set(info, "romio_cb_write", "enable");
+    // enable collective buffer optimization
+    MPI_Info info;
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "romio_cb_write", "enable");
 
-   // TODO enable to set stripping unit in the config file (Maybe also other hints)
-   // set stripping unit to 4MB
-   MPI_Info_set(info, "stripping_unit", "4194304");
+    // TODO enable to set stripping unit in the config file (Maybe also other hints)
+    // set stripping unit to 4MB
+    MPI_Info_set(info, "stripping_unit", "4194304");
 
-   MPI_Offset chunkSize = FTI_Exec->ckptSize;
+    MPI_Offset chunkSize = FTI_Exec->ckptSize;
 
-   // collect chunksizes of other ranks
-   MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
-   MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+    // collect chunksizes of other ranks
+    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
+    MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
-   char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-   snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-   sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-   // open parallel file (collective call)
-   MPI_File pfh;
+    char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+    // open parallel file (collective call)
+    MPI_File pfh;
 
 #ifdef LUSTRE
     if (FTI_Topo->splitRank == 0) {
@@ -474,156 +474,156 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 #endif
-   res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
+    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
 
-   // check if successful
-   if (res != 0) {
-      errno = 0;
-      int reslen;
-      MPI_Error_string(res, mpi_err, &reslen);
-      snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
-      FTI_Print(str, FTI_EROR);
-      free(chunkSizes);
-      return FTI_NSCS;
-   }
+    // check if successful
+    if (res != 0) {
+        errno = 0;
+        int reslen;
+        MPI_Error_string(res, mpi_err, &reslen);
+        snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
+        FTI_Print(str, FTI_EROR);
+        free(chunkSizes);
+        return FTI_NSCS;
+    }
 
-   // set file offset
-   MPI_Offset offset = 0;
-   int i;
-   for (i = 0; i < FTI_Topo->splitRank; i++) {
-      offset += chunkSizes[i];
-   }
-   free(chunkSizes);
+    // set file offset
+    MPI_Offset offset = 0;
+    int i;
+    for (i = 0; i < FTI_Topo->splitRank; i++) {
+        offset += chunkSizes[i];
+    }
+    free(chunkSizes);
 
-   for (i = 0; i < FTI_Exec->nbVar; i++) {
-       long pos = 0;
-       long varSize = FTI_Data[i].size;
-       long bSize = FTI_Conf->transferSize;
-       char *data_ptr = FTI_Data[i].ptr;
-       while (pos < varSize) {
-           if ((varSize - pos) < FTI_Conf->transferSize) {
-               bSize = varSize - pos;
-           }
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        long pos = 0;
+        long varSize = FTI_Data[i].size;
+        long bSize = FTI_Conf->transferSize;
+        char *data_ptr = FTI_Data[i].ptr;
+        while (pos < varSize) {
+            if ((varSize - pos) < FTI_Conf->transferSize) {
+                bSize = varSize - pos;
+            }
 
-           MPI_Datatype dType;
-           MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
-           MPI_Type_commit(&dType);
+            MPI_Datatype dType;
+            MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
+            MPI_Type_commit(&dType);
 
-           res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
-           // check if successful
-           if (res != 0) {
-               errno = 0;
-               int reslen;
-               MPI_Error_string(res, mpi_err, &reslen);
-               snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
-               FTI_Print(str, FTI_EROR);
-               MPI_File_close(&pfh);
-               return FTI_NSCS;
-           }
-           MPI_Type_free(&dType);
-           data_ptr += bSize;
-           offset += bSize;
-           pos = pos + bSize;
-       }
-   }
-   MPI_File_close(&pfh);
-   MPI_Info_free(&info);
-   return FTI_SCES;
+            res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
+            // check if successful
+            if (res != 0) {
+                errno = 0;
+                int reslen;
+                MPI_Error_string(res, mpi_err, &reslen);
+                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
+                FTI_Print(str, FTI_EROR);
+                MPI_File_close(&pfh);
+                return FTI_NSCS;
+            }
+            MPI_Type_free(&dType);
+            data_ptr += bSize;
+            offset += bSize;
+            pos = pos + bSize;
+        }
+    }
+    MPI_File_close(&pfh);
+    MPI_Info_free(&info);
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Writes ckpt to PFS using SIONlib.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Data        Dataset metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      Writes ckpt to PFS using SIONlib.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
 
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
-   int numFiles = 1;
-   int nlocaltasks = 1;
-   int* file_map = calloc(1, sizeof(int));
-   int* ranks = talloc(int, 1);
-   int* rank_map = talloc(int, 1);
-   sion_int64* chunkSizes = talloc(sion_int64, 1);
-   int fsblksize = -1;
-   chunkSizes[0] = FTI_Exec->ckptSize;
-   ranks[0] = FTI_Topo->splitRank;
-   rank_map[0] = FTI_Topo->splitRank;
+    int numFiles = 1;
+    int nlocaltasks = 1;
+    int* file_map = calloc(1, sizeof(int));
+    int* ranks = talloc(int, 1);
+    int* rank_map = talloc(int, 1);
+    sion_int64* chunkSizes = talloc(sion_int64, 1);
+    int fsblksize = -1;
+    chunkSizes[0] = FTI_Exec->ckptSize;
+    ranks[0] = FTI_Topo->splitRank;
+    rank_map[0] = FTI_Topo->splitRank;
 
-   // open parallel file
-   char fn[FTI_BUFS], str[FTI_BUFS];
-   snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-   sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
-   int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+    // open parallel file
+    char fn[FTI_BUFS], str[FTI_BUFS];
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+    sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
+    int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
-   // check if successful
-   if (sid == -1) {
-      errno = 0;
-      FTI_Print("SIONlib: File could no be opened", FTI_EROR);
+    // check if successful
+    if (sid == -1) {
+        errno = 0;
+        FTI_Print("SIONlib: File could no be opened", FTI_EROR);
 
-      free(file_map);
-      free(rank_map);
-      free(ranks);
-      free(chunkSizes);
-      return FTI_NSCS;
-   }
+        free(file_map);
+        free(rank_map);
+        free(ranks);
+        free(chunkSizes);
+        return FTI_NSCS;
+    }
 
-   // set file pointer to corresponding block in sionlib file
-   int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    // set file pointer to corresponding block in sionlib file
+    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
 
-   // check if successful
-   if (res != SION_SUCCESS) {
-      errno = 0;
-      FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
-      sion_parclose_mapped_mpi(sid);
-      free(file_map);
-      free(rank_map);
-      free(ranks);
-      free(chunkSizes);
-      return FTI_NSCS;
-   }
+    // check if successful
+    if (res != SION_SUCCESS) {
+        errno = 0;
+        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
+        sion_parclose_mapped_mpi(sid);
+        free(file_map);
+        free(rank_map);
+        free(ranks);
+        free(chunkSizes);
+        return FTI_NSCS;
+    }
 
-   // write datasets into file
-   int i;
-   for (i = 0; i < FTI_Exec->nbVar; i++) {
-      // SIONlib write call
-      res = sion_fwrite(FTI_Data[i].ptr, FTI_Data[i].size, 1, sid);
+    // write datasets into file
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        // SIONlib write call
+        res = sion_fwrite(FTI_Data[i].ptr, FTI_Data[i].size, 1, sid);
 
-      // check if successful
-      if (res < 0) {
-         errno = 0;
-         FTI_Print("SIONlib: Data could not be written", FTI_EROR);
-         res =  sion_parclose_mapped_mpi(sid);
-         free(file_map);
-         free(rank_map);
-         free(ranks);
-         free(chunkSizes);
-         return FTI_NSCS;
-      }
+        // check if successful
+        if (res < 0) {
+            errno = 0;
+            FTI_Print("SIONlib: Data could not be written", FTI_EROR);
+            res =  sion_parclose_mapped_mpi(sid);
+            free(file_map);
+            free(rank_map);
+            free(ranks);
+            free(chunkSizes);
+            return FTI_NSCS;
+        }
 
-   }
+    }
 
-   // close parallel file
-   if (sion_parclose_mapped_mpi(sid) == -1) {
-       FTI_Print("Cannot close sionlib file.", FTI_WARN);
-       free(file_map);
-       free(rank_map);
-       free(ranks);
-       free(chunkSizes);
-      return FTI_NSCS;
-   }
-   free(file_map);
-   free(rank_map);
-   free(ranks);
-   free(chunkSizes);
+    // close parallel file
+    if (sion_parclose_mapped_mpi(sid) == -1) {
+        FTI_Print("Cannot close sionlib file.", FTI_WARN);
+        free(file_map);
+        free(rank_map);
+        free(ranks);
+        free(chunkSizes);
+        return FTI_NSCS;
+    }
+    free(file_map);
+    free(rank_map);
+    free(ranks);
+    free(chunkSizes);
 
-   return FTI_SCES;
+    return FTI_SCES;
 }
 #endif
