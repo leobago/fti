@@ -430,10 +430,12 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         unsigned char hash[MD5_DIGEST_LENGTH];
         MD5_Final (hash, &mdContext);
 
-        char checksum[MD5_DIGEST_LENGTH];
-        for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-            sprintf(&checksum[i], "%02x", hash[i]);
-        checksum[i] = '\0'; //to get a proper string
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii+=2;
+        }
 
         int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {

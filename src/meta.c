@@ -84,12 +84,12 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //Get checksum of checkpoint file
     sprintf(str, "%d:Ckpt_checksum", FTI_Topo->groupRank);
     char* checksumTemp = iniparser_getstring(ini, str, NULL);
-    strncpy(checksum, checksumTemp, MD5_DIGEST_LENGTH);
+    strncpy(checksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of partner checkpoint file
     sprintf(str, "%d:Ckpt_checksum", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
     checksumTemp = iniparser_getstring(ini, str, NULL);
-    strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+    strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of Reed-Salomon file
     sprintf(str, "%d:RSed_checksum", FTI_Topo->groupRank);
@@ -97,7 +97,7 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     //If RS checksum don't exists length set to 0;
     if (checksumTemp != NULL) {
-        strncpy(rsChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+        strncpy(rsChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
     } else {
         rsChecksum[0] = '\0';
     }
@@ -135,8 +135,8 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     int rankInGroup = node - (sectorID * FTI_Topo->groupSize);
     int groupID = rank % FTI_Topo->nodeSize;
 
-    char* checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
-    MPI_Allgather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
+    char* checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
+    MPI_Allgather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, FTI_Exec->groupComm);
 
     //Only first process in group save RS checksum
     if (rankInGroup) {
@@ -155,7 +155,7 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         char buf[FTI_BUFS];
-        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+        strncpy(buf, checksums + (i * MD5_DIGEST_STRING_LENGTH), MD5_DIGEST_STRING_LENGTH);
         sprintf(str, "%d:RSed_checksum", i);
         iniparser_set(ini, str, buf);
     }
@@ -463,7 +463,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sprintf(str, "%d:Ckpt_file_maxs", i);
         sprintf(buf, "%lu", mfs);
         iniparser_set(ini, str, buf);
-        strncpy(buf, checksums + (i * MD5_DIGEST_LENGTH), MD5_DIGEST_LENGTH);
+        strncpy(buf, checksums + (i * MD5_DIGEST_STRING_LENGTH), MD5_DIGEST_STRING_LENGTH);
         sprintf(str, "%d:Ckpt_checksum", i);
         iniparser_set(ini, str, buf);
         int j;
@@ -573,13 +573,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     strcpy(str, FTI_Exec->meta[0].ckptFile); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
-    char checksum[MD5_DIGEST_LENGTH];
-    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
+    char checksum[MD5_DIGEST_STRING_LENGTH];
+    FTI_Checksum(FTI_Exec, FTI_Data, checksum);
     char* checksums;
     if (FTI_Topo->groupRank == 0) {
-        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_LENGTH);
+        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
     }
-    MPI_Gather(checksum, MD5_DIGEST_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
+    MPI_Gather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
 
 
     //Every process has the same number of protected variables

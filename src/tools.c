@@ -189,65 +189,18 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
 
-    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+    int i; //iterate all variables
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+    }
 
-      FTIT_db *currentdb = FTI_Exec->firstdb;
-      FTIT_dbvar *currentdbvar = NULL;
-      char *dptr;
-      int dbvar_idx, pvar_idx, dbcounter=0;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    MD5_Final (hash, &mdContext);
 
-      int isnextdb;
-
-      do {
-
-         isnextdb = 0;
-
-         MD5_Update (&mdContext, &(currentdb->numvars), sizeof(int));
-         MD5_Update (&mdContext, &(currentdb->dbsize), sizeof(long));
-         
-         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
-            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            MD5_Update (&mdContext, currentdbvar, sizeof(FTIT_dbvar));
-            
-         }
-         
-         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-            
-            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-            MD5_Update (&mdContext, dptr, currentdbvar->chunksize);
-
-         }
-
-         if (currentdb->next) {
-            currentdb = currentdb->next;
-            isnextdb = 1;
-         }
-
-         dbcounter++;
-
-      } while( isnextdb );
-            
-      unsigned char hash[MD5_DIGEST_LENGTH];
-      MD5_Final (hash, &mdContext);
-      int i;
-      for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-         sprintf(&checksum[i], "%02x", hash[i]);
-      checksum[i] = '\0'; //to get a proper string
-    
-    } else {
-       int i; //iterate all variables
-       for (i = 0; i < FTI_Exec->nbVar; i++) {
-          MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-       }
-
-       unsigned char hash[MD5_DIGEST_LENGTH];
-       MD5_Final (hash, &mdContext);
-
-       for(i = 0; i < MD5_DIGEST_LENGTH - 1; i++)
-          sprintf(&checksum[i], "%02x", hash[i]);
-       checksum[i] = '\0'; //to get a proper string
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
     }
 
     return FTI_SCES;
@@ -288,12 +241,14 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
     MD5_Final (hash, &mdContext);
 
     int i;
-    char checksum[MD5_DIGEST_LENGTH];   //calculated checksum
-    for(i = 0; i < MD5_DIGEST_LENGTH -1; i++)
-        sprintf(&checksum[i], "%02x", hash[i]);
-    checksum[i] = '\0'; //to get a proper string
+    char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
+    }
 
-    if (memcmp(checksum, checksumToCmp, MD5_DIGEST_LENGTH - 1) != 0) {
+    if (strcmp(checksum, checksumToCmp) != 0) {
         char str[FTI_BUFS];
         sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
             fileName, checksum, checksumToCmp);

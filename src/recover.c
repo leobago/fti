@@ -109,7 +109,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char ckptFile[FTI_BUFS];
     strcpy(ckptFile, FTI_Exec->meta[level].ckptFile);
 
-    char checksum[MD5_DIGEST_LENGTH], ptnerChecksum[MD5_DIGEST_LENGTH], rsChecksum[MD5_DIGEST_LENGTH];
+    char checksum[MD5_DIGEST_STRING_LENGTH], ptnerChecksum[MD5_DIGEST_STRING_LENGTH], rsChecksum[MD5_DIGEST_STRING_LENGTH];
     FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     char str[FTI_BUFS];
     sprintf(str, "Checking file %s and its erasures.", ckptFile);
