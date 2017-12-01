@@ -92,6 +92,7 @@ extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, 
       FTIT_dataset* FTI_Data );
+int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
 int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);

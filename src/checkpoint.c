@@ -703,7 +703,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
-    unsigned char hash[MD5_HASH_LENGTH];
+    unsigned char hash[MD5_DIGEST_LENGTH];
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB

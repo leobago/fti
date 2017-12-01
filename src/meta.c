@@ -574,7 +574,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
-    FTI_Checksum(FTI_Exec, FTI_Data, checksum);
+    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
     char* checksums;
     if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
@@ -780,5 +780,143 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
     free(editflags);
     return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Reads datablock structure for FTI File Format from ckpt file.
+    @param      FTI_Exec        Execution metadata.
+    @return     integer         FTI_SCES if successful.
+    
+    Builds meta data list from checkpoint file for the FTI File Format
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+    char str[FTI_BUFS]; //For console output
+	
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec->ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    }
+
+    // get filesize
+	struct stat st;
+	stat(fn, &st);
+	int ferr;
+	char strerr[FTI_BUFS];
+
+	// open checkpoint file for read only
+	int fd = open( fn, O_RDONLY, 0 );
+	if (fd == -1) {
+		sprintf( strerr, "FTIFF: Updatedb - could not open '%s' for reading.", fn);
+		FTI_Print(strerr, FTI_EROR);
+		return FTI_NREC;
+	}
+
+	// map file into memory
+	char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	if (fmmap == MAP_FAILED) {
+		sprintf( strerr, "FTIFF: Updatedb - could not map '%s' to memory.", fn);
+		FTI_Print(strerr, FTI_EROR);
+		close(fd);
+		return FTI_NREC;
+	}
+
+	// file is mapped, we can close it.
+	close(fd);
+
+	FTIT_db *currentdb, *nextdb;
+	FTIT_dbvar *currentdbvar = NULL;
+	int dbvar_idx, pvar_idx, dbcounter=0;
+
+	long endoffile = 0, mdoffset;
+
+	int isnextdb;
+	
+	currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+	if (!currentdb) {
+		sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIT_db));
+		FTI_Print(strerr, FTI_EROR);
+		return FTI_NREC;
+	}
+
+	FTI_Exec->firstdb = currentdb;
+	FTI_Exec->firstdb->next = NULL;
+	FTI_Exec->firstdb->previous = NULL;
+
+	do {
+
+		nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+		if (!currentdb) {
+			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIT_db));
+			FTI_Print(strerr, FTI_EROR);
+			return FTI_NREC;
+		}
+
+		isnextdb = 0;
+
+		mdoffset = endoffile;
+
+		memcpy( &(currentdb->numvars), fmmap+mdoffset, sizeof(int) ); 
+		mdoffset += sizeof(int);
+		memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
+		mdoffset += sizeof(long);
+
+		sprintf(str, "FTIFF: Updatedb - dataBlock:%i, dbsize: %ld, numvars: %i.", 
+				dbcounter, currentdb->dbsize, currentdb->numvars);
+		FTI_Print(str, FTI_DBUG);
+
+		currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
+		if (!currentdb) {
+			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIT_dbvar));
+			FTI_Print(strerr, FTI_EROR);
+			return FTI_NREC;
+		}
+
+		for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+			currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+
+			memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIT_dbvar) );
+			mdoffset += sizeof(FTIT_dbvar);
+
+			// debug information
+			sprintf(str, "FTIFF: Updatedb -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+					", destptr: %ld, fptr: %ld, chunksize: %ld.",
+					dbcounter, dbvar_idx,  
+					currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+					currentdbvar->fptr, currentdbvar->chunksize);
+			FTI_Print(str, FTI_DBUG);
+
+		}
+
+		endoffile += currentdb->dbsize;
+
+		if ( endoffile < st.st_size ) {
+			memcpy( nextdb, fmmap+endoffile, FTI_dbstructsize );
+			currentdb->next = nextdb;
+			nextdb->previous = currentdb;
+			currentdb = nextdb;
+			isnextdb = 1;
+		}
+
+		dbcounter++;
+
+	} while( isnextdb );
+
+	FTI_Exec->lastdb = currentdb;
+	FTI_Exec->lastdb->next = NULL;
+
+	// unmap memory
+	if ( munmap( fmmap, st.st_size ) == -1 ) {
+		FTI_Print("FTIFF: Updatedb - unable to unmap memory", FTI_WARN);
+	}
 
 }

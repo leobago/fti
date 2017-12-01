@@ -205,6 +205,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         break;
                }
                int allRes;
+
                MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
                if (allRes == FTI_SCES) {
                      //Inform heads that recovered successfully

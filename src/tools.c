@@ -184,23 +184,75 @@ return FTI_SCES;
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
-      FTIT_configuration* FTI_Conf, char* checksum)
+        FTIT_configuration* FTI_Conf, char* checksum)
 {
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
+    int i;
 
-    int i; //iterate all variables
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-    }
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
 
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_Final (hash, &mdContext);
+        FTIT_db *currentdb = FTI_Exec->firstdb;
+        FTIT_dbvar *currentdbvar = NULL;
+        char *dptr;
+        int dbvar_idx, pvar_idx, dbcounter=0;
 
-    int ii = 0;
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
-        ii += 2;
+        int isnextdb;
+
+        do {
+
+            isnextdb = 0;
+
+            MD5_Update (&mdContext, &(currentdb->numvars), sizeof(int));
+            MD5_Update (&mdContext, &(currentdb->dbsize), sizeof(long));
+
+            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                MD5_Update (&mdContext, currentdbvar, sizeof(FTIT_dbvar));
+
+            }
+
+            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+                dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+                MD5_Update (&mdContext, dptr, currentdbvar->chunksize);
+
+            }
+
+            if (currentdb->next) {
+                currentdb = currentdb->next;
+                isnextdb = 1;
+            }
+
+            dbcounter++;
+
+        } while( isnextdb );
+
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &mdContext);
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii += 2;
+        }
+
+    } else {
+
+        //iterate all variables
+        for (i = 0; i < FTI_Exec->nbVar; i++) {
+            MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+        }
+
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &mdContext);
+
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii += 2;
+        }
     }
 
     return FTI_SCES;
@@ -208,14 +260,14 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It compares checksum of the checkpoint file.
-    @param      fileName        Filename of the checkpoint.
-    @param      checksumToCmp   Checksum to compare.
-    @return     integer         FTI_SCES if successful.
+  @brief      It compares checksum of the checkpoint file.
+  @param      fileName        Filename of the checkpoint.
+  @param      checksumToCmp   Checksum to compare.
+  @return     integer         FTI_SCES if successful.
 
-    This function calculates checksum of the checkpoint file based on
-    MD5 algorithm. It compares calculated hash value with the one saved
-    in the file.
+  This function calculates checksum of the checkpoint file based on
+  MD5 algorithm. It compares calculated hash value with the one saved
+  in the file.
 
  **/
 /*-------------------------------------------------------------------------*/

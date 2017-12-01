@@ -82,16 +82,21 @@ int main() {
         FTI_Protect(1, arr1, size1, FTI_INTG);  
         //FTI_Protect(2, arr2, 200, FTI_INTG);
         //FTI_Protect(3, arr3, 300, FTI_INTG);
-        arr2 = (int*) realloc(arr2, sizeof(int) * size22);
-        arr3 = (int*) realloc(arr3, sizeof(int) * size32);
-        FTI_Protect(2, arr2, size22, FTI_INTG);
-        FTI_Protect(3, arr3, size32, FTI_INTG);
+        FTI_Protect(2, arr2, size2, FTI_INTG);
+        FTI_Protect(3, arr3, size3, FTI_INTG);
         FTI_Protect(4, arr4, size4, FTI_INTG); 
         FTI_Protect(5, arr5, size5, FTI_INTG); 
-        
+       
+        arr2 = FTI_Realloc(2, arr2);
+        arr3 = FTI_Realloc(3, arr3);
+
         MPI_Barrier(FTI_COMM_WORLD);
         
-        FTI_Recover();
+        FTI_RecoverVar(1);
+        FTI_RecoverVar(2);
+        FTI_RecoverVar(3);
+        FTI_RecoverVar(4);
+        FTI_RecoverVar(5);
         
         MPI_Barrier(FTI_COMM_WORLD);
         

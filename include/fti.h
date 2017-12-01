@@ -123,7 +123,7 @@ typedef struct FTIT_dbvar {
     long dptr;			   /**< data pointer offset				        */
     long fptr;			   /**< file pointer offset                     */
     long chunksize;
-    unsigned char hash[MD5_HASH_LENGTH];
+    unsigned char hash[MD5_DIGEST_LENGTH];
 } FTIT_dbvar;
 
 /** @typedef    FTIT_db
