@@ -64,8 +64,9 @@
 /** Token for IO mode MPI.                                                 */
 #define FTI_IO_MPI 1002
 
-/** Hashed string length.                                                */
-#define MD5_DIGEST_LENGTH 17
+/** Hashed string length.                                                  */
+#define MD5_DIGEST_LENGTH 16
+#define MD5_DIGEST_STRING_LENGTH 33
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     /** Token for IO mode SIONlib.                                         */
@@ -128,7 +129,7 @@ typedef struct FTIT_dataset {
     int             eleSize;            /**< Element size for the dataset.  */
     long            size;               /**< Total size of the dataset.     */
     /** MD5 Checksum                    */
-    char            checksum[MD5_DIGEST_LENGTH];
+    char            checksum[MD5_DIGEST_STRING_LENGTH];
 } FTIT_dataset;
 
 /** @typedef    FTIT_metadata
