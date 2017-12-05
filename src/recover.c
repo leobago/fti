@@ -213,6 +213,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      //Inform heads that recovered successfully
                      MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
 
+                     if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                         ckptID = FTI_Exec->ckptID;
+                     }
                      sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
                      FTI_Print(str, FTI_INFO);
 

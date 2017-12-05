@@ -813,6 +813,8 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 	
+    int varCnt = 0;
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
@@ -902,6 +904,25 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 			memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIT_dbvar) );
 			mdoffset += sizeof(FTIT_dbvar);
+            
+            if ( varCnt == 0 ) { 
+                varCnt++;
+                FTI_Exec->meta[FTI_Exec->ckptLvel].varID[0] = currentdbvar->id;
+                FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[0] = currentdbvar->chunksize;
+            } else {
+                int i;
+                for(i=0; i<varCnt; i++) {
+                    if ( FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i] == currentdbvar->id ) {
+                        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] += currentdbvar->chunksize;
+                        break;
+                    }
+                }
+                if( i == varCnt ) {
+                    varCnt++;
+                    FTI_Exec->meta[FTI_Exec->ckptLvel].varID[varCnt-1] = currentdbvar->id;
+                    FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[varCnt-1] = currentdbvar->chunksize;
+                }
+            }
 
 			// debug information
 			sprintf(str, "FTIFF: Updatedb -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
@@ -927,7 +948,9 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 	} while( isnextdb );
 
-	FTI_Exec->lastdb = currentdb;
+    FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = varCnt;
+	
+    FTI_Exec->lastdb = currentdb;
 	FTI_Exec->lastdb->next = NULL;
 
 	// unmap memory
