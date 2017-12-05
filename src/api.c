@@ -503,6 +503,7 @@ int FTI_Checkpoint(int id, int level)
     double t2 = MPI_Wtime(); //Time after writing checkpoint
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
+        // Head needs ckpt. ID to determine ckpt file name.
         int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
         if (res != FTI_SCES) { //If Writing checkpoint failed
             FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
@@ -563,23 +564,23 @@ int FTI_Recover()
     char str[FTI_BUFS]; //For console output
 
     //Check if nubmer of protected variables matches
-    if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
-        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-                FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
+    //if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
+    //    sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+    //            FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+    //    FTI_Print(str, FTI_WARN);
+    //    return FTI_NREC;
+    //}
     //Check if sizes of protected variables matches
     int i;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                    FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                    FTI_Data[i].size);
-            FTI_Print(str, FTI_WARN);
-            return FTI_NREC;
-        }
-    }
+    //for (i = 0; i < FTI_Exec.nbVar; i++) {
+    //    if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+    //        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+    //                FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+    //                FTI_Data[i].size);
+    //        FTI_Print(str, FTI_WARN);
+    //        return FTI_NREC;
+    //    }
+    //}
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);

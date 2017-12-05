@@ -60,6 +60,16 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     char* checksum, char* ptnerChecksum, char* rsChecksum)
 {
+    // Fake call for FTI-FF. Checksum is sotred in cp-file
+    // setting all checksums to zero length provokes that no 
+    // checksum test is performed in FTI_CheckFile.
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        *checksum = '\0';   
+        *ptnerChecksum = '\0';   
+        *rsChecksum = '\0';   
+        return FTI_SCES;
+    }
+
     char mfn[FTI_BUFS]; //Path to the metadata file
     char str[FTI_BUFS]; //For console output
     if (FTI_Exec->ckptLvel == 0) {
@@ -127,6 +137,9 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
                             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                              int rank, char* checksum)
 {
+    // Fake call for FTI-FF. checksum is done for the datasets.
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {return FTI_SCES;}
+
     char str[FTI_BUFS], fileName[FTI_BUFS];
 
     //Calcuate which groupID rank belongs
@@ -289,6 +302,8 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (!FTI_Topo->amIaHead) {
         int i;
         for (i = 0; i < 5; i++) { //for each level
@@ -653,7 +668,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
     FTIT_dbvar *dbvars = NULL;
     int isnextdb;
-    long offset = 0, chunksize;
+    long offset = sizeof(long), chunksize;
     long *FTI_Data_oldsize, dbsize;
     
     // first call, init first datablock
@@ -666,7 +681,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         dblock->numvars = FTI_Exec->nbVar;
         dblock->dbvars = dbvars;
         for(dbvar_idx=0;dbvar_idx<dblock->numvars;dbvar_idx++) {
-            dbvars[dbvar_idx].fptr = dbsize;
+            dbvars[dbvar_idx].fptr = offset + dbsize;
             dbvars[dbvar_idx].dptr = 0;
             dbvars[dbvar_idx].id = FTI_Data[dbvar_idx].id;
             dbvars[dbvar_idx].idx = dbvar_idx;
@@ -836,7 +851,8 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 	FTIT_dbvar *currentdbvar = NULL;
 	int dbvar_idx, pvar_idx, dbcounter=0;
 
-	long endoffile = 0, mdoffset;
+	long endoffile = sizeof(long); // space for timestamp 
+    long mdoffset;
 
 	int isnextdb;
 	

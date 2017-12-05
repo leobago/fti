@@ -694,12 +694,21 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    int writeFailed;
+    
+    // write timestamp
+    struct timespec ntime;
+    long timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+    clock_gettime(CLOCK_REALTIME, &ntime);
+    fseek( fd, 0, SEEK_SET );
+    writeFailed += ( fwrite( &timestamp, sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
+
     FTIT_db *currentdb = FTI_Exec->firstdb;
     FTIT_dbvar *currentdbvar = NULL;
     char *dptr;
     int dbvar_idx, pvar_idx, dbcounter=0;
     long mdoffset;
-    long endoffile = 0;
+    long endoffile = sizeof(long); // space for timestamp
     
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
@@ -710,8 +719,6 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long cpybuf, cpynow, cpycnt, fptr;
 
     int isnextdb;
-
-    int writeFailed;
 
     do {
 
@@ -796,7 +803,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } while( isnextdb );
 
     FTI_Exec->ckptSize = endoffile;
-    fflush( fd );
+    
     fclose( fd );
 
     if (writeFailed) {

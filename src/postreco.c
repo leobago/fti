@@ -711,6 +711,52 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Init of FTI-FF L4 recovery
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
+
+    This function initializes the L4 checkpoint recovery. It checks for 
+    erasures and loads the required meta data. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+                  FTIT_checkpoint* FTI_Ckpt )
+{
+    char str[FTI_BUFS], tmpfn[FTI_BUFS];
+    int fexist = 0, fileTarget, ckptID, fcount;
+    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct stat ckptFS;
+    DIR *L4CkptDir = opendir( FTI_Ckpt[4].dir );
+    while(entry = readdir(L4CkptDir)) {
+        if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
+            sprintf(str, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
+            FTI_Print(str, FTI_DBUG);
+            sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
+            if( fileTarget == FTI_Topo->myRank ) {
+                sprintf(tmpfn, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
+                int ferr = stat(tmpfn, &ckptFS);
+                if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                    FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
+                    FTI_Exec->ckptID = ckptID;
+                    strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
+                    strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
+                    fexist = 1;
+                    break;
+                }            
+            }
+        }
+    }
+    MPI_Allreduce(&fexist, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    int fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
+    closedir(L4CkptDir);
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It recovers L4 ckpt. files from the PFS using POSIX.
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
@@ -735,28 +781,40 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // Checking erasures
-   int erased[FTI_BUFS];
-   if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-      FTI_Print("Error checking erasures.", FTI_DBUG);
-      return FTI_NSCS;
+   if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        // FTI_CheckL4RestartInit sets: 
+        // FTI_Exec->meta[1].ckptFile, 
+        // FTI_Exec->meta[4].ckptFile and
+        // FTI_Exec->meta[4].fs[0]
+        if ( FTI_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+   } 
+   
+   else {
+       int erased[FTI_BUFS];
+       if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+           FTI_Print("Error checking erasures.", FTI_DBUG);
+           return FTI_NSCS;
+       }
+       int l = 0;
+       int i;
+       // Counting erasures
+       for (i = 0; i < FTI_Topo->groupSize; i++) {
+           if (erased[i]) {
+               l++;
+           }
+       }
+       if (l > 0) {
+           FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
+           return FTI_NSCS;
+       }
+
+       sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+       sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
    }
 
-   int l = 0;
-   int i;
-   // Counting erasures
-   for (i = 0; i < FTI_Topo->groupSize; i++) {
-      if (erased[i]) {
-         l++;
-     }
-   }
-   if (l > 0) {
-      FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
-      return FTI_NSCS;
-   }
-
-   // Open files
-   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-   sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
    char gfn[FTI_BUFS], lfn[FTI_BUFS];
    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);

@@ -57,6 +57,7 @@ int FTI_CheckFile(char* fn, long fs, char* checksum)
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
             if (fileStatus.st_size == fs) {
+                // strlen is 0 for FTI-FF in all cases.
                 if (strlen(checksum)) {
                     int res = FTI_VerifyChecksum(fn, checksum);
                     if (res != FTI_SCES) {
@@ -171,11 +172,12 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
    if (!FTI_Topo->amIaHead) {
-      FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+      //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
       int level;
       for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-          if (FTI_Exec->meta[level].exists[0]) {
+          if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
               //Get ckptID from checkpoint file name
+              
               int ckptID;
               sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
 
