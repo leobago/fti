@@ -131,7 +131,7 @@ GROUP "/" {
                            104, 105, 106, 107, 108,
                            105, 106, 107, 108, 109,
                            106, 107, 108, 109, 110 ],
-                        [ 70, 9 ]
+                        [ 70, 70 ]
                      },
                       {
                         [ 101, 102, 103, 104, 105, 106, 107, 0, 0, 0 ],
@@ -159,7 +159,7 @@ GROUP "/" {
                            105, 106, 107, 108, 109,
                            106, 107, 108, 109, 110,
                            107, 108, 109, 110, 111 ],
-                        [ 71, 10 ]
+                        [ 71, 71 ]
                      } ]
                }
             },
@@ -244,7 +244,7 @@ GROUP "/" {
                            105, 106, 107, 108, 109,
                            106, 107, 108, 109, 110,
                            107, 108, 109, 110, 111 ],
-                        [ 71, 10 ]
+                        [ 71, 71 ]
                      },
                       {
                         [ 102, 103, 104, 105, 106, 107, 108, 0, 0, 0 ],
@@ -272,7 +272,7 @@ GROUP "/" {
                            106, 107, 108, 109, 110,
                            107, 108, 109, 110, 111,
                            108, 109, 110, 111, 112 ],
-                        [ 72, 11 ]
+                        [ 72, 72 ]
                      } ]
                }
             }
@@ -308,7 +308,7 @@ GROUP "/" {
                   101, 102, 103, 104, 105,
                   102, 103, 104, 105, 106,
                   103, 104, 105, 106, 107 ],
-               [ 67, 6 ]
+               [ 67, 67 ]
             },
          (1): {
                [ 98, 99, 100, 101, 102, 103, 104, 0, 0, 0 ],
@@ -336,7 +336,7 @@ GROUP "/" {
                   102, 103, 104, 105, 106,
                   103, 104, 105, 106, 107,
                   104, 105, 106, 107, 108 ],
-               [ 68, 7 ]
+               [ 68, 68 ]
             }
          }
       }
@@ -395,7 +395,7 @@ GROUP "/" {
                         103, 104, 105, 106, 107,
                         104, 105, 106, 107, 108,
                         105, 106, 107, 108, 109 ],
-                     [ 69, 8 ]
+                     [ 69, 69 ]
                   },
                    {
                      [ 100, 101, 102, 103, 104, 105, 106, 0, 0, 0 ],
@@ -423,7 +423,7 @@ GROUP "/" {
                         104, 105, 106, 107, 108,
                         105, 106, 107, 108, 109,
                         106, 107, 108, 109, 110 ],
-                     [ 70, 9 ]
+                     [ 70, 70 ]
                   } ]
             }
          }
@@ -470,9 +470,9 @@ GROUP "/" {
    GROUP "datatype" {
       DATATYPE "Chars" H5T_COMPOUND {
          H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-
+         
          H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
-         H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
+         H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
       }
       DATATYPE "struct AllTypes" H5T_COMPOUND {
          H5T_COMPOUND {
@@ -495,9 +495,10 @@ GROUP "/" {
             } } "struct Floats array";
             H5T_ARRAY { [2] H5T_COMPOUND {
                H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-
+               
                H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
-               H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
+               
+               H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
             } } "struct Chars array";
          } "sturct FloatsChars";
       }
@@ -536,9 +537,9 @@ GROUP "/" {
          } } "struct Floats array";
          H5T_ARRAY { [2] H5T_COMPOUND {
             H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-
+            
             H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
-            H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
+            H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
          } } "struct Chars array";
       }
    }

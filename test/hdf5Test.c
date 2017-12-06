@@ -312,8 +312,7 @@ int main(int argc, char** argv) {
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
     FTIT_type bytesType;
-    FTI_InitType(&bytesType, sizeof(bytesType));
-
+    FTI_InitType(&bytesType, sizeof(AsByteArray));
     FTIT_complexType CharsDef;
     FTIT_type CharsType;
     CharsDef.field[0].type = &FTI_CHAR;
