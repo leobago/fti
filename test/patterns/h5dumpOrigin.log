@@ -1,4 +1,3 @@
-HDF5 "Ckpt2-Rank0.h5" {
 GROUP "/" {
    GROUP "dataset" {
       DATASET "all ints" {
@@ -471,7 +470,7 @@ GROUP "/" {
    GROUP "datatype" {
       DATATYPE "Chars" H5T_COMPOUND {
          H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-         
+
          H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
          H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
       }
@@ -496,7 +495,7 @@ GROUP "/" {
             } } "struct Floats array";
             H5T_ARRAY { [2] H5T_COMPOUND {
                H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-               
+
                H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
                H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
             } } "struct Chars array";
@@ -537,7 +536,7 @@ GROUP "/" {
          } } "struct Floats array";
          H5T_ARRAY { [2] H5T_COMPOUND {
             H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-            
+
             H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
             H5T_ARRAY { [2] 192-bit little-endian integer } "byte array";
          } } "struct Chars array";
