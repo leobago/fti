@@ -544,8 +544,115 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fclose(fileDesc);
     free(buffer);
+    printf("FINISHED\n");
 
     return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Init of FTI-FF L2 recovery
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
+
+    This function initializes the L2 checkpoint recovery. It checks for 
+    erasures and loads the required meta data. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+                  FTIT_checkpoint* FTI_Ckpt, void* myInfoBuffer, void* partnerInfoBuffer)
+{
+    struct L2Info {
+        long FileExists;
+        long CopyExists;
+        long ckptID;
+        long fs;
+        long pfs;
+    };
+    MPI_Datatype MPI_L2Info;
+    MPI_Type_contiguous(sizeof(struct L2Info), MPI_BYTE, &MPI_L2Info);
+    MPI_Type_commit(&MPI_L2Info);
+    struct L2Info *myInfo = calloc(1, sizeof(struct L2Info));
+    struct L2Info *partnerInfo = calloc(1, sizeof(struct L2Info));
+    char str[FTI_BUFS], tmpfn[FTI_BUFS];
+    int canRecover, fileTarget, ckptID, fcount, match;
+    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct stat ckptFS;
+    DIR *L2CkptDir = opendir( FTI_Ckpt[2].dir );
+    if(L2CkptDir) {
+        while(entry = readdir(L2CkptDir)) {
+            if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
+                sprintf(str, "FTI-FF: L2RecoveryInit - found file with name: %s", entry->d_name);
+                FTI_Print(str, FTI_DBUG);
+                match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
+                if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
+                    int ferr = stat(tmpfn, &ckptFS);
+                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                        myInfo->fs = ckptFS.st_size;    
+                        myInfo->ckptID = ckptID;
+                        myInfo->FileExists = 1;
+                    }            
+                }
+                match = sscanf(entry->d_name, "Ckpt%d-Pcof%d.fti", &ckptID, &fileTarget );
+                if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
+                    int ferr = stat(tmpfn, &ckptFS);
+                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                        myInfo->pfs = ckptFS.st_size;    
+                        myInfo->ckptID = ckptID;
+                        myInfo->CopyExists = 1;
+                    }            
+                }
+            }
+            if (myInfo->FileExists && myInfo->CopyExists) {
+                break;
+            }
+        }
+    }
+    
+    if(FTI_Topo->groupRank%2 == 0) {
+        MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
+        MPI_Recv(partnerInfo, 1, MPI_L2Info, FTI_Topo->left, 0, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+    } else {
+        MPI_Recv(partnerInfo, 1, MPI_L2Info, FTI_Topo->left, 0, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
+    }
+    
+    canRecover = (myInfo->FileExists || partnerInfo->CopyExists) ? 1 : 0;
+
+    if (canRecover) {
+        if (myInfo->FileExists) {
+            FTI_Exec->meta[2].fs[0] = myInfo->fs;    
+            FTI_Exec->ckptID = myInfo->ckptID;
+        } else {
+            FTI_Exec->meta[2].fs[0] = partnerInfo->pfs;    
+            FTI_Exec->ckptID = partnerInfo->ckptID;
+        }
+        if (myInfo->CopyExists) {
+            FTI_Exec->meta[2].pfs[0] = myInfo->pfs;    
+            FTI_Exec->ckptID = myInfo->ckptID;
+        } else {
+            FTI_Exec->meta[2].pfs[0] = partnerInfo->fs;    
+            FTI_Exec->ckptID = partnerInfo->ckptID;
+        }
+    }
+
+    MPI_Allreduce(&canRecover, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    int fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
+    sprintf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    memcpy(myInfoBuffer,myInfo,2*sizeof(long));
+    memcpy(partnerInfoBuffer, partnerInfo, 2*sizeof(long));
+    //printf("canRecover: %i, file exists: %ld, copy exists: %ld\n",
+    //        canRecover, myInfo->FileExists, partnerInfo->CopyExists);
+    closedir(L2CkptDir);
+    free(myInfo);
+    free(partnerInfo);
+    MPI_Type_free(&MPI_L2Info);
+    return res;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -572,43 +679,70 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // Checking erasures
     int erased[FTI_BUFS];
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int i = 0;
-    int j;
-    for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
-        if (erased[j]) {
-            i++; // Counting erasures
-        }
-    }
-
-    if (i == 0) {
-        FTI_Print("Have all checkpoint files.", FTI_DBUG);
-        return FTI_SCES;
-    }
-
-    int res = FTI_SCES;
     int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
     int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
-    if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
-        FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
-        res = FTI_NSCS;
-    }
+    int res;
 
-    if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
-        FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
-        res = FTI_NSCS;
-    }
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        struct L2Info {
+            long FileExists;
+            long CopyExists;
+        };
+        struct L2Info *myInfo = calloc(1, sizeof(struct L2Info));
+        struct L2Info *partnerInfo = calloc(1, sizeof(struct L2Info));
+        
+        if ( FTI_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, myInfo, partnerInfo ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
+        }
 
-    int allRes;
-    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
-    if (allRes != FTI_SCES) {
-        return FTI_NSCS;
+        memset(erased, 0x0, FTI_BUFS*sizeof(int));
+
+        erased[destination] = !(partnerInfo->FileExists);
+        erased[FTI_Topo->groupRank] = !(myInfo->FileExists);
+        erased[source + FTI_Topo->groupSize] = !(myInfo->CopyExists);
+        erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !(partnerInfo->CopyExists);
+
+    } 
+   
+    else {
+        // Checking erasures
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+        int i = 0;
+        int j;
+        for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
+            if (erased[j]) {
+                i++; // Counting erasures
+            }
+        }
+
+        if (i == 0) {
+            FTI_Print("Have all checkpoint files.", FTI_DBUG);
+            return FTI_SCES;
+        }
+
+        res = FTI_SCES;
+        if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
+            FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
+            res = FTI_NSCS;
+        }
+
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
+            FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
+            res = FTI_NSCS;
+        }
+
+        int allRes;
+        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
+        if (allRes != FTI_SCES) {
+            return FTI_NSCS;
+        }
+
     }
 
     //recover checkpoint files
@@ -670,7 +804,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
-
+    
     return FTI_SCES;
 }
 
