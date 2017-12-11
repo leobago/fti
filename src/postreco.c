@@ -544,7 +544,6 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fclose(fileDesc);
     free(buffer);
-    printf("FINISHED\n");
 
     return FTI_SCES;
 }
@@ -564,23 +563,69 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
                   FTIT_checkpoint* FTI_Ckpt, void* myInfoBuffer, void* partnerInfoBuffer)
 {
+    char dbgstr[FTI_BUFS];
+    
     struct L2Info {
-        long FileExists;
-        long CopyExists;
-        long ckptID;
+        int FileExists;
+        int CopyExists;
+    };
+    
+    struct L2MetaInfo {
+        int canRecover;
+        int ckptID;
         long fs;
         long pfs;
     };
+
+    // create MPI datatype of L2Info
     MPI_Datatype MPI_L2Info;
-    MPI_Type_contiguous(sizeof(struct L2Info), MPI_BYTE, &MPI_L2Info);
-    MPI_Type_commit(&MPI_L2Info);
+    MPI_Type_contiguous( sizeof(struct L2Info), MPI_BYTE, &MPI_L2Info );
+    MPI_Type_commit( &MPI_L2Info );
+    
+    // create MPI datatype of L2MetaInfo
+    MPI_Datatype MPI_L2MetaInfo_RAW, MPI_L2MetaInfo;
+    int mbrCnt = 4;
+    int mbrBlkLen[] = { 1, 1, 1, 1 };
+    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    MPI_Aint mbrDisp[] = { 
+        offsetof( struct L2MetaInfo, canRecover), 
+        offsetof( struct L2MetaInfo, ckptID), 
+        offsetof( struct L2MetaInfo, fs), 
+        offsetof( struct L2MetaInfo, pfs) 
+    }; 
+    MPI_Aint lb, extent;
+    MPI_Type_create_struct( mbrCnt, mbrBlkLen, mbrDisp, mbrTypes, &MPI_L2MetaInfo_RAW );
+    MPI_Type_get_extent( MPI_L2MetaInfo_RAW, &lb, &extent );
+    MPI_Type_create_resized( MPI_L2MetaInfo_RAW, lb, extent, &MPI_L2MetaInfo);
+    MPI_Type_commit( &MPI_L2MetaInfo );
+    
+    // determine app rank representation of group ranks left and right
+    MPI_Group nodesGroup;
+    MPI_Comm_group(FTI_Exec->groupComm, &nodesGroup);
+    MPI_Group appProcsGroup;
+    MPI_Comm_group(FTI_COMM_WORLD, &appProcsGroup);
+    int baseRanks[] = { FTI_Topo->left, FTI_Topo->right };
+    int projRanks[2];
+    MPI_Group_translate_ranks( nodesGroup, 2, baseRanks, appProcsGroup, projRanks );
+    int leftIdx = projRanks[0], rightIdx = projRanks[1];
+    MPI_Group_free(&nodesGroup);
+    MPI_Group_free(&appProcsGroup);
+
+    int appCommSize = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    int fneeded = appCommSize;
+    
+    struct L2MetaInfo *appProcsMetaInfo = malloc( appCommSize * sizeof(struct L2MetaInfo) );
+    struct L2MetaInfo *myMetaInfo = malloc( sizeof(struct L2MetaInfo) );
+    
     struct L2Info *myInfo = calloc(1, sizeof(struct L2Info));
     struct L2Info *partnerInfo = calloc(1, sizeof(struct L2Info));
+    
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
-    int canRecover, fileTarget, ckptID, fcount, match;
+    int canRecover, fileTarget, ckptID = -1, fcount = 0, match;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
     DIR *L2CkptDir = opendir( FTI_Ckpt[2].dir );
+    
     if(L2CkptDir) {
         while(entry = readdir(L2CkptDir)) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
@@ -591,8 +636,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        myInfo->fs = ckptFS.st_size;    
-                        myInfo->ckptID = ckptID;
+                        myMetaInfo->fs = ckptFS.st_size;    
+                        myMetaInfo->ckptID = ckptID;    
                         myInfo->FileExists = 1;
                     }            
                 }
@@ -601,8 +646,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        myInfo->pfs = ckptFS.st_size;    
-                        myInfo->ckptID = ckptID;
+                        myMetaInfo->pfs = ckptFS.st_size;    
+                        myMetaInfo->ckptID = ckptID;    
                         myInfo->CopyExists = 1;
                     }            
                 }
@@ -613,6 +658,10 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         }
     }
     
+    if(!(myInfo->FileExists) && !(myInfo->CopyExists)) {
+        myMetaInfo->ckptID = -1;
+    }
+    
     if(FTI_Topo->groupRank%2 == 0) {
         MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
         MPI_Recv(partnerInfo, 1, MPI_L2Info, FTI_Topo->left, 0, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -621,37 +670,50 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
     }
     
-    canRecover = (myInfo->FileExists || partnerInfo->CopyExists) ? 1 : 0;
-
-    if (canRecover) {
-        if (myInfo->FileExists) {
-            FTI_Exec->meta[2].fs[0] = myInfo->fs;    
-            FTI_Exec->ckptID = myInfo->ckptID;
-        } else {
-            FTI_Exec->meta[2].fs[0] = partnerInfo->pfs;    
-            FTI_Exec->ckptID = partnerInfo->ckptID;
-        }
-        if (myInfo->CopyExists) {
-            FTI_Exec->meta[2].pfs[0] = myInfo->pfs;    
-            FTI_Exec->ckptID = myInfo->ckptID;
-        } else {
-            FTI_Exec->meta[2].pfs[0] = partnerInfo->fs;    
-            FTI_Exec->ckptID = partnerInfo->ckptID;
+    myMetaInfo->canRecover = (myInfo->FileExists || partnerInfo->CopyExists) ? 1 : 0;
+   
+    // gather meta info
+    MPI_Allgather( myMetaInfo, 1, MPI_L2MetaInfo, appProcsMetaInfo, 1, MPI_L2MetaInfo, FTI_COMM_WORLD);
+    
+    // check if recovery possible
+    int i, saneCkptID = 0;
+    ckptID = 0;
+    for(i=0; i<appCommSize; i++) { 
+        fcount+=appProcsMetaInfo[i].canRecover;
+        if (appProcsMetaInfo[i].ckptID > 0) {
+            saneCkptID++;
+            ckptID += appProcsMetaInfo[i].ckptID;
         }
     }
-
-    MPI_Allreduce(&canRecover, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    int fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
     int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
+    FTI_Exec->ckptID = ckptID/saneCkptID;
+
+    if (res == FTI_SCES) {
+        if (myInfo->FileExists) {
+            FTI_Exec->meta[2].fs[0] = myMetaInfo->fs;    
+        } else {
+            FTI_Exec->meta[2].fs[0] = appProcsMetaInfo[rightIdx].pfs;    
+        }
+        if (myInfo->CopyExists) {
+            FTI_Exec->meta[2].pfs[0] = myMetaInfo->pfs;    
+        } else {
+            FTI_Exec->meta[2].pfs[0] = appProcsMetaInfo[leftIdx].fs;    
+        }
+    }
+    sprintf(dbgstr, "FTI-FF: L2-Recovery - left: %i, right: %i, fs: %ld, pfs: %ld, ckptID: %i\n",
+            FTI_Topo->myRank, leftIdx, rightIdx, FTI_Exec->meta[2].fs[0], FTI_Exec->meta[2].pfs[0], FTI_Exec->ckptID);
+    FTI_Print(dbgstr, FTI_DBUG);
+
     sprintf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    
     memcpy(myInfoBuffer,myInfo,2*sizeof(long));
     memcpy(partnerInfoBuffer, partnerInfo, 2*sizeof(long));
-    //printf("canRecover: %i, file exists: %ld, copy exists: %ld\n",
-    //        canRecover, myInfo->FileExists, partnerInfo->CopyExists);
+    
     closedir(L2CkptDir);
     free(myInfo);
     free(partnerInfo);
     MPI_Type_free(&MPI_L2Info);
+    
     return res;
 }
 
@@ -703,6 +765,9 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         erased[FTI_Topo->groupRank] = !(myInfo->FileExists);
         erased[source + FTI_Topo->groupSize] = !(myInfo->CopyExists);
         erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !(partnerInfo->CopyExists);
+
+        free(partnerInfo);
+        free(myInfo);
 
     } 
    
