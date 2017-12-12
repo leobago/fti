@@ -56,16 +56,20 @@
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
+    
+    //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
     int ckptID, rank;
     sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     char fn[FTI_BUFS], efn[FTI_BUFS];
     sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
     sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
-
+    
     int bs = FTI_Conf->blockSize;
     int k = FTI_Topo->groupSize;
     int m = k;
 
+    long fs = FTI_Exec->meta[3].fs[0];
+    
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
     char* dataTmp = talloc(char, FTI_Conf->blockSize* k);
@@ -104,6 +108,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
+    
     // Inversing the matrix
     if (jerasure_invert_matrix(tmpmat, decMatrix, k, FTI_Conf->l3WordSize) < 0) {
         FTI_Print("Error inversing matrix", FTI_DBUG);
@@ -122,6 +127,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
+    
     FILE *fd, *efd;
     long maxFs = FTI_Exec->meta[3].maxFs[0];
     long ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
@@ -179,6 +185,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
+    
     if (efd == NULL) {
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
 
@@ -202,6 +209,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Main loop, block by block
     long pos = 0;
     while (pos < ps) {
+    
+        //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
             fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
@@ -230,6 +239,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             bzero(data[FTI_Topo->groupRank], bs);
         } // Erasure found
+    
+        //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
             fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
@@ -257,7 +268,9 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             bzero(coding[FTI_Topo->groupRank], bs);
         }
-
+    
+        //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
+    
         MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
@@ -267,7 +280,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for (i = 0; i < k; i++) {
             memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
-
+    
         // Decoding the lost data work
         if (erased[FTI_Topo->groupRank]) {
             jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, bs);
@@ -283,6 +296,12 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
         }
         if (erased[FTI_Topo->groupRank]) {
+            // if FTI-FF we do not have the fs info yet.
+            if ( FTI_Conf->ioMode == FTI_IO_FTIFF && pos == 0) {
+                memcpy(&fs, data[FTI_Topo->groupRank], sizeof(long));
+                FTI_Exec->meta[3].fs[0] = fs;
+                printf("fs: %ld\n", fs);
+            } 
             fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
         }
         if (erased[FTI_Topo->groupRank + k]) {
@@ -295,8 +314,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Closing files
     fclose(fd);
     fclose(efd);
-
-    long fs = FTI_Exec->meta[3].fs[0];
+    
+    //sleep(1);
+    //exit(0);
+    
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 
@@ -627,10 +648,12 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     DIR *L2CkptDir = opendir( FTI_Ckpt[2].dir );
     
     if(L2CkptDir) {
+        int tmpCkptID;
         while(entry = readdir(L2CkptDir)) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
                 sprintf(str, "FTI-FF: L2RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
+                tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
@@ -640,7 +663,10 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         myMetaInfo->ckptID = ckptID;    
                         myInfo->FileExists = 1;
                     }            
+                } else {
+                    ckptID = tmpCkptID;
                 }
+                tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Pcof%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
@@ -650,6 +676,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         myMetaInfo->ckptID = ckptID;    
                         myInfo->CopyExists = 1;
                     }            
+                } else {
+                    ckptID = tmpCkptID;
                 }
             }
             if (myInfo->FileExists && myInfo->CopyExists) {
@@ -686,9 +714,9 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         }
     }
     int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
-    FTI_Exec->ckptID = ckptID/saneCkptID;
 
     if (res == FTI_SCES) {
+        FTI_Exec->ckptID = ckptID/saneCkptID;
         if (myInfo->FileExists) {
             FTI_Exec->meta[2].fs[0] = myMetaInfo->fs;    
         } else {
@@ -710,6 +738,9 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     memcpy(partnerInfoBuffer, partnerInfo, 2*sizeof(long));
     
     closedir(L2CkptDir);
+    free(appProcsMetaInfo);
+    free(myMetaInfo);
+    //free(entry);
     free(myInfo);
     free(partnerInfo);
     MPI_Type_free(&MPI_L2Info);
@@ -875,6 +906,169 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Init of FTI-FF L2 recovery
+    @param      FTI_Exec        Execution metadata.
+    @param      FTI_Topo        Topology metadata.
+    @param      FTI_Ckpt        Checkpoint metadata.
+    @return     integer         FTI_SCES if successful.
+
+    This function initializes the L2 checkpoint recovery. It checks for 
+    erasures and loads the required meta data. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+                  FTIT_checkpoint* FTI_Ckpt, int* erased)
+{
+    char dbgstr[FTI_BUFS];
+    
+    struct L3Info {
+        int FileExists;
+        int RSFileExists;
+        int ckptID;
+        long fs;
+        long RSfs;  // maxFs
+    };
+    
+    //struct L2MetaInfo {
+    //    int canRecover;
+    //    int ckptID;
+    //    long fs;
+    //    long pfs;
+    //};
+
+    // create MPI datatype of L2Info
+    //MPI_Datatype MPI_L2Info;
+    //MPI_Type_contiguous( sizeof(struct L2Info), MPI_BYTE, &MPI_L2Info );
+    //MPI_Type_commit( &MPI_L2Info );
+    
+    // create MPI datatype of L2MetaInfo
+    MPI_Datatype MPI_L3Info_RAW, MPI_L3Info;
+    int mbrCnt = 5;
+    int mbrBlkLen[] = { 1, 1, 1, 1, 1 };
+    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    MPI_Aint mbrDisp[] = { 
+        offsetof( struct L3Info, FileExists), 
+        offsetof( struct L3Info, RSFileExists), 
+        offsetof( struct L3Info, ckptID), 
+        offsetof( struct L3Info, fs), 
+        offsetof( struct L3Info, RSfs), 
+    }; 
+    MPI_Aint lb, extent;
+    MPI_Type_create_struct( mbrCnt, mbrBlkLen, mbrDisp, mbrTypes, &MPI_L3Info_RAW );
+    MPI_Type_get_extent( MPI_L3Info_RAW, &lb, &extent );
+    MPI_Type_create_resized( MPI_L3Info_RAW, lb, extent, &MPI_L3Info);
+    MPI_Type_commit( &MPI_L3Info );
+    
+    //// determine app rank representation of group ranks left and right
+    //MPI_Group nodesGroup;
+    //MPI_Comm_group(FTI_Exec->groupComm, &nodesGroup);
+    //MPI_Group appProcsGroup;
+    //MPI_Comm_group(FTI_COMM_WORLD, &appProcsGroup);
+    //int baseRanks[] = { FTI_Topo->left, FTI_Topo->right };
+    //int projRanks[2];
+    //MPI_Group_translate_ranks( nodesGroup, 2, baseRanks, appProcsGroup, projRanks );
+    //int leftIdx = projRanks[0], rightIdx = projRanks[1];
+    //MPI_Group_free(&nodesGroup);
+    //MPI_Group_free(&appProcsGroup);
+
+    //int appCommSize = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    //int fneeded = appCommSize;
+    
+    struct L3Info *groupInfo = calloc( FTI_Topo->groupSize, sizeof(struct L3Info) );
+    struct L3Info *myInfo = calloc( 1, sizeof(struct L3Info) );
+    
+    char str[FTI_BUFS], tmpfn[FTI_BUFS];
+    int fileTarget, ckptID = -1, fcount = 0, match;
+    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct stat ckptFS;
+    DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
+    
+    if(L3CkptDir) {
+        int tmpCkptID;
+        while(entry = readdir(L3CkptDir)) {
+            if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
+                sprintf(str, "FTI-FF: L3RecoveryInit - found file with name: %s", entry->d_name);
+                FTI_Print(str, FTI_DBUG);
+                tmpCkptID = ckptID;
+                match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
+                if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
+                    int ferr = stat(tmpfn, &ckptFS);
+                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                        myInfo->fs = ckptFS.st_size;    
+                        myInfo->ckptID = ckptID;    
+                        myInfo->FileExists = 1;
+                    }            
+                } else {
+                    ckptID = tmpCkptID;
+                }
+                tmpCkptID = ckptID;
+                match = sscanf(entry->d_name, "Ckpt%d-RSed%d.fti", &ckptID, &fileTarget );
+                if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
+                    int ferr = stat(tmpfn, &ckptFS);
+                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                        myInfo->RSfs = ckptFS.st_size;    
+                        myInfo->ckptID = ckptID;    
+                        myInfo->RSFileExists = 1;
+                    }            
+                } else {
+                    ckptID = tmpCkptID;
+                }
+            }
+            if (myInfo->FileExists && myInfo->RSFileExists) {
+                break;
+            }
+        }
+    }
+    
+    if(!(myInfo->FileExists) && !(myInfo->RSFileExists)) {
+        myInfo->ckptID = -1;
+    }
+    
+    if(!(myInfo->RSFileExists)) {
+        myInfo->RSfs = -1;
+    }
+    
+    // gather meta info
+    MPI_Allgather( myInfo, 1, MPI_L3Info, groupInfo, 1, MPI_L3Info, FTI_Exec->groupComm);
+    
+    // check if recovery possible
+    int i, saneCkptID = 0, saneMaxFs = 0;
+    long maxFs = 0;
+    ckptID = 0;
+    for(i=0; i<FTI_Topo->groupSize; i++) { 
+        erased[i]=!groupInfo[i].FileExists;
+        erased[i+FTI_Topo->groupSize]=!groupInfo[i].RSFileExists;
+        //printf("grank: %i, grrank: %i, ferased: %i, RSerased: %i \n", 
+        //        FTI_Topo->myRank, FTI_Topo->groupRank, erased[FTI_Topo->groupRank], erased[FTI_Topo->groupRank+FTI_Topo->groupSize]);
+        if (groupInfo[i].ckptID > 0) {
+            saneCkptID++;
+            ckptID += groupInfo[i].ckptID;
+        }
+        if (groupInfo[i].RSfs > 0) {
+            saneMaxFs++;
+            maxFs += groupInfo[i].RSfs;
+        }
+    }
+    FTI_Exec->ckptID = ckptID/saneCkptID;
+    FTI_Exec->meta[3].maxFs[0] = maxFs/saneMaxFs;
+
+    FTI_Exec->meta[3].fs[0] = (myInfo->FileExists) ? myInfo->fs : 0;
+    
+    sprintf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    
+    closedir(L3CkptDir);
+    free(groupInfo);
+    free(myInfo);
+    //free(entry);
+    MPI_Type_free(&MPI_L3Info);
+    
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
     @param      FTI_Conf        Configuration metadata.
     @param      FTI_Exec        Execution metadata.
@@ -897,13 +1091,27 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // Checking erasures
     int erased[FTI_BUFS];
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_DBUG);
-        return FTI_NSCS;
+    
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        
+        if ( FTI_CheckL3RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, erased ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L3. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+
+    } 
+   
+    else {
+    
+        // Checking erasures
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_DBUG);
+            return FTI_NSCS;
+        }
     }
 
+    printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
     // Counting erasures
     int l = 0;
     int gs = FTI_Topo->groupSize;

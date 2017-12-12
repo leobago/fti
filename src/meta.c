@@ -668,7 +668,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
     FTIT_dbvar *dbvars = NULL;
     int isnextdb;
-    long offset = sizeof(long), chunksize;
+    long offset = 2*sizeof(long), chunksize;
     long *FTI_Data_oldsize, dbsize;
     
     // first call, init first datablock
@@ -853,7 +853,7 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 	FTIT_dbvar *currentdbvar = NULL;
 	int dbvar_idx, pvar_idx, dbcounter=0;
 
-	long endoffile = sizeof(long); // space for timestamp 
+	long endoffile = 2*sizeof(long); // space for timestamp 
     long mdoffset;
 
 	int isnextdb;
