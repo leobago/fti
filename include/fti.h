@@ -81,6 +81,41 @@ extern "C" {
 #endif
 
 /*---------------------------------------------------------------------------
+                                  FTI-FF types
+---------------------------------------------------------------------------*/
+
+/** @typedef    FTIFF_dbvar
+ *  @brief      Information about protected variable in datablock.
+ *
+ *  (For FTI-FF only)
+ *  Keeps information about the chunk of the protected variable with id 
+ *  stored in the current datablock. 
+ *  
+ */
+typedef struct FTIFF_dbvar {
+    int id;
+    int idx;			   /**< index to corresponding id in pvar array */
+    long dptr;			   /**< data pointer offset				        */
+    long fptr;			   /**< file pointer offset                     */
+    long chunksize;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+} FTIFF_dbvar;
+
+/** @typedef    FTIFF_db
+ *  @brief      Information about current datablock.
+ *
+ *  (For FTI-FF only)
+ *  Keeps information about the current datablock in file
+ */
+typedef struct FTIFF_db {
+    int numvars;	        /**< number of protected variables in datablock */
+    long dbsize;            /**< size of metadata + data in bytes		    */
+    FTIFF_dbvar *dbvars;     /**< pointer to corresponding dbvar array       */
+    struct FTIFF_db *previous;		 /**< link to previous datablock        */
+    struct FTIFF_db *next;			 /**< link to next datablock            */
+} FTIFF_db;
+
+/*---------------------------------------------------------------------------
                                   New types
 ---------------------------------------------------------------------------*/
 
@@ -108,37 +143,6 @@ typedef union FTIT_float {
     int             intval;             /**< Integer mapped to do bit edits.*/
     char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
-
-/** @typedef    FTIT_dbvar
- *  @brief      Information about protected variable in datablock.
- *
- *  (For FTI File Format only)
- *  Keeps information about the chunk of the protected variable with id 
- *  stored in the current datablock. 
- *  
- */
-typedef struct FTIT_dbvar {
-    int id;
-    int idx;			   /**< index to corresponding id in pvar array */
-    long dptr;			   /**< data pointer offset				        */
-    long fptr;			   /**< file pointer offset                     */
-    long chunksize;
-    unsigned char hash[MD5_DIGEST_LENGTH];
-} FTIT_dbvar;
-
-/** @typedef    FTIT_db
- *  @brief      Information about current datablock.
- *
- *  (For FTI File Format only)
- *  Keeps information about the current datablock in file
- */
-typedef struct FTIT_db {
-    int numvars;	        /**< number of protected variables in datablock */
-    long dbsize;            /**< size of metadata + data in bytes		    */
-    FTIT_dbvar *dbvars;     /**< pointer to corresponding dbvar array       */
-    struct FTIT_db *previous;		 /**< link to previous datablock        */
-    struct FTIT_db *next;			 /**< link to next datablock            */
-} FTIT_db;
 
 /** @typedef    FTIT_type
  *  @brief      Type recognized by FTI.
@@ -215,8 +219,8 @@ typedef struct FTIT_execution {
     int             metaAlloc;          /**< True if meta allocated.        */
     int             initSCES;           /**< True if FTI initialized.       */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-    FTIT_db         *firstdb;           /**< Pointer to first datablock     */
-    FTIT_db         *lastdb;            /**< Pointer to first datablock     */
+    FTIFF_db         *firstdb;           /**< Pointer to first datablock     */
+    FTIFF_db         *lastdb;            /**< Pointer to first datablock     */
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
 } FTIT_execution;

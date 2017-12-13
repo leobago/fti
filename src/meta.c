@@ -220,6 +220,8 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (FTI_Topo->amIaHead) { //I am a head
         int j, biggestCkptID = 0; //Need to find biggest CkptID
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
@@ -452,6 +454,8 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                       FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
                       char* checksums, int* allVarIDs, long* allVarSizes)
 {
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
@@ -666,16 +670,16 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
     int dbvar_idx, pvar_idx, num_edit_pvars = 0;
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
-    FTIT_dbvar *dbvars = NULL;
+    FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
     long offset = 2*sizeof(long), chunksize;
     long *FTI_Data_oldsize, dbsize;
     
     // first call, init first datablock
     if(!FTI_Exec->firstdb) { // init file info
-        dbsize = FTI_dbstructsize + sizeof(FTIT_dbvar) * FTI_Exec->nbVar;
-        FTIT_db *dblock = (FTIT_db*) malloc( sizeof(FTIT_db) );
-        dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * FTI_Exec->nbVar );
+        dbsize = FTI_dbstructsize + sizeof(FTIFF_dbvar) * FTI_Exec->nbVar;
+        FTIFF_db *dblock = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
+        dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * FTI_Exec->nbVar );
         dblock->previous = NULL;
         dblock->next = NULL;
         dblock->numvars = FTI_Exec->nbVar;
@@ -738,7 +742,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         }
                 
         // if size changed or we have new variables to protect, create new block. 
-        dbsize = FTI_dbstructsize + sizeof(FTIT_dbvar) * num_edit_pvars;
+        dbsize = FTI_dbstructsize + sizeof(FTIFF_dbvar) * num_edit_pvars;
        
         int evar_idx = 0;
         if( num_edit_pvars ) {
@@ -747,7 +751,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
                     case 1:
                         // add new protected variable in next datablock
-                        dbvars = (FTIT_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIT_dbvar) );
+                        dbvars = (FTIFF_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIFF_dbvar) );
                         dbvars[evar_idx].fptr = offset + dbsize;
                         dbvars[evar_idx].dptr = 0;
                         dbvars[evar_idx].id = FTI_Data[pvar_idx].id;
@@ -761,7 +765,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                     case 2:
                         
                         // create data chunk info
-                        dbvars = (FTIT_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIT_dbvar) );
+                        dbvars = (FTIFF_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIFF_dbvar) );
                         dbvars[evar_idx].fptr = offset + dbsize;
                         dbvars[evar_idx].dptr = FTI_Data_oldsize[pvar_idx];
                         dbvars[evar_idx].id = FTI_Data[pvar_idx].id;
@@ -776,7 +780,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
             }
 
-            FTIT_db  *dblock = (FTIT_db*) malloc( sizeof(FTIT_db) );
+            FTIFF_db  *dblock = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
             FTI_Exec->lastdb->next = dblock;
             dblock->previous = FTI_Exec->lastdb;
             dblock->next = NULL;
@@ -849,8 +853,8 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 	// file is mapped, we can close it.
 	close(fd);
 
-	FTIT_db *currentdb, *nextdb;
-	FTIT_dbvar *currentdbvar = NULL;
+	FTIFF_db *currentdb, *nextdb;
+	FTIFF_dbvar *currentdbvar = NULL;
 	int dbvar_idx, pvar_idx, dbcounter=0;
 
 	long endoffile = 2*sizeof(long); // space for timestamp 
@@ -858,9 +862,9 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 	int isnextdb;
 	
-	currentdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+	currentdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
 	if (!currentdb) {
-		sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIT_db));
+		sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
 		FTI_Print(strerr, FTI_EROR);
 		return FTI_NREC;
 	}
@@ -871,9 +875,9 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 	do {
 
-		nextdb = (FTIT_db*) malloc( sizeof(FTIT_db) );
+		nextdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
 		if (!currentdb) {
-			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIT_db));
+			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
 			FTI_Print(strerr, FTI_EROR);
 			return FTI_NREC;
 		}
@@ -891,9 +895,9 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 				dbcounter, currentdb->dbsize, currentdb->numvars);
 		FTI_Print(str, FTI_DBUG);
 
-		currentdb->dbvars = (FTIT_dbvar*) malloc( sizeof(FTIT_dbvar) * currentdb->numvars );
+		currentdb->dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * currentdb->numvars );
 		if (!currentdb) {
-			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIT_dbvar));
+			sprintf( strerr, "FTIFF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar));
 			FTI_Print(strerr, FTI_EROR);
 			return FTI_NREC;
 		}
@@ -902,8 +906,8 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 			currentdbvar = &(currentdb->dbvars[dbvar_idx]);
 
-			memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIT_dbvar) );
-			mdoffset += sizeof(FTIT_dbvar);
+			memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIFF_dbvar) );
+			mdoffset += sizeof(FTIFF_dbvar);
             
             if ( varCnt == 0 ) { 
                 varCnt++;

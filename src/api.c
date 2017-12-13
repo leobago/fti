@@ -133,9 +133,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-                res += FTI_Try( FTI_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
-            }	
+            //if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+            //    res += FTI_Try( FTI_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
+            //}	
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files
@@ -469,6 +469,39 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
+    // For FTI-FF to send for the heads.
+    
+    // create struct to send info
+    // send nbVar to knwo how many elements head must receive of varSize and varID
+    struct headInfo {
+        int exists; 
+        int nbVar;
+        char ckptFile[FTI_BUFS];
+        long maxFs;
+        long fs;
+        long pfs;
+    };
+    
+    // create MPI datatype of headInfo
+    MPI_Datatype MPI_headInfo_RAW, MPI_headInfo;
+    int mbrCnt = 6;
+    int mbrBlkLen[] = { 1, 1, FTI_BUFS, 1, 1, 1 };
+    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG };
+    MPI_Aint mbrDisp[] = { 
+        offsetof( struct headInfo, exists), 
+        offsetof( struct headInfo, nbVar), 
+        offsetof( struct headInfo, ckptFile), 
+        offsetof( struct headInfo, maxFs), 
+        offsetof( struct headInfo, fs), 
+        offsetof( struct headInfo, pfs) 
+    }; 
+    MPI_Aint lb, extent;
+    MPI_Type_create_struct( mbrCnt, mbrBlkLen, mbrDisp, mbrTypes, &MPI_headInfo_RAW );
+    MPI_Type_get_extent( MPI_headInfo_RAW, &lb, &extent );
+    MPI_Type_create_resized( MPI_headInfo_RAW, lb, extent, &MPI_headInfo);
+    MPI_Type_commit( &MPI_headInfo );
+    
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -501,6 +534,19 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
+    
+    struct headInfo *headInfo;
+    if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        // init headInfo
+        headInfo = malloc(sizeof(struct headInfo));
+        headInfo->exists = FTI_Exec.meta[0].exists[0];
+        headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
+        headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
+        headInfo->fs = FTI_Exec.meta[0].fs[0];
+        headInfo->pfs = FTI_Exec.meta[0].pfs[0];
+        strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
+    }
+
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
         // Head needs ckpt. ID to determine ckpt file name.
@@ -510,6 +556,12 @@ int FTI_Checkpoint(int id, int level)
             value = FTI_REJW; //Send reject checkpoint token to head
         }
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
+            MPI_Send(headInfo, 1, MPI_headInfo, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        }
+
     }
     else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
@@ -525,6 +577,9 @@ int FTI_Checkpoint(int id, int level)
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
+        if(FTI_Conf.ioMode == FTI_IO_FTIFF) {
+            free(headInfo);
+        }
         return FTI_NSCS;
     }
 
@@ -535,6 +590,9 @@ int FTI_Checkpoint(int id, int level)
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+    }
+    if(FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        free(headInfo);
     }
     return FTI_DONE;
 }
@@ -626,8 +684,8 @@ int FTI_Recover()
         // file is mapped, we can close it.
         close(fd);
 
-        FTIT_db *currentdb, *nextdb;
-        FTIT_dbvar *currentdbvar = NULL;
+        FTIFF_db *currentdb, *nextdb;
+        FTIFF_dbvar *currentdbvar = NULL;
         char *destptr, *srcptr;
         int dbvar_idx, pvar_idx, dbcounter=0;
 
@@ -971,8 +1029,8 @@ int FTI_RecoverVar(int id){
         // file is mapped, we can close it.
         close(fd);
 
-        FTIT_db *currentdb, *nextdb;
-        FTIT_dbvar *currentdbvar = NULL;
+        FTIFF_db *currentdb, *nextdb;
+        FTIFF_dbvar *currentdbvar = NULL;
         char *destptr, *srcptr;
         int dbvar_idx, pvar_idx, dbcounter=0;
 

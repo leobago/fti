@@ -39,7 +39,7 @@
 #include "interface.h"
 #include <dirent.h>
 
-int FTI_dbstructsize;		        /**< size of FTIT_db struct in file    */
+int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -90,8 +90,8 @@ FTI_dbstructsize
 /* int           */ FTI_Exec->metaAlloc             =0;     
 /* int           */ FTI_Exec->initSCES              =0;       
 /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
-/* FTIT_db       */ FTI_Exec->firstdb               =NULL;
-/* FTIT_db       */ FTI_Exec->lastdb                =NULL;
+/* FTIFF_db       */ FTI_Exec->firstdb               =NULL;
+/* FTIFF_db       */ FTI_Exec->lastdb                =NULL;
 /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
 /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
 
@@ -192,8 +192,8 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
 
-        FTIT_db *currentdb = FTI_Exec->firstdb;
-        FTIT_dbvar *currentdbvar = NULL;
+        FTIFF_db *currentdb = FTI_Exec->firstdb;
+        FTIFF_dbvar *currentdbvar = NULL;
         char *dptr;
         int dbvar_idx, pvar_idx, dbcounter=0;
 
@@ -209,7 +209,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
             for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
                 currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                MD5_Update (&mdContext, currentdbvar, sizeof(FTIT_dbvar));
+                MD5_Update (&mdContext, currentdbvar, sizeof(FTIFF_dbvar));
 
             }
 
@@ -410,11 +410,11 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
     }
 }
 
-void FTI_FreeDbFTIFF(FTIT_db* last)
+void FTI_FreeDbFTIFF(FTIFF_db* last)
 {
     if (last) {
-        FTIT_db *current = last;
-        FTIT_db *previous;
+        FTIFF_db *current = last;
+        FTIFF_db *previous;
         while( current ) {
             previous = current->previous;
             free(current->dbvars);
