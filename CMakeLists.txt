@@ -71,10 +71,10 @@ if(NOT ${FORTRAN_VER_UNKNOWN})
 endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
-option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
+option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
-option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_TESTS "Enables the generation of tests" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 
@@ -267,3 +267,25 @@ file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)
 file(COPY examples/README DESTINATION examples)
+
+# create packages
+SET(CPACK_GENERATOR "DEB;RPM")
+SET(CPACK_CMAKE_GENERATOR "Unix Makefiles")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Fault Tolerance Interface")
+SET(CPACK_PACKAGE_VENDOR "Leonardo A. Bautista Gomez, Karol Sierocinski, Kai Keller, Tomasz Paluszkiewicz, Julien Bigot, Nuria Losada, Slawomir Zdanowski, Adele Villiermet")
+# SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/DESCFILE")
+# SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+SET(CPACK_MONOLITHIC_INSTALL "1")
+
+SET(CPACK_PACKAGE_CONTACT "ksiero@man.poznan.pl")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Karol Sierocinski")
+SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+
+SET(CPACK_RPM_COMPONENT_INSTALL ON)
+SET(CPACK_RPM_PACKAGE_LICENSE "BSD")
+SET(CPACK_RPM_PACKAGE_GROUP "Development/Libraries")
+
+INCLUDE(CPack)
