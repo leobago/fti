@@ -217,6 +217,7 @@ int FTI_InitType(FTIT_type* type, int size)
 /*-------------------------------------------------------------------------*/
 int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 {
+    sprintf(typeDefinition->name, "Type%d", FTI_Exec.nbType);
     int i;
     //Give default names to types (needed for HDF5)
     for (i = 0; i < typeDefinition->length; i++) {
@@ -267,6 +268,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
         return FTI_NSCS;
     }
 
+    sprintf(typeDefinition->name, "Type%d", FTI_Exec.nbType);
     int i;
     //Give default names to types (needed for HDF5)
     for (i = 0; i < typeDefinition->length; i++) {
