@@ -90,8 +90,9 @@ FTI_dbstructsize
 /* int           */ FTI_Exec->metaAlloc             =0;     
 /* int           */ FTI_Exec->initSCES              =0;       
 /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
-/* FTIFF_db       */ FTI_Exec->firstdb               =NULL;
-/* FTIFF_db       */ FTI_Exec->lastdb                =NULL;
+/* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
+/* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+/* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
 /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
 /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
 
@@ -199,6 +200,8 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
         int isnextdb;
 
+        //MD5_Update (&mdContext, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo));
+        
         do {
 
             isnextdb = 0;

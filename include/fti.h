@@ -84,6 +84,21 @@ extern "C" {
                                   FTI-FF types
 ---------------------------------------------------------------------------*/
 
+/** @typedef    FTIFF_metaInfo
+ *  @brief      Meta Information about file.
+ *
+ *  (For FTI-FF only)
+ *  Keeps information about the chunk of the protected variable with id 
+ *  stored in the current datablock. 
+ *  
+ */
+typedef struct FTIFF_metaInfo {
+    char checksum[MD5_DIGEST_STRING_LENGTH];
+    unsigned char hashTimestamp[MD5_DIGEST_LENGTH];
+    long fs;
+    long timestamp;			   /**< checkpoint creation time	        */
+} FTIFF_metaInfo;
+
 /** @typedef    FTIFF_dbvar
  *  @brief      Information about protected variable in datablock.
  *
@@ -221,6 +236,7 @@ typedef struct FTIT_execution {
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;           /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;            /**< Pointer to first datablock     */
+    FTIFF_metaInfo  FTIFFMeta;
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
 } FTIT_execution;

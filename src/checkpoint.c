@@ -270,8 +270,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot rename global directory", FTI_EROR);
             }
         }
-        if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
-            FTI_Print("Cannot rename meta directory", FTI_EROR);
+        if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
+            if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
+                FTI_Print("Cannot rename meta directory", FTI_EROR);
+            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
@@ -712,7 +714,6 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
     
     // Update the meta data information -> FTIT_db and FTIT_dbvar
@@ -755,19 +756,12 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int writeFailed;
     
-    // write timestamp
-    struct timespec ntime;
-    clock_gettime(CLOCK_REALTIME, &ntime);
-    long timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
-    fseek( fd, sizeof(long), SEEK_SET );
-    writeFailed += ( fwrite( &timestamp, sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
-
     FTIFF_db *currentdb = FTI_Exec->firstdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *dptr;
     int dbvar_idx, pvar_idx, dbcounter=0;
     long mdoffset;
-    long endoffile = 2*sizeof(long); // space for timestamp
+    long endoffile = 0; // offset metaInfo FTI-FF
     
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
@@ -862,8 +856,23 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } while( isnextdb );
 
     FTI_Exec->ckptSize = endoffile;
-    fseek( fd, 0, SEEK_SET );
-    writeFailed += ( fwrite( &endoffile, sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
+    
+    // write timestamp and its hash
+    MD5_CTX mdContextTS;
+    MD5_Init (&mdContextTS);
+    struct timespec ntime;
+    clock_gettime(CLOCK_REALTIME, &ntime);
+    FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+    FTI_Exec->FTIFFMeta.fs = endoffile;
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
+    MD5_Final( FTI_Exec->FTIFFMeta.hashTimestamp, &mdContextTS );
+    
+    char checksum[MD5_DIGEST_STRING_LENGTH];
+    FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum );
+    strncpy( FTI_Exec->FTIFFMeta.checksum, checksum, MD5_DIGEST_STRING_LENGTH );
+
+    fseek( fd, endoffile, SEEK_SET );
+    writeFailed += ( fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd ) == 1 ) ? 0 : 1;
     
     fclose( fd );
 

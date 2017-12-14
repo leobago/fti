@@ -96,6 +96,9 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
     long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        toSend += sizeof(FTIFF_metaInfo);
+    }
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
         int bytes = fread(buffer, sizeof(char), sendSize, lfd);
@@ -154,6 +157,9 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
     unsigned long toRecv = FTI_Exec->meta[0].pfs[postFlag]; //remaining data to receive
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        toRecv += sizeof(FTIFF_metaInfo);
+    }
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -407,9 +413,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             // Writting encoded checkpoints
-            int writtencode;
-            writtencode = fwrite(coding, sizeof(char), remBsize, efd);
-            printf("proc: %i, written: %ld\n", proc, writtencode);
+            fwrite(coding, sizeof(char), remBsize, efd);
             MD5_Update (&mdContext, coding, remBsize);
 
             // Next block

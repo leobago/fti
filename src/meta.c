@@ -60,15 +60,6 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                     char* checksum, char* ptnerChecksum, char* rsChecksum)
 {
-    // Fake call for FTI-FF. Checksum is sotred in cp-file
-    // setting all checksums to zero length provokes that no 
-    // checksum test is performed in FTI_CheckFile.
-    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        *checksum = '\0';   
-        *ptnerChecksum = '\0';   
-        *rsChecksum = '\0';   
-        return FTI_SCES;
-    }
 
     char mfn[FTI_BUFS]; //Path to the metadata file
     char str[FTI_BUFS]; //For console output
@@ -592,14 +583,16 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     strcpy(str, FTI_Exec->meta[0].ckptFile); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
-    char checksum[MD5_DIGEST_STRING_LENGTH];
-    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
     char* checksums;
-    if (FTI_Topo->groupRank == 0) {
-        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
+    // checksum is computed while doing checkpoint in FTI-FF.
+    if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
+        if (FTI_Topo->groupRank == 0) {
+            checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
+        }
+        MPI_Gather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
     }
-    MPI_Gather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
-
 
     //Every process has the same number of protected variables
 
@@ -623,15 +616,18 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(myVarIDs);
     free(myVarSizes);
 
-    if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
-                    ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
-        free(allVarIDs);
-        free(allVarSizes);
-        free(ckptFileNames);
-        free(checksums);
-        if (res == FTI_NSCS) {
-            return FTI_NSCS;
+    // meta data is written into ckpt file for FTI-FF
+    if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
+        if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
+            int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
+                        ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
+            free(allVarIDs);
+            free(allVarSizes);
+            free(ckptFileNames);
+            free(checksums);
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
         }
     }
 
@@ -672,7 +668,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
     FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
-    long offset = 2*sizeof(long), chunksize;
+    long offset = 0, chunksize;
     long *FTI_Data_oldsize, dbsize;
     
     // first call, init first datablock
@@ -853,11 +849,14 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 	// file is mapped, we can close it.
 	close(fd);
 
-	FTIFF_db *currentdb, *nextdb;
+    // get file meta info
+    memcpy( &(FTI_Exec->FTIFFMeta), fmmap+st.st_size-sizeof(FTIFF_metaInfo), sizeof(FTIFF_metaInfo) );
+	
+    FTIFF_db *currentdb, *nextdb;
 	FTIFF_dbvar *currentdbvar = NULL;
 	int dbvar_idx, pvar_idx, dbcounter=0;
 
-	long endoffile = 2*sizeof(long); // space for timestamp 
+	long endoffile = 0; // space for timestamp 
     long mdoffset;
 
 	int isnextdb;
@@ -940,7 +939,7 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 		endoffile += currentdb->dbsize;
 
-		if ( endoffile < st.st_size ) {
+		if ( endoffile < FTI_Exec->FTIFFMeta.fs ) {
 			memcpy( nextdb, fmmap+endoffile, FTI_dbstructsize );
 			currentdb->next = nextdb;
 			nextdb->previous = currentdb;
