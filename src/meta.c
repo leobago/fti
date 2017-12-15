@@ -571,6 +571,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fileSizes[i]; // Search max. size
         }
     }
+    // for FTIFF we need space for the meta data at the end
+    //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+    //    mfs += sizeof( FTIFF_metaInfo );
+    //}
     FTI_Exec->meta[0].maxFs[0] = mfs;
     char str[FTI_BUFS]; //For console output
     sprintf(str, "Max. file size in group %lu.", mfs);
@@ -668,7 +672,7 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); // 0 -> nothing changed, 1 -> new pvar, 2 -> size changed
     FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
-    long offset = 0, chunksize;
+    long offset = sizeof(FTIFF_metaInfo), chunksize;
     long *FTI_Data_oldsize, dbsize;
     
     // first call, init first datablock
@@ -808,8 +812,8 @@ int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
-
+int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) 
+{
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 	
@@ -850,13 +854,13 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 	close(fd);
 
     // get file meta info
-    memcpy( &(FTI_Exec->FTIFFMeta), fmmap+st.st_size-sizeof(FTIFF_metaInfo), sizeof(FTIFF_metaInfo) );
+    memcpy( &(FTI_Exec->FTIFFMeta), fmmap, sizeof(FTIFF_metaInfo) );
 	
     FTIFF_db *currentdb, *nextdb;
 	FTIFF_dbvar *currentdbvar = NULL;
 	int dbvar_idx, pvar_idx, dbcounter=0;
 
-	long endoffile = 0; // space for timestamp 
+	long endoffile = sizeof(FTIFF_metaInfo); // space for timestamp 
     long mdoffset;
 
 	int isnextdb;
@@ -939,7 +943,7 @@ int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) {
 
 		endoffile += currentdb->dbsize;
 
-		if ( endoffile < FTI_Exec->FTIFFMeta.fs ) {
+		if ( endoffile < FTI_Exec->FTIFFMeta.ckptSize ) {
 			memcpy( nextdb, fmmap+endoffile, FTI_dbstructsize );
 			currentdb->next = nextdb;
 			nextdb->previous = currentdb;

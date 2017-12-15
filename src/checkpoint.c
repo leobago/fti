@@ -761,7 +761,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char *dptr;
     int dbvar_idx, pvar_idx, dbcounter=0;
     long mdoffset;
-    long endoffile = 0; // offset metaInfo FTI-FF
+    long endoffile = sizeof(FTIFF_metaInfo); // offset metaInfo FTI-FF
     
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
@@ -857,21 +857,28 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Exec->ckptSize = endoffile;
     
-    // write timestamp and its hash
+    // write meta data and its hash
     MD5_CTX mdContextTS;
     MD5_Init (&mdContextTS);
     struct timespec ntime;
     clock_gettime(CLOCK_REALTIME, &ntime);
     FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+    FTI_Exec->FTIFFMeta.ckptSize = endoffile;
     FTI_Exec->FTIFFMeta.fs = endoffile;
-    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
-    MD5_Final( FTI_Exec->FTIFFMeta.hashTimestamp, &mdContextTS );
     
     char checksum[MD5_DIGEST_STRING_LENGTH];
     FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum );
     strncpy( FTI_Exec->FTIFFMeta.checksum, checksum, MD5_DIGEST_STRING_LENGTH );
 
-    fseek( fd, endoffile, SEEK_SET );
+    // create checksum of meta data
+    MD5_Update( &mdContextTS, FTI_Exec->FTIFFMeta.checksum, MD5_DIGEST_STRING_LENGTH );
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.ckptSize), sizeof(long) );
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.fs), sizeof(long) );
+    MD5_Final( FTI_Exec->FTIFFMeta.hashTimestamp, &mdContextTS );
+    
+    fseek( fd, 0, SEEK_SET );
+    
     writeFailed += ( fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd ) == 1 ) ? 0 : 1;
     
     fclose( fd );

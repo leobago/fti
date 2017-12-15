@@ -96,9 +96,6 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
     long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        toSend += sizeof(FTIFF_metaInfo);
-    }
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
         int bytes = fread(buffer, sizeof(char), sendSize, lfd);
@@ -157,9 +154,6 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
     unsigned long toRecv = FTI_Exec->meta[0].pfs[postFlag]; //remaining data to receive
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        toRecv += sizeof(FTIFF_metaInfo);
-    }
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -269,7 +263,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
-
     int startProc, endProc;
     if (FTI_Topo->amIaHead) {
         startProc = 1;
@@ -280,6 +273,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         endProc = 1;
     }
 
+    long *fsGroup = malloc( FTI_Topo->groupSize * sizeof(long) );
     int proc;
     for (proc = startProc; proc < endProc; proc++) {
         int ckptID, rank;
@@ -296,10 +290,32 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
+        
+        //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        //    
+        //    int fd = open(lfn, O_WRONLY);
+        //    if (ftruncate( fd, maxFs ) == -1) {
+        //        FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
+        //        close( fd );
+        //        return FTI_NSCS;
+        //    }            
+        //    syncfs( fd );
+        //    long offset;
+        //    offset = lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
+        //    printf("rank: %i, fs: %ld, ckptSize: %ld, maxFS: %ld, offset: %ld, size metaInfo: %ld\n", 
+        //            FTI_Topo->myRank, FTI_Exec->FTIFFMeta.fs, FTI_Exec->FTIFFMeta.ckptSize, maxFs, offset, sizeof(FTIFF_metaInfo));
+        //    write( fd, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
+        //    close( fd );
+        //
+        //} else {
+
         if (truncate(lfn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
+        
+        //}
+        
 
         FILE* lfd = fopen(lfn, "rb");
         if (lfd == NULL) {
@@ -420,20 +436,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             pos = pos + bs;
         }
 
-        free(data);
-        free(matrix);
-        free(coding);
-        free(myData);
-        fclose(lfd);
-        fclose(efd);
-
-        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
-        if (truncate(lfn, fs) == -1) {
-            FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        //write checksum in metadata
+        // create checksum hex-string
         unsigned char hash[MD5_DIGEST_LENGTH];
         MD5_Final (hash, &mdContext);
 
@@ -444,11 +447,51 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ii+=2;
         }
 
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+            
+            FTIFF_metaInfo *FTIFFMetaRS = malloc( sizeof( FTIFF_metaInfo) );
+            // get timestamp and its hash
+            MD5_CTX mdContextTS;
+            MD5_Init (&mdContextTS);
+            struct timespec ntime;
+            clock_gettime(CLOCK_REALTIME, &ntime);
+            FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+            FTIFFMetaRS->fs = maxFs;
+            FTIFFMetaRS->ckptSize = FTI_Exec->meta[0].fs[proc];
+            
+            // add RS checksum to meta data
+            strcpy(FTIFFMetaRS->checksum, checksum);
+            MD5_Update( &mdContextTS, FTIFFMetaRS->checksum, MD5_DIGEST_STRING_LENGTH );
+            MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
+            MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
+            MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
+            MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
+
+            // append meta info to RS file
+            fwrite(FTIFFMetaRS, sizeof(FTIFF_metaInfo), 1, efd);
+                   
+        }
+
+        free(data);
+        free(matrix);
+        free(coding);
+        free(myData);
+        fclose(lfd);
+        fclose(efd);
+
+        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
+
+        if (truncate(lfn, fs) == -1) {
+            FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
+            return FTI_NSCS;
+        }
+
         int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
     }
+    free(fsGroup);
 
     return FTI_SCES;
 }

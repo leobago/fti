@@ -95,6 +95,7 @@ extern "C" {
 typedef struct FTIFF_metaInfo {
     char checksum[MD5_DIGEST_STRING_LENGTH];
     unsigned char hashTimestamp[MD5_DIGEST_LENGTH];
+    long ckptSize;
     long fs;
     long timestamp;			   /**< checkpoint creation time	        */
 } FTIFF_metaInfo;

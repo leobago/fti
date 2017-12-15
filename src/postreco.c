@@ -35,7 +35,7 @@
  *  @date   October, 2017
  *  @brief  Post recovery functions for the FTI library.
  */
-
+#include <assert.h>
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -135,7 +135,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         ps = ps + FTI_Conf->blockSize; // Calculating padding size
     }
     if (erased[FTI_Topo->groupRank] == 0) { // Resize and open files
-        if (truncate(fn, ps) == -1) {
+        if (truncate(fn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
 
             for (i = 0; i < m; i++) {
@@ -207,13 +207,21 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    long pos = 0;
+    long pos = 0; 
+    int remBsize = bs;
+    
+    MD5_CTX md5ctxRS;
+    MD5_Init(&md5ctxRS);
     while (pos < ps) {
+        
+        if ((maxFs - pos) < bs) {
+            remBsize = maxFs - pos;
+        }
     
         //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
-            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
 
             if (ferror(fd)) {
                 FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -237,13 +245,13 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         else {
-            bzero(data[FTI_Topo->groupRank], bs);
+            bzero(data[FTI_Topo->groupRank], remBsize);
         } // Erasure found
     
         //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
-            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
             if (ferror(efd)) {
                 FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
 
@@ -266,50 +274,48 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         else {
-            bzero(coding[FTI_Topo->groupRank], bs);
+            bzero(coding[FTI_Topo->groupRank], remBsize);
         }
     
         //printf("rank: %i, line: %i\n", FTI_Topo->myRank, __LINE__);
     
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+            memcpy(data[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
         }
 
-        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+            memcpy(coding[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
         }
     
         // Decoding the lost data work
         if (erased[FTI_Topo->groupRank]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, bs);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, remBsize);
         }
 
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
+            memcpy(data[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
         }
 
         // Finally, re-encode any erased encoded checkpoint file
         if (erased[FTI_Topo->groupRank + k]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, remBsize);
         }
         if (erased[FTI_Topo->groupRank]) {
-            // if FTI-FF we do not have the fs info yet.
-            if ( FTI_Conf->ioMode == FTI_IO_FTIFF && pos == 0) {
-                memcpy(&fs, data[FTI_Topo->groupRank], sizeof(long));
-                FTI_Exec->meta[3].fs[0] = fs;
-                printf("fs: %ld\n", fs);
-            } 
-            fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
         }
         if (erased[FTI_Topo->groupRank + k]) {
-            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            MD5_Update(&md5ctxRS, coding[FTI_Topo->groupRank], remBsize); 
+            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
         }
 
         pos = pos + bs;
     }
+    unsigned char hashRS[MD5_DIGEST_LENGTH];
+    MD5_Final( hashRS, &md5ctxRS );
+    
 
     // Closing files
     fclose(fd);
@@ -317,7 +323,55 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     //sleep(1);
     //exit(0);
+
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
+        int ifd = open(fn, O_RDONLY);
+        FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
+        long offset;
+        syncfs(ifd);
+        offset = lseek(ifd, 0, SEEK_SET);
+        read( ifd, metaInfo, sizeof(FTIFF_metaInfo) );
+        printf("rank: %i, fs: %ld, ckptSize: %ld, maxFS: %ld, offset: %ld, size metaInfo: %ld\n", 
+                FTI_Topo->myRank, metaInfo->fs, metaInfo->ckptSize, maxFs, offset, sizeof(FTIFF_metaInfo));
+        fs = metaInfo->fs;
+        FTI_Exec->meta[3].fs[0] = fs;
+        free( metaInfo );
+        close( ifd );
+    }            
     
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
+        FTIFF_metaInfo *FTIFFMetaRS = malloc( sizeof( FTIFF_metaInfo) );
+        // get timestamp and its hash
+        MD5_CTX mdContextTS;
+        MD5_Init (&mdContextTS);
+        struct timespec ntime;
+        clock_gettime(CLOCK_REALTIME, &ntime);
+        FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+        FTIFFMetaRS->fs = maxFs;
+        FTIFFMetaRS->ckptSize = fs;
+        
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hashRS[i]);
+            ii+=2;
+        }
+
+        // add RS checksum to meta data
+        strcpy(FTIFFMetaRS->checksum, checksum);
+        MD5_Update( &mdContextTS, FTIFFMetaRS->checksum, MD5_DIGEST_STRING_LENGTH );
+        MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
+        MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
+        MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
+        MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
+
+        // append meta info to RS file
+        int ifd = open(efn, O_APPEND);
+        write( ifd, FTIFFMetaRS, sizeof(FTIFF_metaInfo) );
+        close( ifd );
+    }
+    printf("\nfs: %ld\n\n", fs);
+
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 
@@ -583,7 +637,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
-                  FTIT_checkpoint* FTI_Ckpt, void* myInfoBuffer, void* partnerInfoBuffer)
+                  FTIT_checkpoint* FTI_Ckpt, int *exists)
 {
     char dbgstr[FTI_BUFS];
     
@@ -592,8 +646,16 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         int CopyExists;
     };
     
+    enum {
+        LEFT_FILE,  // on left node
+        MY_FILE,    // on my node
+        MY_COPY,    // on right node
+        LEFT_COPY  // on my node
+    };
+
     struct L2MetaInfo {
-        int canRecover;
+        int FileExists;
+        int CopyExists;
         int ckptID;
         long fs;
         long pfs;
@@ -606,11 +668,12 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     
     // create MPI datatype of L2MetaInfo
     MPI_Datatype MPI_L2MetaInfo_RAW, MPI_L2MetaInfo;
-    int mbrCnt = 4;
-    int mbrBlkLen[] = { 1, 1, 1, 1 };
-    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    int mbrCnt = 5;
+    int mbrBlkLen[] = { 1, 1, 1, 1, 1 };
+    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
     MPI_Aint mbrDisp[] = { 
-        offsetof( struct L2MetaInfo, canRecover), 
+        offsetof( struct L2MetaInfo, FileExists), 
+        offsetof( struct L2MetaInfo, CopyExists), 
         offsetof( struct L2MetaInfo, ckptID), 
         offsetof( struct L2MetaInfo, fs), 
         offsetof( struct L2MetaInfo, pfs) 
@@ -620,7 +683,7 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MPI_Type_get_extent( MPI_L2MetaInfo_RAW, &lb, &extent );
     MPI_Type_create_resized( MPI_L2MetaInfo_RAW, lb, extent, &MPI_L2MetaInfo);
     MPI_Type_commit( &MPI_L2MetaInfo );
-    
+
     // determine app rank representation of group ranks left and right
     MPI_Group nodesGroup;
     MPI_Comm_group(FTI_Exec->groupComm, &nodesGroup);
@@ -636,11 +699,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     int appCommSize = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
     int fneeded = appCommSize;
     
-    struct L2MetaInfo *appProcsMetaInfo = malloc( appCommSize * sizeof(struct L2MetaInfo) );
-    struct L2MetaInfo *myMetaInfo = malloc( sizeof(struct L2MetaInfo) );
-    
-    struct L2Info *myInfo = calloc(1, sizeof(struct L2Info));
-    struct L2Info *partnerInfo = calloc(1, sizeof(struct L2Info));
+    struct L2MetaInfo *appProcsMetaInfo = calloc( appCommSize, sizeof(struct L2MetaInfo) );
+    struct L2MetaInfo *myMetaInfo = calloc( 1, sizeof(struct L2MetaInfo) );
     
     MD5_CTX mdContext;
     
@@ -665,16 +725,19 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     // check if regular file and of reasonable size (at least must contain meta info)
                     if ( !ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
-                        lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
+                        lseek(fd, 0, SEEK_SET);
                         read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
                         unsigned char hashTScmp[MD5_DIGEST_LENGTH];
                         MD5_CTX mdContextTS;
                         MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
-                        printf("timestamp: %ld, fs: %ld\n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs);
+                        printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = 0, toRead, diff;
+                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
                             int rbuffer;
                             char *buffer = malloc( CHUNK_SIZE );
                             MD5_Init (&mdContext);
@@ -689,7 +752,7 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             unsigned char hash[MD5_DIGEST_LENGTH];
                             MD5_Final (hash, &mdContext);
                             int i;
-                            char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
                             int ii = 0;
                             for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
                                 sprintf(&checksum[ii], "%02x", hash[i]);
@@ -697,9 +760,9 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             }
                             printf("checksum-saved: %s, checksum-cmp: %s\n", FTIFFMetatmp->checksum, checksum);
                             if ( strcmp( checksum, FTIFFMetatmp->checksum ) == 0 ) {
-                                myMetaInfo->fs = ckptFS.st_size;    
+                                myMetaInfo->fs = FTIFFMetatmp->fs;    
                                 myMetaInfo->ckptID = ckptID;    
-                                myInfo->FileExists = 1;
+                                myMetaInfo->FileExists = 1;
                             }
                         }
                         close(fd);
@@ -714,15 +777,18 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo)) {
                         int fd = open(tmpfn, O_RDONLY);
-                        lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
+                        lseek(fd, 0, SEEK_SET);
                         read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
                         unsigned char hashTScmp[MD5_DIGEST_LENGTH];
                         MD5_CTX mdContextTS;
                         MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = 0, toRead, diff;
+                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
                             int rbuffer;
                             char *buffer = malloc( CHUNK_SIZE );
                             MD5_Init (&mdContext);
@@ -737,7 +803,7 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             unsigned char hash[MD5_DIGEST_LENGTH];
                             MD5_Final (hash, &mdContext);
                             int i;
-                            char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
                             int ii = 0;
                             for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
                                 sprintf(&checksum[ii], "%02x", hash[i]);
@@ -745,9 +811,9 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             }
                             printf("pchecksum-saved: %s, pchecksum-cmp: %s\n", FTIFFMetatmp->checksum, checksum);
                             if ( strcmp( checksum, FTIFFMetatmp->checksum ) == 0 ) {
-                                myMetaInfo->pfs = ckptFS.st_size;    
+                                myMetaInfo->pfs = FTIFFMetatmp->fs;    
                                 myMetaInfo->ckptID = ckptID;    
-                                myInfo->CopyExists = 1;
+                                myMetaInfo->CopyExists = 1;
                             }
                         }
                         close(fd);
@@ -756,34 +822,29 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     ckptID = tmpCkptID;
                 }
             }
-            if (myInfo->FileExists && myInfo->CopyExists) {
+            if (myMetaInfo->FileExists && myMetaInfo->CopyExists) {
                 break;
             }
         }
     }
     
-    if(!(myInfo->FileExists) && !(myInfo->CopyExists)) {
+    if(!(myMetaInfo->FileExists) && !(myMetaInfo->CopyExists)) {
         myMetaInfo->ckptID = -1;
     }
     
-    if(FTI_Topo->groupRank%2 == 0) {
-        MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
-        MPI_Recv(partnerInfo, 1, MPI_L2Info, FTI_Topo->left, 0, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-    } else {
-        MPI_Recv(partnerInfo, 1, MPI_L2Info, FTI_Topo->left, 0, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        MPI_Send(myInfo, 1, MPI_L2Info, FTI_Topo->right, 0, FTI_Exec->groupComm);
-    }
-    
-    myMetaInfo->canRecover = (myInfo->FileExists || partnerInfo->CopyExists) ? 1 : 0;
-   
     // gather meta info
     MPI_Allgather( myMetaInfo, 1, MPI_L2MetaInfo, appProcsMetaInfo, 1, MPI_L2MetaInfo, FTI_COMM_WORLD);
     
+    exists[LEFT_FILE] = appProcsMetaInfo[leftIdx].FileExists;
+    exists[MY_FILE] = appProcsMetaInfo[FTI_Topo->splitRank].FileExists;
+    exists[MY_COPY] = appProcsMetaInfo[rightIdx].CopyExists;
+    exists[LEFT_COPY] = appProcsMetaInfo[FTI_Topo->splitRank].CopyExists;
+
     // check if recovery possible
     int i, saneCkptID = 0;
     ckptID = 0;
     for(i=0; i<appCommSize; i++) { 
-        fcount+=appProcsMetaInfo[i].canRecover;
+        fcount += ( appProcsMetaInfo[i].FileExists || appProcsMetaInfo[rightIdx].CopyExists ) ? 1 : 0;
         if (appProcsMetaInfo[i].ckptID > 0) {
             saneCkptID++;
             ckptID += appProcsMetaInfo[i].ckptID;
@@ -793,12 +854,12 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     if (res == FTI_SCES) {
         FTI_Exec->ckptID = ckptID/saneCkptID;
-        if (myInfo->FileExists) {
+        if (myMetaInfo->FileExists) {
             FTI_Exec->meta[2].fs[0] = myMetaInfo->fs;    
         } else {
             FTI_Exec->meta[2].fs[0] = appProcsMetaInfo[rightIdx].pfs;    
         }
-        if (myInfo->CopyExists) {
+        if (myMetaInfo->CopyExists) {
             FTI_Exec->meta[2].pfs[0] = myMetaInfo->pfs;    
         } else {
             FTI_Exec->meta[2].pfs[0] = appProcsMetaInfo[leftIdx].fs;    
@@ -810,15 +871,10 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     sprintf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     
-    memcpy(myInfoBuffer,myInfo, sizeof(struct L2Info));
-    memcpy(partnerInfoBuffer, partnerInfo, sizeof(struct L2Info));
-    
     closedir(L2CkptDir);
     free(appProcsMetaInfo);
     free(myMetaInfo);
     //free(entry);
-    free(myInfo);
-    free(partnerInfo);
     MPI_Type_free(&MPI_L2Info);
     
     return res;
@@ -854,31 +910,31 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int res;
 
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        struct L2Info {
-            int FileExists;
-            int CopyExists;
-        };
-        struct L2Info *myInfo = calloc(1, sizeof(struct L2Info));
-        struct L2Info *partnerInfo = calloc(1, sizeof(struct L2Info));
         
-        if ( FTI_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, myInfo, partnerInfo ) != FTI_SCES ) {
+        enum {
+            LEFT_FILE,  // on left node
+            MY_FILE,    // on my node
+            MY_COPY,    // on right node
+            LEFT_COPY  // on my node
+        };
+        
+        int exists[4];
+        
+        if ( FTI_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, exists ) != FTI_SCES ) {
             FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
             return FTI_NSCS;
         }
 
         memset(erased, 0x0, FTI_BUFS*sizeof(int));
 
-        erased[destination] = !(partnerInfo->FileExists);
-        printf("pi file: %i\n\n", !(partnerInfo->FileExists));
-        erased[FTI_Topo->groupRank] = !(myInfo->FileExists);
-        printf("mi file: %i\n\n", !(myInfo->FileExists));
-        erased[source + FTI_Topo->groupSize] = !(myInfo->CopyExists);
-        printf("mi copy: %i\n\n", !(myInfo->CopyExists));
-        erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !(partnerInfo->CopyExists);
-        printf("pi copy: %i\n\n", !(partnerInfo->CopyExists));
-
-        free(partnerInfo);
-        free(myInfo);
+        erased[destination] = !exists[LEFT_FILE];
+        printf("rank: %i, pi file: %i\n\n", FTI_Topo->myRank, !exists[LEFT_FILE]);
+        erased[FTI_Topo->groupRank] = !exists[MY_FILE];
+        printf("rank: %i, mi file: %i\n\n", FTI_Topo->myRank,  !exists[MY_FILE]);
+        erased[source + FTI_Topo->groupSize] = !exists[MY_COPY];
+        printf("rank: %i, mi copy: %i\n\n", FTI_Topo->myRank,  !exists[MY_COPY]);
+        erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !exists[LEFT_COPY];
+        printf("rank: %i, pi copy: %i\n\n", FTI_Topo->myRank,  !exists[LEFT_COPY]);
 
     } 
    
@@ -1057,12 +1113,15 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     struct L3Info *groupInfo = calloc( FTI_Topo->groupSize, sizeof(struct L3Info) );
     struct L3Info *myInfo = calloc( 1, sizeof(struct L3Info) );
     
+    MD5_CTX mdContext;
+    
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fileTarget, ckptID = -1, fcount = 0, match;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
     DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
     
+    FTIFF_metaInfo *FTIFFMetatmp = calloc( 1, sizeof(FTIFF_metaInfo) );
     if(L3CkptDir) {
         int tmpCkptID;
         while(entry = readdir(L3CkptDir)) {
@@ -1074,10 +1133,49 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        myInfo->fs = ckptFS.st_size;    
-                        myInfo->ckptID = ckptID;    
-                        myInfo->FileExists = 1;
+                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
+                        int fd = open(tmpfn, O_RDONLY);
+                        lseek(fd, 0, SEEK_SET);
+                        read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
+                        unsigned char hashTScmp[MD5_DIGEST_LENGTH];
+                        MD5_CTX mdContextTS;
+                        MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Final( hashTScmp, &mdContextTS );
+                        if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
+                            printf("%i: until here\n",__LINE__);
+                            long rcount = sizeof(FTIFF_metaInfo) , toRead, diff;
+                            int rbuffer;
+                            char *buffer = malloc( CHUNK_SIZE );
+                            MD5_Init (&mdContext);
+                            while( rcount < FTIFFMetatmp->fs ) {
+                                lseek( fd, rcount, SEEK_SET );
+                                diff = FTIFFMetatmp->fs - rcount;
+                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
+                                rbuffer = read( fd, buffer, toRead );
+                                rcount += rbuffer;
+                                MD5_Update (&mdContext, buffer, rbuffer);
+                            }
+                            unsigned char hash[MD5_DIGEST_LENGTH];
+                            MD5_Final (hash, &mdContext);
+                            int i;
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int ii = 0;
+                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                                sprintf(&checksum[ii], "%02x", hash[i]);
+                                ii += 2;
+                            }
+                            printf("rank: %i, checksum-saved: %s, checksum-cmp: %s\n", FTI_Topo->myRank, FTIFFMetatmp->checksum, checksum);
+                            if ( strcmp( checksum, FTIFFMetatmp->checksum ) == 0 ) {
+                                myInfo->fs = FTIFFMetatmp->fs;    
+                                myInfo->ckptID = ckptID;    
+                                myInfo->FileExists = 1;
+                            }
+                        }
+                        close(fd);
                     }            
                 } else {
                     ckptID = tmpCkptID;
@@ -1087,10 +1185,48 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        myInfo->RSfs = ckptFS.st_size;    
-                        myInfo->ckptID = ckptID;    
-                        myInfo->RSFileExists = 1;
+                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
+                        int fd = open(tmpfn, O_RDONLY);
+                        lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
+                        read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
+                        unsigned char hashTScmp[MD5_DIGEST_LENGTH];
+                        MD5_CTX mdContextTS;
+                        MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Final( hashTScmp, &mdContextTS );
+                        if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
+                            long rcount = 0, toRead, diff;
+                            int rbuffer;
+                            char *buffer = malloc( CHUNK_SIZE );
+                            MD5_Init (&mdContext);
+                            while( rcount < FTIFFMetatmp->fs ) {
+                                lseek( fd, rcount, SEEK_SET );
+                                diff = FTIFFMetatmp->fs - rcount;
+                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
+                                rbuffer = read( fd, buffer, toRead );
+                                rcount += rbuffer;
+                                MD5_Update (&mdContext, buffer, rbuffer);
+                            }
+                            unsigned char hash[MD5_DIGEST_LENGTH];
+                            MD5_Final (hash, &mdContext);
+                            int i;
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int ii = 0;
+                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                                sprintf(&checksum[ii], "%02x", hash[i]);
+                                ii += 2;
+                            }
+                            printf("RSchecksum-saved: %s, RSchecksum-cmp: %s\n", FTIFFMetatmp->checksum, checksum);
+                            if ( strcmp( checksum, FTIFFMetatmp->checksum ) == 0 ) {
+                                myInfo->RSfs = FTIFFMetatmp->fs;    
+                                myInfo->ckptID = ckptID;    
+                                myInfo->RSFileExists = 1;
+                            }
+                        }
+                        close(fd);
                     }            
                 } else {
                     ckptID = tmpCkptID;
@@ -1132,6 +1268,7 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         }
     }
     FTI_Exec->ckptID = ckptID/saneCkptID;
+    assert( saneMaxFs != 0 );
     FTI_Exec->meta[3].maxFs[0] = maxFs/saneMaxFs;
 
     FTI_Exec->meta[3].fs[0] = (myInfo->FileExists) ? myInfo->fs : 0;
