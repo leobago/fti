@@ -43,5 +43,10 @@
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm);
 int FTI_InitType_wrapper(FTIT_type** type, int size);
 int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type);
+int FTI_InitSimpleType_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition);
+int FTI_InitSimpleTypeWithNames_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition);
+int FTI_InitComplexType_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition);
+int FTI_InitComplexTypeWithNames_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition);
+int FTI_ProtectWithName_wrapper(int id, void* ptr, long count, FTIT_type* type, char* name);
 
 #endif

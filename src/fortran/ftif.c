@@ -91,3 +91,88 @@ int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
 {
     return FTI_Protect(id, ptr, count, *type);
 }
+
+/**
+ *   @brief      Initializes a simple hdf5 data type.
+ *   @param      type            The data type to be intialized.
+ *   @param      typeDefinition  The definition of the data type to be intialized.
+ *   @return     integer         FTI_SCES if successful.
+ *
+ *   This function initalizes a simple data type. the information needed is passed
+ *   in typeDefinition, the rest is black box for FTI.
+ *
+ **/
+int FTI_InitSimpleType_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition)
+{
+    *type = talloc(FTIT_type, 1);
+    return FTI_InitSimpleType(*type, typeDefinition);
+}
+
+/**
+ *   @brief      Initializes a simple hdf5 data type.
+ *   @param      type            The data type to be intialized.
+ *   @param      typeDefinition  The definition of the data type to be intialized.
+ *   @return     integer         FTI_SCES if successful.
+ *
+ *   This function initalizes a simple data type. the information needed is passed
+ *   in typeDefinition, the rest is black box for FTI.
+ *
+ **/
+int FTI_InitSimpleTypeWithNames_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition)
+{
+    *type = talloc(FTIT_type, 1);
+    return FTI_InitSimpleTypeWithNames(*type, typeDefinition);
+}
+
+/**
+ *   @brief      Initializes a complex hdf5 data type.
+ *   @param      type            The data type to be intialized.
+ *   @param      typeDefinition  The definition of the data type to be intialized.
+ *   @return     integer         FTI_SCES if successful.
+ *
+ *   This function initalizes a complex data type. the information needed is passed
+ *   in typeDefinition, the rest is black box for FTI.
+ *
+ **/
+int FTI_InitComplexType_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition)
+{
+    *type = talloc(FTIT_type, 1);
+    return FTI_InitComplexType(*type, typeDefinition);
+}
+
+/**
+ *   @brief      Initializes a complex hdf5 data type.
+ *   @param      type            The data type to be intialized.
+ *   @param      typeDefinition  The definition of the data type to be intialized.
+ *   @return     integer         FTI_SCES if successful.
+ *
+ *   This function initalizes a complex data type. the information needed is passed
+ *   in typeDefinition, the rest is black box for FTI.
+ *
+ **/
+int FTI_InitComplexTypeWithNames_wrapper(FTIT_type** type, FTIT_complexType* typeDefinition)
+{
+    *type = talloc(FTIT_type, 1);
+    return FTI_InitComplexTypeWithNames(*type, typeDefinition);
+}
+
+/**
+ @brief      Stores or updates a pointer to a variable that needs to be protected.
+ @param      id              ID for searches and update.
+ @param      ptr             Pointer to the data structure.
+ @param      count           Number of elements in the data structure.
+ @param      type            Type of elements in the data structure.
+ @param      name            Name of element in the hdf5 checkpoint file.
+ @return     integer         FTI_SCES if successful.
+
+ This function stores a pointer to a data structure, its size, its ID,
+ its number of elements and the type of the elements. This list of
+ structures is the data that will be stored during a checkpoint and
+ loaded during a recovery.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_ProtectWithName_wrapper(int id, void* ptr, long count, FTIT_type* type, char* name)
+{
+    return FTI_ProtectWithName(id, ptr, count, *type, name);
+}
