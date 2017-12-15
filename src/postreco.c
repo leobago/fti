@@ -424,6 +424,8 @@ int FTI_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     int fexist = 0, fileTarget, ckptID, fcount;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
+    FTIFF_metaInfo *FTIFFMetatmp = calloc( 1, sizeof(FTIFF_metaInfo) );
+    MD5_CTX mdContext;
     DIR *L1CkptDir = opendir( FTI_Ckpt[1].dir );
     if(L1CkptDir) {
         while(entry = readdir(L1CkptDir)) {
@@ -435,10 +437,49 @@ int FTI_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[1].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        FTI_Exec->meta[1].fs[0] = ckptFS.st_size;    
-                        FTI_Exec->ckptID = ckptID;
-                        strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
-                        fexist = 1;
+                        int fd = open(tmpfn, O_RDONLY);
+                        lseek(fd, 0, SEEK_SET);
+                        read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
+                        unsigned char hashTScmp[MD5_DIGEST_LENGTH];
+                        MD5_CTX mdContextTS;
+                        MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Final( hashTScmp, &mdContextTS );
+                        printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
+                        if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
+                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
+                            int rbuffer;
+                            char *buffer = malloc( CHUNK_SIZE );
+                            MD5_Init (&mdContext);
+                            while( rcount < FTIFFMetatmp->fs ) {
+                                lseek( fd, rcount, SEEK_SET );
+                                diff = FTIFFMetatmp->fs - rcount;
+                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
+                                rbuffer = read( fd, buffer, toRead );
+                                rcount += rbuffer;
+                                MD5_Update (&mdContext, buffer, rbuffer);
+                            }
+                            unsigned char hash[MD5_DIGEST_LENGTH];
+                            MD5_Final (hash, &mdContext);
+                            int i;
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int ii = 0;
+                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                                sprintf(&checksum[ii], "%02x", hash[i]);
+                                ii += 2;
+                            }
+                            printf("checksum-saved: %s, checksum-cmp: %s\n", FTIFFMetatmp->checksum, checksum);
+                            if ( strcmp( checksum, FTIFFMetatmp->checksum ) == 0 ) {
+                                FTI_Exec->meta[1].fs[0] = ckptFS.st_size;    
+                                FTI_Exec->ckptID = ckptID;
+                                strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
+                                fexist = 1;
+                            }
+                        }
+                        close(fd);
                         break;
                     }            
                 }
