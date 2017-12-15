@@ -1308,9 +1308,12 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             maxFs += groupInfo[i].RSfs;
         }
     }
-    FTI_Exec->ckptID = ckptID/saneCkptID;
-    assert( saneMaxFs != 0 );
-    FTI_Exec->meta[3].maxFs[0] = maxFs/saneMaxFs;
+    if( saneCkptID != 0 ) {
+        FTI_Exec->ckptID = ckptID/saneCkptID;
+    }
+    if( saneMaxFs != 0 ) {
+        FTI_Exec->meta[3].maxFs[0] = maxFs/saneMaxFs;
+    }
 
     FTI_Exec->meta[3].fs[0] = (myInfo->FileExists) ? myInfo->fs : 0;
     
@@ -1447,13 +1450,15 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
-                  FTIT_checkpoint* FTI_Ckpt )
+                  FTIT_checkpoint* FTI_Ckpt, char *checksum)
 {
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fexist = 0, fileTarget, ckptID, fcount;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
     DIR *L4CkptDir = opendir( FTI_Ckpt[4].dir );
+    FTIFF_metaInfo *FTIFFMetatmp = calloc( 1, sizeof(FTIFF_metaInfo) );
+    MD5_CTX mdContext;
     if(L4CkptDir) {
         while(entry = readdir(L4CkptDir)) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
@@ -1464,11 +1469,26 @@ int FTI_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode)) {
-                        FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
-                        FTI_Exec->ckptID = ckptID;
-                        strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
-                        strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
-                        fexist = 1;
+                        int fd = open(tmpfn, O_RDONLY);
+                        lseek(fd, 0, SEEK_SET);
+                        read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
+                        unsigned char hashTScmp[MD5_DIGEST_LENGTH];
+                        MD5_CTX mdContextTS;
+                        MD5_Init (&mdContextTS);
+                        MD5_Update( &mdContextTS, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Final( hashTScmp, &mdContextTS );
+                        printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
+                        if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
+                            FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
+                            FTI_Exec->ckptID = ckptID;
+                            strncpy(checksum, FTIFFMetatmp->checksum, MD5_DIGEST_STRING_LENGTH);
+                            strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
+                            strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
+                            fexist = 1;
+                        }
                         break;
                     }            
                 }
@@ -1508,12 +1528,13 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    }
 
    // Checking erasures
+   char checksumL4[MD5_DIGEST_STRING_LENGTH];
    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
         // FTI_CheckL4RestartInit sets: 
         // FTI_Exec->meta[1].ckptFile, 
         // FTI_Exec->meta[4].ckptFile and
         // FTI_Exec->meta[4].fs[0]
-        if ( FTI_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
+        if ( FTI_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, checksumL4 ) != FTI_SCES ) {
             FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
             return FTI_NSCS;
         }
@@ -1562,6 +1583,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    char *readData = talloc(char, FTI_Conf->transferSize);
    long bSize = FTI_Conf->transferSize;
    long fs = FTI_Exec->meta[4].fs[0];
+   
+   MD5_CTX md5ctxL4;
+   MD5_Init(&md5ctxL4);
+
+   int toHash;
    // Checkpoint files transfer from PFS
    long pos = 0;
    while (pos < fs) {
@@ -1570,6 +1596,12 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
 
       size_t bytes = fread(readData, sizeof(char), bSize, gfd);
+      if( pos < sizeof(FTIFF_metaInfo) ) {
+          if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
+              MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), bytes-sizeof(FTIFF_metaInfo) );
+          }
+      }
+
       if (ferror(gfd)) {
          FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
 
@@ -1595,12 +1627,25 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       pos = pos + bytes;
    }
+   
+   unsigned char hashL4[MD5_DIGEST_LENGTH];
+   MD5_Final( hashL4, &md5ctxL4 );
+
+   char checksumL4cmp[MD5_DIGEST_STRING_LENGTH];
+   int ii = 0, i;
+   for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+       sprintf(&checksumL4cmp[ii], "%02x", hashL4[i]);
+       ii+=2;
+   }
 
    free(readData);
 
    fclose(gfd);
    fclose(lfd);
-
+   
+   if(strcmp(checksumL4, checksumL4cmp) != 0) {
+       return FTI_NSCS;
+   }
    return FTI_SCES;
 }
 
