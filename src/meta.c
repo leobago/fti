@@ -555,29 +555,35 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
-    long fileSizes[FTI_BUFS];
-    MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
-
-    //update partner file size:
-    if (FTI_Exec->ckptLvel == 2) {
-        int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-        FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
-    }
-
-    long mfs = 0; //Max file size in group
     int i;
-    for (i = 0; i < FTI_Topo->groupSize; i++) {
-        if (fileSizes[i] > mfs) {
-            mfs = fileSizes[i]; // Search max. size
+    long fileSizes[FTI_BUFS];
+    
+    if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {     
+        MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+
+        //update partner file size:
+        if (FTI_Exec->ckptLvel == 2) {
+            int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+            FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
         }
+
+        long mfs = 0; //Max file size in group 
+        for (i = 0; i < FTI_Topo->groupSize; i++) {
+            if (fileSizes[i] > mfs) {
+                mfs = fileSizes[i]; // Search max. size
+            }
+        }
+        // for FTIFF we need space for the meta data at the end
+        //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        //    mfs += sizeof( FTIFF_metaInfo );
+        //}
+        FTI_Exec->meta[0].maxFs[0] = mfs;
+    } else {
+        FTI_Exec->meta[0].maxFs[0] = FTI_Exec->FTIFFMeta.maxFs;
+        FTI_Exec->meta[0].pfs[0] = FTI_Exec->FTIFFMeta.ptFs;
     }
-    // for FTIFF we need space for the meta data at the end
-    //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-    //    mfs += sizeof( FTIFF_metaInfo );
-    //}
-    FTI_Exec->meta[0].maxFs[0] = mfs;
     char str[FTI_BUFS]; //For console output
-    sprintf(str, "Max. file size in group %lu.", mfs);
+    sprintf(str, "Max. file size in group %lu.", FTI_Exec->meta[0].maxFs[0]);
     FTI_Print(str, FTI_DBUG);
 
     char* ckptFileNames;
@@ -623,7 +629,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // meta data is written into ckpt file for FTI-FF
     if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
         if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-            int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
+            int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, FTI_Exec->meta[0].maxFs[0],
                         ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
             free(allVarIDs);
             free(allVarSizes);

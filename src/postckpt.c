@@ -457,6 +457,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             clock_gettime(CLOCK_REALTIME, &ntime);
             FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
             FTIFFMetaRS->fs = maxFs;
+            FTIFFMetaRS->ptFs = -1;
+            FTIFFMetaRS->maxFs = maxFs;
             FTIFFMetaRS->ckptSize = FTI_Exec->meta[0].fs[proc];
             
             // add RS checksum to meta data
@@ -465,6 +467,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
             MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
             MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
+            MD5_Update( &mdContextTS, &(FTIFFMetaRS->ptFs), sizeof(long) );
+            MD5_Update( &mdContextTS, &(FTIFFMetaRS->maxFs), sizeof(long) );
             MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
 
             // append meta info to RS file

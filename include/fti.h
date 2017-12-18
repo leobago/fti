@@ -97,6 +97,8 @@ typedef struct FTIFF_metaInfo {
     unsigned char hashTimestamp[MD5_DIGEST_LENGTH];
     long ckptSize;
     long fs;
+    long maxFs;
+    long ptFs;
     long timestamp;			   /**< checkpoint creation time	        */
 } FTIFF_metaInfo;
 

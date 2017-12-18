@@ -856,6 +856,27 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } while( isnextdb );
 
     FTI_Exec->ckptSize = endoffile;
+        
+    //update partner file size:
+    long fileSizes[FTI_BUFS];
+    MPI_Allgather(&endoffile, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+
+    if (FTI_Exec->ckptLvel == 2) {
+        int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+        FTI_Exec->FTIFFMeta.ptFs = fileSizes[ptnerGroupRank];
+    }
+    int i;
+    long mfs = 0; //Max file size in group 
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        if (fileSizes[i] > mfs) {
+            mfs = fileSizes[i]; // Search max. size
+        }
+    }
+    // for FTIFF we need space for the meta data at the end
+    //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+    //    mfs += sizeof( FTIFF_metaInfo );
+    //}
+    FTI_Exec->FTIFFMeta.maxFs = mfs;
     
     // write meta data and its hash
     MD5_CTX mdContextTS;
@@ -875,6 +896,8 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
     MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.ckptSize), sizeof(long) );
     MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.fs), sizeof(long) );
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.ptFs), sizeof(long) );
+    MD5_Update( &mdContextTS, &(FTI_Exec->FTIFFMeta.maxFs), sizeof(long) );
     MD5_Final( FTI_Exec->FTIFFMeta.hashTimestamp, &mdContextTS );
     
     fseek( fd, 0, SEEK_SET );

@@ -348,6 +348,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         clock_gettime(CLOCK_REALTIME, &ntime);
         FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
         FTIFFMetaRS->fs = maxFs;
+        FTIFFMetaRS->ptFs = -1;
+        FTIFFMetaRS->maxFs = maxFs;
         FTIFFMetaRS->ckptSize = fs;
         
         char checksum[MD5_DIGEST_STRING_LENGTH];
@@ -363,10 +365,12 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
         MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
         MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
+        MD5_Update( &mdContextTS, &(FTIFFMetaRS->ptFs), sizeof(long) );
+        MD5_Update( &mdContextTS, &(FTIFFMetaRS->maxFs), sizeof(long) );
         MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
 
         // append meta info to RS file
-        int ifd = open(efn, O_APPEND);
+        int ifd = open(efn, O_WRONLY|O_APPEND);
         write( ifd, FTIFFMetaRS, sizeof(FTIFF_metaInfo) );
         close( ifd );
     }
@@ -436,7 +440,7 @@ int FTI_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 if( fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[1].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
                         lseek(fd, 0, SEEK_SET);
                         read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
@@ -447,6 +451,8 @@ int FTI_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
@@ -775,6 +781,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
@@ -827,6 +835,8 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
                             long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
@@ -1185,6 +1195,8 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
                             printf("%i: until here\n",__LINE__);
@@ -1237,6 +1249,8 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
                             long rcount = 0, toRead, diff;
@@ -1291,12 +1305,13 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MPI_Allgather( myInfo, 1, MPI_L3Info, groupInfo, 1, MPI_L3Info, FTI_Exec->groupComm);
     
     // check if recovery possible
-    int i, saneCkptID = 0, saneMaxFs = 0;
+    int i, saneCkptID = 0, saneMaxFs = 0, erasures = 0;
     long maxFs = 0;
     ckptID = 0;
     for(i=0; i<FTI_Topo->groupSize; i++) { 
         erased[i]=!groupInfo[i].FileExists;
         erased[i+FTI_Topo->groupSize]=!groupInfo[i].RSFileExists;
+        erasures += erased[i] + erased[i+FTI_Topo->groupSize];
         //printf("grank: %i, grrank: %i, ferased: %i, RSerased: %i \n", 
         //        FTI_Topo->myRank, FTI_Topo->groupRank, erased[FTI_Topo->groupRank], erased[FTI_Topo->groupRank+FTI_Topo->groupSize]);
         if (groupInfo[i].ckptID > 0) {
@@ -1314,6 +1329,12 @@ int FTI_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     if( saneMaxFs != 0 ) {
         FTI_Exec->meta[3].maxFs[0] = maxFs/saneMaxFs;
     }
+    // for the case that all (and only) the encoded files are deleted
+    if( saneMaxFs == 0 && !(erasures > FTI_Topo->groupSize) ) {
+        MPI_Allreduce( &(FTIFFMetatmp->maxFs), FTI_Exec->meta[3].maxFs, 1, MPI_LONG, MPI_SUM, FTI_Exec->groupComm );
+        FTI_Exec->meta[3].maxFs[0] /= FTI_Topo->groupSize;
+    }
+
 
     FTI_Exec->meta[3].fs[0] = (myInfo->FileExists) ? myInfo->fs : 0;
     
@@ -1379,9 +1400,15 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i;
     for (i = 0; i < gs; i++) {
         if (erased[i]) {
+            if (FTI_Topo->splitRank == 0) {
+                printf("erased[%i]: %i\n", i, erased[i]);
+            }
             l++;
         }
         if (erased[i + gs]) {
+            if (FTI_Topo->splitRank == 0) {
+                printf("erased[%i + gs]: %i\n", i, erased[i + gs]);
+            }
             l++;
         }
     }
@@ -1468,7 +1495,7 @@ int FTI_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 if( fileTarget == FTI_Topo->myRank ) {
                     sprintf(tmpfn, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode)) {
+                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
                         lseek(fd, 0, SEEK_SET);
                         read( fd, FTIFFMetatmp, sizeof(FTIFF_metaInfo) );
@@ -1479,6 +1506,8 @@ int FTI_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->timestamp), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->ckptSize), sizeof(long) );
                         MD5_Update( &mdContextTS, &(FTIFFMetatmp->fs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->ptFs), sizeof(long) );
+                        MD5_Update( &mdContextTS, &(FTIFFMetatmp->maxFs), sizeof(long) );
                         MD5_Final( hashTScmp, &mdContextTS );
                         printf("timestamp: %ld, fs: %ld, ckptSize: \n\n", FTIFFMetatmp->timestamp, FTIFFMetatmp->fs, FTIFFMetatmp->ckptSize);
                         if ( memcmp( FTIFFMetatmp->hashTimestamp, hashTScmp, MD5_DIGEST_LENGTH ) == 0 ) {
