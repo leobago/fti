@@ -573,10 +573,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 mfs = fileSizes[i]; // Search max. size
             }
         }
-        // for FTIFF we need space for the meta data at the end
-        //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        //    mfs += sizeof( FTIFF_metaInfo );
-        //}
         FTI_Exec->meta[0].maxFs[0] = mfs;
     } else {
         FTI_Exec->meta[0].maxFs[0] = FTI_Exec->FTIFFMeta.maxFs;

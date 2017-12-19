@@ -1625,9 +1625,10 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
 
       size_t bytes = fread(readData, sizeof(char), bSize, gfd);
-      if( pos < sizeof(FTIFF_metaInfo) ) {
+      // FTI-FF: skip file meta data for computing the checksum
+      if( (FTI_Conf->ioMode == FTI_IO_FTIFF) && (pos < sizeof(FTIFF_metaInfo)) ) {
           if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
-              MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), bytes-sizeof(FTIFF_metaInfo) );
+              MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
           }
       }
 
@@ -1656,15 +1657,21 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       pos = pos + bytes;
    }
-   
-   unsigned char hashL4[MD5_DIGEST_LENGTH];
-   MD5_Final( hashL4, &md5ctxL4 );
+  
+   // FTI-FF: check if checksums coincide
+   if( FTI_Conf->ioMode == FTI_IO_FTIFF ) { 
+       unsigned char hashL4[MD5_DIGEST_LENGTH];
+       MD5_Final( hashL4, &md5ctxL4 );
 
-   char checksumL4cmp[MD5_DIGEST_STRING_LENGTH];
-   int ii = 0, i;
-   for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-       sprintf(&checksumL4cmp[ii], "%02x", hashL4[i]);
-       ii+=2;
+       char checksumL4cmp[MD5_DIGEST_STRING_LENGTH];
+       int ii = 0, i;
+       for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+           sprintf(&checksumL4cmp[ii], "%02x", hashL4[i]);
+           ii+=2;
+       }
+       if(strcmp(checksumL4, checksumL4cmp) != 0) {
+           return FTI_NSCS;
+       }
    }
 
    free(readData);
@@ -1672,9 +1679,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    fclose(gfd);
    fclose(lfd);
    
-   if(strcmp(checksumL4, checksumL4cmp) != 0) {
-       return FTI_NSCS;
-   }
    return FTI_SCES;
 }
 
