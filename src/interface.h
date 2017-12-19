@@ -40,6 +40,7 @@
 #define _FTI_INTERFACE_H
 
 #include "fti.h"
+#include "ftiff.h"
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"

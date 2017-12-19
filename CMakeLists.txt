@@ -108,7 +108,7 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c)
+	src/tools.c src/topo.c src/ftiff.c)
 
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" -fPIC)

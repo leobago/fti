@@ -270,6 +270,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot rename global directory", FTI_EROR);
             }
         }
+        // there is no temp meta data folder for FTI-FF
         if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
             if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
                 FTI_Print("Cannot rename meta directory", FTI_EROR);
@@ -305,44 +306,6 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    // For FTI-FF to send for the heads.
-    
-    // create struct to send info
-    // send nbVar to knwo how many elements head must receive of varSize and varID
-    struct headInfo {
-        int exists; 
-        int nbVar;
-        char ckptFile[FTI_BUFS];
-        long maxFs;
-        long fs;
-        long pfs;
-    };
-    
-    // create MPI datatype of headInfo
-    MPI_Datatype MPI_headInfo_RAW, MPI_headInfo;
-    int mbrCnt = 6;
-    int mbrBlkLen[] = { 1, 1, FTI_BUFS, 1, 1, 1 };
-    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG };
-    MPI_Aint mbrDisp[] = { 
-        offsetof( struct headInfo, exists), 
-        offsetof( struct headInfo, nbVar), 
-        offsetof( struct headInfo, ckptFile), 
-        offsetof( struct headInfo, maxFs), 
-        offsetof( struct headInfo, fs), 
-        offsetof( struct headInfo, pfs) 
-    }; 
-    MPI_Aint lb, extent;
-    MPI_Type_create_struct( mbrCnt, mbrBlkLen, mbrDisp, mbrTypes, &MPI_headInfo_RAW );
-    MPI_Type_get_extent( MPI_headInfo_RAW, &lb, &extent );
-    MPI_Type_create_resized( MPI_headInfo_RAW, lb, extent, &MPI_headInfo);
-    MPI_Type_commit( &MPI_headInfo );
-    
-    struct headInfo *headInfo;    
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        // init headInfo
-        headInfo = malloc(FTI_Topo->nbApprocs * sizeof(struct headInfo));
-    }
-
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
         char str[FTI_BUFS]; //For console output
@@ -370,17 +333,20 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
             FTI_Print("Head stopped listening.", FTI_DBUG);
-            if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
-                free(headInfo);
-            }
             FTI_Finalize();
         }
         
-        if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 ) {
+        // FTI-FF: receive meta data information from the application ranks.
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
+            
+            // init headInfo
+            FTIFF_headInfo *headInfo;    
+            headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
+
             int k;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 k = i+1;
-                MPI_Recv(&(headInfo[i]), 1, MPI_headInfo, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                MPI_Recv(&(headInfo[i]), 1, FTIFF_MPITypes[FTIFF_HEAD_INFO].final, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
                 FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
                 FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
@@ -390,8 +356,13 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
                 sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
-                printf("%s\n",&FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]);
+                // if keep_last_ckpt Flush metadata to level idx.
+                FTI_Exec->meta[FTI_Exec->ckptLvel].fs[k] = FTI_Exec->meta[0].fs[k];
             }
+            strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+
+            free(headInfo);
+
         }
         
         //Check if checkpoint was written correctly by all processes
@@ -872,10 +843,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fileSizes[i]; // Search max. size
         }
     }
-    // for FTIFF we need space for the meta data at the end
-    //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-    //    mfs += sizeof( FTIFF_metaInfo );
-    //}
+    
     FTI_Exec->FTIFFMeta.maxFs = mfs;
     
     // write meta data and its hash

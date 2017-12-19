@@ -129,13 +129,14 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
     }
+    res = FTI_Try(FTIFF_InitMpiTypes(), "initialize and commit MPI data types for FTI-FF");
+    if (res == FTI_NSCS) {
+        return FTI_NSCS;
+    }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
-            //if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-            //    res += FTI_Try( FTI_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
-            //}	
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files
@@ -535,18 +536,8 @@ int FTI_Checkpoint(int id, int level)
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
     
+    // FTIFF: send meta info to the heads
     struct headInfo *headInfo;
-    if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-        // init headInfo
-        headInfo = malloc(sizeof(struct headInfo));
-        headInfo->exists = FTI_Exec.meta[0].exists[0];
-        headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
-        headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
-        headInfo->fs = FTI_Exec.meta[0].fs[0];
-        headInfo->pfs = FTI_Exec.meta[0].pfs[0];
-        strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-    }
-
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
         // Head needs ckpt. ID to determine ckpt file name.
@@ -556,7 +547,15 @@ int FTI_Checkpoint(int id, int level)
             value = FTI_REJW; //Send reject checkpoint token to head
         }
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        // FTIFF: send meta info to the heads
         if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
+            headInfo = malloc(sizeof(struct headInfo));
+            headInfo->exists = FTI_Exec.meta[0].exists[0];
+            headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
+            headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
+            headInfo->fs = FTI_Exec.meta[0].fs[0];
+            headInfo->pfs = FTI_Exec.meta[0].pfs[0];
+            strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
             MPI_Send(headInfo, 1, MPI_headInfo, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);

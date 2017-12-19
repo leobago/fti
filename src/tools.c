@@ -190,57 +190,10 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
     int i;
-
+    
+    // FTI-FF: computes checksum from the data structures and prot. variables.
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-
-        FTIFF_db *currentdb = FTI_Exec->firstdb;
-        FTIFF_dbvar *currentdbvar = NULL;
-        char *dptr;
-        int dbvar_idx, pvar_idx, dbcounter=0;
-
-        int isnextdb;
-
-        //MD5_Update (&mdContext, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo));
-        
-        do {
-
-            isnextdb = 0;
-
-            MD5_Update (&mdContext, &(currentdb->numvars), sizeof(int));
-            MD5_Update (&mdContext, &(currentdb->dbsize), sizeof(long));
-
-            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
-                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                MD5_Update (&mdContext, currentdbvar, sizeof(FTIFF_dbvar));
-
-            }
-
-            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
-                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-                MD5_Update (&mdContext, dptr, currentdbvar->chunksize);
-
-            }
-
-            if (currentdb->next) {
-                currentdb = currentdb->next;
-                isnextdb = 1;
-            }
-
-            dbcounter++;
-
-        } while( isnextdb );
-
-        unsigned char hash[MD5_DIGEST_LENGTH];
-        MD5_Final (hash, &mdContext);
-        int ii = 0;
-        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksum[ii], "%02x", hash[i]);
-            ii += 2;
-        }
-
+        FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
     } else {
 
         //iterate all variables
@@ -410,20 +363,6 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].varSize);
         }
         FTI_Exec->metaAlloc = 0;
-    }
-}
-
-void FTI_FreeDbFTIFF(FTIFF_db* last)
-{
-    if (last) {
-        FTIFF_db *current = last;
-        FTIFF_db *previous;
-        while( current ) {
-            previous = current->previous;
-            free(current->dbvars);
-            free(current);
-            current = previous;
-        }
     }
 }
 
