@@ -679,12 +679,21 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     @param      FTI_Data        Dataset metadata.
     @return     integer         FTI_SCES if successful.
 
+    FTI-FF structure:
+    =================
+    
+    +------+---------+-------------+       +------+---------+-------------+
+    |      |         |             |       |      |         |             |
+    | db 1 | dbvar 1 | ckpt data 1 | . . . | db n | dbvar n | ckpt data n |
+    |      |         |             |       |      |         |             |
+    +------+---------+-------------+       +------+---------+-------------+
+
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
-{
+{ 
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
     
     // Update the meta data information -> FTIT_db and FTIT_dbvar
@@ -726,7 +735,9 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int writeFailed;
-    
+   
+    // make sure that is never a null ptr. otherwise its to fix.
+    assert(FTI_Exec->firstdb);
     FTIFF_db *currentdb = FTI_Exec->firstdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *dptr;
@@ -743,14 +754,16 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long cpybuf, cpynow, cpycnt, fptr;
 
     int isnextdb;
-
+    
+    // Write in file with FTI-FF
     do {
 
         writeFailed = 0;
         isnextdb = 0;
 
         mdoffset = endoffile;
-
+        
+        // write db - datablock meta data
         fseek( fd, mdoffset, SEEK_SET );
         writeFailed += ( fwrite( &(currentdb->numvars), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
         mdoffset += sizeof(int);
@@ -759,10 +772,12 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         mdoffset += sizeof(long);
 
         // debug information
-        sprintf(str, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i write failed: %i\n", 
+        sprintf(str, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i, write failed: %i", 
                 FTI_Exec->ckptID, dbcounter, currentdb->dbsize, currentdb->numvars, writeFailed);
         FTI_Print(str, FTI_DBUG);
 
+        // write dbvar - datablock variables meta data and 
+        // ckpt data
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
@@ -776,6 +791,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             
             MD5_Init( &mdContext );
             cpycnt = 0;
+            // write ckpt data
             while ( cpycnt < currentdbvar->chunksize ) {
                 cpybuf = currentdbvar->chunksize - cpycnt;
                 cpynow = ( cpybuf > membs ) ? membs : cpybuf;
@@ -799,6 +815,7 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             MD5_Final( currentdbvar->hash, &mdContext );
             
+            // write datablock variables meta data
             fseek( fd, mdoffset, SEEK_SET );
             writeFailed += ( fwrite( currentdbvar, sizeof(FTIFF_dbvar), 1, fd ) == 1 ) ? 0 : 1;
             mdoffset += sizeof(FTIFF_dbvar);
@@ -827,24 +844,40 @@ int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } while( isnextdb );
 
     FTI_Exec->ckptSize = endoffile;
+       
+    if( (FTI_Exec->ckptLvel == 2) || (FTI_Exec->ckptLvel == 3) ) { 
         
-    //update partner file size:
-    long fileSizes[FTI_BUFS];
-    MPI_Allgather(&endoffile, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+        long fileSizes[FTI_BUFS], mfs = 0;
+        MPI_Allgather(&endoffile, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+        int ptnerGroupRank, i;
+        switch(FTI_Exec->ckptLvel) {
 
-    if (FTI_Exec->ckptLvel == 2) {
-        int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-        FTI_Exec->FTIFFMeta.ptFs = fileSizes[ptnerGroupRank];
-    }
-    int i;
-    long mfs = 0; //Max file size in group 
-    for (i = 0; i < FTI_Topo->groupSize; i++) {
-        if (fileSizes[i] > mfs) {
-            mfs = fileSizes[i]; // Search max. size
-        }
-    }
+            //update partner file size:
+            case 2:
+
+                ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+                FTI_Exec->FTIFFMeta.ptFs = fileSizes[ptnerGroupRank];
+                FTI_Exec->FTIFFMeta.maxFs = -1;
+                break;
+
+            //get max file size in group 
+            case 3:
+                for (i = 0; i < FTI_Topo->groupSize; i++) {
+                    if (fileSizes[i] > mfs) {
+                        mfs = fileSizes[i]; // Search max. size
+                    }
+                }
+
+                FTI_Exec->FTIFFMeta.maxFs = mfs;
+                FTI_Exec->FTIFFMeta.ptFs = -1;
+        }     
     
-    FTI_Exec->FTIFFMeta.maxFs = mfs;
+    } else {
+        
+        FTI_Exec->FTIFFMeta.ptFs = -1;
+        FTI_Exec->FTIFFMeta.maxFs = -1;
+    
+    }
     
     // write meta data and its hash
     MD5_CTX mdContextTS;

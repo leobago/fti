@@ -704,6 +704,7 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         int FileExists;
         int CopyExists;
         int ckptID;
+        int rightIdx;
         long fs;
         long pfs;
     };
@@ -715,13 +716,14 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     
     // create MPI datatype of L2MetaInfo
     MPI_Datatype MPI_L2MetaInfo_RAW, MPI_L2MetaInfo;
-    int mbrCnt = 5;
-    int mbrBlkLen[] = { 1, 1, 1, 1, 1 };
-    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    int mbrCnt = 6;
+    int mbrBlkLen[] = { 1, 1, 1, 1, 1, 1 };
+    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
     MPI_Aint mbrDisp[] = { 
         offsetof( struct L2MetaInfo, FileExists), 
         offsetof( struct L2MetaInfo, CopyExists), 
         offsetof( struct L2MetaInfo, ckptID), 
+        offsetof( struct L2MetaInfo, rightIdx), 
         offsetof( struct L2MetaInfo, fs), 
         offsetof( struct L2MetaInfo, pfs) 
     }; 
@@ -740,15 +742,18 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     int projRanks[2];
     MPI_Group_translate_ranks( nodesGroup, 2, baseRanks, appProcsGroup, projRanks );
     int leftIdx = projRanks[0], rightIdx = projRanks[1];
+    
+    int appCommSize = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    int fneeded = appCommSize;
+
     MPI_Group_free(&nodesGroup);
     MPI_Group_free(&appProcsGroup);
 
-    int appCommSize = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
-    int fneeded = appCommSize;
-    
     struct L2MetaInfo *appProcsMetaInfo = calloc( appCommSize, sizeof(struct L2MetaInfo) );
     struct L2MetaInfo *myMetaInfo = calloc( 1, sizeof(struct L2MetaInfo) );
     
+    myMetaInfo->rightIdx = rightIdx;
+
     MD5_CTX mdContext;
     
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
@@ -895,7 +900,7 @@ int FTI_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     int i, saneCkptID = 0;
     ckptID = 0;
     for(i=0; i<appCommSize; i++) { 
-        fcount += ( appProcsMetaInfo[i].FileExists || appProcsMetaInfo[rightIdx].CopyExists ) ? 1 : 0;
+        fcount += ( appProcsMetaInfo[i].FileExists || appProcsMetaInfo[appProcsMetaInfo[i].rightIdx].CopyExists ) ? 1 : 0;
         if (appProcsMetaInfo[i].ckptID > 0) {
             saneCkptID++;
             ckptID += appProcsMetaInfo[i].ckptID;
@@ -1027,7 +1032,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
     }
-
+printf("until here -> %i\n", __LINE__);
     //recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
         if (erased[destination]) { //first send file

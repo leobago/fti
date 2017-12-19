@@ -3,6 +3,315 @@
 // allocate static memory
 FTIFF_MPITypeInfo FTIFF_MPITypes[FTIFF_NUM_MPI_TYPES];
 
+int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt ) 
+{
+    if (FTI_Exec->initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (FTI_Exec->initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+    char str[FTI_BUFS]; //For console output
+
+    //Check if nubmer of protected variables matches
+    if (FTI_Exec->nbVar != FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0]) {
+        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0], FTI_Exec->nbVar);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
+            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                    FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
+                    FTI_Data[i].size);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+    }
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec->ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    }
+    // get filesize
+    struct stat st;
+    stat(fn, &st);
+    int ferr;
+    char strerr[FTI_BUFS];
+
+    // block size for memcpy of pointer.
+    long membs = 1024*1024*16; // 16 MB
+    long cpybuf, cpynow, cpycnt;
+
+    if (!FTI_Exec->firstdb) {
+        FTI_Print( "FTIFF: RecoveryGlobal - No db meta information. Nothing to recover.", FTI_WARN );
+        return FTI_NREC;
+    }
+
+    // open checkpoint file for read only
+    int fd = open( fn, O_RDONLY, 0 );
+    if (fd == -1) {
+        sprintf( strerr, "FTIFF: RecoveryGlobal - could not open '%s' for reading.", fn);
+        FTI_Print(strerr, FTI_EROR);
+        return FTI_NREC;
+    }
+
+    // map file into memory
+    char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (fmmap == MAP_FAILED) {
+        sprintf( strerr, "FTIFF: RecoveryGlobal - could not map '%s' to memory.", fn);
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        return FTI_NREC;
+    }
+
+    // file is mapped, we can close it.
+    close(fd);
+
+    FTIFF_db *currentdb, *nextdb;
+    FTIFF_dbvar *currentdbvar = NULL;
+    char *destptr, *srcptr;
+    int dbvar_idx, pvar_idx, dbcounter=0;
+
+    // MD5 context for checksum of data chunks
+    MD5_CTX mdContext;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+
+    int isnextdb;
+
+    currentdb = FTI_Exec->firstdb;
+
+    do {
+
+        isnextdb = 0;
+
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+
+            // get source and destination pointer
+            destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+            srcptr = (char*) fmmap + currentdbvar->fptr;
+
+            MD5_Init( &mdContext );
+            cpycnt = 0;
+            while ( cpycnt < currentdbvar->chunksize ) {
+                cpybuf = currentdbvar->chunksize - cpycnt;
+                cpynow = ( cpybuf > membs ) ? membs : cpybuf;
+                cpycnt += cpynow;
+                memcpy( destptr, srcptr, cpynow );
+                MD5_Update( &mdContext, destptr, cpynow );
+                destptr += cpynow;
+                srcptr += cpynow;
+            }
+
+            // debug information
+            sprintf(str, "FTIFF: RecoveryGlobal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                    ", destptr: %ld, fptr: %ld, chunksize: %ld, "
+                    "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
+                    dbcounter, dbvar_idx,  
+                    currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+                    currentdbvar->fptr, currentdbvar->chunksize,
+                    FTI_Data[currentdbvar->idx].ptr, destptr);
+            FTI_Print(str, FTI_DBUG);
+
+            MD5_Final( hash, &mdContext );
+
+            if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
+                sprintf( strerr, "FTIFF: RecoveryGlobal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                FTI_Print(strerr, FTI_WARN);
+                return FTI_NREC;
+            }
+
+        }
+
+        if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
+
+    // unmap memory
+    if ( munmap( fmmap, st.st_size ) == -1 ) {
+        FTI_Print("FTIFF: RecoveryGlobal - unable to unmap memory", FTI_WARN);
+    }
+
+    FTI_Exec->reco = 0;
+
+    return FTI_SCES;
+}
+
+int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
+{
+    if (FTI_Exec->initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if(FTI_Exec->reco==0){
+        /* This is not a restart: no actions performed */
+        return FTI_SCES;
+    }
+
+    if (FTI_Exec->initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if (id == FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i]) {
+            if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
+                char str[FTI_BUFS];
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
+        }
+    }
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec->ckptLvel == 4) {
+        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    }
+
+    char str[FTI_BUFS];
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+    
+    // get filesize
+    struct stat st;
+    stat(fn, &st);
+    int ferr;
+    char strerr[FTI_BUFS];
+
+    // block size for memcpy of pointer.
+    long membs = 1024*1024*16; // 16 MB
+    long cpybuf, cpynow, cpycnt;
+
+    if (!FTI_Exec->firstdb) {
+        FTI_Print( "FTIFF: RecoveryLocal - No db meta information. Nothing to recover.", FTI_WARN );
+        return FTI_NREC;
+    }
+
+    // open checkpoint file for read only
+    int fd = open( fn, O_RDONLY, 0 );
+    if (fd == -1) {
+        sprintf( strerr, "FTIFF: RecoveryLocal - could not open '%s' for reading.", fn);
+        FTI_Print(strerr, FTI_EROR);
+        return FTI_NREC;
+    }
+
+    // map file into memory
+    char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (fmmap == MAP_FAILED) {
+        sprintf( strerr, "FTIFF: RecoveryLocal - could not map '%s' to memory.", fn);
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        return FTI_NREC;
+    }
+
+    // file is mapped, we can close it.
+    close(fd);
+
+    FTIFF_db *currentdb, *nextdb;
+    FTIFF_dbvar *currentdbvar = NULL;
+    char *destptr, *srcptr;
+    int dbvar_idx, pvar_idx, dbcounter=0;
+
+    // MD5 context for checksum of data chunks
+    MD5_CTX mdContext;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+
+    int isnextdb;
+
+    currentdb = FTI_Exec->firstdb;
+
+    do {
+
+        isnextdb = 0;
+
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+
+            if (currentdbvar->id == id) {
+                // get source and destination pointer
+                destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+                srcptr = (char*) fmmap + currentdbvar->fptr;
+
+                MD5_Init( &mdContext );
+                cpycnt = 0;
+                while ( cpycnt < currentdbvar->chunksize ) {
+                    cpybuf = currentdbvar->chunksize - cpycnt;
+                    cpynow = ( cpybuf > membs ) ? membs : cpybuf;
+                    cpycnt += cpynow;
+                    memcpy( destptr, srcptr, cpynow );
+                    MD5_Update( &mdContext, destptr, cpynow );
+                    destptr += cpynow;
+                    srcptr += cpynow;
+                }
+
+                // debug information
+                sprintf(str, "FTIFF: RecoveryLocal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                        ", destptr: %ld, fptr: %ld, chunksize: %ld, "
+                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
+                        dbcounter, dbvar_idx,  
+                        currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+                        currentdbvar->fptr, currentdbvar->chunksize,
+                        FTI_Data[currentdbvar->idx].ptr, destptr);
+                FTI_Print(str, FTI_DBUG);
+
+                MD5_Final( hash, &mdContext );
+
+                if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
+                    sprintf( strerr, "FTIFF: RecoveryLocal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    FTI_Print(strerr, FTI_WARN);
+                    return FTI_NREC;
+                }
+
+            }
+
+        }
+
+        if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
+
+    // unmap memory
+    if ( munmap( fmmap, st.st_size ) == -1 ) {
+        FTI_Print("FTIFF: RecoveryLocal - unable to unmap memory", FTI_WARN);
+    }
+
+    return FTI_SCES;
+}
+
 void FTI_FreeDbFTIFF(FTIFF_db* last)
 {
     if (last) {

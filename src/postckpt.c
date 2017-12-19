@@ -290,24 +290,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
-        
-        //if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        //    
-        //    int fd = open(lfn, O_WRONLY);
-        //    if (ftruncate( fd, maxFs ) == -1) {
-        //        FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
-        //        close( fd );
-        //        return FTI_NSCS;
-        //    }            
-        //    syncfs( fd );
-        //    long offset;
-        //    offset = lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
-        //    printf("rank: %i, fs: %ld, ckptSize: %ld, maxFS: %ld, offset: %ld, size metaInfo: %ld\n", 
-        //            FTI_Topo->myRank, FTI_Exec->FTIFFMeta.fs, FTI_Exec->FTIFFMeta.ckptSize, maxFs, offset, sizeof(FTIFF_metaInfo));
-        //    write( fd, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
-        //    close( fd );
-        //
-        //} else {
 
         if (truncate(lfn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
@@ -446,7 +428,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(&checksum[ii], "%02x", hash[i]);
             ii+=2;
         }
-
+        
+        // FTI-FF append meta data to RS file
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
             
             FTIFF_metaInfo *FTIFFMetaRS = malloc( sizeof( FTIFF_metaInfo) );

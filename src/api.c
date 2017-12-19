@@ -129,9 +129,11 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
     }
-    res = FTI_Try(FTIFF_InitMpiTypes(), "initialize and commit MPI data types for FTI-FF");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
+    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        res = FTI_Try(FTIFF_InitMpiTypes(), "initialize and commit MPI data types for FTI-FF");
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
     }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
@@ -312,7 +314,8 @@ long FTI_GetStoredSize(int id)
     file, reallacates memory and updates data size information.
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_Realloc(int id, void* ptr) {
+void* FTI_Realloc(int id, void* ptr) 
+{
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
@@ -470,39 +473,6 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
-    // For FTI-FF to send for the heads.
-    
-    // create struct to send info
-    // send nbVar to knwo how many elements head must receive of varSize and varID
-    struct headInfo {
-        int exists; 
-        int nbVar;
-        char ckptFile[FTI_BUFS];
-        long maxFs;
-        long fs;
-        long pfs;
-    };
-    
-    // create MPI datatype of headInfo
-    MPI_Datatype MPI_headInfo_RAW, MPI_headInfo;
-    int mbrCnt = 6;
-    int mbrBlkLen[] = { 1, 1, FTI_BUFS, 1, 1, 1 };
-    MPI_Datatype mbrTypes[] = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG };
-    MPI_Aint mbrDisp[] = { 
-        offsetof( struct headInfo, exists), 
-        offsetof( struct headInfo, nbVar), 
-        offsetof( struct headInfo, ckptFile), 
-        offsetof( struct headInfo, maxFs), 
-        offsetof( struct headInfo, fs), 
-        offsetof( struct headInfo, pfs) 
-    }; 
-    MPI_Aint lb, extent;
-    MPI_Type_create_struct( mbrCnt, mbrBlkLen, mbrDisp, mbrTypes, &MPI_headInfo_RAW );
-    MPI_Type_get_extent( MPI_headInfo_RAW, &lb, &extent );
-    MPI_Type_create_resized( MPI_headInfo_RAW, lb, extent, &MPI_headInfo);
-    MPI_Type_commit( &MPI_headInfo );
-    
-
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -537,7 +507,7 @@ int FTI_Checkpoint(int id, int level)
     double t2 = MPI_Wtime(); //Time after writing checkpoint
     
     // FTIFF: send meta info to the heads
-    struct headInfo *headInfo;
+    FTIFF_headInfo *headInfo;    
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
         // Head needs ckpt. ID to determine ckpt file name.
@@ -549,14 +519,14 @@ int FTI_Checkpoint(int id, int level)
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
         // FTIFF: send meta info to the heads
         if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
-            headInfo = malloc(sizeof(struct headInfo));
+            headInfo = malloc(sizeof(FTIFF_headInfo));
             headInfo->exists = FTI_Exec.meta[0].exists[0];
             headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
             headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
             strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            MPI_Send(headInfo, 1, MPI_headInfo, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(headInfo, 1, FTIFF_MPITypes[FTIFF_HEAD_INFO].final, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
         }
@@ -576,7 +546,7 @@ int FTI_Checkpoint(int id, int level)
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
-        if(FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        if(FTI_Conf.ioMode == FTI_IO_FTIFF && !FTI_Ckpt[FTI_Exec.ckptLvel].isInline) {
             free(headInfo);
         }
         return FTI_NSCS;
@@ -590,7 +560,7 @@ int FTI_Checkpoint(int id, int level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
-    if(FTI_Conf.ioMode == FTI_IO_FTIFF) {
+    if(FTI_Conf.ioMode == FTI_IO_FTIFF && !FTI_Ckpt[FTI_Exec.ckptLvel].isInline) {
         free(headInfo);
     }
     return FTI_DONE;
@@ -608,6 +578,10 @@ int FTI_Checkpoint(int id, int level)
 /*-------------------------------------------------------------------------*/
 int FTI_Recover()
 {
+    if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        return FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -646,143 +620,29 @@ int FTI_Recover()
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+    FILE* fd = fopen(fn, "rb");
 
-        // get filesize
-        struct stat st;
-        stat(fn, &st);
-        int ferr;
-        char strerr[FTI_BUFS];
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
 
-        // block size for memcpy of pointer.
-        long membs = 1024*1024*16; // 16 MB
-        long cpybuf, cpynow, cpycnt;
-
-        if (!FTI_Exec.firstdb) {
-            FTI_Print( "FTIFF: RecoveryGlobal - No db meta information. Nothing to recover.", FTI_WARN );
-            return FTI_NSCS;
-        }
-            
-        // open checkpoint file for read only
-        int fd = open( fn, O_RDONLY, 0 );
-        if (fd == -1) {
-            sprintf( strerr, "FTIFF: RecoveryGlobal - could not open '%s' for reading.", fn);
-            FTI_Print(strerr, FTI_EROR);
-            return FTI_NREC;
-        }
-
-        // map file into memory
-        char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-        if (fmmap == MAP_FAILED) {
-            sprintf( strerr, "FTIFF: RecoveryGlobal - could not map '%s' to memory.", fn);
-            FTI_Print(strerr, FTI_EROR);
-            close(fd);
-            return FTI_NREC;
-        }
-
-        // file is mapped, we can close it.
-        close(fd);
-
-        FTIFF_db *currentdb, *nextdb;
-        FTIFF_dbvar *currentdbvar = NULL;
-        char *destptr, *srcptr;
-        int dbvar_idx, pvar_idx, dbcounter=0;
-
-        // MD5 context for checksum of data chunks
-        MD5_CTX mdContext;
-        unsigned char hash[MD5_DIGEST_LENGTH];
-
-        int isnextdb;
-
-        currentdb = FTI_Exec.firstdb;
-        
-        do {
-
-            isnextdb = 0;
-
-            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
-                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                
-                // get source and destination pointer
-                destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
-                srcptr = (char*) fmmap + currentdbvar->fptr;
-                
-                MD5_Init( &mdContext );
-                cpycnt = 0;
-                while ( cpycnt < currentdbvar->chunksize ) {
-                    cpybuf = currentdbvar->chunksize - cpycnt;
-                    cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-                    cpycnt += cpynow;
-                    memcpy( destptr, srcptr, cpynow );
-                    MD5_Update( &mdContext, destptr, cpynow );
-                    destptr += cpynow;
-                    srcptr += cpynow;
-                }
-                
-                // debug information
-                sprintf(str, "FTIFF: RecoveryGlobal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-                        ", destptr: %ld, fptr: %ld, chunksize: %ld, "
-                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
-                        dbcounter, dbvar_idx,  
-                        currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-                        currentdbvar->fptr, currentdbvar->chunksize,
-                        FTI_Data[currentdbvar->idx].ptr, destptr);
-                FTI_Print(str, FTI_DBUG);
-
-                MD5_Final( hash, &mdContext );
-                
-                if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                    sprintf( strerr, "FTIFF: RecoveryGlobal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
-                    FTI_Print(strerr, FTI_WARN);
-                    return FTI_NREC;
-                }
-            
-            }
-
-            if (currentdb->next) {
-                currentdb = currentdb->next;
-                isnextdb = 1;
-            }
-
-            dbcounter++;
-
-        } while( isnextdb );
-       
-        // unmap memory
-        if ( munmap( fmmap, st.st_size ) == -1 ) {
-            FTI_Print("FTIFF: RecoveryGlobal - unable to unmap memory", FTI_WARN);
-        }
-
-        FTI_Exec.reco = 0;
-
-    } else {
-
-        FILE* fd = fopen(fn, "rb");
-
-        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-
-        if (fd == NULL) {
-            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-            if (ferror(fd)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                fclose(fd);
-                return FTI_NREC;
-            }
-        }
-        if (fclose(fd) != 0) {
-            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-        FTI_Exec.reco = 0;
-
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
     }
+
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return FTI_NREC;
+        }
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+    FTI_Exec.reco = 0;
 
     return FTI_SCES;
 }
@@ -948,7 +808,11 @@ int FTI_Finalize()
         checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVar(int id){
+int FTI_RecoverVar(int id)
+{
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -990,156 +854,41 @@ int FTI_RecoverVar(int id){
     }
 
     char str[FTI_BUFS];
-    
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
 
-        // get filesize
-        struct stat st;
-        stat(fn, &st);
-        int ferr;
-        char strerr[FTI_BUFS];
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
 
-        // block size for memcpy of pointer.
-        long membs = 1024*1024*16; // 16 MB
-        long cpybuf, cpynow, cpycnt;
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
 
-        if (!FTI_Exec.firstdb) {
-            FTI_Print( "FTIFF: RecoveryLocal - No db meta information. Nothing to recover.", FTI_WARN );
-            return FTI_NSCS;
-        }
-            
-        // open checkpoint file for read only
-        int fd = open( fn, O_RDONLY, 0 );
-        if (fd == -1) {
-            sprintf( strerr, "FTIFF: RecoveryLocal - could not open '%s' for reading.", fn);
-            FTI_Print(strerr, FTI_EROR);
-            return FTI_NREC;
-        }
-
-        // map file into memory
-        char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-        if (fmmap == MAP_FAILED) {
-            sprintf( strerr, "FTIFF: RecoveryLocal - could not map '%s' to memory.", fn);
-            FTI_Print(strerr, FTI_EROR);
-            close(fd);
-            return FTI_NREC;
-        }
-
-        // file is mapped, we can close it.
-        close(fd);
-
-        FTIFF_db *currentdb, *nextdb;
-        FTIFF_dbvar *currentdbvar = NULL;
-        char *destptr, *srcptr;
-        int dbvar_idx, pvar_idx, dbcounter=0;
-
-        // MD5 context for checksum of data chunks
-        MD5_CTX mdContext;
-        unsigned char hash[MD5_DIGEST_LENGTH];
-
-        int isnextdb;
-
-        currentdb = FTI_Exec.firstdb;
-        
-        do {
-
-            isnextdb = 0;
-
-            for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-    
-                currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-                
-                if (currentdbvar->id == id) {
-                    // get source and destination pointer
-                    destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
-                    srcptr = (char*) fmmap + currentdbvar->fptr;
-
-                    MD5_Init( &mdContext );
-                    cpycnt = 0;
-                    while ( cpycnt < currentdbvar->chunksize ) {
-                        cpybuf = currentdbvar->chunksize - cpycnt;
-                        cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-                        cpycnt += cpynow;
-                        memcpy( destptr, srcptr, cpynow );
-                        MD5_Update( &mdContext, destptr, cpynow );
-                        destptr += cpynow;
-                        srcptr += cpynow;
-                    }
-
-                    // debug information
-                    sprintf(str, "FTIFF: RecoveryLocal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-                            ", destptr: %ld, fptr: %ld, chunksize: %ld, "
-                            "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
-                            dbcounter, dbvar_idx,  
-                            currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-                            currentdbvar->fptr, currentdbvar->chunksize,
-                            FTI_Data[currentdbvar->idx].ptr, destptr);
-                    FTI_Print(str, FTI_DBUG);
-
-                    MD5_Final( hash, &mdContext );
-
-                    if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                        sprintf( strerr, "FTIFF: RecoveryLocal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
-                        FTI_Print(strerr, FTI_WARN);
-                        return FTI_NREC;
-                    }
-
-                }
-            
+    long offset = 0;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            sprintf(str, "Recovering var %d ", id);
+            FTI_Print(str, FTI_DBUG);
+            fseek(fd, offset, SEEK_SET);
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
             }
-
-            if (currentdb->next) {
-                currentdb = currentdb->next;
-                isnextdb = 1;
-            }
-
-            dbcounter++;
-
-        } while( isnextdb );
-       
-        // unmap memory
-        if ( munmap( fmmap, st.st_size ) == -1 ) {
-            FTI_Print("FTIFF: RecoveryLocal - unable to unmap memory", FTI_WARN);
+            break;
         }
+        offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+    }
 
-    } else {
-
-        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-
-        FILE* fd = fopen(fn, "rb");
-        if (fd == NULL) {
-            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
-        long offset = 0;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
-                sprintf(str, "Recovering var %d ", id);
-                FTI_Print(str, FTI_DBUG);
-                fseek(fd, offset, SEEK_SET);
-                fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-                if (ferror(fd)) {
-                    FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                    fclose(fd);
-                    return FTI_NREC;
-                }
-                break;
-            }
-            offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
-        }
-
-        if (i == FTI_Exec.nbVar) {
-            FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
-        if (fclose(fd) != 0) {
-            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-    
+    if (i == FTI_Exec.nbVar) {
+        FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
+        fclose(fd);
+        return FTI_NREC;
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
     }
 
     return FTI_SCES;
