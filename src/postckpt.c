@@ -278,7 +278,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         int ckptID, rank;
         sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-        printf("%s\n",&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
 
         sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
