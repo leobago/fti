@@ -87,15 +87,15 @@ FTIT_type FTI_LDBE;
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Initializes FTI.
-    @param      configFile      FTI configuration file.
-    @param      globalComm      Main MPI communicator of the application.
-    @return     integer         FTI_SCES if successful.
+  @brief      Initializes FTI.
+  @param      configFile      FTI configuration file.
+  @param      globalComm      Main MPI communicator of the application.
+  @return     integer         FTI_SCES if successful.
 
-    This function initializes the FTI context and prepares the heads to wait
-    for checkpoints. FTI processes should never get out of this function. In
-    case of a restart, checkpoint files should be recovered and in place at the
-    end of this function.
+  This function initializes the FTI context and prepares the heads to wait
+  for checkpoints. FTI processes should never get out of this function. In
+  case of a restart, checkpoint files should be recovered and in place at the
+  end of this function.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -160,10 +160,10 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It returns the current status of the recovery flag.
-    @return     integer         FTI_Exec.reco.
+  @brief      It returns the current status of the recovery flag.
+  @return     integer         FTI_Exec.reco.
 
-    This function returns the current status of the recovery flag.
+  This function returns the current status of the recovery flag.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -174,13 +174,13 @@ int FTI_Status()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It initializes a data type.
-    @param      type            The data type to be intialized.
-    @param      size            The size of the data type to be intialized.
-    @return     integer         FTI_SCES if successful.
+  @brief      It initializes a data type.
+  @param      type            The data type to be intialized.
+  @param      size            The size of the data type to be intialized.
+  @return     integer         FTI_SCES if successful.
 
-    This function initalizes a data type. the only information needed is the
-    size of the data type, the rest is black box for FTI.
+  This function initalizes a data type. the only information needed is the
+  size of the data type, the rest is black box for FTI.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -194,19 +194,19 @@ int FTI_InitType(FTIT_type* type, int size)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It sets/resets the pointer and type to a protected variable.
-    @param      id              ID for searches and update.
-    @param      ptr             Pointer to the data structure.
-    @param      count           Number of elements in the data structure.
-    @param      type            Type of elements in the data structure.
-    @return     integer         FTI_SCES if successful.
+  @brief      It sets/resets the pointer and type to a protected variable.
+  @param      id              ID for searches and update.
+  @param      ptr             Pointer to the data structure.
+  @param      count           Number of elements in the data structure.
+  @param      type            Type of elements in the data structure.
+  @return     integer         FTI_SCES if successful.
 
-    This function stores a pointer to a data structure, its size, its ID,
-    its number of elements and the type of the elements. This list of
-    structures is the data that will be stored during a checkpoint and
-    loaded during a recovery. It resets the pointer to a data structure,
-    its size, its number of elements and the type of the elements if the
-    dataset was already previously registered.
+  This function stores a pointer to a data structure, its size, its ID,
+  its number of elements and the type of the elements. This list of
+  structures is the data that will be stored during a checkpoint and
+  loaded during a recovery. It resets the pointer to a data structure,
+  its size, its number of elements and the type of the elements if the
+  dataset was already previously registered.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -258,15 +258,15 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Returns size saved in metadata of variable
-    @param      id              Variable ID.
-    @return     long            Returns size of variable or 0 if size not saved.
+  @brief      Returns size saved in metadata of variable
+  @param      id              Variable ID.
+  @return     long            Returns size of variable or 0 if size not saved.
 
-    This function returns size of variable of given ID that is saved in metadata.
-    This may be different from size of variable that is in the program. If this
-    function it's called when recovery it returns size from metadata file, if it's
-    called after checkpoint it returns size saved in temporary metadata. If there
-    is no size saved in metadata it returns 0.
+  This function returns size of variable of given ID that is saved in metadata.
+  This may be different from size of variable that is in the program. If this
+  function it's called when recovery it returns size from metadata file, if it's
+  called after checkpoint it returns size saved in temporary metadata. If there
+  is no size saved in metadata it returns 0.
  **/
 /*-------------------------------------------------------------------------*/
 long FTI_GetStoredSize(int id)
@@ -298,12 +298,12 @@ long FTI_GetStoredSize(int id)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Reallocates dataset to last checkpoint size.
-    @param      id              Variable ID.
-    @param      ptr             Pointer to the variable.
-    @return     ptr             Pointer if successful, NULL otherwise
-    This function loads the checkpoint data size from the metadata
-    file, reallacates memory and updates data size information.
+  @brief      Reallocates dataset to last checkpoint size.
+  @param      id              Variable ID.
+  @param      ptr             Pointer to the variable.
+  @return     ptr             Pointer if successful, NULL otherwise
+  This function loads the checkpoint data size from the metadata
+  file, reallacates memory and updates data size information.
  **/
 /*-------------------------------------------------------------------------*/
 void* FTI_Realloc(int id, void* ptr) {
@@ -345,12 +345,12 @@ void* FTI_Realloc(int id, void* ptr) {
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It corrupts a bit of the given float.
-    @param      target          Pointer to the float to corrupt.
-    @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successful.
+  @brief      It corrupts a bit of the given float.
+  @param      target          Pointer to the float to corrupt.
+  @param      bit             Position of the bit to corrupt.
+  @return     integer         FTI_SCES if successful.
 
-    This function filps the bit of the target float.
+  This function filps the bit of the target float.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -370,12 +370,12 @@ int FTI_FloatBitFlip(float* target, int bit)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It corrupts a bit of the given float.
-    @param      target          Pointer to the float to corrupt.
-    @param      bit             Position of the bit to corrupt.
-    @return     integer         FTI_SCES if successful.
+  @brief      It corrupts a bit of the given float.
+  @param      target          Pointer to the float to corrupt.
+  @param      bit             Position of the bit to corrupt.
+  @return     integer         FTI_SCES if successful.
 
-    This function filps the bit of the target float.
+  This function filps the bit of the target float.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -395,12 +395,12 @@ int FTI_DoubleBitFlip(double* target, int bit)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Bit-flip injection following the injection instructions.
-    @param      datasetID       ID of the dataset where to inject.
-    @return     integer         FTI_SCES if successful.
+  @brief      Bit-flip injection following the injection instructions.
+  @param      datasetID       ID of the dataset where to inject.
+  @return     integer         FTI_SCES if successful.
 
-    This function injects the given number of bit-flips, at the given
-    frequency and in the given location (rank, dataset, bit position).
+  This function injects the given number of bit-flips, at the given
+  frequency and in the given location (rank, dataset, bit position).
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -426,7 +426,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
                         FTI_Inje.timer = (res == FTI_SCES) ? MPI_Wtime() : FTI_Inje.timer;
                         sprintf(str, "Injecting bit-flip in dataset %d, index %d, bit %d : %f => %f",
-                            datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
+                                datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
@@ -437,7 +437,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
                         FTI_Inje.timer = (res == FTI_SCES) ? MPI_Wtime() : FTI_Inje.timer;
                         sprintf(str, "Injecting bit-flip in dataset %d, index %d, bit %d : %f => %f",
-                            datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
+                                datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
@@ -450,15 +450,15 @@ int FTI_BitFlip(int datasetID)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It takes the checkpoint and triggers the post-ckpt. work.
-    @param      id              Checkpoint ID.
-    @param      level           Checkpoint level.
-    @return     integer         FTI_SCES if successful.
+  @brief      It takes the checkpoint and triggers the post-ckpt. work.
+  @param      id              Checkpoint ID.
+  @param      level           Checkpoint level.
+  @return     integer         FTI_SCES if successful.
 
-    This function starts by blocking on a receive if the previous ckpt. was
-    offline. Then, it updates the ckpt. information. It writes down the ckpt.
-    data, creates the metadata and the post-processing work. This function
-    is complementary with the FTI_Listen function in terms of communications.
+  This function starts by blocking on a receive if the previous ckpt. was
+  offline. Then, it updates the ckpt. information. It writes down the ckpt.
+  data, creates the metadata and the post-processing work. This function
+  is complementary with the FTI_Listen function in terms of communications.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -535,11 +535,11 @@ int FTI_Checkpoint(int id, int level)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It loads the checkpoint data.
-    @return     integer         FTI_SCES if successful.
+  @brief      It loads the checkpoint data.
+  @return     integer         FTI_SCES if successful.
 
-    This function loads the checkpoint data from the checkpoint file and
-    it updates some basic checkpoint information.
+  This function loads the checkpoint data from the checkpoint file and
+  it updates some basic checkpoint information.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -612,14 +612,14 @@ int FTI_Recover()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Takes an FTI snapshot or recovers the data if it is a restart.
-    @return     integer         FTI_SCES if successful.
+  @brief      Takes an FTI snapshot or recovers the data if it is a restart.
+  @return     integer         FTI_SCES if successful.
 
-    This function loads the checkpoint data from the checkpoint file in case
-    of restart. Otherwise, it checks if the current iteration requires
-    checkpointing, if it does it checks which checkpoint level, write the
-    data in the files and it communicates with the head of the node to inform
-    that a checkpoint has been taken. Checkpoint ID and counters are updated.
+  This function loads the checkpoint data from the checkpoint file in case
+  of restart. Otherwise, it checks if the current iteration requires
+  checkpointing, if it does it checks which checkpoint level, write the
+  data in the files and it communicates with the head of the node to inform
+  that a checkpoint has been taken. Checkpoint ID and counters are updated.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -671,12 +671,12 @@ int FTI_Snapshot()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It closes FTI properly on the application processes.
-    @return     integer         FTI_SCES if successful.
+  @brief      It closes FTI properly on the application processes.
+  @return     integer         FTI_SCES if successful.
 
-    This function notifies the FTI processes that the execution is over, frees
-    some data structures and it closes. If this function is not called on the
-    application processes the FTI processes will never finish (deadlock).
+  This function notifies the FTI processes that the execution is over, frees
+  some data structures and it closes. If this function is not called on the
+  application processes the FTI processes will never finish (deadlock).
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -711,30 +711,30 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
-            if (FTI_Exec.lastCkptLvel != 4) {
-                FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-                MPI_Barrier(FTI_COMM_WORLD);
-                if (FTI_Topo.splitRank == 0) {
-                    if (access(FTI_Ckpt[4].dir, 0) == 0) {
-                        FTI_RmDir(FTI_Ckpt[4].dir, 1); //Delete previous L4 checkpoint
-                    }
-                    if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
-                        FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
-                    }
-                    if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
-                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
-                    }
-                    if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-                        FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
-                    }
+        if (FTI_Exec.lastCkptLvel != 4) {
+            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            MPI_Barrier(FTI_COMM_WORLD);
+            if (FTI_Topo.splitRank == 0) {
+                if (access(FTI_Ckpt[4].dir, 0) == 0) {
+                    FTI_RmDir(FTI_Ckpt[4].dir, 1); //Delete previous L4 checkpoint
+                }
+                if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
+                    FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
+                }
+                if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
+                    FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
+                }
+                if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
+                    FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
                 }
             }
-            if (FTI_Topo.splitRank == 0) {
-                //Setting recover flag to 2 (to recover from L4, keeped last checkpoint)
-                FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 2), "update configuration file to 2.");
-            }
-            //Cleaning only local storage
-            FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
+        }
+        if (FTI_Topo.splitRank == 0) {
+            //Setting recover flag to 2 (to recover from L4, keeped last checkpoint)
+            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 2), "update configuration file to 2.");
+        }
+        //Cleaning only local storage
+        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else {
         if (FTI_Conf.saveLastCkpt) { //if there was no saved checkpoint
             FTI_Print("No checkpoint to keep in PFS.", FTI_INFO);
@@ -754,18 +754,18 @@ int FTI_Finalize()
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      During the restart, recovers the given variable
-    @param      id              Variable to recover
-    @return     int             FTI_SCES if successful.
+  @brief      During the restart, recovers the given variable
+  @param      id              Variable to recover
+  @return     int             FTI_SCES if successful.
 
-    During a restart process, this function recovers the variable specified
-    by the given id. No effect during a regular execution.
-    The variable must have already been protected, otherwise, FTI_NSCS is returned.
-    Improvements to be done:
-    - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
-    - Maintain a variable accumulating the offset as variable are protected during
-        the restart to avoid doing the loop to calculate the offset in the
-        checkpoint file.
+  During a restart process, this function recovers the variable specified
+  by the given id. No effect during a regular execution.
+  The variable must have already been protected, otherwise, FTI_NSCS is returned.
+  Improvements to be done:
+  - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
+  - Maintain a variable accumulating the offset as variable are protected during
+  the restart to avoid doing the loop to calculate the offset in the
+  checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVar(int id){
@@ -850,15 +850,15 @@ int FTI_RecoverVar(int id){
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Prints FTI messages.
-    @param      msg             Message to print.
-    @param      priority        Priority of the message to be printed.
-    @return     void
+  @brief      Prints FTI messages.
+  @param      msg             Message to print.
+  @param      priority        Priority of the message to be printed.
+  @return     void
 
-    This function prints messages depending on their priority and the
-    verbosity level set by the user. DEBUG messages are printed by all
-    processes with their rank. INFO messages are printed by one process.
-    ERROR messages are printed with errno.
+  This function prints messages depending on their priority and the
+  verbosity level set by the user. DEBUG messages are printed by all
+  processes with their rank. INFO messages are printed by one process.
+  ERROR messages are printed with errno.
 
  **/
 /*-------------------------------------------------------------------------*/

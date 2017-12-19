@@ -40,21 +40,21 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers a set of ckpt. files using RS decoding.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      erased          The array of erasures.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers a set of ckpt. files using RS decoding.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      erased          The array of erasures.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the L3 ckpt. files missing using the
-    RS decoding.
+  This function tries to recover the L3 ckpt. files missing using the
+  RS decoding.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-               FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
     int ckptID, rank;
     sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
@@ -332,20 +332,20 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It checks that all L1 ckpt. files are present.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It checks that all L1 ckpt. files are present.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function detects all the erasures for L1. If there is at least one,
-    L1 is not considered as recoverable.
+  This function detects all the erasures for L1. If there is at least one,
+  L1 is not considered as recoverable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     int erased[FTI_BUFS]; // FTI_BUFS > 32*3
     if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
@@ -368,20 +368,20 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It sends checkpint file.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      destination     destination group rank.
-    @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt.
-    @return     integer         FTI_SCES if successful.
+  @brief      It sends checkpint file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      destination     destination group rank.
+  @param      ptner           0 if sending Ckpt, 1 if PtnerCkpt.
+  @return     integer         FTI_SCES if successful.
 
-    This function sends Ckpt or PtnerCkpt file from partner proccess.
+  This function sends Ckpt or PtnerCkpt file from partner proccess.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                        FTIT_checkpoint* FTI_Ckpt, int destination, int ptner)
+        FTIT_checkpoint* FTI_Ckpt, int destination, int ptner)
 {
     long toSend ; // remaining data to send
     char filename[FTI_BUFS], str[FTI_BUFS];
@@ -429,20 +429,20 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It receives checkpint file.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      source          Source group rank.
-    @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt.
-    @return     integer         FTI_SCES if successful.
+  @brief      It receives checkpint file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      source          Source group rank.
+  @param      ptner           0 if receiving Ckpt, 1 if PtnerCkpt.
+  @return     integer         FTI_SCES if successful.
 
-    This function receives Ckpt or PtnerCkpt file from partner proccess.
+  This function receives Ckpt or PtnerCkpt file from partner proccess.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                        FTIT_checkpoint* FTI_Ckpt, int source, int ptner)
+        FTIT_checkpoint* FTI_Ckpt, int source, int ptner)
 {
     long toRecv;    //remaining data to receive
     char filename[FTI_BUFS], str[FTI_BUFS];
@@ -490,21 +490,21 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L2 ckpt. files using the partner copy.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L2 ckpt. files using the partner copy.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the L2 ckpt. files missing using the
-    partner copy. If a ckpt. file and its copy are both missing, then we
-    consider this checkpoint unavailable.
+  This function tries to recover the L2 ckpt. files missing using the
+  partner copy. If a ckpt. file and its copy are both missing, then we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -616,21 +616,21 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L3 ckpt. files ordering the RS decoding algorithm.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the L3 ckpt. files missing using the
-    RS decoding. If to many files are missing in the group, then we
-    consider this checkpoint unavailable.
+  This function tries to recover the L3 ckpt. files missing using the
+  RS decoding. If to many files are missing in the group, then we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     if (mkdir(FTI_Ckpt[3].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -678,400 +678,400 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L4 ckpt. files from the PFS.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the ckpt. files using the L4 ckpt. files
-    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
-    consider this checkpoint unavailable.
+  This function tries to recover the ckpt. files using the L4 ckpt. files
+  stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX) {
-       return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-   }
-   else {
-       switch(FTI_Conf->ioMode) {
-          case FTI_IO_MPI:
-             return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX) {
+        return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+    }
+    else {
+        switch(FTI_Conf->ioMode) {
+            case FTI_IO_MPI:
+                return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-          case FTI_IO_SIONLIB:
-             return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            case FTI_IO_SIONLIB:
+                return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #endif
-       }
-   }
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using POSIX.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L4 ckpt. files from the PFS using POSIX.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the ckpt. files using the L4 ckpt. files
-    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
-    consider this checkpoint unavailable.
+  This function tries to recover the ckpt. files using the L4 ckpt. files
+  stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   FTI_Print("Starting recovery L4 using Posix I/O.", FTI_DBUG);
-   if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-     if (errno != EEXIST) {
-         FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-     }
-   }
+    FTI_Print("Starting recovery L4 using Posix I/O.", FTI_DBUG);
+    if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+        }
+    }
 
-   // Checking erasures
-   int erased[FTI_BUFS];
-   if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-      FTI_Print("Error checking erasures.", FTI_DBUG);
-      return FTI_NSCS;
-   }
+    // Checking erasures
+    int erased[FTI_BUFS];
+    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+        FTI_Print("Error checking erasures.", FTI_DBUG);
+        return FTI_NSCS;
+    }
 
-   int l = 0;
-   int i;
-   // Counting erasures
-   for (i = 0; i < FTI_Topo->groupSize; i++) {
-      if (erased[i]) {
-         l++;
-     }
-   }
-   if (l > 0) {
-      FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
-      return FTI_NSCS;
-   }
+    int l = 0;
+    int i;
+    // Counting erasures
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        if (erased[i]) {
+            l++;
+        }
+    }
+    if (l > 0) {
+        FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-   // Open files
-   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-   sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-   sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    // Open files
+    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    char gfn[FTI_BUFS], lfn[FTI_BUFS];
+    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
-   FILE* gfd = fopen(gfn, "rb");
-   if (gfd == NULL) {
-      FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_WARN);
-      return FTI_NSCS;
-   }
+    FILE* gfd = fopen(gfn, "rb");
+    if (gfd == NULL) {
+        FTI_Print("R4 cannot open the ckpt. file in the PFS.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-   FILE* lfd = fopen(lfn, "wb");
-   if (lfd == NULL) {
-      FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
-      fclose(gfd);
-      return FTI_NSCS;
-   }
+    FILE* lfd = fopen(lfn, "wb");
+    if (lfd == NULL) {
+        FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
+        fclose(gfd);
+        return FTI_NSCS;
+    }
 
-   char *readData = talloc(char, FTI_Conf->transferSize);
-   long bSize = FTI_Conf->transferSize;
-   long fs = FTI_Exec->meta[4].fs[0];
-   // Checkpoint files transfer from PFS
-   long pos = 0;
-   while (pos < fs) {
-      if ((fs - pos) < FTI_Conf->transferSize) {
-         bSize = fs - pos;
-      }
+    char *readData = talloc(char, FTI_Conf->transferSize);
+    long bSize = FTI_Conf->transferSize;
+    long fs = FTI_Exec->meta[4].fs[0];
+    // Checkpoint files transfer from PFS
+    long pos = 0;
+    while (pos < fs) {
+        if ((fs - pos) < FTI_Conf->transferSize) {
+            bSize = fs - pos;
+        }
 
-      size_t bytes = fread(readData, sizeof(char), bSize, gfd);
-      if (ferror(gfd)) {
-         FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
+        size_t bytes = fread(readData, sizeof(char), bSize, gfd);
+        if (ferror(gfd)) {
+            FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
 
-         free(readData);
+            free(readData);
 
-         fclose(gfd);
-         fclose(lfd);
+            fclose(gfd);
+            fclose(lfd);
 
-         return  FTI_NSCS;
-      }
+            return  FTI_NSCS;
+        }
 
-      fwrite(readData, sizeof(char), bytes, lfd);
-      if (ferror(lfd)) {
-         FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+        fwrite(readData, sizeof(char), bytes, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
 
-         free(readData);
+            free(readData);
 
-         fclose(gfd);
-         fclose(lfd);
+            fclose(gfd);
+            fclose(lfd);
 
-         return  FTI_NSCS;
-      }
+            return  FTI_NSCS;
+        }
 
-      pos = pos + bytes;
-   }
+        pos = pos + bytes;
+    }
 
-   free(readData);
+    free(readData);
 
-   fclose(gfd);
-   fclose(lfd);
+    fclose(gfd);
+    fclose(lfd);
 
-   return FTI_SCES;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using MPI-I/O.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L4 ckpt. files from the PFS using MPI-I/O.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the ckpt. files using the L4 ckpt. files
-    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
-    consider this checkpoint unavailable.
+  This function tries to recover the ckpt. files using the L4 ckpt. files
+  stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   FTI_Print("Starting recovery L4 using MPI-IO.", FTI_DBUG);
-   // create local directories
-   if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-      if (errno != EEXIST) {
-          FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-      }
-   }
+    FTI_Print("Starting recovery L4 using MPI-IO.", FTI_DBUG);
+    // create local directories
+    if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+        }
+    }
 
-   // TODO enable to set stripping unit in the config file (Maybe also other hints)
-   // enable collective buffer optimization
-   MPI_Info info;
-   MPI_Info_create(&info);
-   MPI_Info_set(info, "romio_cb_read", "enable");
+    // TODO enable to set stripping unit in the config file (Maybe also other hints)
+    // enable collective buffer optimization
+    MPI_Info info;
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "romio_cb_read", "enable");
 
-   // set stripping unit to 4MB
-   MPI_Info_set(info, "stripping_unit", "4194304");
+    // set stripping unit to 4MB
+    MPI_Info_set(info, "stripping_unit", "4194304");
 
-   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-   sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-   sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    char gfn[FTI_BUFS], lfn[FTI_BUFS];
+    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
-   // open parallel file
-   MPI_File pfh;
-   int buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
-   // check if successful
-   if (buf != 0) {
-      errno = 0;
-      char mpi_err[FTI_BUFS];
-      int reslen;
-      MPI_Error_string(buf, mpi_err, &reslen);
-      if (buf != MPI_ERR_NO_SUCH_FILE) {
-         char str[FTI_BUFS];
-         snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
-         FTI_Print(str, FTI_EROR);
-      }
-      return FTI_NSCS;
-   }
+    // open parallel file
+    MPI_File pfh;
+    int buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
+    // check if successful
+    if (buf != 0) {
+        errno = 0;
+        char mpi_err[FTI_BUFS];
+        int reslen;
+        MPI_Error_string(buf, mpi_err, &reslen);
+        if (buf != MPI_ERR_NO_SUCH_FILE) {
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
+            FTI_Print(str, FTI_EROR);
+        }
+        return FTI_NSCS;
+    }
 
-   // collect chunksizes of other ranks
-   MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-   MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+    // collect chunksizes of other ranks
+    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
+    MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
-   MPI_Offset offset = 0;
-   // set file offset
-   int i;
-   for (i = 0; i < FTI_Topo->splitRank; i++) {
-      offset += chunkSizes[i];
-   }
-   free(chunkSizes);
+    MPI_Offset offset = 0;
+    // set file offset
+    int i;
+    for (i = 0; i < FTI_Topo->splitRank; i++) {
+        offset += chunkSizes[i];
+    }
+    free(chunkSizes);
 
-   FILE *lfd = fopen(lfn, "wb");
-   if (lfd == NULL) {
-      FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
-      MPI_File_close(&pfh);
-      return FTI_NSCS;
-   }
+    FILE *lfd = fopen(lfn, "wb");
+    if (lfd == NULL) {
+        FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        MPI_File_close(&pfh);
+        return FTI_NSCS;
+    }
 
-   long fs = FTI_Exec->meta[4].fs[0];
-   char *readData = talloc(char, FTI_Conf->transferSize);
-   long bSize = FTI_Conf->transferSize;
-   long pos = 0;
-   // Checkpoint files transfer from PFS
-   while (pos < fs) {
-       if ((fs - pos) < FTI_Conf->transferSize) {
-           bSize = fs - pos;
-       }
-      // read block in parallel file
-      buf = MPI_File_read_at(pfh, offset, readData, bSize, MPI_BYTE, MPI_STATUS_IGNORE);
-      // check if successful
-      if (buf != 0) {
-         errno = 0;
-         char mpi_err[FTI_BUFS];
-         char str[FTI_BUFS];
-         int reslen;
-         MPI_Error_string(buf, mpi_err, &reslen);
-         snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
-         FTI_Print(str, FTI_EROR);
-         free(readData);
-         MPI_File_close(&pfh);
-         fclose(lfd);
-         return FTI_NSCS;
-      }
+    long fs = FTI_Exec->meta[4].fs[0];
+    char *readData = talloc(char, FTI_Conf->transferSize);
+    long bSize = FTI_Conf->transferSize;
+    long pos = 0;
+    // Checkpoint files transfer from PFS
+    while (pos < fs) {
+        if ((fs - pos) < FTI_Conf->transferSize) {
+            bSize = fs - pos;
+        }
+        // read block in parallel file
+        buf = MPI_File_read_at(pfh, offset, readData, bSize, MPI_BYTE, MPI_STATUS_IGNORE);
+        // check if successful
+        if (buf != 0) {
+            errno = 0;
+            char mpi_err[FTI_BUFS];
+            char str[FTI_BUFS];
+            int reslen;
+            MPI_Error_string(buf, mpi_err, &reslen);
+            snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
+            FTI_Print(str, FTI_EROR);
+            free(readData);
+            MPI_File_close(&pfh);
+            fclose(lfd);
+            return FTI_NSCS;
+        }
 
-      fwrite(readData, sizeof(char), bSize, lfd);
-      if (ferror(lfd)) {
-         FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
-         free(readData);
-         fclose(lfd);
-         MPI_File_close(&pfh);
-         return  FTI_NSCS;
-      }
+        fwrite(readData, sizeof(char), bSize, lfd);
+        if (ferror(lfd)) {
+            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+            free(readData);
+            fclose(lfd);
+            MPI_File_close(&pfh);
+            return  FTI_NSCS;
+        }
 
-      offset += bSize;
-      pos = pos + bSize;
-   }
+        offset += bSize;
+        pos = pos + bSize;
+    }
 
-   free(readData);
-   fclose(lfd);
+    free(readData);
+    fclose(lfd);
 
-   if (MPI_File_close(&pfh) != 0) {
-      FTI_Print("Cannot close MPI file.", FTI_WARN);
-      return FTI_NSCS;
-   }
+    if (MPI_File_close(&pfh) != 0) {
+        FTI_Print("Cannot close MPI file.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-   return FTI_SCES;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It recovers L4 ckpt. files from the PFS using SIONlib.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It recovers L4 ckpt. files from the PFS using SIONlib.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tries to recover the ckpt. files using the L4 ckpt. files
-    stored in the PFS. If at least one ckpt. file is missing in the PFS, we
-    consider this checkpoint unavailable.
+  This function tries to recover the ckpt. files using the L4 ckpt. files
+  stored in the PFS. If at least one ckpt. file is missing in the PFS, we
+  consider this checkpoint unavailable.
 
  **/
 /*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   FTI_Print("Starting recovery L4 using Sionlib.", FTI_DBUG);
-   //Create local directories
-   if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-       if (errno != EEXIST) {
-           FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-       }
-   }
+    FTI_Print("Starting recovery L4 using Sionlib.", FTI_DBUG);
+    //Create local directories
+    if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
+        if (errno != EEXIST) {
+            FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
+        }
+    }
 
-   sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-   sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-   sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-   sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+    char gfn[FTI_BUFS], lfn[FTI_BUFS];
+    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
-   // this is done, since sionlib aborts if the file is not readable.
-   if (access(gfn, F_OK) != 0) {
-      return FTI_NSCS;
-   }
+    // this is done, since sionlib aborts if the file is not readable.
+    if (access(gfn, F_OK) != 0) {
+        return FTI_NSCS;
+    }
 
-   int numFiles = 1;
-   int nlocaltasks = 1;
-   int* file_map = calloc(1, sizeof(int));
-   int* ranks = talloc(int, 1);
-   int* rank_map = talloc(int, 1);
-   sion_int64* chunkSizes = talloc(sion_int64, 1);
-   int fsblksize = -1;
-   chunkSizes[0] = FTI_Exec->meta[4].fs[0];
-   ranks[0] = FTI_Topo->splitRank;
-   rank_map[0] = FTI_Topo->splitRank;
-   int sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+    int numFiles = 1;
+    int nlocaltasks = 1;
+    int* file_map = calloc(1, sizeof(int));
+    int* ranks = talloc(int, 1);
+    int* rank_map = talloc(int, 1);
+    sion_int64* chunkSizes = talloc(sion_int64, 1);
+    int fsblksize = -1;
+    chunkSizes[0] = FTI_Exec->meta[4].fs[0];
+    ranks[0] = FTI_Topo->splitRank;
+    rank_map[0] = FTI_Topo->splitRank;
+    int sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
-   FILE* lfd = fopen(lfn, "wb");
-   if (lfd == NULL) {
-      FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
-      sion_parclose_mapped_mpi(sid);
-      free(file_map);
-      free(ranks);
-      free(rank_map);
-      free(chunkSizes);
-      return FTI_NSCS;
-   }
+    FILE* lfd = fopen(lfn, "wb");
+    if (lfd == NULL) {
+        FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+        sion_parclose_mapped_mpi(sid);
+        free(file_map);
+        free(ranks);
+        free(rank_map);
+        free(chunkSizes);
+        return FTI_NSCS;
+    }
 
-   int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
-   // check if successful
-   if (res != SION_SUCCESS) {
-      FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
-      sion_parclose_mapped_mpi(sid);
-      free(file_map);
-      free(ranks);
-      free(rank_map);
-      free(chunkSizes);
-      fclose(lfd);
-      return FTI_NSCS;
-   }
+    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    // check if successful
+    if (res != SION_SUCCESS) {
+        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
+        sion_parclose_mapped_mpi(sid);
+        free(file_map);
+        free(ranks);
+        free(rank_map);
+        free(chunkSizes);
+        fclose(lfd);
+        return FTI_NSCS;
+    }
 
-   // Checkpoint files transfer from PFS
-   while (!sion_feof(sid)) {
-      long fs = FTI_Exec->meta[4].fs[0];
-      char *readData = talloc(char, FTI_Conf->transferSize);
-      long bSize = FTI_Conf->transferSize;
-      long pos = 0;
-      // Checkpoint files transfer from PFS
-      while (pos < fs) {
-         if ((fs - pos) < FTI_Conf->transferSize) {
-             bSize = fs - pos;
-         }
-         res = sion_fread(readData, sizeof(char), bSize, sid);
-         if (res != bSize) {
-            char str[FTI_BUFS];
-            sprintf(str, "SIONlib: Unable to read %lu Bytes from file", bSize);
-            FTI_Print(str, FTI_EROR);
-            sion_parclose_mapped_mpi(sid);
-            free(file_map);
-            free(ranks);
-            free(rank_map);
-            free(chunkSizes);
-            free(readData);
-            fclose(lfd);
-            return FTI_NSCS;
-         }
+    // Checkpoint files transfer from PFS
+    while (!sion_feof(sid)) {
+        long fs = FTI_Exec->meta[4].fs[0];
+        char *readData = talloc(char, FTI_Conf->transferSize);
+        long bSize = FTI_Conf->transferSize;
+        long pos = 0;
+        // Checkpoint files transfer from PFS
+        while (pos < fs) {
+            if ((fs - pos) < FTI_Conf->transferSize) {
+                bSize = fs - pos;
+            }
+            res = sion_fread(readData, sizeof(char), bSize, sid);
+            if (res != bSize) {
+                char str[FTI_BUFS];
+                sprintf(str, "SIONlib: Unable to read %lu Bytes from file", bSize);
+                FTI_Print(str, FTI_EROR);
+                sion_parclose_mapped_mpi(sid);
+                free(file_map);
+                free(ranks);
+                free(rank_map);
+                free(chunkSizes);
+                free(readData);
+                fclose(lfd);
+                return FTI_NSCS;
+            }
 
-         fwrite(readData, sizeof(char), bSize, lfd);
-         if (ferror(lfd)) {
-            FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
-            free(readData);
-            fclose(lfd);
-            sion_parclose_mapped_mpi(sid);
-            free(file_map);
-            free(ranks);
-            free(rank_map);
-            free(chunkSizes);
-            return  FTI_NSCS;
-         }
+            fwrite(readData, sizeof(char), bSize, lfd);
+            if (ferror(lfd)) {
+                FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+                free(readData);
+                fclose(lfd);
+                sion_parclose_mapped_mpi(sid);
+                free(file_map);
+                free(ranks);
+                free(rank_map);
+                free(chunkSizes);
+                return  FTI_NSCS;
+            }
 
-         pos = pos + bSize;
-      }
-      free(readData);
-   }
+            pos = pos + bSize;
+        }
+        free(readData);
+    }
 
-   fclose(lfd);
+    fclose(lfd);
 
-   sion_parclose_mapped_mpi(sid);
-   free(file_map);
-   free(ranks);
-   free(rank_map);
-   free(chunkSizes);
+    sion_parclose_mapped_mpi(sid);
+    free(file_map);
+    free(ranks);
+    free(rank_map);
+    free(chunkSizes);
 
-   return FTI_SCES;
+    return FTI_SCES;
 }
 #endif
