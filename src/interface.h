@@ -94,12 +94,6 @@ extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
                             FTI private functions
 ---------------------------------------------------------------------------*/
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
-int FTI_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, 
-      FTIT_dataset* FTI_Data );
-int FTI_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
-int FTI_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data);
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
 void FTI_Print(char *msg, int priority);
@@ -206,7 +200,6 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
-void FTI_FreeDbFTIFF(FTIFF_db* lastdb);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
