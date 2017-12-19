@@ -187,14 +187,14 @@ return FTI_SCES;
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
         FTIT_configuration* FTI_Conf, char* checksum)
 {
-    MD5_CTX mdContext;
-    MD5_Init (&mdContext);
-    int i;
-    
     // FTI-FF: computes checksum from the data structures and prot. variables.
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
         FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
     } else {
+    
+        MD5_CTX mdContext;
+        MD5_Init (&mdContext);
+        int i; 
 
         //iterate all variables
         for (i = 0; i < FTI_Exec->nbVar; i++) {

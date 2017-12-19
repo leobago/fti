@@ -57,7 +57,6 @@ int FTI_CheckFile(char* fn, long fs, char* checksum)
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
             if (fileStatus.st_size == fs) {
-                // strlen is 0 for FTI-FF in all cases.
                 if (strlen(checksum)) {
                     int res = FTI_VerifyChecksum(fn, checksum);
                     if (res != FTI_SCES) {
@@ -212,10 +211,12 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                if (allRes == FTI_SCES) {
                      //Inform heads that recovered successfully
                      MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-
+                        
+                     // FTI-FF: ckptID is already set properly
                      if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
                          ckptID = FTI_Exec->ckptID;
                      }
+
                      sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
                      FTI_Print(str, FTI_INFO);
 
