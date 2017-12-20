@@ -40,25 +40,25 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It gets the checksums from metadata.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      checksum        Pointer to fill the checkpoint checksum.
-    @param      ptnerChecksum   Pointer to fill the ptner file checksum.
-    @param      rsChecksum      Pointer to fill the RS file checksum.
-    @return     integer         FTI_SCES if successful.
+  @brief      It gets the checksums from metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      checksum        Pointer to fill the checkpoint checksum.
+  @param      ptnerChecksum   Pointer to fill the ptner file checksum.
+  @param      rsChecksum      Pointer to fill the RS file checksum.
+  @return     integer         FTI_SCES if successful.
 
-    This function reads the metadata file created during checkpointing and
-    recovers the checkpoint checksum. If there is no RS file, rsChecksum
-    string length is 0.
+  This function reads the metadata file created during checkpointing and
+  recovers the checkpoint checksum. If there is no RS file, rsChecksum
+  string length is 0.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                    char* checksum, char* ptnerChecksum, char* rsChecksum)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        char* checksum, char* ptnerChecksum, char* rsChecksum)
 {
 
     char mfn[FTI_BUFS]; //Path to the metadata file
@@ -110,23 +110,23 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It writes the RSed file checksum to metadata.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      rank            global rank of the process
-    @param      checksum        Pointer to the checksum.
-    @return     integer         FTI_SCES if successful.
+  @brief      It writes the RSed file checksum to metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      rank            global rank of the process
+  @param      checksum        Pointer to the checksum.
+  @return     integer         FTI_SCES if successful.
 
-    This function should be executed only by one process per group. It
-    writes the RSed checksum to the metadata file.
+  This function should be executed only by one process per group. It
+  writes the RSed checksum to the metadata file.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                            FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                             int rank, char* checksum)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        int rank, char* checksum)
 {
     // Fake call for FTI-FF. checksum is done for the datasets.
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {return FTI_SCES;}
@@ -195,21 +195,21 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It gets the temporary metadata.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It gets the temporary metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function reads the temporary metadata file created during checkpointing and
-    recovers the checkpoint file name, file size, partner file size and the size
-    of the largest file in the group (for padding if necessary during decoding).
+  This function reads the temporary metadata file created during checkpointing and
+  recovers the checkpoint file name, file size, partner file size and the size
+  of the largest file in the group (for padding if necessary during decoding).
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
@@ -279,21 +279,21 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It gets the metadata to recover the data after a failure.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It gets the metadata to recover the data after a failure.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function reads the metadata file created during checkpointing and
-    recovers the checkpoint file name, file size, partner file size and the size
-    of the largest file in the group (for padding if necessary during decoding).
+  This function reads the metadata file created during checkpointing and
+  recovers the checkpoint file name, file size, partner file size and the size
+  of the largest file in the group (for padding if necessary during decoding).
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
@@ -424,26 +424,26 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It writes the metadata to recover the data after a failure.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      fs              Pointer to the list of checkpoint sizes.
-    @param      mfs             The maximum checkpoint file size.
-    @param      fnl             Pointer to the list of checkpoint names.
-    @param      checksums       Checksums array.
-    @param      allVarIDs       IDs of vars from all processes in group.
-    @param      allVarSizes     Sizes of vars from all processes in group.
-    @return     integer         FTI_SCES if successful.
+  @brief      It writes the metadata to recover the data after a failure.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      fs              Pointer to the list of checkpoint sizes.
+  @param      mfs             The maximum checkpoint file size.
+  @param      fnl             Pointer to the list of checkpoint names.
+  @param      checksums       Checksums array.
+  @param      allVarIDs       IDs of vars from all processes in group.
+  @param      allVarSizes     Sizes of vars from all processes in group.
+  @return     integer         FTI_SCES if successful.
 
-    This function should be executed only by one process per group. It
-    writes the metadata file used to recover in case of failure.
+  This function should be executed only by one process per group. It
+  writes the metadata file used to recover in case of failure.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                      FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
-                      char* checksums, int* allVarIDs, long* allVarSizes)
+        FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
+        char* checksums, int* allVarIDs, long* allVarSizes)
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
@@ -535,23 +535,23 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It writes the metadata to recover the data after a failure.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Data        Dataset metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It writes the metadata to recover the data after a failure.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function gathers information about the checkpoint files in the
-    group (name and sizes), and creates the metadata file used to recover in
-    case of failure.
+  This function gathers information about the checkpoint files in the
+  group (name and sizes), and creates the metadata file used to recover in
+  case of failure.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                       FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                       FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
 {
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
@@ -607,8 +607,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* allVarIDs;
     long* allVarSizes;
     if (FTI_Topo->groupRank == 0) {
-         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
-         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
     }
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);

@@ -40,15 +40,15 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It writes the topology in a file for recovery.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      nameList        The list of the node names.
-    @return     integer         FTI_SCES if successful.
+  @brief      It writes the topology in a file for recovery.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      nameList        The list of the node names.
+  @return     integer         FTI_SCES if successful.
 
-    This function writes the topology of the system (List of nodes and their
-    ID) in a topology file that will be read during recovery to detect which
-    nodes (and therefore checkpoit files) are missing in the new topology.
+  This function writes the topology of the system (List of nodes and their
+  ID) in a topology file that will be read during recovery to detect which
+  nodes (and therefore checkpoit files) are missing in the new topology.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -113,21 +113,21 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It reorders the nodes following the previous topology.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      nodeList        The list of the nodes.
-    @param      nameList        The list of the node names.
-    @return     integer         FTI_SCES if successful.
+  @brief      It reorders the nodes following the previous topology.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      nodeList        The list of the nodes.
+  @param      nameList        The list of the node names.
+  @return     integer         FTI_SCES if successful.
 
-    This function writes the topology of the system (List of nodes and their
-    ID) in a topology file that will be read during recovery to detect which
-    nodes (and therefore checkpoit files) are missing in the new topology.
+  This function writes the topology of the system (List of nodes and their
+  ID) in a topology file that will be read during recovery to detect which
+  nodes (and therefore checkpoit files) are missing in the new topology.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                     int* nodeList, char* nameList)
+        int* nodeList, char* nameList)
 {
     int* nl = talloc(int, FTI_Topo->nbProc);
     int* old = talloc(int, FTI_Topo->nbNodes);
@@ -222,22 +222,22 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It builds the list of nodes in the current execution.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      nodeList        The list of the nodes to fill.
-    @param      nameList        The list of the node names to fill.
-    @return     integer         FTI_SCES if successful.
+  @brief      It builds the list of nodes in the current execution.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      nodeList        The list of the nodes to fill.
+  @param      nameList        The list of the node names to fill.
+  @return     integer         FTI_SCES if successful.
 
-    This function makes all the processes to detect in which node are they
-    located and distributes the information globally to create an uniform
-    mapping structure between processes and nodes.
+  This function makes all the processes to detect in which node are they
+  located and distributes the information globally to create an uniform
+  mapping structure between processes and nodes.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                      FTIT_topology* FTI_Topo, int* nodeList, char* nameList)
+        FTIT_topology* FTI_Topo, int* nodeList, char* nameList)
 {
     char* lhn = talloc(char, FTI_BUFS* FTI_Topo->nbProc);
     memset(lhn + (FTI_Topo->myRank * FTI_BUFS), 0, FTI_BUFS); // To get local hostname
@@ -300,24 +300,24 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It builds the list of nodes in the current execution.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      userProcList    The list of the app. processess.
-    @param      distProcList    The list of the distributed processes.
-    @param      nodeList        The list of the nodes to fill.
-    @return     integer         FTI_SCES if successful.
+  @brief      It builds the list of nodes in the current execution.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      userProcList    The list of the app. processess.
+  @param      distProcList    The list of the distributed processes.
+  @param      nodeList        The list of the nodes to fill.
+  @return     integer         FTI_SCES if successful.
 
-    This function makes all the processes to detect in which node are they
-    located and distributes the information globally to create an uniform
-    mapping structure between processes and nodes.
+  This function makes all the processes to detect in which node are they
+  located and distributes the information globally to create an uniform
+  mapping structure between processes and nodes.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                    FTIT_topology* FTI_Topo, int* userProcList,
-                    int* distProcList, int* nodeList)
+        FTIT_topology* FTI_Topo, int* userProcList,
+        int* distProcList, int* nodeList)
 {
     MPI_Group newGroup, origGroup;
     MPI_Comm_group(FTI_Exec->globalComm, &origGroup);
@@ -361,20 +361,20 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It builds and saves the topology of the current execution.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It builds and saves the topology of the current execution.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function builds the topology of the system, detects and replaces
-    missing nodes in case of recovery and creates the communicators required
-    for FTI to work. It stores all required information in FTI_Topo.
+  This function builds the topology of the system, detects and replaces
+  missing nodes in case of recovery and creates the communicators required
+  for FTI to work. It stores all required information in FTI_Topo.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo)
+        FTIT_topology* FTI_Topo)
 {
     char *nameList = talloc(char, FTI_Topo->nbNodes *FTI_BUFS);
 

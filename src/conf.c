@@ -40,18 +40,18 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Sets the exec. ID and failure parameters in the conf. file.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      restart         Value to set in the conf. file (0 or 1).
-    @return     integer         FTI_SCES if successful.
+  @brief      Sets the exec. ID and failure parameters in the conf. file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      restart         Value to set in the conf. file (0 or 1).
+  @return     integer         FTI_SCES if successful.
 
-    This function sets the execution ID and failure parameters in the
-    configuration file. This is to avoid forcing the user to change these
-    values manually in case of recovery needed. In this way, relaunching the
-    execution in the same way as the initial time will make FTI detect that
-    it is a restart. It also allows to set the failure parameter back to 0
-    at the end of a successful execution.
+  This function sets the execution ID and failure parameters in the
+  configuration file. This is to avoid forcing the user to change these
+  values manually in case of recovery needed. In this way, relaunching the
+  execution in the same way as the initial time will make FTI detect that
+  it is a restart. It also allows to set the failure parameter back to 0
+  at the end of a successful execution.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -102,22 +102,22 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It reads the configuration given in the configuration file.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Inje        Type to describe failure injections in FTI.
-    @return     integer         FTI_SCES if successful.
+  @brief      It reads the configuration given in the configuration file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Inje        Type to describe failure injections in FTI.
+  @return     integer         FTI_SCES if successful.
 
-    This function reads the configuration given in the FTI configuration
-    file and sets other required parameters.
+  This function reads the configuration given in the FTI configuration
+  file and sets other required parameters.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 FTIT_injection* FTI_Inje)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_injection* FTI_Inje)
 {
     char str[FTI_BUFS]; //For console output
     sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
@@ -193,7 +193,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
-            n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec);
+                n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec);
         MPI_Bcast(FTI_Exec->id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->globalComm);
         sprintf(str, "The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);
@@ -229,20 +229,20 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It tests that the configuration given is correct.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Exec        Execution metadata.
-    @return     integer         FTI_SCES if successful.
+  @brief      It tests that the configuration given is correct.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
 
-    This function tests the FTI configuration to make sure that all
-    parameter's values are correct.
+  This function tests the FTI configuration to make sure that all
+  parameter's values are correct.
 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-                   FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
+        FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
     // Check requirements.
     if (FTI_Topo->nbHeads != 0 && FTI_Topo->nbHeads != 1) {
@@ -338,171 +338,167 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             case FTI_IO_FTIFF:
                 FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
                 break;
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-            case FTI_IO_SIONLIB:
-                FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
-#endif
+            }
         }
-    }
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It tests that the directories given is correct.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Topo        Topology metadata.
-    @return     integer         FTI_SCES if successful.
-
-    This function tests that the directories given in the FTI configuration
-    are correct.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
-{
-    char str[FTI_BUFS]; //For console output
-
-    // Checking local directory
-    sprintf(str, "Checking the local directory (%s)...", FTI_Conf->localDir);
-    FTI_Print(str, FTI_DBUG);
-    if (mkdir(FTI_Conf->localDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("The local directory could NOT be created.", FTI_WARN);
-            return FTI_NSCS;
-        }
+        return FTI_SCES;
     }
 
-    if (FTI_Topo->myRank == 0) {
-        // Checking metadata directory
-        sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
+    /*-------------------------------------------------------------------------*/
+    /**
+      @brief      It tests that the directories given is correct.
+      @param      FTI_Conf        Configuration metadata.
+      @param      FTI_Topo        Topology metadata.
+      @return     integer         FTI_SCES if successful.
+
+      This function tests that the directories given in the FTI configuration
+      are correct.
+
+     **/
+    /*-------------------------------------------------------------------------*/
+    int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
+    {
+        char str[FTI_BUFS]; //For console output
+
+        // Checking local directory
+        sprintf(str, "Checking the local directory (%s)...", FTI_Conf->localDir);
         FTI_Print(str, FTI_DBUG);
-        if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
+        if (mkdir(FTI_Conf->localDir, 0777) == -1) {
             if (errno != EEXIST) {
-                FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
+                FTI_Print("The local directory could NOT be created.", FTI_WARN);
                 return FTI_NSCS;
             }
         }
 
-        // Checking global directory
-        sprintf(str, "Checking the global directory (%s)...", FTI_Conf->glbalDir);
-        FTI_Print(str, FTI_DBUG);
+        if (FTI_Topo->myRank == 0) {
+            // Checking metadata directory
+            sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
+            FTI_Print(str, FTI_DBUG);
+            if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
+                    return FTI_NSCS;
+                }
+            }
+
+            // Checking global directory
+            sprintf(str, "Checking the global directory (%s)...", FTI_Conf->glbalDir);
+            FTI_Print(str, FTI_DBUG);
+            if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("The global directory could NOT be created.", FTI_WARN);
+                    return FTI_NSCS;
+                }
+            }
+        }
+        //Waiting for metadDir being created
+        MPI_Barrier(FTI_COMM_WORLD);
+
+        return FTI_SCES;
+    }
+
+    /*-------------------------------------------------------------------------*/
+    /**
+      @brief      It creates the directories required for current execution.
+      @param      FTI_Conf        Configuration metadata.
+      @param      FTI_Exec        Execution metadata.
+      @param      FTI_Topo        Topology metadata.
+      @param      FTI_Ckpt        Checkpoint metadata.
+      @return     integer         FTI_SCES if successful.
+
+      This function creates the temporary metadata, local and global
+      directories required for the current execution.
+
+     **/
+    /*-------------------------------------------------------------------------*/
+    int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+            FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+    {
+        char fn[FTI_BUFS]; //Path of metadata directory
+
+        // Create metadata timestamp directory
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
+        if (mkdir(fn, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
+            }
+        }
+        snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", fn);
+        snprintf(FTI_Conf->mTmpDir, FTI_BUFS, "%s/tmp", fn);
+        snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
+        snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
+        snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
+        snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
+
+        // Create global checkpoint timestamp directory
+        snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
+        snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
         if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
             if (errno != EEXIST) {
-                FTI_Print("The global directory could NOT be created.", FTI_WARN);
-                return FTI_NSCS;
+                FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
             }
         }
-    }
-    //Waiting for metadDir being created
-    MPI_Barrier(FTI_COMM_WORLD);
+        snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
+        snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
 
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It creates the directories required for current execution.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @return     integer         FTI_SCES if successful.
-
-    This function creates the temporary metadata, local and global
-    directories required for the current execution.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
-    char fn[FTI_BUFS]; //Path of metadata directory
-
-    // Create metadata timestamp directory
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
-    if (mkdir(fn, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
+        // Create local checkpoint timestamp directory
+        if (FTI_Conf->test) { // If local test generate name by topology
+            snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf->localDir, FTI_Topo->myRank / FTI_Topo->nodeSize);
+            if (mkdir(fn, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
+                }
+            }
         }
-    }
-    snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", fn);
-    snprintf(FTI_Conf->mTmpDir, FTI_BUFS, "%s/tmp", fn);
-    snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
-    snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
-    snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
-    snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
-
-    // Create global checkpoint timestamp directory
-    snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
-    snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-    if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
+        else {
+            snprintf(fn, FTI_BUFS, "%s", FTI_Conf->localDir);
         }
-    }
-    snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
-    snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
-
-    // Create local checkpoint timestamp directory
-    if (FTI_Conf->test) { // If local test generate name by topology
-        snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf->localDir, FTI_Topo->myRank / FTI_Topo->nodeSize);
-        if (mkdir(fn, 0777) == -1) {
+        snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
+        if (mkdir(FTI_Conf->localDir, 0777) == -1) {
             if (errno != EEXIST) {
                 FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
             }
         }
+        snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
+        snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
+        snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
+        snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
+        return FTI_SCES;
     }
-    else {
-        snprintf(fn, FTI_BUFS, "%s", FTI_Conf->localDir);
-    }
-    snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-    if (mkdir(FTI_Conf->localDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
+
+    /*-------------------------------------------------------------------------*/
+    /**
+      @brief      It reads and tests the configuration given.
+      @param      FTI_Conf        Configuration metadata.
+      @param      FTI_Exec        Execution metadata.
+      @param      FTI_Topo        Topology metadata.
+      @param      FTI_Ckpt        Checkpoint metadata.
+      @param      FTI_Inje        Type to describe failure injections in FTI.
+      @return     integer         FTI_SCES if successful.
+
+      This function reads the configuration file. Then test that the
+      configuration parameters are correct (including directories).
+
+     **/
+    /*-------------------------------------------------------------------------*/
+    int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+            FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+            FTIT_injection *FTI_Inje)
+    {
+        int res = FTI_Try(FTI_ReadConf(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Inje), "read configuration.");
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
         }
+        res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec), "pass the configuration test.");
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
+        res = FTI_Try(FTI_TestDirectories(FTI_Conf, FTI_Topo), "pass the directories test.");
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
+        res = FTI_Try(FTI_CreateDirs(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "create checkpoint directories.");
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
+        return FTI_SCES;
     }
-    snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
-    snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
-    snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
-    snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It reads and tests the configuration given.
-    @param      FTI_Conf        Configuration metadata.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Topo        Topology metadata.
-    @param      FTI_Ckpt        Checkpoint metadata.
-    @param      FTI_Inje        Type to describe failure injections in FTI.
-    @return     integer         FTI_SCES if successful.
-
-    This function reads the configuration file. Then test that the
-    configuration parameters are correct (including directories).
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 FTIT_injection *FTI_Inje)
-{
-    int res = FTI_Try(FTI_ReadConf(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Inje), "read configuration.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-    res = FTI_Try(FTI_TestConfig(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec), "pass the configuration test.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-    res = FTI_Try(FTI_TestDirectories(FTI_Conf, FTI_Topo), "pass the directories test.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-    res = FTI_Try(FTI_CreateDirs(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "create checkpoint directories.");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
-    return FTI_SCES;
-}
