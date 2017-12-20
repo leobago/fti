@@ -159,9 +159,9 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
                 break;
 #endif
-           case FTI_IO_FTIFF:
-              res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (FTI-FF).");
-              break;
+            case FTI_IO_FTIFF:
+                res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (FTI-FF).");
+                break;
         }
     }
     else {
@@ -172,13 +172,13 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
         }
-        
+
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-                res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
+            res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
         } else {
-                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+            res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
         }
-    
+
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -335,10 +335,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
         }
-        
+
         // FTI-FF: receive meta data information from the application ranks.
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
-            
+
             // init headInfo
             FTIFF_headInfo *headInfo;    
             headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
@@ -364,7 +364,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(headInfo);
 
         }
-        
+
         //Check if checkpoint was written correctly by all processes
         int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
         int allRes;

@@ -502,7 +502,7 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
-    
+
     // FTIFF: send meta info to the heads
     FTIFF_headInfo *headInfo;    
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
@@ -745,26 +745,9 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
-            if (FTI_Exec.lastCkptLvel != 4) {
-                FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
-                MPI_Barrier(FTI_COMM_WORLD);
-                if (FTI_Topo.splitRank == 0) {
-                    if (access(FTI_Ckpt[4].dir, 0) == 0) {
-                        FTI_RmDir(FTI_Ckpt[4].dir, 1); //Delete previous L4 checkpoint
-                    }
-                    if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
-                        FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
-                    }
-                    if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
-                        if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
-                            FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
-                        }
-                        if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-                            FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
-                        }
-                    }
-                }
-            }
+        if (FTI_Exec.lastCkptLvel != 4) {
+            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
                     FTI_RmDir(FTI_Ckpt[4].dir, 1); //Delete previous L4 checkpoint
@@ -772,13 +755,16 @@ int FTI_Finalize()
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
                     FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
                 }
-                if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
-                    FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
-                }
-                if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-                    FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
+                    if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
+                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
+                    }
+                    if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
+                        FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                    }
                 }
             }
+        }
         if (FTI_Topo.splitRank == 0) {
             //Setting recover flag to 2 (to recover from L4, keeped last checkpoint)
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 2), "update configuration file to 2.");

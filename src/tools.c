@@ -51,63 +51,13 @@ int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                 FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                 FTIT_injection* FTI_Inje) {
-
-// datablock size in file
-FTI_dbstructsize
-    = sizeof(int)               /* numvars */ 
-    + sizeof(long);             /* dbsize */ 
-
-// +--------- +
-// | FTI_Exec |
-// +--------- +
-
-/* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);  
-/* int           */ FTI_Exec->ckpt                  =0;           
-/* int           */ FTI_Exec->reco                  =0;          
-/* int           */ FTI_Exec->ckptLvel              =0;       
-/* int           */ FTI_Exec->ckptIntv              =0;   
-/* int           */ FTI_Exec->lastCkptLvel          =0;  
-/* int           */ FTI_Exec->wasLastOffline        =0;   
-/* double        */ FTI_Exec->iterTime              =0;       
-/* double        */ FTI_Exec->lastIterTime          =0;     
-/* double        */ FTI_Exec->meanIterTime          =0;        
-/* double        */ FTI_Exec->globMeanIter          =0;      
-/* double        */ FTI_Exec->totalIterTime         =0;     
-/* unsigned int  */ FTI_Exec->syncIter              =0;     
-/* int           */ FTI_Exec->syncIterMax           =0;      
-/* unsigned int  */ FTI_Exec->minuteCnt             =0;     
-/* unsigned int  */ FTI_Exec->ckptCnt               =0;      
-/* unsigned int  */ FTI_Exec->ckptIcnt              =0;       
-/* unsigned int  */ FTI_Exec->ckptID                =0;       
-/* unsigned int  */ FTI_Exec->ckptNext              =0;      
-/* unsigned int  */ FTI_Exec->ckptLast              =0;       
-/* long          */ FTI_Exec->ckptSize              =0;    
-/* unsigned int  */ FTI_Exec->nbVar                 =0;       
-/* unsigned int  */ FTI_Exec->nbVarStored           =0;       
-/* unsigned int  */ FTI_Exec->nbType                =0;    
-/* int           */ FTI_Exec->metaAlloc             =0;     
-/* int           */ FTI_Exec->initSCES              =0;       
-/* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
-/* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
-/* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
-/* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
-/* MPI_Comm      */ FTI_Exec->globalComm            =0;      
-/* MPI_Comm      */ FTI_Exec->groupComm             =0;        
-
-// +--------- +
-// | FTI_Conf |
-// +--------- +
-
-/* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);  
-/* int           */ FTI_Conf->saveLastCkpt          =0;      
-/* int           */ FTI_Conf->verbosity             =0;          
-/* int           */ FTI_Conf->blockSize             =0;           
-/* int           */ FTI_Conf->transferSize          =0;        
-=======
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje) {
+
+    // datablock size in file
+    FTI_dbstructsize
+        = sizeof(int)               /* numvars */ 
+        + sizeof(long);             /* dbsize */ 
 
     // +--------- +
     // | FTI_Exec |
@@ -135,10 +85,14 @@ FTI_dbstructsize
     /* unsigned int  */ FTI_Exec->ckptLast              =0;       
     /* long          */ FTI_Exec->ckptSize              =0;    
     /* unsigned int  */ FTI_Exec->nbVar                 =0;       
+    /* unsigned int  */ FTI_Exec->nbVarStored           =0;       
     /* unsigned int  */ FTI_Exec->nbType                =0;    
     /* int           */ FTI_Exec->metaAlloc             =0;     
     /* int           */ FTI_Exec->initSCES              =0;       
     /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
+    /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
+    /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+    /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
 
@@ -151,7 +105,6 @@ FTI_dbstructsize
     /* int           */ FTI_Conf->verbosity             =0;          
     /* int           */ FTI_Conf->blockSize             =0;           
     /* int           */ FTI_Conf->transferSize          =0;        
->>>>>>> ce6727658e8e8808a842248998f6360ad5ad571d
 #ifdef LUSTRE
     /* int           */ FTI_Conf->stripeUnit            =0;
     /* int           */ FTI_Conf->stripeOffset          =0;
@@ -238,7 +191,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
         FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
     } else {
-    
+
         MD5_CTX mdContext;
         MD5_Init (&mdContext);
         int i; 

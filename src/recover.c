@@ -170,27 +170,27 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-   if (!FTI_Topo->amIaHead) {
-      //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-      int level;
-      for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-          if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
-              //Get ckptID from checkpoint file name
-              
-              int ckptID;
-              sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
+    if (!FTI_Topo->amIaHead) {
+        //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+        int level;
+        for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+            if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                //Get ckptID from checkpoint file name
 
-              //Temporary for Recover functions
-              FTI_Exec->ckptLvel = level;
-              FTI_Exec->ckptID = ckptID;
+                int ckptID;
+                sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
 
-              char str[FTI_BUFS];
-              sprintf(str, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
-              FTI_Print(str, FTI_DBUG);
+                //Temporary for Recover functions
+                FTI_Exec->ckptLvel = level;
+                FTI_Exec->ckptID = ckptID;
 
-              int res;
-              switch (level) {
-                  case 4:
+                char str[FTI_BUFS];
+                sprintf(str, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
+                FTI_Print(str, FTI_DBUG);
+
+                int res;
+                switch (level) {
+                    case 4:
                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                         MPI_Barrier(FTI_COMM_WORLD);
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
@@ -204,28 +204,28 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     case 1:
                         res = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                         break;
-               }
-               int allRes;
+                }
+                int allRes;
 
-               MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-               if (allRes == FTI_SCES) {
-                     //Inform heads that recovered successfully
-                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-                        
-                     // FTI-FF: ckptID is already set properly
-                     if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
-                         ckptID = FTI_Exec->ckptID;
-                     }
+                MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+                if (allRes == FTI_SCES) {
+                    //Inform heads that recovered successfully
+                    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
 
-                     sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
-                     FTI_Print(str, FTI_INFO);
+                    // FTI-FF: ckptID is already set properly
+                    if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                        ckptID = FTI_Exec->ckptID;
+                    }
 
-                     //Update ckptID and ckptLevel
-                     FTI_Exec->ckptID = ckptID;
-                     FTI_Exec->ckptLvel = level;
-                     return FTI_SCES; //Recovered successfully
-               }
-               else {
+                    sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
+                    FTI_Print(str, FTI_INFO);
+
+                    //Update ckptID and ckptLevel
+                    FTI_Exec->ckptID = ckptID;
+                    FTI_Exec->ckptLvel = level;
+                    return FTI_SCES; //Recovered successfully
+                }
+                else {
                     sprintf(str, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);
                 }

@@ -294,9 +294,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
-        
+
         //}
-        
+
 
         FILE* lfd = fopen(lfn, "rb");
         if (lfd == NULL) {
@@ -427,29 +427,29 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(&checksum[ii], "%02x", hash[i]);
             ii+=2;
         }
-        
+
         // FTI-FF append meta data to RS file
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-            
+
             FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
-            
+
             // get timestamp
             struct timespec ntime;
             clock_gettime(CLOCK_REALTIME, &ntime);
             FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
-            
+
             FTIFFMeta->fs = maxFs;
             FTIFFMeta->ptFs = -1;
             FTIFFMeta->maxFs = maxFs;
             FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
             strcpy(FTIFFMeta->checksum, checksum);
-            
+
             // get hash of meta data
             FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
 
             // append meta info to RS file
             fwrite(FTIFFMeta, sizeof(FTIFF_metaInfo), 1, efd);
-                   
+
         }
 
         free(data);
@@ -470,10 +470,10 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-    }
-    free(fsGroup);
+}
+free(fsGroup);
 
-    return FTI_SCES;
+return FTI_SCES;
 }
 
 

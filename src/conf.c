@@ -323,21 +323,21 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
 #else
-    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_FTIFF) {
+        if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_FTIFF) {
 #endif
-        FTI_Conf->ioMode = FTI_IO_POSIX;
-        FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
-    } else {
-        switch(FTI_Conf->ioMode) {
-            case FTI_IO_POSIX:
-                FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
-                break;
-            case FTI_IO_MPI:
-                FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
-                break;
-            case FTI_IO_FTIFF:
-                FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
-                break;
+            FTI_Conf->ioMode = FTI_IO_POSIX;
+            FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
+        } else {
+            switch(FTI_Conf->ioMode) {
+                case FTI_IO_POSIX:
+                    FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
+                    break;
+                case FTI_IO_MPI:
+                    FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
+                    break;
+                case FTI_IO_FTIFF:
+                    FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
+                    break;
             }
         }
         return FTI_SCES;

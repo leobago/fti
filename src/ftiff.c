@@ -310,7 +310,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     if ( munmap( fmmap, st.st_size ) == -1 ) {
         FTI_Print("FTI-FF: Updatedb - unable to unmap memory", FTI_WARN);
     }
-    
+
     return FTI_SCES;
 
 }
@@ -472,15 +472,15 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It calculates checksum of a checkpoint file for FTI-FF.
-    @param      FTI_Exec        Execution metadata.
-    @param      FTI_Data        Dataset metadata.
-    @param      checksum        Checksum that is calculated.
-    @return     integer         FTI_SCES if successful.
+  @brief      It calculates checksum of a checkpoint file for FTI-FF.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      checksum        Checksum that is calculated.
+  @return     integer         FTI_SCES if successful.
 
-    This function calculates checksum of the checkpoint file based on
-    MD5 algorithm and saves it in checksum for a checkpointfile taken in the
-    FTI File Format.
+  This function calculates checksum of the checkpoint file based on
+  MD5 algorithm and saves it in checksum for a checkpointfile taken in the
+  FTI File Format.
 
  **/
 /*-------------------------------------------------------------------------*/

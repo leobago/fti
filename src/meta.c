@@ -557,7 +557,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
     int i;
     long fileSizes[FTI_BUFS];
-    
+
     // FTI-FF: this is computed during L1 checkpoint
     if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {     
         MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
