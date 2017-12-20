@@ -130,10 +130,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         return FTI_NSCS;
     }
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-        res = FTI_Try(FTIFF_InitMpiTypes(), "initialize and commit MPI data types for FTI-FF");
-        if (res == FTI_NSCS) {
-            return FTI_NSCS;
-        }
+        FTIFF_InitMpiTypes();
     }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
@@ -526,7 +523,7 @@ int FTI_Checkpoint(int id, int level)
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
             strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            MPI_Send(headInfo, 1, FTIFF_MPITypes[FTIFF_HEAD_INFO].final, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
         }
@@ -758,11 +755,13 @@ int FTI_Finalize()
                     if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
                         FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
                     }
-                    if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
-                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
-                    }
-                    if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-                        FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                    if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
+                        if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
+                            FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
+                        }
+                        if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
+                            FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                        }
                     }
                 }
             }

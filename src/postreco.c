@@ -330,17 +330,18 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     // FTI-FF: if encoded file deleted, append meta data to encoded file
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
-        FTIFF_metaInfo *FTIFFMetaRS = malloc( sizeof( FTIFF_metaInfo) );
-        // get timestamp and its hash
-        MD5_CTX mdContextTS;
-        MD5_Init (&mdContextTS);
+        
+        FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
+        
+        // get timestamp
         struct timespec ntime;
         clock_gettime(CLOCK_REALTIME, &ntime);
-        FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
-        FTIFFMetaRS->fs = maxFs;
-        FTIFFMetaRS->ptFs = -1;
-        FTIFFMetaRS->maxFs = maxFs;
-        FTIFFMetaRS->ckptSize = fs;
+        
+        FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+        FTIFFMeta->fs = maxFs;
+        FTIFFMeta->ptFs = -1;
+        FTIFFMeta->maxFs = maxFs;
+        FTIFFMeta->ckptSize = fs;
         
         char checksum[MD5_DIGEST_STRING_LENGTH];
         int ii = 0;
@@ -348,20 +349,14 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(&checksum[ii], "%02x", hashRS[i]);
             ii+=2;
         }
+        strcpy(FTIFFMeta->checksum, checksum);
 
-        // add RS checksum to meta data
-        strcpy(FTIFFMetaRS->checksum, checksum);
-        MD5_Update( &mdContextTS, FTIFFMetaRS->checksum, MD5_DIGEST_STRING_LENGTH );
-        MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
-        MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
-        MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
-        MD5_Update( &mdContextTS, &(FTIFFMetaRS->ptFs), sizeof(long) );
-        MD5_Update( &mdContextTS, &(FTIFFMetaRS->maxFs), sizeof(long) );
-        MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
+        // add hash of meta info to meta info structure
+        FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
 
         // append meta info to RS file
         int ifd = open(efn, O_WRONLY|O_APPEND);
-        write( ifd, FTIFFMetaRS, sizeof(FTIFF_metaInfo) );
+        write( ifd, FTIFFMeta, sizeof(FTIFF_metaInfo) );
         close( ifd );
     }
 

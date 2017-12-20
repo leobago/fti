@@ -346,7 +346,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             int k;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 k = i+1;
-                MPI_Recv(&(headInfo[i]), 1, FTIFF_MPITypes[FTIFF_HEAD_INFO].final, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
                 FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
                 FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;

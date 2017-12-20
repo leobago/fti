@@ -431,30 +431,24 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // FTI-FF append meta data to RS file
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
             
-            FTIFF_metaInfo *FTIFFMetaRS = malloc( sizeof( FTIFF_metaInfo) );
-            // get timestamp and its hash
-            MD5_CTX mdContextTS;
-            MD5_Init (&mdContextTS);
+            FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
+            
+            // get timestamp
             struct timespec ntime;
             clock_gettime(CLOCK_REALTIME, &ntime);
-            FTIFFMetaRS->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
-            FTIFFMetaRS->fs = maxFs;
-            FTIFFMetaRS->ptFs = -1;
-            FTIFFMetaRS->maxFs = maxFs;
-            FTIFFMetaRS->ckptSize = FTI_Exec->meta[0].fs[proc];
+            FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
             
-            // add RS checksum to meta data
-            strcpy(FTIFFMetaRS->checksum, checksum);
-            MD5_Update( &mdContextTS, FTIFFMetaRS->checksum, MD5_DIGEST_STRING_LENGTH );
-            MD5_Update( &mdContextTS, &(FTIFFMetaRS->timestamp), sizeof(long) );
-            MD5_Update( &mdContextTS, &(FTIFFMetaRS->ckptSize), sizeof(long) );
-            MD5_Update( &mdContextTS, &(FTIFFMetaRS->fs), sizeof(long) );
-            MD5_Update( &mdContextTS, &(FTIFFMetaRS->ptFs), sizeof(long) );
-            MD5_Update( &mdContextTS, &(FTIFFMetaRS->maxFs), sizeof(long) );
-            MD5_Final( FTIFFMetaRS->hashTimestamp, &mdContextTS );
+            FTIFFMeta->fs = maxFs;
+            FTIFFMeta->ptFs = -1;
+            FTIFFMeta->maxFs = maxFs;
+            FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
+            strcpy(FTIFFMeta->checksum, checksum);
+            
+            // get hash of meta data
+            FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
 
             // append meta info to RS file
-            fwrite(FTIFFMetaRS, sizeof(FTIFF_metaInfo), 1, efd);
+            fwrite(FTIFFMeta, sizeof(FTIFF_metaInfo), 1, efd);
                    
         }
 
