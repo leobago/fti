@@ -71,8 +71,8 @@
 #define MD5_DIGEST_STRING_LENGTH 33
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    /** Token for IO mode SIONlib.                                         */
-    #define FTI_IO_SIONLIB 1004
+/** Token for IO mode SIONlib.                                         */
+#define FTI_IO_SIONLIB 1004
 #endif
 
 
@@ -80,181 +80,181 @@
 extern "C" {
 #endif
 
-/*---------------------------------------------------------------------------
-                                  FTI-FF types
----------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+      FTI-FF types
+      ---------------------------------------------------------------------------*/
 
-/** @typedef    FTIFF_metaInfo
- *  @brief      Meta Information about file.
- *
- *  (For FTI-FF only)
- *  Keeps information about the chunk of the protected variable with id 
- *  stored in the current datablock. 
- *  
- */
-typedef struct FTIFF_metaInfo {
-    char checksum[MD5_DIGEST_STRING_LENGTH];
-    unsigned char myHash[MD5_DIGEST_LENGTH];
-    long ckptSize;
-    long fs;
-    long maxFs;
-    long ptFs;
-    long timestamp;			   /**< checkpoint creation time	        */
-} FTIFF_metaInfo;
+    /** @typedef    FTIFF_metaInfo
+     *  @brief      Meta Information about file.
+     *
+     *  (For FTI-FF only)
+     *  Keeps information about the chunk of the protected variable with id 
+     *  stored in the current datablock. 
+     *  
+     */
+    typedef struct FTIFF_metaInfo {
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        unsigned char myHash[MD5_DIGEST_LENGTH];
+        long ckptSize;
+        long fs;
+        long maxFs;
+        long ptFs;
+        long timestamp;			   /**< checkpoint creation time	        */
+    } FTIFF_metaInfo;
 
-/** @typedef    FTIFF_dbvar
- *  @brief      Information about protected variable in datablock.
- *
- *  (For FTI-FF only)
- *  Keeps information about the chunk of the protected variable with id 
- *  stored in the current datablock. 
- *  
- */
-typedef struct FTIFF_dbvar {
-    int id;
-    int idx;			   /**< index to corresponding id in pvar array */
-    long dptr;			   /**< data pointer offset				        */
-    long fptr;			   /**< file pointer offset                     */
-    long chunksize;
-    unsigned char hash[MD5_DIGEST_LENGTH];
-} FTIFF_dbvar;
+    /** @typedef    FTIFF_dbvar
+     *  @brief      Information about protected variable in datablock.
+     *
+     *  (For FTI-FF only)
+     *  Keeps information about the chunk of the protected variable with id 
+     *  stored in the current datablock. 
+     *  
+     */
+    typedef struct FTIFF_dbvar {
+        int id;
+        int idx;			   /**< index to corresponding id in pvar array */
+        long dptr;			   /**< data pointer offset				        */
+        long fptr;			   /**< file pointer offset                     */
+        long chunksize;
+        unsigned char hash[MD5_DIGEST_LENGTH];
+    } FTIFF_dbvar;
 
-/** @typedef    FTIFF_db
- *  @brief      Information about current datablock.
- *
- *  (For FTI-FF only)
- *  Keeps information about the current datablock in file
- */
-typedef struct FTIFF_db {
-    int numvars;	        /**< number of protected variables in datablock */
-    long dbsize;            /**< size of metadata + data in bytes		    */
-    FTIFF_dbvar *dbvars;     /**< pointer to corresponding dbvar array       */
-    struct FTIFF_db *previous;		 /**< link to previous datablock        */
-    struct FTIFF_db *next;			 /**< link to next datablock            */
-} FTIFF_db;
+    /** @typedef    FTIFF_db
+     *  @brief      Information about current datablock.
+     *
+     *  (For FTI-FF only)
+     *  Keeps information about the current datablock in file
+     */
+    typedef struct FTIFF_db {
+        int numvars;	        /**< number of protected variables in datablock */
+        long dbsize;            /**< size of metadata + data in bytes		    */
+        FTIFF_dbvar *dbvars;     /**< pointer to corresponding dbvar array       */
+        struct FTIFF_db *previous;		 /**< link to previous datablock        */
+        struct FTIFF_db *next;			 /**< link to next datablock            */
+    } FTIFF_db;
 
-/*---------------------------------------------------------------------------
-                                  New types
----------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+      New types
+      ---------------------------------------------------------------------------*/
 
-/** @typedef    FTIT_double
- *  @brief      Double mapped as two integers to allow bit-wise operations.
- *
- *  Double mapped as integer and byte array to allow bit-wise operators so
- *  that we can inject failures on it.
- */
-typedef union FTIT_double {
-    double          value;              /**< Double floating point value.   */
-    float           floatval[2];        /**< Float mapped to do bit edits.  */
-    int             intval[2];          /**< Integer mapped to do bit edits.*/
-    char            byte[8];            /**< Byte array for coarser control.*/
-} FTIT_double;
+    /** @typedef    FTIT_double
+     *  @brief      Double mapped as two integers to allow bit-wise operations.
+     *
+     *  Double mapped as integer and byte array to allow bit-wise operators so
+     *  that we can inject failures on it.
+     */
+    typedef union FTIT_double {
+        double          value;              /**< Double floating point value.   */
+        float           floatval[2];        /**< Float mapped to do bit edits.  */
+        int             intval[2];          /**< Integer mapped to do bit edits.*/
+        char            byte[8];            /**< Byte array for coarser control.*/
+    } FTIT_double;
 
-/** @typedef    FTIT_float
- *  @brief      Float mapped as integer to allow bit-wise operations.
- *
- *  Float mapped as integer and byte array to allow bit-wise operators so
- *  that we can inject failures on it.
- */
-typedef union FTIT_float {
-    float           value;              /**< Floating point value.          */
-    int             intval;             /**< Integer mapped to do bit edits.*/
-    char            byte[4];            /**< Byte array for coarser control.*/
-} FTIT_float;
+    /** @typedef    FTIT_float
+     *  @brief      Float mapped as integer to allow bit-wise operations.
+     *
+     *  Float mapped as integer and byte array to allow bit-wise operators so
+     *  that we can inject failures on it.
+     */
+    typedef union FTIT_float {
+        float           value;              /**< Floating point value.          */
+        int             intval;             /**< Integer mapped to do bit edits.*/
+        char            byte[4];            /**< Byte array for coarser control.*/
+    } FTIT_float;
 
-/** @typedef    FTIT_type
- *  @brief      Type recognized by FTI.
- *
- *  This type allows handling data structures.
- */
-typedef struct FTIT_type {
-    int             id;                 /**< ID of the data type.           */
-    int             size;               /**< Size of the data type.         */
-} FTIT_type;
+    /** @typedef    FTIT_type
+     *  @brief      Type recognized by FTI.
+     *
+     *  This type allows handling data structures.
+     */
+    typedef struct FTIT_type {
+        int             id;                 /**< ID of the data type.           */
+        int             size;               /**< Size of the data type.         */
+    } FTIT_type;
 
-/** @typedef    FTIT_dataset
- *  @brief      Dataset metadata.
- *
- *  This type stores the metadata related with a dataset.
- */
-typedef struct FTIT_dataset {
-    int             id;                 /**< ID to search/update dataset.   */
-    void            *ptr;               /**< Pointer to the dataset.        */
-    long            count;              /**< Number of elements in dataset. */
-    FTIT_type       type;               /**< Data type for the dataset.     */
-    int             eleSize;            /**< Element size for the dataset.  */
-    long            size;               /**< Total size of the dataset.     */
-    /** MD5 Checksum                    */
-    char            checksum[MD5_DIGEST_STRING_LENGTH];
-} FTIT_dataset;
+    /** @typedef    FTIT_dataset
+     *  @brief      Dataset metadata.
+     *
+     *  This type stores the metadata related with a dataset.
+     */
+    typedef struct FTIT_dataset {
+        int             id;                 /**< ID to search/update dataset.   */
+        void            *ptr;               /**< Pointer to the dataset.        */
+        long            count;              /**< Number of elements in dataset. */
+        FTIT_type       type;               /**< Data type for the dataset.     */
+        int             eleSize;            /**< Element size for the dataset.  */
+        long            size;               /**< Total size of the dataset.     */
+        /** MD5 Checksum                    */
+        char            checksum[MD5_DIGEST_STRING_LENGTH];
+    } FTIT_dataset;
 
-/** @typedef    FTIT_metadata
- *  @brief      Metadata for restart.
- *
- *  This type stores all the metadata necessary for the restart.
- */
-typedef struct FTIT_metadata {
-    int*             exists;             /**< True if metadata exists        */
-    long*            maxFs;              /**< Maximum file size.             */
-    long*            fs;                 /**< File size.                     */
-    long*            pfs;                /**< Partner file size.             */
-    char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
-    int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
-    int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
-    long*            varSize;            /**< Variable size. [FTI_BUFS]      */
-} FTIT_metadata;
+    /** @typedef    FTIT_metadata
+     *  @brief      Metadata for restart.
+     *
+     *  This type stores all the metadata necessary for the restart.
+     */
+    typedef struct FTIT_metadata {
+        int*             exists;             /**< True if metadata exists        */
+        long*            maxFs;              /**< Maximum file size.             */
+        long*            fs;                 /**< File size.                     */
+        long*            pfs;                /**< Partner file size.             */
+        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
+        int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
+        int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
+        long*            varSize;            /**< Variable size. [FTI_BUFS]      */
+    } FTIT_metadata;
 
-/** @typedef    FTIT_execution
- *  @brief      Execution metadata.
- *
- *  This type stores all the dynamic metadata related to the current execution
- */
-typedef struct FTIT_execution {
-    char            id[FTI_BUFS];       /**< Execution ID.                  */
-    int             ckpt;               /**< Checkpoint flag.               */
-    int             reco;               /**< Recovery flag.                 */
-    int             ckptLvel;           /**< Checkpoint level.              */
-    int             ckptIntv;           /**< Ckpt. interval in minutes.     */
-    int             lastCkptLvel;       /**< Last checkpoint level.         */
-    int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
-    double          iterTime;           /**< Current wall time.             */
-    double          lastIterTime;       /**< Time spent in the last iter.   */
-    double          meanIterTime;       /**< Mean iteration time.           */
-    double          globMeanIter;       /**< Global mean iteration time.    */
-    double          totalIterTime;      /**< Total main loop time spent.    */
-    unsigned int    syncIter;           /**< To check mean iter. time.      */
-    int             syncIterMax;        /**< Maximal synch. intervall.      */
-    unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
-    unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
-    unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
-    unsigned int    ckptID;             /**< Checkpoint ID.                 */
-    unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
-    unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
-    long            ckptSize;           /**< Checkpoint size.               */
-    unsigned int    nbVar;              /**< Number of protected variables. */
-    unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
-    unsigned int    nbType;             /**< Number of data types.          */
-    int             metaAlloc;          /**< True if meta allocated.        */
-    int             initSCES;           /**< True if FTI initialized.       */
-    FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-    FTIFF_db         *firstdb;           /**< Pointer to first datablock     */
-    FTIFF_db         *lastdb;            /**< Pointer to first datablock     */
-    FTIFF_metaInfo  FTIFFMeta;
-    MPI_Comm        globalComm;         /**< Global communicator.           */
-    MPI_Comm        groupComm;          /**< Group communicator.            */
-} FTIT_execution;
+    /** @typedef    FTIT_execution
+     *  @brief      Execution metadata.
+     *
+     *  This type stores all the dynamic metadata related to the current execution
+     */
+    typedef struct FTIT_execution {
+        char            id[FTI_BUFS];       /**< Execution ID.                  */
+        int             ckpt;               /**< Checkpoint flag.               */
+        int             reco;               /**< Recovery flag.                 */
+        int             ckptLvel;           /**< Checkpoint level.              */
+        int             ckptIntv;           /**< Ckpt. interval in minutes.     */
+        int             lastCkptLvel;       /**< Last checkpoint level.         */
+        int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
+        double          iterTime;           /**< Current wall time.             */
+        double          lastIterTime;       /**< Time spent in the last iter.   */
+        double          meanIterTime;       /**< Mean iteration time.           */
+        double          globMeanIter;       /**< Global mean iteration time.    */
+        double          totalIterTime;      /**< Total main loop time spent.    */
+        unsigned int    syncIter;           /**< To check mean iter. time.      */
+        int             syncIterMax;        /**< Maximal synch. intervall.      */
+        unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
+        unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
+        unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
+        unsigned int    ckptID;             /**< Checkpoint ID.                 */
+        unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
+        unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
+        long            ckptSize;           /**< Checkpoint size.               */
+        unsigned int    nbVar;              /**< Number of protected variables. */
+        unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
+        unsigned int    nbType;             /**< Number of data types.          */
+        int             metaAlloc;          /**< True if meta allocated.        */
+        int             initSCES;           /**< True if FTI initialized.       */
+        FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
+        FTIFF_db         *firstdb;           /**< Pointer to first datablock     */
+        FTIFF_db         *lastdb;            /**< Pointer to first datablock     */
+        FTIFF_metaInfo  FTIFFMeta;
+        MPI_Comm        globalComm;         /**< Global communicator.           */
+        MPI_Comm        groupComm;          /**< Group communicator.            */
+    } FTIT_execution;
 
-/** @typedef    FTIT_configuration
- *  @brief      Configuration metadata.
- *
- *  This type stores the general configuration metadata.
- */
-typedef struct FTIT_configuration {
-    char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
-    int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
-    int             verbosity;          /**< Verbosity level.               */
-    int             blockSize;          /**< Communication block size.      */
-    int             transferSize;       /**< Transfer size local to PFS     */
+    /** @typedef    FTIT_configuration
+     *  @brief      Configuration metadata.
+     *
+     *  This type stores the general configuration metadata.
+     */
+    typedef struct FTIT_configuration {
+        char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
+        int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
+        int             verbosity;          /**< Verbosity level.               */
+        int             blockSize;          /**< Communication block size.      */
+        int             transferSize;       /**< Transfer size local to PFS     */
 #ifdef LUSTRE
         int             stripeUnit;         /**< Striping Unit for Lustre FS    */
         int             stripeOffset;       /**< Striping Offset for Lustre FS  */
