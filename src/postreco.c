@@ -811,11 +811,11 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX || FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-    }
-    else {
         switch(FTI_Conf->ioMode) {
+            
+            case FTI_IO_FTIFF:
+            case FTI_IO_POSIX:
+                return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             case FTI_IO_MPI:
                 return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
@@ -823,7 +823,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #endif
         }
-    }
+    //}
 }
 
 /*-------------------------------------------------------------------------*/
@@ -961,8 +961,13 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ii+=2;
         }
         if(strcmp(checksumL4, checksumL4cmp) != 0) {
+            FTI_Print("checksum does not match, discard recovery!", FTI_WARN);
             return FTI_NSCS;
+        } else {
+            FTI_Print("checksum matches!", FTI_WARN);
+            return FTI_SCES;
         }
+
     }
 
     free(readData);
@@ -999,7 +1004,6 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    return FTI_SCES;
     // enable collective buffer optimization
     MPI_Info info;
     MPI_Info_create(&info);

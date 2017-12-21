@@ -497,6 +497,12 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (!FTI_Topo->amIaHead && level == 0) {
         return FTI_SCES; //inline L4 saves directly to PFS (nothing to flush)
     }
+
+    /**
+     *  FTI_Flush is either executed by application processes during
+     *  FTI_Finalize or by the heads during FTI_PostCkpt.
+     **/
+
     char str[FTI_BUFS];
     sprintf(str, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
@@ -511,22 +517,23 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
-    if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX || FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        //Just copy checkpoint files to PFS if L4 post-processing done by heads
-        res = FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-    }
-    else {
-        switch(FTI_Conf->ioMode) {
-            case FTI_IO_MPI:
-                FTI_FlushMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-                break;
+
+    switch(FTI_Conf->ioMode) {
+        
+        case FTI_IO_FTIFF:
+        case FTI_IO_POSIX:
+            FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+            break;
+        case FTI_IO_MPI:
+            FTI_FlushMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+            break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-            case FTI_IO_SIONLIB:
-                FTI_FlushSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-                break;
+        case FTI_IO_SIONLIB:
+            FTI_FlushSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
+            break;
 #endif
-        }
     }
+    //}
     return FTI_SCES;
 }
 
@@ -592,6 +599,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         char *readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
         long fs = FTI_Exec->meta[level].fs[proc];
+        printf("filesize: %ld\n", fs);
         sprintf(str, "Local file size for proc %d: %ld", proc, fs);
         FTI_Print(str, FTI_DBUG);
         long pos = 0;
