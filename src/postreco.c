@@ -319,7 +319,6 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int ifd = open(fn, O_RDONLY);
         FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
         long offset;
-        syncfs(ifd);
         offset = lseek(ifd, 0, SEEK_SET);
         read( ifd, metaInfo, sizeof(FTIFF_metaInfo) );
         fs = metaInfo->fs;
@@ -917,9 +916,13 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         size_t bytes = fread(readData, sizeof(char), bSize, gfd);
         // FTI-FF: skip file meta data for computing the checksum
-        if( (FTI_Conf->ioMode == FTI_IO_FTIFF) && (pos < sizeof(FTIFF_metaInfo)) ) {
-            if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
-                MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
+        if( (FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
+            if ( pos < sizeof(FTIFF_metaInfo) )  {
+                if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
+                    MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
+                } 
+            } else {
+                MD5_Update( &md5ctxL4, readData, bytes );
             }
         }
 
@@ -963,9 +966,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if(strcmp(checksumL4, checksumL4cmp) != 0) {
             FTI_Print("checksum does not match, discard recovery!", FTI_WARN);
             return FTI_NSCS;
-        } else {
-            FTI_Print("checksum matches!", FTI_WARN);
-            return FTI_SCES;
         }
 
     }

@@ -599,7 +599,6 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         char *readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
         long fs = FTI_Exec->meta[level].fs[proc];
-        printf("filesize: %ld\n", fs);
         sprintf(str, "Local file size for proc %d: %ld", proc, fs);
         FTI_Print(str, FTI_DBUG);
         long pos = 0;
