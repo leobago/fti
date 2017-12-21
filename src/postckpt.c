@@ -487,12 +487,9 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
-    //if (!FTI_Ckpt[4].isInline || FTI_Conf->ioMode == FTI_IO_POSIX) {
-    //    //Just copy checkpoint files to PFS if L4 post-processing done by heads
-    //    res = FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
-    //}
-    //else {
+
     switch(FTI_Conf->ioMode) {
+        
         case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;
