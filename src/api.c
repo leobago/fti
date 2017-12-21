@@ -693,7 +693,9 @@ int FTI_Finalize()
         MPI_Finalize();
         exit(0);
     }
-
+    
+    // The following code is only executed by the application procs
+    
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
         int lastLevel;
