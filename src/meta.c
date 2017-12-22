@@ -447,7 +447,8 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
-    char str[FTI_BUFS], buf[FTI_BUFS];
+    
+	char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
@@ -553,34 +554,30 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    // metadata is created before for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
+    
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
-    int i;
     long fileSizes[FTI_BUFS];
+    MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
 
-    // FTI-FF: this is computed during L1 checkpoint
-    if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {     
-        MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
-
-        //update partner file size:
-        if (FTI_Exec->ckptLvel == 2) {
-            int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-            FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
-        }
-
-        long mfs = 0; //Max file size in group 
-        for (i = 0; i < FTI_Topo->groupSize; i++) {
-            if (fileSizes[i] > mfs) {
-                mfs = fileSizes[i]; // Search max. size
-            }
-        }
-        FTI_Exec->meta[0].maxFs[0] = mfs;
-    } else {
-        FTI_Exec->meta[0].maxFs[0] = FTI_Exec->FTIFFMeta.maxFs;
-        FTI_Exec->meta[0].pfs[0] = FTI_Exec->FTIFFMeta.ptFs;
+    //update partner file size:
+    if (FTI_Exec->ckptLvel == 2) {
+        int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
+        FTI_Exec->meta[0].pfs[0] = fileSizes[ptnerGroupRank];
     }
+
+    long mfs = 0; //Max file size in group
+    int i;
+    for (i = 0; i < FTI_Topo->groupSize; i++) {
+        if (fileSizes[i] > mfs) {
+            mfs = fileSizes[i]; // Search max. size
+        }
+    }
+    FTI_Exec->meta[0].maxFs[0] = mfs;
     char str[FTI_BUFS]; //For console output
-    sprintf(str, "Max. file size in group %lu.", FTI_Exec->meta[0].maxFs[0]);
+    sprintf(str, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
     char* ckptFileNames;
@@ -590,17 +587,14 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     strcpy(str, FTI_Exec->meta[0].ckptFile); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
+    char checksum[MD5_DIGEST_STRING_LENGTH];
+    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
     char* checksums;
-
-    // FTI-FF: checksum is already computed while doing L1 checkpoint.
-    if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-        char checksum[MD5_DIGEST_STRING_LENGTH];
-        FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
-        if (FTI_Topo->groupRank == 0) {
-            checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
-        }
-        MPI_Gather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
+    if (FTI_Topo->groupRank == 0) {
+        checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
     }
+    MPI_Gather(checksum, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, checksums, MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
+
 
     //Every process has the same number of protected variables
 
@@ -624,16 +618,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(myVarIDs);
     free(myVarSizes);
 
-    // meta data is written into ckpt file for FTI-FF
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, FTI_Exec->meta[0].maxFs[0],
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
                     ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
         free(ckptFileNames);
-        if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-            free(checksums);
-        }
+        free(checksums);
         if (res == FTI_NSCS) {
             return FTI_NSCS;
         }
@@ -651,4 +642,3 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     return FTI_SCES;
 }
-

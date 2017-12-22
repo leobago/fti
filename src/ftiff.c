@@ -723,14 +723,59 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Exec->ckptSize = endoffile;
 
+    // create checkpoint meta data
+    FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf );
+
+    fseek( fd, 0, SEEK_SET );
+
+    writeFailed += ( fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd ) == 1 ) ? 0 : 1;
+
+    fclose( fd );
+
+    if (writeFailed) {
+        sprintf(str, "FTIFF: An error occured. Discarding checkpoint");
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Assign meta data to runtime and file meta data types
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function gathers information about the checkpoint files in the
+  group and stores it in the respective meta data types runtime and
+  ckpt file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+        FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf )
+{
+    int i;
+
+    // FTI_Exec->ckptSize has to be assigned after successful ckpt write and before this call!
+    long fs = FTI_Exec->ckptSize;
+    FTI_Exec->FTIFFMeta.ckptSize = fs;
+    FTI_Exec->FTIFFMeta.fs = fs;
+
+    // allgather not needed for L1 checkpoint
     if( (FTI_Exec->ckptLvel == 2) || (FTI_Exec->ckptLvel == 3) ) { 
 
         long fileSizes[FTI_BUFS], mfs = 0;
-        MPI_Allgather(&endoffile, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+        MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
         int ptnerGroupRank, i;
         switch(FTI_Exec->ckptLvel) {
 
-            //update partner file size:
+            //get partner file size:
             case 2:
 
                 ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
@@ -757,12 +802,14 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     }
 
+    FTI_Exec->meta[0].fs[0] = FTI_Exec->FTIFFMeta.fs;
+    FTI_Exec->meta[0].pfs[0] = FTI_Exec->FTIFFMeta.ptFs;
+    FTI_Exec->meta[0].maxFs[0] = FTI_Exec->FTIFFMeta.maxFs;
+
     // write meta data and its hash
     struct timespec ntime;
     clock_gettime(CLOCK_REALTIME, &ntime);
     FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
-    FTI_Exec->FTIFFMeta.ckptSize = endoffile;
-    FTI_Exec->FTIFFMeta.fs = endoffile;
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
     FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum );
@@ -771,20 +818,17 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // create checksum of meta data
     FTIFF_GetHashMetaInfo( FTI_Exec->FTIFFMeta.myHash, &(FTI_Exec->FTIFFMeta) );
 
-    fseek( fd, 0, SEEK_SET );
-
-    writeFailed += ( fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd ) == 1 ) ? 0 : 1;
-
-    fclose( fd );
-
-    if (writeFailed) {
-        sprintf(str, "FTIFF: An error occured. Discarding checkpoint");
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
+    //Flush metadata in case postCkpt done inline
+    FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = FTI_Exec->meta[0].fs[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
+    strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
+        FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
     }
 
     return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
