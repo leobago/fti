@@ -356,8 +356,6 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
                 sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
-                // if keep_last_ckpt Flush metadata to level idx.
-                FTI_Exec->meta[FTI_Exec->ckptLvel].fs[k] = FTI_Exec->meta[0].fs[k];
             }
             strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
 

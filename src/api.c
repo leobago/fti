@@ -153,7 +153,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             FTI_Exec.ckptCnt++;
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
-                FTI_Exec.initSCES = 2; //Could not recover all ckpt files
+                FTI_Exec.initSCES = 2; //Could not recover all ckpt files (or failed reading meta; FTI-FF)
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
             }
@@ -526,6 +526,7 @@ int FTI_Checkpoint(int id, int level)
             MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            free(headInfo);
         }
 
     }
@@ -543,9 +544,6 @@ int FTI_Checkpoint(int id, int level)
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
-        if(FTI_Conf.ioMode == FTI_IO_FTIFF && !FTI_Ckpt[FTI_Exec.ckptLvel].isInline) {
-            free(headInfo);
-        }
         return FTI_NSCS;
     }
 
@@ -556,9 +554,6 @@ int FTI_Checkpoint(int id, int level)
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
-    }
-    if(FTI_Conf.ioMode == FTI_IO_FTIFF && !FTI_Ckpt[FTI_Exec.ckptLvel].isInline) {
-        free(headInfo);
     }
     return FTI_DONE;
 }
@@ -617,11 +612,10 @@ int FTI_Recover()
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
-    FILE* fd = fopen(fn, "rb");
-
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
+    FILE* fd = fopen(fn, "rb");
     if (fd == NULL) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
@@ -728,7 +722,7 @@ int FTI_Finalize()
         exit(0);
     }
     
-    // The following code is only executed by the application procs
+    // Notice: The following code is only executed by the application procs
     
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {

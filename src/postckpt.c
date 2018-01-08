@@ -273,7 +273,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         endProc = 1;
     }
 
-    long *fsGroup = malloc( FTI_Topo->groupSize * sizeof(long) );
     int proc;
     for (proc = startProc; proc < endProc; proc++) {
         int ckptID, rank;
@@ -294,9 +293,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
-
-        //}
-
 
         FILE* lfd = fopen(lfn, "rb");
         if (lfd == NULL) {
@@ -439,6 +435,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
 
             FTIFFMeta->fs = maxFs;
+            // although not needed, we have to assign value for unique hash.
             FTIFFMeta->ptFs = -1;
             FTIFFMeta->maxFs = maxFs;
             FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
@@ -471,7 +468,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 }
-free(fsGroup);
 
 return FTI_SCES;
 }

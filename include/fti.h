@@ -63,15 +63,16 @@
 #define FTI_IO_POSIX 1001
 /** Token for IO mode MPI.                                                 */
 #define FTI_IO_MPI 1002
-/** Token for IO mode FTI-FF.                                                 */
+/** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
 
-/** Hashed string length.                                                  */
+/** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
+/** MD5-hash: hex converted char digest length.                            */
 #define MD5_DIGEST_STRING_LENGTH 33
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-/** Token for IO mode SIONlib.                                         */
+/** Token for IO mode SIONlib.                                             */
 #define FTI_IO_SIONLIB 1004
 #endif
 
@@ -88,18 +89,18 @@ extern "C" {
      *  @brief      Meta Information about file.
      *
      *  (For FTI-FF only)
-     *  Keeps information about the chunk of the protected variable with id 
-     *  stored in the current datablock. 
+     *  Keeps information about the file. 'checksum' is the hash of the file
+     *  excluding the file meta data. 'myHash' is the hash of the file meta data.
      *  
      */
     typedef struct FTIFF_metaInfo {
-        char checksum[MD5_DIGEST_STRING_LENGTH];
-        unsigned char myHash[MD5_DIGEST_LENGTH];
-        long ckptSize;
-        long fs;
-        long maxFs;
-        long ptFs;
-        long timestamp;			   /**< checkpoint creation time	        */
+        char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
+        unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
+        long ckptSize;  /**< size of ckpt data                                  */
+        long fs;        /**< file size                                          */
+        long maxFs;     /**< maximum file size in group                         */
+        long ptFs;      /**< partner copy file size                             */
+        long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
     } FTIFF_metaInfo;
 
     /** @typedef    FTIFF_dbvar
@@ -107,16 +108,17 @@ extern "C" {
      *
      *  (For FTI-FF only)
      *  Keeps information about the chunk of the protected variable with id 
-     *  stored in the current datablock. 
+     *  stored in the current datablock. 'idx' is the index for the array 
+     *  element of 'FTIT_dataset* FTI_Data', that contains variable with 'id'.
      *  
      */
     typedef struct FTIFF_dbvar {
-        int id;
-        int idx;			   /**< index to corresponding id in pvar array */
-        long dptr;			   /**< data pointer offset				        */
-        long fptr;			   /**< file pointer offset                     */
-        long chunksize;
-        unsigned char hash[MD5_DIGEST_LENGTH];
+        int id;             /**< id of protected variable                       */
+        int idx;            /**< index to corresponding id in pvar array        */
+        long dptr;          /**< data pointer offset				            */
+        long fptr;          /**< file pointer offset                            */
+        long chunksize;     /**< chunk size stored aof prot. var. in this block */
+        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db
@@ -124,13 +126,14 @@ extern "C" {
      *
      *  (For FTI-FF only)
      *  Keeps information about the current datablock in file
+     *
      */
     typedef struct FTIFF_db {
-        int numvars;	        /**< number of protected variables in datablock */
-        long dbsize;            /**< size of metadata + data in bytes		    */
-        FTIFF_dbvar *dbvars;     /**< pointer to corresponding dbvar array       */
-        struct FTIFF_db *previous;		 /**< link to previous datablock        */
-        struct FTIFF_db *next;			 /**< link to next datablock            */
+        int numvars;            /**< number of protected variables in datablock */
+        long dbsize;            /**< size of metadata + data for block in bytes */
+        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array             */
+        struct FTIFF_db *previous;  /**< link to previous datablock             */
+        struct FTIFF_db *next;      /**< link to next datablock                 */
     } FTIFF_db;
 
     /*---------------------------------------------------------------------------
@@ -237,9 +240,9 @@ extern "C" {
         int             metaAlloc;          /**< True if meta allocated.        */
         int             initSCES;           /**< True if FTI initialized.       */
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-        FTIFF_db         *firstdb;           /**< Pointer to first datablock     */
-        FTIFF_db         *lastdb;            /**< Pointer to first datablock     */
-        FTIFF_metaInfo  FTIFFMeta;
+        FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
+        FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
+        FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
     } FTIT_execution;

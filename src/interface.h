@@ -76,8 +76,6 @@
 #   include "lustreapi.h"
 #endif
 
-int syncfs(int fd);
-
 /*---------------------------------------------------------------------------
   Defines
   ---------------------------------------------------------------------------*/
@@ -87,8 +85,8 @@ int syncfs(int fd);
 
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
-//    = sizeof(uint32_t)  /* numvars */ 
-//    + sizeof(uint64_t); /* dbsize */ 
+//    = sizeof(int)     /* numvars */ 
+//    + sizeof(long);   /* dbsize */ 
 
 /*---------------------------------------------------------------------------
   FTI private functions

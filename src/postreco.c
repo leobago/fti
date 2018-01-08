@@ -219,6 +219,9 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
             fread(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
+            if ( remBsize < bs ) {
+                memset( data[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
+            }
 
             if (ferror(fd)) {
                 FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -242,11 +245,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         else {
-            bzero(data[FTI_Topo->groupRank], remBsize);
+            bzero(data[FTI_Topo->groupRank], bs);
         } // Erasure found
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
             fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
+            if ( remBsize < bs ) {
+                memset( coding[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
+            }
+
             if (ferror(efd)) {
                 FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
 
@@ -269,32 +276,32 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         else {
-            bzero(coding[FTI_Topo->groupRank], remBsize);
+            bzero(coding[FTI_Topo->groupRank], bs);
         }
 
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(data[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
+            memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
-        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(coding[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
+            memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
         // Decoding the lost data work
         if (erased[FTI_Topo->groupRank]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, remBsize);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, bs);
         }
 
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, remBsize, MPI_CHAR, dataTmp, remBsize, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
-            memcpy(data[i] + 0, &(dataTmp[i * remBsize]), sizeof(char) * remBsize);
+            memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
         // Finally, re-encode any erased encoded checkpoint file
         if (erased[FTI_Topo->groupRank + k]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, remBsize);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
         }
         if (erased[FTI_Topo->groupRank]) {
             fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
@@ -763,13 +770,9 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i;
     for (i = 0; i < gs; i++) {
         if (erased[i]) {
-            if (FTI_Topo->splitRank == 0) {
-            }
             l++;
         }
         if (erased[i + gs]) {
-            if (FTI_Topo->splitRank == 0) {
-            }
             l++;
         }
     }
