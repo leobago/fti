@@ -7,6 +7,9 @@ target_link_libraries(diffSizes fti.static)
 add_executable(hdf5Test hdf5Test.c)
 target_link_libraries(hdf5Test fti.static)
 
+add_executable(hdf5noFTI hdf5noFTI.c)
+target_link_libraries(hdf5noFTI fti.static)
+
 add_executable(heatdis heatdis.c)
 target_link_libraries(heatdis fti.static)
 

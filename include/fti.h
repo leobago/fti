@@ -350,6 +350,13 @@ int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_InitSimpleTypeWithNames(FTIT_type* type, FTIT_complexType* typeDefinition);
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition);
 int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition);
+void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id);
+void FTI_AddSimpleFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+                                size_t offset, int id, char* name);
+void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+                                size_t offset, int rank, int* dimLength, int id);
+void FTI_AddComplexFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+                                size_t offset, int rank, int* dimLength, int id, char* name);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name);
 long FTI_GetStoredSize(int id);

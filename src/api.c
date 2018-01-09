@@ -340,6 +340,44 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     return FTI_SCES;
 }
 
+#ifdef ENABLE_HDF5
+void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+}
+
+void FTI_AddSimpleFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+    strcpy(typeDefinition->field[id].name, name);
+}
+
+void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+    typeDefinition->field[id].rank = rank;
+    int i;
+    for (i = 0; i < rank; i++) {
+        typeDefinition->field[id].dimLength[i] = dimLength[i];
+    }
+}
+
+void FTI_AddComplexFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+    typeDefinition->field[id].rank = rank;
+    int i;
+    for (i = 0; i < rank; i++) {
+        typeDefinition->field[id].dimLength[i] = dimLength[i];
+    }
+    strcpy(typeDefinition->field[id].name, name);
+}
+#endif
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It sets/resets the pointer and type to a protected variable.

@@ -22,6 +22,11 @@ printSuccess () {
 	echo "		HDF5 test succeed. ($1) L$2"
 	printf "_______________________________________________________________________________________\n\n"
 }
+printOffline () {
+	printf "_______________________________________________________________________________________\n\n"
+	echo "		 Offline HDF5 test... ($1) L$2"
+	printf "_______________________________________________________________________________________\n"
+}
 
 configs=("configH0I1.h5" "configH1I1.h5" "configH1I0.h5")
 
@@ -54,6 +59,16 @@ for config in ${configs[*]}; do
 			cat patterns/h5dumpOrigin.log
 			exit 1
 		fi
+
+		printOffline $config $level
+		cp $file offlineVerify.h5
+		./hdf5noFTI &> offlineLog
+		if [ $? != 0 ]; then
+			cat offlineLog
+			exit 1
+		fi
+		rm offlineLog
+
 		printResume $config $level
 		mpirun -n 16 ./hdf5Test config.fti $level 0 &> logFile2
 		if [ $? != 0 ]; then

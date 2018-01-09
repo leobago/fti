@@ -315,59 +315,47 @@ int main(int argc, char** argv) {
     FTI_InitType(&bytesType, sizeof(AsByteArray));
     FTIT_complexType CharsDef;
     FTIT_type CharsType;
-    CharsDef.field[0].type = &FTI_CHAR;
-    CharsDef.field[1].type = &FTI_UCHR;
-    CharsDef.field[2].type = &bytesType;
-    CharsDef.field[0].offset = F_OFFSET(Chars, chars);
-    CharsDef.field[1].offset = F_OFFSET(Chars, uChars);
-    CharsDef.field[2].offset = F_OFFSET(Chars, bytes);
-    CharsDef.field[0].rank = 1;
-    CharsDef.field[1].rank = 4;
-    CharsDef.field[2].rank = 1;
-    CharsDef.field[0].dimLength[0] = 10;
-    CharsDef.field[1].dimLength[0] = 2;
-    CharsDef.field[1].dimLength[1] = 3;
-    CharsDef.field[1].dimLength[2] = 4;
-    CharsDef.field[1].dimLength[3] = 5;
-    CharsDef.field[2].dimLength[0] = 2;
-    sprintf(CharsDef.field[0].name, "char array");
-    sprintf(CharsDef.field[1].name, "unsigned char multi-array");
-    sprintf(CharsDef.field[2].name, "byte array");
-    sprintf(CharsDef.name, "Chars");
+
     CharsDef.length = 3;
     CharsDef.size = sizeof(Chars);
+    sprintf(CharsDef.name, "Chars");
+
+    int dimLength[4];
+    dimLength[0] = 10;
+    FTI_AddComplexFieldWithName(&CharsDef, &FTI_CHAR, F_OFFSET(Chars, chars), 1, dimLength, 0, "char array");
+
+    dimLength[0] = 2;
+    dimLength[1] = 3;
+    dimLength[2] = 4;
+    dimLength[3] = 5;
+    FTI_AddComplexFieldWithName(&CharsDef, &FTI_UCHR, F_OFFSET(Chars, uChars), 4, dimLength, 1, "unsigned char multi-array");
+
+    dimLength[0] = 2;
+    FTI_AddComplexFieldWithName(&CharsDef, &bytesType, F_OFFSET(Chars, bytes), 1, dimLength, 2, "byte array");
+
     FTI_InitComplexTypeWithNames(&CharsType, &CharsDef);
 
     FTIT_complexType IntegersDef;
     FTIT_type IntegersType;
-    IntegersDef.field[0].type = &FTI_SHRT;
-    IntegersDef.field[1].type = &FTI_INTG;
-    IntegersDef.field[2].type = &FTI_LONG;
-    IntegersDef.field[0].offset = F_OFFSET(Integers, shortInteger);
-    IntegersDef.field[1].offset = F_OFFSET(Integers, integer);
-    IntegersDef.field[2].offset = F_OFFSET(Integers, longInteger);
-    sprintf(IntegersDef.field[0].name, "short int");
-    sprintf(IntegersDef.field[1].name, "int");
-    sprintf(IntegersDef.field[2].name, "long int");
-    sprintf(IntegersDef.name, "struct Integers");
     IntegersDef.length = 3;
     IntegersDef.size = sizeof(Integers);
+    sprintf(IntegersDef.name, "struct Integers");
+
+    FTI_AddSimpleFieldWithName(&IntegersDef, &FTI_SHRT, F_OFFSET(Integers, shortInteger), 0, "short int");
+    FTI_AddSimpleFieldWithName(&IntegersDef, &FTI_INTG, F_OFFSET(Integers, integer), 1, "int");
+    FTI_AddSimpleFieldWithName(&IntegersDef, &FTI_LONG, F_OFFSET(Integers, longInteger), 2, "long int");
+
     FTI_InitSimpleTypeWithNames(&IntegersType, &IntegersDef);
 
     FTIT_complexType UIntegersDef;
     FTIT_type UIntegersType;
-    UIntegersDef.field[0].type = &FTI_USHT;
-    UIntegersDef.field[1].type = &FTI_UINT;
-    UIntegersDef.field[2].type = &FTI_ULNG;
-    UIntegersDef.field[0].offset = F_OFFSET(UIntegers, shortInteger);
-    UIntegersDef.field[1].offset = F_OFFSET(UIntegers, integer);
-    UIntegersDef.field[2].offset = F_OFFSET(UIntegers, longInteger);
-    sprintf(UIntegersDef.field[0].name, "unsigned short int");
-    sprintf(UIntegersDef.field[1].name, "unsigned int");
-    sprintf(UIntegersDef.field[2].name, "unsigned long int");
-    sprintf(UIntegersDef.name, "struct UIntegers");
     UIntegersDef.length = 3;
     UIntegersDef.size = sizeof(UIntegers);
+    sprintf(UIntegersDef.name, "struct UIntegers");
+    FTI_AddSimpleFieldWithName(&UIntegersDef, &FTI_USHT, F_OFFSET(UIntegers, shortInteger), 0, "unsigned short int");
+    FTI_AddSimpleFieldWithName(&UIntegersDef, &FTI_UINT, F_OFFSET(UIntegers, integer), 1, "unsigned int");
+    FTI_AddSimpleFieldWithName(&UIntegersDef, &FTI_ULNG, F_OFFSET(UIntegers, longInteger), 2, "unsigned long int");
+
     FTI_InitSimpleTypeWithNames(&UIntegersType, &UIntegersDef);
 
     FTIT_complexType FloatsDef;
@@ -442,14 +430,14 @@ int main(int argc, char** argv) {
     FloatsChars floatCharVars;
     AllTypes allTypesVar[2];
 
-    FTI_ProtectWithName(1, &charVars, 2, CharsType, "chars");
-    FTI_ProtectWithName(2, &intVars, 2, IntegersType, "ints");
+    FTI_ProtectWithName(1, charVars, 2, CharsType, "chars");
+    FTI_ProtectWithName(2, intVars, 2, IntegersType, "ints");
     FTI_ProtectWithName(3, &uintVars, 1, UIntegersType, "unsigned ints");
     FTI_ProtectWithName(4, &floatVars, 1, FloatsType, "floats");
     if (fail == 1) FTI_Checkpoint(1, checkpoint_level);
     FTI_ProtectWithName(5, &allIntVars, 1, AllIntsType, "all ints");
     FTI_ProtectWithName(6, &floatCharVars, 1, FloatsCharsType, "floats and chars");
-    FTI_ProtectWithName(7, &allTypesVar, 2, AllTypesType, "all types");
+    FTI_ProtectWithName(7, allTypesVar, 2, AllTypesType, "all types");
     FTI_ProtectWithName(8, &intVars2, 1, IntegersType, "ints2");
 
     if (fail == 1) {

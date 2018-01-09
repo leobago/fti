@@ -85,7 +85,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
           toCommit = 1;
       }
       sprintf(str, "Calling CreateComplexType [%d] with hid_t %d", FTI_Data[i].type->id, FTI_Data[i].type->h5datatype);
-      FTI_Print(str, FTI_INFO);
+      FTI_Print(str, FTI_DBUG);
       FTI_CreateComplexType(FTI_Data[i].type);
       if (toCommit == 1) {
           herr_t res = H5Tcommit(typesGroup_id, FTI_Data[i].type->structure->name, FTI_Data[i].type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -99,11 +99,6 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          }
       }
       hsize_t count = FTI_Data[i].count;
-      /*if (FTI_Data[i].type->id > 10 && FTI_Data[i].type->structure == NULL) {
-          //if used FTI_InitType() save as binary (using chars)
-          count = 1; //only 1 array of chars
-      }*/
-      //rank will be always 1 <= can protect only 1 dimension array
       herr_t res = H5LTmake_dataset(datasetsGroup_id, FTI_Data[i].name, 1, &count, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
       if (res < 0) {
          sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);

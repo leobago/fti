@@ -350,14 +350,14 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
     if (ftiType->h5datatype > -1) {
         //This type already created
         sprintf(str, "Type [%d] is already created.", ftiType->id);
-        FTI_Print(str, FTI_INFO);
+        FTI_Print(str, FTI_DBUG);
         return;
     }
 
     if (ftiType->structure == NULL) {
         //Save as array of bytes
         sprintf(str, "Creating type [%d] as array of bytes.", ftiType->id);
-        FTI_Print(str, FTI_INFO);
+        FTI_Print(str, FTI_DBUG);
         ftiType->h5datatype = H5Tcopy(H5T_NATIVE_CHAR);
         H5Tset_size(ftiType->h5datatype, ftiType->size);
         return;
@@ -368,7 +368,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
     //for each field create and rank-dimension array if needed
     for (i = 0; i < ftiType->structure->length; i++) {
         sprintf(str, "Type [%d] trying to create new type [%d].", ftiType->id, ftiType->structure->field[i].type->id);
-        FTI_Print(str, FTI_INFO);
+        FTI_Print(str, FTI_DBUG);
         FTI_CreateComplexType(ftiType->structure->field[i].type);
         partTypes[i] = ftiType->structure->field[i].type->h5datatype;
         if (ftiType->structure->field[i].rank > 1) {
@@ -379,13 +379,13 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
                 dims[j] = ftiType->structure->field[i].dimLength[j];
             }
             sprintf(str, "Type [%d] trying to create %d-D array of type [%d].", ftiType->id, ftiType->structure->field[i].rank, ftiType->structure->field[i].type->id);
-            FTI_Print(str, FTI_INFO);
+            FTI_Print(str, FTI_DBUG);
             partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, ftiType->structure->field[i].rank, dims);
         } else {
             if (ftiType->structure->field[i].dimLength[0] > 1) {
                 //need to create 1-dimension array type
                 sprintf(str, "Type [%d] trying to create 1-D [%d] array of type [%d].", ftiType->id, ftiType->structure->field[i].dimLength[0], ftiType->structure->field[i].type->id);
-                FTI_Print(str, FTI_INFO);
+                FTI_Print(str, FTI_DBUG);
                 hsize_t dim = ftiType->structure->field[i].dimLength[0];
                 partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, 1, &dim);
             }
@@ -394,10 +394,10 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
 
     //create new HDF5 datatype
     sprintf(str, "Creating type [%d].", ftiType->id);
-    FTI_Print(str, FTI_INFO);
+    FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->structure->size);
     sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
-    FTI_Print(str, FTI_INFO);
+    FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
     }
@@ -405,7 +405,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
     //inserting fields into the new type
     for (i = 0; i < ftiType->structure->length; i++) {
         sprintf(str, "Insering type [%d] into new type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
-        FTI_Print(str, FTI_INFO);
+        FTI_Print(str, FTI_DBUG);
         herr_t res = H5Tinsert(ftiType->h5datatype, ftiType->structure->field[i].name, ftiType->structure->field[i].offset, partTypes[i]);
         if (res < 0) {
             FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
@@ -422,7 +422,7 @@ void FTI_CloseComplexType(FTIT_type* ftiType)
     if (ftiType->h5datatype == -1 || ftiType->id < 11) {
         //This type already closed or build-in type
         sprintf(str, "Cannot close type [%d]. Build in or already closed.", ftiType->id);
-        FTI_Print(str, FTI_INFO);
+        FTI_Print(str, FTI_DBUG);
         return;
     }
 
@@ -432,14 +432,14 @@ void FTI_CloseComplexType(FTIT_type* ftiType)
         //close each field
         for (i = 0; i < ftiType->structure->length; i++) {
             sprintf(str, "Closing type [%d] of compound type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
-            FTI_Print(str, FTI_INFO);
+            FTI_Print(str, FTI_DBUG);
             FTI_CloseComplexType(ftiType->structure->field[i].type);
         }
     }
 
     //create new HDF5 datatype
     sprintf(str, "Closing type [%d].", ftiType->id);
-    FTI_Print(str, FTI_INFO);
+    FTI_Print(str, FTI_DBUG);
     herr_t res = H5Tclose(ftiType->h5datatype);
     if (res < 0) {
         FTI_Print("FTI failed to close HDF5 type.", FTI_WARN);
