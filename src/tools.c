@@ -39,6 +39,8 @@
 #include "interface.h"
 #include <dirent.h>
 
+int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Init of the static variables
@@ -51,6 +53,11 @@
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje) {
+
+    // datablock size in file
+    FTI_dbstructsize
+        = sizeof(int)               /* numvars */ 
+        + sizeof(long);             /* dbsize */ 
 
     // +--------- +
     // | FTI_Exec |
@@ -78,10 +85,14 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* unsigned int  */ FTI_Exec->ckptLast              =0;       
     /* long          */ FTI_Exec->ckptSize              =0;    
     /* unsigned int  */ FTI_Exec->nbVar                 =0;       
+    /* unsigned int  */ FTI_Exec->nbVarStored           =0;       
     /* unsigned int  */ FTI_Exec->nbType                =0;    
     /* int           */ FTI_Exec->metaAlloc             =0;     
     /* int           */ FTI_Exec->initSCES              =0;       
     /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
+    /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
+    /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+    /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
 
@@ -173,23 +184,31 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum)
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
+        FTIT_configuration* FTI_Conf, char* checksum)
 {
-    MD5_CTX mdContext;
-    MD5_Init (&mdContext);
+    // FTI-FF: computes checksum from the data structures and prot. variables.
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
+    } else {
 
-    int i; //iterate all variables
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-    }
+        MD5_CTX mdContext;
+        MD5_Init (&mdContext);
+        int i; 
 
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_Final (hash, &mdContext);
+        //iterate all variables
+        for (i = 0; i < FTI_Exec->nbVar; i++) {
+            MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+        }
 
-    int ii = 0;
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
-        ii += 2;
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &mdContext);
+
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii += 2;
+        }
     }
 
     return FTI_SCES;

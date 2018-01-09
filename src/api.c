@@ -57,7 +57,6 @@ static FTIT_dataset FTI_Data[FTI_BUFS];
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
-
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
 
@@ -130,6 +129,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_FreeMeta(&FTI_Exec);
         return FTI_NSCS;
     }
+    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        FTIFF_InitMpiTypes();
+    }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -144,11 +146,14 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
+                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
+            }	
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
-                FTI_Exec.initSCES = 2; //Could not recover all ckpt files
+                FTI_Exec.initSCES = 2; //Could not recover all ckpt files (or failed reading meta; FTI-FF)
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
             }
@@ -306,7 +311,8 @@ long FTI_GetStoredSize(int id)
   file, reallacates memory and updates data size information.
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_Realloc(int id, void* ptr) {
+void* FTI_Realloc(int id, void* ptr) 
+{
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
@@ -496,14 +502,33 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
+
+    // FTIFF: send meta info to the heads
+    FTIFF_headInfo *headInfo;    
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
+        // Head needs ckpt. ID to determine ckpt file name.
         int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
         if (res != FTI_SCES) { //If Writing checkpoint failed
             FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
             value = FTI_REJW; //Send reject checkpoint token to head
         }
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        // FTIFF: send meta info to the heads
+        if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
+            headInfo = malloc(sizeof(FTIFF_headInfo));
+            headInfo->exists = FTI_Exec.meta[0].exists[0];
+            headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
+            headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
+            headInfo->fs = FTI_Exec.meta[0].fs[0];
+            headInfo->pfs = FTI_Exec.meta[0].pfs[0];
+            strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
+            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            free(headInfo);
+        }
+
     }
     else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
@@ -545,6 +570,10 @@ int FTI_Checkpoint(int id, int level)
 /*-------------------------------------------------------------------------*/
 int FTI_Recover()
 {
+    if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        return FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -564,7 +593,6 @@ int FTI_Recover()
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }
-
     //Check if sizes of protected variables matches
     int i;
     for (i = 0; i < FTI_Exec.nbVar; i++) {
@@ -576,7 +604,6 @@ int FTI_Recover()
             return FTI_NREC;
         }
     }
-
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -607,6 +634,7 @@ int FTI_Recover()
         return FTI_NREC;
     }
     FTI_Exec.reco = 0;
+
     return FTI_SCES;
 }
 
@@ -693,7 +721,9 @@ int FTI_Finalize()
         MPI_Finalize();
         exit(0);
     }
-
+  
+    // Notice: The following code is only executed by the application procs
+    
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
         int lastLevel;
@@ -721,11 +751,13 @@ int FTI_Finalize()
                 if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
                     FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
                 }
-                if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
-                    FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
-                }
-                if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-                    FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
+                    if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
+                        FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
+                    }
+                    if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
+                        FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
+                    }
                 }
             }
         }
@@ -747,6 +779,9 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     FTI_FreeMeta(&FTI_Exec);
+    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
+    }
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
@@ -768,7 +803,11 @@ int FTI_Finalize()
   checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVar(int id){
+int FTI_RecoverVar(int id)
+{
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -810,6 +849,7 @@ int FTI_RecoverVar(int id){
     }
 
     char str[FTI_BUFS];
+
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -845,6 +885,7 @@ int FTI_RecoverVar(int id){
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
+
     return FTI_SCES;
 }
 

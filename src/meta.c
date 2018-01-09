@@ -60,6 +60,7 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         char* checksum, char* ptnerChecksum, char* rsChecksum)
 {
+
     char mfn[FTI_BUFS]; //Path to the metadata file
     char str[FTI_BUFS]; //For console output
     if (FTI_Exec->ckptLvel == 0) {
@@ -127,6 +128,9 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         int rank, char* checksum)
 {
+    // Fake call for FTI-FF. checksum is done for the datasets.
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {return FTI_SCES;}
+
     char str[FTI_BUFS], fileName[FTI_BUFS];
 
     //Calcuate which groupID rank belongs
@@ -207,6 +211,8 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (FTI_Topo->amIaHead) { //I am a head
         int j, biggestCkptID = 0; //Need to find biggest CkptID
         for (j = 1; j < FTI_Topo->nodeSize; j++) { //all body processes
@@ -289,6 +295,8 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (!FTI_Topo->amIaHead) {
         int i;
         for (i = 0; i < 5; i++) { //for each level
@@ -437,7 +445,10 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
         char* checksums, int* allVarIDs, long* allVarSizes)
 {
-    char str[FTI_BUFS], buf[FTI_BUFS];
+    // no metadata files for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
+    
+	char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
@@ -543,6 +554,9 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    // metadata is created before for FTI-FF
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
+    
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
     long fileSizes[FTI_BUFS];
@@ -574,7 +588,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
-    FTI_Checksum(FTI_Exec, FTI_Data, checksum);
+    FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
     char* checksums;
     if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);

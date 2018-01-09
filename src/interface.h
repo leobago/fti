@@ -40,6 +40,7 @@
 #define _FTI_INTERFACE_H
 
 #include "fti.h"
+#include "ftiff.h"
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
@@ -53,8 +54,12 @@
 
 #include <stdint.h>
 #include "../deps/md5/md5.h"
+
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
@@ -64,11 +69,12 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
+#include <inttypes.h>
+#include <dirent.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
 #endif
-
 
 /*---------------------------------------------------------------------------
   Defines
@@ -76,6 +82,11 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+
+// datablock size in file
+extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
+//    = sizeof(int)     /* numvars */ 
+//    + sizeof(long);   /* dbsize */ 
 
 /*---------------------------------------------------------------------------
   FTI private functions
@@ -177,7 +188,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum);
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
+      FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);

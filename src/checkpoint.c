@@ -159,6 +159,9 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
                 break;
 #endif
+            case FTI_IO_FTIFF:
+                res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (FTI-FF).");
+                break;
         }
     }
     else {
@@ -169,7 +172,13 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot create local directory", FTI_EROR);
             }
         }
-        res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+            res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
+        } else {
+            res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
+        }
+
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -261,8 +270,11 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("Cannot rename global directory", FTI_EROR);
             }
         }
-        if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
-            FTI_Print("Cannot rename meta directory", FTI_EROR);
+        // there is no temp meta data folder for FTI-FF
+        if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
+            if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
+                FTI_Print("Cannot rename meta directory", FTI_EROR);
+            }
         }
     }
     MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
@@ -322,6 +334,33 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
+        }
+
+        // FTI-FF: receive meta data information from the application ranks.
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
+
+            // init headInfo
+            FTIFF_headInfo *headInfo;    
+            headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
+
+            int k;
+            for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+                k = i+1;
+                MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
+                FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
+                FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
+                FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
+                FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
+                MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
+                sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
+            }
+            strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+
+            free(headInfo);
+
         }
 
         //Check if checkpoint was written correctly by all processes
@@ -627,3 +666,4 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 #endif
+

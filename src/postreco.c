@@ -35,7 +35,6 @@
  *  @date   October, 2017
  *  @brief  Post recovery functions for the FTI library.
  */
-
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -56,6 +55,7 @@
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
+
     int ckptID, rank;
     sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     char fn[FTI_BUFS], efn[FTI_BUFS];
@@ -65,6 +65,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int bs = FTI_Conf->blockSize;
     int k = FTI_Topo->groupSize;
     int m = k;
+
+    long fs = FTI_Exec->meta[3].fs[0];
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -104,6 +106,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
+
     // Inversing the matrix
     if (jerasure_invert_matrix(tmpmat, decMatrix, k, FTI_Conf->l3WordSize) < 0) {
         FTI_Print("Error inversing matrix", FTI_DBUG);
@@ -122,6 +125,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
+
     FILE *fd, *efd;
     long maxFs = FTI_Exec->meta[3].maxFs[0];
     long ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
@@ -129,7 +133,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         ps = ps + FTI_Conf->blockSize; // Calculating padding size
     }
     if (erased[FTI_Topo->groupRank] == 0) { // Resize and open files
-        if (truncate(fn, ps) == -1) {
+        if (truncate(fn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
 
             for (i = 0; i < m; i++) {
@@ -179,6 +183,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
     }
+
     if (efd == NULL) {
         FTI_Print("R3 cannot open encoded ckpt. file.", FTI_DBUG);
 
@@ -200,11 +205,23 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    long pos = 0;
+    long pos = 0; 
+    int remBsize = bs;
+
+    MD5_CTX md5ctxRS;
+    MD5_Init(&md5ctxRS);
     while (pos < ps) {
+
+        if ((maxFs - pos) < bs) {
+            remBsize = maxFs - pos;
+        }
+
         // Reading the data
         if (erased[FTI_Topo->groupRank] == 0) {
-            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            fread(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
+            if ( remBsize < bs ) {
+                memset( data[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
+            }
 
             if (ferror(fd)) {
                 FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -232,7 +249,11 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } // Erasure found
 
         if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
-            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
+            if ( remBsize < bs ) {
+                memset( coding[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
+            }
+
             if (ferror(efd)) {
                 FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
 
@@ -283,20 +304,68 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
         }
         if (erased[FTI_Topo->groupRank]) {
-            fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), bs, fd);
+            fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
         }
         if (erased[FTI_Topo->groupRank + k]) {
-            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), bs, efd);
+            MD5_Update(&md5ctxRS, coding[FTI_Topo->groupRank], remBsize); 
+            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
         }
 
         pos = pos + bs;
     }
+    unsigned char hashRS[MD5_DIGEST_LENGTH];
+    MD5_Final( hashRS, &md5ctxRS );
+
 
     // Closing files
     fclose(fd);
     fclose(efd);
 
-    long fs = FTI_Exec->meta[3].fs[0];
+    // FTI-FF: if file ckpt file deleted, determine fs from recovered file
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
+        int ifd = open(fn, O_RDONLY);
+        FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
+        long offset;
+        offset = lseek(ifd, 0, SEEK_SET);
+        read( ifd, metaInfo, sizeof(FTIFF_metaInfo) );
+        fs = metaInfo->fs;
+        FTI_Exec->meta[3].fs[0] = fs;
+        free( metaInfo );
+        close( ifd );
+    }            
+
+    // FTI-FF: if encoded file deleted, append meta data to encoded file
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
+
+        FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
+
+        // get timestamp
+        struct timespec ntime;
+        clock_gettime(CLOCK_REALTIME, &ntime);
+
+        FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+        FTIFFMeta->fs = maxFs;
+        FTIFFMeta->ptFs = -1;
+        FTIFFMeta->maxFs = maxFs;
+        FTIFFMeta->ckptSize = fs;
+
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hashRS[i]);
+            ii+=2;
+        }
+        strcpy(FTIFFMeta->checksum, checksum);
+
+        // add hash of meta info to meta info structure
+        FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
+
+        // append meta info to RS file
+        int ifd = open(efn, O_WRONLY|O_APPEND);
+        write( ifd, FTIFFMeta, sizeof(FTIFF_metaInfo) );
+        close( ifd );
+    }
+
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 
@@ -347,21 +416,30 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    int erased[FTI_BUFS]; // FTI_BUFS > 32*3
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_DBUG);
-        return FTI_NSCS;
-    }
-    int buf = 0;
-    int i;
-    for (i = 0; i < FTI_Topo->groupSize; i++) {
-        if (erased[i]) {
-            buf++; // Counting erasures
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L1. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
         }
-    }
-    if (buf > 0) {
-        FTI_Print("Checkpoint files missing at L1.", FTI_WARN);
-        return FTI_NSCS;
+    } 
+
+    else {
+        int erased[FTI_BUFS]; // FTI_BUFS > 32*3
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+        int buf = 0;
+        int i;
+        for (i = 0; i < FTI_Topo->groupSize; i++) {
+            if (erased[i]) {
+                buf++; // Counting erasures
+            }
+        }
+        if (buf > 0) {
+            FTI_Print("Checkpoint files missing at L1.", FTI_WARN);
+            return FTI_NSCS;
+        }
     }
     return FTI_SCES;
 }
@@ -416,7 +494,6 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-
         MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->tag, FTI_Exec->groupComm);
         toSend -= bytes;
     }
@@ -512,45 +589,74 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // Checking erasures
     int erased[FTI_BUFS];
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int i = 0;
-    int j;
-    for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
-        if (erased[j]) {
-            i++; // Counting erasures
-        }
-    }
-
-    if (i == 0) {
-        FTI_Print("Have all checkpoint files.", FTI_DBUG);
-        return FTI_SCES;
-    }
-
-    int res = FTI_SCES;
     int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
     int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
-    if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
-        FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
-        res = FTI_NSCS;
-    }
+    int res;
 
-    if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
-        FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
-        res = FTI_NSCS;
-    }
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
 
-    int allRes;
-    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
-    if (allRes != FTI_SCES) {
-        return FTI_NSCS;
-    }
+        enum {
+            LEFT_FILE,  // ckpt file of left partner (on left node)
+            MY_FILE,    // my ckpt file (on my node)
+            MY_COPY,    // copy of my ckpt file (on right node)
+            LEFT_COPY   // copy of ckpt file of my left partner (on my node)
+        };
 
+        int exists[4];
+
+        if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, exists ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+
+        memset(erased, 0x0, FTI_BUFS*sizeof(int));
+
+        erased[destination] = !exists[LEFT_FILE];
+        erased[FTI_Topo->groupRank] = !exists[MY_FILE];
+        erased[source + FTI_Topo->groupSize] = !exists[MY_COPY];
+        erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !exists[LEFT_COPY];
+
+    } 
+
+    else {
+        // Checking erasures
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+        int i = 0;
+        int j;
+        for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
+            if (erased[j]) {
+                i++; // Counting erasures
+            }
+        }
+
+        if (i == 0) {
+            FTI_Print("Have all checkpoint files.", FTI_DBUG);
+            return FTI_SCES;
+        }
+
+        res = FTI_SCES;
+        if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
+            FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
+            res = FTI_NSCS;
+        }
+
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
+            FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
+            res = FTI_NSCS;
+        }
+
+        int allRes;
+        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->groupComm);
+        if (allRes != FTI_SCES) {
+            return FTI_NSCS;
+        }
+
+    }
     //recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
         if (erased[destination]) { //first send file
@@ -638,11 +744,24 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // Checking erasures
     int erased[FTI_BUFS];
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_DBUG);
-        return FTI_NSCS;
+
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+
+        if ( FTIFF_CheckL3RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, erased ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L3. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+
+    } 
+
+    else {
+
+        // Checking erasures
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_DBUG);
+            return FTI_NSCS;
+        }
     }
 
     // Counting erasures
@@ -697,6 +816,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         switch(FTI_Conf->ioMode) {
             
+            case FTI_IO_FTIFF:
             case FTI_IO_POSIX:
                 return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             case FTI_IO_MPI:
@@ -735,28 +855,37 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Checking erasures
-    int erased[FTI_BUFS];
-    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
-        FTI_Print("Error checking erasures.", FTI_DBUG);
-        return FTI_NSCS;
-    }
-
-    int l = 0;
-    int i;
-    // Counting erasures
-    for (i = 0; i < FTI_Topo->groupSize; i++) {
-        if (erased[i]) {
-            l++;
+    char checksumL4[MD5_DIGEST_STRING_LENGTH];
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        if ( FTIFF_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, checksumL4 ) != FTI_SCES ) {
+            FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
+            return FTI_NSCS;
         }
-    }
-    if (l > 0) {
-        FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
-        return FTI_NSCS;
+    } 
+
+    else {
+        int erased[FTI_BUFS];
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+            FTI_Print("Error checking erasures.", FTI_DBUG);
+            return FTI_NSCS;
+        }
+        int l = 0;
+        int i;
+        // Counting erasures
+        for (i = 0; i < FTI_Topo->groupSize; i++) {
+            if (erased[i]) {
+                l++;
+            }
+        }
+        if (l > 0) {
+            FTI_Print("Checkpoint file missing at L4.", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+        sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+        sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 
-    // Open files
-    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
     sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
     sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
@@ -777,6 +906,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char *readData = talloc(char, FTI_Conf->transferSize);
     long bSize = FTI_Conf->transferSize;
     long fs = FTI_Exec->meta[4].fs[0];
+
+    MD5_CTX md5ctxL4;
+    MD5_Init(&md5ctxL4);
+
+    int toHash;
     // Checkpoint files transfer from PFS
     long pos = 0;
     while (pos < fs) {
@@ -785,6 +919,17 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         size_t bytes = fread(readData, sizeof(char), bSize, gfd);
+        // FTI-FF: skip file meta data for computing the checksum
+        if( (FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
+            if ( pos < sizeof(FTIFF_metaInfo) )  {
+                if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
+                    MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
+                } 
+            } else {
+                MD5_Update( &md5ctxL4, readData, bytes );
+            }
+        }
+
         if (ferror(gfd)) {
             FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
 
@@ -809,6 +954,24 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         pos = pos + bytes;
+    }
+
+    // FTI-FF: check if checksums coincide
+    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) { 
+        unsigned char hashL4[MD5_DIGEST_LENGTH];
+        MD5_Final( hashL4, &md5ctxL4 );
+
+        char checksumL4cmp[MD5_DIGEST_STRING_LENGTH];
+        int ii = 0, i;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksumL4cmp[ii], "%02x", hashL4[i]);
+            ii+=2;
+        }
+        if(strcmp(checksumL4, checksumL4cmp) != 0) {
+            FTI_Print("checksum does not match, discard recovery!", FTI_WARN);
+            return FTI_NSCS;
+        }
+
     }
 
     free(readData);
@@ -845,7 +1008,6 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // TODO enable to set stripping unit in the config file (Maybe also other hints)
     // enable collective buffer optimization
     MPI_Info info;
     MPI_Info_create(&info);

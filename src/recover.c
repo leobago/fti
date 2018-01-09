@@ -171,11 +171,12 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     if (!FTI_Topo->amIaHead) {
-        FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+        //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;
         for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-            if (FTI_Exec->meta[level].exists[0]) {
+            if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
                 //Get ckptID from checkpoint file name
+
                 int ckptID;
                 sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
 
@@ -205,10 +206,16 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         break;
                 }
                 int allRes;
+
                 MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
                 if (allRes == FTI_SCES) {
                     //Inform heads that recovered successfully
                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+
+                    // FTI-FF: ckptID is already set properly
+                    if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                        ckptID = FTI_Exec->ckptID;
+                    }
 
                     sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);

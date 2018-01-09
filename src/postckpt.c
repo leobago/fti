@@ -263,7 +263,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
     }
-
     int startProc, endProc;
     if (FTI_Topo->amIaHead) {
         startProc = 1;
@@ -289,6 +288,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
+
         if (truncate(lfn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
@@ -413,20 +413,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             pos = pos + bs;
         }
 
-        free(data);
-        free(matrix);
-        free(coding);
-        free(myData);
-        fclose(lfd);
-        fclose(efd);
-
-        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
-        if (truncate(lfn, fs) == -1) {
-            FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        //write checksum in metadata
+        // create checksum hex-string
         unsigned char hash[MD5_DIGEST_LENGTH];
         MD5_Final (hash, &mdContext);
 
@@ -437,13 +424,52 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ii+=2;
         }
 
+        // FTI-FF append meta data to RS file
+        if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+
+            FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
+
+            // get timestamp
+            struct timespec ntime;
+            clock_gettime(CLOCK_REALTIME, &ntime);
+            FTIFFMeta->timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+
+            FTIFFMeta->fs = maxFs;
+            // although not needed, we have to assign value for unique hash.
+            FTIFFMeta->ptFs = -1;
+            FTIFFMeta->maxFs = maxFs;
+            FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
+            strcpy(FTIFFMeta->checksum, checksum);
+
+            // get hash of meta data
+            FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
+
+            // append meta info to RS file
+            fwrite(FTIFFMeta, sizeof(FTIFF_metaInfo), 1, efd);
+
+        }
+
+        free(data);
+        free(matrix);
+        free(coding);
+        free(myData);
+        fclose(lfd);
+        fclose(efd);
+
+        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
+
+        if (truncate(lfn, fs) == -1) {
+            FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
+            return FTI_NSCS;
+        }
+
         int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-    }
+}
 
-    return FTI_SCES;
+return FTI_SCES;
 }
 
 
@@ -490,6 +516,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     switch(FTI_Conf->ioMode) {
         
+        case FTI_IO_FTIFF:
         case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;

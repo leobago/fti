@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#  @file   check.c
+#  @file   run-checks.sh
 #  @author Kai Keller (kellekai@gmx.de)
 #  @date   June, 2017
 #  @brief  FTI testing program.
