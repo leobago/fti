@@ -313,9 +313,10 @@ int main(int argc, char** argv) {
 
     FTIT_type bytesType;
     FTI_InitType(&bytesType, sizeof(AsByteArray));
+
+    //Chars and array of bytes
     FTIT_complexType CharsDef;
     FTIT_type CharsType;
-
     CharsDef.length = 3;
     CharsDef.size = sizeof(Chars);
     sprintf(CharsDef.name, "Chars");
@@ -335,6 +336,7 @@ int main(int argc, char** argv) {
 
     FTI_InitComplexTypeWithNames(&CharsType, &CharsDef);
 
+    //Integers
     FTIT_complexType IntegersDef;
     FTIT_type IntegersType;
     IntegersDef.length = 3;
@@ -347,6 +349,7 @@ int main(int argc, char** argv) {
 
     FTI_InitSimpleTypeWithNames(&IntegersType, &IntegersDef);
 
+    //Unsigned integers
     FTIT_complexType UIntegersDef;
     FTIT_type UIntegersType;
     UIntegersDef.length = 3;
@@ -358,67 +361,58 @@ int main(int argc, char** argv) {
 
     FTI_InitSimpleTypeWithNames(&UIntegersType, &UIntegersDef);
 
+    //Floats
     FTIT_complexType FloatsDef;
     FTIT_type FloatsType;
-    FloatsDef.field[0].type = &FTI_SFLT;
-    FloatsDef.field[1].type = &FTI_DBLE;
-    FloatsDef.field[2].type = &FTI_LDBE;
-    FloatsDef.field[0].offset = F_OFFSET(Floats, singlePrec);
-    FloatsDef.field[1].offset = F_OFFSET(Floats, doublePrec);
-    FloatsDef.field[2].offset = F_OFFSET(Floats, longDoublePrec);
-    sprintf(FloatsDef.field[0].name, "float");
-    sprintf(FloatsDef.field[1].name, "double");
-    sprintf(FloatsDef.field[2].name, "long double");
-    sprintf(FloatsDef.name, "struct Floats");
     FloatsDef.length = 3;
     FloatsDef.size = sizeof(Floats);
+    sprintf(FloatsDef.name, "struct Floats");
+    FTI_AddSimpleFieldWithName(&FloatsDef, &FTI_SFLT, F_OFFSET(Floats, singlePrec), 0, "float");
+    FTI_AddSimpleFieldWithName(&FloatsDef, &FTI_DBLE, F_OFFSET(Floats, doublePrec), 1, "double");
+    FTI_AddSimpleFieldWithName(&FloatsDef, &FTI_LDBE, F_OFFSET(Floats, longDoublePrec), 2, "long double");
+
     FTI_InitSimpleTypeWithNames(&FloatsType, &FloatsDef);
 
+    //Integers aggregated
     FTIT_complexType AllIntsDef;
     FTIT_type AllIntsType;
-    AllIntsDef.field[0].type = &IntegersType;
-    AllIntsDef.field[1].type = &UIntegersType;
-    AllIntsDef.field[0].offset = F_OFFSET(AllInts, integers);
-    AllIntsDef.field[1].offset = F_OFFSET(AllInts, uIntegers);
-    AllIntsDef.field[0].rank = 1;
-    AllIntsDef.field[1].rank = 1;
-    AllIntsDef.field[0].dimLength[0] = 5;
-    AllIntsDef.field[1].dimLength[0] = 4;
-    sprintf(AllIntsDef.field[0].name, "struct Integers array");
-    sprintf(AllIntsDef.field[1].name, "struct UIntegers array");
-    sprintf(AllIntsDef.name, "sturct AllInts");
     AllIntsDef.length = 2;
     AllIntsDef.size = sizeof(AllInts);
+    sprintf(AllIntsDef.name, "sturct AllInts");
+
+    dimLength[0] = 5;
+    FTI_AddComplexFieldWithName(&AllIntsDef, &IntegersType, F_OFFSET(AllInts, integers), 1, dimLength, 0, "struct Integers array");
+
+    dimLength[0] = 4;
+    FTI_AddComplexFieldWithName(&AllIntsDef, &UIntegersType, F_OFFSET(AllInts, uIntegers), 1, dimLength, 1, "struct UIntegers array");
+
     FTI_InitComplexTypeWithNames(&AllIntsType, &AllIntsDef);
 
+    //Floats and chars aggregated
     FTIT_complexType FloatsCharsDef;
     FTIT_type FloatsCharsType;
-    FloatsCharsDef.field[0].type = &FloatsType;
-    FloatsCharsDef.field[1].type = &CharsType;
-    FloatsCharsDef.field[0].offset = F_OFFSET(FloatsChars, floats);
-    FloatsCharsDef.field[1].offset = F_OFFSET(FloatsChars, chars);
-    FloatsCharsDef.field[0].rank = 1;
-    FloatsCharsDef.field[1].rank = 1;
-    FloatsCharsDef.field[0].dimLength[0] = 3;
-    FloatsCharsDef.field[1].dimLength[0] = 2;
-    sprintf(FloatsCharsDef.field[0].name, "struct Floats array");
-    sprintf(FloatsCharsDef.field[1].name, "struct Chars array");
-    sprintf(FloatsCharsDef.name, "sturct FloatsChars");
     FloatsCharsDef.length = 2;
     FloatsCharsDef.size = sizeof(FloatsChars);
+    sprintf(FloatsCharsDef.name, "sturct FloatsChars");
+
+    dimLength[0] = 3;
+    FTI_AddComplexFieldWithName(&FloatsCharsDef, &FloatsType, F_OFFSET(FloatsChars, floats), 1, dimLength, 0, "struct Floats array");
+
+    dimLength[0] = 2;
+    FTI_AddComplexFieldWithName(&FloatsCharsDef, &CharsType, F_OFFSET(FloatsChars, chars), 1, dimLength, 1, "struct Chars array");
+
     FTI_InitComplexTypeWithNames(&FloatsCharsType, &FloatsCharsDef);
 
+    //All types aggregated
     FTIT_complexType AllTypesDef;
     FTIT_type AllTypesType;
-    AllTypesDef.field[0].type = &AllIntsType;
-    AllTypesDef.field[1].type = &FloatsCharsType;
-    AllTypesDef.field[0].offset = F_OFFSET(AllTypes, allInts);
-    AllTypesDef.field[1].offset = F_OFFSET(AllTypes, floatsChars);
-    sprintf(AllTypesDef.field[0].name, "sturct AllInts");
-    sprintf(AllTypesDef.field[1].name, "sturct FloatsChars");
-    sprintf(AllTypesDef.name, "struct AllTypes");
     AllTypesDef.length = 2;
     AllTypesDef.size = sizeof(AllTypes);
+    sprintf(AllTypesDef.name, "struct AllTypes");
+
+    FTI_AddSimpleFieldWithName(&AllTypesDef, &AllIntsType, F_OFFSET(AllTypes, allInts), 0, "sturct AllInts");
+    FTI_AddSimpleFieldWithName(&AllTypesDef, &FloatsCharsType, F_OFFSET(AllTypes, floatsChars), 1, "sturct FloatsChars");
+
     FTI_InitSimpleTypeWithNames(&AllTypesType, &AllTypesDef);
 
     Chars charVars[2];

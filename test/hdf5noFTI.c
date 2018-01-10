@@ -7,13 +7,8 @@
  *
  *  Testing correctness of HDF5 checkpoint file.
  *
- *  Program creates complex data structures, then adds it to protect list
- *  and makes a checkpoint. Second run recovers the files and checks if
- *  values match.
+ *  Program loads datatypes saved in hdf5 file by name and verifies values.
  *
- *  First execution this program should be with fail flag = 1, because
- *  then FTI saves checkpoint and program stops. Second execution
- *  must be with the flag = 0 to properly recover data.
  */
 
 #include <stdio.h>
