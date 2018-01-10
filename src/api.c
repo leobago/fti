@@ -201,88 +201,15 @@ int FTI_InitType(FTIT_type* type, int size)
     return FTI_SCES;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It initializes a simple data type.
-    @param      newType         The data type to be intialized.
-    @param      typeDefinition  Structure definition of the new type.
-    @return     integer         FTI_SCES if successful.
-
-    This function initalizes a simple data type. New type can only consists
-    fields of flat FTI types (no arrays). Type definition must include:
-    - length        => number of fields in the new type
-    - field[].type  => types of the field in the new type
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition)
-{
-    sprintf(typeDefinition->name, "Type%d", FTI_Exec.nbType);
-    int i;
-    //Give default names to types (needed for HDF5)
-    for (i = 0; i < typeDefinition->length; i++) {
-        sprintf(typeDefinition->field[i].name, "T%d", i);
-    }
-
-    return FTI_InitSimpleTypeWithNames(newType, typeDefinition);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It initializes a simple data type.
-    @param      newType         The data type to be intialized.
-    @param      typeDefinition  Structure definition of the new type.
-    @return     integer         FTI_SCES if successful.
-
-    This function initalizes a simple data type. New type can only consists
-    fields of flat FTI types (no arrays). Type definition must include:
-    - length            => number of fields in the new type
-    - field[].type      => types of the field in the new type
-    - field[].name      => name of the field in the new type
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitSimpleTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
-{
-    int i;
-    for (i = 0; i < typeDefinition->length; i++) {
-        typeDefinition->field[i].rank = 1;
-        int j;
-        for (j = 0; j < typeDefinition->field[i].rank; j++) {
-            typeDefinition->field[i].dimLength[j] = 1;
-        }
-    }
-
-    return FTI_InitComplexTypeWithNames(newType, typeDefinition);
-}
-
-
-int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
-{
-    if (typeDefinition->length < 1) {
-        FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    if (typeDefinition->length > 255) {
-        FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    sprintf(typeDefinition->name, "Type%d", FTI_Exec.nbType);
-    int i;
-    //Give default names to types (needed for HDF5)
-    for (i = 0; i < typeDefinition->length; i++) {
-        sprintf(typeDefinition->field[i].name, "T%d", i);
-    }
-
-    return FTI_InitComplexTypeWithNames(newType, typeDefinition);
-}
 
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It initializes a complex data type.
     @param      newType         The data type to be intialized.
     @param      typeDefinition  Structure definition of the new type.
+    @param      length          Number of fields in structure
+    @param      size            Size of the structure
+    @param      name            Name of the structure
     @return     integer         FTI_SCES if successful.
 
     This function initalizes a simple data type. New type can only consists
@@ -295,18 +222,18 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition)
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name)
 {
-    if (typeDefinition->length < 1) {
+    if (length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (typeDefinition->length > 255) {
+    if (length > 255) {
         FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
         return FTI_NSCS;
     }
     int i;
-    for (i = 0; i < typeDefinition->length; i++) {
+    for (i = 0; i < length; i++) {
         if (typeDefinition->field[i].rank < 1) {
             FTI_Print("Type rank must be greater than 0.", FTI_WARN);
             return FTI_NSCS;
@@ -327,8 +254,16 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
     }
 
     newType->id = FTI_Exec.nbType;
-    newType->size = typeDefinition->size;
+    newType->size = size;
     //assign type definition to type structure (types, names, ranks, dimLengths)
+    typeDefinition->size = size;
+    typeDefinition->length = length;
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->name, "Type%d", newType->id);
+    } else {
+        strncpy(typeDefinition->name, name, FTI_BUFS);
+    }
+
     newType->structure = typeDefinition;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
     FTI_Type[newType->id] = newType;
@@ -341,20 +276,54 @@ int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefin
 }
 
 #ifdef ENABLE_HDF5
-void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id)
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It adds a simple field in complex data type.
+    @param      typeDefinition  Structure definition of the complex data type.
+    @param      ftiType         Type of the field
+    @param      offset          Offset of the field (use F_OFFSET)
+    @param      id              Id of the field (start with 0)
+    @param      name            Name of the field (put NULL if want default)
+    @return     integer         FTI_SCES if successful.
+
+    This function adds a field to the complex datatype. Use F_OFFSET macro to
+    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+    will set "T${id}" name. Sets rank and dimLength to 1.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
 {
     typeDefinition->field[id].type = ftiType;
     typeDefinition->field[id].offset = offset;
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->field[id].name, "T%d", id);
+    } else {
+        strncpy(typeDefinition->field[id].name, name, FTI_BUFS);
+    }
+    typeDefinition->field[id].rank = 1;
+    typeDefinition->field[id].dimLength[0] = 1;
 }
 
-void FTI_AddSimpleFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
-{
-    typeDefinition->field[id].type = ftiType;
-    typeDefinition->field[id].offset = offset;
-    strcpy(typeDefinition->field[id].name, name);
-}
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It adds a simple field in complex data type.
+    @param      typeDefinition  Structure definition of the complex data type.
+    @param      ftiType         Type of the field
+    @param      offset          Offset of the field (use F_OFFSET)
+    @param      rank            Rank of the array
+    @param      dimLength       Dimention length for each rank
+    @param      id              Id of the field (start with 0)
+    @param      name            Name of the field (put NULL if want default)
+    @return     integer         FTI_SCES if successful.
 
-void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id)
+    This function adds a field to the complex datatype. Use F_OFFSET macro to
+    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+    will set "T${id}" name. 
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
 {
     typeDefinition->field[id].type = ftiType;
     typeDefinition->field[id].offset = offset;
@@ -363,18 +332,11 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     for (i = 0; i < rank; i++) {
         typeDefinition->field[id].dimLength[i] = dimLength[i];
     }
-}
-
-void FTI_AddComplexFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
-{
-    typeDefinition->field[id].type = ftiType;
-    typeDefinition->field[id].offset = offset;
-    typeDefinition->field[id].rank = rank;
-    int i;
-    for (i = 0; i < rank; i++) {
-        typeDefinition->field[id].dimLength[i] = dimLength[i];
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->field[id].name, "T%d", id);
+    } else {
+        strncpy(typeDefinition->field[id].name, name, FTI_BUFS);
     }
-    strcpy(typeDefinition->field[id].name, name);
 }
 #endif
 

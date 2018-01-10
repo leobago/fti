@@ -9,6 +9,7 @@
 #define _FTI_H
 
 #include <mpi.h>
+#include <stdlib.h>
 
 /*---------------------------------------------------------------------------
                                   Defines
@@ -155,7 +156,7 @@ typedef struct FTIT_complexType {
     FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
     char                name[FTI_BUFS];         /**< Name of the complex type.          */
     int                 length;                 /**< Number of types in complex type.   */
-    int                 size;                   /**< Size of the complex type.          */
+    size_t              size;                   /**< Size of the complex type.          */
 } FTIT_complexType;
 
 /** @typedef    FTIT_dataset
@@ -346,16 +347,11 @@ extern FTIT_type FTI_LDBE;
 int FTI_Init(char *configFile, MPI_Comm globalComm);
 int FTI_Status();
 int FTI_InitType(FTIT_type* type, int size);
-int FTI_InitSimpleType(FTIT_type* newType, FTIT_complexType* typeDefinition);
-int FTI_InitSimpleTypeWithNames(FTIT_type* type, FTIT_complexType* typeDefinition);
-int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition);
-int FTI_InitComplexTypeWithNames(FTIT_type* newType, FTIT_complexType* typeDefinition);
-void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id);
-void FTI_AddSimpleFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition,
+                        int length, size_t size, char* name);
+void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
                                 size_t offset, int id, char* name);
 void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
-                                size_t offset, int rank, int* dimLength, int id);
-void FTI_AddComplexFieldWithName(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
                                 size_t offset, int rank, int* dimLength, int id, char* name);
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
 int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name);
