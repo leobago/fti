@@ -241,37 +241,7 @@ module FTI
 
   interface
 
-    function FTI_InitSimpleType_impl(type_F, def_F) &
-            bind(c, name='FTI_InitSimpleType_wrapper')
-
-      use ISO_C_BINDING
-
-      integer(c_int) :: FTI_InitSimpleType_impl
-      type(c_ptr), intent(OUT) :: type_F
-      type(c_ptr), intent(IN) :: def_F
-
-    endfunction FTI_InitSimpleType_impl
-
-  endinterface
-
-  interface
-
-    function FTI_InitSimpleTypeWithNames_impl(type_F, def_F) &
-            bind(c, name='FTI_InitSimpleTypeWithNames_wrapper')
-
-      use ISO_C_BINDING
-
-      integer(c_int) :: FTI_InitSimpleTypeWithNames_impl
-      type(c_ptr), intent(OUT) :: type_F
-      type(c_ptr), intent(IN) :: def_F
-
-    endfunction FTI_InitSimpleTypeWithNames_impl
-
-  endinterface
-
-  interface
-
-    function FTI_InitComplexType_impl(type_F, def_F) &
+    function FTI_InitComplexType_impl(type_F, def_F, length, size, name) &
             bind(c, name='FTI_InitComplexType_wrapper')
 
       use ISO_C_BINDING
@@ -279,6 +249,9 @@ module FTI
       integer(c_int) :: FTI_InitComplexType_impl
       type(c_ptr), intent(OUT) :: type_F
       type(c_ptr), intent(IN) :: def_F
+      integer(c_int), intent(IN) :: length
+      integer(c_long), intent(IN) :: size
+      character(c_char), intent(IN) :: name(*)
 
     endfunction FTI_InitComplexType_impl
 
@@ -286,16 +259,35 @@ module FTI
 
   interface
 
-    function FTI_InitComplexTypeWithNames_impl(type_F, def_F) &
-            bind(c, name='FTI_InitComplexTypeWithNames_wrapper')
+    function FTI_AddSimpleField_impl(def_F, type_F, offset, id, name) &
+            bind(c, name='FTI_AddSimpleField')
 
       use ISO_C_BINDING
+      type(c_ptr), intent(INOUT) :: def_F
+      type(c_ptr), intent(IN) :: type_F
+      integer(c_long), intent(IN) :: offset
+      integer(c_int), value :: id
+      character(c_char), intent(IN) :: name(*)
 
-      integer(c_int) :: FTI_InitComplexTypeWithNames_impl
-      type(c_ptr), intent(OUT) :: type_F
-      type(c_ptr), intent(IN) :: def_F
+    endfunction FTI_AddSimpleField_impl
 
-    endfunction FTI_InitComplexTypeWithNames_impl
+  endinterface
+
+  interface
+
+    function FTI_AddComplexField_impl(def_F, type_F, offset, rank, dimLength, id, name) &
+            bind(c, name='FTI_AddComplexField')
+
+      use ISO_C_BINDING
+      type(c_ptr), intent(INOUT) :: def_F
+      type(c_ptr), intent(IN) :: type_F
+      integer(c_long), intent(IN) :: offset
+      integer(c_int), value :: rank
+      integer(c_int), intent(IN) :: dimLength(*)
+      integer(c_int), value :: id
+      character(c_char), intent(IN) :: name(*)
+
+    endfunction FTI_AddComplexField_impl
 
   endinterface
 
@@ -600,73 +592,80 @@ contains
 
   endsubroutine FTI_Finalize
 
-  !>  This function initalizes a data type. the only information needed is the
-  !!  size of the data type, the rest is black box for FTI.
-  !!  \brief    It initializes a data type.
-  !!  \param    type_F  (IN)    The data type to be intialized.
-  !!  \param    def_F   (IN)    The definition of the data type to be intialized.
-  !!  \param    err     (OUT)   Token for error handling.
-  !!  \return   integer         FTI_SCES if successful.
-  subroutine FTI_InitSimpleType(type_F, def_F, err)
+  !>  This function adds a field to the complex datatype. Use F_OFFSET macro to
+  !!  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+  !!  will set "T${id}" name. Sets rank and dimLength to 1.
+  !!  \brief    It adds a fileld to a complex data type definition.
+  !!  \param    def_F   (IN)    The definition of the data type to add field.
+  !!  \param    type_F  (IN)    The data type of the field to add.
+  !!  \param    offset  (IN)    Offset of field in a structure.
+  !!  \param    id      (IN)    Id of field in a structure.
+  !!  \param    name    (IN)    data field name in hdf5 checkpoint file.
+  subroutine FTI_AddSimpleField(def_F, type_F, offset, id, name)
 
-    type(FTI_type), intent(OUT) :: type_F
-    type(FTI_type), intent(IN) :: def_F
-    integer, intent(OUT) :: err
+    type(FTI_type), intent(INOUT) :: def_F
+    type(FTI_type), intent(IN) :: type_F
+    integer, intent(IN) :: offset
+    integer, intent(IN) :: id
+    character(len=*), intent(IN) :: name
 
-    err = int(FTI_InitSimpleType_impl(type_F%raw_type, def_F%raw_type))
 
-  endsubroutine FTI_InitSimpleType
+    err = int(FTI_AddSimpleField_impl(def_F%raw_type, type_F%raw_type, int(offset, c_long), &
+              int(id, c_int), name))
 
-  !>  This function initalizes a data type. the only information needed is the
-  !!  size of the data type, the rest is black box for FTI.
-  !!  \brief    It initializes a data type.
-  !!  \param    type_F  (IN)    The data type to be intialized.
-  !!  \param    def_F   (IN)    The definition of the data type to be intialized.
-  !!  \param    err     (OUT)   Token for error handling.
-  !!  \return   integer         FTI_SCES if successful.
-  subroutine FTI_InitSimpleTypeWithNames(type_F, def_F, err)
+  endsubroutine FTI_AddSimpleField
 
-    type(FTI_type), intent(OUT) :: type_F
-    type(FTI_type), intent(IN) :: def_F
-    integer, intent(OUT) :: err
+  !>  This function adds a field to the complex datatype. Use F_OFFSET macro to
+  !!  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+  !!  will set "T${id}" name. Sets rank and dimLength to 1.
+  !!  \brief    It adds a fileld to a complex data type definition.
+  !!  \brief    It adds a fileld to a complex data type definition.
+  !!  \param    def_F     (IN)    The definition of the data type to add field.
+  !!  \param    type_F    (IN)    The data type of the field to add.
+  !!  \param    offset    (IN)    Offset of field in a structure.
+  !!  \param    rank      (IN)    Rank of the array.
+  !!  \param    dimLength (IN)    Dimention length for each dimention.
+  !!  \param    id        (IN)    Id of a field in a structure.
+  !!  \param    name      (IN)    data field name in hdf5 checkpoint file.
+  subroutine FTI_AddComplexField(def_F, type_F, offset, rank, dimLength, id, name)
 
-    err = int(FTI_InitSimpleTypeWithNames_impl(type_F%raw_type, def_F%raw_type))
+    type(FTI_type), intent(INOUT) :: def_F
+    type(FTI_type), intent(IN) :: type_F
+    integer, intent(IN) :: offset
+    integer, intent(IN) :: rank
+    integer, intent(IN) :: dimLength(*)
+    integer, intent(IN) :: id
+    character(len=*), intent(IN) :: name
 
-endsubroutine FTI_InitSimpleTypeWithNames
+
+    err = int(FTI_AddComplexField_impl(def_F%raw_type, type_F%raw_type, int(offset, c_long), &
+              int(rank, c_int), dimLength, int(id, c_int), name))
+
+  endsubroutine FTI_AddComplexField
 
 !>  This function initalizes a data type. the only information needed is the
 !!  size of the data type, the rest is black box for FTI.
 !!  \brief    It initializes a data type.
 !!  \param    type_F  (IN)    The data type to be intialized.
 !!  \param    def_F   (IN)    The definition of the data type to be intialized.
+!!  \param    length  (IN)    Number of fields in the data structure.
+!!  \param    size    (IN)    Size of the sturcture.
+!!  \param    name    (IN)    data field name in hdf5 checkpoint file.
 !!  \param    err     (OUT)   Token for error handling.
 !!  \return   integer         FTI_SCES if successful.
-subroutine FTI_InitComplexType(type_F, def_F, err)
+subroutine FTI_InitComplexType(type_F, def_F, length, size, name, err)
 
   type(FTI_type), intent(OUT) :: type_F
   type(FTI_type), intent(IN) :: def_F
+  integer, intent(IN) :: length
+  integer, intent(IN) :: size
+  character(len=*), intent(IN) :: name
   integer, intent(OUT) :: err
 
-  err = int(FTI_InitComplexType_impl(type_F%raw_type, def_F%raw_type))
+  err = int(FTI_InitComplexType_impl(type_F%raw_type, def_F%raw_type, int(length, c_int), &
+            int(size, c_long), name))
 
 endsubroutine FTI_InitComplexType
-
-!>  This function initalizes a data type. the only information needed is the
-!!  size of the data type, the rest is black box for FTI.
-!!  \brief    It initializes a data type.
-!!  \param    type_F  (IN)    The data type to be intialized.
-!!  \param    def_F   (IN)    The definition of the data type to be intialized.
-!!  \param    err     (OUT)   Token for error handling.
-!!  \return   integer         FTI_SCES if successful.
-subroutine FTI_InitComplexTypeWithNames(type_F, def_F, err)
-
-  type(FTI_type), intent(OUT) :: type_F
-  type(FTI_type), intent(IN) :: def_F
-  integer, intent(OUT) :: err
-
-  err = int(FTI_InitComplexTypeWithNames_impl(type_F%raw_type, def_F%raw_type))
-
-endsubroutine FTI_InitComplexTypeWithNames
 
 !>  This function stores a pointer to a data structure, its size, its ID,
 !!  its number of elements and the type of the elements. This list of
