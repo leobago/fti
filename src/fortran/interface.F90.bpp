@@ -47,7 +47,9 @@ module FTI
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
-			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar
+	  FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
+      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
+      FTI_ProtectWithName
 
 
 
