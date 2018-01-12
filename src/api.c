@@ -275,7 +275,6 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
     return FTI_SCES;
 }
 
-#ifdef ENABLE_HDF5
 /*-------------------------------------------------------------------------*/
 /**
     @brief      It adds a simple field in complex data type.
@@ -319,7 +318,7 @@ void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, si
 
     This function adds a field to the complex datatype. Use F_OFFSET macro to
     set offset. First ID must be 0, next one must be +1. If name is NULL FTI
-    will set "T${id}" name. 
+    will set "T${id}" name.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -338,7 +337,6 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
         strncpy(typeDefinition->field[id].name, name, FTI_BUFS);
     }
 }
-#endif
 
 /*-------------------------------------------------------------------------*/
 /**
