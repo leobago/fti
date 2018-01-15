@@ -56,115 +56,115 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // datablock size in file
     FTI_dbstructsize
-        = sizeof(int)               /* numvars */ 
-        + sizeof(long);             /* dbsize */ 
+        = sizeof(int)               /* numvars */
+        + sizeof(long);             /* dbsize */
 
     // +--------- +
     // | FTI_Exec |
     // +--------- +
 
-    /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);  
-    /* int           */ FTI_Exec->ckpt                  =0;           
-    /* int           */ FTI_Exec->reco                  =0;          
-    /* int           */ FTI_Exec->ckptLvel              =0;       
-    /* int           */ FTI_Exec->ckptIntv              =0;   
-    /* int           */ FTI_Exec->lastCkptLvel          =0;  
-    /* int           */ FTI_Exec->wasLastOffline        =0;   
-    /* double        */ FTI_Exec->iterTime              =0;       
-    /* double        */ FTI_Exec->lastIterTime          =0;     
-    /* double        */ FTI_Exec->meanIterTime          =0;        
-    /* double        */ FTI_Exec->globMeanIter          =0;      
-    /* double        */ FTI_Exec->totalIterTime         =0;     
-    /* unsigned int  */ FTI_Exec->syncIter              =0;     
-    /* int           */ FTI_Exec->syncIterMax           =0;      
-    /* unsigned int  */ FTI_Exec->minuteCnt             =0;     
-    /* unsigned int  */ FTI_Exec->ckptCnt               =0;      
-    /* unsigned int  */ FTI_Exec->ckptIcnt              =0;       
-    /* unsigned int  */ FTI_Exec->ckptID                =0;       
-    /* unsigned int  */ FTI_Exec->ckptNext              =0;      
-    /* unsigned int  */ FTI_Exec->ckptLast              =0;       
-    /* long          */ FTI_Exec->ckptSize              =0;    
-    /* unsigned int  */ FTI_Exec->nbVar                 =0;       
-    /* unsigned int  */ FTI_Exec->nbVarStored           =0;       
-    /* unsigned int  */ FTI_Exec->nbType                =0;    
-    /* int           */ FTI_Exec->metaAlloc             =0;     
-    /* int           */ FTI_Exec->initSCES              =0;       
-    /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));     
+    /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);
+    /* int           */ FTI_Exec->ckpt                  =0;
+    /* int           */ FTI_Exec->reco                  =0;
+    /* int           */ FTI_Exec->ckptLvel              =0;
+    /* int           */ FTI_Exec->ckptIntv              =0;
+    /* int           */ FTI_Exec->lastCkptLvel          =0;
+    /* int           */ FTI_Exec->wasLastOffline        =0;
+    /* double        */ FTI_Exec->iterTime              =0;
+    /* double        */ FTI_Exec->lastIterTime          =0;
+    /* double        */ FTI_Exec->meanIterTime          =0;
+    /* double        */ FTI_Exec->globMeanIter          =0;
+    /* double        */ FTI_Exec->totalIterTime         =0;
+    /* unsigned int  */ FTI_Exec->syncIter              =0;
+    /* int           */ FTI_Exec->syncIterMax           =0;
+    /* unsigned int  */ FTI_Exec->minuteCnt             =0;
+    /* unsigned int  */ FTI_Exec->ckptCnt               =0;
+    /* unsigned int  */ FTI_Exec->ckptIcnt              =0;
+    /* unsigned int  */ FTI_Exec->ckptID                =0;
+    /* unsigned int  */ FTI_Exec->ckptNext              =0;
+    /* unsigned int  */ FTI_Exec->ckptLast              =0;
+    /* long          */ FTI_Exec->ckptSize              =0;
+    /* unsigned int  */ FTI_Exec->nbVar                 =0;
+    /* unsigned int  */ FTI_Exec->nbVarStored           =0;
+    /* unsigned int  */ FTI_Exec->nbType                =0;
+    /* int           */ FTI_Exec->metaAlloc             =0;
+    /* int           */ FTI_Exec->initSCES              =0;
+    /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
-    /* MPI_Comm      */ FTI_Exec->globalComm            =0;      
-    /* MPI_Comm      */ FTI_Exec->groupComm             =0;        
+    /* MPI_Comm      */ FTI_Exec->globalComm            =0;
+    /* MPI_Comm      */ FTI_Exec->groupComm             =0;
 
     // +--------- +
     // | FTI_Conf |
     // +--------- +
 
-    /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);  
-    /* int           */ FTI_Conf->saveLastCkpt          =0;      
-    /* int           */ FTI_Conf->verbosity             =0;          
-    /* int           */ FTI_Conf->blockSize             =0;           
-    /* int           */ FTI_Conf->transferSize          =0;        
+    /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);
+    /* int           */ FTI_Conf->saveLastCkpt          =0;
+    /* int           */ FTI_Conf->verbosity             =0;
+    /* int           */ FTI_Conf->blockSize             =0;
+    /* int           */ FTI_Conf->transferSize          =0;
 #ifdef LUSTRE
     /* int           */ FTI_Conf->stripeUnit            =0;
     /* int           */ FTI_Conf->stripeOffset          =0;
     /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
-    /* int           */ FTI_Conf->tag                   =0;   
-    /* int           */ FTI_Conf->test                  =0; 
-    /* int           */ FTI_Conf->l3WordSize            =0; 
-    /* int           */ FTI_Conf->ioMode                =0;        
-    /* char[BUFS]       FTI_Conf->localDir */           memset(FTI_Conf->localDir,0x0,FTI_BUFS);   
-    /* char[BUFS]       FTI_Conf->glbalDir */           memset(FTI_Conf->glbalDir,0x0,FTI_BUFS);     
-    /* char[BUFS]       FTI_Conf->metadDir */           memset(FTI_Conf->metadDir,0x0,FTI_BUFS);    
-    /* char[BUFS]       FTI_Conf->lTmpDir */            memset(FTI_Conf->lTmpDir,0x0,FTI_BUFS);    
-    /* char[BUFS]       FTI_Conf->gTmpDir */            memset(FTI_Conf->gTmpDir,0x0,FTI_BUFS);       
-    /* char[BUFS]       FTI_Conf->mTmpDir */            memset(FTI_Conf->mTmpDir,0x0,FTI_BUFS);    
+    /* int           */ FTI_Conf->tag                   =0;
+    /* int           */ FTI_Conf->test                  =0;
+    /* int           */ FTI_Conf->l3WordSize            =0;
+    /* int           */ FTI_Conf->ioMode                =0;
+    /* char[BUFS]       FTI_Conf->localDir */           memset(FTI_Conf->localDir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Conf->glbalDir */           memset(FTI_Conf->glbalDir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Conf->metadDir */           memset(FTI_Conf->metadDir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Conf->lTmpDir */            memset(FTI_Conf->lTmpDir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Conf->gTmpDir */            memset(FTI_Conf->gTmpDir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Conf->mTmpDir */            memset(FTI_Conf->mTmpDir,0x0,FTI_BUFS);
 
     // +--------- +
     // | FTI_Topo |
     // +--------- +
 
-    /* int           */ FTI_Topo->nbProc                =0;                     
-    /* int           */ FTI_Topo->nbNodes               =0;                     
-    /* int           */ FTI_Topo->myRank                =0;                   
-    /* int           */ FTI_Topo->splitRank             =0;                      
-    /* int           */ FTI_Topo->nodeSize              =0;                   
-    /* int           */ FTI_Topo->nbHeads               =0;                      
-    /* int           */ FTI_Topo->nbApprocs             =0;                 
-    /* int           */ FTI_Topo->groupSize             =0;       
-    /* int           */ FTI_Topo->sectorID              =0;    
-    /* int           */ FTI_Topo->nodeID                =0;      
-    /* int           */ FTI_Topo->groupID               =0;      
-    /* int           */ FTI_Topo->amIaHead              =0;      
-    /* int           */ FTI_Topo->headRank              =0;         
-    /* int           */ FTI_Topo->nodeRank              =0;          
-    /* int           */ FTI_Topo->groupRank             =0;        
-    /* int           */ FTI_Topo->right                 =0;         
-    /* int           */ FTI_Topo->left                  =0;        
-    /* int[BUFS]        FTI_Topo->body */               memset(FTI_Topo->body,0x0,FTI_BUFS*sizeof(int));      
+    /* int           */ FTI_Topo->nbProc                =0;
+    /* int           */ FTI_Topo->nbNodes               =0;
+    /* int           */ FTI_Topo->myRank                =0;
+    /* int           */ FTI_Topo->splitRank             =0;
+    /* int           */ FTI_Topo->nodeSize              =0;
+    /* int           */ FTI_Topo->nbHeads               =0;
+    /* int           */ FTI_Topo->nbApprocs             =0;
+    /* int           */ FTI_Topo->groupSize             =0;
+    /* int           */ FTI_Topo->sectorID              =0;
+    /* int           */ FTI_Topo->nodeID                =0;
+    /* int           */ FTI_Topo->groupID               =0;
+    /* int           */ FTI_Topo->amIaHead              =0;
+    /* int           */ FTI_Topo->headRank              =0;
+    /* int           */ FTI_Topo->nodeRank              =0;
+    /* int           */ FTI_Topo->groupRank             =0;
+    /* int           */ FTI_Topo->right                 =0;
+    /* int           */ FTI_Topo->left                  =0;
+    /* int[BUFS]        FTI_Topo->body */               memset(FTI_Topo->body,0x0,FTI_BUFS*sizeof(int));
 
     // +--------- +
     // | FTI_Ckpt |
     // +--------- +
 
-    /* char[BUFS]       FTI_Ckpt->dir */                memset(FTI_Ckpt->dir,0x0,FTI_BUFS); 
-    /* char[BUFS]       FTI_Ckpt->metaDir */            memset(FTI_Ckpt->metaDir,0x0,FTI_BUFS);  
-    /* int           */ FTI_Ckpt->isInline              =0;  
-    /* int           */ FTI_Ckpt->ckptIntv              =0;  
-    /* int           */ FTI_Ckpt->ckptCnt               =0; 
+    /* char[BUFS]       FTI_Ckpt->dir */                memset(FTI_Ckpt->dir,0x0,FTI_BUFS);
+    /* char[BUFS]       FTI_Ckpt->metaDir */            memset(FTI_Ckpt->metaDir,0x0,FTI_BUFS);
+    /* int           */ FTI_Ckpt->isInline              =0;
+    /* int           */ FTI_Ckpt->ckptIntv              =0;
+    /* int           */ FTI_Ckpt->ckptCnt               =0;
 
     // +--------- +
     // | FTI_Injc |
     // +--------- +
 
-    //* int           */ FTI_Injc->rank                  =0;      
-    //* int           */ FTI_Injc->index                 =0;     
-    //* int           */ FTI_Injc->position              =0;      
-    //* int           */ FTI_Injc->number                =0;     
-    //* int           */ FTI_Injc->frequency             =0;         
-    //* int           */ FTI_Injc->counter               =0;       
-    //* double        */ FTI_Injc->timer                 =0;      
+    //* int           */ FTI_Injc->rank                  =0;
+    //* int           */ FTI_Injc->index                 =0;
+    //* int           */ FTI_Injc->position              =0;
+    //* int           */ FTI_Injc->number                =0;
+    //* int           */ FTI_Injc->frequency             =0;
+    //* int           */ FTI_Injc->counter               =0;
+    //* double        */ FTI_Injc->timer                 =0;
 
     return FTI_SCES;
 
@@ -184,7 +184,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
     // FTI-FF: computes checksum from the data structures and prot. variables.
@@ -194,7 +194,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
 
         MD5_CTX mdContext;
         MD5_Init (&mdContext);
-        int i; 
+        int i;
 
         //iterate all variables
         for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -366,6 +366,131 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
     }
 }
 
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It creates h5datatype (hid_t) from definitions in FTI_Types
+  @param      ftiType        FTI_Type type
+
+  This function creates (opens) hdf5 compound type. Should be called only
+  before saving checkpoint in HDF5 format. Build-in FTI's types are always open.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_CreateComplexType(FTIT_type* ftiType)
+{
+    char str[FTI_BUFS];
+    if (ftiType->h5datatype > -1) {
+        //This type already created
+        sprintf(str, "Type [%d] is already created.", ftiType->id);
+        FTI_Print(str, FTI_DBUG);
+        return;
+    }
+
+    if (ftiType->structure == NULL) {
+        //Save as array of bytes
+        sprintf(str, "Creating type [%d] as array of bytes.", ftiType->id);
+        FTI_Print(str, FTI_DBUG);
+        ftiType->h5datatype = H5Tcopy(H5T_NATIVE_CHAR);
+        H5Tset_size(ftiType->h5datatype, ftiType->size);
+        return;
+    }
+
+    hid_t partTypes[FTI_BUFS];
+    int i;
+    //for each field create and rank-dimension array if needed
+    for (i = 0; i < ftiType->structure->length; i++) {
+        sprintf(str, "Type [%d] trying to create new type [%d].", ftiType->id, ftiType->structure->field[i].type->id);
+        FTI_Print(str, FTI_DBUG);
+        FTI_CreateComplexType(ftiType->structure->field[i].type);
+        partTypes[i] = ftiType->structure->field[i].type->h5datatype;
+        if (ftiType->structure->field[i].rank > 1) {
+            //need to create rank-dimension array type
+            hsize_t dims[FTI_BUFS];
+            int j;
+            for (j = 0; j < ftiType->structure->field[i].rank; j++) {
+                dims[j] = ftiType->structure->field[i].dimLength[j];
+            }
+            sprintf(str, "Type [%d] trying to create %d-D array of type [%d].", ftiType->id, ftiType->structure->field[i].rank, ftiType->structure->field[i].type->id);
+            FTI_Print(str, FTI_DBUG);
+            partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, ftiType->structure->field[i].rank, dims);
+        } else {
+            if (ftiType->structure->field[i].dimLength[0] > 1) {
+                //need to create 1-dimension array type
+                sprintf(str, "Type [%d] trying to create 1-D [%d] array of type [%d].", ftiType->id, ftiType->structure->field[i].dimLength[0], ftiType->structure->field[i].type->id);
+                FTI_Print(str, FTI_DBUG);
+                hsize_t dim = ftiType->structure->field[i].dimLength[0];
+                partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, 1, &dim);
+            }
+        }
+    }
+
+    //create new HDF5 datatype
+    sprintf(str, "Creating type [%d].", ftiType->id);
+    FTI_Print(str, FTI_DBUG);
+    ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->structure->size);
+    sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
+    FTI_Print(str, FTI_DBUG);
+    if (ftiType->h5datatype < 0) {
+        FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
+    }
+
+    //inserting fields into the new type
+    for (i = 0; i < ftiType->structure->length; i++) {
+        sprintf(str, "Insering type [%d] into new type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
+        FTI_Print(str, FTI_DBUG);
+        herr_t res = H5Tinsert(ftiType->h5datatype, ftiType->structure->field[i].name, ftiType->structure->field[i].offset, partTypes[i]);
+        if (res < 0) {
+            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+        }
+    }
+
+}
+#endif
+
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It closes h5datatype
+  @param      ftiType        FTI_Type type
+
+  This function destroys (closes) hdf5 compound type. Should be called
+  after saving checkpoint in HDF5 format.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_CloseComplexType(FTIT_type* ftiType)
+{
+    char str[FTI_BUFS];
+    if (ftiType->h5datatype == -1 || ftiType->id < 11) {
+        //This type already closed or build-in type
+        sprintf(str, "Cannot close type [%d]. Build in or already closed.", ftiType->id);
+        FTI_Print(str, FTI_DBUG);
+        return;
+    }
+
+    if (ftiType->structure != NULL) {
+        //array of bytes don't have structure
+        int i;
+        //close each field
+        for (i = 0; i < ftiType->structure->length; i++) {
+            sprintf(str, "Closing type [%d] of compound type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
+            FTI_Print(str, FTI_DBUG);
+            FTI_CloseComplexType(ftiType->structure->field[i].type);
+        }
+    }
+
+    //create new HDF5 datatype
+    sprintf(str, "Closing type [%d].", ftiType->id);
+    FTI_Print(str, FTI_DBUG);
+    herr_t res = H5Tclose(ftiType->h5datatype);
+    if (res < 0) {
+        FTI_Print("FTI failed to close HDF5 type.", FTI_WARN);
+    }
+    ftiType->h5datatype = -1;
+}
+#endif
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates the basic datatypes and the dataset array.
@@ -393,6 +518,20 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));
+#ifdef ENABLE_HDF5
+    // Maps FTI types to HDF5 types
+    FTI_CHAR.h5datatype = H5T_NATIVE_CHAR;
+    FTI_SHRT.h5datatype = H5T_NATIVE_SHORT;
+    FTI_INTG.h5datatype = H5T_NATIVE_INT;
+    FTI_LONG.h5datatype = H5T_NATIVE_LONG;
+    FTI_UCHR.h5datatype = H5T_NATIVE_UCHAR;
+    FTI_USHT.h5datatype = H5T_NATIVE_USHORT;
+    FTI_UINT.h5datatype = H5T_NATIVE_UINT;
+    FTI_ULNG.h5datatype = H5T_NATIVE_ULONG;
+    FTI_SFLT.h5datatype = H5T_NATIVE_FLOAT;
+    FTI_DBLE.h5datatype = H5T_NATIVE_DOUBLE;
+    FTI_LDBE.h5datatype = H5T_NATIVE_LDOUBLE;
+#endif
     return FTI_SCES;
 }
 

@@ -205,7 +205,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    long pos = 0; 
+    long pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
@@ -307,7 +307,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
         }
         if (erased[FTI_Topo->groupRank + k]) {
-            MD5_Update(&md5ctxRS, coding[FTI_Topo->groupRank], remBsize); 
+            MD5_Update(&md5ctxRS, coding[FTI_Topo->groupRank], remBsize);
             fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
         }
 
@@ -332,7 +332,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->meta[3].fs[0] = fs;
         free( metaInfo );
         close( ifd );
-    }            
+    }
 
     // FTI-FF: if encoded file deleted, append meta data to encoded file
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
@@ -421,7 +421,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("No restart possible from L1. Ckpt files missing.", FTI_DBUG);
             return FTI_NSCS;
         }
-    } 
+    }
 
     else {
         int erased[FTI_BUFS]; // FTI_BUFS > 32*3
@@ -617,7 +617,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         erased[source + FTI_Topo->groupSize] = !exists[MY_COPY];
         erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !exists[LEFT_COPY];
 
-    } 
+    }
 
     else {
         // Checking erasures
@@ -753,7 +753,7 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-    } 
+    }
 
     else {
 
@@ -815,8 +815,8 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 
         switch(FTI_Conf->ioMode) {
-            
             case FTI_IO_FTIFF:
+            case FTI_IO_HDF5:
             case FTI_IO_POSIX:
                 return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
             case FTI_IO_MPI:
@@ -861,7 +861,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
             return FTI_NSCS;
         }
-    } 
+    }
 
     else {
         int erased[FTI_BUFS];
@@ -884,6 +884,13 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
         sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+
+#ifdef ENABLE_HDF5
+        if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+            sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+            sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+        }
+#endif
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
@@ -922,9 +929,9 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // FTI-FF: skip file meta data for computing the checksum
         if( (FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
             if ( pos < sizeof(FTIFF_metaInfo) )  {
-                if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {  
+                if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {
                     MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
-                } 
+                }
             } else {
                 MD5_Update( &md5ctxL4, readData, bytes );
             }
@@ -957,7 +964,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // FTI-FF: check if checksums coincide
-    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) { 
+    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
         unsigned char hashL4[MD5_DIGEST_LENGTH];
         MD5_Final( hashL4, &md5ctxL4 );
 

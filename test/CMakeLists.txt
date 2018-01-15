@@ -4,6 +4,14 @@ target_link_libraries(addInArray fti.static)
 add_executable(diffSizes diffSizes.c)
 target_link_libraries(diffSizes fti.static)
 
+if(ENABLE_HDF5)
+	add_executable(hdf5Test hdf5Test.c)
+	target_link_libraries(hdf5Test fti.static)
+
+	add_executable(hdf5noFTI hdf5noFTI.c)
+	target_link_libraries(hdf5noFTI fti.static)
+endif()
+
 add_executable(heatdis heatdis.c)
 target_link_libraries(heatdis fti.static)
 
@@ -23,3 +31,6 @@ file(COPY patterns DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
+if(ENABLE_HDF5)
+	file(COPY hdf5Test.sh DESTINATION .)
+endif()

@@ -52,6 +52,11 @@
 #   include <sion.h>
 #endif
 
+#ifdef ENABLE_HDF5
+#include "hdf5.h"
+#include "hdf5_hl.h"
+#endif
+
 #include <stdint.h>
 #include "../deps/md5/md5.h"
 
@@ -85,8 +90,8 @@
 
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
-//    = sizeof(int)     /* numvars */ 
-//    + sizeof(long);   /* dbsize */ 
+//    = sizeof(int)     /* numvars */
+//    + sizeof(long);   /* dbsize */
 
 /*---------------------------------------------------------------------------
   FTI private functions
@@ -129,6 +134,16 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection *FTI_Inje);
+
+#ifdef ENABLE_HDF5
+    int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                      FTIT_dataset* FTI_Data);
+    int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                        FTIT_dataset* FTI_Data);
+    int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                            FTIT_dataset* FTI_Data, int id);
+#endif
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -188,12 +203,16 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, 
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
       FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
+#ifdef ENABLE_HDF5
+    void FTI_CreateComplexType(FTIT_type* ftiType);
+    void FTI_CloseComplexType(FTIT_type* ftiType);
+#endif
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,

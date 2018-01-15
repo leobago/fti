@@ -54,6 +54,9 @@ static FTIT_topology FTI_Topo;
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];
 
+/** Array of types defined by user.                                        */
+static FTIT_type* FTI_Type[FTI_BUFS];
+
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
@@ -148,7 +151,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
                 res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
-            }	
+            }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
             if (res != FTI_SCES) {
@@ -184,8 +187,9 @@ int FTI_Status()
   @param      size            The size of the data type to be intialized.
   @return     integer         FTI_SCES if successful.
 
-  This function initalizes a data type. the only information needed is the
-  size of the data type, the rest is black box for FTI.
+  This function initalizes a data type. The only information needed is the
+  size of the data type, the rest is black box for FTI. Types saved as byte array
+  in case of HDF5 format.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -193,8 +197,150 @@ int FTI_InitType(FTIT_type* type, int size)
 {
     type->id = FTI_Exec.nbType;
     type->size = size;
+    type->structure = NULL;
     FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    FTI_Type[type->id] = type;
+
+#ifdef ENABLE_HDF5
+    type->h5datatype = -1; //to mark as closed
+#endif
     return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It initializes a complex data type.
+    @param      newType         The data type to be intialized.
+    @param      typeDefinition  Structure definition of the new type.
+    @param      length          Number of fields in structure
+    @param      size            Size of the structure
+    @param      name            Name of the structure
+    @return     integer         FTI_SCES if successful.
+
+    This function initalizes a simple data type. New type can only consists
+    fields of flat FTI types (no arrays). Type definition must include:
+        - length                => number of fields in the new type
+        - field[].type          => types of the field in the new type
+        - field[].name          => name of the field in the new type
+        - field[].rank          => number of dimentions of the field
+        - field[].dimLength[]   => length of each dimention of the field
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name)
+{
+    if (length < 1) {
+        FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (length > 255) {
+        FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    int i;
+    for (i = 0; i < length; i++) {
+        if (typeDefinition->field[i].rank < 1) {
+            FTI_Print("Type rank must be greater than 0.", FTI_WARN);
+            return FTI_NSCS;
+        }
+        if (typeDefinition->field[i].rank > 32) {
+            FTI_Print("Maximum rank is 32.", FTI_WARN);
+            return FTI_NSCS;
+        }
+        int j;
+        for (j = 0; j < typeDefinition->field[i].rank; j++) {
+            if (typeDefinition->field[i].dimLength[j] < 1) {
+                char str[FTI_BUFS];
+                sprintf(str, "(%s, index: %d) Type dimention length must be greater than 0.", typeDefinition->field[i].name, i);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NSCS;
+            }
+        }
+    }
+
+    newType->id = FTI_Exec.nbType;
+    newType->size = size;
+    //assign type definition to type structure (types, names, ranks, dimLengths)
+    typeDefinition->size = size;
+    typeDefinition->length = length;
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->name, "Type%d", newType->id);
+    } else {
+        strncpy(typeDefinition->name, name, FTI_BUFS);
+    }
+
+    newType->structure = typeDefinition;
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+    FTI_Type[newType->id] = newType;
+
+    #ifdef ENABLE_HDF5
+        newType->h5datatype = -1; //to mark as closed
+    #endif
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It adds a simple field in complex data type.
+    @param      typeDefinition  Structure definition of the complex data type.
+    @param      ftiType         Type of the field
+    @param      offset          Offset of the field (use offsetof)
+    @param      id              Id of the field (start with 0)
+    @param      name            Name of the field (put NULL if want default)
+    @return     integer         FTI_SCES if successful.
+
+    This function adds a field to the complex datatype. Use offsetof macro to
+    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+    will set "T${id}" name. Sets rank and dimLength to 1.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->field[id].name, "T%d", id);
+    } else {
+        strncpy(typeDefinition->field[id].name, name, FTI_BUFS);
+    }
+    typeDefinition->field[id].rank = 1;
+    typeDefinition->field[id].dimLength[0] = 1;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It adds a simple field in complex data type.
+    @param      typeDefinition  Structure definition of the complex data type.
+    @param      ftiType         Type of the field
+    @param      offset          Offset of the field (use offsetof)
+    @param      rank            Rank of the array
+    @param      dimLength       Dimention length for each rank
+    @param      id              Id of the field (start with 0)
+    @param      name            Name of the field (put NULL if want default)
+    @return     integer         FTI_SCES if successful.
+
+    This function adds a field to the complex datatype. Use offsetof macro to
+    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+    will set "T${id}" name.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
+{
+    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].offset = offset;
+    typeDefinition->field[id].rank = rank;
+    int i;
+    for (i = 0; i < rank; i++) {
+        typeDefinition->field[id].dimLength[i] = dimLength[i];
+    }
+    if (name == NULL || !strlen(name)) {
+        sprintf(typeDefinition->field[id].name, "T%d", id);
+    } else {
+        strncpy(typeDefinition->field[id].name, name, FTI_BUFS);
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -221,6 +367,43 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
+    char name[FTI_BUFS];
+    sprintf(name, "Dataset_%d", id);
+    int i;
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (id == FTI_Data[i].id) { //Search for dataset with given id
+            strncpy(name, FTI_Data[i].name, FTI_BUFS);
+        }
+    }
+
+    return FTI_ProtectWithName(id, ptr, count, type, name);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      It sets/resets the pointer and type to a protected variable.
+    @param      id              ID for searches and update.
+    @param      ptr             Pointer to the data structure.
+    @param      count           Number of elements in the data structure.
+    @param      type            Type of elements in the data structure.
+    @param      name            Name of the dataset in HDF5 file.
+    @return     integer         FTI_SCES if successful.
+
+    This function stores a pointer to a data structure, its size, its ID,
+    its number of elements and the type of the elements. This list of
+    structures is the data that will be stored during a checkpoint and
+    loaded during a recovery. It resets the pointer to a data structure,
+    its size, its number of elements,the type and the name of the elements
+    if the dataset was already previously registered.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name)
+{
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
     char str[FTI_BUFS]; //For console output
 
@@ -230,9 +413,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             long prevSize = FTI_Data[i].size;
             FTI_Data[i].ptr = ptr;
             FTI_Data[i].count = count;
-            FTI_Data[i].type = type;
+            FTI_Data[i].type = FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
+            strncpy(FTI_Data[i].name, name, FTI_BUFS);
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -251,9 +435,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].id = id;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
     FTI_Data[FTI_Exec.nbVar].count = count;
-    FTI_Data[FTI_Exec.nbVar].type = type;
+    FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    strncpy(FTI_Data[FTI_Exec.nbVar].name, name, FTI_BUFS);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -311,7 +496,7 @@ long FTI_GetStoredSize(int id)
   file, reallacates memory and updates data size information.
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_Realloc(int id, void* ptr) 
+void* FTI_Realloc(int id, void* ptr)
 {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -425,7 +610,7 @@ int FTI_BitFlip(int datasetID)
             if ((MPI_Wtime() - FTI_Inje.timer) > FTI_Inje.frequency) {
                 if (FTI_Inje.index < FTI_Data[datasetID].count) {
                     char str[FTI_BUFS];
-                    if (FTI_Data[datasetID].type.id == 9) { // If it is a double
+                    if (FTI_Data[datasetID].type->id == 9) { // If it is a double
                         double* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
                         double ori = *target;
                         int res = FTI_DoubleBitFlip(target, FTI_Inje.position);
@@ -436,7 +621,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
-                    if (FTI_Data[datasetID].type.id == 8) { // If it is a float
+                    if (FTI_Data[datasetID].type->id == 8) { // If it is a float
                         float* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
                         float ori = *target;
                         int res = FTI_FloatBitFlip(target, FTI_Inje.position);
@@ -504,7 +689,7 @@ int FTI_Checkpoint(int id, int level)
     double t2 = MPI_Wtime(); //Time after writing checkpoint
 
     // FTIFF: send meta info to the heads
-    FTIFF_headInfo *headInfo;    
+    FTIFF_headInfo *headInfo;
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.wasLastOffline = 1;
         // Head needs ckpt. ID to determine ckpt file name.
@@ -604,6 +789,13 @@ int FTI_Recover()
             return FTI_NREC;
         }
     }
+
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
+    }
+#endif
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -721,9 +913,9 @@ int FTI_Finalize()
         MPI_Finalize();
         exit(0);
     }
-  
+
     // Notice: The following code is only executed by the application procs
-    
+
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
         int lastLevel;
@@ -837,6 +1029,12 @@ int FTI_RecoverVar(int id)
             }
         }
     }
+
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
+    }
+#endif
 
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
