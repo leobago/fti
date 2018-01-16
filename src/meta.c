@@ -95,7 +95,7 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //Get checksum of Reed-Salomon file
     sprintf(str, "%d:RSed_checksum", FTI_Topo->groupRank);
     checksumTemp = iniparser_getstring(ini, str, "");
-    strncpy(rsChecksum, checksumTemp, MD5_DIGEST_LENGTH);
+    strncpy(rsChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     iniparser_freedict(ini);
 
