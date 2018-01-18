@@ -50,7 +50,7 @@
 #include "fti.h"
 #include <assert.h>
 
-/**  
+/**
 
   +-------------------------------------------------------------------------+
   |   FTI-FF TYPES                                                          |
@@ -60,13 +60,13 @@
 
 /** @typedef    FTIFF_headInfo
  *  @brief      Runtime meta info for the heads.
- *  
- *  keeps all necessary meta data information for the heads, in order to 
+ *
+ *  keeps all necessary meta data information for the heads, in order to
  *  perform the checkpoint.
- *  
+ *
  */
 typedef struct FTIFF_headInfo {
-    int exists; 
+    int exists;
     int nbVar;
     char ckptFile[FTI_BUFS];
     long maxFs;
@@ -76,9 +76,9 @@ typedef struct FTIFF_headInfo {
 
 /** @typedef    FTIFF_L2Info
  *  @brief      Meta data for L2 recovery.
- *  
+ *
  *  keeps meta data information that needs to be exchanged between the ranks.
- *  
+ *
  */
 typedef struct FTIFF_L2Info {
     int FileExists;
@@ -91,9 +91,9 @@ typedef struct FTIFF_L2Info {
 
 /** @typedef    FTIFF_L3Info
  *  @brief      Meta data for L3 recovery.
- *  
+ *
  *  keeps meta data information that needs to be exchanged between the ranks.
- *  
+ *
  */
 typedef struct FTIFF_L3Info {
     int FileExists;
@@ -103,7 +103,7 @@ typedef struct FTIFF_L3Info {
     long RSfs;  // maxFs
 } FTIFF_L3Info;
 
-/**  
+/**
 
   +-------------------------------------------------------------------------+
   |   MPI DERIVED DATA TYPES                                                |
@@ -130,7 +130,7 @@ typedef struct FTIFF_MPITypeInfo {
     MPI_Aint*           mbrDisp;
 } FTIFF_MPITypeInfo;
 
-/**  
+/**
 
   +-------------------------------------------------------------------------+
   |   FUNCTION DECLARATIONS                                                 |
@@ -148,15 +148,15 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
 int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
-int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf );
-int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt );
-int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int *exists);
-int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int* erased);
-int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, char *checksum);
 void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta );
 #endif

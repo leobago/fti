@@ -9,6 +9,8 @@
 #define _FTI_H
 
 #include <mpi.h>
+#include <stdlib.h>
+#include <stddef.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -76,6 +78,11 @@
 #define FTI_IO_SIONLIB 1004
 #endif
 
+/** Token for IO mode HDF5.                                         */
+#define FTI_IO_HDF5 1005
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+    #include "hdf5.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +98,7 @@ extern "C" {
      *  (For FTI-FF only)
      *  Keeps information about the file. 'checksum' is the hash of the file
      *  excluding the file meta data. 'myHash' is the hash of the file meta data.
-     *  
+     *
      */
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
@@ -107,10 +114,10 @@ extern "C" {
      *  @brief      Information about protected variable in datablock.
      *
      *  (For FTI-FF only)
-     *  Keeps information about the chunk of the protected variable with id 
-     *  stored in the current datablock. 'idx' is the index for the array 
+     *  Keeps information about the chunk of the protected variable with id
+     *  stored in the current datablock. 'idx' is the index for the array
      *  element of 'FTIT_dataset* FTI_Data', that contains variable with 'id'.
-     *  
+     *
      */
     typedef struct FTIFF_dbvar {
         int id;             /**< id of protected variable                       */
@@ -165,15 +172,51 @@ extern "C" {
         char            byte[4];            /**< Byte array for coarser control.*/
     } FTIT_float;
 
+    /** @typedef    FTIT_complexType
+     *  @brief      Type that consists of other FTI types
+     *
+     *  This type allows creating complex datatypes.
+     */
+    typedef struct FTIT_complexType FTIT_complexType;
+
     /** @typedef    FTIT_type
      *  @brief      Type recognized by FTI.
      *
      *  This type allows handling data structures.
      */
     typedef struct FTIT_type {
-        int             id;                 /**< ID of the data type.           */
-        int             size;               /**< Size of the data type.         */
+        int                 id;                 /**< ID of the data type.           */
+        int                 size;               /**< Size of the data type.         */
+        FTIT_complexType*   structure;              /**< Logical structure for HDF5.    */
+#ifdef ENABLE_HDF5
+        hid_t               h5datatype;             /**< HDF5 datatype.                 */
+#endif
     } FTIT_type;
+
+    /** @typedef    FTIT_typeField
+     *  @brief      Holds info about field in complex type
+     *
+     *  This type simplify creating complex datatypes.
+     */
+    typedef struct FTIT_typeField {
+        FTIT_type*          type;                   /**< Field FTI type.                    */
+        int                 offset;                 /**< Offset of the field in structure.  */
+        int                 rank;                   /**< Field rank (max. 32)               */
+        int                 dimLength[32];          /**< Lenght of each dimention           */
+        char                name[FTI_BUFS];         /**< Name of the field                  */
+    } FTIT_typeField;
+
+    /** @typedef    FTIT_complexType
+     *  @brief      Type that consists of other FTI types
+     *
+     *  This type allows creating complex datatypes.
+     */
+    typedef struct FTIT_complexType {
+        FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
+        char                name[FTI_BUFS];         /**< Name of the complex type.          */
+        int                 length;                 /**< Number of types in complex type.   */
+        size_t              size;                   /**< Size of the complex type.          */
+    } FTIT_complexType;
 
     /** @typedef    FTIT_dataset
      *  @brief      Dataset metadata.
@@ -184,11 +227,10 @@ extern "C" {
         int             id;                 /**< ID to search/update dataset.   */
         void            *ptr;               /**< Pointer to the dataset.        */
         long            count;              /**< Number of elements in dataset. */
-        FTIT_type       type;               /**< Data type for the dataset.     */
+        FTIT_type*       type;              /**< Data type for the dataset.     */
         int             eleSize;            /**< Element size for the dataset.  */
         long            size;               /**< Total size of the dataset.     */
-        /** MD5 Checksum                    */
-        char            checksum[MD5_DIGEST_STRING_LENGTH];
+        char            name[FTI_BUFS];     /**< Name of the dataset.           */
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -368,7 +410,14 @@ extern "C" {
     int FTI_Init(char *configFile, MPI_Comm globalComm);
     int FTI_Status();
     int FTI_InitType(FTIT_type* type, int size);
+    int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition,
+                        int length, size_t size, char* name);
+    void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+                                size_t offset, int id, char* name);
+    void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+                                size_t offset, int rank, int* dimLength, int id, char* name);
     int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
+    int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name);
     long FTI_GetStoredSize(int id);
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);

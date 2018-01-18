@@ -84,24 +84,18 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     //Get checksum of checkpoint file
     sprintf(str, "%d:Ckpt_checksum", FTI_Topo->groupRank);
-    char* checksumTemp = iniparser_getstring(ini, str, NULL);
+    char* checksumTemp = iniparser_getstring(ini, str, "");
     strncpy(checksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of partner checkpoint file
     sprintf(str, "%d:Ckpt_checksum", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
-    checksumTemp = iniparser_getstring(ini, str, NULL);
+    checksumTemp = iniparser_getstring(ini, str, "");
     strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of Reed-Salomon file
     sprintf(str, "%d:RSed_checksum", FTI_Topo->groupRank);
-    checksumTemp = iniparser_getstring(ini, str, NULL);
-
-    //If RS checksum don't exists length set to 0;
-    if (checksumTemp != NULL) {
-        strncpy(rsChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
-    } else {
-        rsChecksum[0] = '\0';
-    }
+    checksumTemp = iniparser_getstring(ini, str, "");
+    strncpy(rsChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
 
     iniparser_freedict(ini);
 
@@ -447,7 +441,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
-    
+
 	char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     sprintf(str, "Temporary load of topology file (%s)...", buf);
@@ -556,8 +550,35 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
-    
+
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
+
+#ifdef ENABLE_HDF5
+    char fn[FTI_BUFS];
+    if (FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
+    else {
+        sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
+    if (access(fn, F_OK) == 0) {
+        struct stat fileStatus;
+        if (stat(fn, &fileStatus) == 0) {
+            FTI_Exec->meta[0].fs[0] = fileStatus.st_size;
+        }
+        else {
+            char str[FTI_BUFS];
+            sprintf(str, "FTI couldn't get ckpt file size. (%s)", fn);
+            FTI_Print(str, FTI_WARN);
+        }
+    }
+    else {
+        char str[FTI_BUFS];
+        sprintf(str, "FTI couldn't acces file ckpt file. (%s)", fn);
+        FTI_Print(str, FTI_WARN);
+    }
+#endif
+
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
     long fileSizes[FTI_BUFS];
     MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
@@ -589,6 +610,14 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
     FTI_Checksum(FTI_Exec, FTI_Data, FTI_Conf, checksum);
+
+    //TODO checksums of HDF5 files
+#ifdef ENABLE_HDF5
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+        checksum[0] = '\0';
+    }
+#endif
+
     char* checksums;
     if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);

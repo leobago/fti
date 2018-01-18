@@ -320,26 +320,35 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
+    switch (FTI_Conf->ioMode) {
+        case FTI_IO_POSIX:
+            FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
+            break;
+        case FTI_IO_MPI:
+            FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
+            break;
+        case FTI_IO_FTIFF:
+            FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
+            break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_SIONLIB) {
-#else
-        if (FTI_Conf->ioMode < FTI_IO_POSIX || FTI_Conf->ioMode > FTI_IO_FTIFF) {
+            case FTI_IO_SIONLIB:
+                FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
+                break;
 #endif
+        case FTI_IO_HDF5:
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+                FTI_Print("Selected Ckpt I/O is HDF5", FTI_INFO);
+#else
+                FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled. Setting IO mode to POSIX.", FTI_WARN);
+                FTI_Conf->ioMode = FTI_IO_POSIX;
+#endif
+            break;
+        default:
             FTI_Conf->ioMode = FTI_IO_POSIX;
             FTI_Print("Variable 'Basic:ckpt_io' is not set. Set to default (POSIX).", FTI_WARN);
-        } else {
-            switch(FTI_Conf->ioMode) {
-                case FTI_IO_POSIX:
-                    FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
-                    break;
-                case FTI_IO_MPI:
-                    FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
-                    break;
-                case FTI_IO_FTIFF:
-                    FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
-                    break;
-            }
-        }
+            break;
+
+    }
         return FTI_SCES;
     }
 

@@ -384,6 +384,8 @@ env:
 
     - TEST=syncIntv CONFIG=configH1I0.fti
 
+    - TEST=hdf5
+
 addons:
   coverity_scan:
     project:
@@ -416,11 +418,12 @@ before_install:
   - if [[ "$COMPILER" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran openmpi-bin libopenmpi-dev ; fi
   - if [[ "$COMPILER" = "icc" ]] ; then export MPICC=mpiicc && export MPIFC=ifort && source ./travisScripts/before-script-icc.sh ; fi
   - if [[ "$COMPILER" = "pgi" ]] ; then source ./travisScripts/before-script-pgi.sh ; fi
+  - if [[ "$TEST" = "hdf5" ]] ; then sudo apt-get install -y libhdf5-serial-dev hdf5-tools ; fi
 
 before_script:
   - mkdir $BUILD_DIR
   - cd $BUILD_DIR
-  - cmake ..
+  - if [[ "$TEST" = "hdf5" ]]; then cmake -DENABLE_HDF5=ON .. ; else cmake .. ; fi
   - make all
   - sudo make install
 
