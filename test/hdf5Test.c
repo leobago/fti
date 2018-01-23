@@ -314,6 +314,24 @@ int main(int argc, char** argv) {
     FTIT_type bytesType;
     FTI_InitType(&bytesType, sizeof(AsByteArray));
 
+    //Create groups for types
+        //AllIntegers datatype
+        FTIT_H5Group allIntsGroup;
+        FTI_InitGroup(&allIntsGroup, "All Integers", NULL);
+
+        //Integers datatype
+        FTIT_H5Group intsGroup;
+        FTI_InitGroup(&intsGroup, "Integers", &allIntsGroup);
+
+        //UIntegers datatype
+        FTIT_H5Group uIntsGroup;
+        FTI_InitGroup(&uIntsGroup, "Unsigned Integers", &allIntsGroup);
+        
+        //Chars And Floats datatype
+        FTIT_H5Group charsAndFloatsGroup;
+        FTI_InitGroup(&charsAndFloatsGroup, "Chars and Floats", NULL);
+
+
     //Chars and array of bytes
     FTIT_complexType CharsDef;
     FTIT_type CharsType;
@@ -331,7 +349,7 @@ int main(int argc, char** argv) {
     dimLength[0] = 2;
     FTI_AddComplexField(&CharsDef, &bytesType, offsetof(Chars, bytes), 1, dimLength, 2, "byte array");
 
-    FTI_InitComplexType(&CharsType, &CharsDef, 3, sizeof(Chars), "Chars");
+    FTI_InitComplexType(&CharsType, &CharsDef, 3, sizeof(Chars), "Chars", NULL);
 
     //Integers
     FTIT_complexType IntegersDef;
@@ -341,7 +359,7 @@ int main(int argc, char** argv) {
     FTI_AddSimpleField(&IntegersDef, &FTI_INTG, offsetof(Integers, integer), 1, "int");
     FTI_AddSimpleField(&IntegersDef, &FTI_LONG, offsetof(Integers, longInteger), 2, "long int");
 
-    FTI_InitComplexType(&IntegersType, &IntegersDef, 3, sizeof(Integers), "struct Integers");
+    FTI_InitComplexType(&IntegersType, &IntegersDef, 3, sizeof(Integers), "struct Integers", &intsGroup);
 
     //Unsigned integers
     FTIT_complexType UIntegersDef;
@@ -350,7 +368,7 @@ int main(int argc, char** argv) {
     FTI_AddSimpleField(&UIntegersDef, &FTI_UINT, offsetof(UIntegers, integer), 1, "unsigned int");
     FTI_AddSimpleField(&UIntegersDef, &FTI_ULNG, offsetof(UIntegers, longInteger), 2, "unsigned long int");
 
-    FTI_InitComplexType(&UIntegersType, &UIntegersDef, 3, sizeof(UIntegers), "struct UIntegers");
+    FTI_InitComplexType(&UIntegersType, &UIntegersDef, 3, sizeof(UIntegers), "struct UIntegers", &uIntsGroup);
 
     //Floats
     FTIT_complexType FloatsDef;
@@ -359,7 +377,7 @@ int main(int argc, char** argv) {
     FTI_AddSimpleField(&FloatsDef, &FTI_DBLE, offsetof(Floats, doublePrec), 1, "double");
     FTI_AddSimpleField(&FloatsDef, &FTI_LDBE, offsetof(Floats, longDoublePrec), 2, "long double");
 
-    FTI_InitComplexType(&FloatsType, &FloatsDef, 3, sizeof(Floats), "struct Floats");
+    FTI_InitComplexType(&FloatsType, &FloatsDef, 3, sizeof(Floats), "struct Floats", &charsAndFloatsGroup);
 
     //Integers aggregated
     FTIT_complexType AllIntsDef;
@@ -371,7 +389,7 @@ int main(int argc, char** argv) {
     dimLength[0] = 4;
     FTI_AddComplexField(&AllIntsDef, &UIntegersType, offsetof(AllInts, uIntegers), 1, dimLength, 1, "struct UIntegers array");
 
-    FTI_InitComplexType(&AllIntsType, &AllIntsDef, 2, sizeof(AllInts), "sturct AllInts");
+    FTI_InitComplexType(&AllIntsType, &AllIntsDef, 2, sizeof(AllInts), "sturct AllInts", &allIntsGroup);
 
     //Floats and chars aggregated
     FTIT_complexType FloatsCharsDef;
@@ -383,7 +401,7 @@ int main(int argc, char** argv) {
     dimLength[0] = 2;
     FTI_AddComplexField(&FloatsCharsDef, &CharsType, offsetof(FloatsChars, chars), 1, dimLength, 1, "struct Chars array");
 
-    FTI_InitComplexType(&FloatsCharsType, &FloatsCharsDef, 2, sizeof(FloatsChars), "sturct FloatsChars");
+    FTI_InitComplexType(&FloatsCharsType, &FloatsCharsDef, 2, sizeof(FloatsChars), "sturct FloatsChars", &charsAndFloatsGroup);
 
     //All types aggregated
     FTIT_complexType AllTypesDef;
@@ -392,7 +410,7 @@ int main(int argc, char** argv) {
     FTI_AddSimpleField(&AllTypesDef, &AllIntsType, offsetof(AllTypes, allInts), 0, "sturct AllInts");
     FTI_AddSimpleField(&AllTypesDef, &FloatsCharsType, offsetof(AllTypes, floatsChars), 1, "sturct FloatsChars");
 
-    FTI_InitComplexType(&AllTypesType, &AllTypesDef, 2, sizeof(AllTypes), "struct AllTypes");
+    FTI_InitComplexType(&AllTypesType, &AllTypesDef, 2, sizeof(AllTypes), "struct AllTypes", NULL);
 
     Chars charVars[2];
     Integers intVars[2];
@@ -403,15 +421,22 @@ int main(int argc, char** argv) {
     FloatsChars floatCharVars;
     AllTypes allTypesVar[2];
 
-    FTI_ProtectWithName(1, charVars, 2, CharsType, "chars");
-    FTI_ProtectWithName(2, intVars, 2, IntegersType, "ints");
-    FTI_ProtectWithName(3, &uintVars, 1, UIntegersType, "unsigned ints");
-    FTI_ProtectWithName(4, &floatVars, 1, FloatsType, "floats");
+
+    //Create groups for datasets
+        //AllIntegers datatype
+        FTIT_H5Group allIntsGroup2;
+        FTI_InitGroup(&allIntsGroup2, "All Integers for Dataset", NULL);
+
+
+    FTI_ProtectWithName(1, charVars, 2, CharsType, "chars", &charsAndFloatsGroup);
+    FTI_ProtectWithName(2, intVars, 2, IntegersType, "ints", &allIntsGroup2);
+    FTI_ProtectWithName(3, &uintVars, 1, UIntegersType, "unsigned ints", &allIntsGroup2);
+    FTI_ProtectWithName(4, &floatVars, 1, FloatsType, "floats", &charsAndFloatsGroup);
     if (fail == 1) FTI_Checkpoint(1, checkpoint_level);
-    FTI_ProtectWithName(5, &allIntVars, 1, AllIntsType, "all ints");
-    FTI_ProtectWithName(6, &floatCharVars, 1, FloatsCharsType, "floats and chars");
-    FTI_ProtectWithName(7, allTypesVar, 2, AllTypesType, "all types");
-    FTI_ProtectWithName(8, &intVars2, 1, IntegersType, "ints2");
+    FTI_ProtectWithName(5, &allIntVars, 1, AllIntsType, "all ints", &allIntsGroup);
+    FTI_ProtectWithName(6, &floatCharVars, 1, FloatsCharsType, "floats and chars", &charsAndFloatsGroup);
+    FTI_ProtectWithName(7, allTypesVar, 2, AllTypesType, "all types", NULL);
+    FTI_ProtectWithName(8, &intVars2, 1, IntegersType, "ints2", &allIntsGroup2);
 
     if (fail == 1) {
         defaultChars(charVars, 0);

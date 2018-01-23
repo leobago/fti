@@ -1,7 +1,21 @@
 GROUP "/" {
-   GROUP "dataset" {
+   GROUP "All Integers" {
+      GROUP "Integers" {
+         DATATYPE "struct Integers" H5T_COMPOUND {
+            H5T_STD_I16LE "short int";
+            H5T_STD_I32LE "int";
+            H5T_STD_I64LE "long int";
+         }
+      }
+      GROUP "Unsigned Integers" {
+         DATATYPE "struct UIntegers" H5T_COMPOUND {
+            H5T_STD_U16LE "unsigned short int";
+            H5T_STD_U32LE "unsigned int";
+            H5T_STD_U64LE "unsigned long int";
+         }
+      }
       DATASET "all ints" {
-         DATATYPE  "/datatype/sturct AllInts"
+         DATATYPE  "/All Integers/sturct AllInts"
          DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
          DATA {
          (0): {
@@ -46,240 +60,67 @@ GROUP "/" {
             }
          }
       }
-      DATASET "all types" {
-         DATATYPE  "/datatype/struct AllTypes"
+      DATATYPE "sturct AllInts" H5T_COMPOUND {
+         H5T_ARRAY { [5] H5T_COMPOUND {
+            H5T_STD_I16LE "short int";
+            H5T_STD_I32LE "int";
+            H5T_STD_I64LE "long int";
+         } } "struct Integers array";
+         H5T_ARRAY { [4] H5T_COMPOUND {
+            H5T_STD_U16LE "unsigned short int";
+            H5T_STD_U32LE "unsigned int";
+            H5T_STD_U64LE "unsigned long int";
+         } } "struct UIntegers array";
+      }
+   }
+   GROUP "All Integers for Dataset" {
+      DATASET "ints" {
+         DATATYPE  "/All Integers/Integers/struct Integers"
          DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
          DATA {
          (0): {
-               {
-                  [ {
-                        -15,
-                        -126,
-                        -1237
-                     }, {
-                        -16,
-                        -127,
-                        -1238
-                     }, {
-                        -17,
-                        -128,
-                        -1239
-                     }, {
-                        -18,
-                        -129,
-                        -1240
-                     }, {
-                        -19,
-                        -130,
-                        -1241
-                     } ],
-                  [ {
-                        15,
-                        126,
-                        1237
-                     }, {
-                        16,
-                        127,
-                        1238
-                     }, {
-                        17,
-                        128,
-                        1239
-                     }, {
-                        18,
-                        129,
-                        1240
-                     } ]
-               },
-               {
-                  [ {
-                        15.5,
-                        126.25,
-                        1237.125000
-                     }, {
-                        16.5,
-                        127.25,
-                        1238.125000
-                     }, {
-                        17.5,
-                        128.25,
-                        1239.125000
-                     } ],
-                  [ {
-                        [ 100, 101, 102, 103, 104, 105, 106, 0, 0, 0 ],
-                        [ 100, 101, 102, 103, 104,
-                           101, 102, 103, 104, 105,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           101, 102, 103, 104, 105,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           101, 102, 103, 104, 105,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110 ],
-                        [ 70, 70 ]
-                     },
-                      {
-                        [ 101, 102, 103, 104, 105, 106, 107, 0, 0, 0 ],
-                        [ 101, 102, 103, 104, 105,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           107, 108, 109, 110, 111 ],
-                        [ 71, 71 ]
-                     } ]
-               }
+               -12,
+               -123,
+               -1234
             },
          (1): {
-               {
-                  [ {
-                        -16,
-                        -127,
-                        -1238
-                     }, {
-                        -17,
-                        -128,
-                        -1239
-                     }, {
-                        -18,
-                        -129,
-                        -1240
-                     }, {
-                        -19,
-                        -130,
-                        -1241
-                     }, {
-                        -20,
-                        -131,
-                        -1242
-                     } ],
-                  [ {
-                        16,
-                        127,
-                        1238
-                     }, {
-                        17,
-                        128,
-                        1239
-                     }, {
-                        18,
-                        129,
-                        1240
-                     }, {
-                        19,
-                        130,
-                        1241
-                     } ]
-               },
-               {
-                  [ {
-                        16.5,
-                        127.25,
-                        1238.125000
-                     }, {
-                        17.5,
-                        128.25,
-                        1239.125000
-                     }, {
-                        18.5,
-                        129.25,
-                        1240.125000
-                     } ],
-                  [ {
-                        [ 101, 102, 103, 104, 105, 106, 107, 0, 0, 0 ],
-                        [ 101, 102, 103, 104, 105,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           107, 108, 109, 110, 111 ],
-                        [ 71, 71 ]
-                     },
-                      {
-                        [ 102, 103, 104, 105, 106, 107, 108, 0, 0, 0 ],
-                        [ 102, 103, 104, 105, 106,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           107, 108, 109, 110, 111,
-                           103, 104, 105, 106, 107,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           104, 105, 106, 107, 108,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           107, 108, 109, 110, 111,
-                           105, 106, 107, 108, 109,
-                           106, 107, 108, 109, 110,
-                           107, 108, 109, 110, 111,
-                           108, 109, 110, 111, 112 ],
-                        [ 72, 72 ]
-                     } ]
-               }
+               -13,
+               -124,
+               -1235
             }
          }
       }
+      DATASET "ints2" {
+         DATATYPE  "/All Integers/Integers/struct Integers"
+         DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         DATA {
+         (0): {
+               -17,
+               -128,
+               -1239
+            }
+         }
+      }
+      DATASET "unsigned ints" {
+         DATATYPE  "/All Integers/Unsigned Integers/struct UIntegers"
+         DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         DATA {
+         (0): {
+               12,
+               123,
+               1234
+            }
+         }
+      }
+   }
+   DATATYPE "Chars" H5T_COMPOUND {
+      H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
+      H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
+      H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
+   }
+   GROUP "Chars and Floats" {
       DATASET "chars" {
-         DATATYPE  "/datatype/Chars"
+         DATATYPE  "/Chars"
          DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
          DATA {
          (0): {
@@ -341,7 +182,7 @@ GROUP "/" {
          }
       }
       DATASET "floats" {
-         DATATYPE  "/datatype/struct Floats"
+         DATATYPE  "/Chars and Floats/struct Floats"
          DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
          DATA {
          (0): {
@@ -352,7 +193,7 @@ GROUP "/" {
          }
       }
       DATASET "floats and chars" {
-         DATATYPE  "/datatype/sturct FloatsChars"
+         DATATYPE  "/Chars and Floats/sturct FloatsChars"
          DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
          DATA {
          (0): {
@@ -428,106 +269,10 @@ GROUP "/" {
             }
          }
       }
-      DATASET "ints" {
-         DATATYPE  "/datatype/struct Integers"
-         DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
-         DATA {
-         (0): {
-               -12,
-               -123,
-               -1234
-            },
-         (1): {
-               -13,
-               -124,
-               -1235
-            }
-         }
-      }
-      DATASET "ints2" {
-         DATATYPE  "/datatype/struct Integers"
-         DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
-         DATA {
-         (0): {
-               -17,
-               -128,
-               -1239
-            }
-         }
-      }
-      DATASET "unsigned ints" {
-         DATATYPE  "/datatype/struct UIntegers"
-         DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
-         DATA {
-         (0): {
-               12,
-               123,
-               1234
-            }
-         }
-      }
-   }
-   GROUP "datatype" {
-      DATATYPE "Chars" H5T_COMPOUND {
-         H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-         
-         H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
-         H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
-      }
-      DATATYPE "struct AllTypes" H5T_COMPOUND {
-         H5T_COMPOUND {
-            H5T_ARRAY { [5] H5T_COMPOUND {
-               H5T_STD_I16LE "short int";
-               H5T_STD_I32LE "int";
-               H5T_STD_I64LE "long int";
-            } } "struct Integers array";
-            H5T_ARRAY { [4] H5T_COMPOUND {
-               H5T_STD_U16LE "unsigned short int";
-               H5T_STD_U32LE "unsigned int";
-               H5T_STD_U64LE "unsigned long int";
-            } } "struct UIntegers array";
-         } "sturct AllInts";
-         H5T_COMPOUND {
-            H5T_ARRAY { [3] H5T_COMPOUND {
-               H5T_IEEE_F32LE "float";
-               H5T_IEEE_F64LE "double";
-               H5T_NATIVE_LDOUBLE "long double";
-            } } "struct Floats array";
-            H5T_ARRAY { [2] H5T_COMPOUND {
-               H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
-               
-               H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
-               
-               H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
-            } } "struct Chars array";
-         } "sturct FloatsChars";
-      }
       DATATYPE "struct Floats" H5T_COMPOUND {
          H5T_IEEE_F32LE "float";
          H5T_IEEE_F64LE "double";
          H5T_NATIVE_LDOUBLE "long double";
-      }
-      DATATYPE "struct Integers" H5T_COMPOUND {
-         H5T_STD_I16LE "short int";
-         H5T_STD_I32LE "int";
-         H5T_STD_I64LE "long int";
-      }
-      DATATYPE "struct UIntegers" H5T_COMPOUND {
-         H5T_STD_U16LE "unsigned short int";
-         H5T_STD_U32LE "unsigned int";
-         H5T_STD_U64LE "unsigned long int";
-      }
-      DATATYPE "sturct AllInts" H5T_COMPOUND {
-         H5T_ARRAY { [5] H5T_COMPOUND {
-            H5T_STD_I16LE "short int";
-            H5T_STD_I32LE "int";
-            H5T_STD_I64LE "long int";
-         } } "struct Integers array";
-         H5T_ARRAY { [4] H5T_COMPOUND {
-            H5T_STD_U16LE "unsigned short int";
-            H5T_STD_U32LE "unsigned int";
-            H5T_STD_U64LE "unsigned long int";
-         } } "struct UIntegers array";
       }
       DATATYPE "sturct FloatsChars" H5T_COMPOUND {
          H5T_ARRAY { [3] H5T_COMPOUND {
@@ -542,6 +287,265 @@ GROUP "/" {
             H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
          } } "struct Chars array";
       }
+   }
+   DATASET "all types" {
+      DATATYPE  "/struct AllTypes"
+      DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+      DATA {
+      (0): {
+            {
+               [ {
+                     -15,
+                     -126,
+                     -1237
+                  }, {
+                     -16,
+                     -127,
+                     -1238
+                  }, {
+                     -17,
+                     -128,
+                     -1239
+                  }, {
+                     -18,
+                     -129,
+                     -1240
+                  }, {
+                     -19,
+                     -130,
+                     -1241
+                  } ],
+               [ {
+                     15,
+                     126,
+                     1237
+                  }, {
+                     16,
+                     127,
+                     1238
+                  }, {
+                     17,
+                     128,
+                     1239
+                  }, {
+                     18,
+                     129,
+                     1240
+                  } ]
+            },
+            {
+               [ {
+                     15.5,
+                     126.25,
+                     1237.125000
+                  }, {
+                     16.5,
+                     127.25,
+                     1238.125000
+                  }, {
+                     17.5,
+                     128.25,
+                     1239.125000
+                  } ],
+               [ {
+                     [ 100, 101, 102, 103, 104, 105, 106, 0, 0, 0 ],
+                     [ 100, 101, 102, 103, 104,
+                        101, 102, 103, 104, 105,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        101, 102, 103, 104, 105,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        101, 102, 103, 104, 105,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110 ],
+                     [ 70, 70 ]
+                  },
+                   {
+                     [ 101, 102, 103, 104, 105, 106, 107, 0, 0, 0 ],
+                     [ 101, 102, 103, 104, 105,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        107, 108, 109, 110, 111 ],
+                     [ 71, 71 ]
+                  } ]
+            }
+         },
+      (1): {
+            {
+               [ {
+                     -16,
+                     -127,
+                     -1238
+                  }, {
+                     -17,
+                     -128,
+                     -1239
+                  }, {
+                     -18,
+                     -129,
+                     -1240
+                  }, {
+                     -19,
+                     -130,
+                     -1241
+                  }, {
+                     -20,
+                     -131,
+                     -1242
+                  } ],
+               [ {
+                     16,
+                     127,
+                     1238
+                  }, {
+                     17,
+                     128,
+                     1239
+                  }, {
+                     18,
+                     129,
+                     1240
+                  }, {
+                     19,
+                     130,
+                     1241
+                  } ]
+            },
+            {
+               [ {
+                     16.5,
+                     127.25,
+                     1238.125000
+                  }, {
+                     17.5,
+                     128.25,
+                     1239.125000
+                  }, {
+                     18.5,
+                     129.25,
+                     1240.125000
+                  } ],
+               [ {
+                     [ 101, 102, 103, 104, 105, 106, 107, 0, 0, 0 ],
+                     [ 101, 102, 103, 104, 105,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        107, 108, 109, 110, 111 ],
+                     [ 71, 71 ]
+                  },
+                   {
+                     [ 102, 103, 104, 105, 106, 107, 108, 0, 0, 0 ],
+                     [ 102, 103, 104, 105, 106,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        107, 108, 109, 110, 111,
+                        103, 104, 105, 106, 107,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        104, 105, 106, 107, 108,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        107, 108, 109, 110, 111,
+                        105, 106, 107, 108, 109,
+                        106, 107, 108, 109, 110,
+                        107, 108, 109, 110, 111,
+                        108, 109, 110, 111, 112 ],
+                     [ 72, 72 ]
+                  } ]
+            }
+         }
+      }
+   }
+   DATATYPE "struct AllTypes" H5T_COMPOUND {
+      H5T_COMPOUND {
+         H5T_ARRAY { [5] H5T_COMPOUND {
+            H5T_STD_I16LE "short int";
+            H5T_STD_I32LE "int";
+            H5T_STD_I64LE "long int";
+         } } "struct Integers array";
+         H5T_ARRAY { [4] H5T_COMPOUND {
+            H5T_STD_U16LE "unsigned short int";
+            H5T_STD_U32LE "unsigned int";
+            H5T_STD_U64LE "unsigned long int";
+         } } "struct UIntegers array";
+      } "sturct AllInts";
+      H5T_COMPOUND {
+         H5T_ARRAY { [3] H5T_COMPOUND {
+            H5T_IEEE_F32LE "float";
+            H5T_IEEE_F64LE "double";
+            H5T_NATIVE_LDOUBLE "long double";
+         } } "struct Floats array";
+         H5T_ARRAY { [2] H5T_COMPOUND {
+            H5T_ARRAY { [10] H5T_STD_I8LE } "char array";
+            
+            H5T_ARRAY { [2][3][4][5] H5T_STD_U8LE } "unsigned char multi-array";
+            H5T_ARRAY { [2] 65600-bit little-endian integer } "byte array";
+         } } "struct Chars array";
+      } "sturct FloatsChars";
    }
 }
 }

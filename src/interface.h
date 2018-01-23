@@ -212,6 +212,9 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
     void FTI_CreateComplexType(FTIT_type* ftiType);
     void FTI_CloseComplexType(FTIT_type* ftiType);
+    void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
+    void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
+    void FTI_CloseGroup(FTIT_H5Group* ftiGroup);
 #endif
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

@@ -105,11 +105,12 @@ int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
  *   in typeDefinition, the rest is black box for FTI.
  *
  **/
-int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name)
+int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
 {
     *newType = talloc(FTIT_type, 1);
-    return FTI_InitComplexType(*newType, typeDefinition, length, size, name);
+    return FTI_InitComplexType(*newType, typeDefinition, length, size, name, h5group);
 }
+
 
 /**
  @brief      Stores or updates a pointer to a variable that needs to be protected.
@@ -127,7 +128,7 @@ int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefin
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ProtectWithName_wrapper(int id, void* ptr, long count, FTIT_type* type, char* name)
+int FTI_ProtectWithName_wrapper(int id, void* ptr, long count, FTIT_type* type, char* name, FTIT_H5Group* h5group)
 {
-    return FTI_ProtectWithName(id, ptr, count, *type, name);
+    return FTI_ProtectWithName(id, ptr, count, *type, name, h5group);
 }

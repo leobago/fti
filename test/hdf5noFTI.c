@@ -202,53 +202,65 @@ int main(int argc, char** argv)
         printf("Could not open checkpoint file.");
         return 1;
     }
+    
+    //Create groups for types
+        //AllIntegers datatype
+        hid_t allIntsGroup = H5Gopen(file_id, "All Integers", H5P_DEFAULT);
 
-    //open groups
-    hid_t datasetsGroup_id = H5Gopen(file_id, "dataset", H5P_DEFAULT);
-    hid_t datatypeGroup_id = H5Gopen(file_id, "datatype", H5P_DEFAULT);
+        //Integers datatype
+        hid_t intsGroup = H5Gopen(allIntsGroup, "Integers", H5P_DEFAULT);
+
+        //UIntegers datatype
+        hid_t uIntsGroup = H5Gopen(allIntsGroup, "Unsigned Integers", H5P_DEFAULT);
+
+        //Chars And Floats datatype
+        hid_t charsAndFloatsGroup = H5Gopen(file_id, "Chars and Floats", H5P_DEFAULT);
+
+        //AllIntegers datatype
+        hid_t allIntsGroup2 = H5Gopen(file_id, "All Integers for Dataset", H5P_DEFAULT);
 
     //open types
-    hid_t chars_id = H5Topen(datatypeGroup_id, "Chars", H5P_DEFAULT);
-    hid_t floats_id = H5Topen(datatypeGroup_id, "struct Floats", H5P_DEFAULT);
-    hid_t floatChars_id = H5Topen(datatypeGroup_id, "sturct FloatsChars", H5P_DEFAULT);
+    hid_t chars_id = H5Topen(file_id, "Chars", H5P_DEFAULT);
+    hid_t floats_id = H5Topen(charsAndFloatsGroup, "struct Floats", H5P_DEFAULT);
+    hid_t floatChars_id = H5Topen(charsAndFloatsGroup, "sturct FloatsChars", H5P_DEFAULT);
 
-    hid_t integers_id = H5Topen(datatypeGroup_id, "struct Integers", H5P_DEFAULT);
-    hid_t uintegers_id = H5Topen(datatypeGroup_id, "struct UIntegers", H5P_DEFAULT);
-    hid_t allInts_id = H5Topen(datatypeGroup_id, "sturct AllInts", H5P_DEFAULT);
+    hid_t integers_id = H5Topen(intsGroup, "struct Integers", H5P_DEFAULT);
+    hid_t uintegers_id = H5Topen(uIntsGroup, "struct UIntegers", H5P_DEFAULT);
+    hid_t allInts_id = H5Topen(allIntsGroup, "sturct AllInts", H5P_DEFAULT);
 
-    hid_t allTypes_id = H5Topen(datatypeGroup_id, "struct AllTypes", H5P_DEFAULT);
+    hid_t allTypes_id = H5Topen(file_id, "struct AllTypes", H5P_DEFAULT);
 
     //read datasets
     Chars charVars[2];
-    herr_t res = H5LTread_dataset(datasetsGroup_id, "chars", chars_id, &charVars);
+    herr_t res = H5LTread_dataset(charsAndFloatsGroup, "chars", chars_id, &charVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     Floats floatVars;
-    res = H5LTread_dataset(datasetsGroup_id, "floats", floats_id , &floatVars);
+    res = H5LTread_dataset(charsAndFloatsGroup, "floats", floats_id , &floatVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     FloatsChars floatCharVars;
-    res = H5LTread_dataset(datasetsGroup_id, "floats and chars", floatChars_id, &floatCharVars);
+    res = H5LTread_dataset(charsAndFloatsGroup, "floats and chars", floatChars_id, &floatCharVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     Integers intVars[2];
-    res = H5LTread_dataset(datasetsGroup_id, "ints", integers_id, &intVars);
+    res = H5LTread_dataset(allIntsGroup2, "ints", integers_id, &intVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     UIntegers uintVars;
-    res = H5LTread_dataset(datasetsGroup_id, "unsigned ints", uintegers_id, &uintVars);
+    res = H5LTread_dataset(allIntsGroup2, "unsigned ints", uintegers_id, &uintVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     AllInts allIntVars;
-    res = H5LTread_dataset(datasetsGroup_id, "all ints", allInts_id, &allIntVars);
+    res = H5LTread_dataset(allIntsGroup, "all ints", allInts_id, &allIntVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
     AllTypes allTypesVar[2];
-    res = H5LTread_dataset(datasetsGroup_id, "all types", allTypes_id, &allTypesVar);
+    res = H5LTread_dataset(file_id, "all types", allTypes_id, &allTypesVar);
     if (res != 0) printf("Cannot read dataset!\n");
 
     Integers intVars2;
-    res = H5LTread_dataset(datasetsGroup_id, "ints2", integers_id, &intVars2);
+    res = H5LTread_dataset(allIntsGroup2, "ints2", integers_id, &intVars2);
     if (res != 0) printf("Cannot read dataset!\n");
 
     //close types
@@ -261,8 +273,11 @@ int main(int argc, char** argv)
     H5Tclose(allTypes_id);
 
     //close groups
-    H5Gclose(datasetsGroup_id);
-    H5Gclose(datatypeGroup_id);
+    H5Gclose(allIntsGroup);
+    H5Gclose(intsGroup);
+    H5Gclose(uIntsGroup);
+    H5Gclose(charsAndFloatsGroup);
+    H5Gclose(allIntsGroup2);
 
     //close file
     H5Fclose(file_id);

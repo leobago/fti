@@ -135,6 +135,10 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        FTI_Exec.H5RootGroup.childrenNo = 0;
+        sprintf(FTI_Exec.H5RootGroup.name, "/");
+    }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -203,6 +207,7 @@ int FTI_InitType(FTIT_type* type, int size)
 
 #ifdef ENABLE_HDF5
     type->h5datatype = -1; //to mark as closed
+    type->h5group = &FTI_Exec.H5RootGroup;
 #endif
     return FTI_SCES;
 }
@@ -227,8 +232,11 @@ int FTI_InitType(FTIT_type* type, int size)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name)
+int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
 {
+    if (h5group == NULL) {
+        h5group = &FTI_Exec.H5RootGroup;
+    }
     if (length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
         return FTI_NSCS;
@@ -275,6 +283,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
 
     #ifdef ENABLE_HDF5
         newType->h5datatype = -1; //to mark as closed
+        newType->h5group = h5group;
     #endif
 
     return FTI_SCES;
@@ -343,6 +352,45 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It initialize a HDF5 group
+  @param      h5group         H5 group that we want to initialize
+  @param      name            Name of the H5 group
+  @param      parent          Parent H5 group
+  @return     integer         FTI_SCES if successful.
+
+    Initialize group defined by user. If parent is NULL this mean parent will
+    be set to root group.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
+{
+    if (parent == NULL) {
+        //child of root
+        parent = &FTI_Exec.H5RootGroup;
+    }
+    //check if this parent has that child
+    int i;
+    for (i = 0; i < parent->childrenNo; i++) {
+        if (strcmp(parent->children[i]->name, name) == 0) {
+            char str[FTI_BUFS];
+            sprintf(str, "Group %s already has the %s child.", parent->name, name);
+        }
+    }
+    strncpy(h5group->name, name, FTI_BUFS);
+    parent->children[parent->childrenNo] = h5group;
+    parent->childrenNo++;
+
+#ifdef ENABLE_HDF5
+    h5group->h5groupID = -1; //to mark as closed
+#endif
+    return FTI_SCES;
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It sets/resets the pointer and type to a protected variable.
@@ -376,7 +424,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         }
     }
 
-    return FTI_ProtectWithName(id, ptr, count, type, name);
+    return FTI_ProtectWithName(id, ptr, count, type, name, NULL);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -398,11 +446,14 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name)
+int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name, FTIT_H5Group* h5group)
 {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
+    }
+    if (h5group == NULL) {
+        h5group = &FTI_Exec.H5RootGroup;
     }
 
     char str[FTI_BUFS]; //For console output
@@ -416,6 +467,7 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
             FTI_Data[i].type = FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
+            FTI_Data[i].h5group = h5group;
             strncpy(FTI_Data[i].name, name, FTI_BUFS);
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -438,6 +490,7 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
     FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    FTI_Data[FTI_Exec.nbVar].h5group = h5group;
     strncpy(FTI_Data[FTI_Exec.nbVar].name, name, FTI_BUFS);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);

@@ -491,6 +491,96 @@ void FTI_CloseComplexType(FTIT_type* ftiType)
 }
 #endif
 
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It creates a group and all it's children
+  @param      ftiGroup        FTI_H5Group to be create
+  @param      parentGroup     hid_t of the parent
+
+  This function creates hdf5 group and all it's children. Should be
+  called only before saving checkpoint in HDF5 format.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+{
+    char str[FTI_BUFS];
+    ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (ftiGroup->h5groupID < 0) {
+        FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
+        return;
+    }
+
+    int i;
+    for (i = 0; i < ftiGroup->childrenNo; i++) {
+        FTI_CreateGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to create the child
+    }
+}
+#endif
+
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It opens a group and all it's children
+  @param      ftiGroup        FTI_H5Group to be opened
+  @param      parentGroup     hid_t of the parent
+
+  This function opens hdf5 group and all it's children. Should be
+  called only before recovery in HDF5 format.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+{
+    char str[FTI_BUFS];
+    ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
+    if (ftiGroup->h5groupID < 0) {
+        FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);
+        return;
+    }
+
+    int i;
+    for (i = 0; i < ftiGroup->childrenNo; i++) {
+        FTI_OpenGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to open the child
+    }
+}
+#endif
+
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It closes a group and all it's children
+  @param      ftiGroup        FTI_H5Group to be closed
+
+  This function closes (destoys) hdf5 group and all it's children. Should be
+  called only after saving checkpoint in HDF5 format.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_CloseGroup(FTIT_H5Group* ftiGroup)
+{
+    char str[FTI_BUFS];
+    if (ftiGroup->h5groupID == -1) {
+        //This group already closed, in tree this is error
+        sprintf(str, "Group %s is already closed?", ftiGroup->name);
+        FTI_Print(str, FTI_WARN);
+        return;
+    }
+
+    int i;
+    for (i = 0; i < ftiGroup->childrenNo; i++) {
+        FTI_CloseGroup(ftiGroup->children[i]); //Try to close the child
+    }
+
+    herr_t res = H5Gclose(ftiGroup->h5groupID);
+    if (res < 0) {
+        FTI_Print("FTI failed to close HDF5 group.", FTI_WARN);
+    }
+    ftiGroup->h5groupID = -1;
+}
+#endif
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates the basic datatypes and the dataset array.
