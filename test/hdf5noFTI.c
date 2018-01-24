@@ -255,8 +255,8 @@ int main(int argc, char** argv)
     res = H5LTread_dataset(allIntsGroup, "all ints", allInts_id, &allIntVars);
     if (res != 0) printf("Cannot read dataset!\n");
 
-    AllTypes allTypesVar[2];
-    res = H5LTread_dataset(file_id, "all types", allTypes_id, &allTypesVar);
+    AllTypes allTypesVar[2][2];
+    res = H5LTread_dataset(file_id, "all types2D", allTypes_id, &allTypesVar);
     if (res != 0) printf("Cannot read dataset!\n");
 
     Integers intVars2;
@@ -293,8 +293,10 @@ int main(int argc, char** argv)
     res1 += verifyFloats(&floatVars, 0, world_rank, "floatVars");
     res1 += verifyAllInts(&allIntVars, 2, world_rank, "allIntVars");
     res1 += verifyFloatsChars(&floatCharVars, 2, world_rank, "floatCharVars");
-    res1 += verifyAllTypes(allTypesVar, 3, world_rank, "allTypesVar[0]");
-    res1 += verifyAllTypes((allTypesVar + 1), 4, world_rank, "allTypesVar[1]");
+    res1 += verifyAllTypes(allTypesVar[0], 3, world_rank, "allTypesVar[0][0]");
+    res1 += verifyAllTypes((allTypesVar[0] + 1), 4, world_rank, "allTypesVar[0][1]");
+    res1 += verifyAllTypes(allTypesVar[1], 3, world_rank, "allTypesVar[1][0]");
+    res1 += verifyAllTypes((allTypesVar[1] + 1), 4, world_rank, "allTypesVar[1][1]");
 
     if (res1 != 0) {
         printf("Failed!");

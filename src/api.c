@@ -218,8 +218,9 @@ int FTI_InitType(FTIT_type* type, int size)
     @param      newType         The data type to be intialized.
     @param      typeDefinition  Structure definition of the new type.
     @param      length          Number of fields in structure
-    @param      size            Size of the structure
-    @param      name            Name of the structure
+    @param      size            Size of the structure.
+    @param      name            Name of the structure.
+    @param      h5group         Group of the type.
     @return     integer         FTI_SCES if successful.
 
     This function initalizes a simple data type. New type can only consists
@@ -415,46 +416,6 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-    char name[FTI_BUFS];
-    sprintf(name, "Dataset_%d", id);
-    int i;
-    for (i = 0; i < FTI_BUFS; i++) {
-        if (id == FTI_Data[i].id) { //Search for dataset with given id
-            strncpy(name, FTI_Data[i].name, FTI_BUFS);
-        }
-    }
-
-    return FTI_ProtectWithName(id, ptr, count, type, name, NULL);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-    @brief      It sets/resets the pointer and type to a protected variable.
-    @param      id              ID for searches and update.
-    @param      ptr             Pointer to the data structure.
-    @param      count           Number of elements in the data structure.
-    @param      type            Type of elements in the data structure.
-    @param      name            Name of the dataset in HDF5 file.
-    @return     integer         FTI_SCES if successful.
-
-    This function stores a pointer to a data structure, its size, its ID,
-    its number of elements and the type of the elements. This list of
-    structures is the data that will be stored during a checkpoint and
-    loaded during a recovery. It resets the pointer to a data structure,
-    its size, its number of elements,the type and the name of the elements
-    if the dataset was already previously registered.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name, FTIT_H5Group* h5group)
-{
-    if (FTI_Exec.initSCES == 0) {
-        FTI_Print("FTI is not initialized.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    if (h5group == NULL) {
-        h5group = &FTI_Exec.H5RootGroup;
-    }
 
     char str[FTI_BUFS]; //For console output
 
@@ -467,8 +428,6 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
             FTI_Data[i].type = FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
-            FTI_Data[i].h5group = h5group;
-            strncpy(FTI_Data[i].name, name, FTI_BUFS);
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -490,14 +449,93 @@ int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* nam
     FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
-    FTI_Data[FTI_Exec.nbVar].h5group = h5group;
-    strncpy(FTI_Data[FTI_Exec.nbVar].name, name, FTI_BUFS);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     FTI_Print(str, FTI_INFO);
     return FTI_SCES;
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Defines the dataset
+    @param      id              ID for searches and update.
+    @param      rank            Rank of the array
+    @param      dimLength       Dimention length for each rank
+    @param      name            Name of the dataset in HDF5 file.
+    @param      h5group         Group of the dataset. If Null then "/"
+    @return     integer         FTI_SCES if successful.
+
+    This function gives FTI all information needed by HDF5 to correctly save
+    the dataset in the checkpoint file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group)
+{
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    if (rank > 0 && dimLength == NULL) {
+        FTI_Print("If rank > 0, the dimLength cannot be NULL.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (rank > 32) {
+        FTI_Print("Maximum rank is 32.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    char str[FTI_BUFS]; //For console output
+
+    int i;
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (id == FTI_Data[i].id) { //Search for dataset with given id
+            //check if size is correct
+            int expectedSize = 1;
+            int j;
+            for (j = 0; j < rank; j++) {
+                expectedSize *= dimLength[j]; //compute the number of elements
+            }
+
+            if (rank > 0) {
+                if (expectedSize != FTI_Data[i].count) {
+                    sprintf(str, "Trying to define datasize: number of elements %d, but the dataset count is %ld.", expectedSize, FTI_Data[i].count);
+                    FTI_Print(str, FTI_WARN);
+                    return FTI_NSCS;
+                }
+                FTI_Data[i].rank = rank;
+                for (j = 0; j < rank; j++) {
+                    FTI_Data[i].dimLength[j] = dimLength[j];
+                }
+            } else {
+                //rank and dimensions not defined
+                FTI_Data[i].rank = 1;
+                FTI_Data[i].dimLength[0] = FTI_Data[i].count;
+            }
+
+            if (h5group == NULL) {
+                FTI_Data[i].h5group = &FTI_Exec.H5RootGroup;
+            } else {
+                FTI_Data[i].h5group = h5group;
+            }
+
+            if (name == NULL) {
+                sprintf(FTI_Data[i].name, "Dataset_%d", id);
+            } else {
+                strncpy(FTI_Data[i].name, name, FTI_BUFS);
+            }
+            
+            return FTI_SCES;
+        }
+    }
+
+    sprintf(str, "The dataset #%d not initialized. Use FTI_Protect first.", id);
+    FTI_Print(str, FTI_WARN);
+    return FTI_NSCS;
+}
+
 
 /*-------------------------------------------------------------------------*/
 /**

@@ -102,8 +102,13 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
-        hsize_t count = FTI_Data[i].count;
-        herr_t res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, 1, &count, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+        //convert dimLength array to hsize_t
+        int j;
+        hsize_t dimLength[32];
+        for (j = 0; j < FTI_Data[i].rank; j++) {
+            dimLength[j] = FTI_Data[i].dimLength[j];
+        }
+        herr_t res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
         if (res < 0) {
             sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
             FTI_Print(str, FTI_EROR);

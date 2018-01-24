@@ -239,9 +239,11 @@ extern "C" {
         int             id;                 /**< ID to search/update dataset.   */
         void            *ptr;               /**< Pointer to the dataset.        */
         long            count;              /**< Number of elements in dataset. */
-        FTIT_type*      type;              /**< Data type for the dataset.     */
+        FTIT_type*      type;               /**< Data type for the dataset.     */
         int             eleSize;            /**< Element size for the dataset.  */
         long            size;               /**< Total size of the dataset.     */
+        int             rank;               /**< Rank of dataset (for HDF5).    */
+        int             dimLength[32];      /**< Lenght of each dimention.      */
         char            name[FTI_BUFS];     /**< Name of the dataset.           */
         FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
@@ -432,7 +434,7 @@ extern "C" {
                                 size_t offset, int rank, int* dimLength, int id, char* name);
     int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
     int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
-    int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name, FTIT_H5Group* h5group);
+    int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
     long FTI_GetStoredSize(int id);
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);

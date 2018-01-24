@@ -419,7 +419,7 @@ int main(int argc, char** argv) {
     Floats floatVars;
     AllInts allIntVars;
     FloatsChars floatCharVars;
-    AllTypes allTypesVar[2];
+    AllTypes allTypesVar[2][2];
 
 
     //Create groups for datasets
@@ -428,15 +428,32 @@ int main(int argc, char** argv) {
         FTI_InitGroup(&allIntsGroup2, "All Integers for Dataset", NULL);
 
 
-    FTI_ProtectWithName(1, charVars, 2, CharsType, "chars", &charsAndFloatsGroup);
-    FTI_ProtectWithName(2, intVars, 2, IntegersType, "ints", &allIntsGroup2);
-    FTI_ProtectWithName(3, &uintVars, 1, UIntegersType, "unsigned ints", &allIntsGroup2);
-    FTI_ProtectWithName(4, &floatVars, 1, FloatsType, "floats", &charsAndFloatsGroup);
+    FTI_Protect(1, charVars, 2, CharsType);
+    FTI_DefineDataset(1, 0, NULL, "chars", &charsAndFloatsGroup);
+
+    FTI_Protect(2, intVars, 2, IntegersType);
+    FTI_DefineDataset(2, 0, NULL, "ints", &allIntsGroup2);
+
+    FTI_Protect(3, &uintVars, 1, UIntegersType);
+    FTI_DefineDataset(3, 0, NULL, "unsigned ints", &allIntsGroup2);
+
+    FTI_Protect(4, &floatVars, 1, FloatsType);
+    FTI_DefineDataset(4, 0, NULL, "floats", &charsAndFloatsGroup);
+
     if (fail == 1) FTI_Checkpoint(1, checkpoint_level);
-    FTI_ProtectWithName(5, &allIntVars, 1, AllIntsType, "all ints", &allIntsGroup);
-    FTI_ProtectWithName(6, &floatCharVars, 1, FloatsCharsType, "floats and chars", &charsAndFloatsGroup);
-    FTI_ProtectWithName(7, allTypesVar, 2, AllTypesType, "all types", NULL);
-    FTI_ProtectWithName(8, &intVars2, 1, IntegersType, "ints2", &allIntsGroup2);
+    FTI_Protect(5, &allIntVars, 1, AllIntsType);
+    FTI_DefineDataset(5, 0, NULL, "all ints", &allIntsGroup);
+
+    FTI_Protect(6, &floatCharVars, 1, FloatsCharsType);
+    FTI_DefineDataset(6, 0, NULL, "floats and chars", &charsAndFloatsGroup);
+
+    dimLength[0] = 2;
+    dimLength[1] = 2;
+    FTI_Protect(7, allTypesVar, 4, AllTypesType);
+    FTI_DefineDataset(7, 2, dimLength, "all types2D", NULL);
+
+    FTI_Protect(8, &intVars2, 1, IntegersType);
+    FTI_DefineDataset(8, 0, NULL, "ints2", &allIntsGroup2);
 
     if (fail == 1) {
         defaultChars(charVars, 0);
@@ -448,8 +465,10 @@ int main(int argc, char** argv) {
         defaultFloats(&floatVars, 0);
         defaultAllInts(&allIntVars, 2);
         defaultFloatsChars(&floatCharVars, 2);
-        defaultAllTypes(allTypesVar, 3);
-        defaultAllTypes((allTypesVar + 1), 4);
+        defaultAllTypes(allTypesVar[0], 3);
+        defaultAllTypes((allTypesVar[0] + 1), 4);
+        defaultAllTypes(allTypesVar[1], 3);
+        defaultAllTypes((allTypesVar[1] + 1), 4);
 
         FTI_Checkpoint(2, checkpoint_level);
 
@@ -503,8 +522,10 @@ int main(int argc, char** argv) {
         res += verifyFloats(&floatVars, 0, world_rank, "floatVars");
         res += verifyAllInts(&allIntVars, 2, world_rank, "allIntVars");
         res += verifyFloatsChars(&floatCharVars, 2, world_rank, "floatCharVars");
-        res += verifyAllTypes(allTypesVar, 3, world_rank, "allTypesVar[0]");
-        res += verifyAllTypes((allTypesVar + 1), 4, world_rank, "allTypesVar[1]");
+        res += verifyAllTypes(allTypesVar[0], 3, world_rank, "allTypesVar[0][0]");
+        res += verifyAllTypes((allTypesVar[0] + 1), 4, world_rank, "allTypesVar[0][1]");
+        res += verifyAllTypes(allTypesVar[1], 3, world_rank, "allTypesVar[1][0]");
+        res += verifyAllTypes((allTypesVar[1] + 1), 4, world_rank, "allTypesVar[1][1]");
 
         FTI_Finalize();
         MPI_Finalize();
