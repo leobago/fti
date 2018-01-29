@@ -211,7 +211,7 @@ extern "C" {
      *  This type simplify creating complex datatypes.
      */
     typedef struct FTIT_typeField {
-        FTIT_type*          type;                   /**< Field FTI type.                    */
+        int                 typeID;                 /**< FTI type ID of the field.          */
         int                 offset;                 /**< Offset of the field in structure.  */
         int                 rank;                   /**< Field rank (max. 32)               */
         int                 dimLength[32];          /**< Lenght of each dimention           */
@@ -224,10 +224,9 @@ extern "C" {
      *  This type allows creating complex datatypes.
      */
     typedef struct FTIT_complexType {
-        FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
         char                name[FTI_BUFS];         /**< Name of the complex type.          */
         int                 length;                 /**< Number of types in complex type.   */
-        size_t              size;                   /**< Size of the complex type.          */
+        FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
     } FTIT_complexType;
 
     /** @typedef    FTIT_dataset
@@ -300,9 +299,10 @@ extern "C" {
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
+        FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
+        FTIT_H5Group    H5RootGroup;        /**< HDF5 root group.               */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
-        FTIT_H5Group    H5RootGroup;        /** HDF5 root group.                 */
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration

@@ -210,8 +210,8 @@ int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
-    void FTI_CreateComplexType(FTIT_type* ftiType);
-    void FTI_CloseComplexType(FTIT_type* ftiType);
+    void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+    void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
     void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
     void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
     void FTI_CloseGroup(FTIT_H5Group* ftiGroup);
