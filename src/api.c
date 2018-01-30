@@ -443,7 +443,6 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     FTI_Exec.H5groups[FTI_Exec.nbGroup] = malloc(sizeof(FTIT_H5Group));
     *FTI_Exec.H5groups[FTI_Exec.nbGroup] = *h5group;
 
-    FTIT_H5Group* parentInArray = FTI_Exec.H5groups[parent->id];
     //assign a child and increment the childrenNo
     parentInArray->childrenID[parentInArray->childrenNo] = FTI_Exec.nbGroup;
     parentInArray->childrenNo++;
