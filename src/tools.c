@@ -368,6 +368,39 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      It mallocs memory for the metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+
+  This function mallocs the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
+    FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
+    if (FTI_Exec->FTI_Type == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
+    if (FTI_Exec->H5groups == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups[0] = malloc(sizeof(FTIT_H5Group));
+    if (FTI_Exec->H5groups[0] == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups[0]->id = 0;
+    FTI_Exec->H5groups[0]->childrenNo = 0;
+    sprintf(FTI_Exec->H5groups[0]->name, "/");
+    FTI_Exec->nbGroup = 1;
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      It frees memory for the types.
   @param      FTI_Exec        Execution metadata.
 

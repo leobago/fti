@@ -217,6 +217,7 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
     void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
     void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 #endif
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,

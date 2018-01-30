@@ -118,14 +118,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        FTI_Exec.H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
-        FTI_Exec.H5groups[0] = malloc(sizeof(FTIT_H5Group));
-        FTI_Exec.H5groups[0]->id = 0;
-        FTI_Exec.H5groups[0]->childrenNo = 0;
-        sprintf(FTI_Exec.H5groups[0]->name, "/");
-        FTI_Exec.nbGroup = 1;
-    }
+    FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
@@ -199,15 +192,7 @@ int FTI_Status()
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitType(FTIT_type* type, int size)
-{
-    if (FTI_Exec.nbType == 0) {
-        //malloc memory for array for basic types
-        FTI_Exec.FTI_Type = malloc(11* sizeof(FTIT_type*));
-    } else if (FTI_Exec.nbType > 10) {
-        //append a space for new type
-        FTI_Exec.FTI_Type = realloc(FTI_Exec.FTI_Type, sizeof(FTIT_type*) * (FTI_Exec.nbType + 1));
-    }
-    
+{  
     type->id = FTI_Exec.nbType;
     type->size = size;
     type->structure = NULL;
