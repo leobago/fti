@@ -366,6 +366,31 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It frees memory for the types.
+  @param      FTI_Exec        Execution metadata.
+
+  This function frees the memory used for the type storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
+    int i;
+    for (i = 0; i < FTI_Exec->nbType; i++) {
+        if (FTI_Exec->FTI_Type[i]->structure != NULL) {
+            //if complex type and have structure
+            free(FTI_Exec->FTI_Type[i]->structure);
+        }
+        free(FTI_Exec->FTI_Type[i]);
+    }
+    free(FTI_Exec->FTI_Type);
+    for (i = 0; i < FTI_Exec->nbGroup; i++) {
+        free(FTI_Exec->H5groups[i]);
+    }
+    free(FTI_Exec->H5groups);
+}
+
 #ifdef ENABLE_HDF5
 /*-------------------------------------------------------------------------*/
 /**
@@ -503,7 +528,7 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -514,7 +539,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_CreateGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to create the child
+        FTI_CreateGroup(FTI_Group[ftiGroup->childrenID[i]], ftiGroup->h5groupID, FTI_Group); //Try to create the child
     }
 }
 #endif
@@ -531,7 +556,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
@@ -542,7 +567,7 @@ void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_OpenGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to open the child
+        FTI_OpenGroup(FTI_Group[ftiGroup->childrenID[i]], ftiGroup->h5groupID, FTI_Group); //Try to open the child
     }
 }
 #endif
@@ -558,7 +583,7 @@ void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CloseGroup(FTIT_H5Group* ftiGroup)
+void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     if (ftiGroup->h5groupID == -1) {
@@ -570,7 +595,7 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_CloseGroup(ftiGroup->children[i]); //Try to close the child
+        FTI_CloseGroup(FTI_Group[ftiGroup->childrenID[i]], FTI_Group); //Try to close the child
     }
 
     herr_t res = H5Gclose(ftiGroup->h5groupID);

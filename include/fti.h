@@ -182,11 +182,12 @@ extern "C" {
     typedef struct FTIT_H5Group FTIT_H5Group;
 
     typedef struct FTIT_H5Group {
-        char                name[FTI_BUFS];     /**< Name of the group.             */
-        int                 childrenNo;         /**< Number of children             */
-        FTIT_H5Group*       children[FTI_BUFS]; /**< Pointers to the children groups*/
+        int                 id;                     /**< ID of the group.               */
+        char                name[FTI_BUFS];         /**< Name of the group.             */
+        int                 childrenNo;             /**< Number of children             */
+        int                 childrenID[FTI_BUFS];   /**< IDs of the children groups     */
 #ifdef ENABLE_HDF5
-        hid_t               h5groupID;            /**< Group hid_t.                   */
+        hid_t               h5groupID;              /**< Group hid_t.                   */
 #endif
     } FTIT_H5Group;
 
@@ -293,6 +294,7 @@ extern "C" {
         unsigned int    nbVar;              /**< Number of protected variables. */
         unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;             /**< Number of data types.          */
+        int             nbGroup;            /**< Number of protected groups.    */
         int             metaAlloc;          /**< True if meta allocated.        */
         int             initSCES;           /**< True if FTI initialized.       */
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
@@ -300,7 +302,7 @@ extern "C" {
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
-        FTIT_H5Group    H5RootGroup;        /**< HDF5 root group.               */
+        FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
     } FTIT_execution;
@@ -433,6 +435,7 @@ extern "C" {
     void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
                                 size_t offset, int rank, int* dimLength, int id, char* name);
     int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
+    int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
     int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
     int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
     long FTI_GetStoredSize(int id);
