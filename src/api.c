@@ -422,12 +422,13 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
         //child of root
         parent = FTI_Exec.H5groups[0];
     }
+    FTIT_H5Group* parentInArray = FTI_Exec.H5groups[parent->id];
     //check if this parent has that child
     int i;
-    for (i = 0; i < parent->childrenNo; i++) {
-        if (strcmp(FTI_Exec.H5groups[parent->childrenID[i]]->name, name) == 0) {
+    for (i = 0; i < parentInArray->childrenNo; i++) {
+        if (strcmp(FTI_Exec.H5groups[parentInArray->childrenID[i]]->name, name) == 0) {
             char str[FTI_BUFS];
-            sprintf(str, "Group %s already has the %s child.", parent->name, name);
+            sprintf(str, "Group %s already has the %s child.", parentInArray->name, name);
             return FTI_NSCS;
         }
     }
