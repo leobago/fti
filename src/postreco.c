@@ -59,8 +59,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int ckptID, rank;
     sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     char fn[FTI_BUFS], efn[FTI_BUFS];
-    sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
-    sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
+    snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
 
     int bs = FTI_Conf->blockSize;
     int k = FTI_Topo->groupSize;
@@ -325,8 +325,6 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
         int ifd = open(fn, O_RDONLY);
         FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
-        long offset;
-        offset = lseek(ifd, 0, SEEK_SET);
         read( ifd, metaInfo, sizeof(FTIFF_metaInfo) );
         fs = metaInfo->fs;
         FTI_Exec->meta[3].fs[0] = fs;
@@ -355,7 +353,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             sprintf(&checksum[ii], "%02x", hashRS[i]);
             ii+=2;
         }
-        strcpy(FTIFFMeta->checksum, checksum);
+        strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);
 
         // add hash of meta info to meta info structure
         FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
@@ -466,14 +464,14 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (ptner) {    //if want to send Ptner file
         int ckptID, rank;
         sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank); //do we need this from filename?
-        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
         toSend = FTI_Exec->meta[2].pfs[0];
     } else {    //if want to send Ckpt file
-        sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
+        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
         toSend = FTI_Exec->meta[2].fs[0];
     }
 
-    sprintf(str, "Opening file (rb) (%s) (L2).", filename);
+    snprintf(str, FTI_BUFS, "Opening file (rb) (%s) (L2).", filename);
     FTI_Print(str, FTI_DBUG);
     FILE* fileDesc = fopen(filename, "rb");
     if (fileDesc == NULL) {
@@ -526,14 +524,14 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (ptner) { //if want to receive Ptner file
         int ckptID, rank;
         sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-        sprintf(filename, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
         toRecv = FTI_Exec->meta[2].pfs[0];
     } else { //if want to receive Ckpt file
-        sprintf(filename, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
+        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
         toRecv = FTI_Exec->meta[2].fs[0];
     }
 
-    sprintf(str, "Opening file (wb) (%s) (L2).", filename);
+    snprintf(str, FTI_BUFS, "Opening file (wb) (%s) (L2).", filename);
     FTI_Print(str, FTI_DBUG);
     FILE* fileDesc = fopen(filename, "wb");
     if (fileDesc == NULL) {
@@ -784,7 +782,7 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Reed-Solomon decoding
     if (l > 0) {
         char str[FTI_BUFS];
-        sprintf(str, "There are %d encoded/checkpoint files missing in this group.", l);
+        snprintf(str, FTI_BUFS, "There are %d encoded/checkpoint files missing in this group.", l);
         FTI_Print(str, FTI_DBUG);
         int res = FTI_Try(FTI_Decode(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased), "use RS-decoding to regenerate the missing data.");
         if (res == FTI_NSCS) {
@@ -825,6 +823,9 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             case FTI_IO_SIONLIB:
                 return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #endif
+            default:
+                FTI_Print("unknown I/O mode",FTI_WARN);
+                return FTI_NSCS;
         }
     //}
 }
@@ -882,20 +883,20 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-        sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+        snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+        snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
 #ifdef ENABLE_HDF5
         if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-            sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-            sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+            snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+            snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
         }
 #endif
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
-    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
     FILE* gfd = fopen(gfn, "rb");
     if (gfd == NULL) {
@@ -917,7 +918,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MD5_CTX md5ctxL4;
     MD5_Init(&md5ctxL4);
 
-    int toHash;
     // Checkpoint files transfer from PFS
     long pos = 0;
     while (pos < fs) {
@@ -1023,11 +1023,11 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // set stripping unit to 4MB
     MPI_Info_set(info, "stripping_unit", "4194304");
 
-    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
-    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
     // open parallel file
     MPI_File pfh;
@@ -1142,11 +1142,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    sprintf(FTI_Exec->meta[1].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    sprintf(FTI_Exec->meta[4].ckptFile, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+    snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
-    sprintf(lfn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-    sprintf(gfn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
     // this is done, since sionlib aborts if the file is not readable.
     if (access(gfn, F_OK) != 0) {
@@ -1203,7 +1203,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             res = sion_fread(readData, sizeof(char), bSize, sid);
             if (res != bSize) {
                 char str[FTI_BUFS];
-                sprintf(str, "SIONlib: Unable to read %lu Bytes from file", bSize);
+                snprintf(str, FTI_BUFS, "SIONlib: Unable to read %lu Bytes from file", bSize);
                 FTI_Print(str, FTI_EROR);
                 sion_parclose_mapped_mpi(sid);
                 free(file_map);

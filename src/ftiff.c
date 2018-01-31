@@ -71,7 +71,6 @@ void FTIFF_InitMpiTypes()
     // define MPI datatypes
 
     // headInfo
-    DECL_MPI_TYPES( headInfo );
     MBR_CNT( headInfo ) =  6;
     MBR_BLK_LEN( headInfo ) = { 1, 1, FTI_BUFS, 1, 1, 1 };
     MBR_TYPES( headInfo ) = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG };
@@ -89,7 +88,6 @@ void FTIFF_InitMpiTypes()
     MPITypeInfo[FTIFF_HEAD_INFO].mbrDisp = headInfo_mbrDisp;
 
     // L2Info
-    DECL_MPI_TYPES( L2Info );
     MBR_CNT( L2Info ) =  6;
     MBR_BLK_LEN( L2Info ) = { 1, 1, 1, 1, 1, 1 };
     MBR_TYPES( L2Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
@@ -107,7 +105,6 @@ void FTIFF_InitMpiTypes()
     MPITypeInfo[FTIFF_L2_INFO].mbrDisp = L2Info_mbrDisp;
 
     // L3Info
-    DECL_MPI_TYPES( L3Info );
     MBR_CNT( L3Info ) =  5;
     MBR_BLK_LEN( L3Info ) = { 1, 1, 1, 1, 1 };
     MBR_TYPES( L3Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
@@ -167,22 +164,21 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
     }
 
     // get filesize
     struct stat st;
     stat(fn, &st);
-    int ferr;
     char strerr[FTI_BUFS];
 
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        sprintf( strerr, "FTI-FF: Updatedb - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
         return FTI_NSCS;
     }
@@ -190,7 +186,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        sprintf( strerr, "FTI-FF: Updatedb - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         return FTI_NSCS;
@@ -204,7 +200,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
     FTIFF_db *currentdb, *nextdb;
     FTIFF_dbvar *currentdbvar = NULL;
-    int dbvar_idx, pvar_idx, dbcounter=0;
+    int dbvar_idx, dbcounter=0;
 
     long endoffile = sizeof(FTIFF_metaInfo); // space for timestamp 
     long mdoffset;
@@ -213,7 +209,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
     currentdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
     if (!currentdb) {
-        sprintf( strerr, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
+        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
         FTI_Print(strerr, FTI_EROR);
         return FTI_NSCS;
     }
@@ -226,7 +222,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
         nextdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
         if (!currentdb) {
-            sprintf( strerr, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
+            snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
             FTI_Print(strerr, FTI_EROR);
             return FTI_NSCS;
         }
@@ -240,13 +236,13 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
         memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
         mdoffset += sizeof(long);
 
-        sprintf(str, "FTI-FF: Updatedb - dataBlock:%i, dbsize: %ld, numvars: %i.", 
+        snprintf(str, FTI_BUFS, "FTI-FF: Updatedb - dataBlock:%i, dbsize: %ld, numvars: %i.", 
                 dbcounter, currentdb->dbsize, currentdb->numvars);
         FTI_Print(str, FTI_DBUG);
 
         currentdb->dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * currentdb->numvars );
         if (!currentdb) {
-            sprintf( strerr, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar));
+            snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar));
             FTI_Print(strerr, FTI_EROR);
             return FTI_NSCS;
         }
@@ -278,7 +274,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
             }
 
             // debug information
-            sprintf(str, "FTI-FF: Updatedb -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+            snprintf(str, FTI_BUFS, "FTI-FF: Updatedb -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", destptr: %ld, fptr: %ld, chunksize: %ld.",
                     dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
@@ -498,7 +494,7 @@ int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* check
     FTIFF_db *currentdb = FTI_Exec->firstdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *dptr;
-    int dbvar_idx, pvar_idx, dbcounter=0;
+    int dbvar_idx, dbcounter=0;
 
     int isnextdb;
 
@@ -588,10 +584,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
-        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     FILE* fd;
@@ -606,7 +602,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if (fd == NULL) {
-        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+        snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
         FTI_Print(str, FTI_EROR);
 
         return FTI_NSCS;
@@ -619,13 +615,12 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIFF_db *currentdb = FTI_Exec->firstdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *dptr;
-    int dbvar_idx, pvar_idx, dbcounter=0;
+    int dbvar_idx, dbcounter=0;
     long mdoffset;
     long endoffile = sizeof(FTIFF_metaInfo); // offset metaInfo FTI-FF
 
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
-    unsigned char hash[MD5_DIGEST_LENGTH];
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
@@ -650,7 +645,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         mdoffset += sizeof(long);
 
         // debug information
-        sprintf(str, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i, write failed: %i", 
+        snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i, write failed: %i", 
                 FTI_Exec->ckptID, dbcounter, currentdb->dbsize, currentdb->numvars, writeFailed);
         FTI_Print(str, FTI_DBUG);
 
@@ -682,7 +677,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     char error_msg[FTI_BUFS];
                     error_msg[0] = 0;
                     strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-                    sprintf(str, "Dataset #%d could not be written: %s.", currentdbvar->id, error_msg);
+                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written: %s.", currentdbvar->id, error_msg);
                     FTI_Print(str, FTI_EROR);
                     fclose(fd);
                     return FTI_NSCS;
@@ -699,13 +694,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mdoffset += sizeof(FTIFF_dbvar);
 
             // debug information
-            sprintf(str, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+            snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", dptr: %ld, fptr: %ld, chunksize: %ld, "
                     "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " write failed: %i", 
                     FTI_Exec->ckptID, dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize,
-                    FTI_Data[currentdbvar->idx].ptr, dptr, writeFailed);
+                    (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr, writeFailed);
             FTI_Print(str, FTI_DBUG);
 
         }
@@ -733,7 +728,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose( fd );
 
     if (writeFailed) {
-        sprintf(str, "FTIFF: An error occured. Discarding checkpoint");
+        snprintf(str, FTI_BUFS, "FTIFF: An error occured. Discarding checkpoint");
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
@@ -822,7 +817,7 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = FTI_Exec->meta[0].fs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
-    strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+    strncpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
         FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
@@ -861,7 +856,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
 
     //Check if nubmer of protected variables matches
     if (FTI_Exec->nbVar != FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0]) {
-        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+        snprintf(str, FTI_BUFS, "Checkpoint has %d protected variables, but FTI protects %d.",
                 FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0], FTI_Exec->nbVar);
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
@@ -870,7 +865,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
-            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+            snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                     FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
@@ -879,15 +874,14 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     }
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
     }
     // get filesize
     struct stat st;
     stat(fn, &st);
-    int ferr;
     char strerr[FTI_BUFS];
 
     // block size for memcpy of pointer.
@@ -902,7 +896,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        sprintf( strerr, "FTI-FF: RecoveryGlobal - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
         return FTI_NREC;
     }
@@ -910,7 +904,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        sprintf( strerr, "FTI-FF: RecoveryGlobal - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         return FTI_NREC;
@@ -919,10 +913,10 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     // file is mapped, we can close it.
     close(fd);
 
-    FTIFF_db *currentdb, *nextdb;
+    FTIFF_db *currentdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *destptr, *srcptr;
-    int dbvar_idx, pvar_idx, dbcounter=0;
+    int dbvar_idx, dbcounter=0;
 
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
@@ -957,19 +951,19 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             }
 
             // debug information
-            sprintf(str, "FTI-FF: RecoveryGlobal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+            snprintf(str, FTI_BUFS, "FTI-FF: RecoveryGlobal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", destptr: %ld, fptr: %ld, chunksize: %ld, "
                     "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
                     dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize,
-                    FTI_Data[currentdbvar->idx].ptr, destptr);
+                    (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)destptr);
             FTI_Print(str, FTI_DBUG);
 
             MD5_Final( hash, &mdContext );
 
             if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                sprintf( strerr, "FTI-FF: RecoveryGlobal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
                 FTI_Print(strerr, FTI_WARN);
                 return FTI_NREC;
             }
@@ -1033,7 +1027,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
         if (id == FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i]) {
             if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
                 char str[FTI_BUFS];
-                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
                         FTI_Data[i].size);
                 FTI_Print(str, FTI_WARN);
@@ -1046,21 +1040,20 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
     }
 
     char str[FTI_BUFS];
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    snprintf(str, FTI_BUFS, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
     // get filesize
     struct stat st;
     stat(fn, &st);
-    int ferr;
     char strerr[FTI_BUFS];
 
     // block size for memcpy of pointer.
@@ -1075,7 +1068,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        sprintf( strerr, "FTIFF: RecoveryLocal - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
         return FTI_NREC;
     }
@@ -1083,7 +1076,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        sprintf( strerr, "FTIFF: RecoveryLocal - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         return FTI_NREC;
@@ -1092,10 +1085,10 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
     // file is mapped, we can close it.
     close(fd);
 
-    FTIFF_db *currentdb, *nextdb;
+    FTIFF_db *currentdb;
     FTIFF_dbvar *currentdbvar = NULL;
     char *destptr, *srcptr;
-    int dbvar_idx, pvar_idx, dbcounter=0;
+    int dbvar_idx, dbcounter=0;
 
     // MD5 context for checksum of data chunks
     MD5_CTX mdContext;
@@ -1131,19 +1124,19 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
                 }
 
                 // debug information
-                sprintf(str, "FTIFF: RecoveryLocal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                snprintf(str, FTI_BUFS, "FTIFF: RecoveryLocal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                         ", destptr: %ld, fptr: %ld, chunksize: %ld, "
                         "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
                         dbcounter, dbvar_idx,  
                         currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                         currentdbvar->fptr, currentdbvar->chunksize,
-                        FTI_Data[currentdbvar->idx].ptr, destptr);
+                        (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)destptr);
                 FTI_Print(str, FTI_DBUG);
 
                 MD5_Final( hash, &mdContext );
 
                 if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                    sprintf( strerr, "FTIFF: RecoveryLocal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
                     FTI_Print(strerr, FTI_WARN);
                     return FTI_NREC;
                 }
@@ -1192,13 +1185,13 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MD5_CTX mdContext;
     DIR *L1CkptDir = opendir( FTI_Ckpt[1].dir );
     if(L1CkptDir) {
-        while(entry = readdir(L1CkptDir)) {
+        while((entry = readdir(L1CkptDir)) != NULL) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                sprintf(str, "FTI-FF: L1RecoveryInit - found file with name: %s", entry->d_name);
+                snprintf(str, FTI_BUFS, "FTI-FF: L1RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 if( fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[1].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
@@ -1298,7 +1291,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MD5_CTX mdContext;
 
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
-    int canRecover, fileTarget, ckptID = -1, fcount = 0, match;
+    int fileTarget, ckptID = -1, fcount = 0, match;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
     DIR *L2CkptDir = opendir( FTI_Ckpt[2].dir );
@@ -1306,14 +1299,14 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
     if(L2CkptDir) {
         int tmpCkptID;
-        while(entry = readdir(L2CkptDir)) {
+        while((entry = readdir(L2CkptDir)) != NULL) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                sprintf(str, "FTI-FF: L2RecoveryInit - found file with name: %s", entry->d_name);
+                snprintf(str, FTI_BUFS, "FTI-FF: L2RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     // check if regular file and of reasonable size (at least must contain meta info)
                     if ( !ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
@@ -1358,7 +1351,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Pcof%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo)) {
                         int fd = open(tmpfn, O_RDONLY);
@@ -1448,11 +1441,11 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             FTI_Exec->meta[2].pfs[0] = appProcsMetaInfo[leftIdx].fs;    
         }
     }
-    sprintf(dbgstr, "FTI-FF: L2-Recovery - rank: %i, left: %i, right: %i, fs: %ld, pfs: %ld, ckptID: %i",
+    snprintf(dbgstr, FTI_BUFS, "FTI-FF: L2-Recovery - rank: %i, left: %i, right: %i, fs: %ld, pfs: %ld, ckptID: %i",
             FTI_Topo->myRank, leftIdx, rightIdx, FTI_Exec->meta[2].fs[0], FTI_Exec->meta[2].pfs[0], FTI_Exec->ckptID);
     FTI_Print(dbgstr, FTI_DBUG);
 
-    sprintf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->meta[2].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     closedir(L2CkptDir);
     free(appProcsMetaInfo);
@@ -1478,7 +1471,6 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
-    char dbgstr[FTI_BUFS];
 
     FTIFF_L3Info *groupInfo = calloc( FTI_Topo->groupSize, sizeof(FTIFF_L3Info) );
     FTIFF_L3Info *myInfo = calloc( 1, sizeof(FTIFF_L3Info) );
@@ -1486,7 +1478,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MD5_CTX mdContext;
 
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
-    int fileTarget, ckptID = -1, fcount = 0, match;
+    int fileTarget, ckptID = -1, match;
     struct dirent *entry = malloc(sizeof(struct dirent));
     struct stat ckptFS;
     DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
@@ -1494,14 +1486,14 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
     if(L3CkptDir) {
         int tmpCkptID;
-        while(entry = readdir(L3CkptDir)) {
+        while((entry = readdir(L3CkptDir)) != NULL) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                sprintf(str, "FTI-FF: L3RecoveryInit - found file with name: %s", entry->d_name);
+                snprintf(str, FTI_BUFS, "FTI-FF: L3RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
@@ -1545,7 +1537,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-RSed%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
@@ -1635,7 +1627,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     FTI_Exec->meta[3].fs[0] = (myInfo->FileExists) ? myInfo->fs : 0;
 
-    sprintf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->meta[3].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     closedir(L3CkptDir);
     free(groupInfo);
@@ -1667,15 +1659,14 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     struct stat ckptFS;
     DIR *L4CkptDir = opendir( FTI_Ckpt[4].dir );
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
-    MD5_CTX mdContext;
     if(L4CkptDir) {
-        while(entry = readdir(L4CkptDir)) {
+        while((entry = readdir(L4CkptDir)) != NULL) {
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                sprintf(str, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
+                snprintf(str, FTI_BUFS, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 if( fileTarget == FTI_Topo->myRank ) {
-                    sprintf(tmpfn, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
                     int ferr = stat(tmpfn, &ckptFS);
                     if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);

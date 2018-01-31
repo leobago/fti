@@ -111,8 +111,9 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c)
 
+set(ADD_CFLAGS "-fPIC -Wall -Wno-format-truncation")
 append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" -fPIC)
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
 if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}

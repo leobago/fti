@@ -55,7 +55,7 @@
 int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* nameList)
 {
     char str[FTI_BUFS];
-    sprintf(str, "Trying to load configuration file (%s) to create topology.", FTI_Conf->cfgFile);
+    snprintf(str, FTI_BUFS, "Trying to load configuration file (%s) to create topology.", FTI_Conf->cfgFile);
     FTI_Print(str, FTI_DBUG);
 
     dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
@@ -72,7 +72,7 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
     for (i = 0; i < FTI_Topo->nbNodes; i++) {
         char mfn[FTI_BUFS];
         strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS - 1);
-        sprintf(str, "topology:%d", i);
+        snprintf(str, FTI_BUFS, "topology:%d", i);
         iniparser_set(ini, str, mfn);
     }
 
@@ -82,8 +82,8 @@ int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* na
     iniparser_unset(ini, "advanced");
 
     char mfn[FTI_BUFS];
-    sprintf(mfn, "%s/Topology.fti", FTI_Conf->metadDir);
-    sprintf(str, "Creating topology file (%s)...", mfn);
+    snprintf(mfn, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
+    snprintf(str, FTI_BUFS, "Creating topology file (%s)...", mfn);
     FTI_Print(str, FTI_DBUG);
 
     FILE* fd = fopen(mfn, "w");
@@ -139,8 +139,8 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     char mfn[FTI_BUFS], str[FTI_BUFS];
-    sprintf(mfn, "%s/Topology.fti", FTI_Conf->metadDir);
-    sprintf(str, "Loading FTI topology file (%s) to reorder nodes...", mfn);
+    snprintf(mfn, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
+    snprintf(str, FTI_BUFS, "Loading FTI topology file (%s) to reorder nodes...", mfn);
     FTI_Print(str, FTI_DBUG);
 
     // Checking that the topology file exist
@@ -168,7 +168,7 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
     // Get the old order of nodes
     for (i = 0; i < FTI_Topo->nbNodes; i++) {
-        sprintf(str, "Topology:%d", i);
+        snprintf(str, FTI_BUFS, "Topology:%d", i);
         char* tmp = iniparser_getstring(ini, str, NULL);
         snprintf(str, FTI_BUFS, "%s", tmp);
 
@@ -286,7 +286,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (i = 0; i < FTI_Topo->nbProc; i++) { // Checking that all nodes have nodeSize processes
         if (nodeList[i] == -1) {
             char str[FTI_BUFS];
-            sprintf(str, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
+            snprintf(str, FTI_BUFS, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
             FTI_Print(str, FTI_WARN);
             free(lhn);
             return FTI_NSCS;

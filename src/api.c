@@ -251,7 +251,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
         for (j = 0; j < typeDefinition->field[i].rank; j++) {
             if (typeDefinition->field[i].dimLength[j] < 1) {
                 char str[FTI_BUFS];
-                sprintf(str, "(%s, index: %d) Type dimention length must be greater than 0.", typeDefinition->field[i].name, i);
+                snprintf(str, FTI_BUFS, "(%s, index: %d) Type dimention length must be greater than 0.", typeDefinition->field[i].name, i);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NSCS;
             }
@@ -505,7 +505,7 @@ void* FTI_Realloc(int id, void* ptr)
 
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
     if (FTI_Exec.reco) {
-        char fn[FTI_BUFS], str[FTI_BUFS];
+        char str[FTI_BUFS];
         int i;
         for (i = 0; i < FTI_BUFS; i++) {
             if (id == FTI_Data[i].id) {
@@ -798,10 +798,10 @@ int FTI_Recover()
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
@@ -1040,10 +1040,10 @@ int FTI_RecoverVar(int id)
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
-        sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
     char str[FTI_BUFS];
