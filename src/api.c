@@ -798,7 +798,12 @@ int FTI_Recover()
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
+        //Try from L1
         sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        if (access(fn, F_OK) != 0) {
+            //if no L1 files try from L4
+            sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.meta[4].ckptFile);
+        }
     }
     else {
         sprintf(fn, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
@@ -809,7 +814,8 @@ int FTI_Recover()
 
     FILE* fd = fopen(fn, "rb");
     if (fd == NULL) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        sprintf(str, "Could not open FTI checkpoint file. (%s)...", fn);
+        FTI_Print(str, FTI_EROR);
         return FTI_NREC;
     }
 
@@ -825,6 +831,7 @@ int FTI_Recover()
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
+    FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
     FTI_Exec.reco = 0;
 
     return FTI_SCES;

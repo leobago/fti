@@ -25,6 +25,8 @@ add_executable(syncIntv syncIntv.c)
 target_link_libraries(syncIntv fti.static)
 
 add_subdirectory(local)
+add_subdirectory(cornerCases)
+add_subdirectory(ckptHierarchy)
 
 file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
