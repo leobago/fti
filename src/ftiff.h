@@ -40,7 +40,6 @@
 #ifndef _FTIFF_H
 #define _FTIFF_H
 
-#define DECL_MPI_TYPES(TYPE) MPI_Datatype MPI_ ## TYPE ## _RAW, MPI_ ## TYPE
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]

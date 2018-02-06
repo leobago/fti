@@ -77,14 +77,14 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
         int destination, int postFlag)
 {
     char lfn[FTI_BUFS], str[FTI_BUFS];
-    sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS]);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS]);
 
     //PostFlag is set to 0 if Post-processing is inline and set to processes nodeID if Post-processing done by head
     if (postFlag) {
-        sprintf(str, "L2 trying to access process's %d ckpt. file (%s).", postFlag, lfn);
+        snprintf(str, FTI_BUFS, "L2 trying to access process's %d ckpt. file (%s).", postFlag, lfn);
     }
     else {
-        sprintf(str, "L2 trying to access local ckpt. file (%s).", lfn);
+        snprintf(str, FTI_BUFS, "L2 trying to access local ckpt. file (%s).", lfn);
     }
     FTI_Print(str, FTI_DBUG);
 
@@ -142,8 +142,8 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     sscanf(&FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
 
     char pfn[FTI_BUFS], str[FTI_BUFS];
-    sprintf(pfn, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
-    sprintf(str, "L2 trying to access Ptner file (%s).", pfn);
+    snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
+    snprintf(str, FTI_BUFS, "L2 trying to access Ptner file (%s).", pfn);
     FTI_Print(str, FTI_DBUG);
 
     FILE* pfd = fopen(pfn, "wb");
@@ -279,11 +279,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
 
-        sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
-        sprintf(efn, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
+        snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+        snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
 
         char str[FTI_BUFS];
-        sprintf(str, "L3 trying to access local ckpt. file (%s).", lfn);
+        snprintf(str, FTI_BUFS, "L3 trying to access local ckpt. file (%s).", lfn);
         FTI_Print(str, FTI_DBUG);
 
         //all files in group must have the same size
@@ -439,7 +439,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTIFFMeta->ptFs = -1;
             FTIFFMeta->maxFs = maxFs;
             FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
-            strcpy(FTIFFMeta->checksum, checksum);
+            strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);
 
             // get hash of meta data
             FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
@@ -500,7 +500,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      **/
 
     char str[FTI_BUFS];
-    sprintf(str, "Starting checkpoint post-processing L4 for level %d", level);
+    snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
     // create global temp directory
     if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
@@ -563,11 +563,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     for (proc = startProc; proc < endProc; proc++) {
         char str[FTI_BUFS];
-        sprintf(str, "Post-processing for proc %d started.", proc);
+        snprintf(str, FTI_BUFS, "Post-processing for proc %d started.", proc);
         FTI_Print(str, FTI_DBUG);
         char lfn[FTI_BUFS], gfn[FTI_BUFS];
-        sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
-        sprintf(str, "Global temporary file name for proc %d: %s", proc, gfn);
+        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        snprintf(str, FTI_BUFS, "Global temporary file name for proc %d: %s", proc, gfn);
         FTI_Print(str, FTI_DBUG);
         FILE* gfd = fopen(gfn, "wb");
 
@@ -577,12 +577,12 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         if (level == 0) {
-            sprintf(lfn, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         }
         else {
-            sprintf(lfn, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
         }
-        sprintf(str, "Local file name for proc %d: %s", proc, lfn);
+        snprintf(str, FTI_BUFS, "Local file name for proc %d: %s", proc, lfn);
         FTI_Print(str, FTI_DBUG);
         // Open local file
         FILE* lfd = fopen(lfn, "rb");
@@ -595,7 +595,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         char *readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
         long fs = FTI_Exec->meta[level].fs[proc];
-        sprintf(str, "Local file size for proc %d: %ld", proc, fs);
+        snprintf(str, FTI_BUFS, "Local file size for proc %d: %ld", proc, fs);
         FTI_Print(str, FTI_DBUG);
         long pos = 0;
         // Checkpoint files exchange
@@ -658,9 +658,9 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // open parallel file (collective call)
     MPI_File pfh; // MPI-IO file handle
-    char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
+    char gfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 #ifdef LUSTRE
     if (FTI_Topo->splitRank == 0) {
         res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
@@ -668,7 +668,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             char error_msg[FTI_BUFS];
             error_msg[0] = 0;
             strerror_r(-res, error_msg, FTI_BUFS);
-            sprintf(str, "[Lustre] %s.", error_msg);
+            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
             FTI_Print(str, FTI_WARN);
         } else {
             snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
@@ -704,10 +704,10 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* splitRanks = talloc(int, endProc); //rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
         if (level == 0) {
-            sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         }
         else {
-            sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //determine process splitRank if head
@@ -828,10 +828,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         // Open local file case 0:
         if (level == 0) {
-            sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         }
         else {
-            sprintf(&localFileNames[proc * FTI_BUFS], "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc - startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //[proc - startProc] to get index from 0
@@ -846,7 +846,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char fn[FTI_BUFS], str[FTI_BUFS];
     sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
-    sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
     int numFiles = 1;
     int nlocaltasks = nbProc;
@@ -891,7 +891,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int res = sion_seek(sid, splitRanks[proc - startProc], SION_CURRENT_BLK, SION_CURRENT_POS);
         if (res != SION_SUCCESS) {
             errno = 0;
-            sprintf(str, "SIONlib: unable to set file pointer");
+            snprintf(str, FTI_BUFS, "SIONlib: unable to set file pointer");
             FTI_Print(str, FTI_EROR);
             free(localFileNames);
             free(splitRanks);

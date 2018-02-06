@@ -61,14 +61,14 @@ int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, int r
 
     // Load dictionary
     dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
-    sprintf(str, "Updating configuration file (%s)...", FTI_Conf->cfgFile);
+    snprintf(str, FTI_BUFS, "Updating configuration file (%s)...", FTI_Conf->cfgFile);
     FTI_Print(str, FTI_DBUG);
     if (ini == NULL) {
         FTI_Print("Iniparser failed to parse the conf. file.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    sprintf(str, "%d", restart);
+    snprintf(str, FTI_BUFS, "%d", restart);
     // Set failure to 'restart'
     iniparser_set(ini, "Restart:failure", str);
     // Set the exec. ID
@@ -120,7 +120,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_injection* FTI_Inje)
 {
     char str[FTI_BUFS]; //For console output
-    sprintf(str, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
+    snprintf(str, FTI_BUFS, "Reading FTI configuration file (%s)...", FTI_Conf->cfgFile);
     FTI_Print(str, FTI_INFO);
 
     // Check access to FTI configuration file and load dictionary
@@ -195,13 +195,13 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
                 n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec);
         MPI_Bcast(FTI_Exec->id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->globalComm);
-        sprintf(str, "The execution ID is: %s", FTI_Exec->id);
+        snprintf(str, FTI_BUFS, "The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);
     }
     else {
         par = iniparser_getstring(ini, "restart:exec_id", NULL);
         snprintf(FTI_Exec->id, FTI_BUFS, "%s", par);
-        sprintf(str, "This is a restart. The execution ID is: %s", FTI_Exec->id);
+        snprintf(str, FTI_BUFS, "This is a restart. The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);
     }
 
@@ -311,7 +311,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         }
         FTI_Exec->syncIterMax = check;
         char str[FTI_BUFS];
-        sprintf(str,"Maximal sync. intv. has to be a power of 2. Set to nearest lower value (%d iterations)", FTI_Exec->syncIterMax);
+        snprintf(str, FTI_BUFS, "Maximal sync. intv. has to be a power of 2. Set to nearest lower value (%d iterations)", FTI_Exec->syncIterMax);
         FTI_Print(str, FTI_WARN);
     } else if (FTI_Exec->syncIterMax == 0) {
         FTI_Exec->syncIterMax = 512;
@@ -369,7 +369,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         char str[FTI_BUFS]; //For console output
 
         // Checking local directory
-        sprintf(str, "Checking the local directory (%s)...", FTI_Conf->localDir);
+        snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
         FTI_Print(str, FTI_DBUG);
         if (mkdir(FTI_Conf->localDir, 0777) == -1) {
             if (errno != EEXIST) {
@@ -380,7 +380,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
         if (FTI_Topo->myRank == 0) {
             // Checking metadata directory
-            sprintf(str, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
+            snprintf(str, FTI_BUFS, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
             FTI_Print(str, FTI_DBUG);
             if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
                 if (errno != EEXIST) {
@@ -390,7 +390,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             }
 
             // Checking global directory
-            sprintf(str, "Checking the global directory (%s)...", FTI_Conf->glbalDir);
+            snprintf(str,FTI_BUFS,  "Checking the global directory (%s)...", FTI_Conf->glbalDir);
             FTI_Print(str, FTI_DBUG);
             if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
                 if (errno != EEXIST) {

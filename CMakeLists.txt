@@ -85,6 +85,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 include(FortranCInterface)
 include(CheckFortranCompilerFlag)
+include(CheckCCompilerFlag)
 
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
@@ -111,8 +112,27 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c)
 
+# Check compiler flag support
+set(ADD_CFLAGS "")
+try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-fPIC")
+if(C_COMPILER_HAS_FLAG)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -fPIC")
+endif()
+try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wall")
+if(C_COMPILER_HAS_FLAG)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
+endif()
+try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
+if(C_COMPILER_HAS_FLAG)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
+endif()
+try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
+if(C_COMPILER_HAS_FLAG)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
+endif()
+
 append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" -fPIC)
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
 if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
