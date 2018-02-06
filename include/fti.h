@@ -179,15 +179,27 @@ extern "C" {
      */
     typedef struct FTIT_complexType FTIT_complexType;
 
+    typedef struct FTIT_H5Group FTIT_H5Group;
+
+    typedef struct FTIT_H5Group {
+        char                name[FTI_BUFS];     /**< Name of the group.             */
+        int                 childrenNo;         /**< Number of children             */
+        FTIT_H5Group*       children[FTI_BUFS]; /**< Pointers to the children groups*/
+#ifdef ENABLE_HDF5
+        hid_t               h5groupID;            /**< Group hid_t.                   */
+#endif
+    } FTIT_H5Group;
+
     /** @typedef    FTIT_type
      *  @brief      Type recognized by FTI.
      *
      *  This type allows handling data structures.
      */
     typedef struct FTIT_type {
-        int                 id;                 /**< ID of the data type.           */
-        int                 size;               /**< Size of the data type.         */
+        int                 id;                     /**< ID of the data type.           */
+        int                 size;                   /**< Size of the data type.         */
         FTIT_complexType*   structure;              /**< Logical structure for HDF5.    */
+        FTIT_H5Group*       h5group;                /**< Group of this datatype.        */
 #ifdef ENABLE_HDF5
         hid_t               h5datatype;             /**< HDF5 datatype.                 */
 #endif
@@ -227,10 +239,13 @@ extern "C" {
         int             id;                 /**< ID to search/update dataset.   */
         void            *ptr;               /**< Pointer to the dataset.        */
         long            count;              /**< Number of elements in dataset. */
-        FTIT_type*       type;              /**< Data type for the dataset.     */
+        FTIT_type*      type;               /**< Data type for the dataset.     */
         int             eleSize;            /**< Element size for the dataset.  */
         long            size;               /**< Total size of the dataset.     */
+        int             rank;               /**< Rank of dataset (for HDF5).    */
+        int             dimLength[32];      /**< Lenght of each dimention.      */
         char            name[FTI_BUFS];     /**< Name of the dataset.           */
+        FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -287,6 +302,7 @@ extern "C" {
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
+        FTIT_H5Group    H5RootGroup;        /** HDF5 root group.                 */
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration
@@ -410,14 +426,15 @@ extern "C" {
     int FTI_Init(char *configFile, MPI_Comm globalComm);
     int FTI_Status();
     int FTI_InitType(FTIT_type* type, int size);
-    int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition,
-                        int length, size_t size, char* name);
+    int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
+                            size_t size, char* name, FTIT_H5Group* h5group);
     void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
                                 size_t offset, int id, char* name);
     void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
                                 size_t offset, int rank, int* dimLength, int id, char* name);
+    int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
     int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
-    int FTI_ProtectWithName(int id, void* ptr, long count, FTIT_type type, char* name);
+    int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
     long FTI_GetStoredSize(int id);
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);

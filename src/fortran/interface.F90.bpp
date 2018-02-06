@@ -48,8 +48,7 @@ module FTI
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
 			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
-      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
-      FTI_ProtectWithName
+      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType
 
 
 
@@ -292,35 +291,6 @@ module FTI
     endfunction FTI_AddComplexField_impl
 
   endinterface
-
-  interface
-
-    function FTI_ProtectWithName_impl(id_F, ptr, count_F, type_F, name) &
-            bind(c, name='FTI_ProtectWithName_wrapper')
-
-      use ISO_C_BINDING
-
-      integer(c_int) :: FTI_Protect_impl
-      integer(c_int), value :: id_F
-      type(c_ptr), value :: ptr
-      integer(c_long), value :: count_F
-      type(c_ptr), value :: type_F
-      character(c_char), intent(IN) :: name(*)
-
-    endfunction FTI_ProtectWithName_impl
-
-  endinterface
-
-  interface FTI_ProtectWithName
-
-    module procedure FTI_ProtectWithName_Ptr
-!$SH for T in ${FORTTYPES}; do
-!$SH   for D in $(seq 0 ${MAXDIM}); do
-    module procedure FTI_ProtectWithName_${T}${D}
-!$SH   done
-!$SH done
-
-  endinterface FTI_ProtectWithName
 
 contains
 
@@ -668,88 +638,5 @@ subroutine FTI_InitComplexType(type_F, def_F, length, size, name, err)
             int(size, c_long), name))
 
 endsubroutine FTI_InitComplexType
-
-!>  This function stores a pointer to a data structure, its size, its ID,
-!!  its number of elements and the type of the elements. This list of
-!!  structures is the data that will be stored during a checkpoint and
-!!  loaded during a recovery. It resets the pointer to a data structure,
-!!  its size, its number of elements and the type of the elements if the
-!!  dataset was already previously registered.
-!!  \brief    It sets/resets the pointer and type to a protected variable.
-!!  \param    id_F    (IN)    ID for searches and update.
-!!  \param    ptr     (IN)    C-Pointer to the data structure.
-!!  \param    count_F (IN)    Number of elements in the data structure.
-!!  \param    type_F  (IN)    Type of elements in the data structure.
-!!  \param    name    (IN)    data field name in hdf5 checkpoint file.
-!!  \param    err     (OUT)   Token for error handling.
-!!  \return   integer         FTI_SCES if successful.
-subroutine FTI_ProtectWithName_Ptr(id_F, ptr, count_F, type_F, name, err)
-
-  integer, intent(IN) :: id_F
-  type(c_ptr), value :: ptr
-  integer, intent(IN) :: count_F
-  type(FTI_type), intent(IN) :: type_F
-  character(len=*), intent(IN) :: name
-  integer, intent(OUT) :: err
-
-  err = int(FTI_ProtectWithName_impl(int(id_F, c_int), ptr, int(count_F, c_long), &
-          type_F%raw_type, name))
-
-endsubroutine FTI_ProtectWithName_Ptr
-!$SH for T in ${FORTTYPES}; do
-
-!>  This function stores a pointer to a data structure, its size, its ID,
-!!  its number of elements and the type of the elements. This list of
-!!  structures is the data that will be stored during a checkpoint and
-!!  loaded during a recovery. It resets the pointer to a data structure,
-!!  its size, its number of elements and the type of the elements if the
-!!  dataset was already previously registered.
-!!  \brief    It sets/resets the pointer and type to a protected variable.
-!!  \param    id_F    (IN)    ID for searches and update.
-!!  \param    data    (IN)    data field to protect.
-!!  \param    name    (IN)    data field name in hdf5 checkpoint file.
-!!  \param    err     (OUT)   Token for error handling.
-!!  \return   integer         FTI_SCES if successful.
-subroutine FTI_ProtectWithName_${T}0(id_F, data, name, err)
-
-  integer, intent(IN) :: id_F
-  $(fort_type ${T}), pointer :: data
-  character(len=*), intent(IN) :: name
-  integer, intent(OUT) :: err
-
-  call FTI_ProtectWithName_Ptr(id_F, c_loc(data), 1, $(fti_type ${T}), name, err)
-
-endsubroutine FTI_ProtectWithName_${T}0
-
-!$SH   for D in $(seq 1 ${MAXDIM}); do
-  !>  This function stores a pointer to a data structure, its size, its ID,
-  !!  its number of elements and the type of the elements. This list of
-  !!  structures is the data that will be stored during a checkpoint and
-  !!  loaded during a recovery. It resets the pointer to a data structure,
-  !!  its size, its number of elements and the type of the elements if the
-  !!  dataset was already previously registered.
-  !!  \brief    It sets/resets the pointer and type to a protected variable.
-  !!  \param    id_F    (IN)    ID for searches and update.
-  !!  \param    data    (IN)    data field to protect.
-  !!  \param    name    (IN)    data field name in hdf5 checkpoint file.
-  !!  \param    err     (OUT)   Token for error handling.
-  !!  \return   integer         FTI_SCES if successful.
-  subroutine FTI_ProtectWithName_${T}${D}(id_F, data, name, err)
-
-    integer, intent(IN) :: id_F
-    $(fort_type ${T}), pointer :: data$(str_repeat ':' 1 ${D} ',' '(' ')')
-    character(len=*), intent(IN) :: name
-    integer, intent(OUT) :: err
-
-    ! workaround, we take the address of the first array element and hope for
-    ! the best since not much better can be done
-    call FTI_ProtectWithName_Ptr(id_F, &
-            c_loc(data$(str_repeat 'lbound(data, @N)' 1 ${D} $',&\n' '(' ')')), &
-            size(data), $(fti_type ${T}), name, err)
-
-  endsubroutine FTI_ProtectWithName_${T}${D}
-
-!$SH   done
-!$SH done
 
 endmodule FTI
