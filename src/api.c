@@ -54,9 +54,6 @@ static FTIT_topology FTI_Topo;
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];
 
-/** Array of types defined by user.                                        */
-static FTIT_type* FTI_Type[FTI_BUFS];
-
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
@@ -121,6 +118,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
+    FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
@@ -134,10 +132,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
-    }
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        FTI_Exec.H5RootGroup.childrenNo = 0;
-        sprintf(FTI_Exec.H5RootGroup.name, "/");
     }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
@@ -198,17 +192,49 @@ int FTI_Status()
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitType(FTIT_type* type, int size)
-{
+{  
     type->id = FTI_Exec.nbType;
     type->size = size;
     type->structure = NULL;
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
-    FTI_Type[type->id] = type;
 
 #ifdef ENABLE_HDF5
-    type->h5datatype = -1; //to mark as closed
-    type->h5group = &FTI_Exec.H5RootGroup;
+    type->h5group = FTI_Exec.H5groups[0];
+
+    // Maps FTI types to HDF5 types
+    switch (FTI_Exec.nbType) {
+        case 0:
+            type->h5datatype = H5T_NATIVE_CHAR; break;
+        case 1:
+            type->h5datatype = H5T_NATIVE_SHORT; break;
+        case 2:
+            type->h5datatype = H5T_NATIVE_INT; break;
+        case 3:
+            type->h5datatype = H5T_NATIVE_LONG; break;
+        case 4:
+            type->h5datatype = H5T_NATIVE_UCHAR; break;
+        case 5:
+            type->h5datatype = H5T_NATIVE_USHORT; break;
+        case 6:
+            type->h5datatype = H5T_NATIVE_UINT; break;
+        case 7:
+            type->h5datatype = H5T_NATIVE_ULONG; break;
+        case 8:
+            type->h5datatype = H5T_NATIVE_FLOAT; break;
+        case 9:
+            type->h5datatype = H5T_NATIVE_DOUBLE; break;
+        case 10:
+            type->h5datatype = H5T_NATIVE_LDOUBLE; break;
+        default:
+            type->h5datatype = -1; break; //to mark as closed
+    }
 #endif
+
+    //make a clone of the type in case the user won't store pointer
+    FTI_Exec.FTI_Type[FTI_Exec.nbType] = malloc(sizeof(FTIT_type));
+    *FTI_Exec.FTI_Type[FTI_Exec.nbType] = *type;
+
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+
     return FTI_SCES;
 }
 
@@ -236,7 +262,7 @@ int FTI_InitType(FTIT_type* type, int size)
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
 {
     if (h5group == NULL) {
-        h5group = &FTI_Exec.H5RootGroup;
+        h5group = FTI_Exec.H5groups[0];
     }
     if (length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
@@ -270,7 +296,6 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
     newType->id = FTI_Exec.nbType;
     newType->size = size;
     //assign type definition to type structure (types, names, ranks, dimLengths)
-    typeDefinition->size = size;
     typeDefinition->length = length;
     if (name == NULL || !strlen(name)) {
         sprintf(typeDefinition->name, "Type%d", newType->id);
@@ -278,14 +303,23 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
         strncpy(typeDefinition->name, name, FTI_BUFS);
     }
 
-    newType->structure = typeDefinition;
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
-    FTI_Type[newType->id] = newType;
-
     #ifdef ENABLE_HDF5
         newType->h5datatype = -1; //to mark as closed
-        newType->h5group = h5group;
+        newType->h5group = FTI_Exec.H5groups[h5group->id];
     #endif
+
+    //make a clone of the type definition in case the user won't store pointer
+    newType->structure = malloc(sizeof(FTIT_complexType));
+    *newType->structure = *typeDefinition;
+
+    //append a space for new type
+    FTI_Exec.FTI_Type = realloc(FTI_Exec.FTI_Type, sizeof(FTIT_type*) * (FTI_Exec.nbType + 1));
+
+    //make a clone of the type in case the user won't store pointer
+    FTI_Exec.FTI_Type[FTI_Exec.nbType] = malloc(sizeof(FTIT_type));
+    *FTI_Exec.FTI_Type[FTI_Exec.nbType] = *newType;
+
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
     return FTI_SCES;
 }
@@ -308,7 +342,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
 /*-------------------------------------------------------------------------*/
 void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
 {
-    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].typeID = ftiType->id;
     typeDefinition->field[id].offset = offset;
     if (name == NULL || !strlen(name)) {
         sprintf(typeDefinition->field[id].name, "T%d", id);
@@ -339,7 +373,7 @@ void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, si
 /*-------------------------------------------------------------------------*/
 void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
 {
-    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].typeID = ftiType->id;
     typeDefinition->field[id].offset = offset;
     typeDefinition->field[id].rank = rank;
     int i;
@@ -371,26 +405,53 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 {
     if (parent == NULL) {
         //child of root
-        parent = &FTI_Exec.H5RootGroup;
+        parent = FTI_Exec.H5groups[0];
     }
+    FTIT_H5Group* parentInArray = FTI_Exec.H5groups[parent->id];
     //check if this parent has that child
     int i;
-    for (i = 0; i < parent->childrenNo; i++) {
-        if (strcmp(parent->children[i]->name, name) == 0) {
+    for (i = 0; i < parentInArray->childrenNo; i++) {
+        if (strcmp(FTI_Exec.H5groups[parentInArray->childrenID[i]]->name, name) == 0) {
             char str[FTI_BUFS];
-            sprintf(str, "Group %s already has the %s child.", parent->name, name);
+            sprintf(str, "Group %s already has the %s child.", parentInArray->name, name);
+            return FTI_NSCS;
         }
     }
+    h5group->id = FTI_Exec.nbGroup;
+    h5group->childrenNo = 0;
     strncpy(h5group->name, name, FTI_BUFS);
-    parent->children[parent->childrenNo] = h5group;
-    parent->childrenNo++;
-
 #ifdef ENABLE_HDF5
     h5group->h5groupID = -1; //to mark as closed
 #endif
+
+    //make a clone of the group in case the user won't store pointer
+    FTI_Exec.H5groups[FTI_Exec.nbGroup] = malloc(sizeof(FTIT_H5Group));
+    *FTI_Exec.H5groups[FTI_Exec.nbGroup] = *h5group;
+
+    //assign a child and increment the childrenNo
+    parentInArray->childrenID[parentInArray->childrenNo] = FTI_Exec.nbGroup;
+    parentInArray->childrenNo++;
+
+    FTI_Exec.nbGroup = FTI_Exec.nbGroup + 1;
+
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Renames a HDF5 group
+  @param      h5group         H5 group that we want to rename
+  @param      name            New name of the H5 group
+  @return     integer         FTI_SCES if successful.
+
+    This function renames HDF5 group defined by user.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
+    strncpy(FTI_Exec.H5groups[h5group->id]->name, name, FTI_BUFS);
+    return FTI_SCES;
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -425,9 +486,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             long prevSize = FTI_Data[i].size;
             FTI_Data[i].ptr = ptr;
             FTI_Data[i].count = count;
-            FTI_Data[i].type = FTI_Type[type.id];
+            FTI_Data[i].type = FTI_Exec.FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
+            FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -446,9 +508,13 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].id = id;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
     FTI_Data[FTI_Exec.nbVar].count = count;
-    FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
+    FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    FTI_Data[FTI_Exec.nbVar].rank = 1;
+    FTI_Data[FTI_Exec.nbVar].dimLength[0] = FTI_Data[FTI_Exec.nbVar].count;
+    FTI_Data[FTI_Exec.nbVar].h5group = FTI_Exec.H5groups[0];
+    sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -509,21 +575,13 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
                 for (j = 0; j < rank; j++) {
                     FTI_Data[i].dimLength[j] = dimLength[j];
                 }
-            } else {
-                //rank and dimensions not defined
-                FTI_Data[i].rank = 1;
-                FTI_Data[i].dimLength[0] = FTI_Data[i].count;
             }
 
-            if (h5group == NULL) {
-                FTI_Data[i].h5group = &FTI_Exec.H5RootGroup;
-            } else {
-                FTI_Data[i].h5group = h5group;
+            if (h5group != NULL) {
+                FTI_Data[i].h5group = FTI_Exec.H5groups[h5group->id];
             }
 
-            if (name == NULL) {
-                sprintf(FTI_Data[i].name, "Dataset_%d", id);
-            } else {
+            if (name != NULL) {
                 strncpy(FTI_Data[i].name, name, FTI_BUFS);
             }
             
@@ -1062,6 +1120,7 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     FTI_FreeMeta(&FTI_Exec);
+    FTI_FreeTypesAndGroups(&FTI_Exec);
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }

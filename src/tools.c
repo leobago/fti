@@ -366,6 +366,64 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It mallocs memory for the metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+
+  This function mallocs the memory used for the metadata storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
+    FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
+    if (FTI_Exec->FTI_Type == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
+    if (FTI_Exec->H5groups == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups[0] = malloc(sizeof(FTIT_H5Group));
+    if (FTI_Exec->H5groups[0] == NULL) {
+        return FTI_NSCS;
+    }
+
+    FTI_Exec->H5groups[0]->id = 0;
+    FTI_Exec->H5groups[0]->childrenNo = 0;
+    sprintf(FTI_Exec->H5groups[0]->name, "/");
+    FTI_Exec->nbGroup = 1;
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It frees memory for the types.
+  @param      FTI_Exec        Execution metadata.
+
+  This function frees the memory used for the type storage.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
+    int i;
+    for (i = 0; i < FTI_Exec->nbType; i++) {
+        if (FTI_Exec->FTI_Type[i]->structure != NULL) {
+            //if complex type and have structure
+            free(FTI_Exec->FTI_Type[i]->structure);
+        }
+        free(FTI_Exec->FTI_Type[i]);
+    }
+    free(FTI_Exec->FTI_Type);
+    for (i = 0; i < FTI_Exec->nbGroup; i++) {
+        free(FTI_Exec->H5groups[i]);
+    }
+    free(FTI_Exec->H5groups);
+}
+
 #ifdef ENABLE_HDF5
 /*-------------------------------------------------------------------------*/
 /**
@@ -377,7 +435,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CreateComplexType(FTIT_type* ftiType)
+void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
     char str[FTI_BUFS];
     if (ftiType->h5datatype > -1) {
@@ -400,10 +458,10 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
     int i;
     //for each field create and rank-dimension array if needed
     for (i = 0; i < ftiType->structure->length; i++) {
-        sprintf(str, "Type [%d] trying to create new type [%d].", ftiType->id, ftiType->structure->field[i].type->id);
+        sprintf(str, "Type [%d] trying to create new type [%d].", ftiType->id, ftiType->structure->field[i].typeID);
         FTI_Print(str, FTI_DBUG);
-        FTI_CreateComplexType(ftiType->structure->field[i].type);
-        partTypes[i] = ftiType->structure->field[i].type->h5datatype;
+        FTI_CreateComplexType(FTI_Type[ftiType->structure->field[i].typeID], FTI_Type);
+        partTypes[i] = FTI_Type[ftiType->structure->field[i].typeID]->h5datatype;
         if (ftiType->structure->field[i].rank > 1) {
             //need to create rank-dimension array type
             hsize_t dims[FTI_BUFS];
@@ -411,16 +469,16 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
             for (j = 0; j < ftiType->structure->field[i].rank; j++) {
                 dims[j] = ftiType->structure->field[i].dimLength[j];
             }
-            sprintf(str, "Type [%d] trying to create %d-D array of type [%d].", ftiType->id, ftiType->structure->field[i].rank, ftiType->structure->field[i].type->id);
+            sprintf(str, "Type [%d] trying to create %d-D array of type [%d].", ftiType->id, ftiType->structure->field[i].rank, ftiType->structure->field[i].typeID);
             FTI_Print(str, FTI_DBUG);
-            partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, ftiType->structure->field[i].rank, dims);
+            partTypes[i] = H5Tarray_create(FTI_Type[ftiType->structure->field[i].typeID]->h5datatype, ftiType->structure->field[i].rank, dims);
         } else {
             if (ftiType->structure->field[i].dimLength[0] > 1) {
                 //need to create 1-dimension array type
-                sprintf(str, "Type [%d] trying to create 1-D [%d] array of type [%d].", ftiType->id, ftiType->structure->field[i].dimLength[0], ftiType->structure->field[i].type->id);
+                sprintf(str, "Type [%d] trying to create 1-D [%d] array of type [%d].", ftiType->id, ftiType->structure->field[i].dimLength[0], ftiType->structure->field[i].typeID);
                 FTI_Print(str, FTI_DBUG);
                 hsize_t dim = ftiType->structure->field[i].dimLength[0];
-                partTypes[i] = H5Tarray_create(ftiType->structure->field[i].type->h5datatype, 1, &dim);
+                partTypes[i] = H5Tarray_create(FTI_Type[ftiType->structure->field[i].typeID]->h5datatype, 1, &dim);
             }
         }
     }
@@ -428,7 +486,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
     //create new HDF5 datatype
     sprintf(str, "Creating type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
-    ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->structure->size);
+    ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
     sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
     FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
@@ -437,7 +495,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
 
     //inserting fields into the new type
     for (i = 0; i < ftiType->structure->length; i++) {
-        sprintf(str, "Insering type [%d] into new type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
+        sprintf(str, "Insering type [%d] into new type [%d].", ftiType->structure->field[i].typeID, ftiType->id);
         FTI_Print(str, FTI_DBUG);
         herr_t res = H5Tinsert(ftiType->h5datatype, ftiType->structure->field[i].name, ftiType->structure->field[i].offset, partTypes[i]);
         if (res < 0) {
@@ -459,7 +517,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CloseComplexType(FTIT_type* ftiType)
+void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
     char str[FTI_BUFS];
     if (ftiType->h5datatype == -1 || ftiType->id < 11) {
@@ -474,13 +532,13 @@ void FTI_CloseComplexType(FTIT_type* ftiType)
         int i;
         //close each field
         for (i = 0; i < ftiType->structure->length; i++) {
-            sprintf(str, "Closing type [%d] of compound type [%d].", ftiType->structure->field[i].type->id, ftiType->id);
+            sprintf(str, "Closing type [%d] of compound type [%d].", ftiType->structure->field[i].typeID, ftiType->id);
             FTI_Print(str, FTI_DBUG);
-            FTI_CloseComplexType(ftiType->structure->field[i].type);
+            FTI_CloseComplexType(FTI_Type[ftiType->structure->field[i].typeID], FTI_Type);
         }
     }
 
-    //create new HDF5 datatype
+    //close HDF5 datatype
     sprintf(str, "Closing type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
     herr_t res = H5Tclose(ftiType->h5datatype);
@@ -503,7 +561,7 @@ void FTI_CloseComplexType(FTIT_type* ftiType)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -514,7 +572,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_CreateGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to create the child
+        FTI_CreateGroup(FTI_Group[ftiGroup->childrenID[i]], ftiGroup->h5groupID, FTI_Group); //Try to create the child
     }
 }
 #endif
@@ -531,7 +589,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
+void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
@@ -542,7 +600,7 @@ void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_OpenGroup(ftiGroup->children[i], ftiGroup->h5groupID); //Try to open the child
+        FTI_OpenGroup(FTI_Group[ftiGroup->childrenID[i]], ftiGroup->h5groupID, FTI_Group); //Try to open the child
     }
 }
 #endif
@@ -558,7 +616,7 @@ void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CloseGroup(FTIT_H5Group* ftiGroup)
+void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
 {
     char str[FTI_BUFS];
     if (ftiGroup->h5groupID == -1) {
@@ -570,7 +628,7 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup)
 
     int i;
     for (i = 0; i < ftiGroup->childrenNo; i++) {
-        FTI_CloseGroup(ftiGroup->children[i]); //Try to close the child
+        FTI_CloseGroup(FTI_Group[ftiGroup->childrenID[i]], FTI_Group); //Try to close the child
     }
 
     herr_t res = H5Gclose(ftiGroup->h5groupID);
@@ -608,20 +666,7 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));
-#ifdef ENABLE_HDF5
-    // Maps FTI types to HDF5 types
-    FTI_CHAR.h5datatype = H5T_NATIVE_CHAR;
-    FTI_SHRT.h5datatype = H5T_NATIVE_SHORT;
-    FTI_INTG.h5datatype = H5T_NATIVE_INT;
-    FTI_LONG.h5datatype = H5T_NATIVE_LONG;
-    FTI_UCHR.h5datatype = H5T_NATIVE_UCHAR;
-    FTI_USHT.h5datatype = H5T_NATIVE_USHORT;
-    FTI_UINT.h5datatype = H5T_NATIVE_UINT;
-    FTI_ULNG.h5datatype = H5T_NATIVE_ULONG;
-    FTI_SFLT.h5datatype = H5T_NATIVE_FLOAT;
-    FTI_DBLE.h5datatype = H5T_NATIVE_DOUBLE;
-    FTI_LDBE.h5datatype = H5T_NATIVE_LDOUBLE;
-#endif
+
     return FTI_SCES;
 }
 
