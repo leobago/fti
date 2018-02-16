@@ -37,26 +37,34 @@
  *  @brief  Differential checkpointing header file.
  */
 
-#include <signal.h>
 #include "interface.h"
 
 /**                                                                             */
 /** Global Constans                                                             */
 
-typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
-typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-typedef struct              FTI_dPageVector     /**< bag for dirty pages        */
+typedef struct              FTIT_PageRange 
 {
-FTI_ADDRPTR*                addr_vec;           /**< dirty pages array          */
-size_t                      count;              /**< # of dirty pages           */
-} FTI_dPageVector;
+    FTI_ADDRVAL             basePtr;
+    size_t                  size;
 
-extern FTI_ADDRVAL          FTI_PageSize;       /**< memory page size           */
-extern FTI_ADDRVAL          FTI_PageMask;       /**< memory page mask           */
+}FTIT_PageRange;
 
-extern FTI_dPageVector      FTI_dirtyPages;     /**< Container of dirty pages   */
+typedef struct              FTIT_PageInfo       /**< bag for dirty pages        */
+{
+    FTI_ADDRVAL*            dirtyPages;         /**< dirty pages array          */
+    FTIT_PageRange*         protPageRanges;     /**< dirty pages array          */
+    size_t                  dirtyPagesCount;    /**< # of dirty pages           */
+    size_t                  protPagesCount;     /**< # of dirty pages           */
+
+}FTIT_PageInfo;
+
+//FTI_ADDRVAL          FTI_PageSize;       /**< memory page size           */
+//FTI_ADDRVAL          FTI_PageMask;       /**< memory page mask           */
+
+//FTIT_PageInfo        FTI_PageInfo;     /**< Container of dirty pages   */
 
 /** Function Declarations                                                       */
 
-int FTI_RegisterSigHandler();
+
+

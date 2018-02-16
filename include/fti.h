@@ -11,6 +11,7 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -311,6 +312,7 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
+        bool            enableDiffCkpt;     /**< Enable differential ckpt.      */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
         int             verbosity;          /**< Verbosity level.               */

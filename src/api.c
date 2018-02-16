@@ -151,6 +151,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
     else { // If I am an application process
+        if (FTI_Conf.enableDiffCkpt) {
+            FTI_InitDiffCkpt();
+        }
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
@@ -378,7 +381,7 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     for (i = 0; i < parent->childrenNo; i++) {
         if (strcmp(parent->children[i]->name, name) == 0) {
             char str[FTI_BUFS];
-            sprintf(str, "Group %s already has the %s child.", parent->name, name);
+            snprintf(str, FTI_BUFS, "Group %s already has the %s child.", parent->name, name);
         }
     }
     strncpy(h5group->name, name, FTI_BUFS);
@@ -429,6 +432,9 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
+            if(FTI_Conf.enableDiffCkpt) {
+                FTI_ProtectPages( i, FTI_Data );
+            }
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
             return FTI_SCES;
@@ -453,6 +459,11 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     FTI_Print(str, FTI_INFO);
+
+    if(FTI_Conf.enableDiffCkpt) {
+        FTI_ProtectPages( FTI_Exec.nbVar-1, FTI_Data );
+    }
+
     return FTI_SCES;
 }
 
@@ -1020,6 +1031,10 @@ int FTI_Finalize()
     if (FTI_Topo.nbHeads == 1) {
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+    }
+    
+    if (FTI_Conf.enableDiffCkpt) {
+        FTI_FinalizeDiffCkpt();
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint

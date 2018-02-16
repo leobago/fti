@@ -63,6 +63,7 @@
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -77,6 +78,7 @@
 #include <inttypes.h>
 #include <dirent.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -238,3 +240,23 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo);
 
 #endif
+
+// DIFFERENTIAL CHECKPOINTING
+
+typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
+
+int FTI_InitDiffCkpt();
+int FTI_FinalizeDiffCkpt();
+int FTI_RemoveSigHandler();
+int FTI_RemoveProtections();
+int FTI_FreeDiffCkptStructs(); 
+int FTI_RegisterSigHandler();
+void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext );
+int FTI_ProtectPages( int idx, FTIT_dataset* FTI_Data );
+FTI_ADDRVAL FTI_GetFirstInclPage(FTI_ADDRVAL addr); 
+FTI_ADDRVAL FTI_GetLastInclPage(FTI_ADDRVAL addr); 
+bool FTI_isValidRequest( FTI_ADDRVAL addr_val );
+bool FTI_ProtectedPageIsValid( FTI_ADDRVAL page );
+bool FTI_isProtectedPage( FTI_ADDRVAL page ); 
+
