@@ -13,7 +13,7 @@
 
 
 #define PRECISION   0.005
-#define ITER_TIMES  5000
+#define ITER_TIMES  1000
 #define ITER_OUT    500
 #define WORKTAG     50
 #define REDUCE      5
@@ -125,10 +125,11 @@ int main(int argc, char *argv[])
         printf("Execution finished in %lf seconds.\n", MPI_Wtime() - wtime);
     }
 
+    FTI_Finalize();
+    
     free(h);
     free(g);
 
-    FTI_Finalize();
     MPI_Finalize();
     return 0;
 }

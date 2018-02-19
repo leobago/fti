@@ -48,8 +48,8 @@ static FTIT_PageInfo        FTI_PageInfo;       /**< Container of dirty pages   
 
 /** File Local Variables                                                                */
 
-struct sigaction            FTI_SigAction;       /**< sigaction meta data               */
-struct sigaction            OLD_SigAction;       /**< previous sigaction meta data      */
+static struct sigaction     FTI_SigAction;       /**< sigaction meta data               */
+static struct sigaction     OLD_SigAction;       /**< previous sigaction meta data      */
 
 /** Function Definitions                                                                */
 
@@ -60,19 +60,15 @@ int FTI_InitDiffCkpt(){
     FTI_ADDRVAL tail = (FTI_ADDRVAL)0x1;
     for(; tail!=FTI_PageSize; FTI_PageMask<<=1, tail<<=1); 
     // init data structures
-    memset(&FTI_PageInfo, 0x0, sizeof(FTIT_PageInfo));
-    if ( FTI_RegisterSigHandler() == FTI_NSCS ) {
-        return FTI_NSCS;
-    } else {
-        return FTI_SCES;
-    }
+    FTI_PageInfo.dirtyPages = NULL;
+    FTI_PageInfo.protPageRanges = NULL;
+    FTI_PageInfo.dirtyPagesCount = 0; 
+    FTI_PageInfo.protPagesCount = 0;
+    // register signal handler
+    return FTI_RegisterSigHandler();
 }
 
 void printReport() {
-    
-    char str[512];
-    char gstr[8*512];
-
     size_t num_changed = FTI_PageInfo.dirtyPagesCount;
     size_t num_prot=0; 
     for(int i=0; i<FTI_PageInfo.protPagesCount; ++i) {
@@ -80,19 +76,13 @@ void printReport() {
     }
     num_prot /= FTI_PageSize;
 
-    snprintf(str, FTI_BUFS, 
+    printf(
             "Diff Ckpt Summary\n"
             "-------------------------------------\n"
             "number of pages protected: %lu\n"
             "number of pages changed:   %lu\n",
             num_prot, num_changed);
-    MPI_Allgather(str, 512, MPI_CHAR, gstr, 512, MPI_CHAR, MPI_COMM_WORLD);
-
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if(rank==0)
-        printf("%s", gstr);
-    
+    fflush(stdout);
     
 }
 
@@ -114,6 +104,8 @@ int FTI_FreeDiffCkptStructs() {
 int FTI_RemoveProtections() {
     for(int i=0; i<FTI_PageInfo.protPagesCount; ++i){
         if ( mprotect( (FTI_ADDRPTR) FTI_PageInfo.protPageRanges[i].basePtr, FTI_PageInfo.protPageRanges[i].size, PROT_READ|PROT_WRITE ) == -1 ) {
+            // ENOMEM is return e.g. if allocation was already freed, which will (hopefully) 
+            // always be the case if FTI_Finalize() is called at the end and the buffer was allocated dynamically
             if ( errno != ENOMEM ) {
                 FTI_Print( "FTI was unable to restore the data access", FTI_EROR );
                 return FTI_NSCS;
@@ -176,14 +168,14 @@ void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext )
             }
             
             // register page as dirty
-            FTI_PageInfo.dirtyPages = (FTI_ADDRPTR) realloc(FTI_PageInfo.dirtyPages, (++(FTI_PageInfo.dirtyPagesCount))*sizeof(FTI_ADDRVAL));
+            FTI_PageInfo.dirtyPages = (FTI_ADDRVAL*) realloc(FTI_PageInfo.dirtyPages, (++FTI_PageInfo.dirtyPagesCount)*sizeof(FTI_ADDRVAL));
             FTI_PageInfo.dirtyPages[FTI_PageInfo.dirtyPagesCount - 1] = ((FTI_ADDRVAL)info->si_addr) & FTI_PageMask;
         
         } else {
             /*
                 NOTICE: tested that this works also if the application that leverages FTI uses signal() and NOT sigaction(). 
-                I.e. the handler registered by signal is called for the case that the SIGSEGV was raised from an address 
-                outside of the FTI protected region.
+                I.e. the handler registered by signal from the application is called for the case that the SIGSEGV was raised from 
+                an address outside of the FTI protected region.
                 TODO: However, needs to be tested with applications that use signal handling.
             */
 
@@ -220,8 +212,7 @@ int FTI_ProtectPages(int idx, FTIT_dataset* FTI_Data)
             return FTI_NSCS;
         }
 
-        FTI_PageInfo.protPagesCount++;
-        FTI_PageInfo.protPageRanges = (FTIT_PageRange*) realloc(FTI_PageInfo.protPageRanges, sizeof(FTIT_PageRange));
+        FTI_PageInfo.protPageRanges = (FTIT_PageRange*) realloc(FTI_PageInfo.protPageRanges, (++FTI_PageInfo.protPagesCount)*sizeof(FTIT_PageRange));
         FTI_PageInfo.protPageRanges[FTI_PageInfo.protPagesCount-1].basePtr = first_page;
         FTI_PageInfo.protPageRanges[FTI_PageInfo.protPagesCount-1].size = psize;
 

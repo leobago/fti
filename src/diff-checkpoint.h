@@ -59,11 +59,6 @@ typedef struct              FTIT_PageInfo       /**< bag for dirty pages        
 
 }FTIT_PageInfo;
 
-//FTI_ADDRVAL          FTI_PageSize;       /**< memory page size           */
-//FTI_ADDRVAL          FTI_PageMask;       /**< memory page mask           */
-
-//FTIT_PageInfo        FTI_PageInfo;     /**< Container of dirty pages   */
-
 /** Function Declarations                                                       */
 
 
