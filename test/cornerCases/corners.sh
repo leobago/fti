@@ -20,6 +20,19 @@ configs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
 #test case 1
 #<<case1
+<<desc
+Consistency of the ckpt-files after successful recovery
+After the restart from any level, we claim to have the same state as after the successful checkpoint
+in the preceeding execution. We need to proof this in a unitary test. For instance:
+        1. init fti
+        2. perform checkpoint
+        3. simulate crash
+        4. delete all partner/encoded files
+        5. restart
+        6. after successful restart, simulate crash again
+        7. delete all checkpoint files
+        8. restart and check if restart successful
+desc
 for config in ${configs[@]}; do
 	for level in 1 2 3 4; do
 		cp ../configs/$config config.fti
@@ -56,6 +69,17 @@ done
 #case1
 
 #<<case2
+<<desc
+Assure the consistency of checkpoint files for keep_last_ckpt is true
+Same as before. After the successful restart, we claim to have the situation as after the last
+checkpoint in the preceeding execution.
+        1. init fti
+        2. perform checkpoint
+        3. finalize
+        4. restart
+        5. after successful restart, simulate crash
+        6. restart and check if restart successful
+desc
 for config in ${configs[@]}; do
 	for level in 1 2 3 4; do
 		cp ../configs/$config config.fti
@@ -84,6 +108,11 @@ done
 #case2
 
 #<<case3
+<<desc
+combine two different problems in one code. Init the first and finalize at the end. then (within
+same source and execution) init fti again and perform the execution of the second problem and
+finalize at the end. Check for warnings or errors.
+desc
 for level in 1 2 3 4; do
 	cp ../configs/configH0I1Silent.fti config.fti
 	cp ../configs/configH0I1Silent.fti config2.fti
@@ -116,6 +145,14 @@ done
 #case3
 
 #<<case4
+<<desc
+check for a correct restart without the crash of the application.
+    for all levels:
+        1. init fti
+        2. perform checkpoint
+        3. init fti
+        4. finalize
+desc
 for level in 1 2 3 4; do
 	cp ../configs/configH0I1Silent.fti config.fti
 	printRun 4 configH0I1Silent.fti $level

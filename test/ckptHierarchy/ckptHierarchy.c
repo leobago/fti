@@ -87,7 +87,7 @@ int main (int argc, char** argv) {
     if (argc != 7) {
         if (global_world_rank == 0) printf("Argc doesn't equeal 6! (run: ./ckptHierarchy 1stCkpt 2ndCkpt 3rdCkpt 4thCkpt (1/2/3/4) ifCrash ifReco(0/1) \n");
         MPI_Barrier(MPI_COMM_WORLD);
-        return 0;
+        return 1;
     }
     int i;
     int crash = atoi(argv[5]);

@@ -17,6 +17,10 @@ printSuccess () {
 configs=(configH0I1Silent.fti configH1I1Silent.fti configH1I0Silent.fti)
 
 #<<case4.1.1.1
+<<desc
+If we have performed a successful checkpoint, the older checkpoint from before is kept if the
+security (level) was higher then the current
+desc
 for config in ${configs[@]}; do
 	printRun 4.1.1.1 $config
 	cp ../configs/${config} config.fti
@@ -47,6 +51,10 @@ done
 #case4.1.1.1
 
 #<<case4.1.1.2
+<<desc
+In the other case, if the security was lower, the
+checkpoint will be removed.
+desc
 for config in ${configs[@]}; do
 	printRun 4.1.1.2 $config 
 	cp ../configs/${config} config.fti
@@ -74,9 +82,15 @@ for config in ${configs[@]}; do
 	done
 	printSuccess 4.1.1.2 $config 
 done
-case4.1.1.2
+#case4.1.1.2
 
 #<<case4.1.2
+<<desc
+Also, for keep_last_ckpt=1, beside the flushed L4 checkpoint on the parallel file system, the
+local checkpoint files (for the case of L1, L2, L3) aren't kept.
+
+We need a unitary test which proofs these features.
+desc
 for config in ${configs[@]}; do
 	for level in 1 2 3; do
 		printRun 4.1.2 $config $level
@@ -107,7 +121,10 @@ done
 #case4.1.2
 
 #<<case4.2
-
+<<desc
+This is related to 4.1. On a restart, FTI will restart from the lowest level. Hence if we have both,
+L1 and L4, FTI should restart from L1. If it fails, it should restart from L4 (see 4.1.2).
+desc
 for config in ${configs[@]}; do
 	for level in 1 2 3; do
 		printRun 4.2 $config $level
