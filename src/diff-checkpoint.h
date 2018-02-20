@@ -42,22 +42,47 @@
 /**                                                                             */
 /** Global Constans                                                             */
 
-
-typedef struct              FTIT_PageRange 
+typedef struct              FTIT_DataRange
 {
-    FTI_ADDRVAL             basePtr;
-    size_t                  size;
+    FTI_ADDRVAL             offset;
+    FTI_ADDRVAL             size;
 
-}FTIT_PageRange;
+}FTIT_DataRange;
 
-typedef struct              FTIT_PageInfo       /**< bag for dirty pages        */
+typedef struct              FTIT_DataDiff
 {
     FTI_ADDRVAL*            dirtyPages;         /**< dirty pages array          */
-    FTIT_PageRange*         protPageRanges;     /**< dirty pages array          */
-    size_t                  dirtyPagesCount;    /**< # of dirty pages           */
-    size_t                  protPagesCount;     /**< # of dirty pages           */
+    long                  dirtyPagesCnt;
+    FTIT_DataRange*         ranges;
+    FTI_ADDRVAL             basePtr;
+    long                  totalSize;
+    long                  rangeCnt;
+    int                     id;
 
-}FTIT_PageInfo;
+}FTIT_DataDiff;
+
+typedef struct              FTIT_DataDiffInfo
+{
+    FTIT_DataDiff*          dataDiff;
+    int                     nbProtVar;
+
+}FTIT_DataDiffInfo;
+
+//typedef struct              FTIT_PageRange 
+//{
+//    FTI_ADDRVAL             basePtr;
+//    long                  size;
+//
+//}FTIT_PageRange;
+//
+//typedef struct              FTIT_PageInfo       /**< bag for dirty pages        */
+//{
+//    FTI_ADDRVAL*            dirtyPages;         /**< dirty pages array          */
+//    FTIT_PageRange*         protPageRanges;     /**< dirty pages array          */
+//    long                  dirtyPagesCount;    /**< # of dirty pages           */
+//    long                  protPagesCount;     /**< # of dirty pages           */
+//
+//}FTIT_PageInfo;
 
 /** Function Declarations                                                       */
 

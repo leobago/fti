@@ -246,14 +246,17 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-int FTI_InitDiffCkpt();
+int FTI_InitDiffCkpt(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int FTI_FinalizeDiffCkpt();
 int FTI_RemoveSigHandler();
 int FTI_RemoveProtections();
 int FTI_FreeDiffCkptStructs(); 
+int FTI_ExcludePage( FTI_ADDRVAL addr );
+int FTI_ShiftPageItems( int idx, long pos );
+int FTI_RangeCmpPage(int idx, long idr, FTI_ADDRVAL page);
 int FTI_RegisterSigHandler();
 void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext );
-int FTI_ProtectPages( int idx, FTIT_dataset* FTI_Data );
+int FTI_ProtectPages( int idx, FTIT_dataset* FTI_Data , FTIT_execution* FTI_Exec);
 FTI_ADDRVAL FTI_GetFirstInclPage(FTI_ADDRVAL addr); 
 FTI_ADDRVAL FTI_GetLastInclPage(FTI_ADDRVAL addr); 
 bool FTI_isValidRequest( FTI_ADDRVAL addr_val );

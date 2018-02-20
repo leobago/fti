@@ -44,7 +44,8 @@
 
 static FTI_ADDRVAL          FTI_PageSize;       /**< memory page size                   */
 static FTI_ADDRVAL          FTI_PageMask;       /**< memory page mask                   */
-static FTIT_PageInfo        FTI_PageInfo;       /**< Container of dirty pages           */
+
+static FTIT_DataDiffInfo    FTI_DataDiffInfo;   /**< container for diff of datasets     */
 
 /** File Local Variables                                                                */
 
@@ -53,34 +54,37 @@ static struct sigaction     OLD_SigAction;       /**< previous sigaction meta da
 
 /** Function Definitions                                                                */
 
-int FTI_InitDiffCkpt(){
+int FTI_InitDiffCkpt( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
+{
     // get page mask
     FTI_PageSize = (FTI_ADDRVAL) sysconf(_SC_PAGESIZE);
     FTI_PageMask = ~((FTI_ADDRVAL)0x0);
     FTI_ADDRVAL tail = (FTI_ADDRVAL)0x1;
     for(; tail!=FTI_PageSize; FTI_PageMask<<=1, tail<<=1); 
-    // init data structures
-    FTI_PageInfo.dirtyPages = NULL;
-    FTI_PageInfo.protPageRanges = NULL;
-    FTI_PageInfo.dirtyPagesCount = 0; 
-    FTI_PageInfo.protPagesCount = 0;
+    // init data diff structure
+    FTI_DataDiffInfo.dataDiff = NULL;
+    FTI_DataDiffInfo.nbProtVar = 0;
     // register signal handler
     return FTI_RegisterSigHandler();
 }
 
 void printReport() {
-    size_t num_changed = FTI_PageInfo.dirtyPagesCount;
-    size_t num_prot=0; 
-    for(int i=0; i<FTI_PageInfo.protPagesCount; ++i) {
-        num_prot += FTI_PageInfo.protPageRanges[i].size;
+    long num_changed = 0;
+    long num_prot=0; 
+    int i,j;
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i) {
+        num_changed += FTI_DataDiffInfo.dataDiff[i].dirtyPagesCnt;
+        for(j=0; j<FTI_DataDiffInfo.dataDiff[i].rangeCnt; ++j) {
+            num_prot += FTI_DataDiffInfo.dataDiff[i].ranges[j].size;
+        }
     }
     num_prot /= FTI_PageSize;
 
     printf(
             "Diff Ckpt Summary\n"
             "-------------------------------------\n"
-            "number of pages protected: %lu\n"
-            "number of pages changed:   %lu\n",
+            "number of pages protected:       %lu\n"
+            "number of pages changed:         %lu\n",
             num_prot, num_changed);
     fflush(stdout);
     
@@ -96,21 +100,31 @@ int FTI_FinalizeDiffCkpt(){
 }
 
 int FTI_FreeDiffCkptStructs() {
-    free(FTI_PageInfo.dirtyPages);
-    free(FTI_PageInfo.protPageRanges);
+    int i;
+    
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i) {
+        free(FTI_DataDiffInfo.dataDiff[i].ranges);
+    }
+    free(FTI_DataDiffInfo.dataDiff);
+
     return FTI_SCES;
 }
 
 int FTI_RemoveProtections() {
-    for(int i=0; i<FTI_PageInfo.protPagesCount; ++i){
-        if ( mprotect( (FTI_ADDRPTR) FTI_PageInfo.protPageRanges[i].basePtr, FTI_PageInfo.protPageRanges[i].size, PROT_READ|PROT_WRITE ) == -1 ) {
-            // ENOMEM is return e.g. if allocation was already freed, which will (hopefully) 
-            // always be the case if FTI_Finalize() is called at the end and the buffer was allocated dynamically
-            if ( errno != ENOMEM ) {
-                FTI_Print( "FTI was unable to restore the data access", FTI_EROR );
-                return FTI_NSCS;
+    int i,j;
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i){
+        for(j=0; j<FTI_DataDiffInfo.dataDiff[i].rangeCnt; ++j) {
+            FTI_ADDRPTR ptr = (FTI_ADDRPTR) (FTI_DataDiffInfo.dataDiff[i].basePtr + FTI_DataDiffInfo.dataDiff[i].ranges[j].offset);
+            long size = (long) FTI_DataDiffInfo.dataDiff[i].ranges[j].size;
+            if ( mprotect( ptr, size, PROT_READ|PROT_WRITE ) == -1 ) {
+                // ENOMEM is return e.g. if allocation was already freed, which will (hopefully) 
+                // always be the case if FTI_Finalize() is called at the end and the buffer was allocated dynamically
+                if ( errno != ENOMEM ) {
+                    FTI_Print( "FTI was unable to restore the data access", FTI_EROR );
+                    return FTI_NSCS;
+                }
+                errno = 0;
             }
-            errno = 0;
         }
     }
     return FTI_SCES;
@@ -168,8 +182,7 @@ void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext )
             }
             
             // register page as dirty
-            FTI_PageInfo.dirtyPages = (FTI_ADDRVAL*) realloc(FTI_PageInfo.dirtyPages, (++FTI_PageInfo.dirtyPagesCount)*sizeof(FTI_ADDRVAL));
-            FTI_PageInfo.dirtyPages[FTI_PageInfo.dirtyPagesCount - 1] = ((FTI_ADDRVAL)info->si_addr) & FTI_PageMask;
+            FTI_ExcludePage( (FTI_ADDRVAL)info->si_addr );
         
         } else {
             /*
@@ -196,7 +209,88 @@ void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext )
     }
 }
 
-int FTI_ProtectPages(int idx, FTIT_dataset* FTI_Data) 
+int FTI_ExcludePage( FTI_ADDRVAL addr ) {
+    bool found; 
+    FTI_ADDRVAL page = addr & FTI_PageMask;
+    int idx = -1;
+    long pos;
+    // binary search for page
+    int i;
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i){
+        bool found = false;
+        long LOW = 0;
+        long UP = FTI_DataDiffInfo.dataDiff[i].rangeCnt - 1;
+        long MID = (LOW+UP)/2; 
+        if ( FTI_RangeCmpPage(i, MID, page) == 0 ) {
+            found = true;
+        }
+        while( LOW < UP ) {
+            int cmp = FTI_RangeCmpPage(i, MID, page);
+            // page is in first half
+            if( cmp < 0 ) {
+                UP = MID - 1;
+            // page is in second half
+            } else if ( cmp > 0 ) {
+                LOW = MID + 1;
+            }
+            MID = (LOW+UP)/2;
+            if ( FTI_RangeCmpPage(i, MID, page) == 0 ) {
+                found = true;
+                break;
+            }
+        }
+        if ( found ) {
+            idx = i;
+            pos = MID;
+            break;
+        }
+    }
+    if( idx == -1 ) {
+        return FTI_NSCS;
+    }
+    // swap array elements i -> i+1 for i > pos and increase counter
+    FTI_ShiftPageItems( idx, pos );
+    FTI_ADDRVAL base = FTI_DataDiffInfo.dataDiff[idx].basePtr;
+    FTI_ADDRVAL offset = FTI_DataDiffInfo.dataDiff[idx].ranges[pos].offset;
+    FTI_ADDRVAL end = base + offset + FTI_DataDiffInfo.dataDiff[idx].ranges[pos].size;
+    // update values
+    FTI_DataDiffInfo.dataDiff[idx].ranges[pos].size = (page + FTI_PageSize) - (base + offset);
+    FTI_DataDiffInfo.dataDiff[idx].ranges[pos+1].offset = page - base + FTI_PageSize;
+    FTI_DataDiffInfo.dataDiff[idx].ranges[pos+1].size = end - (page + FTI_PageSize);
+    // add dirty page to buffer
+    FTI_DataDiffInfo.dataDiff[idx].dirtyPages = (FTI_ADDRVAL*) realloc( FTI_DataDiffInfo.dataDiff[idx].dirtyPages, (++FTI_DataDiffInfo.dataDiff[idx].dirtyPagesCnt)*sizeof(FTI_ADDRVAL));
+    assert(FTI_DataDiffInfo.dataDiff[idx].dirtyPages != NULL);
+    FTI_DataDiffInfo.dataDiff[idx].dirtyPages[FTI_DataDiffInfo.dataDiff[idx].dirtyPagesCnt-1] = page;
+}
+
+int FTI_RangeCmpPage(int idx, long idr, FTI_ADDRVAL page) {
+    FTI_ADDRVAL base = FTI_DataDiffInfo.dataDiff[idx].basePtr;
+    FTI_ADDRVAL size = FTI_DataDiffInfo.dataDiff[idx].ranges[idr].size;
+    FTI_ADDRVAL first = FTI_DataDiffInfo.dataDiff[idx].ranges[idr].offset + base;
+    FTI_ADDRVAL last = FTI_DataDiffInfo.dataDiff[idx].ranges[idr].offset + base + size - FTI_PageSize;
+    if( page < first ) {
+        return -1;
+    } else if ( page > last ) {
+        return 1;
+    } else if ( (page >= first) && (page <= last) ) {
+        return 0;
+    }
+}
+
+int FTI_ShiftPageItems( int idx, long pos ) {
+    // increase array size by 1 and increase counter
+    FTI_DataDiffInfo.dataDiff[idx].ranges = (FTIT_DataRange*) realloc(FTI_DataDiffInfo.dataDiff[idx].ranges, (++FTI_DataDiffInfo.dataDiff[idx].rangeCnt) * sizeof(FTIT_DataRange));
+    assert( FTI_DataDiffInfo.dataDiff[idx].ranges != NULL );
+    
+    long i;
+    // shift elements of array starting at the end
+    assert(FTI_DataDiffInfo.dataDiff[idx].rangeCnt > 0);
+    for(i=FTI_DataDiffInfo.dataDiff[idx].rangeCnt-1; i>(pos+1); --i) {
+        memcpy( &(FTI_DataDiffInfo.dataDiff[idx].ranges[i]), &(FTI_DataDiffInfo.dataDiff[idx].ranges[i-1]), sizeof(FTIT_DataRange));
+    }
+}
+
+int FTI_ProtectPages(int idx, FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec) 
 {
     char strdbg[FTI_BUFS];
     FTI_ADDRVAL first_page = FTI_GetFirstInclPage((FTI_ADDRVAL)FTI_Data[idx].ptr);
@@ -211,10 +305,20 @@ int FTI_ProtectPages(int idx, FTIT_dataset* FTI_Data)
             errno = 0;
             return FTI_NSCS;
         }
-
-        FTI_PageInfo.protPageRanges = (FTIT_PageRange*) realloc(FTI_PageInfo.protPageRanges, (++FTI_PageInfo.protPagesCount)*sizeof(FTIT_PageRange));
-        FTI_PageInfo.protPageRanges[FTI_PageInfo.protPagesCount-1].basePtr = first_page;
-        FTI_PageInfo.protPageRanges[FTI_PageInfo.protPagesCount-1].size = psize;
+        // TODO no support for datasets that change size yet
+        FTI_DataDiffInfo.dataDiff = (FTIT_DataDiff*) realloc( FTI_DataDiffInfo.dataDiff, (FTI_DataDiffInfo.nbProtVar+1) * sizeof(FTIT_DataDiff));
+        assert( FTI_DataDiffInfo.dataDiff != NULL );
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].dirtyPages     = NULL;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].dirtyPagesCnt  = 0;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].ranges = (FTIT_DataRange*) malloc( sizeof(FTIT_DataRange) );
+        assert( FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].ranges != NULL );
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].rangeCnt       = 1;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].ranges->offset = (FTI_ADDRVAL) 0x0;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].ranges->size   = psize;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].basePtr        = first_page;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].totalSize      = psize;
+        FTI_DataDiffInfo.dataDiff[FTI_DataDiffInfo.nbProtVar].id             = FTI_Data[idx].id;
+        FTI_DataDiffInfo.nbProtVar++;
 
     // if not don't protect anything. NULL just for debug output.
     } else {
@@ -258,32 +362,50 @@ bool FTI_isValidRequest( FTI_ADDRVAL addr_val )
     if ( FTI_isProtectedPage( page ) && FTI_ProtectedPageIsValid( page ) ) {
         return true;
     }
+    printf("### LINE %d ### \n",__LINE__);
 
     return false;
 
 }
 
+//TODO implement insertion sort for dirty pages.
 bool FTI_ProtectedPageIsValid( FTI_ADDRVAL page ) 
 {
-    // page is valid if not already marked dirty.
-    bool isValid = true;
-    
+    // page is valid if not already found to be dirty.
     int i=0;
-    for(; i<FTI_PageInfo.dirtyPagesCount; ++i) {
-        if(page == FTI_PageInfo.dirtyPages[i]) {
-            isValid = false;
+    // binary search for page
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i){
+        if( FTI_DataDiffInfo.dataDiff[i].dirtyPages == NULL ) {
             break;
         }
+        long LOW = 0;
+        long UP = FTI_DataDiffInfo.dataDiff[i].dirtyPagesCnt - 1;
+        long MID = (LOW+UP)/2;
+        while( LOW < UP ) {
+            FTI_ADDRVAL page_mid = FTI_DataDiffInfo.dataDiff[i].dirtyPages[MID];
+            // page is in first half
+            if( page < page_mid ) {
+                assert(UP>0);
+                UP = MID - 1;
+            // page is in second half
+            } else if ( page > page_mid ) {
+                LOW = MID + 1;
+            }
+            MID = (LOW+UP)/2;
+            if ( page == page_mid ) {
+                return false;
+            }
+        }
     }
-
-    return isValid;
+    return true;
 }
 
 bool FTI_isProtectedPage( FTI_ADDRVAL page ) 
 {
     bool inRange = false;
-    for(int i=0; i<FTI_PageInfo.protPagesCount; ++i) {
-        if( (page >= FTI_PageInfo.protPageRanges[i].basePtr) && (page <= (FTI_PageInfo.protPageRanges[i].basePtr+FTI_PageInfo.protPageRanges[i].size)) ) {
+    int i;
+    for(i=0; i<FTI_DataDiffInfo.nbProtVar; ++i) {
+        if( (page >= FTI_DataDiffInfo.dataDiff[i].basePtr) && (page <= FTI_DataDiffInfo.dataDiff[i].basePtr + FTI_DataDiffInfo.dataDiff[i].totalSize - FTI_PageSize) ) {
             inRange = true;
             break;
         }
