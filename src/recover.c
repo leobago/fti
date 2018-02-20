@@ -107,44 +107,44 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long pfs = FTI_Exec->meta[level].pfs[0];
     long maxFs = FTI_Exec->meta[level].maxFs[0];
     char ckptFile[FTI_BUFS];
-    strcpy(ckptFile, FTI_Exec->meta[level].ckptFile);
+    strncpy(ckptFile, FTI_Exec->meta[level].ckptFile, FTI_BUFS);
 
     char checksum[MD5_DIGEST_STRING_LENGTH], ptnerChecksum[MD5_DIGEST_STRING_LENGTH], rsChecksum[MD5_DIGEST_STRING_LENGTH];
     FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     char str[FTI_BUFS];
-    sprintf(str, "Checking file %s and its erasures.", ckptFile);
+    snprintf(str, FTI_BUFS, "Checking file %s and its erasures.", ckptFile);
     FTI_Print(str, FTI_DBUG);
     char fn[FTI_BUFS]; //Path to the checkpoint/partner file name
     int buf;
     int ckptID, rank; //Variables for proper partner file name
     switch (level) {
         case 1:
-            sprintf(fn, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 2:
-            sprintf(fn, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-            sprintf(fn, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, pfs, ptnerChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 3:
-            sprintf(fn, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-            sprintf(fn, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
             buf = FTI_CheckFile(fn, maxFs, rsChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 4:
-            sprintf(fn, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
             buf = FTI_CheckFile(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -185,7 +185,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Exec->ckptID = ckptID;
 
                 char str[FTI_BUFS];
-                sprintf(str, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
+                snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
                 FTI_Print(str, FTI_DBUG);
 
                 int res;
@@ -217,7 +217,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         ckptID = FTI_Exec->ckptID;
                     }
 
-                    sprintf(str, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
+                    snprintf(str, FTI_BUFS, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);
 
                     //Update ckptID and ckptLevel
@@ -226,7 +226,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_SCES; //Recovered successfully
                 }
                 else {
-                    sprintf(str, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
+                    snprintf(str, FTI_BUFS, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);
                 }
             }

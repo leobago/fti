@@ -105,29 +105,8 @@ int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
  *   in typeDefinition, the rest is black box for FTI.
  *
  **/
-int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name)
+int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
 {
     *newType = talloc(FTIT_type, 1);
-    return FTI_InitComplexType(*newType, typeDefinition, length, size, name);
-}
-
-/**
- @brief      Stores or updates a pointer to a variable that needs to be protected.
- @param      id              ID for searches and update.
- @param      ptr             Pointer to the data structure.
- @param      count           Number of elements in the data structure.
- @param      type            Type of elements in the data structure.
- @param      name            Name of element in the hdf5 checkpoint file.
- @return     integer         FTI_SCES if successful.
-
- This function stores a pointer to a data structure, its size, its ID,
- its number of elements and the type of the elements. This list of
- structures is the data that will be stored during a checkpoint and
- loaded during a recovery.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_ProtectWithName_wrapper(int id, void* ptr, long count, FTIT_type* type, char* name)
-{
-    return FTI_ProtectWithName(id, ptr, count, *type, name);
+    return FTI_InitComplexType(*newType, typeDefinition, length, size, name, h5group);
 }

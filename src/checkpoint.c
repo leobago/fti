@@ -83,16 +83,16 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
             if (res >= FTI_Exec->ckptIcnt) {
                 FTI_Exec->ckptNext = res;
             }
-            sprintf(str, "Current iter : %d ckpt intv. : %d . Next ckpt. at iter. %d . Sync. intv. : %d",
+            snprintf(str, FTI_BUFS, "Current iter : %d ckpt intv. : %d . Next ckpt. at iter. %d . Sync. intv. : %d",
                     FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext, FTI_Exec->syncIter);
             FTI_Print(str, FTI_DBUG);
             if ((FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) && (FTI_Exec->syncIter < FTI_Exec->syncIterMax)) {
                 FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
-                sprintf(str, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
+                snprintf(str, FTI_BUFS, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
                         FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
                 FTI_Print(str, FTI_DBUG);
                 if (FTI_Exec->syncIter == FTI_Exec->syncIterMax) {
-                    sprintf(str, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
+                    snprintf(str, FTI_BUFS, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
                     FTI_Print(str, FTI_DBUG);
                 }
 
@@ -124,7 +124,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS]; //For console output
-    sprintf(str, "Starting writing checkpoint (ID: %d, Lvl: %d)",
+    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)",
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
@@ -207,7 +207,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    sprintf(str, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
+    snprintf(str, FTI_BUFS, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
@@ -269,7 +269,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
-        sprintf(str, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+        snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
         FTI_Print(str, FTI_DBUG);
         if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
             //checkpoint was not saved in global temporary directory
@@ -300,7 +300,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     double t3 = MPI_Wtime(); //Renaming directories time
 
-    sprintf(str, "Post-checkpoint took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
+    snprintf(str, FTI_BUFS, "Post-checkpoint took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
             t3 - t1, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
     return FTI_SCES;
@@ -338,7 +338,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
             int buf;
             MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            sprintf(str, "The head received a %d message", buf);
+            snprintf(str, FTI_BUFS, "The head received a %d message", buf);
             FTI_Print(str, FTI_DBUG);
             flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
         }
@@ -423,16 +423,16 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS], fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else {
-        sprintf(fn, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     // open task local ckpt file
     FILE* fd = fopen(fn, "wb");
     if (fd == NULL) {
-        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+        snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
         FTI_Print(str, FTI_EROR);
 
         return FTI_NSCS;
@@ -453,7 +453,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             char error_msg[FTI_BUFS];
             error_msg[0] = 0;
             strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-            sprintf(str, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
             FTI_Print(str, FTI_EROR);
             fclose(fd);
             return FTI_NSCS;
@@ -512,7 +512,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    sprintf(gfn, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
     // open parallel file (collective call)
     MPI_File pfh;
 
@@ -618,7 +618,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // open parallel file
     char fn[FTI_BUFS], str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    sprintf(fn, "%s/%s", FTI_Conf->gTmpDir, str);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
     // check if successful
