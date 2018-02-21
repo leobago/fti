@@ -224,6 +224,17 @@ cd test
 			if [ $? -eq 0 ]; then
 				printSuccess $TEST
 			fi
+		elif [ "$TEST" = "cornerCases" ]; then
+			cd cornerCases
+			./corners.sh
+			if [ $? -eq 0 ]; then
+				printSuccess $TEST
+			fi
+			cd ../ckptHierarchy
+			./ckptHierarchy.sh
+			if [ $? -eq 0 ]; then
+				printSuccess ckptHierarchy
+			fi
 		else
 			startTest "$TEST" "$CONFIG" 16 "$LEVEL"
 		fi

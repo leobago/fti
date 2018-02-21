@@ -386,6 +386,8 @@ env:
 
     - TEST=hdf5
 
+    - TEST=cornerCases
+
 addons:
   coverity_scan:
     project:
