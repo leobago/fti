@@ -1,0 +1,16 @@
+Reading FTI configuration file
+Selected Ckpt I/O is HDF5
+This is a restart.
+Recovering successfully from level 4
+FTI has been initialized.
+Variable ID 1 to protect.
+Variable ID 2 to protect.
+Starting work at i = 60.
+I/O mode: HDF5
+Ckpt. ID 7 (L1)
+Ckpt. ID 8 (L1)
+Ckpt. ID 9 (L1)
+Ckpt. ID 10 (L1)
+Ckpt. ID 11 (L1)
+Ckpt. ID 12 (L1)
+Success.

@@ -188,7 +188,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail)
+int init(char** argv, int* checkpoint_level, int* fail, int* check_sizes)
 {
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
@@ -208,6 +208,13 @@ int init(char** argv, int* checkpoint_level, int* fail)
     }
     else {
         *fail = atoi(argv[3]);
+    }
+    if (argv[4] == NULL) {
+        printf("Missing fourth parameter (check_sizes).\n");
+        rtn = 1;
+    }
+    else {
+        *check_sizes = atoi(argv[4]);
     }
     return rtn;
 }
@@ -298,8 +305,8 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
 /*-------------------------------------------------------------------------*/
 int main(int argc, char** argv)
 {
-    int checkpoint_level, fail;
-    if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
+    int checkpoint_level, fail, check_sizes;
+    if (init(argv, &checkpoint_level, &fail, &check_sizes)) return 0;   //verify args
 
     MPI_Init(&argc, &argv);
     int global_world_rank, global_world_size;                          //MPI_COMM rank
@@ -351,9 +358,15 @@ int main(int argc, char** argv)
     }
 
     if (world_rank == 0 && !rtn) {
-        rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
-        if (!rtn && !fail) {
+        if (check_sizes) {
+            rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
+            if (!rtn && !fail) {
+                printf("Success.\n");
+            }
+        }
+        else {
             printf("Success.\n");
+            rtn = 0;
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);
