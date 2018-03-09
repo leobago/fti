@@ -298,6 +298,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     } while( isnextdb );
 
     FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = varCnt;
+    FTI_Exec->nbVarStored = varCnt;
 
     FTI_Exec->lastdb = currentdb;
     FTI_Exec->lastdb->next = NULL;
