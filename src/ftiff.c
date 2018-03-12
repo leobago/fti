@@ -340,7 +340,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
     long offset = sizeof(FTIFF_metaInfo);
-    long *FTI_Data_oldsize, dbsize;
+    long dbsize;
 
     // first call, init first datablock
     if(!FTI_Exec->firstdb) { // init file info
@@ -376,65 +376,58 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
          *  - check if size has changed
          */
 
-        FTI_Data_oldsize = (long*) calloc( FTI_Exec->nbVarStored, sizeof(long) );
         FTI_Exec->lastdb = FTI_Exec->firstdb;
         int* nbContainers = (int*) calloc( FTI_Exec->nbVarStored, sizeof(int) );
-        long** containerSizes = (long**) malloc( FTI_Exec->nbVarStored*sizeof(long*) );
         long* containerSizesAccu = (long*) calloc( FTI_Exec->nbVarStored, sizeof(long) );
         bool* validBlock = (bool*) malloc( FTI_Exec->nbVarStored*sizeof(bool) );
-        int i;
-        for(i=0; i<FTI_Exec->nbVarStored; ++i) {
-            containerSizes[i] = NULL;
-            validBlock[i] = true;
+        long* overflow = (long*) malloc( FTI_Exec->nbVarStored*sizeof(long) );
+        // init overflow with the datasizes and validBlock with true.
+        for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
+            overflow[pvar_idx] = FTI_Data[pvar_idx].size;
+            validBlock[pvar_idx] = true;
         }
 
         // iterate though datablock list. Current datablock is 'lastdb'.
-        //
-        // for each variable:
-        // --------------------------------------------------------------------
-        // - compute data size stored in last checkpoint 'FTI_Data_oldsize'
-        // - provide array of container sizes 'containerSizes'
-        // - provide accumulated container size 'containerSizesAccu'
-        // - provide the total number of containers 'nbContainers'
-        // --------------------------------------------------------------------
         do {
             isnextdb = 0;
             for(dbvar_idx=0;dbvar_idx<FTI_Exec->lastdb->numvars;dbvar_idx++) {
+                FTIFF_dbvar* dbvar = &(FTI_Exec->lastdb->dbvars[dbvar_idx]);
                 for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
-                    if(FTI_Exec->lastdb->dbvars[dbvar_idx].id == FTI_Data[pvar_idx].id) {
-                        long chunksize;
-                        chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize;
+                    FTIT_dataset* data = &FTI_Data[pvar_idx];
+                    if( dbvar->id == data->id ) {
                         // collect container info
-                        containerSizes[pvar_idx] = (long*) realloc( containerSizes[pvar_idx], (nbContainers[pvar_idx]+1) * sizeof(long) );
-                        containerSizes[pvar_idx][nbContainers[pvar_idx]] = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
-                        containerSizesAccu[pvar_idx] += FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
+                        containerSizesAccu[pvar_idx] += dbvar->containersize;
                         nbContainers[pvar_idx]++;
-                        // if data was shrinked, invalidate the following blocks (if there are), but
-                        // add former chunksize to 'FTI_Data_oldsize' before setting chunksize to 0.
+                        // if data was shrinked, invalidate the following blocks (if there are), 
+                        // and set their chunksize to 0.
                         if ( !validBlock[pvar_idx] ) {
-                            if ( FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent ) {
-                                FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent = false;
-                                FTI_Data_oldsize[pvar_idx] += chunksize;
+                            if ( dbvar->hascontent ) {
+                                dbvar->hascontent = false;
                             }
-                            FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = 0;
+                            dbvar->chunksize = 0;
+                            continue;
                         }
-                        // if data size shrinked, set 'validBlock[pvar_idx] = false' to invalidate following blocks 
-                        // and set new value of the increased chunksize in current container.
-                        if ( ( FTI_Data[pvar_idx].size < (FTI_Data_oldsize[pvar_idx] + chunksize) ) && validBlock[pvar_idx] ) {
+                        // if overflow > containersize, reduce overflow by containersize
+                        // set chunksize to containersize and ensure that 'hascontent = true'.
+                        if ( overflow[pvar_idx] > dbvar->containersize ) {
+                            if ( !dbvar->hascontent ) {
+                                dbvar->hascontent = true;
+                            }
+                            dbvar->chunksize = dbvar->containersize;
+                            overflow[pvar_idx] -= dbvar->containersize;
+                            continue;
+                        }
+                        // if overflow <= containersize, set 'validBlock = false' in order to invalidate the
+                        // following blocks, set new chunksize to overflow, set afterwards overflow to 0 and 
+                        // ensure that 'hascontent = true'. 
+                        if ( overflow[pvar_idx] <= dbvar->containersize ) {
+                            if ( !dbvar->hascontent ) {
+                                dbvar->hascontent = true;
+                            }
                             validBlock[pvar_idx] = false;
-                            FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx]; 
-                            FTI_Data_oldsize[pvar_idx] += chunksize;
-                        }
-                        // if data size grew and includes containers which were empty in the last checkpoint, set 'hascontent = true'
-                        // and 'chunksize = containersize' for these containers.
-                        if ( ( FTI_Data[pvar_idx].size >= (FTI_Data_oldsize[pvar_idx] + chunksize) ) && validBlock[pvar_idx] ) {
-                            if ( !FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent ) {
-                                FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
-                                FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent = true;
-                            } else {
-                                FTI_Data_oldsize[pvar_idx] += chunksize;
-                                FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
-                            }
+                            dbvar->chunksize = overflow[pvar_idx];
+                            overflow[pvar_idx] = 0;
+                            continue;
                         }
                     }
                 }
@@ -453,20 +446,11 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             num_edit_pvars++;
         }
 
-        // check if size changed
-        long* overflow = (long*) malloc( FTI_Exec->nbVarStored*sizeof(long) );
+        // check if size has increased
         for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {  
-            if(FTI_Data_oldsize[pvar_idx] < FTI_Data[pvar_idx].size ) {
-                overflow[pvar_idx] = FTI_Data[pvar_idx].size - containerSizesAccu[pvar_idx]; 
-                    //FTIFF_InsertChunk( FTI_Exec, FTI_Data, pvar_idx, FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx] );
-                if ( overflow[pvar_idx] > 0 ) {
-                    editflags[pvar_idx] = 2;
-                    num_edit_pvars++;
-                }
-                //if ( overflow[pvar_idx] == FTI_NSCS ) {
-                //    FTI_Print("FTI-FF: Could not update meta data", FTI_WARN);
-                //    return FTI_NSCS;
-                //}
+            if ( overflow[pvar_idx] > 0 ) {
+                editflags[pvar_idx] = 2;
+                num_edit_pvars++;
             }
         }
 
@@ -527,102 +511,19 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         }
 
         FTI_Exec->nbVarStored = FTI_Exec->nbVar;
-
-        free(FTI_Data_oldsize);
+        
+        free(nbContainers);
+        free(containerSizesAccu);
+        free(validBlock);
+        free(overflow);
 
     }
 
-// BEGIN - ONLY FOR DEVELOPPING
-/* PRINTING DATA STRUCTURE */
-        int dbrank;
-        MPI_Comm_rank(FTI_COMM_WORLD, &dbrank);
-        FTIFF_db *dbgdb = FTI_Exec->firstdb;
-        if(dbrank == 0) {
-            int dbcnt = 0;
-printf("------------------- DATASTRUCTURE BEGIN -------------------\n\n");
-            do {
-printf("    DataBase-id: %d\n", dbcnt);
-printf("                 dbsize: %ld\n", dbgdb->dbsize);
-printf("                 metasize: %ld\n\n", sizeof(int)+sizeof(long)+dbgdb->numvars*sizeof(FTIFF_dbvar));
-                dbcnt++;
-                int varid=0;
-                for(; varid<dbgdb->numvars; ++varid) {
-printf("         Var-id: %d\n", varid);
-printf("                 id: %d\n"
-       "                 idx: %d\n"
-       "                 containerid: %d\n"
-       "                 hascontent: %s\n"
-       "                 dptr: %p\n"
-       "                 fptr: %p\n"
-       "                 chunksize: %lu\n"
-       "                 containersize: %lu\n\n",
-                    dbgdb->dbvars[varid].id,
-                    dbgdb->dbvars[varid].idx,
-                    dbgdb->dbvars[varid].containerid,
-                    (dbgdb->dbvars[varid].hascontent) ? "true" : "false",
-                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].dptr,
-                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].fptr,
-                    dbgdb->dbvars[varid].chunksize,
-                    dbgdb->dbvars[varid].containersize);
-                }
-            } while( dbgdb = dbgdb->next );
-printf("\n------------------- DATASTRUCTURE END ---------------------\n");
-fflush(stdout);
-        }
-MPI_Barrier(FTI_COMM_WORLD);
-// END - ONLY FOR DEVELOPPING
+    FTIFF_PrintDataStructure( 0, FTI_Exec );
 
     free(editflags);
     return FTI_SCES;
 
-}
-
-long FTIFF_InsertChunk( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, int idx, long chunksize )
-{
-    FTIFF_db* currentdb = FTI_Exec->firstdb;
-    assert( (currentdb != NULL) && (currentdb->previous == NULL) );
-    int counter = 0;
-    do {
-        int var_idx=0;
-        bool found;
-        for( ; var_idx < currentdb->numvars; ++var_idx ) {
-            found = (currentdb->dbvars[var_idx].id == FTI_Data[idx].id);
-            if ( found ) {
-                break;
-            }
-        }
-        if ( found ) {
-            //printf("db-ID: %d, var-ID: %d, chunksize: %lu, containersize: %lu\n", counter, var_idx, currentdb->dbvars[var_idx].chunksize, currentdb->dbvars[var_idx].containersize);
-        }
-        if ( found && (currentdb->dbvars[var_idx].chunksize <= currentdb->dbvars[var_idx].containersize) ) {
-            //printf("Variable-ID: %d, DB-Var-ID: %d, hascontent: %s, chunksize(DB): %lu, containersize(DB): %lu, chunksize: %lu\n",
-            //        FTI_Data[idx].id,
-            //        var_idx,
-            //        (currentdb->dbvars[var_idx].hascontent) ? "true" : "false",
-            //        currentdb->dbvars[var_idx].chunksize,
-            //        currentdb->dbvars[var_idx].containersize,
-            //        chunksize);
-            long available;
-            if ( currentdb->dbvars[var_idx].hascontent ) {
-                available = currentdb->dbvars[var_idx].containersize - currentdb->dbvars[var_idx].chunksize; 
-            } else {
-                available = currentdb->dbvars[var_idx].containersize; 
-            }
-            if ( available < chunksize ) {
-                currentdb->dbvars[var_idx].chunksize = currentdb->dbvars[var_idx].containersize;
-                chunksize -= available;
-            } else {
-                if ( currentdb->dbvars[var_idx].hascontent ) {
-                    currentdb->dbvars[var_idx].chunksize += chunksize;
-                } else {
-                    currentdb->dbvars[var_idx].chunksize = chunksize;
-                }
-                return 0;
-            }
-        }
-        counter++;
-    } while ( currentdb = currentdb->next );
-    return chunksize;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1365,7 +1266,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 {
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fexist = 0, fileTarget, ckptID, fcount;
-    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct dirent *entry;
     struct stat ckptFS;
     // File meta-data
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
@@ -1418,8 +1319,12 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
                                 fexist = 1;
                             } else {
-                                printf("Checksums do not match\n");
-                                MPI_Abort(FTI_COMM_WORLD, -1);
+                                char str[FTI_BUFS];
+                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                return FTI_NSCS;
                             }
                         }
                         close(fd);
@@ -1486,7 +1391,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fileTarget, ckptID = -1, fcount = 0, match;
-    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct dirent *entry;
     struct stat ckptFS;
     DIR *L2CkptDir = opendir( FTI_Ckpt[2].dir );
 
@@ -1535,6 +1440,13 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myMetaInfo->fs = FTIFFMeta->fs;    
                                 myMetaInfo->ckptID = ckptID;    
                                 myMetaInfo->FileExists = 1;
+                            } else {
+                                char str[FTI_BUFS];
+                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                return FTI_NSCS;
                             }
                         }
                         close(fd);
@@ -1579,6 +1491,13 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myMetaInfo->pfs = FTIFFMeta->fs;    
                                 myMetaInfo->ckptID = ckptID;    
                                 myMetaInfo->CopyExists = 1;
+                            } else {
+                                char str[FTI_BUFS];
+                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                return FTI_NSCS;
                             }
                         }
                         close(fd);
@@ -1673,7 +1592,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fileTarget, ckptID = -1, match;
-    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct dirent *entry;
     struct stat ckptFS;
     DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
 
@@ -1721,6 +1640,13 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myInfo->fs = FTIFFMeta->fs;    
                                 myInfo->ckptID = ckptID;    
                                 myInfo->FileExists = 1;
+                            } else {
+                                char str[FTI_BUFS];
+                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                return FTI_NSCS;
                             }
                         }
                         close(fd);
@@ -1765,6 +1691,13 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myInfo->RSfs = FTIFFMeta->fs;    
                                 myInfo->ckptID = ckptID;    
                                 myInfo->RSFileExists = 1;
+                            } else {
+                                char str[FTI_BUFS];
+                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                return FTI_NSCS;
                             }
                         }
                         close(fd);
@@ -1826,7 +1759,6 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     closedir(L3CkptDir);
     free(groupInfo);
     free(myInfo);
-    //free(entry);
 
     return FTI_SCES;
 }
@@ -1849,7 +1781,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 {
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fexist = 0, fileTarget, ckptID, fcount;
-    struct dirent *entry = malloc(sizeof(struct dirent));
+    struct dirent *entry;
     struct stat ckptFS;
     DIR *L4CkptDir = opendir( FTI_Ckpt[4].dir );
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
@@ -1931,6 +1863,48 @@ void FTIFF_FreeDbFTIFF(FTIFF_db* last)
     }
 }
 
+// BEGIN - ONLY FOR DEVELOPPING
+/* PRINTING DATA STRUCTURE */
+void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec )
+{
+        int dbrank;
+        MPI_Comm_rank(FTI_COMM_WORLD, &dbrank);
+        FTIFF_db *dbgdb = FTI_Exec->firstdb;
+        if(dbrank == rank) {
+            int dbcnt = 0;
+printf("------------------- DATASTRUCTURE BEGIN -------------------\n\n");
+            do {
+printf("    DataBase-id: %d\n", dbcnt);
+printf("                 dbsize: %ld\n", dbgdb->dbsize);
+printf("                 metasize: %ld\n\n", sizeof(int)+sizeof(long)+dbgdb->numvars*sizeof(FTIFF_dbvar));
+                dbcnt++;
+                int varid=0;
+                for(; varid<dbgdb->numvars; ++varid) {
+printf("         Var-id: %d\n", varid);
+printf("                 id: %d\n"
+       "                 idx: %d\n"
+       "                 containerid: %d\n"
+       "                 hascontent: %s\n"
+       "                 dptr: %p\n"
+       "                 fptr: %p\n"
+       "                 chunksize: %lu\n"
+       "                 containersize: %lu\n\n",
+                    dbgdb->dbvars[varid].id,
+                    dbgdb->dbvars[varid].idx,
+                    dbgdb->dbvars[varid].containerid,
+                    (dbgdb->dbvars[varid].hascontent) ? "true" : "false",
+                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].dptr,
+                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].fptr,
+                    dbgdb->dbvars[varid].chunksize,
+                    dbgdb->dbvars[varid].containersize);
+                }
+            } while( dbgdb = dbgdb->next );
+printf("\n------------------- DATASTRUCTURE END ---------------------\n");
+fflush(stdout);
+        }
+MPI_Barrier(FTI_COMM_WORLD);
+}
+// END - ONLY FOR DEVELOPPING
 
 
 
