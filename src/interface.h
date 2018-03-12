@@ -76,6 +76,8 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <dirent.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -87,6 +89,9 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+
+typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
