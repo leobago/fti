@@ -336,7 +336,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
     int dbvar_idx, pvar_idx, num_edit_pvars = 0;
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); 
-    // 0 -> nothing changed, 1 -> new pvar, 2 -> size increased, 3 -> size decreased
+    // 0 -> nothing to append, 1 -> new pvar, 2 -> size increased
     FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
     long offset = sizeof(FTIFF_metaInfo);
@@ -389,13 +389,28 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         }
 
         // iterate though datablock list. Current datablock is 'lastdb'.
+        //
+        // for each variable:
+        // --------------------------------------------------------------------
+        // - compute data size stored in last checkpoint 'FTI_Data_oldsize'
+        // - provide array of container sizes 'containerSizes'
+        // - provide accumulated container size 'containerSizesAccu'
+        // - provide the total number of containers 'nbContainers'
+        // --------------------------------------------------------------------
         do {
             isnextdb = 0;
             for(dbvar_idx=0;dbvar_idx<FTI_Exec->lastdb->numvars;dbvar_idx++) {
                 for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
                     if(FTI_Exec->lastdb->dbvars[dbvar_idx].id == FTI_Data[pvar_idx].id) {
                         long chunksize;
-                        // if data was shrinked, we have to invalidate the following blocks.
+                        chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize;
+                        // collect container info
+                        containerSizes[pvar_idx] = (long*) realloc( containerSizes[pvar_idx], (nbContainers[pvar_idx]+1) * sizeof(long) );
+                        containerSizes[pvar_idx][nbContainers[pvar_idx]] = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
+                        containerSizesAccu[pvar_idx] += FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
+                        nbContainers[pvar_idx]++;
+                        // if data was shrinked, invalidate the following blocks (if there are), but
+                        // add former chunksize to 'FTI_Data_oldsize' before setting chunksize to 0.
                         if ( !validBlock[pvar_idx] ) {
                             if ( FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent ) {
                                 FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent = false;
@@ -403,18 +418,23 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                             }
                             FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = 0;
                         }
-                        chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize;
-                        containerSizes[pvar_idx] = (long*) realloc( containerSizes[pvar_idx], (nbContainers[pvar_idx]+1) * sizeof(long) );
-                        containerSizes[pvar_idx][nbContainers[pvar_idx]] = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
-                        containerSizesAccu[pvar_idx] += FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
-                        nbContainers[pvar_idx]++;
+                        // if data size shrinked, set 'validBlock[pvar_idx] = false' to invalidate following blocks 
+                        // and set new value of the increased chunksize in current container.
                         if ( ( FTI_Data[pvar_idx].size < (FTI_Data_oldsize[pvar_idx] + chunksize) ) && validBlock[pvar_idx] ) {
                             validBlock[pvar_idx] = false;
                             FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx]; 
                             FTI_Data_oldsize[pvar_idx] += chunksize;
                         }
+                        // if data size grew and includes containers which were empty in the last checkpoint, set 'hascontent = true'
+                        // and 'chunksize = containersize' for these containers.
                         if ( ( FTI_Data[pvar_idx].size >= (FTI_Data_oldsize[pvar_idx] + chunksize) ) && validBlock[pvar_idx] ) {
-                            FTI_Data_oldsize[pvar_idx] += chunksize;
+                            if ( !FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent ) {
+                                FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
+                                FTI_Exec->lastdb->dbvars[dbvar_idx].hascontent = true;
+                            } else {
+                                FTI_Data_oldsize[pvar_idx] += chunksize;
+                                FTI_Exec->lastdb->dbvars[dbvar_idx].chunksize = FTI_Exec->lastdb->dbvars[dbvar_idx].containersize;
+                            }
                         }
                     }
                 }
@@ -437,15 +457,16 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         long* overflow = (long*) malloc( FTI_Exec->nbVarStored*sizeof(long) );
         for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {  
             if(FTI_Data_oldsize[pvar_idx] < FTI_Data[pvar_idx].size ) {
-                overflow[pvar_idx] = FTIFF_InsertChunk( FTI_Exec, FTI_Data, pvar_idx, FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx] );
+                overflow[pvar_idx] = FTI_Data[pvar_idx].size - containerSizesAccu[pvar_idx]; 
+                    //FTIFF_InsertChunk( FTI_Exec, FTI_Data, pvar_idx, FTI_Data[pvar_idx].size - FTI_Data_oldsize[pvar_idx] );
                 if ( overflow[pvar_idx] > 0 ) {
                     editflags[pvar_idx] = 2;
                     num_edit_pvars++;
                 }
-                if ( overflow[pvar_idx] == FTI_NSCS ) {
-                    FTI_Print("FTI-FF: Could not update meta data", FTI_WARN);
-                    return FTI_NSCS;
-                }
+                //if ( overflow[pvar_idx] == FTI_NSCS ) {
+                //    FTI_Print("FTI-FF: Could not update meta data", FTI_WARN);
+                //    return FTI_NSCS;
+                //}
             }
         }
 
