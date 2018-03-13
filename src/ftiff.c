@@ -519,7 +519,8 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
     }
 
-    FTIFF_PrintDataStructure( 0, FTI_Exec );
+    // FOR DEVELOPING
+    // FTIFF_PrintDataStructure( 0, FTI_Exec );
 
     free(editflags);
     return FTI_SCES;
