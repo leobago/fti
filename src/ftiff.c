@@ -160,6 +160,7 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
+    char strerr[FTI_BUFS];
 
     int varCnt = 0;
 
@@ -173,23 +174,29 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
     // get filesize
     struct stat st;
-    stat(fn, &st);
-    char strerr[FTI_BUFS];
+    if (stat(fn, &st) == -1) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - could not get stats for file: %s", fn); 
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
+    }
 
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
+        errno = 0;
         return FTI_NSCS;
     }
 
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
+        errno = 0;
         return FTI_NSCS;
     }
 
@@ -199,8 +206,8 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     // get file meta info
     memcpy( &(FTI_Exec->FTIFFMeta), fmmap, sizeof(FTIFF_metaInfo) );
 
-    FTIFF_db *currentdb, *nextdb;
-    FTIFF_dbvar *currentdbvar = NULL;
+    FTIFF_db *currentdb=NULL, *nextdb=NULL;
+    FTIFF_dbvar *currentdbvar=NULL;
     int dbvar_idx, dbcounter=0;
 
     long endoffile = sizeof(FTIFF_metaInfo); // space for timestamp 
@@ -209,9 +216,11 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     int isnextdb;
 
     currentdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
-    if (!currentdb) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
+    if ( currentdb == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
         FTI_Print(strerr, FTI_EROR);
+        munmap( fmmap, st.st_size );
+        errno = 0;
         return FTI_NSCS;
     }
 
@@ -222,9 +231,11 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     do {
 
         nextdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
-        if (!currentdb) {
-            snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
+        if ( nextdb == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
             FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, st.st_size );
+            errno = 0;
             return FTI_NSCS;
         }
 
@@ -242,9 +253,11 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
         FTI_Print(str, FTI_DBUG);
 
         currentdb->dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * currentdb->numvars );
-        if (!currentdb) {
-            snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar));
+        if ( currentdb->dbvars == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar) * currentdb->numvars);
             FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, st.st_size );
+            errno = 0;
             return FTI_NSCS;
         }
 
@@ -304,9 +317,11 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     FTI_Exec->lastdb = currentdb;
     FTI_Exec->lastdb->next = NULL;
 
-    // unmap memory
+    // unmap memory.
     if ( munmap( fmmap, st.st_size ) == -1 ) {
-        FTI_Print("FTI-FF: Updatedb - unable to unmap memory", FTI_WARN);
+        FTI_Print("FTI-FF: ReadDbFTIFF - unable to unmap memory", FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
     }
 
     return FTI_SCES;
