@@ -349,9 +349,19 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    char strerr[FTI_BUFS];
+
     int dbvar_idx, pvar_idx, num_edit_pvars = 0;
     int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); 
+    
     // 0 -> nothing to append, 1 -> new pvar, 2 -> size increased
+    if ( editflags == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'editflags'", sizeof(FTIFF_db));
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
+    }
+
     FTIFF_dbvar *dbvars = NULL;
     int isnextdb;
     long offset = sizeof(FTIFF_metaInfo);
@@ -360,8 +370,25 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
     // first call, init first datablock
     if(!FTI_Exec->firstdb) { // init file info
         dbsize = FTI_dbstructsize + sizeof(FTIFF_dbvar) * FTI_Exec->nbVar;
+        
         FTIFF_db *dblock = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
+        if ( dblock == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'dblock'", sizeof(FTIFF_db));
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * FTI_Exec->nbVar );
+        if ( dbvars == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'dbvars'", sizeof(FTIFF_dbvar) * FTI_Exec->nbVar );
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         dblock->previous = NULL;
         dblock->next = NULL;
         dblock->numvars = FTI_Exec->nbVar;
@@ -392,10 +419,43 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
          */
 
         FTI_Exec->lastdb = FTI_Exec->firstdb;
+
         int* nbContainers = (int*) calloc( FTI_Exec->nbVarStored, sizeof(int) );
+        if ( nbContainers == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'nbContainers'", sizeof(int));
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         long* containerSizesAccu = (long*) calloc( FTI_Exec->nbVarStored, sizeof(long) );
+        if ( containerSizesAccu == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'containerSizesAccu'", sizeof(long));
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         bool* validBlock = (bool*) malloc( FTI_Exec->nbVarStored*sizeof(bool) );
+        if ( validBlock == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'validBlock'", FTI_Exec->nbVarStored*sizeof(bool) );
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         long* overflow = (long*) malloc( FTI_Exec->nbVarStored*sizeof(long) );
+        if ( overflow == NULL ) {
+            free(editflags);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'overflow'", FTI_Exec->nbVarStored*sizeof(long) );
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
         // init overflow with the datasizes and validBlock with true.
         for(pvar_idx=0;pvar_idx<FTI_Exec->nbVarStored;pvar_idx++) {
             overflow[pvar_idx] = FTI_Data[pvar_idx].size;
@@ -515,6 +575,18 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             }
 
             FTIFF_db  *dblock = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
+            if ( dblock == NULL ) {
+                free(editflags);
+                free(containerSizesAccu);
+                free(nbContainers);
+                free(overflow);
+                free(validBlock);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - failed to allocate %ld bytes for 'dblock'", sizeof(FTIFF_db));
+                FTI_Print(strerr, FTI_EROR);
+                errno = 0;
+                return FTI_NSCS;
+            }
+
             FTI_Exec->lastdb->next = dblock;
             dblock->previous = FTI_Exec->lastdb;
             dblock->next = NULL;
