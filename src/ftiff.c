@@ -636,6 +636,11 @@ int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* check
         return FTI_NSCS;
     }
 
+    if ( checksum == NULL ) {
+        FTI_Print("FTI-FF: Checksum: Bad address (nil) for checksum passed", FTI_WARN);
+        return FTI_NSCS;
+    }
+
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
 
@@ -708,11 +713,29 @@ int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* check
   FTI-FF structure:
   =================
 
-  +------+---------+-------------+       +------+---------+-------------+
-  |      |         |             |       |      |         |             |
-  | db 1 | dbvar 1 | ckpt data 1 | . . . | db n | dbvar n | ckpt data n |
-  |      |         |             |       |      |         |             |
-  +------+---------+-------------+       +------+---------+-------------+
+  +--------------+ +------------------------+
+  |              | |                        |
+  | FB           | | VB                     |
+  |              | |                        |
+  +--------------+ +------------------------+
+  
+  The FB (file block) holds meta data related to the file whereas the VB 
+  (variable block) holds meta and actual data of the variables protected by FTI. 
+  
+  |<------------------------------------ VB ------------------------------------>|
+  #                                                                              #
+  |<------------ VCB_1--------------->|      |<------------ VCB_n--------------->|
+  #                                   #      #                                   #       
+  +-----------------------------------+      +-----------------------------------+
+  | +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
+  | |       ||       |      |       | |      | |       ||       |      |       | |
+  | | VMB_1 || VC_11 | ---- | VC_1k | | ---- | | VMB_n || VC_n1 | ---- | VC_nl | |
+  | |       ||       |      |       | |      | |       ||       |      |       | |
+  | +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
+  +-----------------------------------+      +-----------------------------------+
+
+  VMB_i (FTIFF_db + FTIFF_dbvar structures) keeps the data block metadata and 
+  VC_ij are the data chunks.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -723,17 +746,17 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
     // Update the meta data information -> FTIT_db and FTIT_dbvar
-    if( FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data ) != FTI_SCES ) {
+    if ( FTI_Try( FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data ), "Update FTI-FF data structure" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
 
     // check if metadata exists
-    if(!FTI_Exec->firstdb) {
+    if( FTI_Exec->firstdb == NULL ) {
         FTI_Print("No data structure found to write data to file. Discarding checkpoint.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    char str[FTI_BUFS], fn[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
 
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
@@ -754,15 +777,11 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else {
         fd = fopen(fn, "rb+");
     }
-
     if (fd == NULL) {
-        snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(str, FTI_EROR);
-
+        snprintf(strerr, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
+        FTI_Print(strerr, FTI_EROR);
         return FTI_NSCS;
     }
-
-    int writeFailed;
 
     // make sure that is never a null ptr. otherwise its to fix.
     assert(FTI_Exec->firstdb);
@@ -785,22 +804,52 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Write in file with FTI-FF
     do {
 
-        writeFailed = 0;
         isnextdb = 0;
 
         mdoffset = endoffile;
 
         // write db - datablock meta data
-        fseek( fd, mdoffset, SEEK_SET );
-        writeFailed += ( fwrite( &(currentdb->numvars), sizeof(int), 1, fd ) == 1 ) ? 0 : 1;
+        if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+            FTI_Print(strerr, FTI_EROR);
+            fclose(fd);
+            errno = 0;
+            return FTI_NSCS;
+        }
+
+        fwrite( &(currentdb->numvars), sizeof(int), 1, fd );
+        if ( ferror(fd) ) {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+            FTI_Print(strerr, FTI_EROR);
+            errno=0;
+            fclose(fd);
+            return FTI_NSCS;
+        }
+        
         mdoffset += sizeof(int);
-        fseek( fd, mdoffset, SEEK_SET );
-        writeFailed += ( fwrite( &(currentdb->dbsize), sizeof(long), 1, fd ) == 1 ) ? 0 : 1;
+        
+        if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+            FTI_Print(strerr, FTI_EROR);
+            errno=0;
+            fclose(fd);
+            return FTI_NSCS;
+        }
+
+        fwrite( &(currentdb->dbsize), sizeof(long), 1, fd );
+        if ( ferror(fd) ) {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+            FTI_Print(strerr, FTI_EROR);
+            errno=0;
+            fclose(fd);
+            return FTI_NSCS;
+        }
+
         mdoffset += sizeof(long);
 
         // debug information
-        snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i, write failed: %i", 
-                FTI_Exec->ckptID, dbcounter, currentdb->dbsize, currentdb->numvars, writeFailed);
+        snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i), dataBlock:%i, dbsize: %ld, numvars: %i", 
+                FTI_Exec->ckptID, dbcounter, currentdb->dbsize, currentdb->numvars);
         FTI_Print(str, FTI_DBUG);
 
         // write dbvar - datablock variables meta data and 
@@ -823,17 +872,19 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 cpybuf = currentdbvar->chunksize - cpycnt;
                 cpynow = ( cpybuf > membs ) ? membs : cpybuf;
                 cpycnt += cpynow;
-                fseek( fd, fptr, SEEK_SET );
+                if ( fseek( fd, fptr, SEEK_SET ) == -1 ) {
+                    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+                    FTI_Print(strerr, FTI_EROR);
+                    errno=0;
+                    fclose(fd);
+                    return FTI_NSCS;
+                }
                 fwrite( dptr, cpynow, 1, fd );
-                // if error for writing the data, print error and exit to calling function.
                 if (ferror(fd)) {
-                    int fwrite_errno = errno;
-                    char error_msg[FTI_BUFS];
-                    error_msg[0] = 0;
-                    strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written: %s.", currentdbvar->id, error_msg);
+                    snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - Dataset #%d could not be written to file: %s", currentdbvar->id, fn);
                     FTI_Print(str, FTI_EROR);
                     fclose(fd);
+                    errno = 0;
                     return FTI_NSCS;
                 }
                 MD5_Update( &mdContext, dptr, cpynow );
@@ -847,7 +898,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( (padding = currentdbvar->containersize - currentdbvar->chunksize) > 0 ) {
                 void* zeros = calloc( 1, membs );
                 cpycnt = 0;
-                fseek( fd, fptr, SEEK_SET );
+                if ( fseek( fd, fptr, SEEK_SET ) == -1 ) {
+                    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+                    FTI_Print(strerr, FTI_EROR);
+                    errno=0;
+                    fclose(fd);
+                    return FTI_NSCS;
+                }
                 while( cpycnt < padding ) {
                     cpybuf = padding - cpycnt;
                     cpynow = ( cpybuf > membs ) ? membs : cpybuf;
@@ -855,24 +912,46 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     int buffer = 0;
                     while( buffer < cpynow ) {
                         buffer += (fwrite( zeros, cpynow, 1, fd ))*cpynow;
+                        if (ferror(fd)) {
+                            snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - padding failed in file: %s", fn);
+                            FTI_Print(str, FTI_EROR);
+                            fclose(fd);
+                            errno = 0;
+                            return FTI_NSCS;
+                        }
                         fptr += buffer;
                     }
                 }
             }
 
             // write datablock variables meta data
-            fseek( fd, mdoffset, SEEK_SET );
-            writeFailed += ( fwrite( currentdbvar, sizeof(FTIFF_dbvar), 1, fd ) == 1 ) ? 0 : 1;
+            if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
+                snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+                FTI_Print(strerr, FTI_EROR);
+                errno=0;
+                fclose(fd);
+                return FTI_NSCS;
+            }
+
+            fwrite( currentdbvar, sizeof(FTIFF_dbvar), 1, fd );
+            if ( ferror(fd) ) {
+                snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+                FTI_Print(strerr, FTI_EROR);
+                errno=0;
+                fclose(fd);
+                return FTI_NSCS;
+            }
+
             mdoffset += sizeof(FTIFF_dbvar);
 
             // debug information
             snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", dptr: %ld, fptr: %ld, chunksize: %ld, "
-                    "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " write failed: %i", 
+                    "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
                     FTI_Exec->ckptID, dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize,
-                    (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr, writeFailed);
+                    (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr);
             FTI_Print(str, FTI_DBUG);
 
         }
@@ -894,19 +973,28 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     ftruncate(fileno(fd), endoffile);
 
     // create checkpoint meta data
-    FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf );
-
-    fseek( fd, 0, SEEK_SET );
-
-    writeFailed += ( fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd ) == 1 ) ? 0 : 1;
-
-    fclose( fd );
-
-    if (writeFailed) {
-        snprintf(str, FTI_BUFS, "FTIFF: An error occured. Discarding checkpoint");
-        FTI_Print(str, FTI_WARN);
+    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
+
+    if ( fseek( fd, 0, SEEK_SET ) == -1 ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        errno=0;
+        fclose(fd);
+        return FTI_NSCS;
+    }
+
+    fwrite( &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo), 1, fd );
+    if ( ferror(fd) ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        errno=0;
+        fclose(fd);
+        return FTI_NSCS;
+    }
+
+    fclose( fd );
 
     return FTI_SCES;
 
