@@ -1141,6 +1141,12 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             return FTI_NREC;
         }
     }
+    
+    if (!FTI_Exec->firstdb) {
+        FTI_Print( "FTI-FF: FTIFF_Recover - No db meta information. Nothing to recover.", FTI_WARN );
+        return FTI_NREC;
+    }
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
@@ -1148,24 +1154,26 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
     }
+    
+    char strerr[FTI_BUFS];
+    
     // get filesize
     struct stat st;
-    stat(fn, &st);
-    char strerr[FTI_BUFS];
+    if (stat(fn, &st) == -1) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - could not get stats for file: %s", fn); 
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        return FTI_NREC;
+    }
 
     // block size for memcpy of pointer.
     long membs = 1024*1024*16; // 16 MB
     long cpybuf, cpynow, cpycnt;
 
-    if (!FTI_Exec->firstdb) {
-        FTI_Print( "FTI-FF: RecoveryGlobal - No db meta information. Nothing to recover.", FTI_WARN );
-        return FTI_NREC;
-    }
-
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
         return FTI_NREC;
     }
@@ -1173,7 +1181,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         return FTI_NREC;
@@ -1220,7 +1228,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             }
 
             // debug information
-            snprintf(str, FTI_BUFS, "FTI-FF: RecoveryGlobal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+            snprintf(str, FTI_BUFS, "FTI-FF: FTIFF_Recover -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                     ", destptr: %ld, fptr: %ld, chunksize: %ld, "
                     "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
                     dbcounter, dbvar_idx,  
@@ -1232,8 +1240,12 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             MD5_Final( hash, &mdContext );
 
             if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: RecoveryGlobal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
                 FTI_Print(strerr, FTI_WARN);
+                if ( munmap( fmmap, st.st_size ) == -1 ) {
+                    FTI_Print("FTIFF: FTIFF_Recover - unable to unmap memory", FTI_EROR);
+                    errno = 0;
+                }
                 return FTI_NREC;
             }
 
@@ -1250,7 +1262,9 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
 
     // unmap memory
     if ( munmap( fmmap, st.st_size ) == -1 ) {
-        FTI_Print("FTIFF: RecoveryGlobal - unable to unmap memory", FTI_WARN);
+        FTI_Print("FTIFF: FTIFF_Recover - unable to unmap memory", FTI_EROR);
+        errno = 0;
+        return FTI_NREC;
     }
 
     FTI_Exec->reco = 0;
@@ -1307,6 +1321,11 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
+    if (!FTI_Exec->firstdb) {
+        FTI_Print( "FTIFF: FTIFF_RecoverVar - No db meta information. Nothing to recover.", FTI_WARN );
+        return FTI_NREC;
+    }
+
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec->ckptLvel == 4) {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
@@ -1315,29 +1334,28 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
     }
 
-    char str[FTI_BUFS];
+    char str[FTI_BUFS], strerr[FTI_BUFS];
 
     snprintf(str, FTI_BUFS, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
     // get filesize
     struct stat st;
-    stat(fn, &st);
-    char strerr[FTI_BUFS];
+    if (stat(fn, &st) == -1) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: FTIFF_RecoverVar - could not get stats for file: %s", fn); 
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        return FTI_NREC;
+    }
 
     // block size for memcpy of pointer.
     long membs = 1024*1024*16; // 16 MB
     long cpybuf, cpynow, cpycnt;
 
-    if (!FTI_Exec->firstdb) {
-        FTI_Print( "FTIFF: RecoveryLocal - No db meta information. Nothing to recover.", FTI_WARN );
-        return FTI_NREC;
-    }
-
     // open checkpoint file for read only
     int fd = open( fn, O_RDONLY, 0 );
     if (fd == -1) {
-        snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - could not open '%s' for reading.", fn);
+        snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - could not open '%s' for reading.", fn);
         FTI_Print(strerr, FTI_EROR);
         return FTI_NREC;
     }
@@ -1345,7 +1363,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
     // map file into memory
     char* fmmap = (char*) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - could not map '%s' to memory.", fn);
+        snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - could not map '%s' to memory.", fn);
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         return FTI_NREC;
@@ -1393,7 +1411,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
                 }
 
                 // debug information
-                snprintf(str, FTI_BUFS, "FTIFF: RecoveryLocal -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                snprintf(str, FTI_BUFS, "FTIFF: FTIFF_RecoverVar -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                         ", destptr: %ld, fptr: %ld, chunksize: %ld, "
                         "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
                         dbcounter, dbvar_idx,  
@@ -1405,8 +1423,12 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
                 MD5_Final( hash, &mdContext );
 
                 if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                    snprintf( strerr, FTI_BUFS, "FTIFF: RecoveryLocal - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
                     FTI_Print(strerr, FTI_WARN);
+                    if ( munmap( fmmap, st.st_size ) == -1 ) {
+                        FTI_Print("FTIFF: FTIFF_RecoverVar - unable to unmap memory", FTI_EROR);
+                        errno = 0;
+                    }
                     return FTI_NREC;
                 }
 
@@ -1425,7 +1447,8 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
     // unmap memory
     if ( munmap( fmmap, st.st_size ) == -1 ) {
-        FTI_Print("FTIFF: RecoveryLocal - unable to unmap memory", FTI_WARN);
+        FTI_Print("FTIFF: FTIFF_RecoverVar - unable to unmap memory", FTI_EROR);
+        errno = 0;
     }
 
     return FTI_SCES;
