@@ -1321,7 +1321,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 fexist = 1;
                             } else {
                                 char str[FTI_BUFS];
-                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
@@ -1443,7 +1443,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myMetaInfo->FileExists = 1;
                             } else {
                                 char str[FTI_BUFS];
-                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
@@ -1494,7 +1494,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myMetaInfo->CopyExists = 1;
                             } else {
                                 char str[FTI_BUFS];
-                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
@@ -1643,7 +1643,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myInfo->FileExists = 1;
                             } else {
                                 char str[FTI_BUFS];
-                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
@@ -1694,7 +1694,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 myInfo->RSFileExists = 1;
                             } else {
                                 char str[FTI_BUFS];
-                                sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
@@ -1899,7 +1899,7 @@ printf("                 id: %d\n"
                     dbgdb->dbvars[varid].chunksize,
                     dbgdb->dbvars[varid].containersize);
                 }
-            } while( dbgdb = dbgdb->next );
+            } while( (dbgdb = dbgdb->next) );
 printf("\n------------------- DATASTRUCTURE END ---------------------\n");
 fflush(stdout);
         }
