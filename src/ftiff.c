@@ -1066,11 +1066,17 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     // write meta data and its hash
     struct timespec ntime;
-    clock_gettime(CLOCK_REALTIME, &ntime);
-    FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+    if ( clock_gettime(CLOCK_REALTIME, &ntime) == -1 ) {
+        FTI_Print("FTI-FF: FTIFF_CreateMetaData - failed to determine time, timestamp set to -1", FTI_WARN);
+        FTI_Exec->FTIFFMeta.timestamp = -1;
+    } else {
+        FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
+    }
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
-    FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum );
+    if ( FTI_Try( FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum ), "FTI-FF: Create file checksum") != FTI_SCES ) {
+        return FTI_NSCS;
+    }
     strncpy( FTI_Exec->FTIFFMeta.checksum, checksum, MD5_DIGEST_STRING_LENGTH );
 
     // create checksum of meta data
