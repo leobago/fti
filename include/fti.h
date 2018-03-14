@@ -11,6 +11,7 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -122,9 +123,12 @@ extern "C" {
     typedef struct FTIFF_dbvar {
         int id;             /**< id of protected variable                       */
         int idx;            /**< index to corresponding id in pvar array        */
+        int containerid;
+        bool hascontent;
         long dptr;          /**< data pointer offset				            */
         long fptr;          /**< file pointer offset                            */
         long chunksize;     /**< chunk size stored aof prot. var. in this block */
+        long containersize; /**< chunk size stored aof prot. var. in this block */
         unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
     } FTIFF_dbvar;
 
