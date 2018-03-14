@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['rank',['rank',['../structFTIT__injection.html#aba75a38cd410b415bfb78121f30435e7',1,'FTIT_injection']]],
-  ['raw_5ftype',['raw_type',['../structfti_1_1fti__type.html#ac636f9f98acc6e2826c0885752e4511c',1,'fti::fti_type']]],
-  ['reco',['reco',['../structFTIT__execution.html#a061085b1c93b22c4fafbe527e7b1f165',1,'FTIT_execution']]],
-  ['right',['right',['../structFTIT__topology.html#ab7e5bb797fc3a2066f0db3b3e3e3297c',1,'FTIT_topology']]]
+  ['pfs',['pfs',['../structFTIT__metadata.html#a6fa6fc30c05438be2be4e7bf9d8aa2bf',1,'FTIT_metadata::pfs()'],['../structFTIFF__headInfo.html#adb3ae8b25717f089e9fa8ada9b622476',1,'FTIFF_headInfo::pfs()'],['../structFTIFF__L2Info.html#a548893bbe75a1fbe7238031c41fe7ac2',1,'FTIFF_L2Info::pfs()']]],
+  ['position',['position',['../structFTIT__injection.html#a68feabeb9e29d210543ec154ad3951e8',1,'FTIT_injection']]],
+  ['previous',['previous',['../structFTIFF__db.html#a21fdc67220f708c989d856a199831e6c',1,'FTIFF_db']]],
+  ['ptfs',['ptFs',['../structFTIFF__metaInfo.html#aa644d8667e54136cb18304dd2bab8fbc',1,'FTIFF_metaInfo']]],
+  ['ptr',['ptr',['../structFTIT__dataset.html#a36ee086d6d8ddace556bdbdbd142acbb',1,'FTIT_dataset']]]
 ];

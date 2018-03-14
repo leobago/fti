@@ -1,9 +1,12 @@
 var namespacefti =
 [
+    [ "FTI_AddComplexField_impl", "interfacefti_1_1FTI__AddComplexField__impl.html", "interfacefti_1_1FTI__AddComplexField__impl" ],
+    [ "FTI_AddSimpleField_impl", "interfacefti_1_1FTI__AddSimpleField__impl.html", "interfacefti_1_1FTI__AddSimpleField__impl" ],
     [ "FTI_Checkpoint_impl", "interfacefti_1_1FTI__Checkpoint__impl.html", "interfacefti_1_1FTI__Checkpoint__impl" ],
     [ "FTI_Finalize_impl", "interfacefti_1_1FTI__Finalize__impl.html", "interfacefti_1_1FTI__Finalize__impl" ],
     [ "FTI_GetStoredSize_impl", "interfacefti_1_1FTI__GetStoredSize__impl.html", "interfacefti_1_1FTI__GetStoredSize__impl" ],
     [ "FTI_Init_impl", "interfacefti_1_1FTI__Init__impl.html", "interfacefti_1_1FTI__Init__impl" ],
+    [ "FTI_InitComplexType_impl", "interfacefti_1_1FTI__InitComplexType__impl.html", "interfacefti_1_1FTI__InitComplexType__impl" ],
     [ "FTI_InitType_impl", "interfacefti_1_1FTI__InitType__impl.html", "interfacefti_1_1FTI__InitType__impl" ],
     [ "fti_protect", "interfacefti_1_1fti__protect.html", "interfacefti_1_1fti__protect" ],
     [ "FTI_Protect_impl", "interfacefti_1_1FTI__Protect__impl.html", "interfacefti_1_1FTI__Protect__impl" ],

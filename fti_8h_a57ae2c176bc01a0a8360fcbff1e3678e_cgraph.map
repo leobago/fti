@@ -1,13 +1,3 @@
 <map id="FTI_Init" name="FTI_Init">
-<area shape="rect" id="node2" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="160,5,227,32"/>
-<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="312,31,391,57"/>
-<area shape="rect" id="node4" href="$conf_8c.html#a89e78abb2e98f65c3d65e2979550e99d" title="It reads and tests the configuration given. " alt="" coords="139,107,248,133"/>
-<area shape="rect" id="node5" href="$interface_8h.html#aeff729c7cc86f39b20d320ead76aa2b6" title="It builds and saves the topology of the current execution. " alt="" coords="140,157,247,184"/>
-<area shape="rect" id="node6" href="$interface_8h.html#a924446571112185f563d5ec1e386afb1" title="It creates the basic datatypes and the dataset array. " alt="" coords="123,208,264,235"/>
-<area shape="rect" id="node7" href="$conf_8c.html#a072119e00ecaef96e6b516174beb0321" title="Sets the exec. ID and failure parameters in the conf. file. " alt="" coords="131,259,256,285"/>
-<area shape="rect" id="node8" href="$interface_8h.html#a803fddbbbdc2e160a5cb4249100e8a00" title="It mallocs memory for the metadata. " alt="" coords="132,309,255,336"/>
-<area shape="rect" id="node9" href="$interface_8h.html#afce9f65bec69ebda8443d7038a762dff" title="It gets the metadata to recover the data after a failure. " alt="" coords="138,360,249,387"/>
-<area shape="rect" id="node10" href="$interface_8h.html#a099b42118594b7ec8469348819bfaf93" title="It frees memory for the metadata. " alt="" coords="140,411,247,437"/>
-<area shape="rect" id="node11" href="$interface_8h.html#aa5ca92e3168d5b1ee7830507f8847dec" title="It decides wich action take depending on the restart level. " alt="" coords="129,461,258,488"/>
-<area shape="rect" id="node12" href="$checkpoint_8c.html#a305fb1ae4c686e64fe62c9429d2f4f4c" title="It listens for checkpoint notifications. " alt="" coords="150,512,237,539"/>
+<area shape="rect" id="node2" href="$interface_8h.html#ad95399f229aa8c9ae4aef2574d732f7d" title="Init of the static variables. " alt="" coords="123,5,252,32"/>
 </map>

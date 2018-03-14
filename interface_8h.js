@@ -1,10 +1,13 @@
 var interface_8h =
 [
+    [ "CHUNK_SIZE", "interface_8h.html#aea3cfda4f3a9f978ec759f206cf186fe", null ],
     [ "talloc", "interface_8h.html#a952a72cead1356661549e3e8c699d699", null ],
+    [ "FTI_ADDRPTR", "interface_8h.html#acc3d872af836642286053fd405c2f2df", null ],
+    [ "FTI_ADDRVAL", "interface_8h.html#a4a8e652d8c6a4a9757fb7e0bf5c06185", null ],
     [ "FTI_BuildNodeList", "interface_8h.html#a39b796a67f541fd75aeaa73a9b29025a", null ],
     [ "FTI_CheckErasures", "interface_8h.html#a0d67927230e5cfb7848475129aa3b97c", null ],
     [ "FTI_CheckFile", "interface_8h.html#a29f1aae84d9ec782867b16905241e531", null ],
-    [ "FTI_Checksum", "interface_8h.html#adcb39178bbcc66a27b82f13cc99911a7", null ],
+    [ "FTI_Checksum", "interface_8h.html#ad7413da2f3a603eb2da996ea201a7665", null ],
     [ "FTI_Clean", "interface_8h.html#a09811bb56f318eab67b3d37bff86cf7f", null ],
     [ "FTI_CreateComms", "interface_8h.html#a1f57d69148df779a939b4b9a48223d67", null ],
     [ "FTI_CreateDirs", "interface_8h.html#afcc58051e6dc11db94fa1467a9ee0467", null ],
@@ -17,9 +20,12 @@ var interface_8h =
     [ "FTI_FlushPosix", "interface_8h.html#aca74ba7dfa6daf939480ae5cee1559ed", null ],
     [ "FTI_FlushSionlib", "interface_8h.html#acfa35381a751a5ad7aae5a73dc080524", null ],
     [ "FTI_FreeMeta", "interface_8h.html#a099b42118594b7ec8469348819bfaf93", null ],
+    [ "FTI_FreeTypesAndGroups", "interface_8h.html#a152b83c7a93371bef4f0bcbe34620d6e", null ],
     [ "FTI_GetChecksums", "interface_8h.html#aca5c277b6c86b50f182cfa1326ebb6e1", null ],
     [ "FTI_InitBasicTypes", "interface_8h.html#a924446571112185f563d5ec1e386afb1", null ],
-    [ "FTI_Listen", "interface_8h.html#a305fb1ae4c686e64fe62c9429d2f4f4c", null ],
+    [ "FTI_InitExecVars", "interface_8h.html#ad95399f229aa8c9ae4aef2574d732f7d", null ],
+    [ "FTI_InitGroupsAndTypes", "interface_8h.html#ad41f9b1988730c56c052047cfb3f6283", null ],
+    [ "FTI_Listen", "interface_8h.html#a56855df3a7c85f2788b80b74bf32677f", null ],
     [ "FTI_LoadConf", "interface_8h.html#a89e78abb2e98f65c3d65e2979550e99d", null ],
     [ "FTI_LoadMeta", "interface_8h.html#afce9f65bec69ebda8443d7038a762dff", null ],
     [ "FTI_LoadTmpMeta", "interface_8h.html#a5ed5581a61c8d9ecbf067ce3dee7ae2a", null ],
@@ -55,5 +61,6 @@ var interface_8h =
     [ "FTI_WritePar", "interface_8h.html#af5a4e639d5deb58f70032ac822ef658c", null ],
     [ "FTI_WritePosix", "interface_8h.html#aa3b43aa19aa8f910f58227e7e41f5b65", null ],
     [ "FTI_WriteRSedChecksum", "interface_8h.html#aef8bec8995924872533354e23cbe9c55", null ],
-    [ "FTI_WriteSionlib", "interface_8h.html#a7f20285e1ca49847b7764bdd8ec21a9a", null ]
+    [ "FTI_WriteSionlib", "interface_8h.html#a7f20285e1ca49847b7764bdd8ec21a9a", null ],
+    [ "FTI_dbstructsize", "interface_8h.html#a19eb168398f314ff41716ef4de47e689", null ]
 ];

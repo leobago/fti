@@ -1,3 +1,6 @@
 <map id="FTIT_dataset" name="FTIT_dataset">
-<area shape="rect" id="node2" href="$structFTIT__type.html" title="FTIT_type" alt="" coords="15,5,101,32"/>
+<area shape="rect" id="node2" href="$structFTIT__H5Group.html" title="FTIT_H5Group" alt="" coords="5,95,119,121"/>
+<area shape="rect" id="node3" href="$structFTIT__type.html" title="FTIT_type" alt="" coords="143,184,229,211"/>
+<area shape="rect" id="node4" href="$structFTIT__complexType.html" title="FTIT_complexType" alt="" coords="143,95,287,121"/>
+<area shape="rect" id="node5" href="$structFTIT__typeField.html" title="FTIT_typeField" alt="" coords="157,5,273,32"/>
 </map>

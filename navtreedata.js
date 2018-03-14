@@ -1,3 +1,26 @@
+/*
+@ @licstart  The following is the entire license notice for the
+JavaScript code in this file.
+
+Copyright (C) 1997-2017 by Dimitri van Heesch
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this file
+*/
 var NAVTREE =
 [
   [ "Fault Tolerance Interface", "index.html", [
@@ -5,6 +28,7 @@ var NAVTREE =
     [ "CMake configuration", "cmake.html", null ],
     [ "Default Configuration File", "config.html", null ],
     [ "Make Commands", "make.html", null ],
+    [ "FTI File Format (FTI-FF)", "ftiff.html", null ],
     [ "Namespace List", "namespaces.html", "namespaces" ],
     [ "Namespace Members", "namespacemembers.html", [
       [ "All", "namespacemembers.html", null ],
@@ -20,13 +44,14 @@ var NAVTREE =
         [ "Variables", "functions_vars.html", null ]
       ] ]
     ] ],
-    [ "Files", null, [
-      [ "File List", "files.html", "files" ],
+    [ "Files", "files.html", [
+      [ "File List", "files.html", "files_dup" ],
       [ "File Members", "globals.html", [
-        [ "All", "globals.html", null ],
+        [ "All", "globals.html", "globals_dup" ],
         [ "Functions", "globals_func.html", null ],
         [ "Variables", "globals_vars.html", null ],
         [ "Typedefs", "globals_type.html", null ],
+        [ "Enumerator", "globals_eval.html", null ],
         [ "Macros", "globals_defs.html", null ]
       ] ]
     ] ]
@@ -36,8 +61,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"interface_8F90.html#aa2e32b9df2cc2c22254f18fec7d745f1",
-"interfacefti_1_1fti__protect.html#ab9088585a97a5f07dd339f998e923578"
+"interface_8F90.html#a28648d7f8b21061043cdb2f973745e22",
+"interfacefti_1_1fti__protect.html#a0d4a49bae105b76b600ad2fd7948f338",
+"structFTIT__configuration.html#a0a5da07618e9a1963840fc8a2367580c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

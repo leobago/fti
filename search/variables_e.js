@@ -1,9 +1,11 @@
 var searchData=
 [
-  ['savelastckpt',['saveLastCkpt',['../structFTIT__configuration.html#affcbd54643b6e0e594249799fed2517d',1,'FTIT_configuration']]],
-  ['sectorid',['sectorID',['../structFTIT__topology.html#aac0b7bf67b26177e8fa451715e8c1627',1,'FTIT_topology']]],
-  ['size',['size',['../structFTIT__type.html#ae849a5abd72710611f1830155f2ce6c4',1,'FTIT_type::size()'],['../structFTIT__dataset.html#a112f9319765938eba3339d86c0e140c9',1,'FTIT_dataset::size()']]],
-  ['splitrank',['splitRank',['../structFTIT__topology.html#a3d4083051c43d031972d83cffb242a38',1,'FTIT_topology']]],
-  ['synciter',['syncIter',['../structFTIT__execution.html#a192a80b7776855ab4e720c4ea08d67e8',1,'FTIT_execution']]],
-  ['syncitermax',['syncIterMax',['../structFTIT__execution.html#ac29bc3aae18a933e29e3168d7c23f750',1,'FTIT_execution']]]
+  ['rank',['rank',['../structFTIT__typeField.html#ad46ee30f23a6af1c5ac85ecce834cdc2',1,'FTIT_typeField::rank()'],['../structFTIT__dataset.html#abc5e19eb9d5f9ab72fd1cc4e2c6c4f8f',1,'FTIT_dataset::rank()'],['../structFTIT__injection.html#aba75a38cd410b415bfb78121f30435e7',1,'FTIT_injection::rank()']]],
+  ['raw',['raw',['../structFTIFF__MPITypeInfo.html#a7b160776ffe115e6e0bb0634b7eb175d',1,'FTIFF_MPITypeInfo']]],
+  ['raw_5ftype',['raw_type',['../structfti_1_1fti__type.html#ac636f9f98acc6e2826c0885752e4511c',1,'fti::fti_type']]],
+  ['reco',['reco',['../structFTIT__execution.html#a061085b1c93b22c4fafbe527e7b1f165',1,'FTIT_execution']]],
+  ['right',['right',['../structFTIT__topology.html#ab7e5bb797fc3a2066f0db3b3e3e3297c',1,'FTIT_topology']]],
+  ['rightidx',['rightIdx',['../structFTIFF__L2Info.html#a89617ab326689c5d2711d90ac5886ded',1,'FTIFF_L2Info']]],
+  ['rsfileexists',['RSFileExists',['../structFTIFF__L3Info.html#aa6eebb670d1c06c407ac2878f81be075',1,'FTIFF_L3Info']]],
+  ['rsfs',['RSfs',['../structFTIFF__L3Info.html#ab8356ee4ecaf8184560138b250777676',1,'FTIFF_L3Info']]]
 ];
