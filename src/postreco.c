@@ -975,7 +975,10 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ii+=2;
         }
         if(strcmp(checksumL4, checksumL4cmp) != 0) {
-            FTI_Print("checksum does not match, discard recovery!", FTI_WARN);
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                    gfn, checksumL4, checksumL4cmp);
+            FTI_Print(str, FTI_WARN);
             return FTI_NSCS;
         }
 
