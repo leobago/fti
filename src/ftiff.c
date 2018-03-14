@@ -1655,11 +1655,23 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 closedir(L1CkptDir);
                                 goto SEND_NOFILE_INFO;
                             }
-                        
+                        } else {
+                            char str[FTI_BUFS];
+                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
+                            FTI_Print(str, FTI_WARN);
+                            closedir(L1CkptDir);
+                            close(fd);
+                            goto SEND_NOFILE_INFO;
                         }
                         close(fd);
                         break;
-                    }            
+                    } else {
+                        char str[FTI_BUFS];
+                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
+                        FTI_Print(str, FTI_WARN);
+                        closedir(L1CkptDir);
+                        goto SEND_NOFILE_INFO;
+                    }
                 }
             }
         }
@@ -1726,8 +1738,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     MPI_Group_free(&nodesGroup);
     MPI_Group_free(&appProcsGroup);
 
-    FTIFF_L2Info _appProcsMetaInfo;
-    FTIFF_L2Info* appProcsMetaInfo = memset(&_appProcsMetaInfo, 0x0, sizeof(FTIFF_L2Info));
+    FTIFF_L2Info* appProcsMetaInfo = calloc( appCommSize, sizeof(FTIFF_L2Info) );
     
     FTIFF_L2Info _myMetaInfo;
     FTIFF_L2Info* myMetaInfo = memset(&_myMetaInfo, 0x0, sizeof(FTIFF_L2Info)); 
@@ -1796,7 +1807,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         closedir(L2CkptDir);
                         goto GATHER_INFO;
                     }
- 
+                       
                     // check if regular file and of reasonable size (at least must contain meta info)
                     if ( ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
@@ -1886,9 +1897,22 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 close(fd);
                                 goto GATHER_INFO;
                             }
+                        } else {
+                            char str[FTI_BUFS];
+                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
+                            FTI_Print(str, FTI_WARN);
+                            closedir(L2CkptDir);
+                            close(fd);
+                            goto GATHER_INFO;
                         }
                         close(fd);
-                    }            
+                    } else {
+                        char str[FTI_BUFS];
+                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
+                        FTI_Print(str, FTI_WARN);
+                        closedir(L2CkptDir);
+                        goto GATHER_INFO;
+                    }
                 } else {
                     ckptID = tmpCkptID;
                 }
@@ -2000,9 +2024,23 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 close(fd);
                                 goto GATHER_INFO;
                             }
+                        } else {
+                            char str[FTI_BUFS];
+                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
+                            FTI_Print(str, FTI_WARN);
+                            closedir(L2CkptDir);
+                            close(fd);
+                            goto GATHER_INFO;
                         }
                         close(fd);
-                    }            
+                    } else {
+                        char str[FTI_BUFS];
+                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
+                        FTI_Print(str, FTI_WARN);
+                        closedir(L2CkptDir);
+                        goto GATHER_INFO;
+                    }
+           
                 } else {
                     ckptID = tmpCkptID;
                 }
@@ -2063,6 +2101,8 @@ GATHER_INFO:
     FTI_Print(dbgstr, FTI_DBUG);
 
     snprintf(FTI_Exec->meta[2].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+
+    free(appProcsMetaInfo);
 
     return res;
 }
