@@ -1482,7 +1482,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         snprintf( strerr, FTI_BUFS, "FTI-FF: L1RecoverInit - failed to allocate %ld bytes for 'FTIFFMeta'", sizeof(FTIFF_metaInfo));
         FTI_Print(strerr, FTI_EROR);
         errno = 0;
-        goto SEND_NOFILE_INFO;
+        goto GATHER_L1INFO;
     }
 
     MD5_CTX mdContext;
@@ -1496,7 +1496,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoverInit - (%s) is not a directory.", FTI_Ckpt[1].dir);
             FTI_Print(strerr, FTI_WARN);
             free(FTIFFMeta);
-            goto SEND_NOFILE_INFO;
+            goto GATHER_L1INFO;
         }
     }
 
@@ -1509,7 +1509,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             FTI_Print(strerr, FTI_EROR);
             errno = 0;
             free(FTIFFMeta);
-            goto SEND_NOFILE_INFO;
+            goto GATHER_L1INFO;
         }
 
         while((entry = readdir(L1CkptDir)) != NULL) {
@@ -1529,7 +1529,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         errno = 0;
                         free(FTIFFMeta);
                         closedir(L1CkptDir);
-                        goto SEND_NOFILE_INFO;
+                        goto GATHER_L1INFO;
                     }
 
                     if ( S_ISREG(ckptFS.st_mode) == 0 ) {
@@ -1537,7 +1537,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTI_Print( strerr, FTI_WARN );
                         free(FTIFFMeta);
                         closedir(L1CkptDir);
-                        goto SEND_NOFILE_INFO;
+                        goto GATHER_L1INFO;
                     }
                     
                     // Check for reasonable file size. At least has to contain file meta-data
@@ -1550,7 +1550,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             errno = 0;
                             free(FTIFFMeta);
                             closedir(L1CkptDir);
-                            goto SEND_NOFILE_INFO;
+                            goto GATHER_L1INFO;
                         }
 
                         if ( lseek(fd, 0, SEEK_SET) == -1 ) {
@@ -1560,7 +1560,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             free(FTIFFMeta);
                             closedir(L1CkptDir);
                             close(fd);
-                            goto SEND_NOFILE_INFO;
+                            goto GATHER_L1INFO;
                         }
 
                         // Read in file meta-data
@@ -1571,7 +1571,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             free(FTIFFMeta);
                             closedir(L1CkptDir);
                             close(fd);
-                            goto SEND_NOFILE_INFO;
+                            goto GATHER_L1INFO;
                         }
 
                         unsigned char hash[MD5_DIGEST_LENGTH];
@@ -1591,7 +1591,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 free(FTIFFMeta);
                                 closedir(L1CkptDir);
                                 close(fd);
-                                goto SEND_NOFILE_INFO;
+                                goto GATHER_L1INFO;
                             }
 
                             MD5_Init (&mdContext);
@@ -1605,7 +1605,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     free(FTIFFMeta);
                                     closedir(L1CkptDir);
                                     close(fd);
-                                    goto SEND_NOFILE_INFO;
+                                    goto GATHER_L1INFO;
                                 }
 
                                 diff = FTIFFMeta->fs - rcount;
@@ -1619,7 +1619,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     free(FTIFFMeta);
                                     closedir(L1CkptDir);
                                     close(fd);
-                                    goto SEND_NOFILE_INFO;
+                                    goto GATHER_L1INFO;
                                 }
 
                                 rcount += rbuffer;
@@ -1653,7 +1653,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 close(fd);
                                 free(FTIFFMeta);
                                 closedir(L1CkptDir);
-                                goto SEND_NOFILE_INFO;
+                                goto GATHER_L1INFO;
                             }
                         } else {
                             char str[FTI_BUFS];
@@ -1661,7 +1661,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             FTI_Print(str, FTI_WARN);
                             closedir(L1CkptDir);
                             close(fd);
-                            goto SEND_NOFILE_INFO;
+                            goto GATHER_L1INFO;
                         }
                         close(fd);
                         break;
@@ -1670,7 +1670,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
                         FTI_Print(str, FTI_WARN);
                         closedir(L1CkptDir);
-                        goto SEND_NOFILE_INFO;
+                        goto GATHER_L1INFO;
                     }
                 }
             }
@@ -1688,7 +1688,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     return res;
 
-SEND_NOFILE_INFO:
+GATHER_L1INFO:
     
     fexist = 0;
     MPI_Allreduce(&fexist, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
@@ -1741,7 +1741,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_L2Info* appProcsMetaInfo = calloc( appCommSize, sizeof(FTIFF_L2Info) );
     
     FTIFF_L2Info _myMetaInfo;
-    FTIFF_L2Info* myMetaInfo = memset(&_myMetaInfo, 0x0, sizeof(FTIFF_L2Info)); 
+    FTIFF_L2Info* myMetaInfo = (FTIFF_L2Info*) memset(&_myMetaInfo, 0x0, sizeof(FTIFF_L2Info)); 
 
     myMetaInfo->rightIdx = rightIdx;
 
@@ -1753,7 +1753,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     struct stat ckptFS, ckptDIR;
 
     FTIFF_metaInfo _FTIFFMeta;
-    FTIFF_metaInfo *FTIFFMeta = memset(&_FTIFFMeta, 0x0, sizeof(FTIFF_metaInfo)); 
+    FTIFF_metaInfo *FTIFFMeta = (FTIFF_metaInfo*) memset(&_FTIFFMeta, 0x0, sizeof(FTIFF_metaInfo)); 
     
     // check if L2 ckpt directory exists
     bool L2CkptDirExists = false;
@@ -1763,7 +1763,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         } else {
             snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoverInit - (%s) is not a directory.", FTI_Ckpt[2].dir);
             FTI_Print(strerr, FTI_WARN);
-            goto GATHER_INFO;
+            goto GATHER_L2INFO;
         }
     }
  
@@ -1777,7 +1777,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - checkpoint directory (%s) could not be accessed.", FTI_Ckpt[2].dir);
             FTI_Print(strerr, FTI_EROR);
             errno = 0;
-            goto GATHER_INFO;
+            goto GATHER_L2INFO;
         }
  
         while((entry = readdir(L2CkptDir)) != NULL) {
@@ -1798,14 +1798,14 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTI_Print( strerr, FTI_EROR );
                         errno = 0;
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
 
                     if ( S_ISREG(ckptFS.st_mode) == 0 ) {
                         snprintf( strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - %s is not a regular file", tmpfn );
                         FTI_Print( strerr, FTI_WARN );
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
                        
                     // check if regular file and of reasonable size (at least must contain meta info)
@@ -1816,17 +1816,16 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             FTI_Print(strerr, FTI_EROR);
                             errno = 0;
                             closedir(L2CkptDir);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
  
                         if ( lseek(fd, 0, SEEK_SET) == -1 ) {
                             snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - could not seek in file: %s", tmpfn);
                             FTI_Print(strerr, FTI_EROR);
-                            close(fd);
                             errno = 0;
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
 
                         if ( read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) ) == -1 ) {
@@ -1835,7 +1834,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             errno=0;
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
 
                         unsigned char hash[MD5_DIGEST_LENGTH];
@@ -1854,7 +1853,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     errno = 0;
                                     closedir(L2CkptDir);
                                     close(fd);
-                                    goto GATHER_INFO;
+                                    goto GATHER_L2INFO;
                                 }
 
                                 diff = FTIFFMeta->fs - rcount;
@@ -1867,7 +1866,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     errno=0;
                                     closedir(L2CkptDir);
                                     close(fd);
-                                    goto GATHER_INFO;
+                                    goto GATHER_L2INFO;
                                 }
 
                                 rcount += rbuffer;
@@ -1895,7 +1894,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
-                                goto GATHER_INFO;
+                                goto GATHER_L2INFO;
                             }
                         } else {
                             char str[FTI_BUFS];
@@ -1903,7 +1902,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             FTI_Print(str, FTI_WARN);
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
                         close(fd);
                     } else {
@@ -1911,7 +1910,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
                         FTI_Print(str, FTI_WARN);
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
                 } else {
                     ckptID = tmpCkptID;
@@ -1929,14 +1928,14 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTI_Print( strerr, FTI_EROR );
                         errno = 0;
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
 
                     if ( S_ISREG(ckptFS.st_mode) == 0 ) {
                         snprintf( strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - %s is not a regular file", tmpfn );
                         FTI_Print( strerr, FTI_WARN );
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
  
                     // check if regular file and of reasonable size (at least must contain meta info)
@@ -1947,7 +1946,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             FTI_Print(strerr, FTI_EROR);
                             errno = 0;
                             closedir(L2CkptDir);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
  
                         if ( lseek(fd, 0, SEEK_SET) == -1 ) {
@@ -1957,7 +1956,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             errno = 0;
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
 
                         if ( read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) ) == -1 ) {
@@ -1966,7 +1965,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             errno=0;
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
                         
                         unsigned char hash[MD5_DIGEST_LENGTH];
@@ -1984,7 +1983,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     errno = 0;
                                     closedir(L2CkptDir);
                                     close(fd);
-                                    goto GATHER_INFO;
+                                    goto GATHER_L2INFO;
                                 }
 
                                 diff = FTIFFMeta->fs - rcount;
@@ -1996,7 +1995,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                     errno=0;
                                     closedir(L2CkptDir);
                                     close(fd);
-                                    goto GATHER_INFO;
+                                    goto GATHER_L2INFO;
                                 }
 
                                 rcount += rbuffer;
@@ -2022,7 +2021,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 FTI_Print(str, FTI_WARN);
                                 closedir(L2CkptDir);
                                 close(fd);
-                                goto GATHER_INFO;
+                                goto GATHER_L2INFO;
                             }
                         } else {
                             char str[FTI_BUFS];
@@ -2030,7 +2029,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             FTI_Print(str, FTI_WARN);
                             closedir(L2CkptDir);
                             close(fd);
-                            goto GATHER_INFO;
+                            goto GATHER_L2INFO;
                         }
                         close(fd);
                     } else {
@@ -2038,7 +2037,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
                         FTI_Print(str, FTI_WARN);
                         closedir(L2CkptDir);
-                        goto GATHER_INFO;
+                        goto GATHER_L2INFO;
                     }
            
                 } else {
@@ -2052,7 +2051,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         closedir(L2CkptDir);
     }
     
-GATHER_INFO:
+GATHER_L2INFO:
 
     if(!(myMetaInfo->FileExists) && !(myMetaInfo->CopyExists)) {
         myMetaInfo->ckptID = -1;
@@ -2125,49 +2124,138 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 {
 
     FTIFF_L3Info *groupInfo = calloc( FTI_Topo->groupSize, sizeof(FTIFF_L3Info) );
-    FTIFF_L3Info *myInfo = calloc( 1, sizeof(FTIFF_L3Info) );
+    FTIFF_L3Info _myInfo;
+    FTIFF_L3Info *myInfo = (FTIFF_L3Info*) memset(&_myInfo, 0x0, sizeof(FTIFF_L3Info));
 
     MD5_CTX mdContext;
 
-    char str[FTI_BUFS], tmpfn[FTI_BUFS];
+    char str[FTI_BUFS], strerr[FTI_BUFS], tmpfn[FTI_BUFS];
     int fileTarget, ckptID = -1, match;
     struct dirent *entry;
-    struct stat ckptFS;
-    DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
+    struct stat ckptFS, ckptDIR;
 
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
-    if(L3CkptDir) {
+    
+    // check if L3 ckpt directory exists
+    bool L3CkptDirExists = false;
+    if ( stat( FTI_Ckpt[3].dir, &ckptDIR ) == 0 ) {
+        if ( S_ISDIR( ckptDIR.st_mode ) != 0 ) {
+            L3CkptDirExists = true;
+        } else {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoverInit - (%s) is not a directory.", FTI_Ckpt[3].dir);
+            FTI_Print(strerr, FTI_WARN);
+            goto GATHER_L3INFO;
+        }
+    }
+ 
+    if(L3CkptDirExists) {
+        
         int tmpCkptID;
+        
+        DIR *L3CkptDir = opendir( FTI_Ckpt[3].dir );
+        
+        if (L3CkptDir == NULL) {
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - checkpoint directory (%s) could not be accessed.", FTI_Ckpt[3].dir);
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            goto GATHER_L3INFO;
+        }
+ 
         while((entry = readdir(L3CkptDir)) != NULL) {
+            
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
+                
                 snprintf(str, FTI_BUFS, "FTI-FF: L3RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 tmpCkptID = ckptID;
                 match = sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
+                
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    
                     snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
-                    int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
+                    
+                    if ( stat(tmpfn, &ckptFS) == -1 ) {
+                        snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Problem with stats on file %s", tmpfn );
+                        FTI_Print( strerr, FTI_EROR );
+                        errno = 0;
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
+
+                    if ( S_ISREG(ckptFS.st_mode) == 0 ) {
+                        snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - %s is not a regular file", tmpfn );
+                        FTI_Print( strerr, FTI_WARN );
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
+                       
+                    // check if regular file and of reasonable size (at least must contain meta info)
+                    if ( ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
-                        lseek(fd, 0, SEEK_SET);
-                        read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) );
+                        if (fd == -1) {
+                            snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not open '%s' for reading.", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno = 0;
+                            closedir(L3CkptDir);
+                            goto GATHER_L3INFO;
+                        }
+ 
+                        if ( lseek(fd, 0, SEEK_SET) == -1 ) {
+                            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno = 0;
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
+                        }
+
+                        if ( read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) ) == -1 ) {
+                            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to request file meta data from: %s", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno=0;
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
+                        }
+
                         unsigned char hash[MD5_DIGEST_LENGTH];
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
+                        
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
                             long rcount = sizeof(FTIFF_metaInfo) , toRead, diff;
                             int rbuffer;
                             char *buffer = malloc( CHUNK_SIZE );
                             MD5_Init (&mdContext);
                             while( rcount < FTIFFMeta->fs ) {
-                                lseek( fd, rcount, SEEK_SET );
+                                
+                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
+                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
+                                    FTI_Print(strerr, FTI_EROR);
+                                    errno = 0;
+                                    closedir(L3CkptDir);
+                                    close(fd);
+                                    goto GATHER_L3INFO;
+                                }
+
                                 diff = FTIFFMeta->fs - rcount;
                                 toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
+                                
                                 rbuffer = read( fd, buffer, toRead );
+                                if ( rbuffer == -1 ) {
+                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
+                                    FTI_Print(strerr, FTI_EROR);
+                                    errno=0;
+                                    closedir(L3CkptDir);
+                                    close(fd);
+                                    goto GATHER_L3INFO;
+                                }
+                                
                                 rcount += rbuffer;
                                 MD5_Update (&mdContext, buffer, rbuffer);
                             }
                             unsigned char hash[MD5_DIGEST_LENGTH];
                             MD5_Final (hash, &mdContext);
+                            
                             int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
                             int ii = 0;
@@ -2175,6 +2263,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 sprintf(&checksum[ii], "%02x", hash[i]);
                                 ii += 2;
                             }
+                            
                             if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
                                 myInfo->fs = FTIFFMeta->fs;    
                                 myInfo->ckptID = ckptID;    
@@ -2185,35 +2274,109 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
                                 close(fd);
-                                return FTI_NSCS;
+                                goto GATHER_L3INFO;
                             }
+                        } else {
+                            char str[FTI_BUFS];
+                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
+                            FTI_Print(str, FTI_WARN);
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
                         }
                         close(fd);
-                    }            
+                    } else {
+                        char str[FTI_BUFS];
+                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
+                        FTI_Print(str, FTI_WARN);
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
                 } else {
                     ckptID = tmpCkptID;
                 }
+                
                 tmpCkptID = ckptID;
+                
                 match = sscanf(entry->d_name, "Ckpt%d-RSed%d.fti", &ckptID, &fileTarget );
                 if( match == 2 && fileTarget == FTI_Topo->myRank ) {
+                    
                     snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, entry->d_name);
-                    int ferr = stat(tmpfn, &ckptFS);
-                    if (!ferr && S_ISREG(ckptFS.st_mode) && ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
+                    
+                    if ( stat(tmpfn, &ckptFS) == -1 ) {
+                        snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Problem with stats on file %s", tmpfn );
+                        FTI_Print( strerr, FTI_EROR );
+                        errno = 0;
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
+
+                    if ( S_ISREG(ckptFS.st_mode) == 0 ) {
+                        snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - %s is not a regular file", tmpfn );
+                        FTI_Print( strerr, FTI_WARN );
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
+ 
+                    // check if regular file and of reasonable size (at least must contain meta info)
+                    if ( ckptFS.st_size > sizeof(FTIFF_metaInfo) ) {
                         int fd = open(tmpfn, O_RDONLY);
-                        lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END);
-                        read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) );
+                        if (fd == -1) {
+                            snprintf( strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not open '%s' for reading.", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno = 0;
+                            closedir(L3CkptDir);
+                            goto GATHER_L3INFO;
+                        }
+ 
+                        if ( lseek(fd, -sizeof(FTIFF_metaInfo), SEEK_END) == -1 ) {
+                            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno = 0;
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
+                        }
+
+                        if ( read( fd, FTIFFMeta, sizeof(FTIFF_metaInfo) ) == -1 ) {
+                            snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to request file meta data from: %s", tmpfn);
+                            FTI_Print(strerr, FTI_EROR);
+                            errno=0;
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
+                        }
+                        
                         unsigned char hash[MD5_DIGEST_LENGTH];
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
+                        
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
                             long rcount = 0, toRead, diff;
                             int rbuffer;
-                            char *buffer = malloc( CHUNK_SIZE );
+                            char buffer[CHUNK_SIZE];
                             MD5_Init (&mdContext);
                             while( rcount < FTIFFMeta->fs ) {
-                                lseek( fd, rcount, SEEK_SET );
+                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
+                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
+                                    FTI_Print(strerr, FTI_EROR);
+                                    errno = 0;
+                                    closedir(L3CkptDir);
+                                    close(fd);
+                                    goto GATHER_L3INFO;
+                                }
+
                                 diff = FTIFFMeta->fs - rcount;
                                 toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
                                 rbuffer = read( fd, buffer, toRead );
+                                if ( rbuffer == -1 ) {
+                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
+                                    FTI_Print(strerr, FTI_EROR);
+                                    errno=0;
+                                    closedir(L3CkptDir);
+                                    close(fd);
+                                    goto GATHER_L3INFO;
+                                }
+
                                 rcount += rbuffer;
                                 MD5_Update (&mdContext, buffer, rbuffer);
                             }
@@ -2235,12 +2398,26 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
                                         entry->d_name, checksum, FTIFFMeta->checksum);
                                 FTI_Print(str, FTI_WARN);
+                                closedir(L3CkptDir);
                                 close(fd);
-                                return FTI_NSCS;
+                                goto GATHER_L3INFO;
                             }
+                        } else {
+                            char str[FTI_BUFS];
+                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
+                            FTI_Print(str, FTI_WARN);
+                            closedir(L3CkptDir);
+                            close(fd);
+                            goto GATHER_L3INFO;
                         }
                         close(fd);
-                    }            
+                    } else {
+                        char str[FTI_BUFS];
+                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
+                        FTI_Print(str, FTI_WARN);
+                        closedir(L3CkptDir);
+                        goto GATHER_L3INFO;
+                    }
                 } else {
                     ckptID = tmpCkptID;
                 }
@@ -2249,7 +2426,10 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 break;
             }
         }
+        closedir(L3CkptDir);
     }
+
+GATHER_L3INFO:
 
     if(!(myInfo->FileExists) && !(myInfo->RSFileExists)) {
         myInfo->ckptID = -1;
@@ -2295,9 +2475,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     snprintf(FTI_Exec->meta[3].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
-    closedir(L3CkptDir);
     free(groupInfo);
-    free(myInfo);
 
     return FTI_SCES;
 }
