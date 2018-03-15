@@ -131,6 +131,8 @@ if(C_COMPILER_HAS_FLAG)
     set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
 endif()
 
+set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
+
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
@@ -196,7 +198,7 @@ if(ENABLE_SIONLIB)
 endif()
 
 if(ENABLE_HDF5)
-	find_package(HDF5 COMPONENTS HL REQUIRED)
+    find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
 		add_definitions(-DENABLE_HDF5)
 		include_directories(${HDF5_INCLUDE_DIRS})
