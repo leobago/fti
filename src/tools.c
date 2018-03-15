@@ -487,7 +487,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
     sprintf(str, "Creating type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
-    sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
+    sprintf(str, "Type [%d] has hid_t %ld.", ftiType->id, ftiType->h5datatype);
     FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -563,7 +563,6 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
@@ -591,7 +590,6 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 /*-------------------------------------------------------------------------*/
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);
@@ -621,7 +619,7 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
     char str[FTI_BUFS];
     if (ftiGroup->h5groupID == -1) {
         //This group already closed, in tree this is error
-        sprintf(str, "Group %s is already closed?", ftiGroup->name);
+        snprintf(str, FTI_BUFS, "Group %s is already closed?", ftiGroup->name);
         FTI_Print(str, FTI_WARN);
         return;
     }
