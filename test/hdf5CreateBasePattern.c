@@ -5,21 +5,13 @@
  *  @date   November, 2017
  *  @brief  FTI testing program.
  *
- *  Testing FTI_InitType, FTI_InitSimpleTypeWithNames,
- *  FTI_InitComplexTypeWithNames, FTI_ProtectWithName, FTI_Checkpoint, FTI_Recover,
- *  saving last checkpoint to PFS
+ *  Program creates HDF5 file hiearchy with groups, 
+ *  datatypes and datasets identical to the FTI HDF5 
+ *  test program hdf5Test.c
  *
- *  Program creates complex data structures, then adds it to protect list
- *  and makes a checkpoint. Second run recovers the files and checks if
- *  values match.
- *
- *  First execution this program should be with fail flag = 1, because
- *  then FTI saves checkpoint and program stops. Second execution
- *  must be with the flag = 0 to properly recover data.
  */
 
 #include <stdio.h>
-#
 #include "hdf5.h"
 #include "hdf5_hl.h"
 #include <stdlib.h>
@@ -309,7 +301,7 @@ int main() {
      * Integers Aggregated -> Complex Fields
      * --------------------------------------
      * 
-     * > 3 fields
+     * > 2 fields
      *
      * |       Type         |       rank        |        dim        |           name            |       
      * |========================================================================================|
@@ -385,8 +377,8 @@ int main() {
      *
      * |       Type         |       rank        |        dim        |           name            |       
      * |========================================================================================|
-     * |    FTI_SFLT        |        0          |         -         |          float            |
-     * |    FTI_DBLE        |        0          |         -         |          double           |
+     * |     AllInts        |        0          |         -         |       struct AllInts      |
+     * |   FloatsChars      |        0          |         -         |     struct FloatsChars    |
      * |========================================================================================|
      *
      * > belongs to 'root_group_id' group
