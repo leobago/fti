@@ -276,7 +276,7 @@ cd test
 			if [ -z "$NOTCORRUPT" ]; then
 				startTestCorr diffSizes "$CONFIG" 16 "$LEVEL" "$CKPTORPTNER" "$CORRORERASE" "$CORRUPTIONLEVEL" "$CKPT_IO"
 			else
-				startTestLogVerify diffSizes "$CONFIG" 16 "$LEVEL" "$CKPT_IO"
+				startTestLogVerify diffSizes "$CONFIG" 16 "$LEVEL" 0 "$CKPT_IO"
 			fi
 		elif [ "$TEST" = "syncIntv" ]; then
 			printRun $TEST "$CONFIG"
