@@ -985,7 +985,6 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
         FTI_Print("FTIFF: RecoveryGlobal - unable to unmap memory", FTI_WARN);
     }
 
-    FTI_Exec->lastCkptLvel = FTI_Exec->ckptLvel;
     FTI_Exec->reco = 0;
 
     return FTI_SCES;

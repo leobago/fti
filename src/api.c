@@ -980,7 +980,7 @@ int FTI_Recover()
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
+    
     FTI_Exec.reco = 0;
 
     return FTI_SCES;

@@ -220,9 +220,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     snprintf(str, FTI_BUFS, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);
 
-                    //Update ckptID and ckptLevel
+                    //Update ckptID and ckptLevel and lastCkptLvel
                     FTI_Exec->ckptID = ckptID;
                     FTI_Exec->ckptLvel = level;
+                    FTI_Exec->lastCkptLvel = level;
                     return FTI_SCES; //Recovered successfully
                 }
                 else {
