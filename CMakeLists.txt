@@ -11,6 +11,7 @@ endif()
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
 set(FORTRAN_VER_UNKNOWN 0)
+set(ADD_CFLAGS "")
 
 if (NOT CMAKE_Fortran_COMPILER_VERSION)
 
@@ -112,23 +113,24 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c)
 
-# Check compiler flag support
-set(ADD_CFLAGS "")
+# add compiler flags
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+  set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+  set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
+  if(C_COMPILER_HAS_FLAG)
+      set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
+  endif()
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
+  if(C_COMPILER_HAS_FLAG)
+      set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
+  endif()
+endif()
 try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-fPIC")
 if(C_COMPILER_HAS_FLAG)
     set(ADD_CFLAGS "${ADD_CFLAGS} -fPIC")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wall")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
 endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
