@@ -9,7 +9,10 @@ if(ENABLE_HDF5)
 	target_link_libraries(hdf5Test fti.static)
 
 	add_executable(hdf5noFTI hdf5noFTI.c)
-	target_link_libraries(hdf5noFTI fti.static)
+    target_link_libraries(hdf5noFTI ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+
+    add_executable(hdf5CreateBasePattern hdf5CreateBasePattern.c)
+    target_link_libraries(hdf5CreateBasePattern ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 endif()
 
 add_executable(heatdis heatdis.c)

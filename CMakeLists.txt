@@ -198,7 +198,7 @@ if(ENABLE_SIONLIB)
 endif()
 
 if(ENABLE_HDF5)
-	find_package(HDF5 COMPONENTS HL REQUIRED)
+    find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
 		add_definitions(-DENABLE_HDF5)
 		include_directories(${HDF5_INCLUDE_DIRS})
