@@ -749,7 +749,8 @@ INPUT                  = @CMAKE_SOURCE_DIR@/README.md \
                          @CMAKE_BINARY_DIR@/interface.F90 \
                          @CMAKE_CURRENT_SOURCE_DIR@/cmake.md \
                          @CMAKE_CURRENT_SOURCE_DIR@/config.md \   
-                         @CMAKE_CURRENT_SOURCE_DIR@/make.md  
+                         @CMAKE_CURRENT_SOURCE_DIR@/make.md \
+                         @CMAKE_CURRENT_SOURCE_DIR@/ftiff.md
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
