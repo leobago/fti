@@ -456,14 +456,14 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             if (ptr_type == GPU_POINTER) {
                 void *dev_ptr = FTI_Data[i].ptr;
-                FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+                FTI_Data[i].ptr = malloc(FTI_Data[i].size);
                 
                 if (FTI_Data[i].ptr == NULL) {
                     FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
                     return FTI_NSCS;
                 }
                 
-                res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].count * FTI_Data[i].eleSize), "copying data from GPU" );
+                res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size), "copying data from GPU" );
 
                 if (res == FTI_NSCS) {
                     return FTI_NSCS;
@@ -592,13 +592,15 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         
         if (FTI_Try(FTI_determine_pointer_type((const void *)FTI_Data[i].ptr, &ptr_type), "determine pointer type") == FTI_NSCS)
             return FTI_NSCS;
-
+        
+        // determine the type of data pointer
+        // dowload data from the GPU if necessary
         if (ptr_type == GPU_POINTER) {
-            if ((data_ptr = (char *)malloc(FTI_Data[i].count * FTI_Data[i].eleSize)) == NULL) {
+            if ((data_ptr = (char *)malloc(FTI_Data[i].size)) == NULL) {
                 FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
                 return FTI_NSCS;
             }
-            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].count * FTI_Data[i].eleSize), "copying data from GPU") == FTI_NSCS)
+            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size), "copying data from GPU") == FTI_NSCS)
                 return FTI_NSCS;
         }
         else
@@ -699,8 +701,27 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // write datasets into file
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
+        int ptr_type;
+        void *data_ptr;
+
+        // determine the type of data pointer
+        // dowload data from the GPU if necessary
+        if (FTI_Try(FTI_determine_pointer_type((const void *)FTI_Data[i].ptr, &ptr_type), "determine pointer type") == FTI_NSCS)
+            return FTI_NSCS;
+
+        if (ptr_type == GPU_POINTER) {
+            if ((data_ptr = malloc(FTI_Data[i].size)) == NULL) {
+                FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
+                return FTI_NSCS;
+            }
+            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size), "copying data from GPU") == FTI_NSCS)
+                return FTI_NSCS;
+        }
+        else
+            data_ptr = FTI_Data[i].ptr;
+
         // SIONlib write call
-        res = sion_fwrite(FTI_Data[i].ptr, FTI_Data[i].size, 1, sid);
+        res = sion_fwrite(data_ptr, FTI_Data[i].size, 1, sid);
 
         // check if successful
         if (res < 0) {
@@ -713,6 +734,9 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             free(chunkSizes);
             return FTI_NSCS;
         }
+
+        if (ptr_type == GPU_POINTER)
+            free(data_ptr);
 
     }
 
