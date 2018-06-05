@@ -38,6 +38,7 @@
 
 
 #include "interface.h"
+#include "api_cuda.h"
 
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
@@ -969,7 +970,37 @@ int FTI_Recover()
     }
 
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        int ptr_type;
+        int res = FTI_Try(FTI_determine_pointer_type((const void*)FTI_Data[i].ptr, &ptr_type), "determine pointer type");
+      
+        if(res == FTI_NSCS){
+          return FTI_NSCS;
+        }
+
+        if(ptr_type == GPU_POINTER){
+          void  *dev_ptr = FTI_Data[i].ptr;
+          FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+
+          if(FTI_Data[i].ptr == NULL)
+          {
+            FTI_Print("Failed to allocate scratch buffer in", FTI_EROR);
+            return FTI_NSCS;
+          }
+          
+          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+          res = FTI_Try(FTI_copy_to_device(dev_ptr, FTI_Data[i].ptr, FTI_Data[i].count*FTI_Data[i].eleSize), "copying data to GPU");
+
+          if(res == FTI_NSCS){
+            return FTI_NSCS;
+          }
+
+          free(FTI_Data[i].ptr);
+          FTI_Data[i].ptr = dev_ptr;
+        }
+        else{
+          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        }
+
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);

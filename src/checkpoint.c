@@ -43,6 +43,7 @@
 #include <string.h>
 
 #include "interface.h"
+#include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -209,7 +210,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     snprintf(str, FTI_BUFS, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
     FTI_Print(str, FTI_DBUG);
-
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     return res;
 }
@@ -446,7 +446,39 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int fwrite_errno;
         while (written < FTI_Data[i].count && !ferror(fd)) {
             errno = 0;
-            written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+
+            int ptr_type;
+            int res = FTI_Try(FTI_determine_pointer_type((const void*)FTI_Data[i].ptr, &ptr_type), "determine pointer type"); 
+
+            if(res == FTI_NSCS){
+              return FTI_NSCS;
+            }
+
+            if(ptr_type == GPU_POINTER)
+            {
+              void *dev_ptr = FTI_Data[i].ptr;
+              FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+              
+              if(FTI_Data[i].ptr == NULL)
+              {
+                FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
+                return FTI_NSCS;
+              }
+              
+              res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].count * FTI_Data[i].eleSize), "copying data from GPU" );
+
+              if(res == FTI_NSCS){
+                return FTI_NSCS;
+              }
+
+              written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+              free(FTI_Data[i].ptr);
+              FTI_Data[i].ptr = dev_ptr;
+            }
+            else{
+              written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+            }
+
             fwrite_errno = errno;
         }
         if (ferror(fd)) {
