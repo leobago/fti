@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <cuda_runtime_api.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -309,6 +310,7 @@ extern "C" {
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
+        cudaStream_t     *cStreams;         /**< CUDA stream.                   */
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration
@@ -394,6 +396,7 @@ extern "C" {
         int             counter;            /**< Injection counter.             */
         double          timer;              /**< Timer to measure frequency     */
     } FTIT_injection;
+
 
     /*---------------------------------------------------------------------------
       Global variables

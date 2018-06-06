@@ -36,6 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
+#include <cuda_runtime_api.h>
 
 #include "interface.h"
 #include "api_cuda.h"
@@ -101,7 +102,22 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
+    int numCudaDevice;
+    int currentDeviceID;
+    int i;
+
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
+
+    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
+    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
+    if ((FTI_Exec.cStreams = (cudaStream_t *)malloc(numCudaDevice * sizeof(cudaStream_t))) == NULL)
+        return FTI_NSCS;
+    for (i = 0; i < numCudaDevice; ++i) {
+        CUDA_ERROR_CHECK(cudaSetDevice(i));
+        CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStreams[i]));
+    }
+    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
+
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
@@ -970,35 +986,35 @@ int FTI_Recover()
     }
 
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        int ptr_type;
-        int res = FTI_Try(FTI_determine_pointer_type((const void*)FTI_Data[i].ptr, &ptr_type), "determine pointer type");
+        FTIT_ptrinfo ptrInfo;
+        int res = FTI_Try(FTI_get_pointer_info((const void*)FTI_Data[i].ptr, &ptrInfo), "determine pointer type");
       
-        if(res == FTI_NSCS){
-          return FTI_NSCS;
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
         }
 
-        if(ptr_type == GPU_POINTER){
-          void  *dev_ptr = FTI_Data[i].ptr;
-          FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+        if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+            void  *dev_ptr = FTI_Data[i].ptr;
+            FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
 
-          if(FTI_Data[i].ptr == NULL)
-          {
-            FTI_Print("Failed to allocate scratch buffer in", FTI_EROR);
-            return FTI_NSCS;
-          }
-          
-          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-          res = FTI_Try(FTI_copy_to_device(dev_ptr, FTI_Data[i].ptr, FTI_Data[i].count*FTI_Data[i].eleSize), "copying data to GPU");
+            if (FTI_Data[i].ptr == NULL)
+            {
+                FTI_Print("Failed to allocate scratch buffer in", FTI_EROR);
+                return FTI_NSCS;
+            }
+            
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            res = FTI_Try(FTI_copy_to_device(dev_ptr, FTI_Data[i].ptr, FTI_Data[i].size, &ptrInfo, &FTI_Exec), "copying data to GPU");
 
-          if(res == FTI_NSCS){
-            return FTI_NSCS;
-          }
+            if (res == FTI_NSCS) {
+              return FTI_NSCS;
+            }
 
-          free(FTI_Data[i].ptr);
-          FTI_Data[i].ptr = dev_ptr;
+            free(FTI_Data[i].ptr);
+            FTI_Data[i].ptr = dev_ptr;
         }
-        else{
-          fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        else {
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         }
 
         if (ferror(fd)) {
@@ -1089,6 +1105,10 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
+    int numCudaDevice;
+    int currentDeviceID;
+    int i;
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -1163,6 +1183,17 @@ int FTI_Finalize()
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
     MPI_Barrier(FTI_Exec.globalComm);
+
+    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
+    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
+    for (i = 0; i < numCudaDevice; ++i) {
+        CUDA_ERROR_CHECK(cudaSetDevice(i));
+        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStreams[i]));
+        CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStreams[i]));
+    }
+    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
+    free(FTI_Exec.cStreams);
+
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
 }

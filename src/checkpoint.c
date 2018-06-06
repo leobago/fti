@@ -447,14 +447,14 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         while (written < FTI_Data[i].count && !ferror(fd)) {
             errno = 0;
 
-            int ptr_type;
-            int res = FTI_Try(FTI_determine_pointer_type((const void*)FTI_Data[i].ptr, &ptr_type), "determine pointer type"); 
+            FTIT_ptrinfo ptrInfo;
+            int res = FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type"); 
 
             if (res == FTI_NSCS) {
-              return FTI_NSCS;
+                return FTI_NSCS;
             }
 
-            if (ptr_type == GPU_POINTER) {
+            if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
                 void *dev_ptr = FTI_Data[i].ptr;
                 FTI_Data[i].ptr = malloc(FTI_Data[i].size);
                 
@@ -463,7 +463,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
                 
-                res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size), "copying data from GPU" );
+                res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU" );
 
                 if (res == FTI_NSCS) {
                     return FTI_NSCS;
@@ -587,20 +587,20 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         long pos = 0;
         long varSize = FTI_Data[i].size;
         long bSize = FTI_Conf->transferSize;
-        int ptr_type;
+        FTIT_ptrinfo ptrInfo;
         char *data_ptr;
         
-        if (FTI_Try(FTI_determine_pointer_type((const void *)FTI_Data[i].ptr, &ptr_type), "determine pointer type") == FTI_NSCS)
+        if (FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type") == FTI_NSCS)
             return FTI_NSCS;
         
         // determine the type of data pointer
         // dowload data from the GPU if necessary
-        if (ptr_type == GPU_POINTER) {
+        if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
             if ((data_ptr = (char *)malloc(FTI_Data[i].size)) == NULL) {
                 FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
                 return FTI_NSCS;
             }
-            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size), "copying data from GPU") == FTI_NSCS)
+            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU") == FTI_NSCS)
                 return FTI_NSCS;
         }
         else
@@ -631,7 +631,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             offset += bSize;
             pos = pos + bSize;
         }
-        if (ptr_type == GPU_POINTER)
+        if (ptrInfo.type == FTIT_PTRTYPE_GPU)
             free(data_ptr);
     }
     MPI_File_close(&pfh);
@@ -701,20 +701,20 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // write datasets into file
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        int ptr_type;
+        FTIT_ptrinfo ptrInfo;
         void *data_ptr;
 
         // determine the type of data pointer
         // dowload data from the GPU if necessary
-        if (FTI_Try(FTI_determine_pointer_type((const void *)FTI_Data[i].ptr, &ptr_type), "determine pointer type") == FTI_NSCS)
+        if (FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type") == FTI_NSCS)
             return FTI_NSCS;
 
-        if (ptr_type == GPU_POINTER) {
+        if (ptrInfo->type == FTIT_PTRTYPE_GPU) {
             if ((data_ptr = malloc(FTI_Data[i].size)) == NULL) {
                 FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
                 return FTI_NSCS;
             }
-            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size), "copying data from GPU") == FTI_NSCS)
+            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU") == FTI_NSCS)
                 return FTI_NSCS;
         }
         else

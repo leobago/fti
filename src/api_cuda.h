@@ -8,17 +8,38 @@
 #ifndef _API_CUDA_H
 #define _API_CUDA_H
 
-/*---------------------------------------------------------------------------
-  Defines
-  ---------------------------------------------------------------------------*/
+#include <cuda_runtime_api.h>
+#include "interface.h"
 
-/** Used to set and check for a CPU pointer.                               */
-#define CPU_POINTER 1
-/** Used to set and check for a GPU pointer.                               */
-#define GPU_POINTER 0
+#define CUDA_ERROR_CHECK(fun)                                                           \
+do {                                                                                    \
+    cudaError_t err = fun;                                                              \
+    char str[FTI_BUFS];                                                                 \
+    sprintf(str, "Cuda error %d %s:: %s", __LINE__, __func__, cudaGetErrorString(err)); \
+    if(err != cudaSuccess)                                                              \
+    {                                                                                   \
+      FTI_Print(str, FTI_EROR);                                                         \
+      return FTI_NSCS;                                                                  \
+    }                                                                                   \
+} while(0)
 
-int FTI_determine_pointer_type(const void *ptr, int *pointer_type);
-int FTI_copy_from_device(void* dst, void* src, long count);
-int FTI_copy_to_device(void* dst, void* src, long count);
+typedef enum FTIT_ptrtype {
+    FTIT_PTRTYPE_CPU = 0,
+    FTIT_PTRTYPE_GPU
+} FTIT_ptrtype;
+
+/** @typedef    FTIT_ptrinfo
+ *  @brief      Information of a data pointer.
+ *
+ *  This type describes necessary information of a data pointer.
+ */
+typedef struct FTIT_ptrinfo {
+    FTIT_ptrtype    type;               /**< Type of this data pointer      */
+    int             deviceID;            /**< ID of the GPU that this pointer belongs to */
+} FTIT_ptrinfo;
+
+int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo);
+int FTI_copy_from_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
+int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
 
 #endif
