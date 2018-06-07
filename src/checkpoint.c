@@ -460,14 +460,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    // flush page cache to stable storage
-    int fd_int = fileno(fd);
-    if (fsync(fd_int) != 0) {
-        FTI_Print("FTI checkpoint file could not be synchronized.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
     // close file
     if (fclose(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);

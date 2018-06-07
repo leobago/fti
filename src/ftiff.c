@@ -994,16 +994,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    // flush page cache to stable storage
-    if ( level == 4 ) {
-        int fd_int = fileno(fd);
-        if (fsync(fd_int) != 0) {
-            FTI_Print("FTI checkpoint file could not be synchronized.", FTI_EROR);
-
-            return FTI_NSCS;
-        }
-    }
-
     fclose( fd );
 
     return FTI_SCES;

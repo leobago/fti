@@ -624,14 +624,6 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         free(readData);
         fclose(lfd);
-        
-        // flush page cache to stable storage
-        int gfd_int = fileno(gfd);
-        if (fsync(gfd_int) != 0) {
-            FTI_Print("FTI checkpoint file could not be synchronized.", FTI_EROR);
-
-            return FTI_NSCS;
-        }
         fclose(gfd);
     }
     return FTI_SCES;

@@ -173,14 +173,6 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
     // Write metadata
     iniparser_dump_ini(ini, fd);
-    
-    // flush page cache to stable storage
-    int fd_int = fileno(fd);
-    if (fsync(fd_int) != 0) {
-        FTI_Print("FTI checkpoint file could not be synchronized.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
 
     if (fclose(fd) != 0) {
         FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
@@ -522,14 +514,6 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Write metadata
     iniparser_dump_ini(ini, fd);
-    
-    // flush page cache to stable storage
-    int fd_int = fileno(fd);
-    if (fsync(fd_int) != 0) {
-        FTI_Print("FTI checkpoint file could not be synchronized.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
 
     if (fclose(fd) != 0) {
         FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
