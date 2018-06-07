@@ -79,6 +79,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -90,6 +91,22 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+
+typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
+
+// FOR PAPER
+
+void accumulateWriteDataTime( struct timespec t1, struct timespec t2 );
+void accumulateWriteFtiff( struct timespec t1, struct timespec t2 );
+void accumulateDiffStats( long written, long stored );
+void accumulateCreateMetaDataTime( struct timespec t1, struct timespec t2 );
+void accumulateFileChecksumTime( struct timespec t1, struct timespec t2 );
+void accumulateBlockMetaTime( struct timespec t1, struct timespec t2 );
+void accumulatePaddingTime( struct timespec t1, struct timespec t2 );
+void accumulateUpdateDataTime( struct timespec t1, struct timespec t2 );
+void accumulateRenameFileTime( struct timespec t1, struct timespec t2 );
+void printDiffStats( FTIT_topology* FTI_Topo, double timeCkpt );
 
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
@@ -213,13 +230,15 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
-    void FTI_CreateComplexType(FTIT_type* ftiType);
-    void FTI_CloseComplexType(FTIT_type* ftiType);
-    void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
-    void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup);
-    void FTI_CloseGroup(FTIT_H5Group* ftiGroup);
+    void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+    void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+    void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
+    void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
+    void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 #endif
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -246,17 +265,32 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-int FTI_InitDiffCkpt(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int FTI_InitDiffCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int FTI_FinalizeDiffCkpt();
 int FTI_RemoveSigHandler();
 int FTI_RemoveProtections();
 int FTI_FreeDiffCkptStructs(); 
 int FTI_ExcludePage( FTI_ADDRVAL addr );
-int FTI_ShiftPageItems( int idx, long pos );
+int FTI_ShiftPageItemsRight( int idx, long pos );
+int FTI_ShiftPageItemsLeft( int idx, long pos );
 int FTI_RangeCmpPage(int idx, long idr, FTI_ADDRVAL page);
 int FTI_RegisterSigHandler();
+int FTI_GetRangeIndices( FTI_ADDRVAL page, int* idx, long* pos);
+int FTI_ReceiveDiffChunk(int id, FTI_ADDRVAL data_offset, FTI_ADDRVAL data_size, FTI_ADDRVAL* buffer_offset, FTI_ADDRVAL* buffer_size, FTIT_execution* FTI_Exec, FTIFF_dbvar* dbvar);
+long FTI_CheckDiffAmount(int idx, FTI_ADDRPTR ptr, FTI_ADDRVAL size);
+int FTI_HashCmp( int varIdx, long hashIdx, FTI_ADDRPTR ptr, int hashBlockSize );
+int FTI_UpdateHashBlocks(int idx, FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec);
+int FTI_UpdateChanges(FTIT_dataset* FTI_Data);
+int FTI_UpdateHashChanges(FTIT_dataset* FTI_Data);
+int FTI_UpdateSigChanges(FTIT_dataset* FTI_Data);
+int FTI_UpdateProtections(int idx, FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
 void FTI_SigHandler( int signum, siginfo_t* info, void* ucontext );
-int FTI_ProtectPages( int idx, FTIT_dataset* FTI_Data , FTIT_execution* FTI_Exec);
+int FTI_RegisterProtections( int idx, FTIT_dataset* FTI_Data , FTIT_execution* FTI_Exec);
+int FTI_ProtectPages ( int idx, FTIT_dataset* FTI_Data );
+long getCountPages();
+void resetPageCounter();
+bool verifyRanges();
+int FTI_GenerateHashBlocks( int idx, FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec );
 FTI_ADDRVAL FTI_GetFirstInclPage(FTI_ADDRVAL addr); 
 FTI_ADDRVAL FTI_GetLastInclPage(FTI_ADDRVAL addr); 
 bool FTI_isValidRequest( FTI_ADDRVAL addr_val );

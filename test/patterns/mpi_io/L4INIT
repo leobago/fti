@@ -1,0 +1,15 @@
+Reading FTI configuration file
+Selected Ckpt I/O is MPI-I/O
+The execution ID is:
+FTI has been initialized.
+Variable ID 1 to protect.
+Variable ID 2 to protect.
+I/O mode: MPI-IO
+Ckpt. ID 1 (L4)
+Ckpt. ID 2 (L4)
+Ckpt. ID 3 (L4)
+Ckpt. ID 4 (L4)
+Ckpt. ID 5 (L4)
+Ckpt. ID 6 (L4)
+Ckpt. ID 7 (L4)
+Work stopped at i = 63.

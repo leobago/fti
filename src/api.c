@@ -54,9 +54,6 @@ static FTIT_topology FTI_Topo;
 /** Array of datasets and all their internal information.                  */
 static FTIT_dataset FTI_Data[FTI_BUFS];
 
-/** Array of types defined by user.                                        */
-static FTIT_type* FTI_Type[FTI_BUFS];
-
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
 
@@ -121,6 +118,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
+    FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
@@ -135,10 +133,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        FTI_Exec.H5RootGroup.childrenNo = 0;
-        sprintf(FTI_Exec.H5RootGroup.name, "/");
-    }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -151,9 +145,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
     }
     else { // If I am an application process
-        if (FTI_Conf.enableDiffCkpt) {
-            FTI_InitDiffCkpt( &FTI_Exec, FTI_Data );
-        }
+        // call in any case. treatment for diffCkpt disabled inside initializer.
+        FTI_InitDiffCkpt( &FTI_Conf, &FTI_Exec, FTI_Data );
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
@@ -161,6 +154,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
+            // needed for differential checkpointing
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files (or failed reading meta; FTI-FF)
@@ -201,17 +195,49 @@ int FTI_Status()
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitType(FTIT_type* type, int size)
-{
+{  
     type->id = FTI_Exec.nbType;
     type->size = size;
     type->structure = NULL;
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
-    FTI_Type[type->id] = type;
 
 #ifdef ENABLE_HDF5
-    type->h5datatype = -1; //to mark as closed
-    type->h5group = &FTI_Exec.H5RootGroup;
+    type->h5group = FTI_Exec.H5groups[0];
+
+    // Maps FTI types to HDF5 types
+    switch (FTI_Exec.nbType) {
+        case 0:
+            type->h5datatype = H5T_NATIVE_CHAR; break;
+        case 1:
+            type->h5datatype = H5T_NATIVE_SHORT; break;
+        case 2:
+            type->h5datatype = H5T_NATIVE_INT; break;
+        case 3:
+            type->h5datatype = H5T_NATIVE_LONG; break;
+        case 4:
+            type->h5datatype = H5T_NATIVE_UCHAR; break;
+        case 5:
+            type->h5datatype = H5T_NATIVE_USHORT; break;
+        case 6:
+            type->h5datatype = H5T_NATIVE_UINT; break;
+        case 7:
+            type->h5datatype = H5T_NATIVE_ULONG; break;
+        case 8:
+            type->h5datatype = H5T_NATIVE_FLOAT; break;
+        case 9:
+            type->h5datatype = H5T_NATIVE_DOUBLE; break;
+        case 10:
+            type->h5datatype = H5T_NATIVE_LDOUBLE; break;
+        default:
+            type->h5datatype = -1; break; //to mark as closed
+    }
 #endif
+
+    //make a clone of the type in case the user won't store pointer
+    FTI_Exec.FTI_Type[FTI_Exec.nbType] = malloc(sizeof(FTIT_type));
+    *FTI_Exec.FTI_Type[FTI_Exec.nbType] = *type;
+
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
+
     return FTI_SCES;
 }
 
@@ -239,7 +265,7 @@ int FTI_InitType(FTIT_type* type, int size)
 int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
 {
     if (h5group == NULL) {
-        h5group = &FTI_Exec.H5RootGroup;
+        h5group = FTI_Exec.H5groups[0];
     }
     if (length < 1) {
         FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
@@ -273,7 +299,6 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
     newType->id = FTI_Exec.nbType;
     newType->size = size;
     //assign type definition to type structure (types, names, ranks, dimLengths)
-    typeDefinition->size = size;
     typeDefinition->length = length;
     if (name == NULL || !strlen(name)) {
         sprintf(typeDefinition->name, "Type%d", newType->id);
@@ -281,14 +306,23 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
         strncpy(typeDefinition->name, name, FTI_BUFS);
     }
 
-    newType->structure = typeDefinition;
-    FTI_Exec.nbType = FTI_Exec.nbType + 1;
-    FTI_Type[newType->id] = newType;
-
     #ifdef ENABLE_HDF5
         newType->h5datatype = -1; //to mark as closed
-        newType->h5group = h5group;
+        newType->h5group = FTI_Exec.H5groups[h5group->id];
     #endif
+
+    //make a clone of the type definition in case the user won't store pointer
+    newType->structure = malloc(sizeof(FTIT_complexType));
+    *newType->structure = *typeDefinition;
+
+    //append a space for new type
+    FTI_Exec.FTI_Type = realloc(FTI_Exec.FTI_Type, sizeof(FTIT_type*) * (FTI_Exec.nbType + 1));
+
+    //make a clone of the type in case the user won't store pointer
+    FTI_Exec.FTI_Type[FTI_Exec.nbType] = malloc(sizeof(FTIT_type));
+    *FTI_Exec.FTI_Type[FTI_Exec.nbType] = *newType;
+
+    FTI_Exec.nbType = FTI_Exec.nbType + 1;
 
     return FTI_SCES;
 }
@@ -311,7 +345,7 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
 /*-------------------------------------------------------------------------*/
 void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int id, char* name)
 {
-    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].typeID = ftiType->id;
     typeDefinition->field[id].offset = offset;
     if (name == NULL || !strlen(name)) {
         sprintf(typeDefinition->field[id].name, "T%d", id);
@@ -342,7 +376,7 @@ void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, si
 /*-------------------------------------------------------------------------*/
 void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, size_t offset, int rank, int* dimLength, int id, char* name)
 {
-    typeDefinition->field[id].type = ftiType;
+    typeDefinition->field[id].typeID = ftiType->id;
     typeDefinition->field[id].offset = offset;
     typeDefinition->field[id].rank = rank;
     int i;
@@ -374,26 +408,53 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 {
     if (parent == NULL) {
         //child of root
-        parent = &FTI_Exec.H5RootGroup;
+        parent = FTI_Exec.H5groups[0];
     }
+    FTIT_H5Group* parentInArray = FTI_Exec.H5groups[parent->id];
     //check if this parent has that child
     int i;
-    for (i = 0; i < parent->childrenNo; i++) {
-        if (strcmp(parent->children[i]->name, name) == 0) {
+    for (i = 0; i < parentInArray->childrenNo; i++) {
+        if (strcmp(FTI_Exec.H5groups[parentInArray->childrenID[i]]->name, name) == 0) {
             char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "Group %s already has the %s child.", parent->name, name);
+            snprintf(str, FTI_BUFS, "Group %s already has the %s child.", parentInArray->name, name);
+            return FTI_NSCS;
         }
     }
+    h5group->id = FTI_Exec.nbGroup;
+    h5group->childrenNo = 0;
     strncpy(h5group->name, name, FTI_BUFS);
-    parent->children[parent->childrenNo] = h5group;
-    parent->childrenNo++;
-
 #ifdef ENABLE_HDF5
     h5group->h5groupID = -1; //to mark as closed
 #endif
+
+    //make a clone of the group in case the user won't store pointer
+    FTI_Exec.H5groups[FTI_Exec.nbGroup] = malloc(sizeof(FTIT_H5Group));
+    *FTI_Exec.H5groups[FTI_Exec.nbGroup] = *h5group;
+
+    //assign a child and increment the childrenNo
+    parentInArray->childrenID[parentInArray->childrenNo] = FTI_Exec.nbGroup;
+    parentInArray->childrenNo++;
+
+    FTI_Exec.nbGroup = FTI_Exec.nbGroup + 1;
+
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Renames a HDF5 group
+  @param      h5group         H5 group that we want to rename
+  @param      name            New name of the H5 group
+  @return     integer         FTI_SCES if successful.
+
+    This function renames HDF5 group defined by user.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
+    strncpy(FTI_Exec.H5groups[h5group->id]->name, name, FTI_BUFS);
+    return FTI_SCES;
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -428,12 +489,13 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             long prevSize = FTI_Data[i].size;
             FTI_Data[i].ptr = ptr;
             FTI_Data[i].count = count;
-            FTI_Data[i].type = FTI_Type[type.id];
+            FTI_Data[i].type = FTI_Exec.FTI_Type[type.id];
             FTI_Data[i].eleSize = type.size;
             FTI_Data[i].size = type.size * count;
+            FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
             if(FTI_Conf.enableDiffCkpt) {
-                FTI_ProtectPages( i, FTI_Data, &FTI_Exec );
+                FTI_UpdateProtections( i, FTI_Data, &FTI_Exec );
             }
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -452,18 +514,22 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].id = id;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
     FTI_Data[FTI_Exec.nbVar].count = count;
-    FTI_Data[FTI_Exec.nbVar].type = FTI_Type[type.id];
+    FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
     FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    FTI_Data[FTI_Exec.nbVar].rank = 1;
+    FTI_Data[FTI_Exec.nbVar].dimLength[0] = FTI_Data[FTI_Exec.nbVar].count;
+    FTI_Data[FTI_Exec.nbVar].h5group = FTI_Exec.H5groups[0];
+    sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
-    sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
-    FTI_Print(str, FTI_INFO);
-
+    
     if(FTI_Conf.enableDiffCkpt) {
-        FTI_ProtectPages( FTI_Exec.nbVar-1, FTI_Data, &FTI_Exec);
+        FTI_RegisterProtections( FTI_Exec.nbVar-1, FTI_Data, &FTI_Exec);
     }
 
+    sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+    FTI_Print(str, FTI_INFO);
     return FTI_SCES;
 }
 
@@ -520,21 +586,13 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
                 for (j = 0; j < rank; j++) {
                     FTI_Data[i].dimLength[j] = dimLength[j];
                 }
-            } else {
-                //rank and dimensions not defined
-                FTI_Data[i].rank = 1;
-                FTI_Data[i].dimLength[0] = FTI_Data[i].count;
             }
 
-            if (h5group == NULL) {
-                FTI_Data[i].h5group = &FTI_Exec.H5RootGroup;
-            } else {
-                FTI_Data[i].h5group = h5group;
+            if (h5group != NULL) {
+                FTI_Data[i].h5group = FTI_Exec.H5groups[h5group->id];
             }
 
-            if (name == NULL) {
-                sprintf(FTI_Data[i].name, "Dataset_%d", id);
-            } else {
+            if (name != NULL) {
                 strncpy(FTI_Data[i].name, name, FTI_BUFS);
             }
             
@@ -783,12 +841,32 @@ int FTI_Checkpoint(int id, int level)
             FTI_Print("Head failed to do post-processing after previous checkpoint.", FTI_WARN);
         }
     }
-
+    
     double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
+   
+
+    // set hasCkpt flags true
+    if ( FTI_Conf.enableDiffCkpt ) {
+        FTIFF_db* currentDB = FTI_Exec.firstdb;
+        FTIFF_db* nextDB = NULL;
+        do {    
+            int varIdx;
+            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
+                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
+                currentdbVar->hasCkpt = true;
+//                snprintf(str,FTI_BUFS,"var-id: %d, cont-id: %d\n", currentdbVar->id, currentdbVar->containerid);
+//                FTI_Print(str,FTI_INFO);
+            }
+        }
+        while ( (currentDB = currentDB->next) != NULL );    
+        
+        FTI_UpdateChanges(FTI_Data);
+        FTI_Exec.hasCkpt = true;
+    }
 
     // FTIFF: send meta info to the heads
     FTIFF_headInfo *headInfo;
@@ -827,7 +905,9 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
+
     double t3 = MPI_Wtime(); //Time after post-processing
+    
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
@@ -837,11 +917,26 @@ int FTI_Checkpoint(int id, int level)
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
             FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
+    
     if (ckptFirst && FTI_Topo.splitRank == 0) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
+ 
+    printDiffStats( &FTI_Topo, t3-t0 );
+
+    //TODO change to FTI_UpdateChanges
+    //verifyRanges();
+    //resetPageCounter();
+    
+    
+    //if ( FTI_Conf.enableDiffCkpt ) {
+    //    int idx;
+    //    for(idx = 0; idx<FTI_Exec.nbVar; ++idx) {
+    //        FTI_UpdateProtections(idx, FTI_Data, &FTI_Exec);
+    //    }
+    //}
     return FTI_DONE;
 }
 
@@ -900,7 +995,12 @@ int FTI_Recover()
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
+        //Try from L1
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        if (access(fn, F_OK) != 0) {
+            //if no L1 files try from L4
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.meta[4].ckptFile);
+        }
     }
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
@@ -911,7 +1011,8 @@ int FTI_Recover()
 
     FILE* fd = fopen(fn, "rb");
     if (fd == NULL) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        sprintf(str, "Could not open FTI checkpoint file. (%s)...", fn);
+        FTI_Print(str, FTI_EROR);
         return FTI_NREC;
     }
 
@@ -927,6 +1028,7 @@ int FTI_Recover()
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
+    FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
     FTI_Exec.reco = 0;
 
     return FTI_SCES;
@@ -1077,6 +1179,7 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     FTI_FreeMeta(&FTI_Exec);
+    FTI_FreeTypesAndGroups(&FTI_Exec);
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }

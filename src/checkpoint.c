@@ -140,6 +140,9 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
+    
+    struct timespec t1_ftiff;
+    struct timespec t2_ftiff;
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
@@ -167,7 +170,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 break;
 #endif
             case FTI_IO_FTIFF:
+                clock_gettime( CLOCK_REALTIME, &t1_ftiff );
                 res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (FTI-FF).");
+                clock_gettime( CLOCK_REALTIME, &t2_ftiff );
+                accumulateWriteFtiff( t1_ftiff, t2_ftiff );
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:

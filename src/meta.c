@@ -552,6 +552,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
 
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
+    FTI_Exec->meta[0].nbVar[0] = FTI_Exec->nbVar;
 
 #ifdef ENABLE_HDF5
     char fn[FTI_BUFS];
@@ -574,6 +575,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     else {
         char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS, "FTI couldn't access file ckpt file. (%s)", fn);
         snprintf(str, FTI_BUFS, "FTI couldn't acces file ckpt file. (%s)", fn);
         FTI_Print(str, FTI_WARN);
     }
@@ -663,10 +665,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meta[FTI_Exec->ckptLvel].fs[0] = FTI_Exec->meta[0].fs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = FTI_Exec->meta[0].nbVar[0];
     strncpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
         FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i] = FTI_Data[i].id;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] = FTI_Data[i].size;
     }
 
     return FTI_SCES;

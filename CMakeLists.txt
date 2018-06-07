@@ -110,7 +110,8 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c)
+	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c
+    src/crc32.c)
 
 # Check compiler flag support
 set(ADD_CFLAGS "")
@@ -118,7 +119,7 @@ try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/
 if(C_COMPILER_HAS_FLAG)
     set(ADD_CFLAGS "${ADD_CFLAGS} -fPIC")
 endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wall -Werror")
+try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wall")
 if(C_COMPILER_HAS_FLAG)
     set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
 endif()
@@ -130,6 +131,8 @@ try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/
 if(C_COMPILER_HAS_FLAG)
     set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
 endif()
+
+set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
 
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")

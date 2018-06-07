@@ -156,6 +156,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Reading/setting configuration metadata
     FTI_Conf->enableDiffCkpt = ( (int)iniparser_getint(ini, "Basic:diff_ckpt", -1) == 1 ) ? true : false;
+    FTI_Conf->diffMode = (int)iniparser_getint(ini, "Basic:diff_mode", 0);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;

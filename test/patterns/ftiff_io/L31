@@ -1,0 +1,16 @@
+Reading FTI configuration file
+Selected Ckpt I/O is FTI-FF
+This is a restart.
+FTI failed to recover the checkpoint files
+Recovering successfully from level 3
+Variable ID 1 to protect.
+Variable ID 2 to protect.
+Starting work at i = 60.
+I/O mode: FTI File Format
+Ckpt. ID 7 (L3)
+Ckpt. ID 8 (L3)
+Ckpt. ID 9 (L3)
+Ckpt. ID 10 (L3)
+Ckpt. ID 11 (L3)
+Ckpt. ID 12 (L3)
+Success.

@@ -25,9 +25,12 @@ add_executable(syncIntv syncIntv.c)
 target_link_libraries(syncIntv fti.static)
 
 add_subdirectory(local)
+add_subdirectory(cornerCases)
+add_subdirectory(ckptHierarchy)
 
 file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
+file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
