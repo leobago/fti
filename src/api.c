@@ -1114,6 +1114,16 @@ int FTI_Finalize()
         return FTI_NSCS;
     }
 
+    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
+    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
+    for (i = 0; i < numCudaDevice; ++i) {
+        CUDA_ERROR_CHECK(cudaSetDevice(i));
+        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStreams[i]));
+        CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStreams[i]));
+    }
+    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
+    free(FTI_Exec.cStreams);
+
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
         MPI_Barrier(FTI_Exec.globalComm);
@@ -1183,16 +1193,6 @@ int FTI_Finalize()
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
     MPI_Barrier(FTI_Exec.globalComm);
-
-    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
-    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
-    for (i = 0; i < numCudaDevice; ++i) {
-        CUDA_ERROR_CHECK(cudaSetDevice(i));
-        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStreams[i]));
-        CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStreams[i]));
-    }
-    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
-    free(FTI_Exec.cStreams);
 
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
