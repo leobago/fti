@@ -1,9 +1,40 @@
-/** @brief Interface to call FTI from Fortran
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
  *
- * @file   ftif.c
- * @author Faysal Boui <faysal.boui@cea.fr>
- * @author Julien Bigot <julien.bigot@cea.fr>
- * @date 2013-08-01
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   ftif.c
+ *  @author Julien Bigot <julien.bigot@cea.fr>
+ *  @date   February, 2016
+ *  @brief Interface to call FTI from Fortran
  */
 
 #include "fti.h"
@@ -11,7 +42,7 @@
 #include "ftif.h"
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
- * 
+ *
  * @return the error status of FTI
  * @param configFile (IN) the name of the configuration file as a
  *        \0 terminated string
@@ -59,4 +90,23 @@ int FTI_InitType_wrapper(FTIT_type** type, int size)
 int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
 {
     return FTI_Protect(id, ptr, count, *type);
+}
+
+/**
+ *   @brief      Initializes a complex hdf5 data type.
+ *   @param      newType         The data type to be intialized.
+ *   @param      typeDefinition  The definition of the data type to be intialized.
+ *   @param      length          Number of fields in structure.
+ *   @param      size            Size of the structure.
+ *   @param      name            Name of the structure.
+ *   @return     integer         FTI_SCES if successful.
+ *
+ *   This function initalizes a complex data type. the information needed is passed
+ *   in typeDefinition, the rest is black box for FTI.
+ *
+ **/
+int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
+{
+    *newType = talloc(FTIT_type, 1);
+    return FTI_InitComplexType(*newType, typeDefinition, length, size, name, h5group);
 }

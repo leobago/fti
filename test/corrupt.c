@@ -18,6 +18,12 @@
 
 #define CORRUPT_SIZE 16
 
+#define POSIX_IO    1
+#define MPI_IO      2
+#define FTI_FF_IO   3
+#define SIONlib_IO  4
+#define HDF5_IO     5
+
 #define CORRUPT_FAIL 1
 #define CORRUPT_SCES 0
 
@@ -59,15 +65,16 @@ int corruptFile(char* file_path) {
     @brief      Calculate path and corrupt files.
     @param      exec_id             Exec_id from config.fti.
     @param      target_node         Target node id.
-    @param      target_rank           Target FTI_COMM_WORLD rank.
+    @param      target_rank         Target FTI_COMM_WORLD rank.
     @param      flag                Flag == CORRUPT_CKPT corrupts ckpt files.
                                     Flag == CORRUPT_PCOF corrupts partner files.
+    @param      ckpt_io             Checkpoint IO.
     @return     integer             CORRUPT_SCES if successful,
                                     CORRUPT_FAIL if fails.
  **/
 /*-------------------------------------------------------------------------*/
 int corruptTargetFile(char* exec_id, int target_node, int target_rank,
-                        int ckptORPtner, int corrORErase, int level) {
+                        int ckptORPtner, int corrORErase, int level, int ckpt_io) {
     DIR *dir;
     struct dirent *ent;
     char folder_path[256];
@@ -110,7 +117,15 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
         printf("Could not find checkpoint files");
         return CORRUPT_FAIL;
     }
-    sprintf(file_path, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
+
+    if (ckpt_io == HDF5_IO && ckptORPtner == 0)
+        sprintf(file_path, "%s/Ckpt%d-%s%d.h5", folder_path, ckpt_id, buff, target_rank);
+    else if (level == 4 && ckpt_io == MPI_IO)
+        sprintf(file_path, "%s/Ckpt%d-mpiio.fti", folder_path, ckpt_id);
+    else if (level == 4 && ckpt_io == SIONlib_IO)
+        sprintf(file_path, "%s/Ckpt%d-sionlib.fti", folder_path, ckpt_id);
+    else
+        sprintf(file_path, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
 
     if (corrORErase == 0) {
         res = corruptFile(file_path);
@@ -169,6 +184,10 @@ int init(char** argv) {
                 Nodes (1), two adjacent Nodes (2) or all (3) ) must be 0, 1, 2 or 3.\n");
         rtn = 1;
     }
+    if (argv[7] == NULL) {
+        printf("Missing seventh parameter (ckpt_io).\n");
+        printf("Set to default (POSIX).\n");
+    }
     return rtn;
 }
 
@@ -180,6 +199,7 @@ int main(int argc, char **argv) {
     int ckptORPtner = atoi(argv[4]);
     int corrORErase = atoi(argv[5]);
     int corruptionLevel = atoi(argv[6]);
+    int ckpt_io = argv[7] == NULL ? 1 : atoi(argv[7]);
     int res;
     //------- read config -------
     dictionary* ini = iniparser_load(argv[1]);
@@ -198,30 +218,30 @@ int main(int argc, char **argv) {
     target_rank = target_node * node_size + (TARGET_GROUP % group_size) + head; //calcualte procsess rank in node
 
     if (corruptionLevel == 0) { //one
-        res = corruptTargetFile(exec_id, target_node, target_rank, ckptORPtner, corrORErase, level);
+        res = corruptTargetFile(exec_id, target_node, target_rank, ckptORPtner, corrORErase, level, ckpt_io);
     } else if (corruptionLevel == 1) { //two non adjacent Nodes
-        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level);
-        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level);
+        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level, ckpt_io);
         if (res) {
             printf("Failed to corrupt a file.\n");
         }
         target_node += (group_size - 2); //second target is last node - 1 in group
         target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) + head; //calculate rank
-        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level);
-        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level, ckpt_io);
     } else if (corruptionLevel == 2) { //two adjacent Nodes
-        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level);
-        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level);
+        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level, ckpt_io);
         target_node += 1; //second target is next node in group
         target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) + head; //calculate rank
-        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level);
-        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level, ckpt_io);
     } else if (corruptionLevel == 3) { //all
         int i;
         for (i = 0; i < nbProcs; i++) {
             if (head && (i % node_size == 0)) continue;
             target_node = i / node_size;
-            res = corruptTargetFile(exec_id, target_node , i, ckptORPtner, corrORErase, level);
+            res = corruptTargetFile(exec_id, target_node , i, ckptORPtner, corrORErase, level, ckpt_io);
             if (res) {
                 printf("Faild to corrupt rank = %d, node = %d\n", i, target_node);
                 break;

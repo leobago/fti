@@ -98,26 +98,32 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
     FTI_Protect(2, buf, its.size, FTI_LONG);
     //checking if this is recovery run
     if (FTI_Status() != 0 && fail == 0) {
-        /* when we add FTI_Realloc();
-        buf = FTI_Realloc(2, buf);
-        if (buf == NULL) {
-            printf("%d: Reallocation failed!\n", world_rank);
-            return RECOVERY_FAILED;
+        if (world_rank % 2 == 0) {
+            res = FTI_Recover();
+        } else {
+            res = FTI_RecoverVar(1);
+            res += FTI_RecoverVar(2);
         }
-        */
-
-        //need to call FTI_Recover twice to get all data
-        res = FTI_Recover();
-        buf = realloc (buf, sizeof(long) * its.size);
-        FTI_Protect(2, buf, its.size, FTI_LONG);
-        res = FTI_Recover();
         if (res != 0) {
-            printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
-            return RECOVERY_FAILED;
+            buf = FTI_Realloc(2, buf);
+            if (buf == NULL) {
+                printf("%d: Reallocation failed!\n", world_rank);
+                return RECOVERY_FAILED;
+            } else {
+                printf("%d: Variable #2 reallocated!\n", world_rank);
+            }
+            if (world_rank % 2 == 0) {
+                res = FTI_Recover();
+            } else {
+                res = FTI_RecoverVar(1);
+                res = FTI_RecoverVar(2);
+            }
+            if (res != 0) {
+                printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
+                return RECOVERY_FAILED;
+            }
         }
-    }
-    //if recovery, but recover values don't match
-    if (fail == 0) {
+
         int expectedI = ITER_STOP - ITER_STOP % ITER_CHECK;
         if (its.i != expectedI){
             printf("%d: i = %d, should be %d\n", world_rank, its.i, expectedI);
@@ -128,19 +134,22 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             printf("%d: size = %d, should be %d\n", world_rank, its.size, expectedSize);
             return RECOVERY_FAILED;
         }
-        int recoverySize = 2 * sizeof(int); //i and size
-        /* when we add FTI_Realloc();
-        recoverySize += 3 * sizeof(long); //counts
-        */
+        long recoverySize = 2 * sizeof(int); //i and size
+
         for (j = 0; j < its.size; j++) {
             if (buf[j] != its.i * world_rank) {
-                printf("%d: Recovery size = %d MB\n", world_rank, recoverySize/1024/1024);
+                printf("%d: Recovery size = %ld MB\n", world_rank, recoverySize/1024/1024);
                 printf("%d: buf[%d] = %ld, should be %d\n", world_rank, j, buf[j], its.i * world_rank);
                 return RECOVERY_FAILED;
             }
             recoverySize += sizeof(long);
         }
-        printf("%d: Recovery size = %d MB\n", world_rank, recoverySize/1024/1024);
+        printf("%d: Recovery size = %ld B\n", world_rank, recoverySize);
+        long savedSize = FTI_GetStoredSize(1);
+        savedSize += FTI_GetStoredSize(2);
+        if (recoverySize != savedSize) {
+            printf("%d: RecoverySize != SavedSize: %ld != %ld\n", world_rank, recoverySize, savedSize);
+        }
     }
     if (world_rank == 0) {
         printf("Starting work at i = %d.\n", its.i);
@@ -179,7 +188,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
 }
 
 
-int init(char** argv, int* checkpoint_level, int* fail)
+int init(char** argv, int* checkpoint_level, int* fail, int* check_sizes)
 {
     int rtn = 0;    //return value
     if (argv[1] == NULL) {
@@ -199,6 +208,13 @@ int init(char** argv, int* checkpoint_level, int* fail)
     }
     else {
         *fail = atoi(argv[3]);
+    }
+    if (argv[4] == NULL) {
+        printf("Missing fourth parameter (check_sizes).\n");
+        rtn = 1;
+    }
+    else {
+        *check_sizes = atoi(argv[4]);
     }
     return rtn;
 }
@@ -243,9 +259,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
                     }
 
                     int expectedSize = 0;
-                    /* when we add FTI_Realloc();
-                    expectedSize += sizeof(long) * 2; //(i and size) length
-                    */
+
                     expectedSize += sizeof(int) * 2; //i and size
 
                     int lastCheckpointIter;
@@ -291,8 +305,8 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
 /*-------------------------------------------------------------------------*/
 int main(int argc, char** argv)
 {
-    int checkpoint_level, fail;
-    if (init(argv, &checkpoint_level, &fail)) return 0;   //verify args
+    int checkpoint_level, fail, check_sizes;
+    if (init(argv, &checkpoint_level, &fail, &check_sizes)) return 0;   //verify args
 
     MPI_Init(&argc, &argv);
     int global_world_rank, global_world_size;                          //MPI_COMM rank
@@ -344,9 +358,15 @@ int main(int argc, char** argv)
     }
 
     if (world_rank == 0 && !rtn) {
-        rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
-        if (!rtn && !fail) {
+        if (check_sizes) {
+            rtn = checkFileSizes(mpi_ranks, world_size, global_world_size, checkpoint_level, fail);
+            if (!rtn && !fail) {
+                printf("Success.\n");
+            }
+        }
+        else {
             printf("Success.\n");
+            rtn = 0;
         }
     }
     MPI_Barrier(FTI_COMM_WORLD);

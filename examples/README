@@ -5,7 +5,7 @@
 3) With your favorite text editor open and edit the FTI configuration file
    configBkp.fti to set the three directory variables.
 
-    - vim configBkp.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir)
+    - vim configBkp.fti (Edit Ckpt_dir, Glbl_dir, Meta_dir) (Please use absolute paths.)
 
 4) Run examples by going to fti/build/examples and:
 	- execute:	"make init"	<- copies configBkp.fti to config.fti

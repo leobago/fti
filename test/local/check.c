@@ -134,7 +134,10 @@ int main(int argc, char* argv[]) {
     srand(time(NULL));
 
     MPI_Init(&argc, &argv);
-    FTI_Init(argv[1], MPI_COMM_WORLD);
+    result = FTI_Init(argv[1], MPI_COMM_WORLD);
+    if (result == FTI_NREC) {
+        exit(RECOVERY_FAILED);
+    }
 
     crash = atoi(argv[2]);
     level = atoi(argv[3]);
