@@ -1371,15 +1371,15 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     }
     //Check if sizes of protected variables matches
     int i;
-    //for (i = 0; i < FTI_Exec->nbVar; i++) {
-    //    if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
-    //        snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-    //                FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
-    //                FTI_Data[i].size);
-    //        FTI_Print(str, FTI_WARN);
-    //        return FTI_NREC;
-    //    }
-    //}
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
+            snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                    FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
+                    FTI_Data[i].size);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+    }
     
     if (!FTI_Exec->firstdb) {
         FTI_Print( "FTI-FF: FTIFF_Recover - No db meta information. Nothing to recover.", FTI_WARN );

@@ -14,7 +14,9 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#define NUM_CKPT 3
+#ifndef NUM_DCKPT
+#   define NUM_DCKPT 2
+#endif
 #define ERR_CONF (-1001)
 #define ERR_STD (-1002)
 #define XOR_INFO_ID 2001
@@ -82,7 +84,7 @@ typedef struct _dcp_info {
     unsigned long *size;
     int nbuffer;
     unsigned char **hash;
-    xor_info_t xor_info[NUM_CKPT-1];
+    xor_info_t xor_info[NUM_DCKPT];
 } dcp_info_t;
 
 /*

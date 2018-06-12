@@ -16,10 +16,11 @@ int main() {
     
     if (FTI_Status() == 0) {
         FTI_Checkpoint( 1, 4 );
-        xor_data( 0, &info );
-        FTI_Checkpoint( 2, 4 );
-        xor_data( 1, &info );
-        FTI_Checkpoint( 3, 4 );
+        int i;
+        for ( i=0; i<NUM_DCKPT; ++i ) {
+            xor_data( i, &info );
+            FTI_Checkpoint( i+2, 4 );
+        }
     } else {
         FTI_Recover();
         invert_data( &info );

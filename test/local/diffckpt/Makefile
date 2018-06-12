@@ -10,7 +10,7 @@ diff_test_func.o: diff_test_func.c diff_test.h Makefile
 	mpicc -o $@ -c $< -g $(CDEF) -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
 
 diff_test: diff_test_func.o diff_test.c diff_test.h Makefile
-	mpicc -o diff_test diff_test.c -g $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti -lcrypto
+	mpicc -o diff_test diff_test.c -g $(CDEF) $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti -lcrypto
 
 run: diff_test Makefile
 	cp cfg/config.fti .

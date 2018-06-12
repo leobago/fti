@@ -45,7 +45,7 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     FTI_InitType( &FTI_UI, UI_UNIT ); 
     FTI_Protect( PAT_ID, &pat, 1, FTI_UI );  
     FTI_InitType( &FTI_XOR_INFO, sizeof(xor_info_t) ); 
-    FTI_Protect( XOR_INFO_ID, info->xor_info, NUM_CKPT-1, FTI_XOR_INFO );  
+    FTI_Protect( XOR_INFO_ID, info->xor_info, NUM_DCKPT, FTI_XOR_INFO );  
     FTI_Protect( NBUFFER_ID, &info->nbuffer,  1, FTI_INTG );  
 
     // check if alloc_size is sufficiant large
@@ -116,8 +116,6 @@ bool valid( dcp_info_t * info ) {
     for( idx=0; idx<info->nbuffer; ++idx ){
         MD5( info->buffer[idx], info->size[idx], hash );
         if ( memcmp( hash, info->hash[idx], MD5_DIGEST_LENGTH ) != 0 ) {
-            MPI_Barrier(FTI_COMM_WORLD);
-            printf("ran %d alive\n",grank);
             WARN_MSG("hashes for buffer id %d differ", idx);
             success = false;
         }
@@ -175,7 +173,7 @@ void xor_data( int id, dcp_info_t *info ) {
 
 void invert_data( dcp_info_t *info ) {
     int id;
-    for ( id=0; id<NUM_CKPT-1; ++id ) {
+    for ( id=0; id<NUM_DCKPT; ++id ) {
         int idx;
         if(grank==0){
             printf("share: %lf\n", info->xor_info[id].share);
