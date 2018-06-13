@@ -58,7 +58,7 @@
 #endif
 
 #include <stdint.h>
-#include "../deps/md5/md5.h"
+#include <openssl/md5.h>
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 

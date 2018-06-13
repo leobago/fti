@@ -846,7 +846,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long endoffile = sizeof(FTIFF_metaInfo); // offset metaInfo FTI-FF
 
     // MD5 context for checksum of data chunks
-    MD5_CTX mdContext;
+    //MD5_CTX mdContext;
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
@@ -861,7 +861,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Write in file with FTI-FF
     long diffSize = 0, ckptsize = 0;
             
-    do {
+    do {    
 
         isnextdb = 0;
 
@@ -940,6 +940,11 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             clearerr(fd);
             errno = 0;
 
+            // create datachunk hash
+            if(hascontent) {
+                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
+            }
+
             // TESTING: get number of id's stored in checkpoint.
             if (num_ids == 0) {
                 ids[num_ids] = currentdbvar->id;
@@ -961,7 +966,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             uintptr_t chunk_addr, chunk_size, chunk_offset, base;
             
             clock_gettime( CLOCK_REALTIME, &t1_2 );
-            MD5_Init( &mdContext );
+            //MD5_Init( &mdContext );
             clock_gettime( CLOCK_REALTIME, &t2_2 );
             accumulateFileChecksumTime( t1_2, t2_2 );
 
@@ -981,7 +986,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     //        currentdbvar->containerid, (FTI_ADDRPTR)dptr, (FTI_ADDRPTR)chunk_addr, chunk_offset);
                     //FTI_Print(str, FTI_INFO);
                     clock_gettime( CLOCK_REALTIME, &t1_2 );
-                    MD5_Init( &mdContext );
+                    //MD5_Init( &mdContext );
                     clock_gettime( CLOCK_REALTIME, &t2_2 );
                     accumulateFileChecksumTime( t1_2, t2_2 );
                 }
@@ -1021,7 +1026,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     clock_gettime( CLOCK_REALTIME, &t2 );
                     accumulateWriteDataTime( t1, t2 );
                     clock_gettime( CLOCK_REALTIME, &t1_2);
-                    MD5_Update( &mdContext, dptr, cpynow );
+                    //MD5_Update( &mdContext, dptr, cpynow );
                     clock_gettime( CLOCK_REALTIME, &t2_2 );
                     accumulateFileChecksumTime( t1_2, t2_2 );
                     dptr += cpynow;
@@ -1043,13 +1048,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 //        currentdbvar->containerid, (FTI_ADDRPTR)dptr, (FTI_ADDRPTR)chunk_addr, chunk_end-(FTI_ADDRVAL)dptr);
                 //FTI_Print(str, FTI_INFO);
                 clock_gettime( CLOCK_REALTIME, &t1_2 );
-                MD5_Update( &mdContext, dptr, chunk_end-(FTI_ADDRVAL)dptr );
+                //MD5_Update( &mdContext, dptr, chunk_end-(FTI_ADDRVAL)dptr );
                 clock_gettime( CLOCK_REALTIME, &t2_2 );
                 accumulateFileChecksumTime( t1_2, t2_2 );
             }
 
             clock_gettime( CLOCK_REALTIME, &t1_2 );
-            MD5_Final( currentdbvar->hash, &mdContext );
+            //MD5_Final( currentdbvar->hash, &mdContext );
             clock_gettime( CLOCK_REALTIME, &t2_2 );
             accumulateFileChecksumTime( t1_2, t2_2 );
             
