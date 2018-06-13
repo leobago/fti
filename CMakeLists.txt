@@ -128,10 +128,6 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
       set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
   endif()
 endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-fPIC")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -fPIC")
-endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
 
@@ -154,6 +150,8 @@ else()
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
 endif()
+set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
+
 
 append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
@@ -250,7 +248,7 @@ if(ENABLE_FORTRAN)
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
-		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}" -fPIC)
+		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
 
 	add_library(fti_f90.static STATIC ${SRC_FTI_F90})
 	add_dependencies(fti_f90.static bpp_file) # to serialize src generation
@@ -274,6 +272,7 @@ if(ENABLE_FORTRAN)
 		DESTINATION lib)
 	install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod
 		DESTINATION include)
+	set_target_properties(fti_f90.static fti_f90.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 endif()
 
 if(ENABLE_EXAMPLES)
