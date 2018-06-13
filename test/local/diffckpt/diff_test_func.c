@@ -142,17 +142,11 @@ void deallocate_buffers( dcp_info_t * info ) {
 
 void xor_data( int id, dcp_info_t *info ) {
     info->xor_info[id].share = get_share_ratio();
-    if(grank==0){
-        printf("share: %lf\n", info->xor_info[id].share);
-    }
     srand(time(NULL));
     int idx;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         int max = ( RAND_MAX > info->size[idx] ) ? info->size[idx] : RAND_MAX;
         info->xor_info[id].offset[idx] = rand()%max;
-        if(grank==0){
-            printf("    offset: %d, size: %lu\n", info->xor_info[id].offset[idx], info->size[idx]);
-        }
         assert(info->xor_info[id].offset[idx] > 0);
         unsigned long eff_size = info->size[idx] - info->xor_info[id].offset[idx];
         unsigned long nunits = ((unsigned long)(info->xor_info[id].share * eff_size))/UI_UNIT;
@@ -175,13 +169,7 @@ void invert_data( dcp_info_t *info ) {
     int id;
     for ( id=0; id<NUM_DCKPT; ++id ) {
         int idx;
-        if(grank==0){
-            printf("share: %lf\n", info->xor_info[id].share);
-        }
         for ( idx=0; idx<info->nbuffer; ++idx ) {
-            if(grank==0){
-                printf("    offset: %d, size: %lu\n", info->xor_info[id].offset[idx], info->size[idx]);
-            }
             unsigned long eff_size = info->size[idx] - info->xor_info[id].offset[idx];
             unsigned long nunits = ((unsigned long)(info->xor_info[id].share * eff_size))/UI_UNIT;
             unsigned long idxul;
