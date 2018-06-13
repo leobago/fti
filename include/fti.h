@@ -182,9 +182,9 @@ extern "C" {
      *
      *  This type allows creating complex datatypes.
      */
-    typedef struct FTIT_complexType FTIT_complexType;
+    struct FTIT_complexType;
 
-    typedef struct FTIT_H5Group FTIT_H5Group;
+    struct FTIT_H5Group;
 
     typedef struct FTIT_H5Group {
         int                 id;                     /**< ID of the group.               */
@@ -204,8 +204,8 @@ extern "C" {
     typedef struct FTIT_type {
         int                 id;                     /**< ID of the data type.           */
         int                 size;                   /**< Size of the data type.         */
-        FTIT_complexType*   structure;              /**< Logical structure for HDF5.    */
-        FTIT_H5Group*       h5group;                /**< Group of this datatype.        */
+        struct FTIT_complexType*   structure;       /**< Logical structure for HDF5.    */
+        struct FTIT_H5Group*       h5group;         /**< Group of this datatype.        */
 #ifdef ENABLE_HDF5
         hid_t               h5datatype;             /**< HDF5 datatype.                 */
 #endif
