@@ -9,13 +9,14 @@
 #include <openssl/md5.h>
 #include <fti.h>
 #include <time.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
 
 #ifndef NUM_DCKPT
-#   define NUM_DCKPT 2
+#   define NUM_DCKPT 5
 #endif
 #define ERR_CONF (-1001)
 #define ERR_STD (-1002)
@@ -52,6 +53,11 @@
 #define UI_UNIT sizeof(uint32_t)
 #define STATIC_SEED 310780 
 
+enum ALLOC_FLAGS {
+    ALLOC_FULL,
+    ALLOC_RANDOM
+};
+
 int grank;
 
 FTIT_type FTI_UI;
@@ -77,6 +83,7 @@ void init_share();
 typedef struct _xor_info {
     double share;
     int offset[10];
+    unsigned long nunits[10];
 } xor_info_t;
 
 typedef struct _dcp_info {
@@ -99,6 +106,10 @@ void init( dcp_info_t * info, unsigned long alloc_size );
 */
 void xor_data( int id, dcp_info_t *info );
 
+void allocate_buffers( dcp_info_t * info, unsigned long alloc_size);
+void update_data( dcp_info_t * info, uintptr_t *offset );
+void generate_data( dcp_info_t * info );
+void reallocate_buffers( dcp_info_t * info, unsigned long alloc_size, enum ALLOC_FLAGS ALLOC_FLAG );
 void invert_data( dcp_info_t *info );
 double get_share_ratio();
 bool valid( dcp_info_t * info );

@@ -12,15 +12,23 @@ int main() {
     dcp_info_t info;
     init( &info, ALLOC_SIZE );
    
+    allocate_buffers( &info, ALLOC_SIZE );
+    generate_data( &info );
     protect_buffers( &info );
     
     if (FTI_Status() == 0) {
         FTI_Checkpoint( 1, 4 );
         int i;
-        for ( i=0; i<NUM_DCKPT; ++i ) {
+        for ( i=0; i<NUM_DCKPT-1; ++i ) {
+            reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
+            protect_buffers( &info );
             xor_data( i, &info );
             FTI_Checkpoint( i+2, 4 );
         }
+        reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );
+        protect_buffers( &info );
+        xor_data( i, &info );
+        FTI_Checkpoint( i+2, 4 );
     } else {
         FTI_Recover();
         invert_data( &info );
