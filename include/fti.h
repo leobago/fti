@@ -341,6 +341,7 @@ extern "C" {
         char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.     */
         char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.    */
         char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.  */
+        size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
     } FTIT_configuration;
 
     /** @typedef    FTIT_topology

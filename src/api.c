@@ -104,12 +104,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
 
-    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_CHOSTBUF_SIZE, cudaHostAllocDefault));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_CHOSTBUF_SIZE, cudaHostAllocDefault));
-
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
@@ -143,6 +137,14 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTIFF_InitMpiTypes();
     }
     FTI_Exec.initSCES = 1;
+    
+    // Initialize CUDA-related params
+    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");

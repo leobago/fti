@@ -175,7 +175,7 @@ ckpt_l4                        = 0
 inline_l2                      = 1
 inline_l3                      = 1
 inline_l4                      = 1
-keep_last_ckpt = 0
+keep_last_ckpt                 = 0
 group_size                     = 4
 verbosity                      = 2
 
@@ -197,6 +197,7 @@ block_size                     = 1024
 transfer_size                  = 16
 mpi_tag                        = 2612
 local_test                     = 1
+gpu_host_bufsize               = 32
 EOF
 #								 #
 # ---- FUNCTION DEFINITIONS ---- #

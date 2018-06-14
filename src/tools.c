@@ -215,6 +215,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
                 FTI_Print("Failed to allocate FTI scratch buffer", FTI_EROR);
                 return FTI_NSCS;
               }
+              // TODO: Reuse GPU data on the host memory
               int result = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU");
 
               if(result == FTI_NSCS) {

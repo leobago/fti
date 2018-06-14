@@ -142,7 +142,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 #endif
 
-    //If checkpoint is inlin and level 4 save directly to PFS
+    //If checkpoint is inline and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         FTI_Print("Saving to temporary global directory", FTI_DBUG);
@@ -470,7 +470,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             errno = 0;
             if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
                 if ((res = FTI_Try(
-                    FTI_pipline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, write_posix, fd),
+                    FTI_pipeline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, FTI_Conf, write_posix, fd),
                     "moving data from GPU to storage")) != FTI_SCES) {
                     snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                     FTI_Print(str, FTI_EROR);
@@ -637,7 +637,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // dowload data from the GPU if necessary
         if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
             if ((res = FTI_Try(
-                FTI_pipline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, write_mpi, &write_info),
+                FTI_pipeline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, FTI_Conf, write_mpi, &write_info),
                 "moving data from GPU to storage")) != FTI_SCES) {
                 snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                 FTI_Print(str, FTI_EROR);

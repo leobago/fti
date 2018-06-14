@@ -99,6 +99,7 @@ int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *p
   @param      FTI_Data        Pointer to the dataset to be copied.
   @param      ptrInfo         Information of the src pointer.
   @param      FTI_Exec        Information of this execution.
+  @param      FTI_Conf        Configuration parameters.      
   @param      fwritefunc      Pointer to the function that perform file writes.
   @param      opaque          Additional data to be passed to fwritefunc.                 
   @return     integer         FTI_SCES if successful.
@@ -107,7 +108,7 @@ int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *p
   The actual writes to the storage are performed by fwritefunc.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_fwritefunc fwritefunc, void *opaque)
+int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque)
 {
     FTI_Print("Piplining GPU -> Storage", FTI_DBUG);
 
@@ -118,13 +119,13 @@ int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FT
 
     char *ptr = (char *)FTI_Data->ptr;
     size_t remaining_size = FTI_Data->size;
-    size_t copy_size = MIN(remaining_size, FTI_CHOSTBUF_SIZE);
+    size_t copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
 
     size_t valid_data_sizes[2];
 
     CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[0], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
 
-    if (FTI_Data->size <= FTI_CHOSTBUF_SIZE) {
+    if (FTI_Data->size <= FTI_Conf->cHostBufSize) {
         CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec->cStream));
         return fwritefunc(FTI_Exec->cHostBufs[0], FTI_Data->size, opaque);
     }
@@ -135,7 +136,7 @@ int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FT
 
     ptr += copy_size;
     remaining_size -= copy_size;
-    copy_size = MIN(remaining_size, FTI_CHOSTBUF_SIZE);
+    copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
 
     CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[1], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
     CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[1], FTI_Exec->cStream));
@@ -144,7 +145,7 @@ int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FT
 
     ptr += copy_size;
     remaining_size -= copy_size;
-    copy_size = MIN(remaining_size, FTI_CHOSTBUF_SIZE);
+    copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
 
     bool is_event_active[2] = { true, true };
     int id = 0;
@@ -162,7 +163,7 @@ int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FT
 
             ptr += copy_size;
             remaining_size -= copy_size;
-            copy_size = MIN(remaining_size, FTI_CHOSTBUF_SIZE);
+            copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
         }
         else
             is_event_active[id] = false;

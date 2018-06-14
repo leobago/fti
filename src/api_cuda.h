@@ -11,7 +11,7 @@
 #include <cuda_runtime_api.h>
 #include "interface.h"
 
-#define FTI_CHOSTBUF_SIZE ((size_t)1 << 25)
+#define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
 
 #define MIN(x, y) (x < y ? x : y)
 
@@ -47,6 +47,6 @@ typedef int (*FTIT_fwritefunc)(void *src, size_t size, void *opaque);
 int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo);
 int FTI_copy_from_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
 int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
-int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_fwritefunc fwritefunc, void *opaque);
+int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque);
 
 #endif
