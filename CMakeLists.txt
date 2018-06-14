@@ -114,7 +114,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/api_cuda.c)
+	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/api_cuda.c src/cuda_kernel_interrupt.c)
 
 
 # add compiler flags

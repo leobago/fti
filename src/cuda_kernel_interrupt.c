@@ -12,7 +12,6 @@
 #include <cuda_runtime.h>
 #include "fti.h"
 #include "api_cuda.h"
-#include "cuda_kernel_interrupt.h"
 
 /** 
  * @brief              Used to determine the size of boolean array.
