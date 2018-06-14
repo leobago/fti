@@ -24,6 +24,7 @@ FAILED=0
 SUCCEED=0
 FAULTY=0
 testFailed=0
+onlyIOType=0
 display_usage() {
 cat <<EOF
 Usage: ./run-checks.sh [options]
@@ -33,6 +34,7 @@ Usage: ./run-checks.sh [options]
 -e|--erase-files    delete files before recovery
 -d|--diff-size      use different sizes for checkpoint files
 -c|--corrupt-files  corrupt files before recovery
+-i|--only-io-type   run the test on only the specified IO type
 
 Default (no options):
 
@@ -86,6 +88,9 @@ if -e and -c is passed, there will be in total 72 tests.
 If *diff-size* is set, the checkpoint files have different sizes.
 EOF
 }
+
+IO_NAMES=(@IO_NAMES@)
+
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -115,6 +120,22 @@ case $key in
     fi
     TIMEOUT="$2"
     echo "[OPTION] Set timeout -> "$TIMEOUT
+    shift
+    ;;
+    -i|--only-io-type)
+    onlyIOType=$2
+    found=0
+    for str in ${IO_NAMES[*]}; do
+        if [[ ${onlyIOType} == ${str} ]]; then
+            found=1
+            break
+        fi
+    done
+    if [[ ${found} -ne 1 ]]; then
+        echo -e "Unknown IO type: ${onlyIOType}"
+        echo -e "Please select from ${IO_NAMES[*]}"
+        exit 0
+    fi
     shift
     ;;
     -h|--help)
@@ -273,9 +294,11 @@ INLINE_L2=(0 1)
 INLINE_L3=(0 1)
 INLINE_L4=(0 1)
 KEEP=(0 1)
-IO_NAMES=(@IO_NAMES@)
 for io in $(seq 1 @IO@); do
     let io_id=io-1
+    if [[ ${onlyIOType} != 0 ]] && [[ ${onlyIOType} != ${IO_NAMES[$io_id]} ]]; then
+        continue
+    fi
     awk -v var="$io" '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
     for keep in ${KEEP[*]}; do
         NAME="H0K"$keep"I111"

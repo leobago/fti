@@ -403,7 +403,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 }
 
-int write_posix(void *src, size_t size, void *opaque)
+static int write_posix(void *src, size_t size, void *opaque)
 {
     FILE *fd = (FILE *)opaque;
     size_t written = 0;
@@ -466,36 +466,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             "determine pointer type")) != FTI_SCES)
             return res;
 
-
-        /*while (written < FTI_Data[i].count && !ferror(fd)) {
-            errno = 0;
-
-            if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
-                void *dev_ptr = FTI_Data[i].ptr;
-                FTI_Data[i].ptr = malloc(FTI_Data[i].size);
-                
-                if (FTI_Data[i].ptr == NULL) {
-                    FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
-                    return FTI_NSCS;
-                }
-                
-                res = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU" );
-
-                if (res == FTI_NSCS) {
-                    return FTI_NSCS;
-                }
-
-                written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
-                free(FTI_Data[i].ptr);
-                FTI_Data[i].ptr = dev_ptr;
-            }
-            else {
-                written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
-            }
-
-            fwrite_errno = errno;
-        }*/
-
         if (!ferror(fd)) {
             errno = 0;
             if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
@@ -509,7 +479,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
             }
             else
-                write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
+                res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
         }
 
         if (ferror(fd)) {
@@ -536,6 +506,42 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 }
 
+typedef struct
+{
+    FTIT_configuration* FTI_Conf;
+    MPI_File pfh;
+    MPI_Offset offset;
+    int err;
+} WriteMPIInfo_t;
+
+static int write_mpi(void *src, size_t size, void *opaque)
+{
+    WriteMPIInfo_t *write_info = (WriteMPIInfo_t *)opaque;
+    size_t pos = 0;
+    size_t bSize = write_info->FTI_Conf->transferSize;
+    while (pos < size) {
+        if ((size - pos) < write_info->FTI_Conf->transferSize) {
+            bSize = size - pos;
+        }
+
+        MPI_Datatype dType;
+        MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
+        MPI_Type_commit(&dType);
+
+        write_info->err = MPI_File_write_at(write_info->pfh, write_info->offset, src, 1, dType, MPI_STATUS_IGNORE);
+        // check if successful
+        if (write_info->err != 0) {
+            errno = 0;
+            return FTI_NSCS;
+        }
+        MPI_Type_free(&dType);
+        src += bSize;
+        write_info->offset += bSize;
+        pos = pos + bSize;
+    }
+    return FTI_SCES;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes ckpt to PFS using MPI I/O.
@@ -556,9 +562,12 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
 {
+    WriteMPIInfo_t write_info;
     int res;
     FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
     char str[FTI_BUFS], mpi_err[FTI_BUFS];
+
+    write_info.FTI_Conf = FTI_Conf;
 
     // enable collective buffer optimization
     MPI_Info info;
@@ -578,8 +587,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-    // open parallel file (collective call)
-    MPI_File pfh;
 
 #ifdef LUSTRE
     if (FTI_Topo->splitRank == 0) {
@@ -597,7 +604,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 #endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
+    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &write_info.pfh);
 
     // check if successful
     if (res != 0) {
@@ -611,65 +618,48 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // set file offset
-    MPI_Offset offset = 0;
+    write_info.offset = 0;
     int i;
     for (i = 0; i < FTI_Topo->splitRank; i++) {
-        offset += chunkSizes[i];
+        write_info.offset += chunkSizes[i];
     }
     free(chunkSizes);
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        long pos = 0;
-        long varSize = FTI_Data[i].size;
-        long bSize = FTI_Conf->transferSize;
         FTIT_ptrinfo ptrInfo;
-        char *data_ptr;
         
-        if (FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type") == FTI_NSCS)
+        if (FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type") == FTI_NSCS) {
+            MPI_File_close(&write_info.pfh);
             return FTI_NSCS;
+        }
         
         // determine the type of data pointer
         // dowload data from the GPU if necessary
         if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
-            if ((data_ptr = (char *)malloc(FTI_Data[i].size)) == NULL) {
-                FTI_Print("Failed to allocate FTI Scratch buffer", FTI_EROR);
-                return FTI_NSCS;
+            if ((res = FTI_Try(
+                FTI_pipline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, write_mpi, &write_info),
+                "moving data from GPU to storage")) != FTI_SCES) {
+                snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+                FTI_Print(str, FTI_EROR);
+                MPI_File_close(&write_info.pfh);
+                return res;
             }
-            if (FTI_Try(FTI_copy_from_device(data_ptr, FTI_Data[i].ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU") == FTI_NSCS)
-                return FTI_NSCS;
         }
         else
-            data_ptr = FTI_Data[i].ptr;
+            res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
 
-        while (pos < varSize) {
-            if ((varSize - pos) < FTI_Conf->transferSize) {
-                bSize = varSize - pos;
-            }
-
-            MPI_Datatype dType;
-            MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
-            MPI_Type_commit(&dType);
-
-            res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
-            // check if successful
-            if (res != 0) {
-                errno = 0;
-                int reslen;
-                MPI_Error_string(res, mpi_err, &reslen);
-                snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, res, mpi_err);
-                FTI_Print(str, FTI_EROR);
-                MPI_File_close(&pfh);
-                return FTI_NSCS;
-            }
-            MPI_Type_free(&dType);
-            data_ptr += bSize;
-            offset += bSize;
-            pos = pos + bSize;
+        // check if successful
+        if (res != 0) {
+            errno = 0;
+            int reslen;
+            MPI_Error_string(write_info.err, mpi_err, &reslen);
+            snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, write_info.err, mpi_err);
+            FTI_Print(str, FTI_EROR);
+            MPI_File_close(&write_info.pfh);
+            return FTI_NSCS;
         }
-        if (ptrInfo.type == FTIT_PTRTYPE_GPU)
-            free(data_ptr);
     }
-    MPI_File_close(&pfh);
+    MPI_File_close(&write_info.pfh);
     MPI_Info_free(&info);
     return FTI_SCES;
 }

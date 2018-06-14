@@ -93,6 +93,20 @@ int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *p
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Streaming data from GPU to storage
+  @param      FTI_Data        Pointer to the dataset to be copied.
+  @param      ptrInfo         Information of the src pointer.
+  @param      FTI_Exec        Information of this execution.
+  @param      fwritefunc      Pointer to the function that perform file writes.
+  @param      opaque          Additional data to be passed to fwritefunc.                 
+  @return     integer         FTI_SCES if successful.
+
+  This function streams (pipelines) data from the GPU memory to the storage.
+  The actual writes to the storage are performed by fwritefunc.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_pipline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_fwritefunc fwritefunc, void *opaque)
 {
     FTI_Print("Piplining GPU -> Storage", FTI_DBUG);
