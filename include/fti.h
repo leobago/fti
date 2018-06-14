@@ -91,35 +91,35 @@ extern "C" {
 #endif
 #define FTI_KERNEL_LAUNCH(quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                          \
 do{                                                                                                       \
-    /*int ret;*/   \
-    FTI_BACKUP_init(&BACKUP_timeout, &BACKUP_block_info, quantum,                                  \
+    int ret;   \
+    char str[FTI_BUFS];                                                                             \
+    ret = FTI_BACKUP_init(&BACKUP_timeout, &BACKUP_block_info, quantum,                                  \
                      &BACKUP_complete, grid_dim);                                           \
-    /*
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
-      FTI_Print("Running kernel without interrupts", FTI_WARN);                                           \
+      sprintf(str, "Running kernel without interrupts");\
+      FTI_BACKUP_Print(str, FTI_WARN);                                           \
       kernel_name<<<grid_dim, block_dim, ns, s>>>(NULL, NULL, ## __VA_ARGS__);                            \
     }                                                                                                     \
     else                                                                                                  \
     {                                                                                                     \
-    */                                                                                                    \
       size_t count = 0;                                                                                   \
-      /*char str[FTI_BUFS]; */                                                                            \
       while(!BACKUP_complete)                                                                             \
       {                                                                                                   \
         /*BACKUP_dbug_println(); */                                                                       \
-        /*sprintf(str, "%s interrupts = %d", #kernel_name, count);                                          \
-        FTI_Print(str, BACKUP_DBUG);   */                                                                   \
+        sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                          \
+        FTI_BACKUP_Print(str, FTI_DBUG);                                                                      \
         kernel_name<<<grid_dim, block_dim, ns, s>>>(BACKUP_timeout, BACKUP_block_info, ## __VA_ARGS__);   \
         FTI_BACKUP_monitor(&BACKUP_complete);                                                       \
-        /*if(ret != FTI_SCES)                                                                               \
+        if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
-          BACKUP_print("Monitoring of kernel execution failed", FTI_EROR);                                \
-        }*/                                                                                                 \
+          sprintf(str, "Monitoring of kernel execution failed");\
+          FTI_BACKUP_Print(str, FTI_EROR);                                \
+        }                                                                                                 \
         count = count + 1;                                                                                \
       }                                                                                                   \
       FTI_BACKUP_cleanup(#kernel_name);                                                                   \
-    /*}*/                                                                                                    \
+    }                                                                                                    \
 }while(0)
 
 #define FTI_KERNEL_DEF(kernel_name, ...)                                                                  \
@@ -158,6 +158,7 @@ backup_t *BACKUP_block_info; /* Initialized and then passed at kernel launch */
 int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, int *complete, dim3 num_blocks);
 int FTI_BACKUP_monitor(int *complete);
 void FTI_BACKUP_cleanup(const char *kernel_name);
+void FTI_BACKUP_Print(char *msg, int priority);
 
     /*---------------------------------------------------------------------------
       FTI-FF types

@@ -351,3 +351,16 @@ int FTI_BACKUP_monitor(int *complete)
 
   return FTI_SCES;
 }
+
+/**
+ * @brief              A wrapper around FTI_Print.
+ * @param              msg        The text to print.
+ * @param              priority   The priority of msg.
+ *
+ * Used so that kernel interrupt macros can have access
+ * to the standard FTI_Print() function.
+ */
+void FTI_BACKUP_Print(char *msg, int priority)
+{
+  FTI_Print(msg, priority);
+}
