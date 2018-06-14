@@ -12,7 +12,7 @@
 #  Hit ./run-checks.sh -h for info
 #
 HOSTS="paris0,paris1,paris2,paris3"
-TIMEOUT=30
+TIMEOUT=300
 DFLAG=1
 CFLAG=1
 PROCS=4

@@ -310,7 +310,9 @@ extern "C" {
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
-        cudaStream_t     *cStreams;         /**< CUDA stream.                   */
+        cudaStream_t    cStream;            /**< CUDA stream.                   */
+        cudaEvent_t     cEvents[2];         /**< CUDA event.                    */
+        void*           cHostBufs[2];       /**< CUDA host buffer.              */
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration

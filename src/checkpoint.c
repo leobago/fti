@@ -403,6 +403,21 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 }
 
+int write_posix(void *src, size_t size, void *opaque)
+{
+    FILE *fd = (FILE *)opaque;
+    size_t written = 0;
+
+    while (written < size && !ferror(fd)) {
+        written += fwrite(((char *)src) + written, 1, size - written, fd);
+    }
+
+    if (ferror(fd))
+        return FTI_NSCS;
+    else
+        return FTI_SCES;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes ckpt to PFS using POSIX.
@@ -420,6 +435,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
+    int res;
     char str[FTI_BUFS], fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
@@ -438,21 +454,21 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    FTIT_ptrinfo ptrInfo;
+
     // write data into ckpt file
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         clearerr(fd);
-        size_t written = 0;
-        int fwrite_errno;
-        while (written < FTI_Data[i].count && !ferror(fd)) {
+
+        if ((res = FTI_Try(
+            FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), 
+            "determine pointer type")) != FTI_SCES)
+            return res;
+
+
+        /*while (written < FTI_Data[i].count && !ferror(fd)) {
             errno = 0;
-
-            FTIT_ptrinfo ptrInfo;
-            int res = FTI_Try(FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), "determine pointer type"); 
-
-            if (res == FTI_NSCS) {
-                return FTI_NSCS;
-            }
 
             if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
                 void *dev_ptr = FTI_Data[i].ptr;
@@ -478,11 +494,28 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             fwrite_errno = errno;
+        }*/
+
+        if (!ferror(fd)) {
+            errno = 0;
+            if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+                if ((res = FTI_Try(
+                    FTI_pipline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, write_posix, fd),
+                    "moving data from GPU to storage")) != FTI_SCES) {
+                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+                    FTI_Print(str, FTI_EROR);
+                    fclose(fd);
+                    return res;
+                }
+            }
+            else
+                write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
         }
+
         if (ferror(fd)) {
             char error_msg[FTI_BUFS];
             error_msg[0] = 0;
-            strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+            strerror_r(errno, error_msg, FTI_BUFS);
             snprintf(str, FTI_BUFS, "Dataset #%d could not be written: %s.", FTI_Data[i].id, error_msg);
             FTI_Print(str, FTI_EROR);
             fclose(fd);
@@ -491,6 +524,8 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // close file
+    fflush(fd);
+    fsync(fileno(fd));
     if (fclose(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
 

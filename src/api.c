@@ -102,21 +102,13 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
-    int numCudaDevice;
-    int currentDeviceID;
-    int i;
-
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
 
-    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
-    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
-    if ((FTI_Exec.cStreams = (cudaStream_t *)malloc(numCudaDevice * sizeof(cudaStream_t))) == NULL)
-        return FTI_NSCS;
-    for (i = 0; i < numCudaDevice; ++i) {
-        CUDA_ERROR_CHECK(cudaSetDevice(i));
-        CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStreams[i]));
-    }
-    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
+    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_CHOSTBUF_SIZE, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_CHOSTBUF_SIZE, cudaHostAllocDefault));
 
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
@@ -1105,24 +1097,18 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
-    int numCudaDevice;
-    int currentDeviceID;
-    int i;
-
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
-    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
-    for (i = 0; i < numCudaDevice; ++i) {
-        CUDA_ERROR_CHECK(cudaSetDevice(i));
-        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStreams[i]));
-        CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStreams[i]));
-    }
-    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
-    free(FTI_Exec.cStreams);
+    CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStream));
+    CUDA_ERROR_CHECK(cudaEventDestroy(FTI_Exec.cEvents[0]));
+    CUDA_ERROR_CHECK(cudaEventDestroy(FTI_Exec.cEvents[1]));
+    CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStream));
+
+    CUDA_ERROR_CHECK(cudaFreeHost(FTI_Exec.cHostBufs[0]));
+    CUDA_ERROR_CHECK(cudaFreeHost(FTI_Exec.cHostBufs[1]));
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);

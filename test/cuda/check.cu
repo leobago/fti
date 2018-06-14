@@ -52,7 +52,8 @@ do {                                                                            
 
 #define BLOCK_SIZE 1024
 
-#define N 100000
+//#define N 100000
+#define N ((size_t)1 << 25)
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
