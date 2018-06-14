@@ -478,8 +478,10 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return res;
                 }
             }
-            else
+            else {
                 res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
+                MD5_Update(&FTI_Exec->mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+            }
         }
 
         if (ferror(fd)) {
@@ -494,8 +496,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // close file
-    fflush(fd);
-    fsync(fileno(fd));
     if (fclose(fd) != 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
 
@@ -645,8 +645,10 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return res;
             }
         }
-        else
+        else {
             res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
+            MD5_Update(&FTI_Exec->mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+        }
 
         // check if successful
         if (res != 0) {

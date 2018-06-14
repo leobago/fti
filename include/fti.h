@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <cuda_runtime_api.h>
+#include "../deps/md5/md5.h"
 
 /*---------------------------------------------------------------------------
   Defines
@@ -313,6 +314,7 @@ extern "C" {
         cudaStream_t    cStream;            /**< CUDA stream.                   */
         cudaEvent_t     cEvents[2];         /**< CUDA event.                    */
         void*           cHostBufs[2];       /**< CUDA host buffer.              */
+        MD5_CTX         mdContext;          /**< MD5 Checksum.                  */
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration

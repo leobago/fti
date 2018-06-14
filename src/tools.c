@@ -191,8 +191,21 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     // FTI-FF: computes checksum from the data structures and prot. variables.
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
         FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
-    } else {
+    } else if (FTI_Conf->ioMode == FTI_IO_POSIX || FTI_Conf->ioMode == FTI_IO_MPI) {
+        // We calculate MD5 as we write the data out.
+        // This is for reusing the CUDA host buffer.
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &FTI_Exec->mdContext);
 
+        int i, ii = 0;
+        for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii += 2;
+        }
+
+        // Reinitialize mdContext for the next round.
+        MD5_Init(&FTI_Exec->mdContext);
+    } else {
         MD5_CTX mdContext;
         MD5_Init (&mdContext);
         int i;

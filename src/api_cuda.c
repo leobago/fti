@@ -127,7 +127,10 @@ int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, F
 
     if (FTI_Data->size <= FTI_Conf->cHostBufSize) {
         CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec->cStream));
-        return fwritefunc(FTI_Exec->cHostBufs[0], FTI_Data->size, opaque);
+        res = fwritefunc(FTI_Exec->cHostBufs[0], FTI_Data->size, opaque);
+        if (res == FTI_SCES)
+            MD5_Update(&FTI_Exec->mdContext, FTI_Exec->cHostBufs[0], FTI_Data->size);
+        return res;
     }
 
     CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[0], FTI_Exec->cStream));
@@ -154,6 +157,8 @@ int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, F
         CUDA_ERROR_CHECK(cudaEventSynchronize(FTI_Exec->cEvents[id]));
         if ((res = fwritefunc(FTI_Exec->cHostBufs[id], valid_data_sizes[id], opaque)) != FTI_SCES)
             return res;
+
+        MD5_Update(&FTI_Exec->mdContext, FTI_Exec->cHostBufs[id], valid_data_sizes[id]);
 
         if (remaining_size > 0) {
             CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[id], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
