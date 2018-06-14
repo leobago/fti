@@ -329,6 +329,133 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Determines checksum of chechpoint data.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, unsigned char *hash ) 
+{
+    char str[FTI_BUFS]; //For console output
+    char strerr[FTI_BUFS];
+
+    // map file into memory
+    char* fmmap = (char*) mmap(0, FTIFF_Meta->fs, PROT_READ, MAP_SHARED, fd, 0);
+    if (fmmap == MAP_FAILED) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - could not map file to memory." );
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
+    }
+
+    FTIFF_db *currentdb=NULL, *nextdb=NULL;
+    FTIFF_dbvar *currentdbvar=NULL;
+    int dbvar_idx, dbcounter=0;
+
+    long endoffile = sizeof(FTIFF_metaInfo); // space for timestamp 
+    long mdoffset;
+
+    int isnextdb;
+
+    currentdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
+    if ( currentdb == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
+        FTI_Print(strerr, FTI_EROR);
+        munmap( fmmap, FTIFF_Meta->fs );
+        errno = 0;
+        return FTI_NSCS;
+    }
+
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    do {
+
+        nextdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
+        if ( nextdb == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
+            FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, FTIFF_Meta->fs );
+            errno = 0;
+            return FTI_NSCS;
+        }
+
+        isnextdb = 0;
+
+        mdoffset = endoffile;
+
+        memcpy( &(currentdb->numvars), fmmap+mdoffset, sizeof(int) ); 
+        mdoffset += sizeof(int);
+        memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
+        mdoffset += sizeof(long);
+
+        snprintf(str, FTI_BUFS, "FTI-FF: GetFileChecksum - dataBlock:%i, dbsize: %ld, numvars: %i.", 
+                dbcounter, currentdb->dbsize, currentdb->numvars);
+        FTI_Print(str, FTI_DBUG);
+
+        currentdb->dbvars = (FTIFF_dbvar*) malloc( sizeof(FTIFF_dbvar) * currentdb->numvars );
+        if ( currentdb->dbvars == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %ld bytes for 'currentdb->dbvars'", sizeof(FTIFF_dbvar) * currentdb->numvars);
+            FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, FTIFF_Meta->fs );
+            errno = 0;
+            return FTI_NSCS;
+        }
+
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+
+            memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIFF_dbvar) );
+            mdoffset += sizeof(FTIFF_dbvar);
+            
+            // debug information
+            snprintf(str, FTI_BUFS, "FTI-FF: GetFileChecksum -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+                    ", destptr: %ld, fptr: %ld, chunksize: %ld.",
+                    dbcounter, dbvar_idx,  
+                    currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+                    currentdbvar->fptr, currentdbvar->chunksize);
+            FTI_Print(str, FTI_DBUG);
+
+            if ( currentdbvar->hascontent ) {
+                MD5_Update(&ctx, fmmap+currentdbvar->fptr, currentdbvar->chunksize);
+            }
+        }
+
+        endoffile += currentdb->dbsize;
+
+        if ( endoffile < FTIFF_Meta->ckptSize ) {
+            memcpy( nextdb, fmmap+endoffile, FTI_dbstructsize );
+            free(currentdb->dbvars);
+            free(currentdb);
+            currentdb = nextdb;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
+
+    MD5_Final( hash, &ctx );
+    free(currentdb->dbvars);
+    free(currentdb);
+
+    // unmap memory.
+    if ( munmap( fmmap, FTIFF_Meta->fs ) == -1 ) {
+        FTI_Print("FTI-FF: GetFileChecksum - unable to unmap memory", FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
+    }
+    
+    return FTI_SCES;
+
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      updates datablock structure for FTI File Format.
@@ -767,7 +894,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     accumulateUpdateDataTime( t1_1, t2_1 );
 
     // ONLY FOR TESTING
-    // FTIFF_PrintDataStructure( 0, FTI_Exec );
+    FTIFF_PrintDataStructure( 0, FTI_Exec );
     
     //if ( FTI_Exec->firstdb != NULL ) {
     //    FTIFF_db* currentDB = FTI_Exec->firstdb;
@@ -845,8 +972,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long mdoffset;
     long endoffile = sizeof(FTIFF_metaInfo); // offset metaInfo FTI-FF
 
-    // MD5 context for checksum of data chunks
-    //MD5_CTX mdContext;
+    // MD5 context for file (only data) checksum
+    MD5_CTX mdContext;
+    MD5_Init(&mdContext);
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
@@ -942,6 +1070,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             // create datachunk hash
             if(hascontent) {
+                MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
                 MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
             }
 
@@ -1112,33 +1241,33 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             long padding;
             
             clock_gettime( CLOCK_REALTIME, &t1_2 );
-            if ( (padding = currentdbvar->containersize - currentdbvar->chunksize) > 0 ) {
-                //snprintf(str,FTI_BUFS,"[var-id:%d|cont-id:%d] PADDING: %ld Bytes.\n", currentdbvar->id, currentdbvar->containerid, padding);
-                //FTI_Print(str,FTI_INFO);
-                void* zeros = calloc( 1, membs );
-                cpycnt = 0;
-                while( cpycnt < padding ) {
-                    cpybuf = padding - cpycnt;
-                    cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-                    cpycnt += cpynow;
-                    if ( fseek( fd, fptr, SEEK_SET ) == -1 ) {
-                        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
-                        FTI_Print(strerr, FTI_EROR);
-                        errno=0;
-                        fclose(fd);
-                        return FTI_NSCS;
-                    }
-                    fwrite( zeros, 1, cpynow, fd );
-                    if (ferror(fd)) {
-                        snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - padding failed in file: %s", fn);
-                        FTI_Print(str, FTI_EROR);
-                        fclose(fd);
-                        errno = 0;
-                        return FTI_NSCS;
-                    }
-                    fptr += cpynow;
-                }
-            }
+            //if ( (padding = currentdbvar->containersize - currentdbvar->chunksize) > 0 ) {
+            //    //snprintf(str,FTI_BUFS,"[var-id:%d|cont-id:%d] PADDING: %ld Bytes.\n", currentdbvar->id, currentdbvar->containerid, padding);
+            //    //FTI_Print(str,FTI_INFO);
+            //    void* zeros = calloc( 1, membs );
+            //    cpycnt = 0;
+            //    while( cpycnt < padding ) {
+            //        cpybuf = padding - cpycnt;
+            //        cpynow = ( cpybuf > membs ) ? membs : cpybuf;
+            //        cpycnt += cpynow;
+            //        if ( fseek( fd, fptr, SEEK_SET ) == -1 ) {
+            //            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+            //            FTI_Print(strerr, FTI_EROR);
+            //            errno=0;
+            //            fclose(fd);
+            //            return FTI_NSCS;
+            //        }
+            //        fwrite( zeros, 1, cpynow, fd );
+            //        if (ferror(fd)) {
+            //            snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - padding failed in file: %s", fn);
+            //            FTI_Print(str, FTI_EROR);
+            //            fclose(fd);
+            //            errno = 0;
+            //            return FTI_NSCS;
+            //        }
+            //        fptr += cpynow;
+            //    }
+            //}
             clock_gettime( CLOCK_REALTIME, &t2_2 );
             accumulatePaddingTime( t1_2, t2_2 );
             
@@ -1188,6 +1317,15 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     } while( isnextdb );
     
+    unsigned char fhash[MD5_DIGEST_LENGTH];
+    MD5_Final( fhash, &mdContext );
+    
+    int ii = 0, i;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&(FTI_Exec->FTIFFMeta.checksum[ii]), "%02x", fhash[i]);
+        ii += 2;
+    }     
+
     accumulateDiffStats( diffSize, ckptsize );   
     
     if (FTI_Topo->splitRank == 0) {
@@ -1317,11 +1455,11 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTI_Exec->FTIFFMeta.timestamp = ntime.tv_sec*1000000000 + ntime.tv_nsec;
     }
 
-    char checksum[MD5_DIGEST_STRING_LENGTH];
-    if ( FTI_Try( FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum ), "FTI-FF: Create file checksum") != FTI_SCES ) {
-        return FTI_NSCS;
-    }
-    strncpy( FTI_Exec->FTIFFMeta.checksum, checksum, MD5_DIGEST_STRING_LENGTH );
+    //char checksum[MD5_DIGEST_STRING_LENGTH];
+    //if ( FTI_Try( FTI_Checksum( FTI_Exec, FTI_Data, FTI_Conf, checksum ), "FTI-FF: Create file checksum") != FTI_SCES ) {
+    //    return FTI_NSCS;
+    //}
+    //strncpy( FTI_Exec->FTIFFMeta.checksum, checksum, MD5_DIGEST_STRING_LENGTH );
 
     // create checksum of meta data
     FTIFF_GetHashMetaInfo( FTI_Exec->FTIFFMeta.myHash, &(FTI_Exec->FTIFFMeta) );
@@ -1837,83 +1975,84 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         
                         // Check if hash of file meta-data is consistent
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
-                            int rbuffer;
+                            //long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
+                            //int rbuffer;
 
-                            // allocate buffer for creating file hash
-                            char *buffer = malloc( CHUNK_SIZE );
-                            if ( buffer == NULL ) {
-                                snprintf( strerr, FTI_BUFS, "FTI-FF: L1RecoverInit - failed to allocate %d bytes for 'buffer'", CHUNK_SIZE);
-                                FTI_Print(strerr, FTI_EROR);
-                                errno = 0;
-                                free(FTIFFMeta);
-                                closedir(L1CkptDir);
-                                close(fd);
-                                goto GATHER_L1INFO;
-                            }
+                            //// allocate buffer for creating file hash
+                            //char *buffer = malloc( CHUNK_SIZE );
+                            //if ( buffer == NULL ) {
+                            //    snprintf( strerr, FTI_BUFS, "FTI-FF: L1RecoverInit - failed to allocate %d bytes for 'buffer'", CHUNK_SIZE);
+                            //    FTI_Print(strerr, FTI_EROR);
+                            //    errno = 0;
+                            //    free(FTIFFMeta);
+                            //    closedir(L1CkptDir);
+                            //    close(fd);
+                            //    goto GATHER_L1INFO;
+                            //}
 
-                            MD5_Init (&mdContext);
-                            while( rcount < FTIFFMeta->fs ) {
-                                
-                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - could not seek in file: %s", tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    close(fd);
-                                    errno = 0;
-                                    free(FTIFFMeta);
-                                    closedir(L1CkptDir);
-                                    close(fd);
-                                    goto GATHER_L1INFO;
-                                }
+                            //MD5_Init (&mdContext);
+                            //while( rcount < FTIFFMeta->fs ) {
+                            //    
+                            //    if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
+                            //        snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - could not seek in file: %s", tmpfn);
+                            //        FTI_Print(strerr, FTI_EROR);
+                            //        close(fd);
+                            //        errno = 0;
+                            //        free(FTIFFMeta);
+                            //        closedir(L1CkptDir);
+                            //        close(fd);
+                            //        goto GATHER_L1INFO;
+                            //    }
 
-                                diff = FTIFFMeta->fs - rcount;
-                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
-                                
-                                rbuffer = read( fd, buffer, toRead );
-                                if ( rbuffer == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno=0;
-                                    free(FTIFFMeta);
-                                    closedir(L1CkptDir);
-                                    close(fd);
-                                    goto GATHER_L1INFO;
-                                }
+                            //    diff = FTIFFMeta->fs - rcount;
+                            //    toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
+                            //    
+                            //    rbuffer = read( fd, buffer, toRead );
+                            //    if ( rbuffer == -1 ) {
+                            //        snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
+                            //        FTI_Print(strerr, FTI_EROR);
+                            //        errno=0;
+                            //        free(FTIFFMeta);
+                            //        closedir(L1CkptDir);
+                            //        close(fd);
+                            //        goto GATHER_L1INFO;
+                            //    }
 
-                                rcount += rbuffer;
-                                MD5_Update (&mdContext, buffer, rbuffer);
-                            }
-                            
-                            // deallocate buffer for creating file hash
-                            free(buffer);
-                            
-                            //unsigned char hash[MD5_DIGEST_LENGTH];
-                            //MD5_Final (hash, &mdContext);
-                            //int i;
-                            //char checksum[MD5_DIGEST_STRING_LENGTH];
-                            //int ii = 0;
-                            //for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                            //    sprintf(&checksum[ii], "%02x", hash[i]);
-                            //    ii += 2;
+                            //    rcount += rbuffer;
+                            //    MD5_Update (&mdContext, buffer, rbuffer);
                             //}
                             //
-                            //if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
+                            //// deallocate buffer for creating file hash
+                            //free(buffer);
+                            
+                            unsigned char hash[MD5_DIGEST_LENGTH];
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
+                            
+                            int i;
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int ii = 0;
+                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                                sprintf(&checksum[ii], "%02x", hash[i]);
+                                ii += 2;
+                            }
+                            
+                            if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
                                 FTI_Exec->meta[1].fs[0] = ckptFS.st_size;    
                                 FTI_Exec->ckptID = ckptID;
                                 strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
                                 fexist = 1;
-                            //
-                            //} 
-                            //else {
-                            //    char str[FTI_BUFS];
-                            //    snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
-                            //            entry->d_name, checksum, FTIFFMeta->checksum);
-                            //    FTI_Print(str, FTI_WARN);
-                            //    close(fd);
-                            //    free(FTIFFMeta);
-                            //    closedir(L1CkptDir);
-                            //    goto GATHER_L1INFO;
-                            //}
+                            
+                            } 
+                            else {
+                                char str[FTI_BUFS];
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                free(FTIFFMeta);
+                                closedir(L1CkptDir);
+                                goto GATHER_L1INFO;
+                            }
                         } else {
                             char str[FTI_BUFS];
                             snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
