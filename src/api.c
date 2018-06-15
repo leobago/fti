@@ -1106,13 +1106,34 @@ int FTI_Finalize()
         return FTI_NSCS;
     }
 
-    CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStream));
-    CUDA_ERROR_CHECK(cudaEventDestroy(FTI_Exec.cEvents[0]));
-    CUDA_ERROR_CHECK(cudaEventDestroy(FTI_Exec.cEvents[1]));
-    CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStream));
+    cudaError_t err;
+    char err_str[FTI_BUFS];
 
-    CUDA_ERROR_CHECK(cudaFreeHost(FTI_Exec.cHostBufs[0]));
-    CUDA_ERROR_CHECK(cudaFreeHost(FTI_Exec.cHostBufs[1]));
+    if ((err = cudaStreamSynchronize(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot synchronize the internal cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaStreamDestroy(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
