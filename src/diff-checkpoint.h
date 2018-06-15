@@ -91,30 +91,6 @@ uint32_t adler32(unsigned char *data, size_t len)
     return (b << 16) | a;
 }
 
-typedef struct              FTIT_DataRange
-{
-    FTI_ADDRVAL             offset;
-    FTI_ADDRVAL             size;
-
-}FTIT_DataRange;
-
-typedef struct              FTIT_DataDiffSignal
-{
-    FTIT_DataRange*         ranges;
-    FTI_ADDRVAL             basePtr;
-    long                    totalSize;
-    long                    rangeCnt;
-    int                     id;
-
-}FTIT_DataDiffSignal;
-
-typedef struct              FTIT_DataDiffInfoSignal
-{
-    FTIT_DataDiffSignal*    dataDiff;
-    int                     nbProtVar;
-
-}FTIT_DataDiffInfoSignal;
-
 typedef struct              FTIT_HashBlock
 {
     unsigned char*          md5hash;
@@ -140,24 +116,4 @@ typedef struct              FTIT_DataDiffInfoHash
     int                     nbProtVar;
 
 }FTIT_DataDiffInfoHash;
-
-//typedef struct              FTIT_PageRange 
-//{
-//    FTI_ADDRVAL             basePtr;
-//    long                  size;
-//
-//}FTIT_PageRange;
-//
-//typedef struct              FTIT_PageInfo       /**< bag for dirty pages        */
-//{
-//    FTI_ADDRVAL*            dirtyPages;         /**< dirty pages array          */
-//    FTIT_PageRange*         protPageRanges;     /**< dirty pages array          */
-//    long                  dirtyPagesCount;    /**< # of dirty pages           */
-//    long                  protPagesCount;     /**< # of dirty pages           */
-//
-//}FTIT_PageInfo;
-
-/** Function Declarations                                                       */
-
-
 

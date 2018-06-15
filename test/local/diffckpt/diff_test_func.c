@@ -182,7 +182,7 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
     }
     assert ( ( alloc_size == allocated ) );
 }    
-void reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLOC_FLAGS ALLOC_FLAG ) {
+unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLOC_FLAGS ALLOC_FLAG ) {
     unsigned long alloc_size;
     if ( ALLOC_FLAG == ALLOC_RANDOM ) {
         srand(get_seed());
@@ -206,6 +206,7 @@ void reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLO
         info->size[idx-1] += rest;
     }
     assert ( ( alloc_size == allocated ) );
+    return alloc_size;
 }    
 
 void update_data( dcp_info_t * info, uintptr_t *offset ) { 

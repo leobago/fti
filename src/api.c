@@ -924,19 +924,6 @@ int FTI_Checkpoint(int id, int level)
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
  
-    printDiffStats( &FTI_Topo, t3-t0 );
-
-    //TODO change to FTI_UpdateChanges
-    //verifyRanges();
-    //resetPageCounter();
-    
-    
-    //if ( FTI_Conf.enableDiffCkpt ) {
-    //    int idx;
-    //    for(idx = 0; idx<FTI_Exec.nbVar; ++idx) {
-    //        FTI_UpdateProtections(idx, FTI_Data, &FTI_Exec);
-    //    }
-    //}
     return FTI_DONE;
 }
 

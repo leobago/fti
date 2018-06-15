@@ -95,19 +95,6 @@
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-// FOR PAPER
-
-void accumulateWriteDataTime( struct timespec t1, struct timespec t2 );
-void accumulateWriteFtiff( struct timespec t1, struct timespec t2 );
-void accumulateDiffStats( long written, long stored );
-void accumulateCreateMetaDataTime( struct timespec t1, struct timespec t2 );
-void accumulateFileChecksumTime( struct timespec t1, struct timespec t2 );
-void accumulateBlockMetaTime( struct timespec t1, struct timespec t2 );
-void accumulatePaddingTime( struct timespec t1, struct timespec t2 );
-void accumulateUpdateDataTime( struct timespec t1, struct timespec t2 );
-void accumulateRenameFileTime( struct timespec t1, struct timespec t2 );
-void printDiffStats( FTIT_topology* FTI_Topo, double timeCkpt );
-
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
 //    = sizeof(int)     /* numvars */

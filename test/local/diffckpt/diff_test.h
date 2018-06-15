@@ -109,7 +109,7 @@ void xor_data( int id, dcp_info_t *info );
 void allocate_buffers( dcp_info_t * info, unsigned long alloc_size);
 void update_data( dcp_info_t * info, uintptr_t *offset );
 void generate_data( dcp_info_t * info );
-void reallocate_buffers( dcp_info_t * info, unsigned long alloc_size, enum ALLOC_FLAGS ALLOC_FLAG );
+unsigned long reallocate_buffers( dcp_info_t * info, unsigned long alloc_size, enum ALLOC_FLAGS ALLOC_FLAG );
 void invert_data( dcp_info_t *info );
 double get_share_ratio();
 bool valid( dcp_info_t * info );

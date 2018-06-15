@@ -708,7 +708,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                     FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {
-                            FTI_Print("Error removing target file.", FTI_EROR);
+                            snprintf(str, FTI_BUFS, "Error removing target file (%s).", fn);
+                            FTI_Print(str, FTI_EROR);
                         }
                     }
                 }

@@ -878,37 +878,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 { 
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS], fnr[FTI_BUFS];
     
-    struct timespec t1;
-    struct timespec t2;
-    struct timespec t1_1;
-    struct timespec t2_1;
-    struct timespec t1_2;
-    struct timespec t2_2;
-    
     // Update the meta data information -> FTIT_db and FTIT_dbvar
-    clock_gettime( CLOCK_REALTIME, &t1_1 );
     if ( FTI_Try( FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data ), "Update FTI-FF data structure" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
-    clock_gettime( CLOCK_REALTIME, &t2_1 );
-    accumulateUpdateDataTime( t1_1, t2_1 );
-
-    // ONLY FOR TESTING
-    FTIFF_PrintDataStructure( 0, FTI_Exec );
-    
-    //if ( FTI_Exec->firstdb != NULL ) {
-    //    FTIFF_db* currentDB = FTI_Exec->firstdb;
-    //    FTIFF_db* nextDB = NULL;
-    //    do {    
-    //        int varIdx;
-    //        for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
-    //            FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
-    //            //snprintf(str,FTI_BUFS,"var-id: %d, cont-id: %d, hasCkpt: %s\n", currentdbVar->id, currentdbVar->containerid, (currentdbVar->hasCkpt)?"true":"false");
-    //            //FTI_Print(str,FTI_INFO);
-    //        }
-    //    }
-    //    while ( (currentDB = currentDB->next) != NULL );    
-    //}
 
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
@@ -997,19 +970,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         endoffile += currentdb->dbsize;
 
-        //if(FTI_Topo->splitRank == 0){
-        //    printf("endoffile:%ld\n", endoffile);
-        //}
-        //ftruncate(fdd, endoffile);
-        //if (fd == NULL) {
-        //    snprintf(strerr, FTI_BUFS, "FTI was unable to set checkpoint file (%s) to size %ld.", fn, endoffile);
-        //    fclose(fd);
-        //    FTI_Print(strerr, FTI_EROR);
-        //    return FTI_NSCS;
-        //}
-
         // write db - datablock meta data
-        clock_gettime( CLOCK_REALTIME, &t1_1 );
         if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
             FTI_Print(strerr, FTI_EROR);
@@ -1026,12 +987,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             fclose(fd);
             return FTI_NSCS;
         }
-        clock_gettime( CLOCK_REALTIME, &t2_1 );
-        accumulateBlockMetaTime( t1_1, t2_1 );
         
         mdoffset += sizeof(int);
         
-        clock_gettime( CLOCK_REALTIME, &t1_1 );
         if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
             FTI_Print(strerr, FTI_EROR);
@@ -1048,8 +1006,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             fclose(fd);
             return FTI_NSCS;
         }
-        clock_gettime( CLOCK_REALTIME, &t2_1 );
-        accumulateBlockMetaTime( t1_1, t2_1 );
 
         mdoffset += sizeof(long);
 
@@ -1074,62 +1030,25 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
             }
 
-            // TESTING: get number of id's stored in checkpoint.
-            if (num_ids == 0) {
-                ids[num_ids] = currentdbvar->id;
-                num_ids++;
-            } else {
-                int id_count = 0;
-                for(; id_count<num_ids; ++id_count) {
-                    if ( currentdbvar->id == ids[id_count] ) {break;}
-                }
-                if ( id_count == num_ids ) {
-                    ids[num_ids] = currentdbvar->id;
-                    num_ids++;
-                }
-            }
-
             // get source and destination pointer
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
             fptr = currentdbvar->fptr;
             uintptr_t chunk_addr, chunk_size, chunk_offset, base;
-            
-            clock_gettime( CLOCK_REALTIME, &t1_2 );
-            //MD5_Init( &mdContext );
-            clock_gettime( CLOCK_REALTIME, &t2_2 );
-            accumulateFileChecksumTime( t1_2, t2_2 );
 
+            uintptr_t chunk_size_dbg, chunk_addr_dbg; 
+           
             int chunkid = 0;
-
-            // for the paper
-            ckptsize += currentdbvar->chunksize;
 
             while( FTI_ReceiveDiffChunk(currentdbvar->id, (FTI_ADDRVAL) dptr, (FTI_ADDRVAL) currentdbvar->chunksize, &chunk_addr, &chunk_size, FTI_Exec, currentdbvar) ) {
                 
                 chunk_offset = chunk_addr - (FTI_ADDRVAL) dptr;
                 cpycnt = 0;
 
-                // add hash of unchanged data and advance data and file pointer
-                if ( ((FTI_ADDRVAL)dptr) != chunk_addr ) {
-                    //snprintf(str, FTI_BUFS,"[var-id:%d|cont-id:%d] HASHFILL: dataptr: %p, chunkptr: %p, chunk_offset: %ld.\n", currentdbvar->id, 
-                    //        currentdbvar->containerid, (FTI_ADDRPTR)dptr, (FTI_ADDRPTR)chunk_addr, chunk_offset);
-                    //FTI_Print(str, FTI_INFO);
-                    clock_gettime( CLOCK_REALTIME, &t1_2 );
-                    //MD5_Init( &mdContext );
-                    clock_gettime( CLOCK_REALTIME, &t2_2 );
-                    accumulateFileChecksumTime( t1_2, t2_2 );
-                }
-
                 dptr += chunk_offset;
                 fptr += chunk_offset;
                 
-                //if(FTI_Topo->splitRank==0){
-                //    printf("[var-id:%d|cont-id:%d|chunk-id:%d] WRITECHECK -> fptr: %ld, chunksize returned: %ld",currentdbvar->id, currentdbvar->containerid, chunkid, fptr, chunk_size);
-                //}
-
                 // write ckpt data
                 while ( cpycnt < chunk_size ) {
-                    clock_gettime( CLOCK_REALTIME, &t1 );
                     cpybuf = chunk_size - cpycnt;
                     cpynow = ( cpybuf > membs ) ? membs : cpybuf;
                     cpycnt += cpynow;
@@ -1152,127 +1071,16 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         errno = 0;
                         return FTI_NSCS;
                     }
-                    clock_gettime( CLOCK_REALTIME, &t2 );
-                    accumulateWriteDataTime( t1, t2 );
-                    clock_gettime( CLOCK_REALTIME, &t1_2);
-                    //MD5_Update( &mdContext, dptr, cpynow );
-                    clock_gettime( CLOCK_REALTIME, &t2_2 );
-                    accumulateFileChecksumTime( t1_2, t2_2 );
                     dptr += cpynow;
                     fptr += cpynow;
                     diffSize += WRITTEN;
                 }
 
-                //if(FTI_Topo->splitRank==0){
-                //    printf("written: %ld\n",WRITTEN);
-                //}
                 chunkid++;
 
             }
-            
-            // add hash of unchanged data if unchanged chunk at the end
-            long chunk_end = cbasePtr + currentdbvar->chunksize;
-            if ( (((FTI_ADDRVAL)dptr) != chunk_end) && hascontent ) {
-                //snprintf(str, FTI_BUFS,"[var-id:%d|cont-id:%d] HASHFILL-END: dataptr: %p, chunkptr: %p, chunk_offset: %ld.\n", currentdbvar->id, 
-                //        currentdbvar->containerid, (FTI_ADDRPTR)dptr, (FTI_ADDRPTR)chunk_addr, chunk_end-(FTI_ADDRVAL)dptr);
-                //FTI_Print(str, FTI_INFO);
-                clock_gettime( CLOCK_REALTIME, &t1_2 );
-                //MD5_Update( &mdContext, dptr, chunk_end-(FTI_ADDRVAL)dptr );
-                clock_gettime( CLOCK_REALTIME, &t2_2 );
-                accumulateFileChecksumTime( t1_2, t2_2 );
-            }
-
-            clock_gettime( CLOCK_REALTIME, &t1_2 );
-            //MD5_Final( currentdbvar->hash, &mdContext );
-            clock_gettime( CLOCK_REALTIME, &t2_2 );
-            accumulateFileChecksumTime( t1_2, t2_2 );
-            
-            //fsync(fdd);
-
-            //// JUST FOR TESTING: read stuff stored in checkpoint and compare the hash with data in memory
-            //char* buffer = (char*) malloc( currentdbvar->chunksize );
-            //unsigned char checkHash2[MD5_DIGEST_LENGTH];
-            //fseek( fd, currentdbvar->fptr, SEEK_SET );
-            //fread( buffer, currentdbvar->chunksize, 1, fd );
-            //MD5_Init( &mdContext );
-            //MD5_Update( &mdContext, buffer, currentdbvar->chunksize );
-            //MD5_Final( checkHash2, &mdContext );
-            //free(buffer);
-
-//          //   JUST FOR TESTING - output data hash
-            //unsigned char checkHash[MD5_DIGEST_LENGTH];
-            //char checkSum[MD5_DIGEST_STRING_LENGTH];
-            //MD5_Init( &mdContext );
-            //MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-            //MD5_Final( checkHash, &mdContext );
-            //if ( memcmp(currentdbvar->hash, checkHash, MD5_DIGEST_LENGTH) != 0 ) {
-            //    if ( FTI_Topo->splitRank == 0 ) {
-            //        printf("hash don't match -> dbvar_idx: %d, var-id: %d, chunksize: %ld, containersize: %ld, hascontent: %d\n",
-            //                dbvar_idx,
-            //                currentdb->dbvars[dbvar_idx].id,
-            //                currentdb->dbvars[dbvar_idx].chunksize,
-            //                currentdb->dbvars[dbvar_idx].containersize,
-            //                currentdb->dbvars[dbvar_idx].hascontent
-            //                );
-            //    }
-            //}
-            //if ( memcmp(currentdbvar->hash, checkHash2, MD5_DIGEST_LENGTH) != 0 ) {
-            //    if ( FTI_Topo->splitRank == 0 ) {
-            //        printf("hash of data in checkpoint and data in memory differ! -> dbvar_idx: %d, var-id: %d, chunksize: %ld, containersize: %ld, hascontent: %d\n",
-            //                dbvar_idx,
-            //                currentdb->dbvars[dbvar_idx].id,
-            //                currentdb->dbvars[dbvar_idx].chunksize,
-            //                currentdb->dbvars[dbvar_idx].containersize,
-            //                currentdb->dbvars[dbvar_idx].hascontent
-            //                );
-            //    }
-            //}
-            //int ii = 0, i;
-            //for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            //    sprintf(&checkSum[ii], "%02x", checkHash[i]);
-            //    ii += 2;
-            //}
-            //snprintf(str, FTI_BUFS, "dataset hash id: %d -> %s", currentdbvar->id, checkSum);
-            //FTI_Print(str, FTI_INFO);
-
-            fptr = currentdbvar->fptr + currentdbvar->chunksize;
-            
-            // pad rest of container space with zeros if chunksize is smaller then container size
-            long padding;
-            
-            clock_gettime( CLOCK_REALTIME, &t1_2 );
-            //if ( (padding = currentdbvar->containersize - currentdbvar->chunksize) > 0 ) {
-            //    //snprintf(str,FTI_BUFS,"[var-id:%d|cont-id:%d] PADDING: %ld Bytes.\n", currentdbvar->id, currentdbvar->containerid, padding);
-            //    //FTI_Print(str,FTI_INFO);
-            //    void* zeros = calloc( 1, membs );
-            //    cpycnt = 0;
-            //    while( cpycnt < padding ) {
-            //        cpybuf = padding - cpycnt;
-            //        cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-            //        cpycnt += cpynow;
-            //        if ( fseek( fd, fptr, SEEK_SET ) == -1 ) {
-            //            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
-            //            FTI_Print(strerr, FTI_EROR);
-            //            errno=0;
-            //            fclose(fd);
-            //            return FTI_NSCS;
-            //        }
-            //        fwrite( zeros, 1, cpynow, fd );
-            //        if (ferror(fd)) {
-            //            snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - padding failed in file: %s", fn);
-            //            FTI_Print(str, FTI_EROR);
-            //            fclose(fd);
-            //            errno = 0;
-            //            return FTI_NSCS;
-            //        }
-            //        fptr += cpynow;
-            //    }
-            //}
-            clock_gettime( CLOCK_REALTIME, &t2_2 );
-            accumulatePaddingTime( t1_2, t2_2 );
-            
+             
             // write datablock variables meta data
-            clock_gettime( CLOCK_REALTIME, &t1_1 );
             if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
                 snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
                 FTI_Print(strerr, FTI_EROR);
@@ -1289,8 +1097,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 fclose(fd);
                 return FTI_NSCS;
             }
-            clock_gettime( CLOCK_REALTIME, &t2_1 );
-            accumulateBlockMetaTime( t1_1, t2_1 );
 
             mdoffset += sizeof(FTIFF_dbvar);
 
@@ -1325,29 +1131,14 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         sprintf(&(FTI_Exec->FTIFFMeta.checksum[ii]), "%02x", fhash[i]);
         ii += 2;
     }     
-
-    accumulateDiffStats( diffSize, ckptsize );   
     
-    if (FTI_Topo->splitRank == 0) {
-        printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : %ld of %ld Bytes written (%.2lf%%).\n", 
-                diffSize, ckptsize,
-                100*((double)diffSize)/ckptsize);
-    }
-
     FTI_Exec->ckptSize = endoffile;
     
-    // ensure that potentially empty containers will be written.
-    //ftruncate(fileno(fd), endoffile);
-
     // create checkpoint meta data
-    clock_gettime( CLOCK_REALTIME, &t1 );
     if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
-    clock_gettime( CLOCK_REALTIME, &t2 );
-    accumulateCreateMetaDataTime( t1, t2 );
 
-    clock_gettime( CLOCK_REALTIME, &t1_1 );
     if ( fseek( fd, 0, SEEK_SET ) == -1 ) {
         snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
         FTI_Print(strerr, FTI_EROR);
@@ -1364,17 +1155,16 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(fd);
         return FTI_NSCS;
     }
-    clock_gettime( CLOCK_REALTIME, &t2_1 );
-    accumulateBlockMetaTime( t1_1, t2_1 );
 
+    fsync(fdd);
     fclose( fd );
 
-    clock_gettime( CLOCK_REALTIME, &t1_1 );
     if( FTI_Exec->hasCkpt && FTI_Conf->enableDiffCkpt ) {
         int indicator = rename(fn, fnr);
+        if ( indicator == -1 ) {
+            perror("CANNOT RENAME FILE");
+        }
     }
-    clock_gettime( CLOCK_REALTIME, &t2_1 );
-    accumulateRenameFileTime( t1_1, t2_1 );
     
     strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
 
