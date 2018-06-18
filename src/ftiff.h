@@ -47,6 +47,7 @@
 
 
 #include "fti.h"
+#include "interface.h"
 #include <assert.h>
 
 /**

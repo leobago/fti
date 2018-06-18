@@ -37,6 +37,7 @@
  */
 
 #include "interface.h"
+#include "ftiff.h"
 #include "api_cuda.h"
 #include <dirent.h>
 

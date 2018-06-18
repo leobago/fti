@@ -39,6 +39,7 @@
 #include <cuda_runtime_api.h>
 
 #include "interface.h"
+#include "ftiff.h"
 #include "api_cuda.h"
 
 /** General configuration information used by FTI.                         */

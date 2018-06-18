@@ -39,6 +39,7 @@
 #define _GNU_SOURCE
 
 #include "interface.h"
+#include "ftiff.h"
 
 /**  
 

@@ -43,6 +43,7 @@
 #include <string.h>
 
 #include "interface.h"
+#include "ftiff.h"
 #include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/
