@@ -146,7 +146,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     else { // If I am an application process
         // call in any case. treatment for diffCkpt disabled inside initializer.
-        FTI_InitDiffCkpt( &FTI_Conf, &FTI_Exec, FTI_Data );
+        FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
@@ -494,8 +494,9 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].size = type.size * count;
             FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-            if(FTI_Conf.enableDiffCkpt) {
-                FTI_UpdateProtections( i, FTI_Data, &FTI_Exec );
+            // important that first update to FTI-FF then to dcp
+            if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+                FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
             }
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
@@ -523,9 +524,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
-    
-    if(FTI_Conf.enableDiffCkpt) {
-        FTI_RegisterProtections( FTI_Exec.nbVar-1, FTI_Data, &FTI_Exec);
+   
+    // important that first update to FTI-FF then to dcp
+    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
     }
 
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -864,7 +866,7 @@ int FTI_Checkpoint(int id, int level)
         }
         while ( (currentDB = currentDB->next) != NULL );    
         
-        FTI_UpdateChanges(FTI_Data);
+        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
         FTI_Exec.hasCkpt = true;
     }
 
@@ -1123,7 +1125,7 @@ int FTI_Finalize()
     }
     
     if (FTI_Conf.enableDiffCkpt) {
-        FTI_FinalizeDiffCkpt();
+        FTI_FinalizeDcp();
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint

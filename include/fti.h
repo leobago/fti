@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define BILLION 1E9
 
@@ -83,6 +84,9 @@
 #define FTI_IO_SIONLIB 1004
 #endif
 
+#define FTI_DCP_MODE_MD5 2001
+#define FTI_DCP_MODE_CRC32 2002
+
 /** Token for IO mode HDF5.                                         */
 #define FTI_IO_HDF5 1005
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
@@ -96,6 +100,10 @@ extern "C" {
     /*---------------------------------------------------------------------------
       FTI-FF types
       ---------------------------------------------------------------------------*/
+
+    typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+    typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
+
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -114,6 +122,18 @@ extern "C" {
         long ptFs;      /**< partner copy file size                             */
         long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
     } FTIFF_metaInfo;
+
+    // DCP TYPE
+    typedef struct              FTIT_DataDiffHash
+    {
+        unsigned char*          md5hash;
+        FTI_ADDRPTR             ptr;
+        int                     blockSize;
+        uint32_t                bit32hash;
+        bool                    dirty;
+        bool                    isValid;
+
+    }FTIT_DataDiffHash;
 
     /** @typedef    FTIFF_dbvar
      *  @brief      Information about protected variable in datablock.
@@ -134,6 +154,8 @@ extern "C" {
         long fptr;          /**< file pointer offset                            */
         long chunksize;     /**< chunk size stored aof prot. var. in this block */
         long containersize; /**< chunk size stored aof prot. var. in this block */
+        long nbHashes;
+        FTIT_DataDiffHash* dataDiffHash;
         unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
     } FTIFF_dbvar;
 
