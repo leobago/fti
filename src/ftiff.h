@@ -45,6 +45,12 @@
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
+#define DBG_MSG(MSG,RANK,...) do { \
+    int rank; \
+    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
+    if ( rank == RANK ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+} while (0)
 
 #include "fti.h"
 #include "checksum.h"
@@ -161,5 +167,5 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, char *checksum);
 void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta );
-void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
+void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 #endif

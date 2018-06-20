@@ -1,6 +1,6 @@
 #include "diff_test.h"
 
-#define ALLOC_SIZE (256*MB)
+#define ALLOC_SIZE (32*MB)
 
 int main() {
     
@@ -17,19 +17,14 @@ int main() {
     allocate_buffers( &info, ALLOC_SIZE );
     generate_data( &info );
     protect_buffers( &info );
-    
     if (FTI_Status() == 0) {
-        //FTI_Checkpoint( 1, 4 );
+        FTI_Checkpoint( 1, 1 );
         int i;
         for ( i=0; i<NUM_DCKPT-1; ++i ) {
             unsigned long allocated = reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
             protect_buffers( &info );
             xor_data( i, &info );
-            FTI_Checkpoint( i+1, 1 );
-            reallocate_buffers( &info, allocated+311, ALLOC_FULL );
-            protect_buffers( &info );
-            //xor_data( i+NUM_DCKPT, &info );
-            FTI_Checkpoint( i+1+NUM_DCKPT, 1 );
+            FTI_Checkpoint( i+2, 1 );
         }
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );
         protect_buffers( &info );

@@ -61,7 +61,7 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     usleep(10*grank);
     srand(get_seed());
     if ( FTI_Status() == 0 ) {
-        info->nbuffer = rand()%10+1;
+        info->nbuffer = 1;//rand()%10+1;
     } else {
         FTI_RecoverVar( NBUFFER_ID );
     }
@@ -110,6 +110,9 @@ void deallocate_buffers( dcp_info_t * info ) {
 
 void xor_data( int id, dcp_info_t *info ) {
     info->xor_info[id].share = get_share_ratio();
+    if ( grank == 0 ) {
+        printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,__LINE__,info->xor_info[id].share);
+    }
     srand(get_seed());
     int idx;
     for ( idx=0; idx<info->nbuffer; ++idx ) {

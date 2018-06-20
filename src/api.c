@@ -494,10 +494,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].size = type.size * count;
             FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-            // important that first update to FTI-FF then to dcp
-            if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-                FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
-            }
+            //// important that first update to FTI-FF then to dcp
+            //if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+            //    FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
+            //}
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
             return FTI_SCES;
@@ -525,10 +525,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
    
-    // important that first update to FTI-FF then to dcp
-    if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-        FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
-    }
+    //// important that first update to FTI-FF then to dcp
+    //if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+    //    FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
+    //}
 
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     FTI_Print(str, FTI_INFO);
@@ -866,6 +866,7 @@ int FTI_Checkpoint(int id, int level)
         }
         while ( (currentDB = currentDB->next) != NULL );    
         
+    
         FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
         FTI_Exec.hasCkpt = true;
     }
