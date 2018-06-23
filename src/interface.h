@@ -94,6 +94,7 @@
 
 // datablock size in file
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
+extern int FTI_dbvarstructsize;		    /**< size of FTIT_db struct in file */
 //    = sizeof(int)     /* numvars */
 //    + sizeof(long);   /* dbsize */
 

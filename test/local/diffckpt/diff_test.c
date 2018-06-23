@@ -1,6 +1,6 @@
 #include "diff_test.h"
 
-#define ALLOC_SIZE (32*MB)
+#define ALLOC_SIZE (64*MB)
 
 int main() {
     
@@ -29,12 +29,13 @@ int main() {
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );
         protect_buffers( &info );
         xor_data( i, &info );
-        FTI_Checkpoint( i+1, 1 );
+        FTI_Checkpoint( i+2, 1 );
     } else {
         if ( FTI_Recover() != 0 ) {
             exit(-1);
         }
         invert_data( &info );
+        //memset(info.buffer[0], 0x45, 32);
         exit_status = ( valid( &info ) ) ? 0 : -1;
         MPI_Barrier(FTI_COMM_WORLD);
         FTI_Finalize();

@@ -150,13 +150,13 @@ extern "C" {
         int containerid;
         bool hascontent;
         bool hasCkpt;
-        long dptr;          /**< data pointer offset				            */
-        long fptr;          /**< file pointer offset                            */
+        uintptr_t dptr;          /**< data pointer offset				            */
+        uintptr_t fptr;          /**< file pointer offset                            */
         long chunksize;     /**< chunk size stored aof prot. var. in this block */
         long containersize; /**< chunk size stored aof prot. var. in this block */
+        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
         long nbHashes;
         FTIT_DataDiffHash* dataDiffHash;
-        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db

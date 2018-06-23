@@ -40,6 +40,7 @@
 #include <dirent.h>
 
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
+int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -59,6 +60,18 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         = sizeof(int)               /* numvars */
         + sizeof(long);             /* dbsize */
 
+    FTI_dbvarstructsize
+        = sizeof(int)               /* numvars */
+        + sizeof(int)
+        + sizeof(int)
+        + sizeof(bool)
+        + sizeof(bool)
+        + sizeof(uintptr_t)
+        + sizeof(uintptr_t)
+        + sizeof(long)
+        + sizeof(long)
+        + MD5_DIGEST_LENGTH;
+    
     // +--------- +
     // | FTI_Exec |
     // +--------- +

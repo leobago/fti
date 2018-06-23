@@ -498,6 +498,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             //if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
             //    FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
             //}
+            //DBG_MSG("SIZE HAS CHANGED IN VARIABLE ID: %d -> old size: %ld, new size: %ld",-1,id,prevSize,FTI_Data[i].size);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
             return FTI_SCES;

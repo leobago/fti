@@ -60,6 +60,9 @@ int FTI_FinalizeDcp()
 
 int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
+    if ( !FTI_Conf->enableDiffCkpt ) {
+        return FTI_SCES;
+    }
     
     int rank;
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
@@ -129,24 +132,26 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
             hashes[hashIdx].md5hash = NULL;
         }
         hashes[hashIdx].isValid = false;
+        hashes[hashIdx].dirty = false;
         hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
         hashes[hashIdx].blockSize = hashBlockSize;
         ptr += hashBlockSize;
     }
 }
 
-int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data ) 
+int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset* FTI_Data ) 
 {
 
-    assert( new_size <= dbvar->containersize );
+    assert( dbvar->chunksize <= dbvar->containersize );
     
     bool changeSize = true;
 
-    long nbHashesOld = dbvar->nbHashes;
+    long nbHashesOld = FTI_CalcNumHashes( old_size );
 
     // update to new number of hashes (which might be actually unchanged)
-    dbvar->nbHashes = FTI_CalcNumHashes( new_size );
+    dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
  
+    assert( nbHashesOld >= dbvar->nbHashes );
     if ( dbvar->nbHashes == nbHashesOld ) {
         changeSize = false;
     }
@@ -170,7 +175,7 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset*
     // we need this pointer since data was most likely re allocated 
     // and thus might have a new memory location
     FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
-    FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) new_size;
+    FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) dbvar->chunksize;
     int hashIdx;
     int lastIdx = dbvar->nbHashes-1;
     int diffBlockSize = FTI_GetDiffBlockSize();
@@ -193,12 +198,19 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset*
             hashes[hashIdx].blockSize = hashBlockSize;
             if ( ( hashes[lastIdx].blockSize < DIFF_BLOCK_SIZE ) && changeSize ) {
                 hashes[lastIdx].isValid = false;
+                hashes[lastIdx].dirty = false;
             } else if ( !changeSize ) {
                 hashes[lastIdx].isValid = false;
+                hashes[lastIdx].dirty = false;
             }
         }
         hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
+        // SHOULD NOT BE NECESSARY DO UPDATE THE HASHBLOCKSIZE HERE [TODO]
+        //hashes[hashIdx].blockSize = hashBlockSize;
         ptr += hashBlockSize;
+        if ( (hashes[hashIdx].blockSize < 0) || (hashes[hashIdx].blockSize > 2048) ) {
+            //DBG_MSG("COLLAPSE - block_size:%d, contid: %d varid: %d, hashIdx: %d, nbHashes: %d",-1,hashes[hashIdx].blockSize, dbvar->containerid, dbvar->id, hashIdx, dbvar->nbHashes);
+        }
     }
 
     return FTI_SCES;    
@@ -262,8 +274,11 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
         // invalidate new hashes and former last hash and set block to new size
         if ( hashIdx >= (nbHashesOld-1) ) {
             hashes[hashIdx].isValid = false;
+            hashes[hashIdx].dirty = false;
             hashes[hashIdx].blockSize = hashBlockSize;
         }
+        // SHOULD NOT BE NECESSARY DO UPDATE THE HASHBLOCKSIZE HERE [TODO]
+        //hashes[hashIdx].blockSize = hashBlockSize;
         hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
         ptr += hashBlockSize;
     }
@@ -283,17 +298,20 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
 {
     
     // if out of range return -1
+    bool clean = true;
+    assert( !(hashIdx > dbvar->nbHashes) );
     if ( hashIdx == dbvar->nbHashes ) {
         return -1;
+    //} else if ( 1 ){
     } else if ( !(dbvar->dataDiffHash[hashIdx].isValid) ){
         return 1;
     } else {
         unsigned char md5hashNow[MD5_DIGEST_LENGTH];
         uint32_t bit32hashNow;
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
-        bool clean;
         switch ( HASH_MODE ) {
             case FTI_DCP_MODE_MD5:
+                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=2048));
                 MD5(hashInfo->ptr, hashInfo->blockSize, md5hashNow);
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
@@ -318,7 +336,6 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
 {
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
-    char *dptr;
     int dbvar_idx, dbcounter=0;
 
     int isnextdb;
@@ -343,7 +360,9 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
                             hashInfo[hashIdx].bit32hash = crc_32( hashInfo[hashIdx].ptr, hashInfo[hashIdx].blockSize );
                             break;
                     }
-                    hashInfo[hashIdx].isValid = true;
+                    if(dbvar->hascontent) {
+                        hashInfo[hashIdx].isValid = true;
+                    }
                 }
             }
 
@@ -365,13 +384,17 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
 
     int rank;
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
-    
+
+    //DBG
+    long checksize = 0;
     static bool init = true;
     static bool reset;
     static long hashIdx;
     char strdbg[FTI_BUFS];
     
     if ( init ) {
+        //DBG
+        checksize = 0;
         hashIdx = 0;
         reset = false;
         init = false;
@@ -394,6 +417,8 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     // advance *buffer_offset for clean regions
     bool clean = FTI_HashCmp( hashIdx, dbvar ) == 0;
     while( clean ) {
+        //DBG
+        checksize += dbvar->dataDiffHash[hashIdx].blockSize;
         hashIdx++;
         clean = FTI_HashCmp( hashIdx, dbvar ) == 0;
     }
@@ -411,10 +436,19 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     // advance *buffer_size for dirty regions
     bool dirty = FTI_HashCmp( hashIdx, dbvar ) == 1;
     while( dirty ) {
+        //DBG
+        checksize += dbvar->dataDiffHash[hashIdx].blockSize;
         *buffer_size += dbvar->dataDiffHash[hashIdx].blockSize;
+        if ( (dbvar->dataDiffHash[hashIdx].blockSize < 0) || (dbvar->dataDiffHash[hashIdx].blockSize > 2048) ) {
+            //DBG_MSG("RDC - block_size:%d, contid: %d varid: %d",-1,dbvar->dataDiffHash[hashIdx].blockSize, dbvar->containerid, dbvar->id);
+        }
         hashIdx++;
         dirty = FTI_HashCmp( hashIdx, dbvar ) == 1;
     }
+    //if( (checksize != dbvar->chunksize) && dbvar->hasCkpt ) {
+    //    DBG_MSG("checksize: %ld, chunksize: %ld containersize: %ld, id: %d", -1, checksize, dbvar->chunksize, dbvar->containersize, dbvar->id);
+    //    exit(-1);
+    //}
 
     // check if we are at the end of the data region
     if ( hashIdx == dbvar->nbHashes ) {

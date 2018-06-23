@@ -51,7 +51,7 @@
 #define GB (1024L*MB)
 
 #define UI_UNIT sizeof(uint32_t)
-#define STATIC_SEED 310780 
+#define STATIC_SEED 310793 
 
 enum ALLOC_FLAGS {
     ALLOC_FULL,
