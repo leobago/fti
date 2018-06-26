@@ -33,15 +33,19 @@ unsigned int get_seed() {
     return 1000000 * tv.tv_sec + tv.tv_usec;
 }
 
-double get_share_ratio() {
+void init_srand() {
     srand(get_seed());
+}
+
+double get_share_ratio() {
+    //srand(get_seed());
     return ((double)(rand()%10000+1))/10000;
 }
 
 void init( dcp_info_t * info, unsigned long alloc_size ) {
     
     MPI_Comm_rank(MPI_COMM_WORLD, &grank);
-    DBG_MSG("alloc_size: %lu",alloc_size);
+    //DBG_MSG("alloc_size: %lu",0,alloc_size);
     init_share();
     
     // init pattern
@@ -69,12 +73,16 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     // initialize structure
     info->buffer = (void**) malloc(info->nbuffer*sizeof(void*));
     info->size = (unsigned long*) malloc(info->nbuffer*sizeof(unsigned long));
+    info->oldsize = (unsigned long*) malloc(info->nbuffer*sizeof(unsigned long));
     info->hash = (unsigned char**) malloc(info->nbuffer*sizeof(unsigned char*));
     int idx;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         info->buffer[idx] = NULL;
         info->hash[idx] = (unsigned char*) malloc(MD5_DIGEST_LENGTH);
     }
+    allocate_buffers( info, alloc_size );
+    generate_data( info );
+    init_srand();
 }
 
 bool valid( dcp_info_t * info ) {
@@ -113,33 +121,57 @@ void xor_data( int id, dcp_info_t *info ) {
     if ( grank == 0 ) {
 //        printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,__LINE__,info->xor_info[id].share);
     }
-    srand(get_seed());
+    //srand(get_seed());
     int idx;
-    unsigned long cnt = 0;
+    int oldxinfooffset;
+    unsigned long oldxinfonunits;
     unsigned long ckptsize = 0;
+    unsigned long update = 0;
+    unsigned long changed = 0;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         ckptsize += info->size[idx]; 
         int max = ( RAND_MAX > info->size[idx] ) ? info->size[idx] : RAND_MAX;
+        oldxinfooffset = info->xor_info[id].offset[idx];
         info->xor_info[id].offset[idx] = rand()%max;
         assert(info->xor_info[id].offset[idx] > 0);
         unsigned long eff_size = info->size[idx] - info->xor_info[id].offset[idx];
+        oldxinfonunits = info->xor_info[id].nunits[idx];
         info->xor_info[id].nunits[idx] = ((unsigned long)(info->xor_info[id].share * eff_size))/UI_UNIT;
         assert(info->xor_info[id].nunits[idx]*UI_UNIT < info->size[idx]);
         unsigned long idxul;
+        //DBG_MSG("size[%d]: %lu, offset: %d, udsize: %lu",0,idx,info->size[idx],info->xor_info[id].offset[idx], info->xor_info[id].nunits[idx]*UI_UNIT);
         char *ptr = (char*)(void*)((uintptr_t)info->buffer[idx]+(uintptr_t)info->xor_info[id].offset[idx]);
+        unsigned long cnt = 0;
         for ( idxul=0; idxul<info->xor_info[id].nunits[idx]; ++idxul ) {
             uint32_t val;
             memcpy(&val, ptr, UI_UNIT);
             uint32_t xor_val = val^pat;
             memcpy(ptr, &xor_val, UI_UNIT);
             ++cnt;
+            changed += UI_UNIT;
             ptr += UI_UNIT;
         }
+        if ( info->size[idx] > info->oldsize[idx] ) {
+            update += info->size[idx]-info->oldsize[idx];
+            if ( (info->xor_info[id].offset[idx] + cnt*UI_UNIT) < info->oldsize[idx] ) {
+                update += cnt*UI_UNIT;
+            } else if ( info->xor_info[id].offset[idx] < info->oldsize[idx] ) {
+                update += info->oldsize[idx] - info->xor_info[id].offset[idx];
+            }
+        } else {
+            update += cnt*UI_UNIT;
+        }
+
     }
-    //DBG_MSG("changed: %lu, of: %lu, share requested: %.2lf, actual share: %.2lf", cnt*UI_UNIT, info->size[idx], nfo->xor_info[id].share, ((double)(cnt*UI_UNIT))/info->size[idx]);
-    if ( grank == 0 ) {
-        printf("changed: %lu, of: %lu, share: %.2lf\n", cnt*UI_UNIT, ckptsize, 100*((double)(cnt*UI_UNIT))/ckptsize);
+    if (oldxinfonunits != info->xor_info[id].nunits[idx]) {
+        update += sizeof(unsigned long);
     }
+    if (oldxinfooffset != info->xor_info[id].offset[idx]) {
+        update += sizeof(int);
+    }
+    
+    ckptsize += sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
+    DBG_MSG("changed: %lu, of: %lu, expected dCP update (min): %.2lf", -1, changed, ckptsize, 100*((double)update)/ckptsize);
 }
 
 void invert_data( dcp_info_t *info ) {
@@ -171,15 +203,16 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         double share = ((double)SHARE[info->nbuffer-1][idx])/100;
         info->size[idx] = (unsigned long)(share*alloc_size);
+        info->oldsize[idx] = 0;
         info->buffer[idx] = malloc( info->size[idx] );
         if ( info->buffer[idx] == NULL ) {
             EXIT_STD_ERR("idx: %d, cannot allocate %lu bytes", idx, info->size[idx]);
         }
         allocated += info->size[idx];
-        DBG_MSG("idx: %d, allocated (total): %lu, allocated (idx): %lu, share: %.2lf%%",idx,allocated, info->size[idx], share*100);
+        //DBG_MSG("idx: %d, allocated (variable): %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
     }
     if ( allocated != alloc_size ) {
-        DBG_MSG("allocated: %lu but to allocate is: %lu",allocated,alloc_size);
+        //DBG_MSG("allocated: %lu but to allocate is: %lu",0,allocated,alloc_size);
         unsigned long rest = alloc_size-allocated;
         allocated += rest;
         info->size[idx-1] += rest;
@@ -188,12 +221,14 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
             EXIT_STD_ERR("idx: %d, cannot reallocate %lu bytes", idx-1, info->size[idx-1]);
         }
     }
+    unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
+    DBG_MSG("allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
 }    
 unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLOC_FLAGS ALLOC_FLAG ) {
     unsigned long alloc_size;
     if ( ALLOC_FLAG == ALLOC_RANDOM ) {
-        srand(get_seed());
+        //srand(get_seed());
         alloc_size = ((unsigned long)(((uint64_t)rand() << 32) | rand()))%_alloc_size+1;
     } else {
         alloc_size = _alloc_size;
@@ -203,49 +238,46 @@ unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, 
     unsigned long allocated = 0;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         double share = ((double)SHARE[info->nbuffer-1][idx])/100;
+        info->oldsize[idx] = info->size[idx];
         info->size[idx] = (unsigned long)(share*alloc_size);
-        if ( grank ==0 ) {
-            printf("info->size[idx]: %ld\n", info->size[idx]);
-        }
         allocated += info->size[idx];
-        DBG_MSG("idx: %d, allocated (total): %lu, allocated (idx): %lu, share: %.2lf%%",idx,allocated, info->size[idx], share*100);
+        //DBG_MSG("idx: %d, re-allocated (variable) : %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
     }
     if ( allocated != alloc_size ) {
-        DBG_MSG("allocated: %lu but to allocate is: %lu",allocated,alloc_size);
+        //DBG_MSG("reallocated: %lu but to reallocate is: %lu",0,allocated,alloc_size);
         unsigned long rest = alloc_size-allocated;
         allocated += rest;
         info->size[idx-1] += rest;
     }
-    if ( grank ==0 ) {
-        printf("allocated: %ld\n", allocated);
-    }
+    unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
+    DBG_MSG("re-allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
     return alloc_size;
 }    
 
-void update_data( dcp_info_t * info, uintptr_t *offset ) { 
-    // init static random generator
-    srand(STATIC_SEED);
-
-    MD5_CTX ctx;
-    int idx;
-    for( idx=0; idx<info->nbuffer; ++idx) {
-        MD5_Init(&ctx);
-        uintptr_t ptr = (uintptr_t) info->buffer[idx];
-        uintptr_t ptr_e = (uintptr_t)info->buffer[idx] + (uintptr_t)info->size[idx];
-        while ( ptr < ptr_e ) {
-            unsigned int rui = (unsigned int) rand();
-            int init_size = ( (ptr_e - ptr) > UI_UNIT ) ? UI_UNIT : ptr_e-ptr;
-            if ( ptr > offset[idx] ) {
-                memcpy((void*)ptr, &rui, init_size);
-            }
-            MD5_Update( &ctx, (void*)ptr, init_size); 
-            ptr += init_size;
-        }
-        assert( ptr == ptr_e );
-        MD5_Final(info->hash[idx], &ctx);
-    }
-}
+//void update_data( dcp_info_t * info, uintptr_t *offset ) { 
+//    // init static random generator
+//    srand(STATIC_SEED);
+//
+//    MD5_CTX ctx;
+//    int idx;
+//    for( idx=0; idx<info->nbuffer; ++idx) {
+//        MD5_Init(&ctx);
+//        uintptr_t ptr = (uintptr_t) info->buffer[idx];
+//        uintptr_t ptr_e = (uintptr_t)info->buffer[idx] + (uintptr_t)info->size[idx];
+//        while ( ptr < ptr_e ) {
+//            unsigned int rui = (unsigned int) rand();
+//            int init_size = ( (ptr_e - ptr) > UI_UNIT ) ? UI_UNIT : ptr_e-ptr;
+//            if ( ptr > offset[idx] ) {
+//                memcpy((void*)ptr, &rui, init_size);
+//            }
+//            MD5_Update( &ctx, (void*)ptr, init_size); 
+//            ptr += init_size;
+//        }
+//        assert( ptr == ptr_e );
+//        MD5_Final(info->hash[idx], &ctx);
+//    }
+//}
 
 void generate_data( dcp_info_t * info ) { 
     // init static random generator

@@ -38,13 +38,14 @@
     printf( "[WARNING-%d] " MSG "\n", grank, ##__VA_ARGS__);                                    \
 } while (0)
 
-#ifdef DEBUG 
-#define DBG_MSG(MSG,...) do {                                                                   \
-    printf( "[DEBUG-%d] " MSG "\n", grank, ##__VA_ARGS__);                                      \
+#define DBG_MSG(MSG,RANK,...) do { \
+    int rank; \
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
+    if ( rank == RANK ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+    if ( RANK == -1 ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
-#else
-#define DBG_MSG(MSG,...)
-#endif
 
 #define KB (1024L)
 #define MB (1024L*KB)
@@ -89,6 +90,7 @@ typedef struct _xor_info {
 typedef struct _dcp_info {
     void **buffer;
     unsigned long *size;
+    unsigned long *oldsize;
     int nbuffer;
     unsigned char **hash;
     xor_info_t xor_info[NUM_DCKPT];

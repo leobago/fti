@@ -14,8 +14,6 @@ int main() {
     dcp_info_t info;
     init( &info, ALLOC_SIZE );
    
-    allocate_buffers( &info, ALLOC_SIZE );
-    generate_data( &info );
     protect_buffers( &info );
     if (FTI_Status() == 0) {
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
@@ -25,9 +23,7 @@ int main() {
         for ( i=0; i<NUM_DCKPT-1; ++i ) {
             unsigned long allocated = reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
             protect_buffers( &info );
-            if ( grank != 0 ) {
-                xor_data( i, &info );
-            }
+            xor_data( i, &info );
             FTI_Checkpoint( i+2, 1 );
         }
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );

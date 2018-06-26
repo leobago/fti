@@ -201,28 +201,23 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
-    // FTI-FF: computes checksum from the data structures and prot. variables.
-    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
-    } else {
 
-        MD5_CTX mdContext;
-        MD5_Init (&mdContext);
-        int i;
+    MD5_CTX mdContext;
+    MD5_Init (&mdContext);
+    int i;
 
-        //iterate all variables
-        for (i = 0; i < FTI_Exec->nbVar; i++) {
-            MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-        }
+    //iterate all variables
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+    }
 
-        unsigned char hash[MD5_DIGEST_LENGTH];
-        MD5_Final (hash, &mdContext);
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    MD5_Final (hash, &mdContext);
 
-        int ii = 0;
-        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksum[ii], "%02x", hash[i]);
-            ii += 2;
-        }
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
     }
 
     return FTI_SCES;
