@@ -724,6 +724,8 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                         //DBG_MSG("EXPAND",-1);
                                     }
                                     else if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
+                                        printf("WRONG POINTER!!!!\n");
+                                        exit(-1);
                                     }
                                 }
                             }
@@ -1007,9 +1009,12 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-        
+     
+    DBG_MSG("firstdb: %p", 0, FTI_Exec->firstdb);
+
     FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
+    DBG_MSG("firstdb: %p", 0, FTI_Exec->firstdb);
     //MPI_Barrier(FTI_COMM_WORLD);
     //usleep(FTI_Topo->splitRank*5000);
     //FTIFF_PrintDataStructure( FTI_Topo->splitRank, FTI_Exec, FTI_Data );
@@ -1088,8 +1093,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
-    long cpybuf, cpynow, cpycnt, fptr;
+    long cpybuf, cpynow, cpycnt;//, fptr;
 
+    uintptr_t fptr;
     int isnextdb;
     
     int ids[FTI_BUFS];
@@ -1178,7 +1184,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             int chunkid = 0;
 
             while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data) ) {
-                chunk_offset = chunk_addr - (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+                chunk_offset = chunk_addr - ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdbvar->dptr);
                 
                 dptr += chunk_offset;
                 fptr = currentdbvar->fptr + chunk_offset;
@@ -1197,6 +1203,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     fclose(fd);
                     return FTI_NSCS;
                 }
+                //fwrite( (FTI_ADDRPTR) chunk_addr, 1, chunk_size, fd );
+                //DBG_MSG("fptr: %llu, offset: %llu, dbvar->fptr: %llu, chunksize: %llu, dbvar->chunksize: %ld",0,
+                //        fptr, chunk_offset, currentdb->dbvars[dbvar_idx].fptr, chunk_size, currentdb->dbvars[dbvar_idx].chunksize);
                 cpycnt = 0;
                 while ( cpycnt < chunk_size ) {
                     cpybuf = chunk_size - cpycnt;
@@ -1304,7 +1313,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         checksize += FTI_Data[dataidx].size;
     }
     assert (checksize == ckptsize);
-    //DBG_MSG("share: %.2lf, diffsize: %d, ckptsize: %ld", 0, 100.0*(((double)diffSize)/ckptsize), diffSize, ckptsize);
+    DBG_MSG("share: %.2lf, diffsize: %ld, ckptsize: %ld", 0, 100.0*(((double)diffSize)/ckptsize), diffSize, ckptsize);
 
     unsigned char fhash[MD5_DIGEST_LENGTH];
     MD5_Final( fhash, &mdContext );
@@ -1339,14 +1348,16 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    //fsync(fdd);
+    fsync(fdd);
     fclose( fd );
 
     if( FTI_Exec->hasCkpt && FTI_Conf->enableDiffCkpt ) {
         int indicator = rename(fn, fnr);
         if ( indicator == -1 ) {
             perror("CANNOT RENAME FILE");
+            //exit(-1);
         }
+        //MPI_Barrier(FTI_COMM_WORLD);
     }
     
     strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
@@ -1999,7 +2010,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             //free(buffer);
                             
                             unsigned char hash[MD5_DIGEST_LENGTH];
-                            //FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
                             
                             int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
@@ -2009,8 +2020,8 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 ii += 2;
                             }
                             
-                            if ( 1 ) {
-                            //if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
+                            //if ( 1 ) {
+                            if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
                                 FTI_Exec->meta[1].fs[0] = ckptFS.st_size;    
                                 FTI_Exec->ckptID = ckptID;
                                 strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
@@ -3053,7 +3064,7 @@ printf("------------------- DATASTRUCTURE BEGIN [%d]----------------\n\n", rank)
             do {
 printf("    DataBase-id: %d\n", dbcnt);
 printf("                 dbsize: %ld\n", dbgdb->dbsize);
-printf("                 metasize: %ld\n\n", sizeof(int)+sizeof(long)+dbgdb->numvars*sizeof(FTIFF_dbvar));
+printf("                 metasize (offset: %d): %ld\n\n", sizeof(FTIFF_metaInfo), sizeof(int)+sizeof(long)+dbgdb->numvars*FTI_dbvarstructsize);
                 dbcnt++;
                 int varid=0;
                 for(; varid<dbgdb->numvars; ++varid) {
@@ -3063,8 +3074,8 @@ printf("                 id: %d\n"
        "                 containerid: %d\n"
        "                 hascontent: %s\n"
        "                 hasCkpt: %s\n"
-       "                 dptr: %p\n"
-       "                 fptr: %p\n"
+       "                 dptr: %llu\n"
+       "                 fptr: %llu\n"
        "                 chunksize: %lu\n"
        "                 containersize: %lu\n\n",/*
        "                 nbHashes: %lu\n"
@@ -3077,8 +3088,8 @@ printf("                 id: %d\n"
                     dbgdb->dbvars[varid].containerid,
                     (dbgdb->dbvars[varid].hascontent) ? "true" : "false",
                     (dbgdb->dbvars[varid].hasCkpt) ? "true" : "false",
-                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].dptr,
-                    (FTI_ADDRPTR)(FTI_ADDRVAL)dbgdb->dbvars[varid].fptr,
+                    dbgdb->dbvars[varid].dptr,
+                    dbgdb->dbvars[varid].fptr,
                     dbgdb->dbvars[varid].chunksize,
                     dbgdb->dbvars[varid].containersize);/*,
                     dbgdb->dbvars[varid].nbHashes,

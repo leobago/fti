@@ -82,8 +82,8 @@ void init_share();
 
 typedef struct _xor_info {
     double share;
-    int offset[10];
-    unsigned long nunits[10];
+    int offset[256];
+    unsigned long nunits[256];
 } xor_info_t;
 
 typedef struct _dcp_info {

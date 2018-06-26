@@ -58,10 +58,10 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     if ( alloc_size < 101 ) EXIT_CFG_ERR("insufficiant allocation size"); 
     
     // determine number of buffers
-    usleep(10*grank);
+    usleep(5000*grank);
     srand(get_seed());
     if ( FTI_Status() == 0 ) {
-        info->nbuffer = 5;//rand()%9+2;
+        info->nbuffer = rand()%10+1;
     } else {
         FTI_RecoverVar( NBUFFER_ID );
     }
@@ -111,11 +111,14 @@ void deallocate_buffers( dcp_info_t * info ) {
 void xor_data( int id, dcp_info_t *info ) {
     info->xor_info[id].share = get_share_ratio();
     if ( grank == 0 ) {
-        printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,__LINE__,info->xor_info[id].share);
+//        printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,__LINE__,info->xor_info[id].share);
     }
     srand(get_seed());
     int idx;
+    unsigned long cnt = 0;
+    unsigned long ckptsize = 0;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
+        ckptsize += info->size[idx]; 
         int max = ( RAND_MAX > info->size[idx] ) ? info->size[idx] : RAND_MAX;
         info->xor_info[id].offset[idx] = rand()%max;
         assert(info->xor_info[id].offset[idx] > 0);
@@ -124,7 +127,6 @@ void xor_data( int id, dcp_info_t *info ) {
         assert(info->xor_info[id].nunits[idx]*UI_UNIT < info->size[idx]);
         unsigned long idxul;
         char *ptr = (char*)(void*)((uintptr_t)info->buffer[idx]+(uintptr_t)info->xor_info[id].offset[idx]);
-        unsigned long cnt = 0;
         for ( idxul=0; idxul<info->xor_info[id].nunits[idx]; ++idxul ) {
             uint32_t val;
             memcpy(&val, ptr, UI_UNIT);
@@ -133,7 +135,10 @@ void xor_data( int id, dcp_info_t *info ) {
             ++cnt;
             ptr += UI_UNIT;
         }
-        DBG_MSG("changed: %lu, of: %lu, share requested: %.2lf, actual share: %.2lf", cnt*UI_UNIT, info->size[idx], nfo->xor_info[id].share, ((double)(cnt*UI_UNIT))/info->size[idx]);
+    }
+    //DBG_MSG("changed: %lu, of: %lu, share requested: %.2lf, actual share: %.2lf", cnt*UI_UNIT, info->size[idx], nfo->xor_info[id].share, ((double)(cnt*UI_UNIT))/info->size[idx]);
+    if ( grank == 0 ) {
+        printf("changed: %lu, of: %lu, share: %.2lf\n", cnt*UI_UNIT, ckptsize, 100*((double)(cnt*UI_UNIT))/ckptsize);
     }
 }
 
@@ -199,6 +204,9 @@ unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, 
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         double share = ((double)SHARE[info->nbuffer-1][idx])/100;
         info->size[idx] = (unsigned long)(share*alloc_size);
+        if ( grank ==0 ) {
+            printf("info->size[idx]: %ld\n", info->size[idx]);
+        }
         allocated += info->size[idx];
         DBG_MSG("idx: %d, allocated (total): %lu, allocated (idx): %lu, share: %.2lf%%",idx,allocated, info->size[idx], share*100);
     }
@@ -207,6 +215,9 @@ unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, 
         unsigned long rest = alloc_size-allocated;
         allocated += rest;
         info->size[idx-1] += rest;
+    }
+    if ( grank ==0 ) {
+        printf("allocated: %ld\n", allocated);
     }
     assert ( ( alloc_size == allocated ) );
     return alloc_size;

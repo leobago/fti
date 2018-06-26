@@ -278,7 +278,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             //checkpoint was not saved in global temporary directory
             int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
             if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
-                FTI_Print("Cannot rename local directory", FTI_EROR);
+                char dbg_str[FTI_BUFS];
+                snprintf(dbg_str, FTI_BUFS, "Cannot rename local directory (%s)", FTI_Conf->lTmpDir);
+                FTI_Print(dbg_str, FTI_EROR);
             }
             else {
                 FTI_Print("Local directory renamed", FTI_DBUG);

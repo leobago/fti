@@ -5,9 +5,11 @@ FTI_LIB_DIR := $(FTI_HOME)/lib
 FTI_SRC := /home/kellekai/WORK/FTI/FTI-REPO-KAI/src/*.h /home/kellekai/WORK/FTI/FTI-REPO-KAI/src/*.c /home/kellekai/WORK/FTI/FTI-REPO-KAI/include/fti.h
 WORK_DIR := /home/kellekai/WORK/FTI/FTI-REPO-KAI/test/local/diffckpt
 
-.PHONY: clean all run fti
+.PHONY: clean all run fti share env
 
 all: diff_test
+
+export LD_LIBRARY_PATH = /usr/lib64/mpi/gcc/openmpi/lib64:/home/kellekai/WORK/FTI/FTI-REPO-KAI/build/RELEASE/lib
 
 fti: $(FTI_SRC) clean
 	cd $(FTI_BUILD) && $(MAKE) all install
@@ -32,6 +34,18 @@ small-valgrind: test.c Makefile fti
 run: diff_test Makefile
 	cp cfg/config.fti .
 	mpirun -n 8 ./$<
+
+share: test_share.c diff_test.h Makefile
+	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
+	cp cfg/config.fti .
+	mpirun -n 8 ./$@
+	mpirun -n 8 ./$@
+
+realloc: realloc-test.c Makefile
+	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
+	cp cfg/config.fti .
+	mpirun -n 8 valgrind ./$@
+	mpirun -n 8 ./$@
 
 run-test: diff_test Makefile
 	cp cfg/config.fti .

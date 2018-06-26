@@ -82,10 +82,10 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
             case -1:
                 printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> OFF\n");
                 break;
-            case 0:
+            case FTI_DCP_MODE_MD5:
                 printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> MD5\n");
                 break;
-            case 1:
+            case FTI_DCP_MODE_CRC32:
                 printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> CRC32\n");
                 break;
         }
@@ -311,7 +311,7 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
         switch ( HASH_MODE ) {
             case FTI_DCP_MODE_MD5:
-                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=2048));
+                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=DIFF_BLOCK_SIZE));
                 MD5(hashInfo->ptr, hashInfo->blockSize, md5hashNow);
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
@@ -409,7 +409,7 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     // if differential ckpt is disabled, return whole chunk and finalize call
     if ( !enableDiffCkpt ) {
         reset = true;
-        *buffer_addr = (FTI_ADDRVAL) FTI_Data[dbvar->idx].ptr;
+        *buffer_addr = (FTI_ADDRVAL) FTI_Data[dbvar->idx].ptr + dbvar->dptr;
         *buffer_size = dbvar->chunksize;
         return 1;
     }
