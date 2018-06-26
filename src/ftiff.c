@@ -723,9 +723,8 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                         FTI_ExpandBlockHashArray( dbvar, dbvar->containersize, data );
                                         //DBG_MSG("EXPAND",-1);
                                     }
-                                    else if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
-                                        printf("WRONG POINTER!!!!\n");
-                                        exit(-1);
+                                    if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
+                                        FTI_UpdateBlockHashPtr( dbvar, data );
                                     }
                                 }
                             }
@@ -754,6 +753,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 if ( FTI_Conf->enableDiffCkpt && ( dbvar->chunksize > chunksizeOld ) ) {
                                     FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
                                     //DBG_MSG("EXPAND",-1);
+                                }
+                                if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
+                                    FTI_UpdateBlockHashPtr( dbvar, data );
                                 }
                             }
                             validBlock[pvar_idx] = false;
@@ -807,6 +809,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].containerid = 0;
                         dbvars[evar_idx].containersize = FTI_Data[pvar_idx].size;
                         dbsize += dbvars[evar_idx].containersize; 
+                        FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
                         evar_idx++;
                         callInit = true;
 
@@ -826,6 +829,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].containerid = nbContainers[pvar_idx];
                         dbvars[evar_idx].containersize = overflow[pvar_idx]; 
                         dbsize += dbvars[evar_idx].containersize; 
+                        FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
                         evar_idx++;
                         callInit = true;
 
@@ -833,10 +837,10 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
                 }
                 // [FOR DCP] init hash array for new block or new protected variable
-                if ( FTI_Conf->enableDiffCkpt && callInit ) {
-                    FTI_InitBlockHashArray( &(dbvars[evar_idx-1]), &(FTI_Data[pvar_idx]) );
-                    //DBG_MSG("INIT NEW BLOCK/VARIABLE",-1);
-                }
+                //if ( FTI_Conf->enableDiffCkpt && callInit ) {
+                //    FTI_InitBlockHashArray( &(dbvars[evar_idx-1]), &(FTI_Data[pvar_idx]) );
+                //    //DBG_MSG("INIT NEW BLOCK/VARIABLE",-1);
+                //}
 
             }
 
@@ -1574,9 +1578,12 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
         isnextdb = 0;
 
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
+            
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-
+            
+            if(!(currentdbvar->hascontent)) {
+                continue;
+            }
             // get source and destination pointer
             destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
             
@@ -1620,7 +1627,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             FTI_Print(str, FTI_INFO);
 
             if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i|cnt-id:%d has been corrupted! Discard recovery.", currentdbvar->id, currentdbvar->containerid);
                 FTI_Print(strerr, FTI_WARN);
                 //if ( munmap( fmmap, st.st_size ) == -1 ) {
                 //    FTI_Print("FTIFF: FTIFF_Recover - unable to unmap memory", FTI_EROR);

@@ -256,6 +256,7 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_offset, FTI_ADDRVAL* buffer_size, F
 long FTI_CalcNumHashes( long chunkSize );
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data );
 int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data );
+int FTI_UpdateBlockHashPtr( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data );
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data );
 int FTI_GetDcpMode();
 int FTI_GetDiffBlockSize();

@@ -139,6 +139,18 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
     }
 }
 
+int FTI_UpdateBlockHashPtr( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data ) {
+    assert( dbvar->dataDiffHash != NULL );
+    FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
+    FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
+    int hashIdx;
+    for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
+        hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
+        ptr += hashes[hashIdx].blockSize;
+    }
+    
+}
+
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset* FTI_Data ) 
 {
 

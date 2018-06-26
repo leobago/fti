@@ -41,10 +41,10 @@ share: test_share.c diff_test.h Makefile
 	mpirun -n 8 ./$@
 	mpirun -n 8 ./$@
 
-realloc: realloc-test.c Makefile
+realloc: realloc-test.c Makefile fti
 	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
 	cp cfg/config.fti .
-	mpirun -n 8 valgrind ./$@
+	mpirun -n 8 ./$@
 	mpirun -n 8 ./$@
 
 run-test: diff_test Makefile
