@@ -1646,15 +1646,15 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
                 MD5_Final( hash, &mdContext );
 
-                //if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                //    snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
-                //    FTI_Print(strerr, FTI_WARN);
-                //    if ( munmap( fmmap, st.st_size ) == -1 ) {
-                //        FTI_Print("FTIFF: FTIFF_RecoverVar - unable to unmap memory", FTI_EROR);
-                //        errno = 0;
-                //    }
-                //    return FTI_NREC;
-                //}
+                if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
+                    snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    FTI_Print(strerr, FTI_WARN);
+                    if ( munmap( fmmap, st.st_size ) == -1 ) {
+                        FTI_Print("FTIFF: FTIFF_RecoverVar - unable to unmap memory", FTI_EROR);
+                        errno = 0;
+                    }
+                    return FTI_NREC;
+                }
 
             }
 
@@ -2019,40 +2019,9 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
-                            int rbuffer;
-                            char buffer[CHUNK_SIZE];
-                            MD5_Init (&mdContext);
-                            while( rcount < FTIFFMeta->fs ) {
-                                
-                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - could not seek in file: %s", tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno = 0;
-                                    closedir(L2CkptDir);
-                                    close(fd);
-                                    goto GATHER_L2INFO;
-                                }
-
-                                diff = FTIFFMeta->fs - rcount;
-                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
-                                
-                                rbuffer = read( fd, buffer, toRead );
-                                if ( rbuffer == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno=0;
-                                    closedir(L2CkptDir);
-                                    close(fd);
-                                    goto GATHER_L2INFO;
-                                }
-
-                                rcount += rbuffer;
-                                MD5_Update (&mdContext, buffer, rbuffer);
-                            }
 
                             unsigned char hash[MD5_DIGEST_LENGTH];
-                            MD5_Final (hash, &mdContext);
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
                             
                             int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
@@ -2150,37 +2119,10 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = sizeof(FTIFF_metaInfo), toRead, diff;
-                            int rbuffer;
-                            char buffer[CHUNK_SIZE];
-                            MD5_Init (&mdContext);
-                            while( rcount < FTIFFMeta->fs ) {
-                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - could not seek in file: %s", tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno = 0;
-                                    closedir(L2CkptDir);
-                                    close(fd);
-                                    goto GATHER_L2INFO;
-                                }
-
-                                diff = FTIFFMeta->fs - rcount;
-                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
-                                rbuffer = read( fd, buffer, toRead );
-                                if ( rbuffer == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L2RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno=0;
-                                    closedir(L2CkptDir);
-                                    close(fd);
-                                    goto GATHER_L2INFO;
-                                }
-
-                                rcount += rbuffer;
-                                MD5_Update (&mdContext, buffer, rbuffer);
-                            }
                             unsigned char hash[MD5_DIGEST_LENGTH];
-                            MD5_Final (hash, &mdContext);
+                            
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
+                            
                             int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
                             int ii = 0;
@@ -2400,42 +2342,11 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            long rcount = sizeof(FTIFF_metaInfo) , toRead, diff;
-                            int rbuffer;
-                            char *buffer = malloc( CHUNK_SIZE );
-                            MD5_Init (&mdContext);
-                            while( rcount < FTIFFMeta->fs ) {
-                                
-                                if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno = 0;
-                                    closedir(L3CkptDir);
-                                    close(fd);
-                                    goto GATHER_L3INFO;
-                                }
-
-                                diff = FTIFFMeta->fs - rcount;
-                                toRead = ( diff < CHUNK_SIZE ) ? diff : CHUNK_SIZE;
-                                
-                                rbuffer = read( fd, buffer, toRead );
-                                if ( rbuffer == -1 ) {
-                                    snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to read %ld bytes from file: %s", toRead, tmpfn);
-                                    FTI_Print(strerr, FTI_EROR);
-                                    errno=0;
-                                    closedir(L3CkptDir);
-                                    close(fd);
-                                    goto GATHER_L3INFO;
-                                }
-                                
-                                rcount += rbuffer;
-                                MD5_Update (&mdContext, buffer, rbuffer);
-                            }
                             unsigned char hash[MD5_DIGEST_LENGTH];
-                            MD5_Final (hash, &mdContext);
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
                             
-                            int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int i;
                             int ii = 0;
                             for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
                                 sprintf(&checksum[ii], "%02x", hash[i]);
