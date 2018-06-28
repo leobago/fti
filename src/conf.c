@@ -155,7 +155,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[4].ckptCnt  = 1;
 
     // Reading/setting configuration metadata
-    FTI_Conf->enableDiffCkpt = ( (int)iniparser_getint(ini, "Basic:diff_ckpt", -1) == 1 ) ? true : false;
+    FTI_Conf->dcpEnabled = ( (int)iniparser_getint(ini, "Basic:diff_ckpt", -1) == 1 ) ? true : false;
     FTI_Conf->diffMode = (int)iniparser_getint(ini, "Basic:diff_mode", 0);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
@@ -449,6 +449,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             }
         }
         snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
+        snprintf(FTI_Ckpt[4].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->glbalDir);
         snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
 
         // Create local checkpoint timestamp directory

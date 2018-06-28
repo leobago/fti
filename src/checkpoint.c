@@ -147,13 +147,25 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-        FTI_Print("Saving to temporary global directory", FTI_DBUG);
+        
+        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
-        //Create global temp directory
-        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create global directory", FTI_EROR);
-                return FTI_NSCS;
+            //Create global temp directory
+            if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create global directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
+                    if (errno != EEXIST) {
+                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                        return FTI_NSCS;
+                    }
+                }
             }
         }
 
@@ -214,6 +226,11 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_DBUG);
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+    
+    if ( FTI_Topo->splitRank == 0 ) {
+        FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+    }
+
     return res;
 }
 
@@ -270,6 +287,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (int)(!FTI_Ckpt[4].isDcp && (bool)nodeFlag);
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
         snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
@@ -288,6 +306,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
+    globalFlag = (int)(!FTI_Ckpt[4].isDcp && (bool)globalFlag);
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
         if (FTI_Exec->ckptLvel == 4) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {

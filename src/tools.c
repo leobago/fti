@@ -162,11 +162,9 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // | FTI_Ckpt |
     // +--------- +
 
-    /* char[BUFS]       FTI_Ckpt->dir */                memset(FTI_Ckpt->dir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Ckpt->metaDir */            memset(FTI_Ckpt->metaDir,0x0,FTI_BUFS);
-    /* int           */ FTI_Ckpt->isInline              =0;
-    /* int           */ FTI_Ckpt->ckptIntv              =0;
-    /* int           */ FTI_Ckpt->ckptCnt               =0;
+    /* FTIT_Ckpt[5]     FTI_Ckpt Array */               memset(FTI_Ckpt,0x0,sizeof(FTIT_checkpoint)*5);
+    /* int           */ FTI_Ckpt[4].isDcp               =false;
+    /* int           */ FTI_Ckpt[4].hasDcp              =false;
 
     // +--------- +
     // | FTI_Injc |
@@ -789,7 +787,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // Clean last checkpoint level 4
-    if (level == 4 || level == 5) {
+    if ( (level == 4 || level == 5) && !FTI_Ckpt[4].isDcp ) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);

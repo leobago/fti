@@ -100,6 +100,20 @@ extern "C" {
     /*---------------------------------------------------------------------------
       FTI-FF types
       ---------------------------------------------------------------------------*/
+    
+    /** @typedef    FTIT_level
+     *  @brief      holds the level id.
+     */
+    typedef enum {
+        FTI_L1 = 1,
+        FTI_L2,
+        FTI_L3,
+        FTI_L4,
+        FTI_L4_DCP,
+        FTI_NUM_LEVELS,
+        FTI_MIN_LEVEL_ID = FTI_L1,
+        FTI_MAX_LEVEL_ID = FTI_L4_DCP
+    } FTIT_level;
 
     typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
     typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
@@ -346,7 +360,7 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
-        bool            enableDiffCkpt;     /**< Enable differential ckpt.      */
+        bool            dcpEnabled;     /**< Enable differential ckpt.      */
         int             diffMode;           /**< Enable differential ckpt.      */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
@@ -404,7 +418,11 @@ extern "C" {
      */
     typedef struct FTIT_checkpoint {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
+        char            dcpDir[FTI_BUFS];      /**< Checkpoint directory.          */
         char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
+        char            dcpName[FTI_BUFS];  /**< dCP file name.                 */
+        bool            isDcp;              /**< TRUE if dCP to take.           */
+        bool            hasDcp;             /**< TRUE if dCP to take.           */
         int             isInline;           /**< TRUE if work is inline.        */
         int             ckptIntv;           /**< Checkpoint interval.           */
         int             ckptCnt;            /**< Checkpoint counter.            */

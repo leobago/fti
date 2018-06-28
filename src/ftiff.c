@@ -574,7 +574,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             dbvars[dbvar_idx].containerid = 0;
             dbvars[dbvar_idx].containersize = FTI_Data[dbvar_idx].size;
             // FOR DCP 
-            if  ( FTI_Conf->enableDiffCkpt ) {
+            if  ( FTI_Conf->dcpEnabled ) {
                 FTI_InitBlockHashArray( &(dbvars[dbvar_idx]), &(FTI_Data[dbvar_idx]) );
                 //DBG_MSG("INIT HASH INFO",-1);
             } else {
@@ -659,7 +659,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                             if ( dbvar->hascontent ) {
                                 dbvar->hascontent = false;
                                 // [FOR DCP] free hash array and hash structure in block
-                                if ( ( dbvar->dataDiffHash != NULL ) && FTI_Conf->enableDiffCkpt ) {
+                                if ( ( dbvar->dataDiffHash != NULL ) && FTI_Conf->dcpEnabled ) {
                                     //DBG_MSG("FREE",-1);
                                     free(dbvar->dataDiffHash[0].md5hash);
                                     free(dbvar->dataDiffHash);
@@ -678,13 +678,13 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                             if ( !dbvar->hascontent ) {
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
-                                if ( FTI_Conf->enableDiffCkpt ) {
+                                if ( FTI_Conf->dcpEnabled ) {
                                     FTI_InitBlockHashArray( dbvar, data );
                                     //DBG_MSG("INIT CAUSE DATASET INCREASED",-1);
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
-                                if ( FTI_Conf->enableDiffCkpt ) {
+                                if ( FTI_Conf->dcpEnabled ) {
                                     if (  dbvar->chunksize > chunksizeOld ) {
                                         FTI_ExpandBlockHashArray( dbvar, dbvar->containersize, data );
                                         //DBG_MSG("EXPAND",-1);
@@ -706,17 +706,17 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                             if ( !dbvar->hascontent ) {
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
-                                if ( FTI_Conf->enableDiffCkpt ) {
+                                if ( FTI_Conf->dcpEnabled ) {
                                     FTI_InitBlockHashArray( dbvar, data );
                                     //DBG_MSG("INIT TO REACTIVATE BLOCK",-1);
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
-                                if ( FTI_Conf->enableDiffCkpt && ( dbvar->chunksize < chunksizeOld ) ) {
+                                if ( FTI_Conf->dcpEnabled && ( dbvar->chunksize < chunksizeOld ) ) {
                                     FTI_CollapseBlockHashArray( dbvar, chunksizeOld, data );
                                     //DBG_MSG("COLLAPSE",-1);
                                 }
-                                if ( FTI_Conf->enableDiffCkpt && ( dbvar->chunksize > chunksizeOld ) ) {
+                                if ( FTI_Conf->dcpEnabled && ( dbvar->chunksize > chunksizeOld ) ) {
                                     FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
                                     //DBG_MSG("EXPAND",-1);
                                 }
@@ -803,7 +803,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
                 }
                 // [FOR DCP] init hash array for new block or new protected variable
-                //if ( FTI_Conf->enableDiffCkpt && callInit ) {
+                //if ( FTI_Conf->dcpEnabled && callInit ) {
                 //    FTI_InitBlockHashArray( &(dbvars[evar_idx-1]), &(FTI_Data[pvar_idx]) );
                 //    //DBG_MSG("INIT NEW BLOCK/VARIABLE",-1);
                 //}
@@ -909,33 +909,32 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
-        if( FTI_Exec->hasCkpt && FTI_Conf->enableDiffCkpt ) {
-            snprintf(fn, FTI_BUFS, "%s/l4/%s", FTI_Conf->glbalDir, FTI_Exec->meta[0].currentCkptFile);
-            snprintf(fnr, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        if( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
         }
     }
     // only l1 yet just for testing
     else {
-        if( FTI_Exec->hasCkpt && FTI_Conf->enableDiffCkpt ) {
-            snprintf(fn, FTI_BUFS, "%s/l1/%s", FTI_Conf->localDir, FTI_Exec->meta[0].currentCkptFile);
-            snprintf(fnr, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-        } else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-        }
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     FILE* fd;
 
     // If ckpt file does not exist -> open with wb+ (Truncate to zero length or create file for update.)
-    if (access(fn,R_OK) != 0) {
+    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if (access(fn,R_OK) != 0) {
+            fd = fopen(fn, "wb+");
+        } 
+        // If file exists -> open with rb+ (Open file for update (reading and writing).)
+        else {
+            fd = fopen(fn, "rb+");
+        }
+    } else {
         fd = fopen(fn, "wb+");
-    } 
-    // If file exists -> open with rb+ (Open file for update (reading and writing).)
-    else {
-        fd = fopen(fn, "rb+");
     }
+
     if (fd == NULL) {
         snprintf(strerr, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
         FTI_Print(strerr, FTI_EROR);
@@ -1161,7 +1160,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         checksize += FTI_Data[dataidx].size;
     }
     assert (checksize == ckptsize);
-    DBG_MSG("share: %.2lf, diffsize: %ld, ckptsize: %ld", 0, 100.0*(((double)diffSize)/ckptsize), diffSize, ckptsize);
+    //DBG_MSG("share: %.2lf, diffsize: %ld, ckptsize: %ld", 0, 100.0*(((double)diffSize)/ckptsize), diffSize, ckptsize);
 
     unsigned char fhash[MD5_DIGEST_LENGTH];
     MD5_Final( fhash, &mdContext );
@@ -1199,16 +1198,16 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fsync(fdd);
     fclose( fd );
 
-    if( FTI_Exec->hasCkpt && FTI_Conf->enableDiffCkpt ) {
-        int indicator = rename(fn, fnr);
-        if ( indicator == -1 ) {
-            perror("CANNOT RENAME FILE");
-            //exit(-1);
-        }
-        //MPI_Barrier(FTI_COMM_WORLD);
-    }
+    //if( FTI_Exec->hasCkpt && FTI_Conf->dcpEnabled ) {
+    //    int indicator = rename(fn, fnr);
+    //    if ( indicator == -1 ) {
+    //        perror("CANNOT RENAME FILE");
+    //        //exit(-1);
+    //    }
+    //    //MPI_Barrier(FTI_COMM_WORLD);
+    //}
     
-    strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+    //strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
 
     return FTI_SCES;
 
@@ -2673,7 +2672,7 @@ GATHER_L3INFO:
  **/
 /*-------------------------------------------------------------------------*/
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
-        FTIT_checkpoint* FTI_Ckpt, char *checksum)
+        FTIT_checkpoint* FTI_Ckpt)
 {
     char str[FTI_BUFS], strerr[FTI_BUFS], tmpfn[FTI_BUFS];
     int fexist = 0, fileTarget, ckptID, fcount;
@@ -2684,14 +2683,21 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     
     FTIFF_metaInfo _FTIFFMeta;
     FTIFF_metaInfo *FTIFFMeta = (FTIFF_metaInfo*) memset( &_FTIFFMeta, 0x0, sizeof(FTIFF_metaInfo) ); 
-    
+   
+    char L4DirName[FTI_BUFS];
+
+    if ( FTI_Ckpt[4].isDcp ) {
+        strcpy( L4DirName, FTI_Ckpt[4].dcpDir );
+    } else {
+        strcpy( L4DirName, FTI_Ckpt[4].dir );
+    }
     // check if L4 ckpt directory exists
     bool L4CkptDirExists = false;
-    if ( stat( FTI_Ckpt[1].dir, &ckptDIR ) == 0 ) {
+    if ( stat( L4DirName, &ckptDIR ) == 0 ) {
         if ( S_ISDIR( ckptDIR.st_mode ) != 0 ) {
             L4CkptDirExists = true;
         } else {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoverInit - (%s) is not a directory.", FTI_Ckpt[4].dir);
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoverInit - (%s) is not a directory.", L4DirName);
             FTI_Print(strerr, FTI_WARN);
             goto GATHER_L4INFO;
         }
@@ -2699,10 +2705,10 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     if(L4CkptDirExists) {
         
-        DIR *L4CkptDir = opendir( FTI_Ckpt[4].dir );
+        DIR *L4CkptDir = opendir( L4DirName );
         
         if (L4CkptDir == NULL) {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - checkpoint directory (%s) could not be accessed.", FTI_Ckpt[4].dir);
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - checkpoint directory (%s) could not be accessed.", L4DirName);
             FTI_Print(strerr, FTI_EROR);
             errno = 0;
             goto GATHER_L4INFO;
@@ -2713,10 +2719,14 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
                 snprintf(str, FTI_BUFS, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
                 FTI_Print(str, FTI_DBUG);
-                sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
-                
+                if ( FTI_Ckpt[4].isDcp ) {
+                    sscanf(entry->d_name, "dCPFile-Rank%d.fti", &fileTarget );
+                } else {
+                    sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
+                }
                 if( fileTarget == FTI_Topo->myRank ) {
-                    snprintf(tmpfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, entry->d_name);
+                    //DBG_MSG("%s %d %d",-1,entry->d_name, fileTarget, FTI_Topo->myRank );
+                    snprintf(tmpfn, FTI_BUFS, "%s/%s", L4DirName, entry->d_name);
                     
                     if ( stat(tmpfn, &ckptFS) == -1 ) {
                         snprintf( strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - Problem with stats on file %s", tmpfn );
@@ -2764,18 +2774,45 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             goto GATHER_L4INFO;
                         }
 
-                        close(fd);
                         unsigned char hash[MD5_DIGEST_LENGTH];
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
                             FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
-                            FTI_Exec->ckptID = ckptID;
-                            // checksum check later in case of L4
-                            strncpy(checksum, FTIFFMeta->checksum, MD5_DIGEST_STRING_LENGTH);
-                            strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
-                            strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
-                            fexist = 1;
+                            if ( !FTI_Ckpt[4].isDcp ) {
+                                FTI_Exec->ckptID = ckptID;
+                            }
+                            
+                            unsigned char hash[MD5_DIGEST_LENGTH];
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
+                            
+                            int i;
+                            char checksum[MD5_DIGEST_STRING_LENGTH];
+                            int ii = 0;
+                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                                sprintf(&checksum[ii], "%02x", hash[i]);
+                                ii += 2;
+                            }
+                            
+                            if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
+                                if ( !FTI_Ckpt[4].isDcp ) {
+                                    strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
+                                } else {
+                                    snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, fileTarget );
+                                }
+                                strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
+                                fexist = 1;
+                            } 
+                            else {
+                                char str[FTI_BUFS];
+                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                                        entry->d_name, checksum, FTIFFMeta->checksum);
+                                FTI_Print(str, FTI_WARN);
+                                close(fd);
+                                free(FTIFFMeta);
+                                closedir(L4CkptDir);
+                                goto GATHER_L4INFO;
+                            }
                         } else {
                             char str[FTI_BUFS];
                             snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
@@ -2783,6 +2820,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             closedir(L4CkptDir);
                             goto GATHER_L4INFO;
                         }
+                        close(fd);
                         break;
                     } else {
                         char str[FTI_BUFS];

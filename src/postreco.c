@@ -856,9 +856,8 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Checking erasures
-    char checksumL4[MD5_DIGEST_STRING_LENGTH];
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        if ( FTIFF_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, checksumL4 ) != FTI_SCES ) {
+        if ( FTIFF_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
             FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
             return FTI_NSCS;
         }
@@ -896,7 +895,12 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
     snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    
+    if ( FTI_Ckpt[4].isDcp ) {
+        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[4].ckptFile);
+    } else {
+        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    }
 
     FILE* gfd = fopen(gfn, "rb");
     if (gfd == NULL) {
@@ -915,9 +919,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long bSize = FTI_Conf->transferSize;
     long fs = FTI_Exec->meta[4].fs[0];
 
-    MD5_CTX md5ctxL4;
-    MD5_Init(&md5ctxL4);
-
     // Checkpoint files transfer from PFS
     long pos = 0;
     while (pos < fs) {
@@ -926,16 +927,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         size_t bytes = fread(readData, sizeof(char), bSize, gfd);
-        // FTI-FF: skip file meta data for computing the checksum
-        if( (FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
-            if ( pos < sizeof(FTIFF_metaInfo) )  {
-                if( (pos + bytes) > sizeof(FTIFF_metaInfo) ) {
-                    MD5_Update( &md5ctxL4, readData+sizeof(FTIFF_metaInfo), (pos+bytes)-sizeof(FTIFF_metaInfo) );
-                }
-            } else {
-                MD5_Update( &md5ctxL4, readData, bytes );
-            }
-        }
 
         if (ferror(gfd)) {
             FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
@@ -961,27 +952,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         pos = pos + bytes;
-    }
-
-    // FTI-FF: check if checksums coincide
-    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-        unsigned char hashL4[MD5_DIGEST_LENGTH];
-        MD5_Final( hashL4, &md5ctxL4 );
-
-        char checksumL4cmp[MD5_DIGEST_STRING_LENGTH];
-        int ii = 0, i;
-        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksumL4cmp[ii], "%02x", hashL4[i]);
-            ii+=2;
-        }
-        if(strcmp(checksumL4, checksumL4cmp) != 0) {
-            char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
-                    gfn, checksumL4, checksumL4cmp);
-            FTI_Print(str, FTI_WARN);
-            return FTI_NSCS;
-        }
-
     }
 
     free(readData);

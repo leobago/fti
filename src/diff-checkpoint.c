@@ -49,7 +49,7 @@ static int                  DIFF_BLOCK_SIZE;
 
 /** File Local Variables                                                                */
 
-static bool enableDiffCkpt;
+static bool dcpEnabled;
 static int diffMode;
 
 /** Function Definitions                                                                */
@@ -60,7 +60,7 @@ int FTI_FinalizeDcp()
 
 int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
-    if ( !FTI_Conf->enableDiffCkpt ) {
+    if ( !FTI_Conf->dcpEnabled ) {
         return FTI_SCES;
     }
     
@@ -92,7 +92,7 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : DIFF_BLOCK_SIZE IS -> %d\n", DIFF_BLOCK_SIZE);
     }
 
-    enableDiffCkpt = FTI_Conf->enableDiffCkpt;
+    dcpEnabled = FTI_Conf->dcpEnabled;
     
     diffMode = FTI_Conf->diffMode;
     return FTI_SCES;
@@ -419,7 +419,7 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     }
    
     // if differential ckpt is disabled, return whole chunk and finalize call
-    if ( !enableDiffCkpt ) {
+    if ( !dcpEnabled ) {
         reset = true;
         *buffer_addr = (FTI_ADDRVAL) FTI_Data[dbvar->idx].ptr + dbvar->dptr;
         *buffer_size = dbvar->chunksize;

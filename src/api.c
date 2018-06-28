@@ -823,14 +823,24 @@ int FTI_Checkpoint(int id, int level)
         return FTI_NSCS;
     }
 
-    if ((level < 1) || (level > 4)) {
-        FTI_Print("Level of checkpoint must be 1, 2, 3 or 4.", FTI_WARN);
+    if ((level < FTI_MIN_LEVEL_ID) || (level > FTI_MAX_LEVEL_ID)) {
+        FTI_Print("Invalid level id! Aborting checkpoint creation...", FTI_WARN);
         return FTI_NSCS;
     }
 
     char str[FTI_BUFS]; //For console output
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
+
+    if ( FTI_Conf.dcpEnabled && (level == FTI_L4_DCP) ) {
+        FTI_Ckpt[4].isDcp = true;
+        level = 4;
+        if ( !FTI_Ckpt[4].hasDcp ) {
+            snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo.splitRank);
+        }
+    }
+
+    DBG_MSG("cp file: %s",-1, FTI_Ckpt[4].dcpName);
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -853,7 +863,7 @@ int FTI_Checkpoint(int id, int level)
    
 
     // set hasCkpt flags true
-    if ( FTI_Conf.enableDiffCkpt ) {
+    if ( FTI_Conf.dcpEnabled && (level == FTI_L4_DCP) ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
         FTIFF_db* nextDB = NULL;
         do {    
@@ -869,7 +879,7 @@ int FTI_Checkpoint(int id, int level)
         
     
         FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
-        FTI_Exec.hasCkpt = true;
+        FTI_Ckpt[4].hasDcp = true;
     }
 
     // FTIFF: send meta info to the heads
@@ -926,6 +936,10 @@ int FTI_Checkpoint(int id, int level)
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+    }
+    
+    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        FTI_Ckpt[4].isDcp = false;
     }
  
     return FTI_DONE;
@@ -1126,7 +1140,7 @@ int FTI_Finalize()
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
     }
     
-    if (FTI_Conf.enableDiffCkpt) {
+    if (FTI_Conf.dcpEnabled) {
         FTI_FinalizeDcp();
     }
 

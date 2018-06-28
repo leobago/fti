@@ -416,6 +416,172 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Loads relevant data from checkpoint meta data 
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
+{
+	char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
+    snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+   
+    dictionary* ini;
+
+    if ( access( fn, F_OK ) != 0 ) { 
+        snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
+        FTI_Print(str, FTI_EROR);
+    }     
+    
+    // initialize dictionary
+    ini = iniparser_load(fn);
+    if ( ini == NULL ) {
+        FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    char lastCkpt[FTI_BUFS];
+    if ( ((int)(ini->n)-6) < 0 ) {
+        FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    memset( lastCkpt, 0x0, FTI_BUFS );
+    strncpy( lastCkpt, ini->key[ini->n-6], FTI_BUFS-1);
+    
+    int ckptID;
+    sscanf(lastCkpt, "checkpoint_id.%d", &ckptID ); 
+
+    char key[FTI_BUFS];
+    snprintf( key, FTI_BUFS, "%s:level", lastCkpt );
+    int ckptLvel = iniparser_getint( ini, key, -1);
+    
+    if ( ckptLvel == -1 ) {
+        FTI_Print( "Unable to read checkpoint level from checkpoint meta data file", FTI_EROR );
+        dictionary_del(ini);
+        return FTI_NSCS;
+    }
+
+    if ( ckptLvel == 4 ) {
+        snprintf( key, FTI_BUFS, "%s:is_dcp", lastCkpt );
+        int isDcp = iniparser_getboolean( ini, key, -1);
+        if ( isDcp == -1 ) {
+            FTI_Print( "Unable to identify if dCP from checkpoint meta data file", FTI_EROR );
+            dictionary_del(ini);
+            return FTI_NSCS;
+        } else {    
+            FTI_Ckpt[4].isDcp = (bool) isDcp;
+        }
+    }
+
+    //FTI_Exec->ckptLvel = ckptLvel;
+    FTI_Exec->ckptID = ckptID;
+
+    return FTI_SCES;
+
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Creates or updates checkpoint meta data 
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+
+  Writes checkpoint meta data in checkpoint meta data file.
+    - timestamp
+    - level
+    - number of processes participating in the checkpoint
+    - I/O mode
+    - dCP enabled/disabled
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
+{
+
+	char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
+    snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+   
+    FILE* fstream;
+    dictionary* ini;
+
+    // initialize dictionary
+    // [A] - create empty if no ckpt meta file exists
+    if ( access( fn, F_OK ) != 0 ) { 
+        snprintf(str, FTI_BUFS, "Creating checkpoint metadata file (%s)...", fn);
+        FTI_Print(str, FTI_DBUG);
+        ini = dictionary_new(0);
+        if ( ini == NULL ) {
+            FTI_Print("Failed to allocate dictionary for checkpoint meta data file.", FTI_EROR);
+            return FTI_NSCS;
+        }
+    // [B] - initialize with data from ckpt meta file
+    } else {
+        snprintf(str, FTI_BUFS, "Updating checkpoint metadata file (%s)...", fn);
+        FTI_Print(str, FTI_DBUG);
+        ini = iniparser_load(fn);
+        if ( ini == NULL ) {
+            FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
+            return FTI_NSCS;
+        }
+    }
+    
+    char section[FTI_BUFS], key[FTI_BUFS], value[FTI_BUFS];
+    snprintf( section, FTI_BUFS, "checkpoint_id.%d", FTI_Exec->ckptID );
+    iniparser_set( ini, section, NULL ); 
+    time_t time_ctx;
+    struct tm * time_info;
+    time( &time_ctx );
+    time_info = localtime( &time_ctx );
+    char timestr[FTI_BUFS];
+    strftime(timestr,FTI_BUFS,"%A %x - %H:%M:%S", time_info);
+    snprintf( key, FTI_BUFS, "%s:timestamp", section );
+    snprintf( value, FTI_BUFS, "%s", timestr );
+    iniparser_set( ini, key, value ); 
+    snprintf( key, FTI_BUFS, "%s:level", section );
+    snprintf( value, FTI_BUFS, "%d", FTI_Exec->ckptLvel );
+    iniparser_set( ini, key, value ); 
+    snprintf( key, FTI_BUFS, "%s:nb_procs", section );
+    snprintf( value, FTI_BUFS, "%d", FTI_Topo->nbApprocs * FTI_Topo->nbNodes );
+    iniparser_set( ini, key, value ); 
+    snprintf( key, FTI_BUFS, "%s:io_mode", section );
+    snprintf( value, FTI_BUFS, "%d", FTI_Conf->ioMode );
+    iniparser_set( ini, key, value ); 
+    snprintf( key, FTI_BUFS, "%s:is_dcp", section );
+    snprintf( value, FTI_BUFS, "%s", (FTI_Ckpt[FTI_Exec->ckptLvel].isDcp) ? "true" : "false" );
+    iniparser_set( ini, key, value ); 
+
+    fstream = fopen( fn, "w" );
+    if ( fstream == NULL ) {
+        snprintf( strErr, FTI_BUFS, "Failed to write checkpoint meta data to file (%s).",fn );
+        FTI_Print( strErr, FTI_EROR );
+        dictionary_del(ini);
+    }
+    
+    iniparser_dump_ini( ini, fstream );
+
+    if ( fclose( fstream ) != 0 ) {
+        snprintf( strErr, FTI_BUFS, "Failed to close checkpoint meta data file (%s)", fn );
+        FTI_Print( strErr, FTI_WARN );
+    }
+
+    dictionary_del(ini);
+
+    return FTI_SCES;
+
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It writes the metadata to recover the data after a failure.
