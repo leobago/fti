@@ -128,7 +128,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
-    double tt = MPI_Wtime(); //Start time
+    double tt;// = MPI_Wtime(); //Start time
 
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
@@ -169,6 +169,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
+        tt = MPI_Wtime();
         switch (FTI_Conf->ioMode) {
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
@@ -223,7 +224,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     snprintf(str, FTI_BUFS, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
-    FTI_Print(str, FTI_DBUG);
+    FTI_Print(str, FTI_INFO);
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
@@ -256,6 +257,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     char str[FTI_BUFS]; //For console output
 
+    //DBG
+    MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Start time
 
     int res; //Response from post-processing functions
@@ -287,7 +290,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
-    nodeFlag = (int)(!FTI_Ckpt[4].isDcp && (bool)nodeFlag);
+    nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
         snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
@@ -306,7 +309,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
-    globalFlag = (int)(!FTI_Ckpt[4].isDcp && (bool)globalFlag);
+    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
         if (FTI_Exec->ckptLvel == 4) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {

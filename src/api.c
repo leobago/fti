@@ -840,7 +840,7 @@ int FTI_Checkpoint(int id, int level)
         }
     }
 
-    DBG_MSG("cp file: %s",-1, FTI_Ckpt[4].dcpName);
+    //DBG_MSG("cp file: %s",-1, FTI_Ckpt[4].dcpName);
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -855,10 +855,14 @@ int FTI_Checkpoint(int id, int level)
         }
     }
     
+    //DBG
+    MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
+    //DBG
+    MPI_Barrier(FTI_COMM_WORLD);
     double t2 = MPI_Wtime(); //Time after writing checkpoint
    
 

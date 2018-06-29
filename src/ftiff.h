@@ -40,23 +40,47 @@
 #ifndef _FTIFF_H
 #define _FTIFF_H
 
+#include "fti.h"
+#include "checksum.h"
+#include <assert.h>
+#include <string.h>
+
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
 #define DBG_MSG(MSG,RANK,...) do { \
     int rank; \
     MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
     if ( rank == RANK ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
     if ( RANK == -1 ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
-#include "fti.h"
-#include "checksum.h"
-#include <assert.h>
+#define BEGIN_TIME_MEASUREMENT( ID ) do { \
+    T1_ ## ID = MPI_Wtime(); \
+} while(0)
+
+#define END_TIME_MEASUREMENT( ID, MSG ) do { \
+    T2_ ## ID = MPI_Wtime(); \
+    DBG_MSG("[%d] '%s' took %lf seconds.", -1, ID, MSG, T2_ ## ID - T1_ ## ID); \
+} while(0)
+
+#define PRINT_DURATION( FUNC, RESULT_PTR ) do { \
+    double t1, t2; \
+    t1 = MPI_Wtime(); \
+    if ( RESULT_PTR != NULL ) { \
+        *RESULT_PTR = FUNC; \
+    } else { \
+        FUNC; \
+    } \
+    t2 = MPI_Wtime(); \
+    DBG_MSG( "Call to " #FUNC " was completed in %lf seconds.\n", -1, t2-t1 ); \
+} while (0) \
 
 /**
 

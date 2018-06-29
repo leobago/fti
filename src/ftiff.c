@@ -712,16 +712,18 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
-                                if ( FTI_Conf->dcpEnabled && ( dbvar->chunksize < chunksizeOld ) ) {
-                                    FTI_CollapseBlockHashArray( dbvar, chunksizeOld, data );
-                                    //DBG_MSG("COLLAPSE",-1);
-                                }
-                                if ( FTI_Conf->dcpEnabled && ( dbvar->chunksize > chunksizeOld ) ) {
-                                    FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
-                                    //DBG_MSG("EXPAND",-1);
-                                }
-                                if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
-                                    FTI_UpdateBlockHashPtr( dbvar, data );
+                                if ( FTI_Conf->dcpEnabled ) {
+                                    if ( dbvar->chunksize < chunksizeOld ) {
+                                        FTI_CollapseBlockHashArray( dbvar, chunksizeOld, data );
+                                        //DBG_MSG("COLLAPSE",-1);
+                                    }
+                                    if ( dbvar->chunksize > chunksizeOld ) {
+                                        FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
+                                        //DBG_MSG("EXPAND",-1);
+                                    }
+                                    if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
+                                        FTI_UpdateBlockHashPtr( dbvar, data );
+                                    }
                                 }
                             }
                             validBlock[pvar_idx] = false;
@@ -775,7 +777,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].containerid = 0;
                         dbvars[evar_idx].containersize = FTI_Data[pvar_idx].size;
                         dbsize += dbvars[evar_idx].containersize; 
-                        FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                        if ( FTI_Conf->dcpEnabled ) {
+                            FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                        }
                         evar_idx++;
                         callInit = true;
 
@@ -795,7 +799,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbvars[evar_idx].containerid = nbContainers[pvar_idx];
                         dbvars[evar_idx].containersize = overflow[pvar_idx]; 
                         dbsize += dbvars[evar_idx].containersize; 
-                        FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                        if ( FTI_Conf->dcpEnabled ) {
+                            FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                        }
                         evar_idx++;
                         callInit = true;
 
@@ -893,9 +899,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-     
+   
     FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
+
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS], fnr[FTI_BUFS];
     
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);

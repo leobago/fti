@@ -42,6 +42,7 @@
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Init of the static variables
@@ -759,8 +760,11 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 {
     int nodeFlag; //only one process in the node has set it to 1
     int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
+    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
+
 
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
 
     if (level == 0) {
         FTI_RmDir(FTI_Conf->mTmpDir, globalFlag);
@@ -787,7 +791,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // Clean last checkpoint level 4
-    if ( (level == 4 || level == 5) && !FTI_Ckpt[4].isDcp ) {
+    if ( level == 4 || level == 5 ) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);
