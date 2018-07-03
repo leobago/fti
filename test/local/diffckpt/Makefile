@@ -35,6 +35,11 @@ run: diff_test Makefile fti
 	cp cfg/config.fti .
 	mpirun -n 8 ./$<
 
+speed: test_speed.c Makefile fti
+	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
+	cp cfg/config.fti .
+	mpirun -n 8 ./$@
+
 share: test_share.c diff_test.h Makefile fti
 	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
 	cp cfg/config.fti .

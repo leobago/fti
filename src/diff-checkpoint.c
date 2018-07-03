@@ -93,7 +93,8 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
     }
 
     dcpEnabled = FTI_Conf->dcpEnabled;
-    
+    DBG_MSG("dCP enabled",-1);
+
     diffMode = FTI_Conf->diffMode;
     return FTI_SCES;
 }

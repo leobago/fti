@@ -856,25 +856,27 @@ int FTI_Checkpoint(int id, int level)
     }
     
     //DBG
-    MPI_Barrier(FTI_COMM_WORLD);
+    //MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     //DBG
-    MPI_Barrier(FTI_COMM_WORLD);
+    //MPI_Barrier(FTI_COMM_WORLD);
     double t2 = MPI_Wtime(); //Time after writing checkpoint
    
 
     // set hasCkpt flags true
-    if ( FTI_Conf.dcpEnabled && (level == FTI_L4_DCP) ) {
+    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
         FTIFF_db* nextDB = NULL;
+        currentDB->update = false;
         do {    
             int varIdx;
             for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
                 FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
                 currentdbVar->hasCkpt = true;
+                currentdbVar->update = false;
 //                snprintf(str,FTI_BUFS,"var-id: %d, cont-id: %d\n", currentdbVar->id, currentdbVar->containerid);
 //                FTI_Print(str,FTI_INFO);
             }

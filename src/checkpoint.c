@@ -258,7 +258,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS]; //For console output
 
     //DBG
-    MPI_Barrier(FTI_COMM_WORLD);
+    //MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Start time
 
     int res; //Response from post-processing functions

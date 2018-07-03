@@ -169,6 +169,8 @@ extern "C" {
         long chunksize;     /**< chunk size stored aof prot. var. in this block */
         long containersize; /**< chunk size stored aof prot. var. in this block */
         unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
+        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
+        bool update;
         long nbHashes;
         FTIT_DataDiffHash* dataDiffHash;
     } FTIFF_dbvar;
@@ -183,6 +185,8 @@ extern "C" {
     typedef struct FTIFF_db {
         int numvars;            /**< number of protected variables in datablock */
         long dbsize;            /**< size of metadata + data for block in bytes */
+        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
+        bool update;
         FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array             */
         struct FTIFF_db *previous;  /**< link to previous datablock             */
         struct FTIFF_db *next;      /**< link to next datablock                 */
