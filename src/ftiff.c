@@ -945,12 +945,12 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
         if (access(fn,R_OK) != 0) {
             //fd = fopen(fn, "wb+");
-            fd = open( fn, O_RDWR|O_CREAT, (mode_t) 0600 ); 
+            fd = open( fn, O_WRONLY|O_CREAT, (mode_t) 0600 ); 
         } 
         // If file exists -> open with rb+ (Open file for update (reading and writing).)
         else {
             //fd = fopen(fn, "rb+");
-            fd = open( fn, O_RDWR );
+            fd = open( fn, O_WRONLY );
         }
     } else {
         //fd = fopen(fn, "wb+");
@@ -974,14 +974,14 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //    return FTI_NSCS;
     //}
     //fflush(fd);
-    //write( fd, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
-    //if ( fd == -1 ) {
-    //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
-    //    FTI_Print(strerr, FTI_EROR);
-    //    errno=0;
-    //    close(fd);
-    //    return FTI_NSCS;
-    //}
+    write( fd, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
+    if ( fd == -1 ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        errno=0;
+        close(fd);
+        return FTI_NSCS;
+    }
     //fsync(fd);
 
     // make sure that is never a null ptr. otherwise its to fix.
@@ -1012,140 +1012,140 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Write in file with FTI-FF
     long diffSize = 0, ckptsize = 0;
     
-    //do {    
+    do {    
 
-    //    isnextdb = 0;
+        isnextdb = 0;
 
-    //    mdoffset = endoffile;
+        mdoffset = endoffile;
 
-    //    endoffile += currentdb->dbsize;
+        endoffile += currentdb->dbsize;
 
-    //    // write db - datablock meta data
-    //    //if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
-    //    //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
-    //    //    FTI_Print(strerr, FTI_EROR);
-    //    //    fclose(fd);
-    //    //    errno = 0;
-    //    //    return FTI_NSCS;
-    //    //}
-    //    if (currentdb->update) {
-    //        if ( lseek( fd, mdoffset, SEEK_SET ) == -1 ) {
-    //            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
-    //            FTI_Print(strerr, FTI_EROR);
-    //            close(fd);
-    //            errno = 0;
-    //            return FTI_NSCS;
-    //        }
-
-
-    //        char * db_ser = malloc (sizeof(int) + sizeof(long) );
-
-    //        memcpy( db_ser, &(currentdb->numvars), sizeof(int) );
-
-    //        memcpy( db_ser+sizeof(int), &(currentdb->dbsize), sizeof(long) );
-    //        //fwrite( db_ser, sizeof(long) + sizeof(int), 1, fd );
-    //        //if ( ferror(fd) ) {
-    //        //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
-    //        //    FTI_Print(strerr, FTI_EROR);
-    //        //    errno=0;
-    //        //    fclose(fd);
-    //        //    return FTI_NSCS;
-    //        //}
-    //        //fflush(fd);
-    //        write( fd, db_ser, sizeof(long) + sizeof(int) );
-    //        if ( fd == -1 ) {
-    //            snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
-    //            FTI_Print(strerr, FTI_EROR);
-    //            errno=0;
-    //            close(fd);
-    //            return FTI_NSCS;
-    //        }
-    //    }
-    //    //fsync(fd);
-
-    //    // write dbvar - datablock variables meta data and 
-    //    // ckpt data
-    //    for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
-    //        currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-    //        bool hascontent = currentdbvar->hascontent;
-    //        FTI_ADDRVAL cbasePtr = (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-    //        //clearerr(fd);
-    //        errno = 0;
-    //            
-    //        // create datachunk hash
-    //        if(hascontent) {
-    //            //ckptsize += currentdbvar->chunksize;
-    //            MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-    //            MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
-    //        }
-
-    //        // get source and destination pointer
-    //        dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-    //        fptr = currentdbvar->fptr;
-    //        uintptr_t chunk_addr, chunk_size, chunk_offset, base;
-
-    //        uintptr_t chunk_size_dbg, chunk_addr_dbg; 
-    //       
-    //        int chunkid = 0;
-    //        
-    //        if (currentdbvar->update) {
-
-    //            char *dbvar_ser = malloc(FTI_dbvarstructsize);
-
-    //            memcpy( dbvar_ser, &(currentdbvar->id), sizeof(int));
-    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->idx), sizeof(int));
-    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->containerid), sizeof(int));
-    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->hascontent), sizeof(bool));
-    //            memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->hasCkpt), sizeof(bool));
-    //            memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->dptr), sizeof(uintptr_t));
-    //            memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->fptr), sizeof(uintptr_t));
-    //            memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->chunksize), sizeof(long));
-    //            memcpy( dbvar_ser +sizeof(long), &(currentdbvar->containersize), sizeof(long));
-    //            memcpy( dbvar_ser +sizeof(long), currentdbvar->hash, MD5_DIGEST_LENGTH);
+        // write db - datablock meta data
+        //if ( fseek( fd, mdoffset, SEEK_SET ) == -1 ) {
+        //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+        //    FTI_Print(strerr, FTI_EROR);
+        //    fclose(fd);
+        //    errno = 0;
+        //    return FTI_NSCS;
+        //}
+        if (currentdb->update) {
+            if ( lseek( fd, mdoffset, SEEK_SET ) == -1 ) {
+                snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+                FTI_Print(strerr, FTI_EROR);
+                close(fd);
+                errno = 0;
+                return FTI_NSCS;
+            }
 
 
-    //            //fwrite( dbvar_ser, FTI_dbvarstructsize, 1, fd );
-    //            //if ( ferror(fd) ) {
-    //            //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
-    //            //    FTI_Print(strerr, FTI_EROR);
-    //            //    errno=0;
-    //            //    fclose(fd);
-    //            //    return FTI_NSCS;
-    //            //}
-    //            //fflush(fd);
-    //            write( fd, dbvar_ser, FTI_dbvarstructsize );
-    //            if ( fd == -1 ) {
-    //                snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
-    //                FTI_Print(strerr, FTI_EROR);
-    //                errno=0;
-    //                close(fd);
-    //                return FTI_NSCS;
-    //            }
-    //        }
-    //        //fsync(fd);
-    //        mdoffset += FTI_dbvarstructsize; //sizeof(FTIFF_dbvar);
-    //        
+            char * db_ser = malloc (sizeof(int) + sizeof(long) );
 
-    //    }
+            memcpy( db_ser, &(currentdb->numvars), sizeof(int) );
 
-    //    //endoffile += currentdb->dbsize;
+            memcpy( db_ser+sizeof(int), &(currentdb->dbsize), sizeof(long) );
+            //fwrite( db_ser, sizeof(long) + sizeof(int), 1, fd );
+            //if ( ferror(fd) ) {
+            //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+            //    FTI_Print(strerr, FTI_EROR);
+            //    errno=0;
+            //    fclose(fd);
+            //    return FTI_NSCS;
+            //}
+            //fflush(fd);
+            write( fd, db_ser, sizeof(long) + sizeof(int) );
+            if ( fd == -1 ) {
+                snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+                FTI_Print(strerr, FTI_EROR);
+                errno=0;
+                close(fd);
+                return FTI_NSCS;
+            }
+        }
+        //fsync(fd);
 
-    //    if (currentdb->next) {
-    //        currentdb = currentdb->next;
-    //        isnextdb = 1;
-    //    }
+        // write dbvar - datablock variables meta data and 
+        // ckpt data
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
-    //    dbcounter++;
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            bool hascontent = currentdbvar->hascontent;
+            FTI_ADDRVAL cbasePtr = (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+            //clearerr(fd);
+            errno = 0;
+                
+            // create datachunk hash
+            if(hascontent) {
+                //ckptsize += currentdbvar->chunksize;
+                MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
+                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
+            }
 
-    //} while( isnextdb );
+            // get source and destination pointer
+            dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+            fptr = currentdbvar->fptr;
+            uintptr_t chunk_addr, chunk_size, chunk_offset, base;
+
+            uintptr_t chunk_size_dbg, chunk_addr_dbg; 
+           
+            int chunkid = 0;
+            
+            if (currentdbvar->update) {
+
+                char *dbvar_ser = malloc(FTI_dbvarstructsize);
+
+                memcpy( dbvar_ser, &(currentdbvar->id), sizeof(int));
+                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->idx), sizeof(int));
+                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->containerid), sizeof(int));
+                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->hascontent), sizeof(bool));
+                memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->hasCkpt), sizeof(bool));
+                memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->dptr), sizeof(uintptr_t));
+                memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->fptr), sizeof(uintptr_t));
+                memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->chunksize), sizeof(long));
+                memcpy( dbvar_ser +sizeof(long), &(currentdbvar->containersize), sizeof(long));
+                memcpy( dbvar_ser +sizeof(long), currentdbvar->hash, MD5_DIGEST_LENGTH);
+
+
+                //fwrite( dbvar_ser, FTI_dbvarstructsize, 1, fd );
+                //if ( ferror(fd) ) {
+                //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+                //    FTI_Print(strerr, FTI_EROR);
+                //    errno=0;
+                //    fclose(fd);
+                //    return FTI_NSCS;
+                //}
+                //fflush(fd);
+                write( fd, dbvar_ser, FTI_dbvarstructsize );
+                if ( fd == -1 ) {
+                    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
+                    FTI_Print(strerr, FTI_EROR);
+                    errno=0;
+                    close(fd);
+                    return FTI_NSCS;
+                }
+            }
+            //fsync(fd);
+            mdoffset += FTI_dbvarstructsize; //sizeof(FTIFF_dbvar);
+            
+
+        }
+
+        //endoffile += currentdb->dbsize;
+
+        if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
     //
     ////fsync(fd);
     ////int update_flags = fcntl( fd, F_GETFL, 0 );
     ////update_flags &= ~ O_DIRECT;
     ////assert( fcntl( fd, F_SETFL, update_flags ) != -1 );
 
-    //currentdb = FTI_Exec->firstdb;
+    currentdb = FTI_Exec->firstdb;
     
     do {    
 
@@ -1423,91 +1423,91 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //fsync(fileno(fd));
     //fsync(fd);
 
-    char* map = mmap(0, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    char* map_base = map;
-    if( map == MAP_FAILED ) {
-        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not map file: %s", fn);
-        FTI_Print(strerr, FTI_EROR);
-        errno = 0;
-        return FTI_NSCS;
-    }
-        
-    
-    start_t = MPI_Wtime();
-    // create checkpoint meta data
-    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
-        return FTI_NSCS;
-    }
-    end_t = MPI_Wtime();
-    DBG_MSG("RANK %d CREATED META DATA IN %.2lf seconds", -1, FTI_Topo->splitRank, end_t-start_t);
-    
-    memcpy( map, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
+    //char* map = mmap(0, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    //char* map_base = map;
+    //if( map == MAP_FAILED ) {
+    //    snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not map file: %s", fn);
+    //    FTI_Print(strerr, FTI_EROR);
+    //    errno = 0;
+    //    return FTI_NSCS;
+    //}
+    //    
+    //
+    //start_t = MPI_Wtime();
+    //// create checkpoint meta data
+    //if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
+    //    return FTI_NSCS;
+    //}
+    //end_t = MPI_Wtime();
+    //DBG_MSG("RANK %d CREATED META DATA IN %.2lf seconds", -1, FTI_Topo->splitRank, end_t-start_t);
+    //
+    //memcpy( map, &(FTI_Exec->FTIFFMeta), sizeof(FTIFF_metaInfo) );
 
-    currentdb = FTI_Exec->firstdb; 
-    do {    
+    //currentdb = FTI_Exec->firstdb; 
+    //do {    
 
-        isnextdb = 0;
+    //    isnextdb = 0;
 
-        mdoffset = endoffile;
+    //    mdoffset = endoffile;
 
-        endoffile += currentdb->dbsize;
-        
-        map += mdoffset;
-        char *ptr = map;
+    //    endoffile += currentdb->dbsize;
+    //    
+    //    map += mdoffset;
+    //    char *ptr = map;
 
-        if (currentdb->update) {
-            memcpy( ptr+mdoffset, &(currentdb->numvars), sizeof(int) );
-            ptr += sizeof(int);
-            memcpy( ptr+mdoffset, &(currentdb->dbsize), sizeof(long) );
-            ptr += sizeof(long);
-        }
-        
-        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+    //    if (currentdb->update) {
+    //        memcpy( ptr+mdoffset, &(currentdb->numvars), sizeof(int) );
+    //        ptr += sizeof(int);
+    //        memcpy( ptr+mdoffset, &(currentdb->dbsize), sizeof(long) );
+    //        ptr += sizeof(long);
+    //    }
+    //    
+    //    for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
-            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            
-            if (currentdbvar->update) {
+    //        currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+    //        
+    //        if (currentdbvar->update) {
 
-                char *dbvar_ser = malloc(FTI_dbvarstructsize);
+    //            char *dbvar_ser = malloc(FTI_dbvarstructsize);
 
-                memcpy( dbvar_ser, &(currentdbvar->id), sizeof(int));
-                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->idx), sizeof(int));
-                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->containerid), sizeof(int));
-                memcpy( dbvar_ser +sizeof(int), &(currentdbvar->hascontent), sizeof(bool));
-                memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->hasCkpt), sizeof(bool));
-                memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->dptr), sizeof(uintptr_t));
-                memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->fptr), sizeof(uintptr_t));
-                memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->chunksize), sizeof(long));
-                memcpy( dbvar_ser +sizeof(long), &(currentdbvar->containersize), sizeof(long));
-                memcpy( dbvar_ser +sizeof(long), currentdbvar->hash, MD5_DIGEST_LENGTH);
+    //            memcpy( dbvar_ser, &(currentdbvar->id), sizeof(int));
+    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->idx), sizeof(int));
+    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->containerid), sizeof(int));
+    //            memcpy( dbvar_ser +sizeof(int), &(currentdbvar->hascontent), sizeof(bool));
+    //            memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->hasCkpt), sizeof(bool));
+    //            memcpy( dbvar_ser +sizeof(bool), &(currentdbvar->dptr), sizeof(uintptr_t));
+    //            memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->fptr), sizeof(uintptr_t));
+    //            memcpy( dbvar_ser +sizeof(uintptr_t), &(currentdbvar->chunksize), sizeof(long));
+    //            memcpy( dbvar_ser +sizeof(long), &(currentdbvar->containersize), sizeof(long));
+    //            memcpy( dbvar_ser +sizeof(long), currentdbvar->hash, MD5_DIGEST_LENGTH);
 
-                memcpy( ptr, dbvar_ser, FTI_dbvarstructsize );
-            }
-            
-            ptr += FTI_dbvarstructsize;
-            
-        }
+    //            memcpy( ptr, dbvar_ser, FTI_dbvarstructsize );
+    //        }
+    //        
+    //        ptr += FTI_dbvarstructsize;
+    //        
+    //    }
 
-        if (currentdb->next) {
-            currentdb = currentdb->next;
-            isnextdb = 1;
-        }
+    //    if (currentdb->next) {
+    //        currentdb = currentdb->next;
+    //        isnextdb = 1;
+    //    }
 
-        dbcounter++;
+    //    dbcounter++;
 
-    } while( isnextdb );
-    
-    FTI_Exec->ckptSize = endoffile;
-    
-    if (munmap(map_base, fileSize) == -1) {
-        perror("Error un-mmapping the file");
-        /* Decide here whether to close(fd) and exit() or not. Depends... */
-    }
+    //} while( isnextdb );
+    //
+    //FTI_Exec->ckptSize = endoffile;
+    //
+    //if (munmap(map_base, fileSize) == -1) {
+    //    perror("Error un-mmapping the file");
+    //    /* Decide here whether to close(fd) and exit() or not. Depends... */
+    //}
 
     start_t = MPI_Wtime();
     close( fd );
     end_t = MPI_Wtime();
-    DBG_MSG("RANK %d CLOSED THE FILE IN %.2lf seconds", -1, FTI_Topo->splitRank, end_t-start_t);
+    //DBG_MSG("RANK %d CLOSED THE FILE IN %.2lf seconds", -1, FTI_Topo->splitRank, end_t-start_t);
 
     return FTI_SCES;
 
