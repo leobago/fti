@@ -39,6 +39,7 @@
 #include "interface.h"
 #include <dirent.h>
 
+int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
@@ -57,20 +58,20 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_injection* FTI_Inje) {
 
     // datablock size in file
+    FTI_filemetastructsize
+        = MD5_DIGEST_STRING_LENGTH
+        + MD5_DIGEST_LENGTH
+        + 5*sizeof(long);
+    
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
         + sizeof(long);             /* dbsize */
 
     FTI_dbvarstructsize
-        = sizeof(int)               /* numvars */
-        + sizeof(int)
-        + sizeof(int)
-        + sizeof(bool)
-        + sizeof(bool)
-        + sizeof(uintptr_t)
-        + sizeof(uintptr_t)
-        + sizeof(long)
-        + sizeof(long)
+        = 3*sizeof(int)               /* numvars */
+        + 2*sizeof(bool)
+        + 2*sizeof(uintptr_t)
+        + 2*sizeof(long)
         + MD5_DIGEST_LENGTH;
     
     // +--------- +

@@ -93,6 +93,7 @@
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
 
 // datablock size in file
+extern int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
 extern int FTI_dbvarstructsize;		    /**< size of FTIT_db struct in file */
 //    = sizeof(int)     /* numvars */
