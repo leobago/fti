@@ -800,8 +800,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         if ( FTI_Conf->dcpEnabled ) {
                             FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
                         }
+                        dbvars[evar_idx].update = true;
+                        FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
                         evar_idx++;
-                        callInit = true;
 
                         break;
 
@@ -822,15 +823,15 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         if ( FTI_Conf->dcpEnabled ) {
                             FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
                         }
+                        dbvars[evar_idx].update = true;
+                        FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
                         evar_idx++;
-                        callInit = true;
 
                         break;
 
                 }
+                
 
-                dbvars[dbvar_idx].update = true;
-                FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
                 // [FOR DCP] init hash array for new block or new protected variable
                 //if ( FTI_Conf->dcpEnabled && callInit ) {
                 //    FTI_InitBlockHashArray( &(dbvars[evar_idx-1]), &(FTI_Data[pvar_idx]) );
@@ -928,6 +929,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    
     FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
+    //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS], fnr[FTI_BUFS];
     
@@ -1044,16 +1046,20 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_ADDRVAL cbasePtr = (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
             errno = 0;
                 
+            unsigned char hashchk[MD5_DIGEST_LENGTH];
             // create datachunk hash
             if(hascontent) {
                 ckptsize += currentdbvar->chunksize;
                 MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, currentdbvar->hash );  
+                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
             }
-            char *dbvar_ser = malloc(FTI_dbvarstructsize);
-            char *cpy_ptr = dbvar_ser;
+            
+            bool contentUpdate = 
+                (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
+           
+            memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
 
-            if (currentdbvar->update) {
+            if ( currentdbvar->update || contentUpdate ) {
                 
                 if ( lseek( fd, mdoffset, SEEK_SET ) == -1 ) {
                     snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
@@ -1063,6 +1069,8 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
 
+                char *dbvar_ser = malloc(FTI_dbvarstructsize);
+                char *cpy_ptr = dbvar_ser;
 
                 memcpy( cpy_ptr, &(currentdbvar->id), sizeof(int));
                 cpy_ptr += sizeof(int);
@@ -1093,15 +1101,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
 
-//                free( dbvar_ser );
+                free( dbvar_ser );
 
             }
-            
-            off_t off_dptr = 3*sizeof(int) + 2*sizeof(bool);
-
-            DBG_MSG("dptr: %lld | fptr: %lld | _dptr: %llu | _fptr: %llu", -1, 
-                    currentdbvar->dptr, currentdbvar->fptr, *(uintptr_t*)(dbvar_ser+off_dptr), *(uintptr_t*)(dbvar_ser+off_dptr+sizeof(uintptr_t)));
-           
+             
             mdoffset += FTI_dbvarstructsize;
 
         }
@@ -1132,7 +1135,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     
-    DBG_MSG("FTI_Exec->ckptSize: %ld | FTIFF_Meta.ckptSize: %ld",-1, FTI_Exec->ckptSize, FTI_Exec->FTIFFMeta.ckptSize);
+    //DBG_MSG("FTI_Exec->ckptSize: %ld | FTIFF_Meta.ckptSize: %ld",-1, FTI_Exec->ckptSize, FTI_Exec->FTIFFMeta.ckptSize);
 
     // Write file meta data (serialized)
     char* fmeta_ser = malloc( 
@@ -1155,6 +1158,14 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     pos += sizeof(long);
     memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
     pos += sizeof(long);
+    
+    if ( lseek( fd, 0, SEEK_SET ) == -1 ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
 
     write( fd, fmeta_ser, pos );
     if ( fd == -1 ) {
@@ -1259,13 +1270,15 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         checksize += FTI_Data[dataidx].size;
     }
     
-    long values_total[2], values_local[2];
+    long values_total[3], values_local[3];
     values_local[0] = ckptsize;
     values_local[1] = diffSize; 
+    values_local[3] = checksize; 
     MPI_Allreduce(values_local, values_total, 2, MPI_LONG, MPI_SUM, FTI_Exec->globalComm);
-    DBG_MSG("share: %.2lf, diffsize: %.4lf MB, ckptsize: %.4lf MB", 
+    DBG_MSG("share: %.2lf, diffsize: %.4lf GB, ckptsize: %.4lf GB (from data: %.4lf GB)", 
             0, 100.0*(((double)values_total[1])/values_total[0]), 
-            (double)values_total[1]/(1024*1024*1024), (double)values_total[0]/(1024*1024*1024));       
+            (double)values_total[1]/(1024*1024*1024), (double)values_total[0]/(1024*1024*1024),
+            (double)values_total[3]/(1024*1024*1024));       
  
     close( fd );
 
@@ -1520,11 +1533,17 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
                 sprintf(&checkSum[ii], "%02x", hash[i]);
                 ii += 2;
             }
+            char checkSum_struct[MD5_DIGEST_STRING_LENGTH];
+            ii = 0;
+            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                sprintf(&checkSum_struct[ii], "%02x", currentdbvar->hash[i]);
+                ii += 2;
+            }
             snprintf(str, FTI_BUFS, "dataset hash id: %d -> %s", currentdbvar->id, checkSum);
             FTI_Print(str, FTI_INFO);
 
             if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i|cnt-id:%d has been corrupted! Discard recovery.", currentdbvar->id, currentdbvar->containerid);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i|cnt-id:%d has been corrupted! Discard recovery (%s!=%s).", currentdbvar->id, currentdbvar->containerid,checkSum,checkSum_struct );
                 FTI_Print(strerr, FTI_WARN);
                 if ( munmap( fmmap, st.st_size ) == -1 ) {
                     FTI_Print("FTIFF: FTIFF_Recover - unable to unmap memory", FTI_EROR);
@@ -2948,7 +2967,7 @@ printf("------------------- DATASTRUCTURE BEGIN [%d]----------------\n\n", rank)
             do {
 printf("    DataBase-id: %d\n", dbcnt);
 printf("                 dbsize: %ld\n", dbgdb->dbsize);
-printf("                 metasize (offset: %d): %ld\n\n", sizeof(FTIFF_metaInfo), sizeof(int)+sizeof(long)+dbgdb->numvars*FTI_dbvarstructsize);
+printf("                 metasize (offset: %d): %ld\n\n", FTI_filemetastructsize, FTI_dbstructsize+dbgdb->numvars*FTI_dbvarstructsize);
                 dbcnt++;
                 int varid=0;
                 for(; varid<dbgdb->numvars; ++varid) {

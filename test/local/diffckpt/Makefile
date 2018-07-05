@@ -59,7 +59,8 @@ run-test: diff_test Makefile
 
 run-valgrind: diff_test Makefile
 	cp cfg/config.fti .
-	mpirun -n 1 valgrind ./$< : -n 7 ./$<
+	#mpirun -n 1 valgrind ./$< : -n 7 ./$<
+	mpirun -n 8 valgrind ./$<
 
 clean:
 	rm -rf *.o diff_test Global Local Meta config.fti

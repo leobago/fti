@@ -15,9 +15,9 @@ inline_l4                      = 1
 keep_last_ckpt                 = 0
 group_size                     = 4
 max_sync_intv                  = 0
-ckpt_io                        = 3
+ckpt_io                        = 1
 verbosity                      = 2
-diff_ckpt                      = 1
+diff_ckpt                      = 0
 diff_mode                      = 0
 
 
