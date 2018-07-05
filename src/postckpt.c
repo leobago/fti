@@ -502,11 +502,25 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
-    // create global temp directory
-    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global directory", FTI_EROR);
-            return FTI_NSCS;
+
+    if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        FTI_Print("Saving to temporary global directory", FTI_DBUG);
+
+        //Create global temp directory
+        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create global directory", FTI_EROR);
+                return FTI_NSCS;
+            }
+        }
+    } else {
+        if ( !FTI_Ckpt[4].hasDcp ) {
+            if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
         }
     }
     int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
@@ -566,7 +580,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "Post-processing for proc %d started.", proc);
         FTI_Print(str, FTI_DBUG);
         char lfn[FTI_BUFS], gfn[FTI_BUFS];
-        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        if ( FTI_Ckpt[4].isDcp ) {
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        } else {
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        }
         snprintf(str, FTI_BUFS, "Global temporary file name for proc %d: %s", proc, gfn);
         FTI_Print(str, FTI_DBUG);
         FILE* gfd = fopen(gfn, "wb");
@@ -577,7 +595,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         if (level == 0) {
-            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            if ( FTI_Ckpt[4].isDcp ) {
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            } else {
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            }
         }
         else {
             snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);

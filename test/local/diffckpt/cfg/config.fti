@@ -1,6 +1,6 @@
 
 [basic]
-head                           = 0
+head                           = 1
 node_size                      = 2
 ckpt_dir                       = Local
 glbl_dir                       = Global
@@ -11,13 +11,13 @@ ckpt_l3                        = 0
 ckpt_l4                        = 0
 inline_l2                      = 1
 inline_l3                      = 1
-inline_l4                      = 1
+inline_l4                      = 0
 keep_last_ckpt                 = 0
 group_size                     = 4
 max_sync_intv                  = 0
-ckpt_io                        = 1
+ckpt_io                        = 3
 verbosity                      = 2
-diff_ckpt                      = 0
+diff_ckpt                      = 1
 diff_mode                      = 0
 
 

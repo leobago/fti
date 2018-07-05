@@ -90,6 +90,8 @@
 
  **/
 
+typedef unsigned short dcpBLK_t;
+
 /** @typedef    FTIFF_headInfo
  *  @brief      Runtime meta info for the heads.
  *
@@ -104,6 +106,7 @@ typedef struct FTIFF_headInfo {
     long maxFs;
     long fs;
     long pfs;
+    int isDcp;
 } FTIFF_headInfo;
 
 /** @typedef    FTIFF_L2Info

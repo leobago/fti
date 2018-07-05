@@ -264,7 +264,7 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
 int FTI_UpdateBlockHashPtr( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data );
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data );
 int FTI_GetDcpMode();
-int FTI_GetDiffBlockSize();
+dcpBLK_t FTI_GetDiffBlockSize();
 int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar );
 int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
 

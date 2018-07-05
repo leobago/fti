@@ -141,8 +141,8 @@ extern "C" {
     typedef struct              FTIT_DataDiffHash
     {
         unsigned char*          md5hash;
-        FTI_ADDRPTR             ptr;
-        int                     blockSize;
+        //FTI_ADDRPTR             ptr;
+        unsigned short          blockSize; // blocksize max 65535
         uint32_t                bit32hash;
         bool                    dirty;
         bool                    isValid;
@@ -173,6 +173,7 @@ extern "C" {
         bool update;
         long nbHashes;
         FTIT_DataDiffHash* dataDiffHash;
+        char *cptr; // virtual address pointer to first byte in container
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db

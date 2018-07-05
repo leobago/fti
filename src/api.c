@@ -836,11 +836,9 @@ int FTI_Checkpoint(int id, int level)
         FTI_Ckpt[4].isDcp = true;
         level = 4;
         if ( !FTI_Ckpt[4].hasDcp ) {
-            snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo.splitRank);
+            snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo.myRank);
         }
     }
-
-    //DBG_MSG("cp file: %s",-1, FTI_Ckpt[4].dcpName);
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -855,14 +853,10 @@ int FTI_Checkpoint(int id, int level)
         }
     }
     
-    //DBG
-    //MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
-    //DBG
-    //MPI_Barrier(FTI_COMM_WORLD);
     double t2 = MPI_Wtime(); //Time after writing checkpoint
    
 
@@ -877,8 +871,6 @@ int FTI_Checkpoint(int id, int level)
                 FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
                 currentdbVar->hasCkpt = true;
                 currentdbVar->update = false;
-//                snprintf(str,FTI_BUFS,"var-id: %d, cont-id: %d\n", currentdbVar->id, currentdbVar->containerid);
-//                FTI_Print(str,FTI_INFO);
             }
         }
         while ( (currentDB = currentDB->next) != NULL );    
@@ -907,7 +899,12 @@ int FTI_Checkpoint(int id, int level)
             headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
-            strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
+            headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
+            if( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+                strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
+            } else {
+                strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
+            }
             MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
