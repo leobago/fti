@@ -60,247 +60,6 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes the derived MPI data types used for FTI-FF
- **/
-/*-------------------------------------------------------------------------*/
-void FTIFF_InitMpiTypes() 
-{
-
-    MPI_Aint lb, extent;
-    FTIFF_MPITypeInfo MPITypeInfo[FTIFF_NUM_MPI_TYPES];
-
-    // define MPI datatypes
-
-    // headInfo
-    MBR_CNT( headInfo ) =  7;
-    MBR_BLK_LEN( headInfo ) = { 1, 1, FTI_BUFS, 1, 1, 1, 1 };
-    MBR_TYPES( headInfo ) = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT };
-    MBR_DISP( headInfo ) = {  
-        offsetof( FTIFF_headInfo, exists), 
-        offsetof( FTIFF_headInfo, nbVar), 
-        offsetof( FTIFF_headInfo, ckptFile), 
-        offsetof( FTIFF_headInfo, maxFs), 
-        offsetof( FTIFF_headInfo, fs), 
-        offsetof( FTIFF_headInfo, pfs), 
-        offsetof( FTIFF_headInfo, isDcp) 
-    };
-    MPITypeInfo[FTIFF_HEAD_INFO].mbrCnt = headInfo_mbrCnt;
-    MPITypeInfo[FTIFF_HEAD_INFO].mbrBlkLen = headInfo_mbrBlkLen;
-    MPITypeInfo[FTIFF_HEAD_INFO].mbrTypes = headInfo_mbrTypes;
-    MPITypeInfo[FTIFF_HEAD_INFO].mbrDisp = headInfo_mbrDisp;
-
-    // L2Info
-    MBR_CNT( L2Info ) =  6;
-    MBR_BLK_LEN( L2Info ) = { 1, 1, 1, 1, 1, 1 };
-    MBR_TYPES( L2Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
-    MBR_DISP( L2Info ) = {  
-        offsetof( FTIFF_L2Info, FileExists), 
-        offsetof( FTIFF_L2Info, CopyExists), 
-        offsetof( FTIFF_L2Info, ckptID), 
-        offsetof( FTIFF_L2Info, rightIdx), 
-        offsetof( FTIFF_L2Info, fs), 
-        offsetof( FTIFF_L2Info, pfs), 
-    };
-    MPITypeInfo[FTIFF_L2_INFO].mbrCnt = L2Info_mbrCnt;
-    MPITypeInfo[FTIFF_L2_INFO].mbrBlkLen = L2Info_mbrBlkLen;
-    MPITypeInfo[FTIFF_L2_INFO].mbrTypes = L2Info_mbrTypes;
-    MPITypeInfo[FTIFF_L2_INFO].mbrDisp = L2Info_mbrDisp;
-
-    // L3Info
-    MBR_CNT( L3Info ) =  5;
-    MBR_BLK_LEN( L3Info ) = { 1, 1, 1, 1, 1 };
-    MBR_TYPES( L3Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
-    MBR_DISP( L3Info ) = {  
-        offsetof( FTIFF_L3Info, FileExists), 
-        offsetof( FTIFF_L3Info, RSFileExists), 
-        offsetof( FTIFF_L3Info, ckptID), 
-        offsetof( FTIFF_L3Info, fs), 
-        offsetof( FTIFF_L3Info, RSfs), 
-    };
-    MPITypeInfo[FTIFF_L3_INFO].mbrCnt = L3Info_mbrCnt;
-    MPITypeInfo[FTIFF_L3_INFO].mbrBlkLen = L3Info_mbrBlkLen;
-    MPITypeInfo[FTIFF_L3_INFO].mbrTypes = L3Info_mbrTypes;
-    MPITypeInfo[FTIFF_L3_INFO].mbrDisp = L3Info_mbrDisp;
-
-    // commit MPI types
-    int i;
-    for(i=0; i<FTIFF_NUM_MPI_TYPES; i++) {
-        MPI_Type_create_struct( 
-                MPITypeInfo[i].mbrCnt, 
-                MPITypeInfo[i].mbrBlkLen, 
-                MPITypeInfo[i].mbrDisp, 
-                MPITypeInfo[i].mbrTypes, 
-                &MPITypeInfo[i].raw );
-        MPI_Type_get_extent( 
-                MPITypeInfo[i].raw, 
-                &lb, 
-                &extent );
-        MPI_Type_create_resized( 
-                MPITypeInfo[i].raw, 
-                lb, 
-                extent, 
-                &FTIFF_MpiTypes[i]);
-        MPI_Type_commit( &FTIFF_MpiTypes[i] );
-    }
-
-
-}
-
-int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (meta == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFilemeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( meta->checksum        , buffer_ser + pos, MD5_DIGEST_STRING_LENGTH );
-    pos += MD5_DIGEST_STRING_LENGTH;
-    memcpy( meta->myHash          , buffer_ser + pos, MD5_DIGEST_LENGTH );
-    pos += MD5_DIGEST_LENGTH;
-    memcpy( &(meta->ckptSize)     , buffer_ser + pos, sizeof(long) );
-    pos += sizeof(long);
-    memcpy( &(meta->fs)           , buffer_ser + pos, sizeof(long) );
-    pos += sizeof(long);
-    memcpy( &(meta->maxFs)        , buffer_ser + pos, sizeof(long) );
-    pos += sizeof(long);
-    memcpy( &(meta->ptFs)         , buffer_ser + pos, sizeof(long) );
-    pos += sizeof(long);
-    memcpy( &(meta->timestamp)    , buffer_ser + pos, sizeof(long) );
-
-    return FTI_SCES;
-
-}
-
-int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (db == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( &(db->numvars)    , buffer_ser + pos, sizeof(int) ); 
-    pos += sizeof(int);
-    memcpy( &(db->dbsize)     , buffer_ser + pos, sizeof(long) );
-
-    return FTI_SCES;
-
-}
-
-int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( &(dbvar->id)              , buffer_ser + pos, sizeof(int));
-    pos += sizeof(int);
-    memcpy( &(dbvar->idx)             , buffer_ser + pos, sizeof(int));
-    pos += sizeof(int);
-    memcpy( &(dbvar->containerid)     , buffer_ser + pos, sizeof(int));
-    pos += sizeof(int);
-    memcpy( &(dbvar->hascontent)      , buffer_ser + pos, sizeof(bool));
-    pos += sizeof(bool);
-    memcpy( &(dbvar->hasCkpt)         , buffer_ser + pos, sizeof(bool));
-    pos += sizeof(bool);
-    memcpy( &(dbvar->dptr)            , buffer_ser + pos, sizeof(uintptr_t));
-    pos += sizeof(uintptr_t);
-    memcpy( &(dbvar->fptr)            , buffer_ser + pos, sizeof(uintptr_t));
-    pos += sizeof(uintptr_t);
-    memcpy( &(dbvar->chunksize)       , buffer_ser + pos, sizeof(long));
-    pos += sizeof(long);
-    memcpy( &(dbvar->containersize)   , buffer_ser + pos, sizeof(long));
-    pos += sizeof(long);
-    memcpy( dbvar->hash               , buffer_ser + pos, MD5_DIGEST_LENGTH);
-
-    return FTI_SCES;
-
-}
-
-int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (meta == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( buffer_ser + pos, meta->checksum        , MD5_DIGEST_STRING_LENGTH );
-    pos += MD5_DIGEST_STRING_LENGTH;
-    memcpy( buffer_ser + pos, meta->myHash          , MD5_DIGEST_LENGTH );
-    pos += MD5_DIGEST_LENGTH;
-    memcpy( buffer_ser + pos, &(meta->ckptSize)     , sizeof(long) );
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, &(meta->fs)           , sizeof(long) );
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, &(meta->maxFs)        , sizeof(long) );
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, &(meta->ptFs)         , sizeof(long) );
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, &(meta->timestamp)    , sizeof(long) );
-
-    return FTI_SCES;
-}
-
-int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (db == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( buffer_ser + pos, &(db->numvars)    , sizeof(int) ); 
-    pos += sizeof(int);
-    memcpy( buffer_ser + pos, &(db->dbsize)     , sizeof(long) );
-
-    return FTI_SCES;
-
-}
-
-int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
-{
-    
-    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
-        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int pos = 0;
-    memcpy( buffer_ser + pos, &(dbvar->id)              , sizeof(int));
-    pos += sizeof(int);
-    memcpy( buffer_ser + pos, &(dbvar->idx)             , sizeof(int));
-    pos += sizeof(int);
-    memcpy( buffer_ser + pos, &(dbvar->containerid)     , sizeof(int));
-    pos += sizeof(int);
-    memcpy( buffer_ser + pos, &(dbvar->hascontent)      , sizeof(bool));
-    pos += sizeof(bool);
-    memcpy( buffer_ser + pos, &(dbvar->hasCkpt)         , sizeof(bool));
-    pos += sizeof(bool);
-    memcpy( buffer_ser + pos, &(dbvar->dptr)            , sizeof(uintptr_t));
-    pos += sizeof(uintptr_t);
-    memcpy( buffer_ser + pos, &(dbvar->fptr)            , sizeof(uintptr_t));
-    pos += sizeof(uintptr_t);
-    memcpy( buffer_ser + pos, &(dbvar->chunksize)       , sizeof(long));
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, &(dbvar->containersize)   , sizeof(long));
-    pos += sizeof(long);
-    memcpy( buffer_ser + pos, dbvar->hash               , MD5_DIGEST_LENGTH);
-
-    return FTI_SCES;
-
-}
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      Reads datablock structure for FTI File Format from ckpt file.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
@@ -1318,6 +1077,42 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // has to be assigned before FTIFF_CreateMetaData call!
     FTI_Exec->ckptSize = endoffile;
     
+    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
+        return FTI_NSCS;
+    }
+
+    // serialize file meta data and write to file
+    buffer_ser = (char*) malloc ( FTI_filemetastructsize );
+    if( buffer_ser == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_filemetastructsize );
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
+    if( FTIFF_SerializeFileMeta( &(FTI_Exec->FTIFFMeta), buffer_ser ) != FTI_SCES ) {
+        FTI_Print("FTI-FF: WriteFTIFF - failed to serialize 'FTI_Exec->FTIFFMeta'", FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
+    if ( lseek( fd, 0, SEEK_SET ) == -1 ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
+    write( fd, buffer_ser, FTI_filemetastructsize );
+    if ( fd == -1 ) {
+        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
+        FTI_Print(strerr, FTI_EROR);
+        errno=0;
+        close(fd);
+        return FTI_NSCS;
+    }
+    free( buffer_ser );
+    
     // reset db pointer
     currentdb = FTI_Exec->firstdb;
     
@@ -1403,48 +1198,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         dbcounter++;
 
     } while( isnextdb );
-
-    long checksize = 0;
-    int dataidx;
-    for( dataidx=0; dataidx<FTI_Exec->nbVar; ++dataidx ) {
-        checksize += FTI_Data[dataidx].size;
-    }
-    
-    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
-        return FTI_NSCS;
-    }
-
-    // serialize file meta data and write to file
-    buffer_ser = (char*) malloc ( FTI_filemetastructsize );
-    if( buffer_ser == NULL ) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_filemetastructsize );
-        FTI_Print(strerr, FTI_EROR);
-        close(fd);
-        errno = 0;
-        return FTI_NSCS;
-    }
-    if( FTIFF_SerializeFileMeta( &(FTI_Exec->FTIFFMeta), buffer_ser ) != FTI_SCES ) {
-        FTI_Print("FTI-FF: WriteFTIFF - failed to serialize 'FTI_Exec->FTIFFMeta'", FTI_EROR);
-        close(fd);
-        errno = 0;
-        return FTI_NSCS;
-    }
-    if ( lseek( fd, 0, SEEK_SET ) == -1 ) {
-        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
-        FTI_Print(strerr, FTI_EROR);
-        close(fd);
-        errno = 0;
-        return FTI_NSCS;
-    }
-    write( fd, buffer_ser, FTI_filemetastructsize );
-    if ( fd == -1 ) {
-        snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
-        FTI_Print(strerr, FTI_EROR);
-        errno=0;
-        close(fd);
-        return FTI_NSCS;
-    }
-    free( buffer_ser );
  
     fdatasync( fd );
     close( fd );
@@ -3099,6 +2852,248 @@ void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar )
     MD5_Update( &md5Ctx, dbvar->hash, MD5_DIGEST_LENGTH );
     MD5_Final( hash, &md5Ctx );
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the derived MPI data types used for FTI-FF
+ **/
+/*-------------------------------------------------------------------------*/
+void FTIFF_InitMpiTypes() 
+{
+
+    MPI_Aint lb, extent;
+    FTIFF_MPITypeInfo MPITypeInfo[FTIFF_NUM_MPI_TYPES];
+
+    // define MPI datatypes
+
+    // headInfo
+    MBR_CNT( headInfo ) =  7;
+    MBR_BLK_LEN( headInfo ) = { 1, 1, FTI_BUFS, 1, 1, 1, 1 };
+    MBR_TYPES( headInfo ) = { MPI_INT, MPI_INT, MPI_CHAR, MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT };
+    MBR_DISP( headInfo ) = {  
+        offsetof( FTIFF_headInfo, exists), 
+        offsetof( FTIFF_headInfo, nbVar), 
+        offsetof( FTIFF_headInfo, ckptFile), 
+        offsetof( FTIFF_headInfo, maxFs), 
+        offsetof( FTIFF_headInfo, fs), 
+        offsetof( FTIFF_headInfo, pfs), 
+        offsetof( FTIFF_headInfo, isDcp) 
+    };
+    MPITypeInfo[FTIFF_HEAD_INFO].mbrCnt = headInfo_mbrCnt;
+    MPITypeInfo[FTIFF_HEAD_INFO].mbrBlkLen = headInfo_mbrBlkLen;
+    MPITypeInfo[FTIFF_HEAD_INFO].mbrTypes = headInfo_mbrTypes;
+    MPITypeInfo[FTIFF_HEAD_INFO].mbrDisp = headInfo_mbrDisp;
+
+    // L2Info
+    MBR_CNT( L2Info ) =  6;
+    MBR_BLK_LEN( L2Info ) = { 1, 1, 1, 1, 1, 1 };
+    MBR_TYPES( L2Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    MBR_DISP( L2Info ) = {  
+        offsetof( FTIFF_L2Info, FileExists), 
+        offsetof( FTIFF_L2Info, CopyExists), 
+        offsetof( FTIFF_L2Info, ckptID), 
+        offsetof( FTIFF_L2Info, rightIdx), 
+        offsetof( FTIFF_L2Info, fs), 
+        offsetof( FTIFF_L2Info, pfs), 
+    };
+    MPITypeInfo[FTIFF_L2_INFO].mbrCnt = L2Info_mbrCnt;
+    MPITypeInfo[FTIFF_L2_INFO].mbrBlkLen = L2Info_mbrBlkLen;
+    MPITypeInfo[FTIFF_L2_INFO].mbrTypes = L2Info_mbrTypes;
+    MPITypeInfo[FTIFF_L2_INFO].mbrDisp = L2Info_mbrDisp;
+
+    // L3Info
+    MBR_CNT( L3Info ) =  5;
+    MBR_BLK_LEN( L3Info ) = { 1, 1, 1, 1, 1 };
+    MBR_TYPES( L3Info ) = { MPI_INT, MPI_INT, MPI_INT, MPI_LONG, MPI_LONG };
+    MBR_DISP( L3Info ) = {  
+        offsetof( FTIFF_L3Info, FileExists), 
+        offsetof( FTIFF_L3Info, RSFileExists), 
+        offsetof( FTIFF_L3Info, ckptID), 
+        offsetof( FTIFF_L3Info, fs), 
+        offsetof( FTIFF_L3Info, RSfs), 
+    };
+    MPITypeInfo[FTIFF_L3_INFO].mbrCnt = L3Info_mbrCnt;
+    MPITypeInfo[FTIFF_L3_INFO].mbrBlkLen = L3Info_mbrBlkLen;
+    MPITypeInfo[FTIFF_L3_INFO].mbrTypes = L3Info_mbrTypes;
+    MPITypeInfo[FTIFF_L3_INFO].mbrDisp = L3Info_mbrDisp;
+
+    // commit MPI types
+    int i;
+    for(i=0; i<FTIFF_NUM_MPI_TYPES; i++) {
+        MPI_Type_create_struct( 
+                MPITypeInfo[i].mbrCnt, 
+                MPITypeInfo[i].mbrBlkLen, 
+                MPITypeInfo[i].mbrDisp, 
+                MPITypeInfo[i].mbrTypes, 
+                &MPITypeInfo[i].raw );
+        MPI_Type_get_extent( 
+                MPITypeInfo[i].raw, 
+                &lb, 
+                &extent );
+        MPI_Type_create_resized( 
+                MPITypeInfo[i].raw, 
+                lb, 
+                extent, 
+                &FTIFF_MpiTypes[i]);
+        MPI_Type_commit( &FTIFF_MpiTypes[i] );
+    }
+
+
+}
+
+int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (meta == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFilemeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( meta->checksum        , buffer_ser + pos, MD5_DIGEST_STRING_LENGTH );
+    pos += MD5_DIGEST_STRING_LENGTH;
+    memcpy( meta->myHash          , buffer_ser + pos, MD5_DIGEST_LENGTH );
+    pos += MD5_DIGEST_LENGTH;
+    memcpy( &(meta->ckptSize)     , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->fs)           , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->maxFs)        , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->ptFs)         , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->timestamp)    , buffer_ser + pos, sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (db == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( &(db->numvars)    , buffer_ser + pos, sizeof(int) ); 
+    pos += sizeof(int);
+    memcpy( &(db->dbsize)     , buffer_ser + pos, sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( &(dbvar->id)              , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->idx)             , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->containerid)     , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->hascontent)      , buffer_ser + pos, sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( &(dbvar->hasCkpt)         , buffer_ser + pos, sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( &(dbvar->dptr)            , buffer_ser + pos, sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( &(dbvar->fptr)            , buffer_ser + pos, sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( &(dbvar->chunksize)       , buffer_ser + pos, sizeof(long));
+    pos += sizeof(long);
+    memcpy( &(dbvar->containersize)   , buffer_ser + pos, sizeof(long));
+    pos += sizeof(long);
+    memcpy( dbvar->hash               , buffer_ser + pos, MD5_DIGEST_LENGTH);
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (meta == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, meta->checksum        , MD5_DIGEST_STRING_LENGTH );
+    pos += MD5_DIGEST_STRING_LENGTH;
+    memcpy( buffer_ser + pos, meta->myHash          , MD5_DIGEST_LENGTH );
+    pos += MD5_DIGEST_LENGTH;
+    memcpy( buffer_ser + pos, &(meta->ckptSize)     , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->fs)           , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->maxFs)        , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->ptFs)         , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->timestamp)    , sizeof(long) );
+
+    return FTI_SCES;
+}
+
+int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (db == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, &(db->numvars)    , sizeof(int) ); 
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(db->dbsize)     , sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, &(dbvar->id)              , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->idx)             , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->containerid)     , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->hascontent)      , sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( buffer_ser + pos, &(dbvar->hasCkpt)         , sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( buffer_ser + pos, &(dbvar->dptr)            , sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( buffer_ser + pos, &(dbvar->fptr)            , sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( buffer_ser + pos, &(dbvar->chunksize)       , sizeof(long));
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(dbvar->containersize)   , sizeof(long));
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, dbvar->hash               , MD5_DIGEST_LENGTH);
+
+    return FTI_SCES;
+
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Frees allocated memory for the FTI-FF meta data struct list
