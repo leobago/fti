@@ -146,6 +146,159 @@ void FTIFF_InitMpiTypes()
 
 }
 
+int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (meta == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFilemeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( meta->checksum        , buffer_ser + pos, MD5_DIGEST_STRING_LENGTH );
+    pos += MD5_DIGEST_STRING_LENGTH;
+    memcpy( meta->myHash          , buffer_ser + pos, MD5_DIGEST_LENGTH );
+    pos += MD5_DIGEST_LENGTH;
+    memcpy( &(meta->ckptSize)     , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->fs)           , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->maxFs)        , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->ptFs)         , buffer_ser + pos, sizeof(long) );
+    pos += sizeof(long);
+    memcpy( &(meta->timestamp)    , buffer_ser + pos, sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (db == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( &(db->numvars)    , buffer_ser + pos, sizeof(int) ); 
+    pos += sizeof(int);
+    memcpy( &(db->dbsize)     , buffer_ser + pos, sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( &(dbvar->id)              , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->idx)             , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->containerid)     , buffer_ser + pos, sizeof(int));
+    pos += sizeof(int);
+    memcpy( &(dbvar->hascontent)      , buffer_ser + pos, sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( &(dbvar->hasCkpt)         , buffer_ser + pos, sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( &(dbvar->dptr)            , buffer_ser + pos, sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( &(dbvar->fptr)            , buffer_ser + pos, sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( &(dbvar->chunksize)       , buffer_ser + pos, sizeof(long));
+    pos += sizeof(long);
+    memcpy( &(dbvar->containersize)   , buffer_ser + pos, sizeof(long));
+    pos += sizeof(long);
+    memcpy( dbvar->hash               , buffer_ser + pos, MD5_DIGEST_LENGTH);
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (meta == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, meta->checksum        , MD5_DIGEST_STRING_LENGTH );
+    pos += MD5_DIGEST_STRING_LENGTH;
+    memcpy( buffer_ser + pos, meta->myHash          , MD5_DIGEST_LENGTH );
+    pos += MD5_DIGEST_LENGTH;
+    memcpy( buffer_ser + pos, &(meta->ckptSize)     , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->fs)           , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->maxFs)        , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->ptFs)         , sizeof(long) );
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(meta->timestamp)    , sizeof(long) );
+
+    return FTI_SCES;
+}
+
+int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (db == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, &(db->numvars)    , sizeof(int) ); 
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(db->dbsize)     , sizeof(long) );
+
+    return FTI_SCES;
+
+}
+
+int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
+{
+    
+    if ( (buffer_ser == NULL) || (dbvar == NULL) ) {
+        FTI_Print("nullptr passed to 'FTIFF_DeserializeFileMeta!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int pos = 0;
+    memcpy( buffer_ser + pos, &(dbvar->id)              , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->idx)             , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->containerid)     , sizeof(int));
+    pos += sizeof(int);
+    memcpy( buffer_ser + pos, &(dbvar->hascontent)      , sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( buffer_ser + pos, &(dbvar->hasCkpt)         , sizeof(bool));
+    pos += sizeof(bool);
+    memcpy( buffer_ser + pos, &(dbvar->dptr)            , sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( buffer_ser + pos, &(dbvar->fptr)            , sizeof(uintptr_t));
+    pos += sizeof(uintptr_t);
+    memcpy( buffer_ser + pos, &(dbvar->chunksize)       , sizeof(long));
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, &(dbvar->containersize)   , sizeof(long));
+    pos += sizeof(long);
+    memcpy( buffer_ser + pos, dbvar->hash               , MD5_DIGEST_LENGTH);
+
+    return FTI_SCES;
+
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Reads datablock structure for FTI File Format from ckpt file.
@@ -162,6 +315,10 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
     char strerr[FTI_BUFS];
+
+    // buffer for de-/serialization
+    char* buffer_ser;
+    int ierr;
 
     int varCnt = 0;
 
@@ -204,23 +361,26 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
     // file is mapped, we can close it.
     close(fd);
 
-    long endoffile = 0; // space for timestamp 
-    
+    long endoffile = FTI_filemetastructsize; 
+
     // get file meta info
-    memcpy( FTI_Exec->FTIFFMeta.checksum, fmmap + endoffile, MD5_DIGEST_STRING_LENGTH );
-    endoffile += MD5_DIGEST_STRING_LENGTH;
-    memcpy( FTI_Exec->FTIFFMeta.myHash, fmmap + endoffile, MD5_DIGEST_LENGTH );
-    endoffile += MD5_DIGEST_LENGTH;
-    memcpy( &(FTI_Exec->FTIFFMeta.ckptSize), fmmap + endoffile, sizeof(long) );
-    endoffile += sizeof(long);
-    memcpy( &(FTI_Exec->FTIFFMeta.fs), fmmap + endoffile, sizeof(long) );
-    endoffile += sizeof(long);
-    memcpy( &(FTI_Exec->FTIFFMeta.maxFs), fmmap + endoffile, sizeof(long) );
-    endoffile += sizeof(long);
-    memcpy( &(FTI_Exec->FTIFFMeta.ptFs), fmmap + endoffile, sizeof(long) );
-    endoffile += sizeof(long);
-    memcpy( &(FTI_Exec->FTIFFMeta.timestamp), fmmap + endoffile, sizeof(long) );
-    endoffile += sizeof(long);
+    buffer_ser = (char*) malloc( FTI_filemetastructsize );
+    if( buffer_ser == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+        FTI_Print(strerr, FTI_EROR);
+        munmap( fmmap, st.st_size );
+        errno = 0;
+        return FTI_NSCS;
+    }
+    memcpy( buffer_ser, fmmap, FTI_filemetastructsize );
+    if( FTIFF_DeserializeFileMeta( &(FTI_Exec->FTIFFMeta), buffer_ser ) != FTI_SCES ) {
+        FTI_Print( "FTI-FF: ReadDbFTIFF - failed to deserialize 'FTI_Exec->FTIFFMeta'", FTI_EROR );
+        munmap( fmmap, st.st_size );
+        free( buffer_ser );
+        errno = 0;
+        return FTI_NSCS;
+    } 
+    free( buffer_ser );
 
     FTIFF_db *currentdb=NULL, *nextdb=NULL;
     FTIFF_dbvar *currentdbvar=NULL;
@@ -258,10 +418,27 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
 
         mdoffset = endoffile;
 
-        memcpy( &(currentdb->numvars), fmmap+mdoffset, sizeof(int) ); 
-        mdoffset += sizeof(int);
-        memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
-        mdoffset += sizeof(long);
+        // get data block meta data
+        buffer_ser = (char*) malloc( FTI_dbstructsize );
+        if( buffer_ser == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+            FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, st.st_size );
+            errno = 0;
+            return FTI_NSCS;
+        }
+        memcpy( buffer_ser, fmmap + mdoffset, FTI_dbstructsize );
+        if( FTIFF_DeserializeDbMeta( currentdb, buffer_ser ) != FTI_SCES ) {
+            FTI_Print( "FTI-FF: ReadDbFTIFF - failed to deserialize 'currentdb'", FTI_EROR );
+            munmap( fmmap, st.st_size );
+            free( buffer_ser );
+            errno = 0;
+            return FTI_NSCS;
+        } 
+        free( buffer_ser );
+        
+        // advance meta data offset
+        mdoffset += FTI_dbstructsize;
 
         snprintf(str, FTI_BUFS, "FTI-FF: Updatedb - dataBlock:%i, dbsize: %ld, numvars: %i.", 
                 dbcounter, currentdb->dbsize, currentdb->numvars);
@@ -279,28 +456,27 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            
+            // get dbvar meta data
+            buffer_ser = malloc( FTI_dbvarstructsize );
+            if( buffer_ser == NULL ) {
+                snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+                FTI_Print(strerr, FTI_EROR);
+                munmap( fmmap, st.st_size );
+                errno = 0;
+                return FTI_NSCS;
+            }
+            memcpy( buffer_ser, fmmap + mdoffset, FTI_dbvarstructsize );
+            if( FTIFF_DeserializeDbVarMeta( currentdbvar, buffer_ser ) != FTI_SCES ) {
+                FTI_Print( "FTI-FF: ReadDbFTIFF - failed to deserialize 'dbvar'", FTI_EROR );
+                munmap( fmmap, st.st_size );
+                free( buffer_ser );
+                errno = 0;
+                return FTI_NSCS;
+            } 
+            free( buffer_ser );
 
-            //memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIFF_dbvar) );
-            int offset_dbvar = 0;
-            memcpy( &(currentdbvar->id), fmmap+mdoffset, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->idx), fmmap+mdoffset+offset_dbvar, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->containerid), fmmap+mdoffset+offset_dbvar, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->hascontent), fmmap+mdoffset+offset_dbvar, sizeof(bool));
-            offset_dbvar += sizeof(bool);
-            memcpy( &(currentdbvar->hasCkpt), fmmap+mdoffset+offset_dbvar, sizeof(bool));
-            offset_dbvar += sizeof(bool);
-            memcpy( &(currentdbvar->dptr), fmmap+mdoffset+offset_dbvar, sizeof(uintptr_t));
-            offset_dbvar += sizeof(uintptr_t);
-            memcpy( &(currentdbvar->fptr), fmmap+mdoffset+offset_dbvar, sizeof(uintptr_t));
-            offset_dbvar += sizeof(uintptr_t);
-            memcpy( &(currentdbvar->chunksize), fmmap+mdoffset+offset_dbvar, sizeof(long));
-            offset_dbvar += sizeof(long);
-            memcpy( &(currentdbvar->containersize), fmmap+mdoffset+offset_dbvar, sizeof(long));
-            offset_dbvar += sizeof(long);
-            memcpy( currentdbvar->hash, fmmap+mdoffset+offset_dbvar, MD5_DIGEST_LENGTH);
+            // advance meta data offset
             mdoffset += FTI_dbvarstructsize; //sizeof(FTIFF_dbvar);
 
             currentdbvar->hasCkpt = true;
@@ -378,6 +554,9 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
     char str[FTI_BUFS]; //For console output
     char strerr[FTI_BUFS];
 
+    // buffer for de-/serialization of meta data
+    char* buffer_ser;
+
     // map file into memory
     char* fmmap = (char*) mmap(0, FTIFF_Meta->fs, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
@@ -422,10 +601,27 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
 
         mdoffset = endoffile;
 
-        memcpy( &(currentdb->numvars), fmmap+mdoffset, sizeof(int) ); 
-        mdoffset += sizeof(int);
-        memcpy( &(currentdb->dbsize), fmmap+mdoffset, sizeof(long) );
-        mdoffset += sizeof(long);
+        // get data block meta data
+        buffer_ser = (char*) malloc( FTI_dbstructsize );
+        if( buffer_ser == NULL ) {
+            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+            FTI_Print(strerr, FTI_EROR);
+            munmap( fmmap, FTIFF_Meta->fs );
+            errno = 0;
+            return FTI_NSCS;
+        }
+        memcpy( buffer_ser, fmmap + mdoffset, FTI_dbstructsize );
+        if( FTIFF_DeserializeDbMeta( currentdb, buffer_ser ) != FTI_SCES ) {
+            FTI_Print( "FTI-FF: GetFileChecksum - failed to deserialize 'currentdb'", FTI_EROR );
+            munmap( fmmap, FTIFF_Meta->fs );
+            free( buffer_ser );
+            errno = 0;
+            return FTI_NSCS;
+        } 
+        free( buffer_ser );
+
+        // advance meta data offset
+        mdoffset += FTI_dbstructsize;
 
         snprintf(str, FTI_BUFS, "FTI-FF: GetFileChecksum - dataBlock:%i, dbsize: %ld, numvars: %i.", 
                 dbcounter, currentdb->dbsize, currentdb->numvars);
@@ -444,28 +640,27 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
 
-            //memcpy( currentdbvar, fmmap+mdoffset, sizeof(FTIFF_dbvar) );
-            int offset_dbvar = 0;
-            memcpy( &(currentdbvar->id), fmmap+mdoffset, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->idx), fmmap+mdoffset+offset_dbvar, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->containerid), fmmap+mdoffset+offset_dbvar, sizeof(int));
-            offset_dbvar += sizeof(int);
-            memcpy( &(currentdbvar->hascontent), fmmap+mdoffset+offset_dbvar, sizeof(bool));
-            offset_dbvar += sizeof(bool);
-            memcpy( &(currentdbvar->hasCkpt), fmmap+mdoffset+offset_dbvar, sizeof(bool));
-            offset_dbvar += sizeof(bool);
-            memcpy( &(currentdbvar->dptr), fmmap+mdoffset+offset_dbvar, sizeof(uintptr_t));
-            offset_dbvar += sizeof(uintptr_t);
-            memcpy( &(currentdbvar->fptr), fmmap+mdoffset+offset_dbvar, sizeof(uintptr_t));
-            offset_dbvar += sizeof(uintptr_t);
-            memcpy( &(currentdbvar->chunksize), fmmap+mdoffset+offset_dbvar, sizeof(long));
-            offset_dbvar += sizeof(long);
-            memcpy( &(currentdbvar->containersize), fmmap+mdoffset+offset_dbvar, sizeof(long));
-            offset_dbvar += sizeof(long);
-            memcpy( currentdbvar->hash, fmmap+mdoffset+offset_dbvar, MD5_DIGEST_LENGTH);
-            mdoffset += FTI_dbvarstructsize;//sizeof(FTIFF_dbvar);
+            // get dbvar meta data
+            buffer_ser = malloc( FTI_dbvarstructsize );
+            if( buffer_ser == NULL ) {
+                snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+                FTI_Print(strerr, FTI_EROR);
+                munmap( fmmap, FTIFF_Meta->fs );
+                errno = 0;
+                return FTI_NSCS;
+            }
+            memcpy( buffer_ser, fmmap + mdoffset, FTI_dbvarstructsize );
+            if( FTIFF_DeserializeDbVarMeta( currentdbvar, buffer_ser ) != FTI_SCES ) {
+                FTI_Print( "FTI-FF: ReadDbFTIFF - failed to deserialize 'dbvar'", FTI_EROR );
+                munmap( fmmap, FTIFF_Meta->fs );
+                free( buffer_ser );
+                errno = 0;
+                return FTI_NSCS;
+            } 
+            free( buffer_ser );
+
+            // advance meta data offset
+            mdoffset += FTI_dbvarstructsize; //sizeof(FTIFF_dbvar);
             
             // debug information
             snprintf(str, FTI_BUFS, "FTI-FF: GetFileChecksum -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
@@ -592,7 +787,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             // FOR DCP 
             if  ( FTI_Conf->dcpEnabled ) {
                 FTI_InitBlockHashArray( &(dbvars[dbvar_idx]), &(FTI_Data[dbvar_idx]) );
-                //DBG_MSG("INIT HASH INFO",-1);
             } else {
                 dbvars[dbvar_idx].nbHashes = -1;
                 dbvars[dbvar_idx].dataDiffHash = NULL;
@@ -681,7 +875,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 dbvar->hascontent = false;
                                 // [FOR DCP] free hash array and hash structure in block
                                 if ( ( dbvar->dataDiffHash != NULL ) && FTI_Conf->dcpEnabled ) {
-                                    //DBG_MSG("FREE",-1);
                                     free(dbvar->dataDiffHash[0].md5hash);
                                     free(dbvar->dataDiffHash);
                                     dbvar->dataDiffHash = NULL;
@@ -702,18 +895,13 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
                                     FTI_InitBlockHashArray( dbvar, data );
-                                    //DBG_MSG("INIT CAUSE DATASET INCREASED",-1);
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
                                 if ( FTI_Conf->dcpEnabled ) {
                                     if (  dbvar->chunksize > chunksizeOld ) {
                                         FTI_ExpandBlockHashArray( dbvar, dbvar->containersize, data );
-                                        //DBG_MSG("EXPAND",-1);
                                     }
-                                    //if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
-                                    //    FTI_UpdateBlockHashPtr( dbvar, data );
-                                    //}
                                 }
                             }
                             overflow[pvar_idx] -= dbvar->containersize;
@@ -731,22 +919,16 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
                                     FTI_InitBlockHashArray( dbvar, data );
-                                    //DBG_MSG("INIT TO REACTIVATE BLOCK",-1);
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
                                 if ( FTI_Conf->dcpEnabled ) {
                                     if ( dbvar->chunksize < chunksizeOld ) {
                                         FTI_CollapseBlockHashArray( dbvar, chunksizeOld, data );
-                                        //DBG_MSG("COLLAPSE",-1);
                                     }
                                     if ( dbvar->chunksize > chunksizeOld ) {
                                         FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
-                                        //DBG_MSG("EXPAND",-1);
                                     }
-                                    //if ( ((FTI_ADDRPTR)(data->ptr + dbvar->dptr)) != dbvar->dataDiffHash[0].ptr ) {
-                                    //    FTI_UpdateBlockHashPtr( dbvar, data );
-                                    //}
                                 }
                             }
                             validBlock[pvar_idx] = false;
@@ -835,13 +1017,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         break;
 
                 }
-                
-
-                // [FOR DCP] init hash array for new block or new protected variable
-                //if ( FTI_Conf->dcpEnabled && callInit ) {
-                //    FTI_InitBlockHashArray( &(dbvars[evar_idx-1]), &(FTI_Data[pvar_idx]) );
-                //    //DBG_MSG("INIT NEW BLOCK/VARIABLE",-1);
-                //}
 
             }
 
@@ -934,7 +1109,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    
     FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
-    // uncomment for debugging 
+    //FOR DEVELOPING 
     //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS], fnr[FTI_BUFS];
@@ -946,6 +1121,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("No data structure found to write data to file. Discarding checkpoint.", FTI_WARN);
         return FTI_NSCS;
     }
+
+    // buffer for de-/serialization of meta data
+    char* buffer_ser;
 
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
@@ -1020,7 +1198,22 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         endoffile += currentdb->dbsize;
 
         if (currentdb->update) {
-            
+             
+            // serialize block meta data and write to file
+            buffer_ser = (char*) malloc ( FTI_dbstructsize );
+            if( buffer_ser == NULL ) {
+                snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbstructsize );
+                FTI_Print(strerr, FTI_EROR);
+                close(fd);
+                errno = 0;
+                return FTI_NSCS;
+            }
+            if( FTIFF_SerializeDbMeta( currentdb, buffer_ser ) != FTI_SCES ) {
+                FTI_Print("FTI-FF: WriteFTIFF - failed to serialize 'currentdb'", FTI_EROR);
+                close(fd);
+                errno = 0;
+                return FTI_NSCS;
+            }
             if ( lseek( fd, mdoffset, SEEK_SET ) == -1 ) {
                 snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
                 FTI_Print(strerr, FTI_EROR);
@@ -1028,15 +1221,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 errno = 0;
                 return FTI_NSCS;
             }
-
-            char * db_ser = (char*) malloc ( FTI_dbstructsize );
-
-            memcpy( db_ser, &(currentdb->numvars), sizeof(int) );
-
-            memcpy( db_ser+sizeof(int), &(currentdb->dbsize), sizeof(long) );
-            
-            write( fd, db_ser, FTI_dbstructsize );
-            
+            write( fd, buffer_ser, FTI_dbstructsize );
             if ( fd == -1 ) {
                 snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
                 FTI_Print(strerr, FTI_EROR);
@@ -1044,10 +1229,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 close(fd);
                 return FTI_NSCS;
             }
-
-            free( db_ser );
+            free( buffer_ser );
         }
 
+        // advance meta data offset
         mdoffset += FTI_dbstructsize;
 
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
@@ -1072,6 +1257,21 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             if ( currentdbvar->update || contentUpdate ) {
                 
+                // serialize data block variable meta data and write to file
+                buffer_ser = (char*) malloc ( FTI_dbvarstructsize );
+                if( buffer_ser == NULL ) {
+                    snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbvarstructsize );
+                    FTI_Print(strerr, FTI_EROR);
+                    close(fd);
+                    errno = 0;
+                    return FTI_NSCS;
+                }
+                if( FTIFF_SerializeDbVarMeta( currentdbvar, buffer_ser ) != FTI_SCES ) {
+                    FTI_Print("FTI-FF: WriteFTIFF - failed to serialize 'currentdbvar'", FTI_EROR);
+                    close(fd);
+                    errno = 0;
+                    return FTI_NSCS;
+                }
                 if ( lseek( fd, mdoffset, SEEK_SET ) == -1 ) {
                     snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
                     FTI_Print(strerr, FTI_EROR);
@@ -1079,31 +1279,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     errno = 0;
                     return FTI_NSCS;
                 }
-
-                char *dbvar_ser = malloc(FTI_dbvarstructsize);
-                char *cpy_ptr = dbvar_ser;
-
-                memcpy( cpy_ptr, &(currentdbvar->id), sizeof(int));
-                cpy_ptr += sizeof(int);
-                memcpy( cpy_ptr, &(currentdbvar->idx), sizeof(int));
-                cpy_ptr += sizeof(int);
-                memcpy( cpy_ptr, &(currentdbvar->containerid), sizeof(int));
-                cpy_ptr += sizeof(int);
-                memcpy( cpy_ptr, &(currentdbvar->hascontent), sizeof(bool));
-                cpy_ptr += sizeof(bool);
-                memcpy( cpy_ptr, &(currentdbvar->hasCkpt), sizeof(bool));
-                cpy_ptr += sizeof(bool);
-                memcpy( cpy_ptr, &(currentdbvar->dptr), sizeof(uintptr_t));
-                cpy_ptr += sizeof(uintptr_t);
-                memcpy( cpy_ptr, &(currentdbvar->fptr), sizeof(uintptr_t));
-                cpy_ptr += sizeof(uintptr_t);
-                memcpy( cpy_ptr, &(currentdbvar->chunksize), sizeof(long));
-                cpy_ptr += sizeof(long);
-                memcpy( cpy_ptr, &(currentdbvar->containersize), sizeof(long));
-                cpy_ptr += sizeof(long);
-                memcpy( cpy_ptr, currentdbvar->hash, MD5_DIGEST_LENGTH);
-                
-                write( fd, dbvar_ser, FTI_dbvarstructsize );
+                write( fd, buffer_ser, FTI_dbvarstructsize );
                 if ( fd == -1 ) {
                     snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write metadata in file: %s", fn);
                     FTI_Print(strerr, FTI_EROR);
@@ -1111,11 +1287,11 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     close(fd);
                     return FTI_NSCS;
                 }
-
-                free( dbvar_ser );
+                free( buffer_ser );
 
             }
-             
+            
+            // advance meta data offset
             mdoffset += FTI_dbvarstructsize;
 
         }
@@ -1238,28 +1414,21 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    // Write file meta data (serialized)
-    char* fmeta_ser = malloc( 
-            MD5_DIGEST_STRING_LENGTH +
-            MD5_DIGEST_LENGTH +
-            5*sizeof(long) );
-    
-    int pos = 0;
-    memcpy( fmeta_ser, FTI_Exec->FTIFFMeta.checksum, MD5_DIGEST_STRING_LENGTH );
-    pos += MD5_DIGEST_STRING_LENGTH;
-    memcpy( fmeta_ser + pos, FTI_Exec->FTIFFMeta.myHash, MD5_DIGEST_LENGTH );
-    pos += MD5_DIGEST_LENGTH;
-    memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.ckptSize), sizeof(long) );
-    pos += sizeof(long);
-    memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.fs), sizeof(long) );
-    pos += sizeof(long);
-    memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.maxFs), sizeof(long) );
-    pos += sizeof(long);
-    memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.ptFs), sizeof(long) );
-    pos += sizeof(long);
-    memcpy( fmeta_ser + pos, &(FTI_Exec->FTIFFMeta.timestamp), sizeof(long) );
-    pos += sizeof(long);
-    
+    // serialize file meta data and write to file
+    buffer_ser = (char*) malloc ( FTI_filemetastructsize );
+    if( buffer_ser == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_filemetastructsize );
+        FTI_Print(strerr, FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
+    if( FTIFF_SerializeFileMeta( &(FTI_Exec->FTIFFMeta), buffer_ser ) != FTI_SCES ) {
+        FTI_Print("FTI-FF: WriteFTIFF - failed to serialize 'FTI_Exec->FTIFFMeta'", FTI_EROR);
+        close(fd);
+        errno = 0;
+        return FTI_NSCS;
+    }
     if ( lseek( fd, 0, SEEK_SET ) == -1 ) {
         snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
         FTI_Print(strerr, FTI_EROR);
@@ -1267,8 +1436,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         errno = 0;
         return FTI_NSCS;
     }
-
-    write( fd, fmeta_ser, pos );
+    write( fd, buffer_ser, FTI_filemetastructsize );
     if ( fd == -1 ) {
         snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not write file metadata in file: %s", fn);
         FTI_Print(strerr, FTI_EROR);
@@ -1276,9 +1444,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         close(fd);
         return FTI_NSCS;
     }
-
-    free( fmeta_ser );
+    free( buffer_ser );
  
+    fdatasync( fd );
     close( fd );
 
     return FTI_SCES;

@@ -174,6 +174,12 @@ typedef struct FTIFF_MPITypeInfo {
  **/
 
 void FTIFF_InitMpiTypes();
+int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
+int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
+int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
+int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
+int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
+int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 int FTIFF_QueryLastContainer( int id, FTIT_execution* FTI_Exec, FTIFF_dbvar* dbvar ); 
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
 //int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum);

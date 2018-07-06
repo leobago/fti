@@ -1,6 +1,6 @@
 #include "diff_test.h"
 
-#define ALLOC_SIZE (400*MB)
+#define ALLOC_SIZE (200*MB)
 
 int main() {
     
@@ -19,22 +19,20 @@ int main() {
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
         protect_buffers( &info );
         FTI_Checkpoint( 1, FTI_L4_DCP );
-        sleep(5);
         int i;
         for ( i=0; i<NUM_DCKPT-1; ++i ) {
             unsigned long allocated = reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
             protect_buffers( &info );
             xor_data( i, &info );
             FTI_Checkpoint( i+2, FTI_L4_DCP );
-        sleep(10);
         }
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );
         protect_buffers( &info );
         xor_data( i, &info );
         FTI_Checkpoint( i+2, FTI_L4_DCP );
-        sleep(10);
         FTI_Checkpoint( i+3, FTI_L4_DCP );
         sleep(10);
+        exit -1;
     } else {
         if ( FTI_Recover() != 0 ) {
             exit(-1);
