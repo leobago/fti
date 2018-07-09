@@ -36,6 +36,7 @@
  *  @brief  Post recovery functions for the FTI library.
  */
 #include "interface.h"
+#include "ftiff.h"
 
 /*-------------------------------------------------------------------------*/
 /**

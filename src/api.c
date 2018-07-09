@@ -39,6 +39,7 @@
 #include <cuda_runtime_api.h>
 
 #include "interface.h"
+#include "ftiff.h"
 #include "api_cuda.h"
 
 /** General configuration information used by FTI.                         */
@@ -102,21 +103,7 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
-    int numCudaDevice;
-    int currentDeviceID;
-    int i;
-
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
-
-    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
-    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
-    if ((FTI_Exec.cStreams = (cudaStream_t *)malloc(numCudaDevice * sizeof(cudaStream_t))) == NULL)
-        return FTI_NSCS;
-    for (i = 0; i < numCudaDevice; ++i) {
-        CUDA_ERROR_CHECK(cudaSetDevice(i));
-        CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStreams[i]));
-    }
-    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
 
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
@@ -151,6 +138,16 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTIFF_InitMpiTypes();
     }
     FTI_Exec.initSCES = 1;
+    
+    // Initialize CUDA-related params
+    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+
+    MD5_Init(&FTI_Exec.mdContext);
+
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -1105,24 +1102,39 @@ int FTI_Snapshot()
 /*-------------------------------------------------------------------------*/
 int FTI_Finalize()
 {
-    int numCudaDevice;
-    int currentDeviceID;
-    int i;
-
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    CUDA_ERROR_CHECK(cudaGetDeviceCount(&numCudaDevice));
-    CUDA_ERROR_CHECK(cudaGetDevice(&currentDeviceID));
-    for (i = 0; i < numCudaDevice; ++i) {
-        CUDA_ERROR_CHECK(cudaSetDevice(i));
-        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec.cStreams[i]));
-        CUDA_ERROR_CHECK(cudaStreamDestroy(FTI_Exec.cStreams[i]));
+    cudaError_t err;
+    char err_str[FTI_BUFS];
+
+    if ((err = cudaStreamSynchronize(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot synchronize the internal cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
     }
-    CUDA_ERROR_CHECK(cudaSetDevice(currentDeviceID));
-    free(FTI_Exec.cStreams);
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaStreamDestroy(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
