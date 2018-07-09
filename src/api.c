@@ -832,11 +832,12 @@ int FTI_Checkpoint(int id, int level)
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
 
-    if ( FTI_Conf.dcpEnabled && (level == FTI_L4_DCP) ) {
-        FTI_Ckpt[4].isDcp = true;
-        level = 4;
-        if ( !FTI_Ckpt[4].hasDcp ) {
-            snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo.myRank);
+    if ( level == FTI_L4_DCP ) {
+        if ( FTI_Conf.dcpEnabled ) {
+            FTI_Ckpt[4].isDcp = true;
+        } else {
+            FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
+            level = 4;
         }
     }
 

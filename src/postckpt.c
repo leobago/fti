@@ -444,8 +444,45 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // get hash of meta data
             FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
 
-            // append meta info to RS file
+            // serialize data block variable meta data and append to encoded file
+            char* buffer_ser = (char*) malloc ( FTI_dbvarstructsize );
+            if( buffer_ser == NULL ) {
+                snprintf( str, FTI_BUFS, "FTI_RSenc - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbvarstructsize );
+                FTI_Print(str, FTI_EROR);
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                errno = 0;
+                return FTI_NSCS;
+            }
+            if( FTIFF_SerializeFileMeta( FTIFFMeta, buffer_ser ) != FTI_SCES ) {
+                FTI_Print("FTI_RSenc - failed to serialize 'currentdbvar'", FTI_EROR);
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                errno = 0;
+                return FTI_NSCS;
+            }
             fwrite(FTIFFMeta, sizeof(FTIFF_metaInfo), 1, efd);
+            if ( ferror( efd ) ) {
+                snprintf(str, FTI_BUFS, "FTI_RSenc - could not write metadata in file: %s", efn);
+                FTI_Print(str, FTI_EROR);
+                errno=0;
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                return FTI_NSCS;
+            }
+            free( buffer_ser );
 
         }
 
