@@ -234,8 +234,14 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
                 return FTI_NSCS;
             } 
             free( buffer_ser );
-            if( currentdbvar->hascontent && FTI_Conf->dcpEnabled ) {
-                FTI_InitBlockHashArray( currentdbvar, FTI_Data );
+
+            // if dCP enabled, initialize hash clock structures
+            if( FTI_Conf->dcpEnabled ) {
+                if( currentdbvar->hascontent ) {
+                    FTI_InitBlockHashArray( currentdbvar );
+                } else {
+                    currentdbvar->dataDiffHash = NULL;
+                }
             }
 
             // advance meta data offset
@@ -549,7 +555,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
             dbvars[dbvar_idx].cptr = FTI_Data[dbvar_idx].ptr + dbvars[dbvar_idx].dptr;
             // FOR DCP 
             if  ( FTI_Conf->dcpEnabled ) {
-                FTI_InitBlockHashArray( &(dbvars[dbvar_idx]), &(FTI_Data[dbvar_idx]) );
+                FTI_InitBlockHashArray( &(dbvars[dbvar_idx]) );
             } else {
                 dbvars[dbvar_idx].nbHashes = -1;
                 dbvars[dbvar_idx].dataDiffHash = NULL;
@@ -657,7 +663,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
-                                    if( FTI_InitBlockHashArray( dbvar, data ) != FTI_SCES ) {
+                                    if( FTI_InitBlockHashArray( dbvar ) != FTI_SCES ) {
                                         FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
                                     }
                                 }
@@ -665,7 +671,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
                                 if ( FTI_Conf->dcpEnabled ) {
                                     if (  dbvar->chunksize > chunksizeOld ) {
-                                        FTI_ExpandBlockHashArray( dbvar, dbvar->containersize, data );
+                                        FTI_ExpandBlockHashArray( dbvar );
                                     }
                                 }
                             }
@@ -683,7 +689,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
-                                    if( FTI_InitBlockHashArray( dbvar, data )  != FTI_SCES ) {
+                                    if( FTI_InitBlockHashArray( dbvar )  != FTI_SCES ) {
                                         FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
                                     }
 
@@ -692,10 +698,10 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
                                 if ( FTI_Conf->dcpEnabled ) {
                                     if ( dbvar->chunksize < chunksizeOld ) {
-                                        FTI_CollapseBlockHashArray( dbvar, chunksizeOld, data );
+                                        FTI_CollapseBlockHashArray( dbvar );
                                     }
                                     if ( dbvar->chunksize > chunksizeOld ) {
-                                        FTI_ExpandBlockHashArray( dbvar, dbvar->chunksize, data );
+                                        FTI_ExpandBlockHashArray( dbvar );
                                     }
                                 }
                             }
@@ -752,7 +758,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbsize += dbvars[evar_idx].containersize; 
                         dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                         if ( FTI_Conf->dcpEnabled ) {
-                            FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                            FTI_InitBlockHashArray( &(dbvars[evar_idx]) );
                         }
                         dbvars[evar_idx].update = true;
                         FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
@@ -776,7 +782,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbsize += dbvars[evar_idx].containersize; 
                         dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                         if ( FTI_Conf->dcpEnabled ) {
-                            FTI_InitBlockHashArray( &(dbvars[evar_idx]), &(FTI_Data[pvar_idx]) );
+                            FTI_InitBlockHashArray( &(dbvars[evar_idx]) );
                         }
                         dbvars[evar_idx].update = true;
                         FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );

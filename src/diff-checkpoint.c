@@ -143,7 +143,7 @@ int FTI_GetDcpMode()
     return HASH_MODE;
 }
 
-int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data ) 
+int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar ) 
 {   
     dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
     dbvar->dataDiffHash = (FTIT_DataDiffHash*) malloc ( sizeof(FTIT_DataDiffHash) * dbvar->nbHashes );
@@ -152,8 +152,8 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
         return FTI_NSCS;
     }
     FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
-    FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
-    FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) dbvar->chunksize;
+    long pos = 0; 
+    long end = dbvar->chunksize;
     int hashIdx;
     if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
         // we want the hash array to be dense
@@ -167,7 +167,7 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
     }
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
     for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - ptr) > diffBlockSize ) ? diffBlockSize : (dcpBLK_t) end-ptr;
+        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : (dcpBLK_t) end-pos;
         
         if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
             hashes[hashIdx].md5hash = (unsigned char*) hashes[0].md5hash + hashIdx * MD5_DIGEST_LENGTH;
@@ -177,20 +177,17 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
         hashes[hashIdx].isValid = false;
         hashes[hashIdx].dirty = false;
         hashes[hashIdx].blockSize = hashBlockSize;
-        ptr += hashBlockSize;
+        pos += hashBlockSize;
     }
 
     return FTI_SCES;
 }
 
-int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset* FTI_Data ) 
+int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar ) 
 {
-
-    assert( dbvar->chunksize <= dbvar->containersize );
-    
     bool changeSize = true;
 
-    long nbHashesOld = FTI_CalcNumHashes( old_size );
+    long nbHashesOld = dbvar->nbHashes;
 
     // update to new number of hashes (which might be actually unchanged)
     dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
@@ -218,13 +215,13 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset*
     
     // we need this pointer since data was most likely re allocated 
     // and thus might have a new memory location
-    FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
-    FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) dbvar->chunksize;
+    long pos = 0;
+    long end = dbvar->chunksize;
     int hashIdx;
     int lastIdx = dbvar->nbHashes-1;
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
     for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - ptr) > diffBlockSize ) ? diffBlockSize : end-ptr;
+        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : end-pos;
         // keep track of new memory locations for dense hash array
         if ( changeSize ) {
             if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
@@ -248,16 +245,14 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset*
                 hashes[lastIdx].dirty = false;
             }
         }
-        ptr += hashBlockSize;
+        pos += hashBlockSize;
     }
 
     return FTI_SCES;    
 }
 
-int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data ) 
+int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar ) 
 {
-    assert( new_size <= dbvar->containersize );
-
     bool changeSize = true;
 
     long nbHashesOld = dbvar->nbHashes;
@@ -269,8 +264,9 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
     // This is taken care of in the for loop (after comment 'invalidate new hashes...').
     
     // update to new number of hashes (which might be actually unchanged)
-    dbvar->nbHashes = FTI_CalcNumHashes( new_size );
+    dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
  
+    assert( nbHashesOld <= dbvar->nbHashes );
     if ( dbvar->nbHashes == nbHashesOld ) {
         changeSize = false;
     }
@@ -293,12 +289,12 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
     
     // we need this pointer since data was most likely re allocated 
     // and thus might have a new memory location
-    FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
-    FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) new_size;
+    long pos = 0;
+    long end = dbvar->chunksize;
     int hashIdx;
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
     for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - ptr) > diffBlockSize ) ? diffBlockSize : end-ptr;
+        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : end-pos;
         // keep track of new memory locations for dense hash array
         if ( changeSize ) {
             if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
@@ -315,7 +311,7 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
             hashes[hashIdx].dirty = false;
             hashes[hashIdx].blockSize = hashBlockSize;
         }
-        ptr += hashBlockSize;
+        pos += hashBlockSize;
     }
     return FTI_SCES;    
 }
