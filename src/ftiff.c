@@ -69,7 +69,7 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) 
+int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt ) 
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
@@ -234,6 +234,9 @@ int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt )
                 return FTI_NSCS;
             } 
             free( buffer_ser );
+            if( currentdbvar->hascontent && FTI_Conf->dcpEnabled ) {
+                FTI_InitBlockHashArray( currentdbvar, FTI_Data );
+            }
 
             // advance meta data offset
             mdoffset += FTI_dbvarstructsize; //sizeof(FTIFF_dbvar);
@@ -329,7 +332,8 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
     FTIFF_dbvar *currentdbvar=NULL;
     int dbvar_idx, dbcounter=0;
 
-    long endoffile = FTI_filemetastructsize; // space for timestamp 
+    // set filepointer after file meta data
+    long endoffile = FTI_filemetastructsize;
     long mdoffset;
 
     int isnextdb;
@@ -653,7 +657,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
-                                    FTI_InitBlockHashArray( dbvar, data );
+                                    if( FTI_InitBlockHashArray( dbvar, data ) != FTI_SCES ) {
+                                        FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                                    }
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
@@ -677,7 +683,10 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                                 dbvar->hascontent = true;
                                 // [FOR DCP] init hash array for block
                                 if ( FTI_Conf->dcpEnabled ) {
-                                    FTI_InitBlockHashArray( dbvar, data );
+                                    if( FTI_InitBlockHashArray( dbvar, data )  != FTI_SCES ) {
+                                        FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                                    }
+
                                 }
                             } else {
                                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased

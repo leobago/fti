@@ -155,8 +155,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[4].ckptCnt  = 1;
 
     // Reading/setting configuration metadata
-    FTI_Conf->dcpEnabled = ( (int)iniparser_getint(ini, "Basic:diff_ckpt", -1) == 1 ) ? true : false;
-    FTI_Conf->diffMode = (int)iniparser_getint(ini, "Basic:diff_mode", 0);
+    FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
+    FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + 2000;
+    FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
@@ -277,6 +278,16 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Conf->blockSize > (2048 * 1024) || FTI_Conf->blockSize < (1 * 1024)) {
         FTI_Print("Block size needs to be set between 1 and 2048.", FTI_WARN);
         return FTI_NSCS;
+    }
+    if ( (FTI_Conf->dcpMode < 2001) || (FTI_Conf->dcpMode > 2002) ) {
+        FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
+        FTI_Conf->dcpEnabled = false;
+    }
+    if ( (FTI_Conf->dcpBlockSize < 512) || (FTI_Conf->dcpBlockSize > USHRT_MAX) ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
+        FTI_Print( str, FTI_WARN );
+        FTI_Conf->dcpEnabled = false;
     }
     if (FTI_Conf->transferSize > (1024 * 1024 * 64) || FTI_Conf->transferSize < (1024 * 1024 * 8)) {
         FTI_Print("Transfer size (default = 16MB) not set in Cofiguration file.", FTI_WARN);

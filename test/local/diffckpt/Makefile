@@ -10,6 +10,8 @@ WORK_DIR := /home/kellekai/WORK/FTI/FTI-REPO-KAI/test/local/diffckpt
 all: diff_test
 
 export LD_LIBRARY_PATH = /usr/lib64/mpi/gcc/openmpi/lib64:/home/kellekai/WORK/FTI/FTI-REPO-KAI/build/RELEASE/lib
+export FTI_DCP_BLOCK_SIZE=16384
+export FTI_DCP_HASH_MODE=1
 
 fti: $(FTI_SRC) clean
 	cd $(FTI_BUILD) && $(MAKE) all install

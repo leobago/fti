@@ -84,14 +84,15 @@
 #define FTI_IO_SIONLIB 1004
 #endif
 
-#define FTI_DCP_MODE_MD5 2001
-#define FTI_DCP_MODE_CRC32 2002
-
 /** Token for IO mode HDF5.                                         */
 #define FTI_IO_HDF5 1005
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
     #include "hdf5.h"
 #endif
+
+#define FTI_DCP_MODE_OFFSET 2000
+#define FTI_DCP_MODE_MD5 2001
+#define FTI_DCP_MODE_CRC32 2002
 
 #ifdef __cplusplus
 extern "C" {
@@ -365,8 +366,9 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
-        bool            dcpEnabled;     /**< Enable differential ckpt.      */
-        int             diffMode;           /**< Enable differential ckpt.      */
+        bool            dcpEnabled;         /**< Enable differential ckpt.      */
+        int             dcpMode;            /**< dCP mode.                      */
+        int             dcpBlockSize;       /**< Block size for dCP hash        */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
         int             verbosity;          /**< Verbosity level.               */

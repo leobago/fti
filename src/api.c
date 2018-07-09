@@ -1143,10 +1143,6 @@ int FTI_Finalize()
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
     }
     
-    if (FTI_Conf.dcpEnabled) {
-        FTI_FinalizeDcp();
-    }
-
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
@@ -1186,6 +1182,11 @@ int FTI_Finalize()
         //Cleaning everything
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
+    
+    if (FTI_Conf.dcpEnabled) {
+        FTI_FinalizeDcp( &FTI_Conf, &FTI_Exec );
+    }
+
     FTI_FreeMeta(&FTI_Exec);
     FTI_FreeTypesAndGroups(&FTI_Exec);
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {

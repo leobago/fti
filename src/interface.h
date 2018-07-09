@@ -255,13 +255,12 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-int FTI_FinalizeDcp();
+int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
 int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_offset, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data);
 long FTI_CalcNumHashes( long chunkSize );
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data );
 int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data );
-int FTI_UpdateBlockHashPtr( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data );
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* FTI_Data );
 int FTI_GetDcpMode();
 dcpBLK_t FTI_GetDiffBlockSize();

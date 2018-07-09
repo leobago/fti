@@ -45,64 +45,97 @@
 /** Static Global Variables                                                             */
 
 static int                  HASH_MODE;
-static dcpBLK_t             DIFF_BLOCK_SIZE;
+static dcpBLK_t             DCP_BLOCK_SIZE;
 
 /** File Local Variables                                                                */
 
-static bool dcpEnabled;
-static int diffMode;
+static bool* dcpEnabled;
 
 /** Function Definitions                                                                */
 
-int FTI_FinalizeDcp() 
+int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ) 
 {
+    // deallocate memory in dcp structures
+    FTIFF_db* currentDB = FTI_Exec->firstdb;
+    FTIFF_db* nextDB = NULL;
+    do {    
+        int varIdx;
+        for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
+            FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
+            if( currentdbVar->dataDiffHash != NULL ) {
+                if( HASH_MODE == FTI_DCP_MODE_MD5 ) {
+                    free( currentdbVar->dataDiffHash[0].md5hash );
+                }
+                free( currentdbVar->dataDiffHash );
+            }
+        }
+    }
+    while ( (currentDB = currentDB->next) != NULL );
+
+    // disable dCP
+    FTI_Conf->dcpEnabled = false;
 }
 
 int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
+    char str[FTI_BUFS];
+
     if ( !FTI_Conf->dcpEnabled ) {
         return FTI_SCES;
     }
     
     int rank;
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
-    if( getenv("FTI_HASH_MODE") != 0 ) {
-        HASH_MODE = atoi(getenv("FTI_HASH_MODE"));
+    if( getenv("FTI_DCP_HASH_MODE") != 0 ) {
+        HASH_MODE = atoi(getenv("FTI_DCP_HASH_MODE")) + FTI_DCP_MODE_OFFSET;
+        if ( (HASH_MODE < FTI_DCP_MODE_MD5) || (HASH_MODE > FTI_DCP_MODE_CRC32) ) {
+            FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
+            FTI_Conf->dcpEnabled = false;
+            return FTI_NSCS;
+        }
     } else {
-        HASH_MODE = FTI_DCP_MODE_MD5;
+        // check if dcpMode correct in 'conf.c'
+        HASH_MODE = FTI_Conf->dcpMode;
     }
-    if( getenv("FTI_DIFF_BLOCK_SIZE") != 0 ) {
-        int chk_size = atoi(getenv("FTI_DIFF_BLOCK_SIZE"));
-        DIFF_BLOCK_SIZE = ( (chk_size < USHRT_MAX) && (chk_size > 0) ) ? chk_size : 4096; 
+    if( getenv("FTI_DCP_BLOCK_SIZE") != 0 ) {
+        int chk_size = atoi(getenv("FTI_DCP_BLOCK_SIZE"));
+        if( (chk_size < USHRT_MAX) && (chk_size > 0) ) {
+            DCP_BLOCK_SIZE = (dcpBLK_t) chk_size;
+        } else {
+            snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
+            FTI_Print( str, FTI_WARN );
+            FTI_Conf->dcpEnabled = false;
+            return FTI_NSCS;
+        }
     } else {
-        DIFF_BLOCK_SIZE = 4096;
+        // check if dcpBlockSize is in range in 'conf.c'
+        DCP_BLOCK_SIZE = (dcpBLK_t) FTI_Conf->dcpBlockSize;
     }
 
     if(rank == 0) {
         switch (HASH_MODE) {
-            case -1:
-                printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> OFF\n");
-                break;
             case FTI_DCP_MODE_MD5:
                 printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> MD5\n");
                 break;
             case FTI_DCP_MODE_CRC32:
                 printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : HASH MODE IS -> CRC32\n");
                 break;
+            default:
+                FTI_Print("Hash mode not recognized, dCP disabled!", FTI_WARN);
+                FTI_Conf->dcpEnabled = false;
+                return FTI_NSCS;
         }
-        printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : DIFF_BLOCK_SIZE IS -> %d\n", DIFF_BLOCK_SIZE);
+        printf("[ " BLU "FTI  DIFFCKPT" RESET " ] : DCP_BLOCK_SIZE IS -> %d\n", DCP_BLOCK_SIZE);
     }
 
-    dcpEnabled = FTI_Conf->dcpEnabled;
-    DBG_MSG("dCP enabled",-1);
+    dcpEnabled = &(FTI_Conf->dcpEnabled);
 
-    diffMode = FTI_Conf->diffMode;
     return FTI_SCES;
 }
 
 dcpBLK_t FTI_GetDiffBlockSize() 
 {
-    return DIFF_BLOCK_SIZE;
+    return DCP_BLOCK_SIZE;
 }
 
 int FTI_GetDcpMode() 
@@ -110,13 +143,14 @@ int FTI_GetDcpMode()
     return HASH_MODE;
 }
 
-
-
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data ) 
-{
+{   
     dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
     dbvar->dataDiffHash = (FTIT_DataDiffHash*) malloc ( sizeof(FTIT_DataDiffHash) * dbvar->nbHashes );
-    assert( dbvar->dataDiffHash != NULL );
+    if( dbvar->dataDiffHash == NULL ) {
+        FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
+        return FTI_NSCS;
+    }
     FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
     FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
     FTI_ADDRVAL end = ptr + (FTI_ADDRVAL) dbvar->chunksize;
@@ -124,10 +158,16 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
     if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
         // we want the hash array to be dense
         hashes[0].md5hash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * dbvar->nbHashes );
+        if( dbvar->dataDiffHash == NULL ) {
+            FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
+            free(dbvar->dataDiffHash);
+            dbvar->dataDiffHash = NULL;
+            return FTI_NSCS;
+        }
     }
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
     for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - ptr) > diffBlockSize ) ? diffBlockSize : end-ptr;
+        dcpBLK_t hashBlockSize = ( (end - ptr) > diffBlockSize ) ? diffBlockSize : (dcpBLK_t) end-ptr;
         
         if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
             hashes[hashIdx].md5hash = (unsigned char*) hashes[0].md5hash + hashIdx * MD5_DIGEST_LENGTH;
@@ -136,22 +176,11 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data )
         }
         hashes[hashIdx].isValid = false;
         hashes[hashIdx].dirty = false;
-//        hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
         hashes[hashIdx].blockSize = hashBlockSize;
         ptr += hashBlockSize;
     }
-}
 
-int FTI_UpdateBlockHashPtr( FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data ) {
-    assert( dbvar->dataDiffHash != NULL );
-    FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
-    FTI_ADDRVAL ptr = (FTI_ADDRVAL) FTI_Data->ptr + (FTI_ADDRVAL) dbvar->dptr;
-    int hashIdx;
-//    for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-//        hashes[hashIdx].ptr = (FTI_ADDRPTR) ptr;
-//        ptr += hashes[hashIdx].blockSize;
-//    }
-    
+    return FTI_SCES;
 }
 
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset* FTI_Data ) 
@@ -207,11 +236,11 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar, long old_size, FTIT_dataset*
     
         // invalidate last hash in (almost) any case. If number of hashes remain the same, 
         // the last block changed size and with that data changed content.
-        // if number decreased and the blocksize of new last block is less the DIFF_BLOCK_SIZE
+        // if number decreased and the blocksize of new last block is less the DCP_BLOCK_SIZE
         // the hash is invalid too.
         if ( hashIdx == lastIdx ) {
             hashes[hashIdx].blockSize = hashBlockSize;
-            if ( ( hashes[lastIdx].blockSize < DIFF_BLOCK_SIZE ) && changeSize ) {
+            if ( ( hashes[lastIdx].blockSize < DCP_BLOCK_SIZE ) && changeSize ) {
                 hashes[lastIdx].isValid = false;
                 hashes[lastIdx].dirty = false;
             } else if ( !changeSize ) {
@@ -236,7 +265,7 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
     // If number of blocks remain the same, the size of the last block changed to 'new_size - old_size', 
     // thus also the data that is contained in it. 
     // If the nuber of blocks increased, the blocksize is changed for the current 
-    // last block as well, in fact to DIFF_BLOCK_SIZE. 
+    // last block as well, in fact to DCP_BLOCK_SIZE. 
     // This is taken care of in the for loop (after comment 'invalidate new hashes...').
     
     // update to new number of hashes (which might be actually unchanged)
@@ -293,10 +322,10 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar, long new_size, FTIT_dataset* F
 
 long FTI_CalcNumHashes( long chunkSize ) 
 {
-    if ( (chunkSize%((unsigned long)DIFF_BLOCK_SIZE)) == 0 ) {
-        return chunkSize/DIFF_BLOCK_SIZE;
+    if ( (chunkSize%((unsigned long)DCP_BLOCK_SIZE)) == 0 ) {
+        return chunkSize/DCP_BLOCK_SIZE;
     } else {
-        return chunkSize/DIFF_BLOCK_SIZE + 1;
+        return chunkSize/DCP_BLOCK_SIZE + 1;
     }
 }
 
@@ -311,13 +340,13 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
     } else if ( !(dbvar->dataDiffHash[hashIdx].isValid) ){
         return 1;
     } else {
-        char* ptr = dbvar->cptr + hashIdx * DIFF_BLOCK_SIZE;
+        char* ptr = dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
         unsigned char md5hashNow[MD5_DIGEST_LENGTH];
         uint32_t bit32hashNow;
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
         switch ( HASH_MODE ) {
             case FTI_DCP_MODE_MD5:
-                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=DIFF_BLOCK_SIZE));
+                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=DCP_BLOCK_SIZE));
                 MD5( ptr, hashInfo->blockSize, md5hashNow);
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
@@ -358,7 +387,7 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
             int hashIdx;
             for(hashIdx=0; hashIdx<dbvar->nbHashes; ++hashIdx) {
                 if (hashInfo[hashIdx].dirty || !hashInfo[hashIdx].isValid) {
-                    char* ptr = dbvar->cptr + hashIdx * DIFF_BLOCK_SIZE;
+                    char* ptr = dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
                     switch ( HASH_MODE ) {
                         case FTI_DCP_MODE_MD5:
                             MD5( ptr, hashInfo[hashIdx].blockSize, hashInfo[hashIdx].md5hash);
@@ -431,7 +460,7 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     }
 
     /* if at call pointer to dirty region then data_ptr unchanged */
-    *buffer_addr = (FTI_ADDRVAL) dbvar->cptr + hashIdx * DIFF_BLOCK_SIZE;
+    *buffer_addr = (FTI_ADDRVAL) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
     *buffer_size = 0;
 
     // advance *buffer_size for dirty regions

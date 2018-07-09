@@ -17,8 +17,9 @@ group_size                     = 4
 max_sync_intv                  = 0
 ckpt_io                        = 3
 verbosity                      = 2
-diff_ckpt                      = 1
-diff_mode                      = 0
+enable_dcp                     = 1
+dcp_mode                       = 1
+dcp_block_size                 = 4096
 
 
 [restart]
