@@ -62,6 +62,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         = MD5_DIGEST_STRING_LENGTH
         + MD5_DIGEST_LENGTH
         + 5*sizeof(long);
+    FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
     
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
