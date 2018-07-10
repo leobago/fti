@@ -148,7 +148,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
     long mdoffset;
 
     int isnextdb;
-
+    
     currentdb = (FTIFF_db*) malloc( sizeof(FTIFF_db) );
     if ( currentdb == NULL ) {
         snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'currentdb'", sizeof(FTIFF_db));
@@ -195,6 +195,8 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
             return FTI_NSCS;
         } 
         free( buffer_ser );
+        // TODO create hash of data base meta data during FTIFF_UpdateDatastruct 
+        // and check consistency here to prevent seg faults in case of corruption.
         
         // advance meta data offset
         mdoffset += FTI_dbstructsize;
@@ -234,6 +236,8 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
                 return FTI_NSCS;
             } 
             free( buffer_ser );
+            // TODO create hash of data base variable meta data during FTIFF_UpdateDatastruct 
+            // and check consistency here to prevent seg faults in case of corruption.
 
             // if dCP enabled, initialize hash clock structures
             if( FTI_Conf->dcpEnabled ) {
@@ -249,6 +253,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
 
             currentdbvar->hasCkpt = true;
             
+            // init FTI meta data structure
             if ( varCnt == 0 ) { 
                 varCnt++;
                 FTI_Exec->meta[FTI_Exec->ckptLvel].varID[0] = currentdbvar->id;

@@ -323,9 +323,29 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // FTI-FF: if file ckpt file deleted, determine fs from recovered file
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
+        char str[FTI_BUFS];
         int ifd = open(fn, O_RDONLY);
         FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
-        read( ifd, metaInfo, sizeof(FTIFF_metaInfo) );
+        char* buffer_ser = (char*) malloc( FTI_filemetastructsize );
+        if ( buffer_ser == NULL ) {
+            FTI_Print("failed to allocate memory for FTI-FF file meta data.", FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
+        if ( read( ifd, buffer_ser, FTI_filemetastructsize ) == -1 ) {
+            snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
+            FTI_Print( str, FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
+        if ( FTIFF_DeserializeFileMeta( metaInfo, buffer_ser ) != FTI_SCES ) {
+            FTI_Print("failed to deserialize FTI-FF file meta data.", FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
         fs = metaInfo->fs;
         FTI_Exec->meta[3].fs[0] = fs;
         free( metaInfo );
@@ -335,6 +355,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // FTI-FF: if encoded file deleted, append meta data to encoded file
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
 
+        char str[FTI_BUFS];
         FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
 
         // get timestamp
@@ -360,7 +381,26 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         // append meta info to RS file
         int ifd = open(efn, O_WRONLY|O_APPEND);
-        write( ifd, FTIFFMeta, sizeof(FTIFF_metaInfo) );
+        char* buffer_ser = (char*) malloc( FTI_filemetastructsize );
+        if ( buffer_ser == NULL ) {
+            FTI_Print("failed to allocate memory for FTI-FF file meta data.", FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
+        if ( FTIFF_SerializeFileMeta( FTIFFMeta, buffer_ser ) != FTI_SCES ) {
+            FTI_Print("failed to serialize FTI-FF file meta data.", FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
+        if ( write( ifd, buffer_ser, FTI_filemetastructsize ) == -1 ) {
+            snprintf( str, FTI_BUFS, "failed to write FTI-FF file meta data to file '%s'", efn );
+            FTI_Print( str, FTI_EROR);
+            errno=0;
+            close(ifd);
+            return FTI_NSCS;
+        }
         close( ifd );
     }
 
