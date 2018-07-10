@@ -128,8 +128,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
-    double tt;// = MPI_Wtime(); //Start time
-
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
             "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
@@ -141,9 +139,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 #endif
     
-    struct timespec t1_ftiff;
-    struct timespec t2_ftiff;
-
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
@@ -169,7 +164,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
-        tt = MPI_Wtime();
         switch (FTI_Conf->ioMode) {
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");

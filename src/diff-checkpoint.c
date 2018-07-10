@@ -54,7 +54,6 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
 {
     // deallocate memory in dcp structures
     FTIFF_db* currentDB = FTI_Exec->firstdb;
-    FTIFF_db* nextDB = NULL;
     do {    
         int varIdx;
         for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
@@ -71,6 +70,8 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
 
     // disable dCP
     FTI_Conf->dcpEnabled = false;
+
+    return FTI_SCES;
 }
 
 int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
@@ -354,7 +355,7 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
     } else if ( !(dbvar->dataDiffHash[hashIdx].isValid) ){
         return 1;
     } else {
-        char* ptr = dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
+        unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
         unsigned char md5hashNow[MD5_DIGEST_LENGTH];
         uint32_t bit32hashNow;
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
@@ -401,7 +402,7 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
             int hashIdx;
             for(hashIdx=0; hashIdx<dbvar->nbHashes; ++hashIdx) {
                 if (hashInfo[hashIdx].dirty || !hashInfo[hashIdx].isValid) {
-                    char* ptr = dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
+                    unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
                     switch ( DCP_MODE ) {
                         case FTI_DCP_MODE_MD5:
                             MD5( ptr, hashInfo[hashIdx].blockSize, hashInfo[hashIdx].md5hash);
@@ -427,6 +428,7 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
 
     } while( isnextdb );
 
+    return FTI_SCES;
 }
 
 int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data) 
@@ -438,7 +440,6 @@ int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTI
     static bool init = true;
     static bool reset;
     static long hashIdx;
-    char strdbg[FTI_BUFS];
     
     if ( init ) {
         hashIdx = 0;

@@ -864,7 +864,6 @@ int FTI_Checkpoint(int id, int level)
     // set hasCkpt flags true
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
-        FTIFF_db* nextDB = NULL;
         currentDB->update = false;
         do {    
             int varIdx;

@@ -77,7 +77,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
 
     // buffer for de-/serialization
     char* buffer_ser;
-    int ierr;
 
     int varCnt = 0;
 
@@ -125,7 +124,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
     // get file meta info
     buffer_ser = (char*) malloc( FTI_filemetastructsize );
     if( buffer_ser == NULL ) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize);
         FTI_Print(strerr, FTI_EROR);
         munmap( fmmap, st.st_size );
         errno = 0;
@@ -180,7 +179,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
         // get data block meta data
         buffer_ser = (char*) malloc( FTI_dbstructsize );
         if( buffer_ser == NULL ) {
-            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize);
             FTI_Print(strerr, FTI_EROR);
             munmap( fmmap, st.st_size );
             errno = 0;
@@ -221,7 +220,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
             // get dbvar meta data
             buffer_ser = malloc( FTI_dbvarstructsize );
             if( buffer_ser == NULL ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize);
                 FTI_Print(strerr, FTI_EROR);
                 munmap( fmmap, st.st_size );
                 errno = 0;
@@ -378,7 +377,7 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
         // get data block meta data
         buffer_ser = (char*) malloc( FTI_dbstructsize );
         if( buffer_ser == NULL ) {
-            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+            snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize);
             FTI_Print(strerr, FTI_EROR);
             munmap( fmmap, FTIFF_Meta->fs );
             errno = 0;
@@ -417,7 +416,7 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
             // get dbvar meta data
             buffer_ser = malloc( FTI_dbvarstructsize );
             if( buffer_ser == NULL ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %ld bytes for 'buffer_ser'", FTI_dbvarstructsize);
+                snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize);
                 FTI_Print(strerr, FTI_EROR);
                 munmap( fmmap, FTIFF_Meta->fs );
                 errno = 0;
@@ -438,7 +437,7 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
             
             // debug information
             snprintf(str, FTI_BUFS, "FTI-FF: GetFileChecksum -  dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-                    ", destptr: %llu, fptr: %llu, chunksize: %ld.",
+                    ", destptr: %lu, fptr: %lu, chunksize: %ld.",
                     dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize);
@@ -494,8 +493,6 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
 int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, 
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf )
 {
-
-    char str[FTI_BUFS]; 
 
     if( FTI_Exec->nbVar == 0 ) {
         FTI_Print("FTI-FF - UpdateDatastructFTIFF: No protected Variables, discarding checkpoint!", FTI_WARN);
@@ -745,7 +742,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
         int evar_idx = 0;
         if( num_edit_pvars ) {
             for(pvar_idx=0; pvar_idx<FTI_Exec->nbVar; pvar_idx++) {
-                bool callInit = false;
                 switch(editflags[pvar_idx]) {
 
                     case 1:
@@ -884,14 +880,12 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    double start_t, end_t;
-   
     FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
     //FOR DEVELOPING 
     //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
-    char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS], fnr[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
     
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
@@ -962,9 +956,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     uintptr_t fptr;
     int isnextdb;
     
-    int ids[FTI_BUFS];
-    int num_ids = 0;
-
     long diffSize = 0, ckptsize = 0;
 
     // write FTI-FF meta data
@@ -981,7 +972,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // serialize block meta data and write to file
             buffer_ser = (char*) malloc ( FTI_dbstructsize );
             if( buffer_ser == NULL ) {
-                snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbstructsize );
+                snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbstructsize );
                 FTI_Print(strerr, FTI_EROR);
                 close(fd);
                 errno = 0;
@@ -1039,7 +1030,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 // serialize data block variable meta data and write to file
                 buffer_ser = (char*) malloc ( FTI_dbvarstructsize );
                 if( buffer_ser == NULL ) {
-                    snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbvarstructsize );
+                    snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize );
                     FTI_Print(strerr, FTI_EROR);
                     close(fd);
                     errno = 0;
@@ -1104,7 +1095,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // serialize file meta data and write to file
     buffer_ser = (char*) malloc ( FTI_filemetastructsize );
     if( buffer_ser == NULL ) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser': %s", FTI_filemetastructsize );
+        snprintf( strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - failed to allocate %d bytes for 'buffer_ser'", FTI_filemetastructsize );
         FTI_Print(strerr, FTI_EROR);
         close(fd);
         errno = 0;
@@ -1147,10 +1138,8 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // get source and destination pointer
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
             fptr = currentdbvar->fptr;
-            uintptr_t chunk_addr, chunk_size, chunk_offset, base;
+            uintptr_t chunk_addr, chunk_size, chunk_offset;
 
-            uintptr_t chunk_size_dbg, chunk_addr_dbg; 
-           
             int chunkid = 0;
             
             while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data) ) {
@@ -1728,8 +1717,6 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         goto GATHER_L1INFO;
     }
 
-    MD5_CTX mdContext;
-    
     // check if L1 ckpt directory exists
     bool L1CkptDirExists = false;
     if ( stat( FTI_Ckpt[1].dir, &ckptDIR ) == 0 ) {
@@ -1950,8 +1937,6 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_L2Info* myMetaInfo = (FTIFF_L2Info*) memset(&_myMetaInfo, 0x0, sizeof(FTIFF_L2Info)); 
 
     myMetaInfo->rightIdx = rightIdx;
-
-    MD5_CTX mdContext;
 
     char str[FTI_BUFS], tmpfn[FTI_BUFS];
     int fileTarget, ckptID = -1, fcount = 0, match;
@@ -3149,7 +3134,7 @@ printf("------------------- DATASTRUCTURE BEGIN [%d]----------------\n\n", rank)
             do {
 printf("    DataBase-id: %d\n", dbcnt);
 printf("                 dbsize: %ld\n", dbgdb->dbsize);
-printf("                 metasize (offset: %d): %ld\n\n", FTI_filemetastructsize, FTI_dbstructsize+dbgdb->numvars*FTI_dbvarstructsize);
+printf("                 metasize (offset: %d): %d\n\n", FTI_filemetastructsize, FTI_dbstructsize+dbgdb->numvars*FTI_dbvarstructsize);
                 dbcnt++;
                 int varid=0;
                 for(; varid<dbgdb->numvars; ++varid) {
@@ -3159,8 +3144,8 @@ printf("                 id: %d\n"
        "                 containerid: %d\n"
        "                 hascontent: %s\n"
        "                 hasCkpt: %s\n"
-       "                 dptr: %llu\n"
-       "                 fptr: %llu\n"
+       "                 dptr: %lu\n"
+       "                 fptr: %lu\n"
        "                 chunksize: %lu\n"
        "                 containersize: %lu\n\n",/*
        "                 nbHashes: %lu\n"

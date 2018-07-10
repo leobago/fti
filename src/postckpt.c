@@ -447,7 +447,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // serialize data block variable meta data and append to encoded file
             char* buffer_ser = (char*) malloc ( FTI_filemetastructsize );
             if( buffer_ser == NULL ) {
-                snprintf( str, FTI_BUFS, "FTI_RSenc - failed to allocate %d bytes for 'buffer_ser': %s", FTI_dbvarstructsize );
+                snprintf( str, FTI_BUFS, "FTI_RSenc - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize );
                 FTI_Print(str, FTI_EROR);
                 free(data);
                 free(matrix);
