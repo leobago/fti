@@ -82,8 +82,6 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         return FTI_SCES;
     }
     
-    int rank;
-    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
     if( getenv("FTI_DCP_HASH_MODE") != 0 ) {
         DCP_MODE = atoi(getenv("FTI_DCP_HASH_MODE")) + FTI_DCP_MODE_OFFSET;
         if ( (DCP_MODE < FTI_DCP_MODE_MD5) || (DCP_MODE > FTI_DCP_MODE_CRC32) ) {
@@ -434,9 +432,6 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
 
 int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data) 
 {
-
-    int rank;
-    MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
     static bool init = true;
     static bool reset;
