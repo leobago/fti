@@ -24,6 +24,10 @@
 #define PAT_ID 2002
 #define NBUFFER_ID 2003
 
+#define EXIT_ID_SUCCESS 0
+#define EXIT_ID_ERROR_RECOVERY 1
+#define EXIT_ID_ERROR_DATA 2
+
 #define EXIT_CFG_ERR(MSG,...) do {                                                              \
     fprintf( stderr, "[ERROR-%d] " MSG "\n", grank, ##__VA_ARGS__);                             \
     exit(ERR_CONF);                                                                             \
@@ -40,7 +44,7 @@
 
 #define DBG_MSG(MSG,RANK,...) do { \
     int rank; \
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
+    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
     if ( rank == RANK ) \
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
     if ( RANK == -1 ) \

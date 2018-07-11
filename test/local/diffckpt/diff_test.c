@@ -35,11 +35,11 @@ int main() {
         exit -1;
     } else {
         if ( FTI_Recover() != 0 ) {
-            exit(-1);
+            MPI_Abort( MPI_COMM_WORLD, EXIT_ID_ERROR_RECOVERY );
         }
         invert_data( &info );
         //memset(info.buffer[0], 0x45, 32);
-        exit_status = ( valid( &info ) ) ? 0 : -1;
+        exit_status = ( valid( &info ) ) ? EXIT_ID_SUCCESS : EXIT_ID_ERROR_DATA;
         MPI_Barrier(FTI_COMM_WORLD);
         FTI_Finalize();
     }

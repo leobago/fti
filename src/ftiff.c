@@ -956,7 +956,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     uintptr_t fptr;
     int isnextdb;
     
-    long diffSize = 0, ckptsize = 0;
+    long dcpSize = 0, dataSize = 0;
 
     // write FTI-FF meta data
     do {    
@@ -1015,7 +1015,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             unsigned char hashchk[MD5_DIGEST_LENGTH];
             // create datachunk hash
             if(hascontent) {
-                ckptsize += currentdbvar->chunksize;
+                dataSize += currentdbvar->chunksize;
                 MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
                 MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
             }
@@ -1179,7 +1179,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     assert( WRITTEN == cpynow );
                     
                     cpycnt += WRITTEN;
-                    diffSize += WRITTEN;
+                    dcpSize += WRITTEN;
                 }
                 assert(cpycnt == chunk_size);
 
@@ -1208,6 +1208,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     } while( isnextdb );
  
+    // only for printout of dCP share in FTI_Checkpoint
+    FTI_Exec->FTIFFMeta.dcpSize = dcpSize;
+    FTI_Exec->FTIFFMeta.dataSize = dataSize;
+
     fdatasync( fd );
     close( fd );
 
@@ -1427,7 +1431,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
             destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
             
             snprintf(str, FTI_BUFS, "[var-id:%d|cont-id:%d] destptr: %p\n", currentdbvar->id, currentdbvar->containerid, (void*) destptr);
-            FTI_Print(str, FTI_INFO);
+            FTI_Print(str, FTI_DBUG);
 
             srcptr = (char*) fmmap + currentdbvar->fptr;
 
@@ -1469,7 +1473,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
                 ii += 2;
             }
             snprintf(str, FTI_BUFS, "dataset hash id: %d -> %s", currentdbvar->id, checkSum);
-            FTI_Print(str, FTI_INFO);
+            FTI_Print(str, FTI_DBUG);
 
             if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
                 snprintf( strerr, FTI_BUFS, "FTI-FF: FTIFF_Recover - dataset with id:%i|cnt-id:%d has been corrupted! Discard recovery (%s!=%s).", currentdbvar->id, currentdbvar->containerid,checkSum,checkSum_struct );
@@ -2685,7 +2689,6 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 if( fileTarget == FTI_Topo->myRank ) {
                     snprintf(str, FTI_BUFS, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
                     FTI_Print(str, FTI_DBUG);
-                    //DBG_MSG("%s %d %d",-1,entry->d_name, fileTarget, FTI_Topo->myRank );
                     snprintf(tmpfn, FTI_BUFS, "%s/%s", L4DirName, entry->d_name);
                     
                     if ( stat(tmpfn, &ckptFS) == -1 ) {

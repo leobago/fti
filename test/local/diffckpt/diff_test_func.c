@@ -171,7 +171,10 @@ void xor_data( int id, dcp_info_t *info ) {
     }
     
     ckptsize += sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
-    DBG_MSG("changed: %lu, of: %lu, expected dCP update (min): %.2lf", -1, changed, ckptsize, 100*((double)update)/ckptsize);
+    long dcpStats[2];
+    long sendBuf[] = { ckptsize, update };
+    MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+    DBG_MSG("changed: %lu, of: %lu, expected dCP update (min): %.2lf", 0, dcpStats[1], dcpStats[0], 100*((double)dcpStats[1])/dcpStats[0]);
 }
 
 void invert_data( dcp_info_t *info ) {
@@ -222,7 +225,7 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
         }
     }
     unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
-    DBG_MSG("allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
+    //DBG_MSG("allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
 }    
 unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLOC_FLAGS ALLOC_FLAG ) {
@@ -250,7 +253,7 @@ unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, 
         info->size[idx-1] += rest;
     }
     unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
-    DBG_MSG("re-allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
+    //DBG_MSG("re-allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
     return alloc_size;
 }    

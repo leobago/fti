@@ -49,6 +49,8 @@
 /** Verbosity level to print only warning and errors.                      */
 #define FTI_WARN 3
 /** Verbosity level to print main information.                             */
+#define FTI_IDCP 5
+/** Verbosity level to print debug messages.                               */
 #define FTI_INFO 2
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
@@ -131,11 +133,13 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
-        long ckptSize;  /**< size of ckpt data                                  */
-        long fs;        /**< file size                                          */
+        long ckptSize;  /**< size of ckpt data + meta data                      */
+        long fs;        /**< file size (may differ from ckptSize, e.g. for L3)  */
         long maxFs;     /**< maximum file size in group                         */
         long ptFs;      /**< partner copy file size                             */
         long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
+        long dcpSize;   /**< how much actually written by rank                  */
+        long dataSize;  /**< total size of protected data (excluding meta data) */
     } FTIFF_metaInfo;
 
     // DCP TYPE

@@ -62,6 +62,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         = MD5_DIGEST_STRING_LENGTH
         + MD5_DIGEST_LENGTH
         + 5*sizeof(long);
+    // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
+    // This is to fix.
     FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
     
     FTI_dbstructsize

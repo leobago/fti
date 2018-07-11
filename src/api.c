@@ -833,12 +833,16 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptID = id;
 
     if ( level == FTI_L4_DCP ) {
-        if ( FTI_Conf.dcpEnabled ) {
-            FTI_Ckpt[4].isDcp = true;
+        if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+            if ( FTI_Conf.dcpEnabled ) {
+                FTI_Ckpt[4].isDcp = true;
+            } else {
+                FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
+            }
         } else {
-            FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
-            level = 4;
+            FTI_Print("L4 dCP requested, but dCP needs FTI-FF!", FTI_WARN);
         }
+        level = 4;
     }
 
     double t0 = MPI_Wtime(); //Start time
@@ -935,6 +939,49 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
     
+    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        
+        long norder_data, norder_dcp;
+        char corder_data[3], corder_dcp[3];
+        long DCP_TB = (1024L*1024L*1024L*1024L);
+        long DCP_GB = (1024L*1024L*1024L);
+        long DCP_MB = (1024L*1024L);
+        if ( FTI_Exec.FTIFFMeta.dataSize > DCP_TB ) {
+            norder_data = DCP_TB;
+            snprintf( corder_data, 3, "TB" );
+        } else if ( FTI_Exec.FTIFFMeta.dataSize > DCP_GB ) {
+            norder_data = DCP_GB;
+            snprintf( corder_data, 3, "GB" );
+        } else {
+            norder_data = DCP_MB;
+            snprintf( corder_data, 3, "MB" );
+        }
+        if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_TB ) {
+            norder_dcp = DCP_TB;
+            snprintf( corder_dcp, 3, "TB" );
+        } else if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_GB ) {
+            norder_dcp = DCP_GB;
+            snprintf( corder_dcp, 3, "GB" );
+        } else {
+            norder_dcp = DCP_MB;
+            snprintf( corder_dcp, 3, "MB" );
+        }
+
+        if ( FTI_Topo.splitRank != 0 ) {
+            snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
+                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                    (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
+                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+            FTI_Print( str, FTI_DBUG );
+        } else {
+            snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
+                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                    (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
+                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+        }
+        
+        FTI_Print(str, FTI_IDCP);
+    }
     if (ckptFirst && FTI_Topo.splitRank == 0) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
@@ -1333,6 +1380,11 @@ void FTI_Print(char* msg, int priority)
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
                         fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_IDCP:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_DBUG:

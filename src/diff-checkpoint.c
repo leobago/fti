@@ -110,21 +110,20 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         DCP_BLOCK_SIZE = (dcpBLK_t) FTI_Conf->dcpBlockSize;
     }
 
-    if(rank == 0) {
-        switch (DCP_MODE) {
-            case FTI_DCP_MODE_MD5:
-                printf("[ " BLU "FTI  dCP Message" RESET " ] : Hash algorithm in use is MD5.\n");
-                break;
-            case FTI_DCP_MODE_CRC32:
-                printf("[ " BLU "FTI  dCP Message" RESET " ] : Hash algorithm in use is CRC32.\n");
-                break;
-            default:
-                FTI_Print("Hash mode not recognized, dCP disabled!", FTI_WARN);
-                FTI_Conf->dcpEnabled = false;
-                return FTI_NSCS;
-        }
-        printf("[ " BLU "FTI  dCP Message" RESET " ] : dCP hash block size is %d bytes.\n", DCP_BLOCK_SIZE);
+    switch (DCP_MODE) {
+        case FTI_DCP_MODE_MD5:
+            FTI_Print( "Hash algorithm in use is MD5.", FTI_IDCP );
+            break;
+        case FTI_DCP_MODE_CRC32:
+            FTI_Print( "Hash algorithm in use is CRC32.", FTI_IDCP );
+            break;
+        default:
+            FTI_Print("Hash mode not recognized, dCP disabled!", FTI_WARN);
+            FTI_Conf->dcpEnabled = false;
+            return FTI_NSCS;
     }
+    snprintf( str, FTI_BUFS, "dCP hash block size is %d bytes.", DCP_BLOCK_SIZE);
+    FTI_Print( str, FTI_IDCP ); 
 
     dcpEnabled = &(FTI_Conf->dcpEnabled);
 
