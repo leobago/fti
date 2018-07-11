@@ -41,7 +41,7 @@
 #define _FTIFF_H
 
 #include "fti.h"
-#include "checksum.h"
+#include "zlib.h"
 #include <assert.h>
 #include <string.h>
 
@@ -60,27 +60,6 @@
     if ( RANK == -1 ) \
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
-
-#define BEGIN_TIME_MEASUREMENT( ID ) do { \
-    T1_ ## ID = MPI_Wtime(); \
-} while(0)
-
-#define END_TIME_MEASUREMENT( ID, MSG ) do { \
-    T2_ ## ID = MPI_Wtime(); \
-    DBG_MSG("[%d] '%s' took %lf seconds.", -1, ID, MSG, T2_ ## ID - T1_ ## ID); \
-} while(0)
-
-#define PRINT_DURATION( FUNC, RESULT_PTR ) do { \
-    double t1, t2; \
-    t1 = MPI_Wtime(); \
-    if ( RESULT_PTR != NULL ) { \
-        *RESULT_PTR = FUNC; \
-    } else { \
-        FUNC; \
-    } \
-    t2 = MPI_Wtime(); \
-    DBG_MSG( "Call to " #FUNC " was completed in %lf seconds.\n", -1, t2-t1 ); \
-} while (0) \
 
 /**
 

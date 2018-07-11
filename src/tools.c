@@ -205,23 +205,23 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
 
-    MD5_CTX mdContext;
-    MD5_Init (&mdContext);
-    int i;
+        MD5_CTX mdContext;
+        MD5_Init (&mdContext);
+        int i;
 
-    //iterate all variables
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-    }
+        //iterate all variables
+        for (i = 0; i < FTI_Exec->nbVar; i++) {
+            MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+        }
 
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_Final (hash, &mdContext);
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5_Final (hash, &mdContext);
 
-    int ii = 0;
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
-        ii += 2;
-    }
+        int ii = 0;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+            sprintf(&checksum[ii], "%02x", hash[i]);
+            ii += 2;
+        }
 
     return FTI_SCES;
 }
@@ -332,7 +332,6 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
@@ -344,7 +343,6 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
-            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
@@ -372,7 +370,6 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].fs);
             free(FTI_Exec->meta[i].pfs);
             free(FTI_Exec->meta[i].ckptFile);
-            free(FTI_Exec->meta[i].currentCkptFile);
             free(FTI_Exec->meta[i].nbVar);
             free(FTI_Exec->meta[i].varID);
             free(FTI_Exec->meta[i].varSize);
@@ -502,7 +499,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
     sprintf(str, "Creating type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
-    sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
+    sprintf(str, "Type [%d] has hid_t %ld.", ftiType->id, ftiType->h5datatype);
     FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -636,7 +633,7 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
     char str[FTI_BUFS];
     if (ftiGroup->h5groupID == -1) {
         //This group already closed, in tree this is error
-        sprintf(str, "Group %s is already closed?", ftiGroup->name);
+        snprintf(str, FTI_BUFS, "Group %s is already closed?", ftiGroup->name);
         FTI_Print(str, FTI_WARN);
         return;
     }

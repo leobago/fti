@@ -1,17 +1,18 @@
-FTI_HOME := /home/kellekai/WORK/FTI/FTI-REPO-KAI/build/RELEASE
-FTI_BUILD := /home/kellekai/WORK/FTI/FTI-REPO-KAI/build
-FTI_INC_DIR := $(FTI_HOME)/include
-FTI_LIB_DIR := $(FTI_HOME)/lib
-FTI_SRC := /home/kellekai/WORK/FTI/FTI-REPO-KAI/src/*.h /home/kellekai/WORK/FTI/FTI-REPO-KAI/src/*.c /home/kellekai/WORK/FTI/FTI-REPO-KAI/include/fti.h
-WORK_DIR := /home/kellekai/WORK/FTI/FTI-REPO-KAI/test/local/diffckpt
+FTI_HOME := # SET TO FTI SOURCE DIRECTORY
+FTI_RELEASE := # SET TO FTI RELEASE DIRECTORY
+FTI_BUILD := # SET TO FTI BUILD DIRECTORY
+FTI_INC_DIR := $(FTI_RELEASE)/include
+FTI_LIB_DIR := $(FTI_RELEASE)/lib
+FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
+WORK_DIR := $(FTI_HOME)/test/local/diffckpt
 
 .PHONY: clean all run fti share env
 
 all: diff_test
 
-export LD_LIBRARY_PATH = /usr/lib64/mpi/gcc/openmpi/lib64:/home/kellekai/WORK/FTI/FTI-REPO-KAI/build/RELEASE/lib
-export FTI_DCP_BLOCK_SIZE=16384
-export FTI_DCP_HASH_MODE=2
+export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(FTI_RELEASE)/lib
+#export FTI_DCP_BLOCK_SIZE=16384
+#export FTI_DCP_HASH_MODE=2
 
 fti: $(FTI_SRC) clean
 	cd $(FTI_BUILD) && $(MAKE) all install

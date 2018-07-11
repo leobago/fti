@@ -32,7 +32,7 @@ int main() {
         FTI_Checkpoint( i+2, FTI_L4_DCP );
         FTI_Checkpoint( i+3, FTI_L4_DCP );
         sleep(10);
-        exit -1;
+        MPI_Abort(MPI_COMM_WORLD,0);
     } else {
         if ( FTI_Recover() != 0 ) {
             MPI_Abort( MPI_COMM_WORLD, EXIT_ID_ERROR_RECOVERY );

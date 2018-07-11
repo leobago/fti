@@ -32,7 +32,7 @@
 #define RESET "\x1B[0m"
 
 /** Standard size of buffer and max node size.                             */
-#define FTI_BUFS 16384
+#define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
@@ -133,8 +133,8 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
-        long ckptSize;  /**< size of ckpt data + meta data                      */
-        long fs;        /**< file size (may differ from ckptSize, e.g. for L3)  */
+        long ckptSize;  /**< size of ckpt data                                  */
+        long fs;        /**< file size                                          */
         long maxFs;     /**< maximum file size in group                         */
         long ptFs;      /**< partner copy file size                             */
         long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
@@ -314,7 +314,6 @@ extern "C" {
         long*            fs;                 /**< File size.                     */
         long*            pfs;                /**< Partner file size.             */
         char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
-        char*            currentCkptFile;    /**< Ckpt file name. [FTI_BUFS]     */
         int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
         int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
         long*            varSize;            /**< Variable size. [FTI_BUFS]      */

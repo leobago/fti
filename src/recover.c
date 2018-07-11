@@ -241,6 +241,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     //Update ckptID and ckptLevel
                     FTI_Exec->ckptID = ckptID;
                     FTI_Exec->ckptLvel = level;
+                    FTI_Exec->lastCkptLvel = level;
                     return FTI_SCES; //Recovered successfully
                 }
                 else {

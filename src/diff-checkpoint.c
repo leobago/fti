@@ -365,7 +365,8 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
             case FTI_DCP_MODE_CRC32:
-                bit32hashNow = crc_32( ptr, hashInfo->blockSize );
+                bit32hashNow = crc32( 0L, Z_NULL, 0 );
+                bit32hashNow = crc32( bit32hashNow, ptr, hashInfo->blockSize );
                 clean = bit32hashNow == hashInfo->bit32hash;
                 break;
         }
@@ -407,7 +408,8 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
                             MD5( ptr, hashInfo[hashIdx].blockSize, hashInfo[hashIdx].md5hash);
                             break;
                         case FTI_DCP_MODE_CRC32:
-                            hashInfo[hashIdx].bit32hash = crc_32( ptr, hashInfo[hashIdx].blockSize );
+                            hashInfo[hashIdx].bit32hash = crc32( 0L, Z_NULL, 0 ); 
+                            hashInfo[hashIdx].bit32hash = crc32( hashInfo[hashIdx].bit32hash, ptr, hashInfo[hashIdx].blockSize );
                             break;
                     }
                     if(dbvar->hascontent) {

@@ -11,6 +11,7 @@ endif()
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
 set(FORTRAN_VER_UNKNOWN 0)
+set(ADD_CFLAGS "")
 
 if (NOT CMAKE_Fortran_COMPILER_VERSION)
 
@@ -87,6 +88,7 @@ include(FortranCInterface)
 include(CheckFortranCompilerFlag)
 include(CheckCCompilerFlag)
 
+find_package(ZLIB REQUIRED)
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
@@ -110,26 +112,22 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c
-    src/crc32.c)
+	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c)
 
-# Check compiler flag support
-set(ADD_CFLAGS "")
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-fPIC")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -fPIC")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wall")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
-endif()
-try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
-if(C_COMPILER_HAS_FLAG)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
+# add compiler flags
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+  set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+  set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
+  if(C_COMPILER_HAS_FLAG)
+      set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
+  endif()
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
+  if(C_COMPILER_HAS_FLAG)
+      set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
+  endif()
 endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
@@ -153,6 +151,8 @@ else()
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
 endif()
+set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
+
 
 append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
@@ -165,8 +165,8 @@ if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 	find_library(LIBM m DOC "The math library")
 endif()
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
+target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
 
 if(ENABLE_LUSTRE)
     if(LUSTREAPI_FOUND)
@@ -199,7 +199,7 @@ if(ENABLE_SIONLIB)
 endif()
 
 if(ENABLE_HDF5)
-	find_package(HDF5 COMPONENTS HL REQUIRED)
+    find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
 		add_definitions(-DENABLE_HDF5)
 		include_directories(${HDF5_INCLUDE_DIRS})
@@ -249,7 +249,7 @@ if(ENABLE_FORTRAN)
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
 	append_property(SOURCE ${SRC_FTI_F90}
-		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}" -fPIC)
+		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
 
 	add_library(fti_f90.static STATIC ${SRC_FTI_F90})
 	add_dependencies(fti_f90.static bpp_file) # to serialize src generation
@@ -273,6 +273,7 @@ if(ENABLE_FORTRAN)
 		DESTINATION lib)
 	install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod
 		DESTINATION include)
+	set_target_properties(fti_f90.static fti_f90.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 endif()
 
 if(ENABLE_EXAMPLES)

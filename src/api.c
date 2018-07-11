@@ -154,7 +154,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
-            // needed for differential checkpointing
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files (or failed reading meta; FTI-FF)
@@ -494,11 +493,6 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].size = type.size * count;
             FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-            //// important that first update to FTI-FF then to dcp
-            //if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-            //    FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
-            //}
-            //DBG_MSG("SIZE HAS CHANGED IN VARIABLE ID: %d -> old size: %ld, new size: %ld",-1,id,prevSize,FTI_Data[i].size);
             sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
             return FTI_SCES;
@@ -525,12 +519,6 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
-   
-    //// important that first update to FTI-FF then to dcp
-    //if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-    //    FTIFF_UpdateDatastructFTIFF( &FTI_Exec, FTI_Data, &FTI_Conf );
-    //}
-
     sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     FTI_Print(str, FTI_INFO);
     return FTI_SCES;
@@ -926,9 +914,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
-
     double t3 = MPI_Wtime(); //Time after post-processing
-    
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
@@ -1083,7 +1069,7 @@ int FTI_Recover()
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel;
+    
     FTI_Exec.reco = 0;
 
     return FTI_SCES;
@@ -1189,7 +1175,7 @@ int FTI_Finalize()
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
     }
-    
+
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {

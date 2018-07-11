@@ -63,7 +63,6 @@
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
