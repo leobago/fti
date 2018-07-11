@@ -759,7 +759,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbsize += dbvars[evar_idx].containersize; 
                         dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                         if ( FTI_Conf->dcpEnabled ) {
-                            FTI_InitBlockHashArray( &(dbvars[evar_idx]) );
+                            if( FTI_InitBlockHashArray( &(dbvars[evar_idx]) ) != FTI_SCES ) {
+                                FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                            }
                         }
                         dbvars[evar_idx].update = true;
                         FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
@@ -783,7 +785,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                         dbsize += dbvars[evar_idx].containersize; 
                         dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                         if ( FTI_Conf->dcpEnabled ) {
-                            FTI_InitBlockHashArray( &(dbvars[evar_idx]) );
+                            if( FTI_InitBlockHashArray( &(dbvars[evar_idx]) ) != FTI_SCES ) {
+                                FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                            }
                         }
                         dbvars[evar_idx].update = true;
                         FTIFF_GetHashdbvar( dbvars[evar_idx].myhash, &(dbvars[evar_idx]) );
