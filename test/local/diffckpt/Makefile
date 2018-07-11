@@ -24,36 +24,9 @@ diff_test_func.o: diff_test_func.c diff_test.h Makefile fti
 diff_test: diff_test_func.o diff_test.c diff_test.h Makefile fti
 	mpicc -o diff_test diff_test.c -g $(CDEF) $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti -lcrypto
 
-small: test.c Makefile fti
-	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
-	cp cfg/config.fti .
-	mpirun -n 8 ./$@
-
-small-valgrind: test.c Makefile fti
-	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
-	cp cfg/config.fti .
-	mpirun -n 8 valgrind ./$@ 2>&1 | tee smallDbgOut
-
 run: diff_test Makefile fti
 	cp cfg/config.fti .
 	mpirun -n 8 ./$<
-
-speed: test_speed.c Makefile fti
-	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
-	cp cfg/config.fti .
-	mpirun -n 8 ./$@
-
-share: test_share.c diff_test.h Makefile fti
-	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
-	cp cfg/config.fti .
-	mpirun -n 8 ./$@
-	mpirun -n 8 ./$@
-
-realloc: realloc-test.c Makefile fti
-	mpicc -o $@ $< -g -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
-	cp cfg/config.fti .
-	mpirun -n 8 ./$@
-	mpirun -n 8 ./$@
 
 run-test: diff_test Makefile
 	cp cfg/config.fti .
