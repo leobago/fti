@@ -88,7 +88,12 @@ include(FortranCInterface)
 include(CheckFortranCompilerFlag)
 include(CheckCCompilerFlag)
 
-find_package(ZLIB REQUIRED)
+#check for ZLIB (crc32)
+find_package(ZLIB)
+if(NOT ZLIB_FOUND)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_NOZLIB")
+endif()
+
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)

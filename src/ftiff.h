@@ -41,7 +41,9 @@
 #define _FTIFF_H
 
 #include "fti.h"
-#include "zlib.h"
+#ifndef FTI_NOZLIB
+#   include "zlib.h"
+#endif
 #include <assert.h>
 #include <string.h>
 
@@ -161,7 +163,6 @@ int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
 int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 int FTIFF_QueryLastContainer( int id, FTIT_execution* FTI_Exec, FTIFF_dbvar* dbvar ); 
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
-//int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum);
 int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
 int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
 int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf );
