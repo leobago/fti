@@ -806,6 +806,8 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
+    char str[FTI_BUFS]; //For console output
+    
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -815,8 +817,12 @@ int FTI_Checkpoint(int id, int level)
         FTI_Print("Invalid level id! Aborting checkpoint creation...", FTI_WARN);
         return FTI_NSCS;
     }
+    if ((level > FTI_L4) && (level < FTI_L4_DCP)) {
+        snprintf( str, FTI_BUFS, "dCP only implemented for level 4! setting to level %d...", level - 4 );
+        FTI_Print(str, FTI_WARN);
+        level -= 4; 
+    }
 
-    char str[FTI_BUFS]; //For console output
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
 
@@ -1115,8 +1121,17 @@ int FTI_Snapshot()
                 FTI_Exec.minuteCnt++; // Increment minute counter
             }
             for (i = 1; i < 5; i++) { // Check ckpt. level
-                if (FTI_Ckpt[i].ckptIntv > 0 && FTI_Exec.minuteCnt/(FTI_Ckpt[i].ckptCnt*FTI_Ckpt[i].ckptIntv)) {
+                if ( (FTI_Ckpt[i].ckptDcpIntv > 0) 
+                        && (FTI_Exec.minuteCnt/(FTI_Ckpt[i].ckptDcpCnt*FTI_Ckpt[i].ckptDcpIntv)) ) {
+                    // dCP level is level + 4
+                    level = i + 4;
+                    // counts the passed intervall times (if taken or not...)
+                    FTI_Ckpt[i].ckptDcpCnt++;
+                }
+                if ( (FTI_Ckpt[i].ckptIntv) > 0 
+                        && (FTI_Exec.minuteCnt/(FTI_Ckpt[i].ckptCnt*FTI_Ckpt[i].ckptIntv)) ) {
                     level = i;
+                    // counts the passed intervall times (if taken or not...)
                     FTI_Ckpt[i].ckptCnt++;
                 }
             }

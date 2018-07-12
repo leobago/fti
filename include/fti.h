@@ -112,8 +112,10 @@ extern "C" {
         FTI_L2,
         FTI_L3,
         FTI_L4,
+        FTI_L1_DCP,
+        FTI_L2_DCP,
+        FTI_L3_DCP,
         FTI_L4_DCP,
-        FTI_NUM_LEVELS,
         FTI_MIN_LEVEL_ID = FTI_L1,
         FTI_MAX_LEVEL_ID = FTI_L4_DCP
     } FTIT_level;
@@ -436,6 +438,8 @@ extern "C" {
         int             isInline;           /**< TRUE if work is inline.        */
         int             ckptIntv;           /**< Checkpoint interval.           */
         int             ckptCnt;            /**< Checkpoint counter.            */
+        int             ckptDcpIntv;        /**< Checkpoint interval.           */
+        int             ckptDcpCnt;         /**< Checkpoint counter.            */
 
     } FTIT_checkpoint;
 

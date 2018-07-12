@@ -144,6 +144,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[1].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l1", -1);
     FTI_Ckpt[2].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l2", -1);
     FTI_Ckpt[3].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l3", -1);
+    FTI_Ckpt[4].ckptDcpIntv = (int)iniparser_getint(ini, "Basic:dcp_l4", -1);
     FTI_Ckpt[4].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l4", -1);
     FTI_Ckpt[1].isInline = (int)1;
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
@@ -153,6 +154,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].ckptCnt  = 1;
     FTI_Ckpt[3].ckptCnt  = 1;
     FTI_Ckpt[4].ckptCnt  = 1;
+    FTI_Ckpt[4].ckptDcpCnt  = 1;
 
     // Reading/setting configuration metadata
     FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
@@ -279,6 +281,10 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Block size needs to be set between 1 and 2048.", FTI_WARN);
         return FTI_NSCS;
     }
+    if ( FTI_Conf->dcpEnabled  && !(FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
+        FTI_Print("dCP may only be used with FTI-FF enabled, dCP disabled.", FTI_WARN);
+        FTI_Conf->dcpEnabled = false;
+    }
     if ( (FTI_Conf->dcpMode < FTI_DCP_MODE_MD5) || (FTI_Conf->dcpMode > FTI_DCP_MODE_CRC32) ) {
         FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
         FTI_Conf->dcpEnabled = false;
@@ -287,6 +293,11 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         char str[FTI_BUFS];
         snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
         FTI_Print( str, FTI_WARN );
+        FTI_Conf->dcpEnabled = false;
+    }
+    if (FTI_Ckpt[4].ckptDcpIntv > 0 && !(FTI_Conf->dcpEnabled)) {
+        FTI_Print( "L4 dCP interval set, but, dCP is disabled! Setting will be ignored.", FTI_WARN );
+        FTI_Ckpt[4].ckptDcpIntv = 0;
         FTI_Conf->dcpEnabled = false;
     }
     if (FTI_Conf->transferSize > (1024 * 1024 * 64) || FTI_Conf->transferSize < (1024 * 1024 * 8)) {
