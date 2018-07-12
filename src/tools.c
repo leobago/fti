@@ -797,17 +797,27 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);
     }
+    if ( FTI_Conf->dcpEnabled && level == 5 ) {
+        FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
+    }
 
     // If it is the very last cleaning and we DO NOT keep the last checkpoint
     if (level == 5) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
-        rmdir(FTI_Conf->glbalDir);
+        int ierr = rmdir(FTI_Conf->glbalDir);
+        DBG_MSG("remove %s, error: %s, errno: %d",-1, FTI_Conf->glbalDir, strerror(errno), ierr);
         char buf[FTI_BUFS];
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1) {
             if (errno != ENOENT) {
                 FTI_Print("Cannot remove Topology.fti", FTI_EROR);
+            }
+        }
+        snprintf(buf, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+        if (remove(buf) == -1) {
+            if (errno != ENOENT) {
+                FTI_Print("Cannot remove Checkpoint.fti", FTI_EROR);
             }
         }
         rmdir(FTI_Conf->metadDir);

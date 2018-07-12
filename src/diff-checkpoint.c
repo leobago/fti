@@ -101,6 +101,12 @@ static dcpBLK_t             DCP_BLOCK_SIZE;
 
 int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ) 
 {
+    // nothing to do, no ckpt was taken.
+    if ( FTI_Exec->firstdb == NULL ) {
+        FTI_Conf->dcpEnabled = false;
+        return FTI_SCES;
+    }
+
     // deallocate memory in dcp structures
     FTIFF_db* currentDB = FTI_Exec->firstdb;
     do {    
