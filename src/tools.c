@@ -805,8 +805,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (level == 5) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
-        int ierr = rmdir(FTI_Conf->glbalDir);
-        DBG_MSG("remove %s, error: %s, errno: %d",-1, FTI_Conf->glbalDir, strerror(errno), ierr);
+        rmdir(FTI_Conf->glbalDir);
         char buf[FTI_BUFS];
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1) {

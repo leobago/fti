@@ -238,9 +238,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    //snprintf(str, FTI_BUFS, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
-    //FTI_Print(str, FTI_INFO);
-
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
     if ( FTI_Topo->splitRank == 0 ) {
@@ -272,8 +269,6 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     char str[FTI_BUFS]; //For console output
 
-    //DBG
-    //MPI_Barrier(FTI_COMM_WORLD);
     double t1 = MPI_Wtime(); //Start time
 
     int res; //Response from post-processing functions
