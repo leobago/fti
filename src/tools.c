@@ -110,6 +110,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* int           */ FTI_Conf->stripeOffset          =0;
     /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
+    /* bool          */ FTI_Conf->keepL4Ckpt            =0;
     /* int           */ FTI_Conf->tag                   =0;
     /* int           */ FTI_Conf->test                  =0;
     /* int           */ FTI_Conf->l3WordSize            =0;
@@ -741,7 +742,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+int FTI_Clean(FTIT_execution *FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level)
 {
     int nodeFlag; //only one process in the node has set it to 1
@@ -775,6 +776,14 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
     // Clean last checkpoint level 4
     if (level == 4 || level == 5) {
+        if ( FTI_Conf->keepL4Ckpt ) {
+            char fn_from[FTI_BUFS];
+            char fn_to[FTI_BUFS];
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].ckptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].ckptFile ); 
+            rename(fn_from,fn_to);
+TODO DEFINE AND CREATE L4_ARCHIVE DIRECTORY SOMEWHERE
+        }
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);

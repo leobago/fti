@@ -331,6 +331,7 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
+        bool            keepL4Ckpt;
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
@@ -373,6 +374,7 @@ extern "C" {
      */
     typedef struct FTIT_checkpoint {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
+        char            archDir[FTI_BUFS];  /**< Checkpoint directory.          */
         char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
         int             isInline;           /**< TRUE if work is inline.        */
         int             ckptIntv;           /**< Checkpoint interval.           */

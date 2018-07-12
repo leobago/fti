@@ -191,7 +191,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 int res;
                 switch (level) {
                     case 4:
-                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
+                        FTI_Clean(FTI_Exec, FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                         MPI_Barrier(FTI_COMM_WORLD);
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                         break;

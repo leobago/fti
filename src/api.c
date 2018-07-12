@@ -1114,7 +1114,7 @@ int FTI_Finalize()
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 2), "update configuration file to 2.");
         }
         //Cleaning only local storage
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
+        FTI_Try(FTI_Clean(&FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else {
         if (FTI_Conf.saveLastCkpt) { //if there was no saved checkpoint
             FTI_Print("No checkpoint to keep in PFS.", FTI_INFO);
@@ -1124,7 +1124,7 @@ int FTI_Finalize()
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
         }
         //Cleaning everything
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
+        FTI_Try(FTI_Clean(&FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     FTI_FreeMeta(&FTI_Exec);
     FTI_FreeTypesAndGroups(&FTI_Exec);
