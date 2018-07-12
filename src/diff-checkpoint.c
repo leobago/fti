@@ -99,6 +99,18 @@ static dcpBLK_t             DCP_BLOCK_SIZE;
 
 /** Function Definitions                                                                */
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes dCP
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function deallocates structures used for dCP and exposes the 
+  status dcp disabled to FTI. It is also called for failures during
+  dCP creation.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ) 
 {
     // nothing to do, no ckpt was taken.
@@ -129,6 +141,21 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes dCP 
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function looks for environment variables set for the dCP mode and dCP
+  block size and overwrites, if found, the values from the configuration file.
+
+  It also initializes the file local variables 'dcpEnabled', 'DCP_MODE' and 
+  'DCP_BLOCK_SIZE'.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
     char str[FTI_BUFS];
@@ -183,16 +210,39 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns the dCP block size
+ **/
+/*-------------------------------------------------------------------------*/
 dcpBLK_t FTI_GetDiffBlockSize() 
 {
     return DCP_BLOCK_SIZE;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns the dCP mode.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetDcpMode() 
 {
     return DCP_MODE;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes a new hash meta data structure for data chunk
+  @param      dbvar           Datchunk metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function allocates memory for the 'dataDiffHash' member of the 
+  'FTIFF_dbvar' structure and if dCP mode is MD5 also for the MD5 digest
+  array placed in the member 'md5hash' of the 'dataDiffHash' structure.
+
+  It also initializes the other members of the 'dataDiffHash' structure.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar ) 
 {   
     dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
@@ -233,6 +283,19 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar )
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Shrinks an existing hash meta data structure for data chunk
+  @param      dbvar           Datchunk metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function re-allocates memory for the 'dataDiffHash' member of the 
+  'FTIFF_dbvar' structure and if dCP mode is MD5 also for the MD5 digest
+  array placed in the member 'md5hash' of the 'dataDiffHash' structure.
+
+  It also updates the other members of the 'dataDiffHash' structure.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar ) 
 {
     bool changeSize = true;
@@ -312,6 +375,19 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar )
     return FTI_SCES;    
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Expands an existing hash meta data structure for data chunk
+  @param      dbvar           Datchunk metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function re-allocates memory for the 'dataDiffHash' member of the 
+  'FTIFF_dbvar' structure and if dCP mode is MD5 also for the MD5 digest
+  array placed in the member 'md5hash' of the 'dataDiffHash' structure.
+
+  It also updates the other members of the 'dataDiffHash' structure.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar ) 
 {
     bool changeSize = true;
@@ -387,6 +463,16 @@ int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar )
     return FTI_SCES;    
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Computes number of hashblocks for chunk size.
+  @param      chunkSize       chunk size of data chunk
+  @return     long            FTI_SCES if successful.
+
+  This function computes the number of hash blocks according to the set dCP
+  block size corresponding to chunkSize.
+ **/
+/*-------------------------------------------------------------------------*/
 long FTI_CalcNumHashes( long chunkSize ) 
 {
     if ( (chunkSize%((unsigned long)DCP_BLOCK_SIZE)) == 0 ) {
@@ -396,6 +482,22 @@ long FTI_CalcNumHashes( long chunkSize )
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Checks if data block is dirty, clean or invalid.
+  @param      hashIdx         index for hash meta data in data chunk 
+                              meta data.
+  @param      dbvar           Data chunk meta data.
+  @return     integer         0 if data block is clean.
+  @return     integer         1 if data block is dirty or invalid.
+  @return     integer         -1 if hashIdx not in range.
+
+  This function checks if data block corresponding to the hash meta data 
+  element is clean, dirty or invalid.  
+
+  It returns -1 if hashIdx is out of range.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
 {
     
@@ -413,7 +515,6 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
         switch ( DCP_MODE ) {
             case FTI_DCP_MODE_MD5:
-                assert((hashInfo->blockSize>0)&&(hashInfo->blockSize<=DCP_BLOCK_SIZE));
                 MD5( ptr, hashInfo->blockSize, md5hashNow);
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
@@ -439,6 +540,17 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
     } 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Updates data chunk hash meta data.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function updates the hashes of data blocks that were identified as
+  dirty and initializes the hashes for data blocks that are invalid.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec) 
 {
     FTIFF_db *db = FTI_Exec->firstdb;
@@ -493,6 +605,24 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns pointer and size of buffer to write during checkpoint
+  @param      buffer_addr        Pointer to buffer.
+  @param      buffer_size        Size of buffer.
+  @param      dbvar              Data chunk meta data.
+  @param      FTI_Data           Dataset metadata.
+  @return     integer            1 if buffer holds data to write.
+  @return     integer            0 if nothing to write.
+
+  This function is called repeatedly for each data chunk. If it returns 1,
+  'buffer_addr' holds the pointer to a memory region inside the data chunk
+  and 'buffer_size' holds the size of the region. 
+  For dCP disabled, this region is the whole data chunk. For dCP enabled, 
+  the function returns a pointer to contiguous dirty regions until no further 
+  dirty regions are found in which case 0 is returned.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data) 
 {
 

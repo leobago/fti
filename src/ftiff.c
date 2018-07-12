@@ -315,10 +315,16 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, F
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Determines checksum of chechpoint data.
-  @param      FTI_Exec        Execution metadata.
+  @brief      Determines checksum of checkpoint data.
+  @param      FTIFF_Meta      FTI-FF file meta data.
   @param      FTI_Ckpt        Checkpoint metadata.
+  @param      fd              file descriptor.
+  @param      hash            pointer to MD5 digest container.
   @return     integer         FTI_SCES if successful.
+
+  This function computes the FTI-FF file checksum and places the MD5 digest
+  into the 'hash' buffer. The buffer has to be allocated for at least 
+  MD5_DIGEST_LENGTH bytes.
  **/
 /*-------------------------------------------------------------------------*/
 int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, unsigned char *hash ) 
@@ -483,6 +489,7 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt
   @brief      updates datablock structure for FTI File Format.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      FTI_Conf        Configuration metadata.
   @return     integer         FTI_SCES if successful.
 
   Updates information about the checkpoint file. Updates file pointers
@@ -2821,7 +2828,7 @@ GATHER_L4INFO:
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief    Computes has of the ckpt meta data structure   
+  @brief    Computes hash of the FTI-FF file meta data structure   
   @param    hash          hash to compute.
   @param    FTIFFMeta     Ckpt file meta data.
  **/
@@ -2839,6 +2846,13 @@ void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta )
     MD5_Final( hash, &md5Ctx );
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Computes hash of the FTI-FF file data block meta data structure   
+  @param    hash          hash to compute.
+  @param    FTIFFMeta     file data block meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db ) 
 {
     MD5_CTX md5Ctx;
@@ -2848,6 +2862,13 @@ void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db )
     MD5_Final( hash, &md5Ctx );
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Computes hash of the FTI-FF data chunk meta data structure   
+  @param    hash          hash to compute.
+  @param    dbvar         data chunk meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar ) 
 {
     MD5_CTX md5Ctx;
@@ -2953,6 +2974,13 @@ void FTIFF_InitMpiTypes()
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    deserializes FTI-FF file meta data   
+  @param    meta          FTI-FF file meta data.
+  @param    buffer_ser    serialized file meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
 {
     
@@ -2980,6 +3008,13 @@ int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    deserializes FTI-FF file data block meta data   
+  @param    db            FTI-FF file data block meta data.
+  @param    buffer_ser    serialized file data block meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser )
 {
     
@@ -2997,6 +3032,13 @@ int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    deserializes FTI-FF data chunk meta data   
+  @param    dbvar         FTI-FF data chunk meta data.
+  @param    buffer_ser    serialized data chunk meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
 {
     
@@ -3030,6 +3072,13 @@ int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    serializes FTI-FF file meta data   
+  @param    meta          FTI-FF file meta data.
+  @param    buffer_ser    serialized file meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
 {
     
@@ -3056,6 +3105,13 @@ int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    serializes FTI-FF file data block meta data   
+  @param    db            FTI-FF file data block meta data.
+  @param    buffer_ser    serialized file data block meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser )
 {
     
@@ -3073,6 +3129,13 @@ int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    serializes FTI-FF data chunk meta data   
+  @param    dbvar         FTI-FF data chunk meta data.
+  @param    buffer_ser    serialized data chunk meta data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser )
 {
     

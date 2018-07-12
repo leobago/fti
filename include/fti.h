@@ -144,15 +144,21 @@ extern "C" {
         long dataSize;  /**< total size of protected data (excluding meta data) */
     } FTIFF_metaInfo;
 
-    // DCP TYPE
+    /** @typedef    FTIT_DataDiffHash
+     *  @brief      dCP information about data block.
+     *  
+     *  Holds information for each data block relevant for the dCP mechanism.
+     *  This structure is a member of FTIFF_dbvar. It is stored as an array
+     *  with n elements, where n corresponds to the number of data blocks in 
+     *  that the data chunk is partitioned (depending on the dCP block size).
+     */
     typedef struct              FTIT_DataDiffHash
     {
-        unsigned char*          md5hash;
-        //FTI_ADDRPTR             ptr;
-        unsigned short          blockSize; // blocksize max 65535
-        uint32_t                bit32hash;
-        bool                    dirty;
-        bool                    isValid;
+        unsigned char*          md5hash;    /**< MD5 digest                       */
+        unsigned short          blockSize;  /**< data block size                  */
+        uint32_t                bit32hash;  /**< CRC32 digest                     */
+        bool                    dirty;      /**< indicates if data block is dirty */
+        bool                    isValid;    /**< indicates if data block is valid */
 
     }FTIT_DataDiffHash;
 
@@ -166,21 +172,21 @@ extern "C" {
      *
      */
     typedef struct FTIFF_dbvar {
-        int id;             /**< id of protected variable                       */
-        int idx;            /**< index to corresponding id in pvar array        */
-        int containerid;
-        bool hascontent;
-        bool hasCkpt;
-        uintptr_t dptr;          /**< data pointer offset				            */
-        uintptr_t fptr;          /**< file pointer offset                            */
-        long chunksize;     /**< chunk size stored aof prot. var. in this block */
-        long containersize; /**< chunk size stored aof prot. var. in this block */
-        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
-        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
-        bool update;
-        long nbHashes;
-        FTIT_DataDiffHash* dataDiffHash;
-        char *cptr; // virtual address pointer to first byte in container
+        int id;             /**< id of protected variable                         */
+        int idx;            /**< index to corresponding id in pvar array          */
+        int containerid;    /**< container index (first container -> 0)           */
+        bool hascontent;    /**< indicates if container holds ckpt data           */
+        bool hasCkpt;       /**< indicates if container is stored in ckpt         */
+        uintptr_t dptr;     /**< data pointer offset				              */
+        uintptr_t fptr;     /**< file pointer offset                              */
+        long chunksize;     /**< chunk size stored aof prot. var. in this block   */
+        long containersize; /**< chunk size stored aof prot. var. in this block   */
+        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk       */
+        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of this structure     */
+        bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
+        long nbHashes;      /**< holds the number of hashes for data chunk        */
+        FTIT_DataDiffHash* dataDiffHash; /**< dCP meta data for data chunk        */
+        char *cptr;         /**< pointer to memory address of container origin    */
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db
@@ -191,13 +197,13 @@ extern "C" {
      *
      */
     typedef struct FTIFF_db {
-        int numvars;            /**< number of protected variables in datablock */
-        long dbsize;            /**< size of metadata + data for block in bytes */
+        int numvars;            /**< number of protected variables in datablock   */
+        long dbsize;            /**< size of metadata + data for block in bytes   */
         unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
-        bool update;
-        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array             */
-        struct FTIFF_db *previous;  /**< link to previous datablock             */
-        struct FTIFF_db *next;      /**< link to next datablock                 */
+        bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
+        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array               */
+        struct FTIFF_db *previous;  /**< link to previous datablock               */
+        struct FTIFF_db *next;      /**< link to next datablock                   */
     } FTIFF_db;
 
     /*---------------------------------------------------------------------------
@@ -311,7 +317,7 @@ extern "C" {
      *  This type stores all the metadata necessary for the restart.
      */
     typedef struct FTIT_metadata {
-        int*             exists;             /**< True if metadata exists        */
+        int*             exists;             /**< TRUE if metadata exists        */
         long*            maxFs;              /**< Maximum file size.             */
         long*            fs;                 /**< File size.                     */
         long*            pfs;                /**< Partner file size.             */
@@ -353,8 +359,8 @@ extern "C" {
         unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;             /**< Number of data types.          */
         int             nbGroup;            /**< Number of protected groups.    */
-        int             metaAlloc;          /**< True if meta allocated.        */
-        int             initSCES;           /**< True if FTI initialized.       */
+        int             metaAlloc;          /**< TRUE if meta allocated.        */
+        int             initSCES;           /**< TRUE if FTI initialized.       */
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
@@ -430,11 +436,11 @@ extern "C" {
      */
     typedef struct FTIT_checkpoint {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
-        char            dcpDir[FTI_BUFS];      /**< Checkpoint directory.          */
+        char            dcpDir[FTI_BUFS];   /**< dCP directory.                 */
         char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
         char            dcpName[FTI_BUFS];  /**< dCP file name.                 */
-        bool            isDcp;              /**< TRUE if dCP to take.           */
-        bool            hasDcp;             /**< TRUE if dCP to take.           */
+        bool            isDcp;              /**< TRUE if dCP requested          */
+        bool            hasDcp;       /**< TRUE if execution has already a dCP  */
         int             isInline;           /**< TRUE if work is inline.        */
         int             ckptIntv;           /**< Checkpoint interval.           */
         int             ckptCnt;            /**< Checkpoint counter.            */

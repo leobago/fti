@@ -71,6 +71,13 @@
 
  **/
 
+/** @typedef    dcpBLK_t
+ *  @brief      unsigned short (0 - 65535).
+ *  
+ *  Type that keeps the block sizes inside the hash meta data. 
+ *  unsigned short is a trade off between memory occupation and block 
+ *  size range.
+ */
 typedef unsigned short dcpBLK_t;
 
 /** @typedef    FTIFF_headInfo
@@ -161,7 +168,6 @@ int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
 int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
-int FTIFF_QueryLastContainer( int id, FTIT_execution* FTI_Exec, FTIFF_dbvar* dbvar ); 
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
 int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
 int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
