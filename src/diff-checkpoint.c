@@ -460,7 +460,6 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
                             break;
                         case FTI_DCP_MODE_CRC32:
 #ifdef FTI_NOZLIB
-                            DBG_MSG("NO ZLIB!",-1);
                             hashInfo[hashIdx].bit32hash = crc32( ptr, hashInfo[hashIdx].blockSize );
 #else
                             hashInfo[hashIdx].bit32hash = crc32( 0L, Z_NULL, 0 ); 
