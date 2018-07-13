@@ -740,7 +740,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Clean(FTIT_execution *FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level)
 {
     int nodeFlag; //only one process in the node has set it to 1

@@ -332,7 +332,7 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
-        bool            keepL4Ckpt;
+        bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */

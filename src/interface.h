@@ -229,7 +229,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje);
 int FTI_RmDir(char path[FTI_BUFS], int flag);
-int FTI_Clean(FTIT_execution *FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
+int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
 
 int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char *nameList);

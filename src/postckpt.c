@@ -502,7 +502,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
-    
     // create global temp directory
     if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
         if (errno != EEXIST) {

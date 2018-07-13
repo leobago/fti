@@ -143,7 +143,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
-
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
@@ -260,7 +259,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes != FTI_SCES) {
         FTI_Print("Error postprocessing checkpoint. Discarding current checkpoint...", FTI_WARN);
-        FTI_Clean(FTI_Exec, FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
+        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
         return FTI_NSCS;
     }
 
@@ -281,7 +280,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    FTI_Clean(FTI_Exec, FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
+    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
@@ -320,6 +319,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             t3 - t1, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
 
+    // expose to FTI that a checkpoint exists for level
     FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
 
     return FTI_SCES;
@@ -413,7 +413,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         else {  //If checkpoint wasn't written correctly
             FTI_Print("Checkpoint have not been witten correctly. Discarding current checkpoint...", FTI_WARN);
-            FTI_Clean(FTI_Exec, FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
+            FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
             res = FTI_NSCS;
         }
         for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
