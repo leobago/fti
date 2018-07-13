@@ -266,6 +266,21 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     double t2 = MPI_Wtime(); //Post-processing time
 
+    // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
+    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].hasCkpt ) {
+        FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+    }
+
+    // store current ckpt file name in meta data.
+    if ( !FTI_Topo->amIaHead ) {
+        strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+    } else {
+        int i;
+        for( i=0; i<FTI_Topo->nbApprocs; ++i ) {
+            strncpy(&FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS], &FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile[i * FTI_BUFS], FTI_BUFS);
+        }
+    }
+
     FTI_Clean(FTI_Exec, FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     if (nodeFlag) { //True only for one process in the node.
@@ -304,6 +319,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Post-checkpoint took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
             t3 - t1, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
+
+    FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+
     return FTI_SCES;
 }
 

@@ -149,11 +149,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // | FTI_Ckpt |
     // +--------- +
 
-    /* char[BUFS]       FTI_Ckpt->dir */                memset(FTI_Ckpt->dir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Ckpt->metaDir */            memset(FTI_Ckpt->metaDir,0x0,FTI_BUFS);
-    /* int           */ FTI_Ckpt->isInline              =0;
-    /* int           */ FTI_Ckpt->ckptIntv              =0;
-    /* int           */ FTI_Ckpt->ckptCnt               =0;
+    /* FTIT_Ckpt[5]     FTI_Ckpt Array */               memset(FTI_Ckpt,0x0,sizeof(FTIT_checkpoint)*5);
 
     // +--------- +
     // | FTI_Injc |
@@ -321,6 +317,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
@@ -332,6 +329,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
@@ -776,14 +774,6 @@ int FTI_Clean(FTIT_execution *FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topol
 
     // Clean last checkpoint level 4
     if (level == 4 || level == 5) {
-        if ( FTI_Conf->keepL4Ckpt ) {
-            char fn_from[FTI_BUFS];
-            char fn_to[FTI_BUFS];
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].ckptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].ckptFile ); 
-            rename(fn_from,fn_to);
-TODO DEFINE AND CREATE L4_ARCHIVE DIRECTORY SOMEWHERE
-        }
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);

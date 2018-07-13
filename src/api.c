@@ -889,6 +889,7 @@ int FTI_Checkpoint(int id, int level)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
+    
     return FTI_DONE;
 }
 
@@ -1088,7 +1089,7 @@ int FTI_Finalize()
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint
-    if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
+    if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
