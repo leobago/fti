@@ -1084,7 +1084,7 @@ int FTI_Finalize()
     // Send notice to the head to stop listening
     if (FTI_Topo.nbHeads == 1) {
         int value = FTI_ENDW;
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, /*FTI_Conf.tag*/ 3107, FTI_Exec.globalComm);
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint
