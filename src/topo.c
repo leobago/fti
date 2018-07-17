@@ -328,7 +328,7 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for (i = FTI_Topo->nbHeads; i < FTI_Topo->nodeSize; i++) {
             int src = nodeList[(FTI_Topo->nodeID * FTI_Topo->nodeSize) + i];
             int buf;
-            MPI_Recv(&buf, 1, MPI_INT, src, FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&buf, 1, MPI_INT, src, FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             if (buf == src) {
                 FTI_Topo->body[i - FTI_Topo->nbHeads] = src;
             }
@@ -338,7 +338,7 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MPI_Group_incl(origGroup, FTI_Topo->nbProc - (FTI_Topo->nbNodes * FTI_Topo->nbHeads), userProcList, &newGroup);
         MPI_Comm_create(FTI_Exec->globalComm, newGroup, &FTI_COMM_WORLD);
         if (FTI_Topo->nbHeads == 1) {
-            MPI_Send(&(FTI_Topo->myRank), 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->tag, FTI_Exec->globalComm);
+            MPI_Send(&(FTI_Topo->myRank), 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
         }
     }
     MPI_Comm_rank(FTI_COMM_WORLD, &FTI_Topo->splitRank);

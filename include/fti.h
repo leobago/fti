@@ -327,7 +327,11 @@ extern "C" {
         int             stripeOffset;       /**< Striping Offset for Lustre FS  */
         int             stripeFactor;       /**< Striping Factor for Lustre FS  */
 #endif
-        int             tag;                /**< Tag for MPI messages in FTI.   */
+        int             ckptTag;            /**< MPI tag for ckpt requests.     */
+        int             stageTag;           /**< MPI tag for staging comm.      */
+        int             infoTag;            /**< MPI tag for check comm.        */
+        int             finalTag;           /**< MPI tag for finalize comm.     */
+        int             generalTag;         /**< MPI tag for general comm.      */
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */

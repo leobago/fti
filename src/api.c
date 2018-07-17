@@ -821,7 +821,7 @@ int FTI_Checkpoint(int id, int level)
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
-        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
             FTI_Exec.lastCkptLvel = lastLevel; //Store last successful post-processing checkpoint level
             sprintf(str, "LastCkptLvel received from head: %d", lastLevel);
@@ -847,7 +847,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
             value = FTI_REJW; //Send reject checkpoint token to head
         }
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
         // FTIFF: send meta info to the heads
         if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
             headInfo = malloc(sizeof(FTIFF_headInfo));
@@ -857,9 +857,9 @@ int FTI_Checkpoint(int id, int level)
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
             strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
             free(headInfo);
         }
 
@@ -1075,7 +1075,7 @@ int FTI_Finalize()
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
         int lastLevel;
-        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
             FTI_Exec.lastCkptLvel = lastLevel;
         }
@@ -1084,7 +1084,7 @@ int FTI_Finalize()
     // Send notice to the head to stop listening
     if (FTI_Topo.nbHeads == 1) {
         int value = FTI_ENDW;
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, /*FTI_Conf.tag*/ 3107, FTI_Exec.globalComm);
+        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.finalTag, FTI_Exec.globalComm);
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint

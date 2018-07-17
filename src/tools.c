@@ -110,7 +110,11 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* int           */ FTI_Conf->stripeOffset          =0;
     /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
-    /* int           */ FTI_Conf->tag                   =0;
+    /* int           */ FTI_Conf->ckptTag               =0;
+    /* int           */ FTI_Conf->stageTag              =0;
+    /* int           */ FTI_Conf->infoTag               =0;
+    /* int           */ FTI_Conf->finalTag              =0;
+    /* int           */ FTI_Conf->generalTag            =0;
     /* int           */ FTI_Conf->test                  =0;
     /* int           */ FTI_Conf->l3WordSize            =0;
     /* int           */ FTI_Conf->ioMode                =0;

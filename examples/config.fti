@@ -113,8 +113,12 @@ Block_size = 1024
 # from local to PFS
 Transfer_size = 16
 
-# The tag for MPI communications done within the FTI library
-Mpi_tag = 2612
+# The tags for MPI communications done within the FTI library
+general_tag = 2612
+ckpt_tag = 711   
+stage_tag = 406
+info_tag = 2906
+final_tag = 3107
 
 # Set to 1 if you are doing a test in local in a single computer
 Local_test = 1

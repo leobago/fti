@@ -336,10 +336,12 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         FTI_Print("Head waits for message...", FTI_DBUG);
 
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->tag/*FTI_CHECKPOINT_TAG*/, FTI_Exec->globalComm, &ckpt_flag, &ckpt_status );
-        MPI_Iprobe( MPI_ANY_SOURCE, 0/*FTI_STAGE_TAG*/, FTI_Exec->globalComm, &stage_flag, &stage_status );
-        MPI_Iprobe( MPI_ANY_SOURCE, 0/*FTI_INFO_TAG*/, FTI_Exec->globalComm, &info_flag, &info_status );
-        MPI_Iprobe( MPI_ANY_SOURCE, 3107/*FTI_FINALIZE_TAG*/, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
+        // TODO maybe useful to implement a mutex here to avoid 100% cpu usage
+
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->ckptTag, FTI_Exec->globalComm, &ckpt_flag, &ckpt_status );
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->stageTag, FTI_Exec->globalComm, &stage_flag, &stage_status );
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->infoTag, FTI_Exec->globalComm, &info_flag, &info_status );
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
 
         if ( info_flag ) {
 
@@ -373,7 +375,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // the 'continue' statement ensures that we first process all requests,
         // send by the app processes.
 
-        // in FTI_Finalize, we have to ensure, that all app processes
+        // 
         if ( finalize_flag ) {
             char str[FTI_BUFS]; //For console output
             int flags[7]; //Increment index if get corresponding value from application process
@@ -420,7 +422,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     FTI_Print("Head waits for message...", FTI_DBUG);
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
-        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
@@ -448,14 +450,14 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         int k;
         for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
             k = i+1;
-            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
             FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
             FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
             FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
             FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
-            MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
             sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
         }
@@ -481,19 +483,22 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         res = FTI_NSCS;
     }
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
-        MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm);
+        MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm);
     }
+    return FTI_SCES;
 }
 
 
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    return FTI_SCES;
 }
 
 int FTI_HandleInfoRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    return FTI_SCES;
 }
 
 
