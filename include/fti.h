@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -92,6 +93,49 @@ extern "C" {
     /*---------------------------------------------------------------------------
       FTI-FF types
       ---------------------------------------------------------------------------*/
+
+    /** @typedef    FTIT_StageMode
+     *  @brief      defines two ints for a-/synchronous transfer of the staged file.
+     */
+    typedef enum {
+        FTI_S_ASYNC,
+        FTI_S_SYNC
+    } FTIT_StageMode;
+
+    typedef struct FTIT_StageAsyncInfo {
+        uint32_t ID;                        /**< Unique request ID              */
+        char path[FTI_BUFS];        /**< file path                      */
+        char fn[FTI_BUFS];          /**< file name                      */
+        size_t offset;               /**< current offset of file pointer */
+        size_t size;                 /**< file size                      */
+        int status;                 /**< status of the request          */
+        MPI_Status mpiStat;
+    } FTIT_StageHeadInfo;
+
+    typedef struct FTIT_StageSyncInfo {
+        uint32_t ID;                        /**< Unique request ID              */
+        MPI_Request mpiReq;
+    } FTIT_StageAppInfo;
+
+    /** @typedef    FTIT_Request
+     *  @brief      Holds information about the stage request.
+     *
+     *  offset-1 is the amount of data written. size is the total size of the file
+     *  requested to stage. ID keep an unique identifier for each request 
+     *  18 bits for the rank (up to 262,143 ranks) and 14 bits for the rank local 
+     *  request id (maximal 16383 requests). 
+     *
+     *  Status holds the status of the staging request: 
+     *  not started:    -1
+     *  in progress:    0
+     *  finished:       1
+     */
+    typedef struct FTIT_Request{
+        FTIT_StageHeadInfo *_intn_hi;
+        FTIT_StageAppInfo *_intn_ai;
+        struct FTIT_Request *_intn_p;       /**< (internal usage ptr previous)  */
+        struct FTIT_Request *_intn_n;       /**< (internal usage ptr next)      */
+    } FTIT_Request;
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -450,6 +494,7 @@ extern "C" {
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
+    int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request );
     int FTI_Recover();
     int FTI_Snapshot();
     int FTI_Finalize();

@@ -387,6 +387,71 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
+int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request )
+{
+    // discard if path is NULL
+    if ( path == NULL ){
+        FTI_Print( "path argument is NULL!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    // asign new request ID
+    int reqID = FTI_NEW_REQ_ID;
+    if (reqID < 0) {
+        FTI_Print("Too many stage requests!", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if ( FTI_Topo.myRank > 0x40000 /*18 bits = 262,143 maximum rank*/ ) {
+        FTI_Print("Too many ranks for staging feature!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    // check if mode field is valid
+    if ( (mode != FTI_S_ASYNC) && (mode != FTI_S_SYNC) ) {
+        FTI_Print("invalid value for mode!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    uint32_t ID = (FTI_Topo.myRank << 14) | reqID;
+
+    printf("reqID: %d, myRank: %d",reqID, FTI_Topo.myRank);
+
+    request->_intn_ai = malloc(sizeof(FTIT_StageAppInfo));
+    request->_intn_ai->ID = ID;
+    
+    if ( mode == FTI_S_SYNC ) {
+        return FTI_SCES;
+    }
+    
+    // serialize request before sending to the head
+    void *buf_ser = malloc ( 2*FTI_BUFS + sizeof(uint32_t) );
+    int pos = 0;
+    memcpy( buf_ser, path, FTI_BUFS );   
+    pos += FTI_BUFS;
+    memcpy( buf_ser + pos, basename(path), FTI_BUFS );   
+    pos += FTI_BUFS;
+    memcpy( buf_ser + pos, &ID, sizeof(uint32_t) );   
+    pos += sizeof(uint32_t);
+    MPI_Datatype buf_t;
+    MPI_Type_contiguous( pos, MPI_CHAR, &buf_t );
+    MPI_Type_commit( &buf_t );
+    
+    // send request to head
+    int ierr = MPI_Isend( buf_ser, 1, buf_t, FTI_Topo.headRank, FTI_Conf.stageTag, FTI_Exec.globalComm, &(request->_intn_ai->mpiReq) );
+    if ( ierr != MPI_SUCCESS ) {
+        char errstr[FTI_BUFS], mpierrbuf[FTI_BUFS];
+        int reslen;
+        MPI_Error_string( ierr, mpierrbuf, &reslen );
+        snprintf( errstr, FTI_BUFS, "MPI_Isend failed: %s", mpierrbuf );  
+        FTI_Print( errstr, FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    MPI_Type_free( &buf_t );
+    
+    return FTI_SCES;
+
+}
 
 /*-------------------------------------------------------------------------*/
 /**

@@ -57,6 +57,9 @@
 #include "hdf5_hl.h"
 #endif
 
+// macro for stage request counter
+#define FTI_NEW_REQ_ID request_counter()
+
 #include <stdint.h>
 #include "../deps/md5/md5.h"
 
@@ -78,6 +81,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <libgen.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -89,6 +93,16 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+
+// stage request counter returns -1 if too many requests.
+static inline int request_counter() {
+    static int req_cnt = 0;
+    if( req_cnt < 0x3fff ) {
+        return req_cnt++;
+    } else {
+        return -1;
+    }
+}
 
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
@@ -131,7 +145,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_HandleInfoRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source);
 
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int restart);

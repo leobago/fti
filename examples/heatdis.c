@@ -97,6 +97,8 @@ int main(int argc, char *argv[])
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
+    FTIT_Request fti_req;
+    FTI_SendFile( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f", FTI_S_ASYNC, &fti_req );
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
         printf("Target precision : %f \n", PRECISION);
