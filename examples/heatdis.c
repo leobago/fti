@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
         FTI_GetStageDir( s_dir, FTI_BUFS );
         snprintf( fn, FTI_BUFS, "%s/%s", s_dir, "testfile.f" );
         rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file.f", fn ); 
-        FTI_SendFile( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f", FTI_STAGE_SYNC, &fti_req );
+        FTI_SendFile( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f", FTI_STAGE_ASYNC, &fti_req );
     }
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);

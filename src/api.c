@@ -450,6 +450,7 @@ int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_StageRequest *req )
 
     FTIT_StageRequestIntern *req_intn = malloc( sizeof(FTIT_StageRequestIntern) );
     req_intn->intn_ri = malloc( sizeof(FTIT_StageRankInfo) );
+    req_intn->intn_hi = NULL;
 
     // store request in fti execution
     if( FTI_Exec.stageInfo.firstReq == NULL ) {  // init request list
@@ -464,9 +465,6 @@ int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_StageRequest *req )
         req_intn->intn_ri->intn_n = NULL;
     }
 
-    req_intn->intn_ri = malloc(sizeof(FTIT_StageRankInfo));
-    req_intn->intn_hi = NULL;
-    
     req_intn->intn_ri->ID = ID;
     req_intn->intn_ri->status = FTI_STAGE_FAIL; // init status fail
     req_intn->intn_ri->mpiReq = MPI_REQUEST_NULL;

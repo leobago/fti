@@ -492,17 +492,134 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source)
 {      
-    //FTIT_Request request;
-    //request._intn_hi = malloc(sizeof(FTIT_StageHeadInfo));
-    //size_t buf_ser_size = 2*FTI_BUFS + sizeof(uint32_t);
-    //void *buf_ser = malloc ( buf_ser_size );
-    //MPI_Datatype buf_t;
-    //MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
-    //MPI_Type_commit( &buf_t );
-    //MPI_Recv( buf_ser, 1, buf_t, source, FTI_Conf->stageTag, FTI_Exec->globalComm, &(request._intn_hi->mpiStat) );
-    //
-    //printf("[recv from %d] path: %s, filename: %s, ID: %p\n", source,
-    //        (char*)buf_ser, (char*)buf_ser+FTI_BUFS,(void*)(uintptr_t)*(unsigned int*)(buf_ser+2*FTI_BUFS));
+    char errstr[FTI_BUFS];
+
+    FTIT_StageRequestIntern *req_intn = malloc( sizeof(FTIT_StageRequestIntern) );
+    req_intn->intn_ri = NULL;
+    req_intn->intn_hi = malloc( sizeof(FTIT_StageHeadInfo) );
+
+    // store request in fti execution
+    if( FTI_Exec->stageInfo.firstReq == NULL ) {  // init request list
+        FTI_Exec->stageInfo.firstReq = req_intn;
+        FTI_Exec->stageInfo.lastReq = req_intn;
+        req_intn->intn_hi->intn_p = NULL;
+        req_intn->intn_hi->intn_n = NULL;
+    } else { // append request to request list
+        req_intn->intn_hi->intn_p = FTI_Exec->stageInfo.lastReq;
+        FTI_Exec->stageInfo.lastReq->intn_hi->intn_n = req_intn;
+        FTI_Exec->stageInfo.lastReq = req_intn;
+        req_intn->intn_hi->intn_n = NULL;
+    }
+
+    req_intn->intn_hi->status = FTI_STAGE_FAIL; // init status fail
+    req_intn->intn_hi->offset = 0;
+    req_intn->intn_hi->size = 0;
+    
+    size_t buf_ser_size = FTI_BUFS + sizeof(uint32_t);
+    void *buf_ser = malloc ( buf_ser_size );
+    MPI_Datatype buf_t;
+    MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
+    MPI_Type_commit( &buf_t );
+    MPI_Recv( buf_ser, 1, buf_t, source, FTI_Conf->stageTag, FTI_Exec->globalComm, &(req_intn->intn_hi->mpiStat) );
+    
+    req_intn->intn_hi->ID = *(uint32_t*)(buf_ser+FTI_BUFS);
+    memset( req_intn->intn_hi->path, 0x0, FTI_BUFS );
+    strncpy( req_intn->intn_hi->path, buf_ser, FTI_BUFS );
+   
+    // set local file path
+    char path_local[FTI_BUFS];
+    char local_dir[FTI_BUFS];
+    FTI_GetStageDir( local_dir, FTI_BUFS );
+    snprintf( path_local, FTI_BUFS, "%s/%s", local_dir, basename(req_intn->intn_hi->path) );
+
+    // set buffer size for the file data transfer
+    size_t bs = FTI_Conf->transferSize;
+
+    // check local file and get file size
+    struct stat st;
+    if(  stat( path_local, &st ) == -1 ) {
+        snprintf( errstr, FTI_BUFS, "Could not stat the local file ('%s') for staging", path_local );
+        FTI_Print( errstr, FTI_EROR );
+        errno = 0;
+        return FTI_NSCS;
+    }
+    if( !S_ISREG(st.st_mode) ) {
+        snprintf( errstr, FTI_BUFS, "'%s' is not a regular file, staging failed.", path_local );
+        FTI_Print( errstr, FTI_EROR );
+        errno = 0;
+        return FTI_NSCS;
+    }
+
+    off_t eof = st.st_size;
+
+    // open local file
+    int fd_local = open( path_local, O_RDONLY );
+    if( fd_local == -1 ) {
+        FTI_Print("Could not open the local file for staging", FTI_EROR);
+        return FTI_NSCS;
+    }
+    // open file on remote fs
+    int fd_global = open( req_intn->intn_hi->path, O_WRONLY|O_CREAT, (mode_t) 0600 );
+    if( fd_global == -1 ) {
+        FTI_Print("Could not open the destination file for staging", FTI_EROR);
+        close( fd_local );
+        return FTI_NSCS;
+    }
+    // allocate buffer
+    char *buf = (char*) malloc( bs );
+
+    // move file to destination
+    off_t pos = 0;
+    ssize_t read_bytes, write_bytes;
+    size_t buf_bytes;
+    while( pos < eof ) {
+        buf_bytes = ( (eof - pos) < bs ) ? eof - pos : bs;
+        // for the case we have written less then we have read
+        if( lseek( fd_local, pos, SEEK_SET ) == -1 ) {
+            snprintf( errstr, FTI_BUFS, "unable to seek in '%s'.", path_local );
+            FTI_Print( errstr, FTI_EROR );
+            errno = 0;
+            free( buf );
+            close( fd_local );
+            close( fd_global );
+            return FTI_NSCS;
+        }
+        if( (read_bytes = read( fd_local, buf, buf_bytes )) == -1 ) {
+            snprintf( errstr, FTI_BUFS, "unable to read from '%s'.", path_local );
+            FTI_Print( errstr, FTI_EROR );
+            errno = 0;
+            free( buf );
+            close( fd_local );
+            close( fd_global );
+            return FTI_NSCS;
+        }
+        if( (write_bytes = write( fd_global, buf, read_bytes )) == -1 ) {  
+            snprintf( errstr, FTI_BUFS, "unable to write to '%s'.", req_intn->intn_hi->path );
+            FTI_Print( errstr, FTI_EROR );
+            errno = 0;
+            free( buf );
+            close( fd_local );
+            close( fd_global );
+            return FTI_NSCS;
+        }
+        pos += write_bytes;
+        printf("pos: %lu, write_bytes: %lu, read_bytes: %lu, buf_bytes: %lu\n", pos, write_bytes, read_bytes, buf_bytes);
+    }
+
+    // deallocate buffer and close file descriptors
+    free( buf );
+    close( fd_local );
+    fsync( fd_global );
+    close( fd_global );
+
+    if( remove( path_local ) == -1 ) {
+        snprintf( errstr, FTI_BUFS, "Could not remove local file '%s'.", path_local );
+        FTI_Print( errstr, FTI_WARN );
+        errno = 0;
+        return FTI_NSCS;
+    }
+
+    req_intn->intn_hi->status = FTI_STAGE_SCES; // init status fail
     
     return FTI_SCES;
 }
