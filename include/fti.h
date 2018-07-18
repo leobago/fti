@@ -69,6 +69,8 @@
 #define FTI_IO_MPI 1002
 /** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
+/** indicator for an invalid stage request                                 */
+#define FTI_STAGE_INVD 3001
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -98,24 +100,37 @@ extern "C" {
      *  @brief      defines two ints for a-/synchronous transfer of the staged file.
      */
     typedef enum {
-        FTI_S_ASYNC,
-        FTI_S_SYNC
+        FTI_STAGE_ASYNC,
+        FTI_STAGE_SYNC
     } FTIT_StageMode;
 
-    typedef struct FTIT_StageAsyncInfo {
+    typedef enum {
+        FTI_STAGE_FAIL = -1,
+        FTI_STAGE_SCES,
+        FTI_STAGE_PROG
+    } FTIT_StageStatus;
+
+    struct FTIT_Request;
+
+    typedef struct FTIT_StageHeadInfo {
         uint32_t ID;                        /**< Unique request ID              */
+        int status;     /**< status of request  */
         char path[FTI_BUFS];        /**< file path                      */
         char fn[FTI_BUFS];          /**< file name                      */
         size_t offset;               /**< current offset of file pointer */
         size_t size;                 /**< file size                      */
-        int status;                 /**< status of the request          */
         MPI_Status mpiStat;
+        struct FTIT_StageRequestIntern *intn_p;       /**< (internal usage ptr previous)  */
+        struct FTIT_StageRequestIntern *intn_n;       /**< (internal usage ptr next)      */
     } FTIT_StageHeadInfo;
 
-    typedef struct FTIT_StageSyncInfo {
+    typedef struct FTIT_StageRankInfo {
         uint32_t ID;                        /**< Unique request ID              */
+        int status;     /**< status of request  */
         MPI_Request mpiReq;
-    } FTIT_StageAppInfo;
+        struct FTIT_StageRequestIntern *intn_p;       /**< (internal usage ptr previous)  */
+        struct FTIT_StageRequestIntern *intn_n;       /**< (internal usage ptr next)      */
+    } FTIT_StageRankInfo;
 
     /** @typedef    FTIT_Request
      *  @brief      Holds information about the stage request.
@@ -130,12 +145,22 @@ extern "C" {
      *  in progress:    0
      *  finished:       1
      */
-    typedef struct FTIT_Request{
-        FTIT_StageHeadInfo *_intn_hi;
-        FTIT_StageAppInfo *_intn_ai;
-        struct FTIT_Request *_intn_p;       /**< (internal usage ptr previous)  */
-        struct FTIT_Request *_intn_n;       /**< (internal usage ptr next)      */
-    } FTIT_Request;
+    typedef struct FTIT_StageRequestIntern {
+        FTIT_StageHeadInfo *intn_hi;
+        FTIT_StageRankInfo *intn_ri;
+    } FTIT_StageRequestIntern;
+
+    typedef struct FTIT_StageRequest {
+        int ID;
+        int mode;
+    } FTIT_StageRequest;
+
+    typedef struct FTIT_StageInfo {
+        char stageDir[FTI_BUFS];
+        int numReq;
+        FTIT_StageRequestIntern *firstReq;
+        FTIT_StageRequestIntern *lastReq;
+    } FTIT_StageInfo;
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -351,6 +376,7 @@ extern "C" {
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
+        FTIT_StageInfo  stageInfo;          /**< root of staging requests       */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
     } FTIT_execution;
@@ -494,7 +520,8 @@ extern "C" {
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
-    int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request );
+    int FTI_GetStageDir( char* stageDir, int maxLen );
+    int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_StageRequest *request );
     int FTI_Recover();
     int FTI_Snapshot();
     int FTI_Finalize();

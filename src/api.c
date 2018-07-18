@@ -387,8 +387,41 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
-int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request )
-{
+int FTI_GetStageDir( char* stageDir, int maxLen) {
+    
+    if( stageDir == NULL ) {
+        FTI_Print( "invalid value for stageDir ('nil')!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    if( maxLen < 1 ) { 
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "invalid value for maxLen ('%d')!", maxLen );
+        FTI_Print( errstr, FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int len = strlen(FTI_Exec.stageInfo.stageDir);
+    if( maxLen < len+1 ) {
+        FTI_Print( "insufficient buffer size (maxLen too small)!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    strncpy( stageDir, FTI_Exec.stageInfo.stageDir, FTI_BUFS );
+
+    return FTI_SCES;
+
+}
+
+
+int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_StageRequest *req )
+{   
+    char errstr[FTI_BUFS];
+
+    // set request invalid
+    req->ID = FTI_STAGE_INVD;
+    req->mode = FTI_STAGE_INVD;
+    
     // discard if path is NULL
     if ( path == NULL ){
         FTI_Print( "path argument is NULL!", FTI_WARN );
@@ -405,30 +438,144 @@ int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request )
         FTI_Print("Too many ranks for staging feature!", FTI_WARN);
         return FTI_NSCS;
     }
+    uint32_t ID = (FTI_Topo.myRank << 14) | reqID;
+    req->ID = ID;
 
     // check if mode field is valid
-    if ( (mode != FTI_S_ASYNC) && (mode != FTI_S_SYNC) ) {
+    if ( (mode != FTI_STAGE_ASYNC) && (mode != FTI_STAGE_SYNC) ) {
         FTI_Print("invalid value for mode!", FTI_WARN);
         return FTI_NSCS;
     }
+    req->mode = mode;
 
-    uint32_t ID = (FTI_Topo.myRank << 14) | reqID;
+    FTIT_StageRequestIntern *req_intn = malloc( sizeof(FTIT_StageRequestIntern) );
+    req_intn->intn_ri = malloc( sizeof(FTIT_StageRankInfo) );
 
-    printf("reqID: %d, myRank: %d",reqID, FTI_Topo.myRank);
+    // store request in fti execution
+    if( FTI_Exec.stageInfo.firstReq == NULL ) {  // init request list
+        FTI_Exec.stageInfo.firstReq = req_intn;
+        FTI_Exec.stageInfo.lastReq = req_intn;
+        req_intn->intn_ri->intn_p = NULL;
+        req_intn->intn_ri->intn_n = NULL;
+    } else { // append request to request list
+        req_intn->intn_ri->intn_p = FTI_Exec.stageInfo.lastReq;
+        FTI_Exec.stageInfo.lastReq->intn_ri->intn_n = req_intn;
+        FTI_Exec.stageInfo.lastReq = req_intn;
+        req_intn->intn_ri->intn_n = NULL;
+    }
 
-    request->_intn_ai = malloc(sizeof(FTIT_StageAppInfo));
-    request->_intn_ai->ID = ID;
+    req_intn->intn_ri = malloc(sizeof(FTIT_StageRankInfo));
+    req_intn->intn_hi = NULL;
     
-    if ( mode == FTI_S_SYNC ) {
+    req_intn->intn_ri->ID = ID;
+    req_intn->intn_ri->status = FTI_STAGE_FAIL; // init status fail
+    req_intn->intn_ri->mpiReq = MPI_REQUEST_NULL;
+
+    if ( mode == FTI_STAGE_SYNC ) {
+
+        // set local file path
+        char path_local[FTI_BUFS];
+        char local_dir[FTI_BUFS];
+        FTI_GetStageDir( local_dir, FTI_BUFS );
+        snprintf( path_local, FTI_BUFS, "%s/%s", local_dir, basename(path) );
+        
+        // set buffer size for the file data transfer
+        size_t bs = FTI_Conf.transferSize;
+        
+        // check local file and get file size
+        struct stat st;
+        if(  stat( path_local, &st ) == -1 ) {
+            snprintf( errstr, FTI_BUFS, "Could not stat the local file ('%s') for staging", path_local );
+            FTI_Print( errstr, FTI_EROR );
+            errno = 0;
+            return FTI_NSCS;
+        }
+        if( !S_ISREG(st.st_mode) ) {
+            snprintf( errstr, FTI_BUFS, "'%s' is not a regular file, staging failed.", path_local );
+            FTI_Print( errstr, FTI_EROR );
+            errno = 0;
+            return FTI_NSCS;
+        }
+
+        off_t eof = st.st_size;
+
+        // open local file
+        int fd_local = open( path_local, O_RDONLY );
+        if( fd_local == -1 ) {
+            FTI_Print("Could not open the local file for staging", FTI_EROR);
+            return FTI_NSCS;
+        }
+        // open file on remote fs
+        int fd_global = open( path, O_WRONLY|O_CREAT, (mode_t) 0600 );
+        if( fd_global == -1 ) {
+            FTI_Print("Could not open the destination file for staging", FTI_EROR);
+            close( fd_local );
+            return FTI_NSCS;
+        }
+        // allocate buffer
+        char *buf = (char*) malloc( bs );
+        
+        // move file to destination
+        off_t pos = 0;
+        ssize_t read_bytes, write_bytes;
+        size_t buf_bytes;
+        while( pos < eof ) {
+            buf_bytes = ( (eof - pos) < bs ) ? eof - pos : bs;
+            // for the case we have written less then we have read
+            if( lseek( fd_local, pos, SEEK_SET ) == -1 ) {
+                snprintf( errstr, FTI_BUFS, "unable to seek in '%s'.", path_local );
+                FTI_Print( errstr, FTI_EROR );
+                errno = 0;
+                free( buf );
+                close( fd_local );
+                close( fd_global );
+                return FTI_NSCS;
+            }
+            if( (read_bytes = read( fd_local, buf, buf_bytes )) == -1 ) {
+                snprintf( errstr, FTI_BUFS, "unable to read from '%s'.", path_local );
+                FTI_Print( errstr, FTI_EROR );
+                errno = 0;
+                free( buf );
+                close( fd_local );
+                close( fd_global );
+                return FTI_NSCS;
+            }
+            if( (write_bytes = write( fd_global, buf, read_bytes )) == -1 ) {  
+                snprintf( errstr, FTI_BUFS, "unable to write to '%s'.", path );
+                FTI_Print( errstr, FTI_EROR );
+                errno = 0;
+                free( buf );
+                close( fd_local );
+                close( fd_global );
+                return FTI_NSCS;
+            }
+            pos += write_bytes;
+            printf("pos: %lu, write_bytes: %lu, read_bytes: %lu, buf_bytes: %lu\n", pos, write_bytes, read_bytes, buf_bytes);
+        }
+        
+        // deallocate buffer and close file descriptors
+        free( buf );
+        close( fd_local );
+        fsync( fd_global );
+        close( fd_global );
+
+        if( remove( path_local ) == -1 ) {
+            snprintf( errstr, FTI_BUFS, "Could not remove local file '%s'.", path_local );
+            FTI_Print( errstr, FTI_WARN );
+            errno = 0;
+            return FTI_NSCS;
+        }
+
+        req_intn->intn_ri->status = FTI_STAGE_SCES; // init status fail
+
         return FTI_SCES;
+
     }
     
     // serialize request before sending to the head
-    void *buf_ser = malloc ( 2*FTI_BUFS + sizeof(uint32_t) );
+    void *buf_ser = malloc ( FTI_BUFS + sizeof(uint32_t) );
     int pos = 0;
     memcpy( buf_ser, path, FTI_BUFS );   
-    pos += FTI_BUFS;
-    memcpy( buf_ser + pos, basename(path), FTI_BUFS );   
     pos += FTI_BUFS;
     memcpy( buf_ser + pos, &ID, sizeof(uint32_t) );   
     pos += sizeof(uint32_t);
@@ -437,7 +584,7 @@ int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_Request *request )
     MPI_Type_commit( &buf_t );
     
     // send request to head
-    int ierr = MPI_Isend( buf_ser, 1, buf_t, FTI_Topo.headRank, FTI_Conf.stageTag, FTI_Exec.globalComm, &(request->_intn_ai->mpiReq) );
+    int ierr = MPI_Isend( buf_ser, 1, buf_t, FTI_Topo.headRank, FTI_Conf.stageTag, FTI_Exec.globalComm, &(req_intn->intn_ri->mpiReq) );
     if ( ierr != MPI_SUCCESS ) {
         char errstr[FTI_BUFS], mpierrbuf[FTI_BUFS];
         int reslen;

@@ -97,8 +97,16 @@ int main(int argc, char *argv[])
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
-    FTIT_Request fti_req;
-    FTI_SendFile( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f", FTI_S_ASYNC, &fti_req );
+    FTIT_StageRequest fti_req;
+
+    char s_dir[FTI_BUFS];
+    char fn[FTI_BUFS];
+    if ( rank == 0 ) {
+        FTI_GetStageDir( s_dir, FTI_BUFS );
+        snprintf( fn, FTI_BUFS, "%s/%s", s_dir, "testfile.f" );
+        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file.f", fn ); 
+        FTI_SendFile( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f", FTI_STAGE_SYNC, &fti_req );
+    }
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
         printf("Target precision : %f \n", PRECISION);

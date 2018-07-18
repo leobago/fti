@@ -492,17 +492,17 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source)
 {      
-    FTIT_Request request;
-    request._intn_hi = malloc(sizeof(FTIT_StageHeadInfo));
-    size_t buf_ser_size = 2*FTI_BUFS + sizeof(uint32_t);
-    void *buf_ser = malloc ( buf_ser_size );
-    MPI_Datatype buf_t;
-    MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
-    MPI_Type_commit( &buf_t );
-    MPI_Recv( buf_ser, 1, buf_t, source, FTI_Conf->stageTag, FTI_Exec->globalComm, &(request._intn_hi->mpiStat) );
-    
-    printf("[recv from %d] path: %s, filename: %s, ID: %p\n", source,
-            (char*)buf_ser, (char*)buf_ser+FTI_BUFS,(void*)(uintptr_t)*(unsigned int*)(buf_ser+FTI_BUFS));
+    //FTIT_Request request;
+    //request._intn_hi = malloc(sizeof(FTIT_StageHeadInfo));
+    //size_t buf_ser_size = 2*FTI_BUFS + sizeof(uint32_t);
+    //void *buf_ser = malloc ( buf_ser_size );
+    //MPI_Datatype buf_t;
+    //MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
+    //MPI_Type_commit( &buf_t );
+    //MPI_Recv( buf_ser, 1, buf_t, source, FTI_Conf->stageTag, FTI_Exec->globalComm, &(request._intn_hi->mpiStat) );
+    //
+    //printf("[recv from %d] path: %s, filename: %s, ID: %p\n", source,
+    //        (char*)buf_ser, (char*)buf_ser+FTI_BUFS,(void*)(uintptr_t)*(unsigned int*)(buf_ser+2*FTI_BUFS));
     
     return FTI_SCES;
 }

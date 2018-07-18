@@ -471,6 +471,12 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
                 FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
             }
         }
+        snprintf(FTI_Exec->stageInfo.stageDir, FTI_BUFS, "%s/stage", FTI_Conf->localDir);
+        if (mkdir(FTI_Exec->stageInfo.stageDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create stage directory", FTI_EROR);
+            }
+        }
         snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
         snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
         snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);

@@ -92,6 +92,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+                        FTI_Exec->stageInfo.firstReq    =NULL;
+                        FTI_Exec->stageInfo.lastReq     =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
