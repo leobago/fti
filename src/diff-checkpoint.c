@@ -160,10 +160,6 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
 {
     char str[FTI_BUFS];
 
-    if ( !FTI_Conf->dcpEnabled ) {
-        return FTI_SCES;
-    }
-    
     if( getenv("FTI_DCP_HASH_MODE") != 0 ) {
         DCP_MODE = atoi(getenv("FTI_DCP_HASH_MODE")) + FTI_DCP_MODE_OFFSET;
         if ( (DCP_MODE < FTI_DCP_MODE_MD5) || (DCP_MODE > FTI_DCP_MODE_CRC32) ) {
