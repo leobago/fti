@@ -460,6 +460,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             if( FTIFF_SerializeFileMeta( FTIFFMeta, buffer_ser ) != FTI_SCES ) {
                 FTI_Print("FTI_RSenc - failed to serialize 'currentdbvar'", FTI_EROR);
+                free(buffer_ser);
                 free(data);
                 free(matrix);
                 free(coding);

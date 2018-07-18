@@ -350,6 +350,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->meta[3].fs[0] = fs;
         free( metaInfo );
         close( ifd );
+        free(buffer_ser);
     }
 
     // FTI-FF: if encoded file deleted, append meta data to encoded file
@@ -402,6 +403,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
         close( ifd );
+        free(buffer_ser);
     }
 
     if (truncate(fn, fs) == -1) {
