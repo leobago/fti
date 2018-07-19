@@ -417,8 +417,12 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
             
-            if ( isDcpCnt == FTI_Topo->nbApprocs ) {
-                FTI_Ckpt[4].isDcp = true;
+            if ( FTI_Conf->dcpEnabled ) {
+                if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpEnabled ) {
+                    FTI_Ckpt[4].isDcp = true;
+                }
+            } else {
+                isDcpCnt = 0;
             }
 
             free(headInfo);
@@ -427,7 +431,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //Check if checkpoint was written correctly by all processes
         int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
+        
+        // check for consistency of dCP request (isDcpCnt is 0 if dCP is disabled)
         if ( (isDcpCnt > 0) && (isDcpCnt < FTI_Topo->nbApprocs) ) {
+            FTI_Print( "dCP was requested by some but not all ranks, discarding checkpoint request!", FTI_WARN );
             res = FTI_NSCS;
         }
         int allRes;
