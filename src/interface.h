@@ -57,8 +57,7 @@
 #include "hdf5_hl.h"
 #endif
 
-// macro for stage request counter
-#define FTI_NEW_REQ_ID request_counter()
+#include "stage.h"
 
 #include <stdint.h>
 #include "../deps/md5/md5.h"
@@ -93,16 +92,6 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
-
-// stage request counter returns -1 if too many requests.
-static inline int request_counter() {
-    static int req_cnt = 0;
-    if( req_cnt < 0x3fff ) {
-        return req_cnt++;
-    } else {
-        return -1;
-    }
-}
 
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
@@ -262,5 +251,6 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int *distProcList, int* nodeList);
 int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo);
+
 
 #endif

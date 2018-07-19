@@ -104,52 +104,6 @@ extern "C" {
         FTI_STAGE_SYNC
     } FTIT_StageMode;
 
-    typedef enum {
-        FTI_STAGE_FAIL = -1,
-        FTI_STAGE_SCES,
-        FTI_STAGE_PROG
-    } FTIT_StageStatus;
-
-    struct FTIT_Request;
-
-    typedef struct FTIT_StageHeadInfo {
-        uint32_t ID;                        /**< Unique request ID              */
-        int status;     /**< status of request  */
-        char path[FTI_BUFS];        /**< file path                      */
-        char fn[FTI_BUFS];          /**< file name                      */
-        size_t offset;               /**< current offset of file pointer */
-        size_t size;                 /**< file size                      */
-        MPI_Status mpiStat;
-        struct FTIT_StageRequestIntern *intn_p;       /**< (internal usage ptr previous)  */
-        struct FTIT_StageRequestIntern *intn_n;       /**< (internal usage ptr next)      */
-    } FTIT_StageHeadInfo;
-
-    typedef struct FTIT_StageRankInfo {
-        uint32_t ID;                        /**< Unique request ID              */
-        int status;     /**< status of request  */
-        MPI_Request mpiReq;
-        struct FTIT_StageRequestIntern *intn_p;       /**< (internal usage ptr previous)  */
-        struct FTIT_StageRequestIntern *intn_n;       /**< (internal usage ptr next)      */
-    } FTIT_StageRankInfo;
-
-    /** @typedef    FTIT_Request
-     *  @brief      Holds information about the stage request.
-     *
-     *  offset-1 is the amount of data written. size is the total size of the file
-     *  requested to stage. ID keep an unique identifier for each request 
-     *  18 bits for the rank (up to 262,143 ranks) and 14 bits for the rank local 
-     *  request id (maximal 16383 requests). 
-     *
-     *  Status holds the status of the staging request: 
-     *  not started:    -1
-     *  in progress:    0
-     *  finished:       1
-     */
-    typedef struct FTIT_StageRequestIntern {
-        FTIT_StageHeadInfo *intn_hi;
-        FTIT_StageRankInfo *intn_ri;
-    } FTIT_StageRequestIntern;
-
     typedef struct FTIT_StageRequest {
         int ID;
         int mode;
@@ -158,8 +112,9 @@ extern "C" {
     typedef struct FTIT_StageInfo {
         char stageDir[FTI_BUFS];
         int numReq;
-        FTIT_StageRequestIntern *firstReq;
-        FTIT_StageRequestIntern *lastReq;
+        uint8_t *status;                    /**< status of request              */
+        void *firstReq;
+        void *lastReq;
     } FTIT_StageInfo;
 
     /** @typedef    FTIFF_metaInfo
@@ -376,9 +331,10 @@ extern "C" {
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
-        FTIT_StageInfo  stageInfo;          /**< root of staging requests       */
+        FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
+        MPI_Comm        nodeComm;
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration
@@ -387,6 +343,7 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
+        int             stagingEnabled;
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
         int             verbosity;          /**< Verbosity level.               */
@@ -521,7 +478,7 @@ extern "C" {
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
     int FTI_GetStageDir( char* stageDir, int maxLen );
-    int FTI_SendFile( char* path, FTIT_StageMode mode, FTIT_StageRequest *request );
+    int FTI_SendFile( char* lpath, char *rpath, FTIT_StageMode mode, FTIT_StageRequest *request );
     int FTI_Recover();
     int FTI_Snapshot();
     int FTI_Finalize();
