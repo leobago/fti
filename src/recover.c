@@ -171,8 +171,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 
-    FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
-    
+    if( FTI_Conf->dcpEnabled ) {
+        FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+    }
+
     if (!FTI_Topo->amIaHead) {
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;

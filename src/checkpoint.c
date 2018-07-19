@@ -240,7 +240,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
-    if ( FTI_Topo->splitRank == 0 ) {
+    if ( FTI_Conf->dcpEnabled && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
