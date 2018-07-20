@@ -70,7 +70,9 @@
 /** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
 /** indicator for an invalid stage request                                 */
-#define FTI_STAGE_INVD 3001
+
+// this is as well the size of the shared memory window exposed by each rank
+#define FTI_SI_MAX_NUM (512L*1024L) // 2MB for each rank
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -96,25 +98,15 @@ extern "C" {
       FTI-FF types
       ---------------------------------------------------------------------------*/
 
-    /** @typedef    FTIT_StageMode
-     *  @brief      defines two ints for a-/synchronous transfer of the staged file.
-     */
-    typedef enum {
-        FTI_STAGE_ASYNC,
-        FTI_STAGE_SYNC
-    } FTIT_StageMode;
-
-    typedef struct FTIT_StageRequest {
-        int ID;
-        int mode;
-    } FTIT_StageRequest;
-
+    // status field 0xiiiiiiiiiiii0ssa 
+    // 's' status indicator (pending, active, success or failed)
+    // 'a' 1 if status ID is available 
+    // 'i' index of FTIT_StageAppInfo and FTIT_StageHeadInfo arrays
     typedef struct FTIT_StageInfo {
-        char stageDir[FTI_BUFS];
-        int numReq;
-        uint8_t *status;                    /**< status of request              */
-        void *firstReq;
-        void *lastReq;
+        int nbRequest;
+        uint32_t *status;                    /**< status of request              */
+        void *request;
+        MPI_Win stageWin;
     } FTIT_StageInfo;
 
     /** @typedef    FTIFF_metaInfo
@@ -362,6 +354,7 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
+        char            stageDir[FTI_BUFS];
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
@@ -478,7 +471,7 @@ extern "C" {
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
     int FTI_GetStageDir( char* stageDir, int maxLen );
-    int FTI_SendFile( char* lpath, char *rpath, FTIT_StageMode mode, FTIT_StageRequest *request );
+    int FTI_SendFile( char* lpath, char *rpath );
     int FTI_Recover();
     int FTI_Snapshot();
     int FTI_Finalize();

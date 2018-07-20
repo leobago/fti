@@ -404,26 +404,24 @@ int FTI_GetStageDir( char* stageDir, int maxLen) {
         return FTI_NSCS;
     }
 
-    int len = strlen(FTI_Exec.stageInfo->stageDir);
+    int len = strlen(FTI_Conf.stageDir);
     if( maxLen < len+1 ) {
         FTI_Print( "insufficient buffer size (maxLen too small)!", FTI_WARN );
         return FTI_NSCS;
     }
 
-    strncpy( stageDir, FTI_Exec.stageInfo->stageDir, FTI_BUFS );
+    strncpy( stageDir, FTI_Conf.stageDir, FTI_BUFS );
 
     return FTI_SCES;
 
 }
 
 
-int FTI_SendFile( char* lpath, char *rpath, FTIT_StageMode mode, FTIT_StageRequest *req )
+int FTI_SendFile( char* lpath, char *rpath )
 {   
     char errstr[FTI_BUFS];
 
-    // set request invalid
-    req->ID = FTI_STAGE_INVD;
-    req->mode = FTI_STAGE_INVD;
+    int ID = FTI_NSCS;
     
     // discard if path is NULL
     if ( lpath == NULL ){
@@ -437,41 +435,35 @@ int FTI_SendFile( char* lpath, char *rpath, FTIT_StageMode mode, FTIT_StageReque
     }
 
     // asign new request ID
-    int reqID = FTI_NEW_REQ_ID;
+    // note: if ID found, status[ID] is set to not available
+    int reqID = FTI_GetRequestID( &FTI_Exec );
     if (reqID < 0) {
         FTI_Print("Too many stage requests!", FTI_WARN);
         return FTI_NSCS;
     }
-    req->ID = reqID;
+    ID = reqID;
 
-    // check if mode field is valid
-    if ( (mode != FTI_STAGE_ASYNC) && (mode != FTI_STAGE_SYNC) ) {
-        FTI_Print("invalid value for mode!", FTI_WARN);
-        return FTI_NSCS;
-    }
-    req->mode = mode;
+    FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, ID );
 
-    FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, req->ID );
+    if ( FTI_Topo.nbHeads == 0 ) {
 
-    if ( mode == FTI_STAGE_SYNC ) {
-
-        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Conf, req->ID ) != FTI_SCES ) {
+        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Conf, ID ) != FTI_SCES ) {
             FTI_Print("synchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
 
     }
     
-    if ( mode == FTI_STAGE_ASYNC ) {
+    if ( FTI_Topo.nbHeads > 0 ) {
         
-        if ( FTI_StageRequestHead( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, req->ID ) != FTI_SCES ) {
+        if ( FTI_AsyncStage( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, ID ) != FTI_SCES ) {
             FTI_Print("synchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
     
     }
     
-    return FTI_SCES;
+    return ID;
 
 }
 
