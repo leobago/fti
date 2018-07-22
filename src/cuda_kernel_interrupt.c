@@ -225,7 +225,7 @@ static void print_stats(const char *kernel_name)
 {
   char str[FTI_BUFS];
   sprintf(str,"%s suspensions = %zu", kernel_name, suspension_count);
-  FTI_Print(str, FTI_INFO);
+  FTI_Print(str, FTI_DBUG);
 }
 
 /**
@@ -305,14 +305,18 @@ int FTI_BACKUP_monitor(int *complete)
       {
         break;
       }
+      FTI_Print("sleep()", FTI_DBUG);
       sleep(1);
+      FTI_Print("sleep() Waking up", FTI_DBUG);
       q--;
     }
     cudaEventDestroy(event);
   }
   else
   {
+    FTI_Print("usleep()", FTI_DBUG);
     usleep(quantum);
+    FTI_Print("usleep() Waking up", FTI_DBUG);
   }
   FTI_Print("Signalling kernel to return...", FTI_DBUG);
   *t = 1;
@@ -329,9 +333,17 @@ int FTI_BACKUP_monitor(int *complete)
 
   if(*complete == 0)
   {
+    int res = FTI_Snapshot();
+    
+    if(res == FTI_DONE)
+    {
+      FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
+    }
+
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *t = 0;
 
+    FTI_Print("Increasing quantum", FTI_DBUG);
     /* Automatically increase quantum, may not be necessary! */
     quantum = quantum + initial_quantum;
 
