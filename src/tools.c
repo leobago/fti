@@ -39,7 +39,10 @@
 #include "interface.h"
 #include <dirent.h>
 
+int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
+int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -55,10 +58,25 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_injection* FTI_Inje) {
 
     // datablock size in file
+    FTI_filemetastructsize
+        = MD5_DIGEST_STRING_LENGTH
+        + MD5_DIGEST_LENGTH
+        + 5*sizeof(long);
+    // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
+    // This is to fix.
+    FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
+    
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
         + sizeof(long);             /* dbsize */
 
+    FTI_dbvarstructsize
+        = 3*sizeof(int)               /* numvars */
+        + 2*sizeof(bool)
+        + 2*sizeof(uintptr_t)
+        + 2*sizeof(long)
+        + MD5_DIGEST_LENGTH;
+    
     // +--------- +
     // | FTI_Exec |
     // +--------- +
@@ -78,6 +96,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* unsigned int  */ FTI_Exec->syncIter              =0;
     /* int           */ FTI_Exec->syncIterMax           =0;
     /* unsigned int  */ FTI_Exec->minuteCnt             =0;
+    /* bool          */ FTI_Exec->hasCkpt               =false;
     /* unsigned int  */ FTI_Exec->ckptCnt               =0;
     /* unsigned int  */ FTI_Exec->ckptIcnt              =0;
     /* unsigned int  */ FTI_Exec->ckptID                =0;
@@ -148,11 +167,9 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // | FTI_Ckpt |
     // +--------- +
 
-    /* char[BUFS]       FTI_Ckpt->dir */                memset(FTI_Ckpt->dir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Ckpt->metaDir */            memset(FTI_Ckpt->metaDir,0x0,FTI_BUFS);
-    /* int           */ FTI_Ckpt->isInline              =0;
-    /* int           */ FTI_Ckpt->ckptIntv              =0;
-    /* int           */ FTI_Ckpt->ckptCnt               =0;
+    /* FTIT_Ckpt[5]     FTI_Ckpt Array */               memset(FTI_Ckpt,0x0,sizeof(FTIT_checkpoint)*5);
+    /* int           */ FTI_Ckpt[4].isDcp               =false;
+    /* int           */ FTI_Ckpt[4].hasDcp              =false;
 
     // +--------- +
     // | FTI_Injc |
@@ -187,10 +204,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
-    // FTI-FF: computes checksum from the data structures and prot. variables.
-    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        FTIFF_Checksum( FTI_Exec, FTI_Data, checksum );
-    } else {
 
         MD5_CTX mdContext;
         MD5_Init (&mdContext);
@@ -209,7 +222,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
             sprintf(&checksum[ii], "%02x", hash[i]);
             ii += 2;
         }
-    }
 
     return FTI_SCES;
 }
@@ -563,6 +575,7 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
+    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
@@ -590,6 +603,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 /*-------------------------------------------------------------------------*/
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
+    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);
@@ -702,7 +716,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                     FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {
-                            FTI_Print("Error removing target file.", FTI_EROR);
+                            snprintf(str, FTI_BUFS, "Error removing target file (%s).", fn);
+                            FTI_Print(str, FTI_EROR);
                         }
                     }
                 }
@@ -746,8 +761,11 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 {
     int nodeFlag; //only one process in the node has set it to 1
     int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
+    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
+
 
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
 
     if (level == 0) {
         FTI_RmDir(FTI_Conf->mTmpDir, globalFlag);
@@ -774,10 +792,13 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // Clean last checkpoint level 4
-    if (level == 4 || level == 5) {
+    if ( level == 4 || level == 5 ) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
         rmdir(FTI_Conf->gTmpDir);
+    }
+    if ( FTI_Conf->dcpEnabled && level == 5 ) {
+        FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
     }
 
     // If it is the very last cleaning and we DO NOT keep the last checkpoint
@@ -790,6 +811,12 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         if (remove(buf) == -1) {
             if (errno != ENOENT) {
                 FTI_Print("Cannot remove Topology.fti", FTI_EROR);
+            }
+        }
+        snprintf(buf, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+        if (remove(buf) == -1) {
+            if (errno != ENOENT) {
+                FTI_Print("Cannot remove Checkpoint.fti", FTI_EROR);
             }
         }
         rmdir(FTI_Conf->metadDir);

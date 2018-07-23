@@ -144,6 +144,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[1].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l1", -1);
     FTI_Ckpt[2].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l2", -1);
     FTI_Ckpt[3].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l3", -1);
+    FTI_Ckpt[4].ckptDcpIntv = (int)iniparser_getint(ini, "Basic:dcp_l4", 0); // 0 -> disabled
     FTI_Ckpt[4].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l4", -1);
     FTI_Ckpt[1].isInline = (int)1;
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
@@ -153,8 +154,12 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].ckptCnt  = 1;
     FTI_Ckpt[3].ckptCnt  = 1;
     FTI_Ckpt[4].ckptCnt  = 1;
+    FTI_Ckpt[4].ckptDcpCnt  = 1;
 
     // Reading/setting configuration metadata
+    FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
+    FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
+    FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
@@ -276,6 +281,36 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Block size needs to be set between 1 and 2048.", FTI_WARN);
         return FTI_NSCS;
     }
+
+    // check dCP settings only if dCP is enabled
+    if ( FTI_Conf->dcpEnabled ) {
+        if ( !(FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
+            FTI_Print("dCP may only be used with FTI-FF enabled, dCP disabled.", FTI_WARN);
+            FTI_Conf->dcpEnabled = false;
+            goto CHECK_DCP_SETTING_END;
+        }
+        if ( (FTI_Conf->dcpMode < FTI_DCP_MODE_MD5) || (FTI_Conf->dcpMode > FTI_DCP_MODE_CRC32) ) {
+            FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
+            FTI_Conf->dcpEnabled = false;
+            goto CHECK_DCP_SETTING_END;
+        }
+        if ( (FTI_Conf->dcpBlockSize < 512) || (FTI_Conf->dcpBlockSize > USHRT_MAX) ) {
+            char str[FTI_BUFS];
+            snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
+            FTI_Print( str, FTI_WARN );
+            FTI_Conf->dcpEnabled = false;
+            goto CHECK_DCP_SETTING_END;
+        }
+        if (FTI_Ckpt[4].ckptDcpIntv > 0 && !(FTI_Conf->dcpEnabled)) {
+            FTI_Print( "L4 dCP interval set, but, dCP is disabled! Setting will be ignored.", FTI_WARN );
+            FTI_Ckpt[4].ckptDcpIntv = 0;
+            FTI_Conf->dcpEnabled = false;
+            goto CHECK_DCP_SETTING_END;
+        }
+    }
+
+CHECK_DCP_SETTING_END:
+    
     if (FTI_Conf->transferSize > (1024 * 1024 * 64) || FTI_Conf->transferSize < (1024 * 1024 * 8)) {
         FTI_Print("Transfer size (default = 16MB) not set in Cofiguration file.", FTI_WARN);
         FTI_Conf->transferSize = 16 * 1024 * 1024;
@@ -447,6 +482,8 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
             }
         }
         snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
+        snprintf(FTI_Ckpt[4].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->glbalDir);
+        snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
         snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
 
         // Create local checkpoint timestamp directory
@@ -469,6 +506,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         }
         snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
         snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
+        snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);
         snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
         snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
         return FTI_SCES;
