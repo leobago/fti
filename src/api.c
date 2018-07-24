@@ -133,7 +133,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
-    if( FTI_Conf.stagingEnabled ) {
+    // TODO if( FTI_Conf.stagingEnabled ) {
+    if(1) {
         FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
     }
     FTI_Exec.initSCES = 1;
@@ -435,8 +436,8 @@ int FTI_SendFile( char* lpath, char *rpath )
     }
 
     // asign new request ID
-    // note: if ID found, status[ID] is set to not available
-    int reqID = FTI_GetRequestID( &FTI_Exec );
+    // note: if ID found, FTI_Exec->stageInfo->status[ID] is set to not available
+    int reqID = FTI_GetRequestID( &FTI_Exec, &FTI_Topo );
     if (reqID < 0) {
         FTI_Print("Too many stage requests!", FTI_WARN);
         return FTI_NSCS;

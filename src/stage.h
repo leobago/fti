@@ -29,7 +29,7 @@ typedef struct FTIT_StageAppInfo {
 } FTIT_StageAppInfo;
 
 
-int FTI_GetRequestID( FTIT_execution *FTI_Exec );
+int FTI_GetRequestID( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo ); 
 int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_topology *FTI_Topo );
 int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, uint32_t ID );
 int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf, 
@@ -39,5 +39,5 @@ int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec
 int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, uint32_t ID ); 
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source);
-int FTI_GetStatusField( uint32_t status, FTIT_StatusField val );
-int FTI_SetStatusField( uint32_t *status, uint32_t entry, FTIT_StatusField val );
+int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, FTIT_StatusField val, int source ); 
+int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, uint32_t entry, FTIT_StatusField val, int source );
