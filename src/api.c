@@ -418,6 +418,17 @@ int FTI_GetStageDir( char* stageDir, int maxLen) {
 }
 
 
+int FTI_GetStageStatus( int ID )
+{
+
+    MPI_Aint qsize;
+    int qdisp;
+    //MPI_Win_shared_query( FTI_Exec.stageInfo->stageWin, FTI_Topo.nodeRank, &qsize, &qdisp, &(FTI_Exec.stageInfo->status) ); 
+    //uint8_t status = FTI_Exec.stageInfo->status[ID];
+    FTI_PrintStatus( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
+        
+}
+
 int FTI_SendFile( char* lpath, char *rpath )
 {   
     char errstr[FTI_BUFS];

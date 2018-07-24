@@ -104,7 +104,7 @@ extern "C" {
     // 'i' index of FTIT_StageAppInfo and FTIT_StageHeadInfo arrays
     typedef struct FTIT_StageInfo {
         int nbRequest;
-        uint32_t *status;                    /**< status of request              */
+        uint8_t *status;                    /**< status of request              */
         void *request;
         MPI_Win stageWin;
     } FTIT_StageInfo;
@@ -471,6 +471,7 @@ extern "C" {
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
     int FTI_GetStageDir( char* stageDir, int maxLen );
+    int FTI_GetStageStatus( int ID );
     int FTI_SendFile( char* lpath, char *rpath );
     int FTI_Recover();
     int FTI_Snapshot();

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fti.h>
+#include <unistd.h>
 
 
 #define PRECISION   0.005
@@ -97,20 +98,29 @@ int main(int argc, char *argv[])
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
-    int fti_req;
+    int fti_req1, fti_req2;
 
     char s_dir[FTI_BUFS];
-    char fn[FTI_BUFS];
+    char fn1[FTI_BUFS];
+    char fn2[FTI_BUFS];
     if ( rank == 0 ) {
         FTI_GetStageDir( s_dir, FTI_BUFS );
-        snprintf( fn, FTI_BUFS, "%s/%s", s_dir, "testfile.f" );
-        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file.f", fn ); 
-        fti_req = FTI_SendFile( fn, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile.f" );
+        snprintf( fn1, FTI_BUFS, "%s/%s", s_dir, "testfile1.f" );
+        snprintf( fn2, FTI_BUFS, "%s/%s", s_dir, "testfile2.f" );
+        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file1.f", fn1 ); 
+        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file2.f", fn2 ); 
+        fti_req1 = FTI_SendFile( fn1, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile1.f" );
+        FTI_GetStageStatus( fti_req1 );
+        fti_req2 = FTI_SendFile( fn2, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile2.f" );
+        FTI_GetStageStatus( fti_req2 );
     }
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
         printf("Target precision : %f \n", PRECISION);
         printf("Maximum number of iterations : %d \n", ITER_TIMES);
+        sleep(1);
+        FTI_GetStageStatus( fti_req1 );
+        FTI_GetStageStatus( fti_req2 );
     }
 
     FTI_Protect(0, &i, 1, FTI_INTG);
@@ -119,6 +129,10 @@ int main(int argc, char *argv[])
 
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
+        if ((rank == 0) && (i%100 == 0) ) {
+            FTI_GetStageStatus( fti_req1 );
+            FTI_GetStageStatus( fti_req2 );
+        }
         int checkpointed = FTI_Snapshot();
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) {
