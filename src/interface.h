@@ -58,7 +58,7 @@
 #endif
 
 #include <stdint.h>
-#include "../deps/md5/md5.h"
+#include <openssl/md5.h>
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -78,6 +78,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -90,13 +91,9 @@
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
 
-typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
-typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
-
-// datablock size in file
-extern int FTI_dbstructsize;		    /**< size of FTIT_db struct in file */
-//    = sizeof(int)     /* numvars */
-//    + sizeof(long);   /* dbsize */
+extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
+extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
+extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
 
 /*---------------------------------------------------------------------------
   FTI private functions
@@ -167,6 +164,10 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
+int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt );
+int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt );
 
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
@@ -246,3 +247,42 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
         FTIT_topology *FTI_Topo );
 
 #endif
+
+// DIFFERENTIAL CHECKPOINTING
+
+#ifdef FTI_NOZLIB
+extern const uint32_t crc32_tab[];
+
+static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc)
+{
+    const uint8_t *p = (const uint8_t *)buf;
+
+    while (size--)
+        crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
+    return (crc);
+}
+
+static inline uint32_t crc32(const void *buf, size_t size)
+{
+    uint32_t crc;
+
+    crc = crc32_raw(buf, size, ~0U);
+    return (crc ^ ~0U);
+}
+#endif
+
+typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
+
+int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
+int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_offset, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data);
+long FTI_CalcNumHashes( long chunkSize );
+int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar );
+int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar );
+int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar );
+int FTI_GetDcpMode();
+dcpBLK_t FTI_GetDiffBlockSize();
+int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar );
+int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
+

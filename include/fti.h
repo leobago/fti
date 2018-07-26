@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -23,6 +24,8 @@
 #define ORG   "\x1B[38;5;202m"
 /** Define GREEN color for FTI output.                                     */
 #define GRN   "\x1B[32m"
+/** Define BLUE color for FTI output.                                       */
+#define BLU   "\x1B[34m"
 /** Define color RESET for FTI output.                                     */
 #define RESET "\x1B[0m"
 
@@ -44,6 +47,8 @@
 /** Verbosity level to print only warning and errors.                      */
 #define FTI_WARN 3
 /** Verbosity level to print main information.                             */
+#define FTI_IDCP 5
+/** Verbosity level to print debug messages.                               */
 #define FTI_INFO 2
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
@@ -85,6 +90,10 @@
     #include "hdf5.h"
 #endif
 
+#define FTI_DCP_MODE_OFFSET 2000
+#define FTI_DCP_MODE_MD5 2001
+#define FTI_DCP_MODE_CRC32 2002
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -92,6 +101,26 @@ extern "C" {
     /*---------------------------------------------------------------------------
       FTI-FF types
       ---------------------------------------------------------------------------*/
+    
+    /** @typedef    FTIT_level
+     *  @brief      holds the level id.
+     */
+    typedef enum {
+        FTI_L1 = 1,
+        FTI_L2,
+        FTI_L3,
+        FTI_L4,
+        FTI_L1_DCP,
+        FTI_L2_DCP,
+        FTI_L3_DCP,
+        FTI_L4_DCP,
+        FTI_MIN_LEVEL_ID = FTI_L1,
+        FTI_MAX_LEVEL_ID = FTI_L4_DCP
+    } FTIT_level;
+
+    typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+    typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
+
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -109,7 +138,27 @@ extern "C" {
         long maxFs;     /**< maximum file size in group                         */
         long ptFs;      /**< partner copy file size                             */
         long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
+        long dcpSize;   /**< how much actually written by rank                  */
+        long dataSize;  /**< total size of protected data (excluding meta data) */
     } FTIFF_metaInfo;
+
+    /** @typedef    FTIT_DataDiffHash
+     *  @brief      dCP information about data block.
+     *  
+     *  Holds information for each data block relevant for the dCP mechanism.
+     *  This structure is a member of FTIFF_dbvar. It is stored as an array
+     *  with n elements, where n corresponds to the number of data blocks in 
+     *  that the data chunk is partitioned (depending on the dCP block size).
+     */
+    typedef struct              FTIT_DataDiffHash
+    {
+        unsigned char*          md5hash;    /**< MD5 digest                       */
+        unsigned short          blockSize;  /**< data block size                  */
+        uint32_t                bit32hash;  /**< CRC32 digest                     */
+        bool                    dirty;      /**< indicates if data block is dirty */
+        bool                    isValid;    /**< indicates if data block is valid */
+
+    }FTIT_DataDiffHash;
 
     /** @typedef    FTIFF_dbvar
      *  @brief      Information about protected variable in datablock.
@@ -121,15 +170,21 @@ extern "C" {
      *
      */
     typedef struct FTIFF_dbvar {
-        int id;             /**< id of protected variable                       */
-        int idx;            /**< index to corresponding id in pvar array        */
-        int containerid;
-        bool hascontent;
-        long dptr;          /**< data pointer offset				            */
-        long fptr;          /**< file pointer offset                            */
-        long chunksize;     /**< chunk size stored aof prot. var. in this block */
-        long containersize; /**< chunk size stored aof prot. var. in this block */
-        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
+        int id;             /**< id of protected variable                         */
+        int idx;            /**< index to corresponding id in pvar array          */
+        int containerid;    /**< container index (first container -> 0)           */
+        bool hascontent;    /**< indicates if container holds ckpt data           */
+        bool hasCkpt;       /**< indicates if container is stored in ckpt         */
+        uintptr_t dptr;     /**< data pointer offset				              */
+        uintptr_t fptr;     /**< file pointer offset                              */
+        long chunksize;     /**< chunk size stored aof prot. var. in this block   */
+        long containersize; /**< chunk size stored aof prot. var. in this block   */
+        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk       */
+        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of this structure     */
+        bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
+        long nbHashes;      /**< holds the number of hashes for data chunk        */
+        FTIT_DataDiffHash* dataDiffHash; /**< dCP meta data for data chunk        */
+        char *cptr;         /**< pointer to memory address of container origin    */
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db
@@ -140,11 +195,13 @@ extern "C" {
      *
      */
     typedef struct FTIFF_db {
-        int numvars;            /**< number of protected variables in datablock */
-        long dbsize;            /**< size of metadata + data for block in bytes */
-        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array             */
-        struct FTIFF_db *previous;  /**< link to previous datablock             */
-        struct FTIFF_db *next;      /**< link to next datablock                 */
+        int numvars;            /**< number of protected variables in datablock   */
+        long dbsize;            /**< size of metadata + data for block in bytes   */
+        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
+        bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
+        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array               */
+        struct FTIFF_db *previous;  /**< link to previous datablock               */
+        struct FTIFF_db *next;      /**< link to next datablock                   */
     } FTIFF_db;
 
     /*---------------------------------------------------------------------------
@@ -258,15 +315,15 @@ extern "C" {
      *  This type stores all the metadata necessary for the restart.
      */
     typedef struct FTIT_metadata {
-        int*             exists;          /**< True if metadata exists              */
-        long*            maxFs;           /**< Maximum file size.                   */
-        long*            fs;              /**< File size.                           */
-        long*            pfs;             /**< Partner file size.                   */
-        char*            ckptFile;        /**< Ckpt file name. [FTI_BUFS]           */
-        char*            currentCkptFile; /**< Current Ckpt file name. [FTI_BUFS]   */
-        int*             nbVar;           /**< Number of variables. [FTI_BUFS]      */
-        int*             varID;           /**< Variable id for size.[FTI_BUFS]      */
-        long*            varSize;         /**< Variable size. [FTI_BUFS]            */
+        int*             exists;             /**< TRUE if metadata exists        */
+        long*            maxFs;              /**< Maximum file size.             */
+        long*            fs;                 /**< File size.                     */
+        long*            pfs;                /**< Partner file size.             */
+        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
+	char*            currentCkptFile;    /**< Current Ckpt file name. [FTI_BUFS]   */        
+	int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
+        int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
+        long*            varSize;            /**< Variable size. [FTI_BUFS]      */
     } FTIT_metadata;
 
     /** @typedef    FTIT_execution
@@ -290,6 +347,7 @@ extern "C" {
         unsigned int    syncIter;           /**< To check mean iter. time.      */
         int             syncIterMax;        /**< Maximal synch. intervall.      */
         unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
+        bool            hasCkpt;            /**< Indicator that ckpt exists     */
         unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
         unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
         unsigned int    ckptID;             /**< Checkpoint ID.                 */
@@ -300,8 +358,8 @@ extern "C" {
         unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;             /**< Number of data types.          */
         int             nbGroup;            /**< Number of protected groups.    */
-        int             metaAlloc;          /**< True if meta allocated.        */
-        int             initSCES;           /**< True if FTI initialized.       */
+        int             metaAlloc;          /**< TRUE if meta allocated.        */
+        int             initSCES;           /**< TRUE if FTI initialized.       */
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
@@ -318,6 +376,9 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
+        bool            dcpEnabled;         /**< Enable differential ckpt.      */
+        int             dcpMode;            /**< dCP mode.                      */
+        int             dcpBlockSize;       /**< Block size for dCP hash        */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
         int             verbosity;          /**< Verbosity level.               */
@@ -332,7 +393,6 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
-        bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
@@ -375,12 +435,18 @@ extern "C" {
      */
     typedef struct FTIT_checkpoint {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
-        char            archDir[FTI_BUFS];  /**< Checkpoint directory.          */
-        char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
-        bool            hasCkpt;             /**< TRUE if level has ckpt         */
-        int             isInline;           /**< TRUE if work is inline.        */
+        char            dcpDir[FTI_BUFS];   /**< dCP directory.                 */
+	char            archDir[FTI_BUFS];  /**< Checkpoint directory.          */        
+	char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
+        char            dcpName[FTI_BUFS];  /**< dCP file name.                 */
+        bool            isDcp;              /**< TRUE if dCP requested          */
+        bool            hasDcp;             /**< TRUE if execution has already a dCP  */
+	bool            hasCkpt;            /**< TRUE if level has ckpt         */        
+	int             isInline;           /**< TRUE if work is inline.        */
         int             ckptIntv;           /**< Checkpoint interval.           */
         int             ckptCnt;            /**< Checkpoint counter.            */
+        int             ckptDcpIntv;        /**< Checkpoint interval.           */
+        int             ckptDcpCnt;         /**< Checkpoint counter.            */
 
     } FTIT_checkpoint;
 

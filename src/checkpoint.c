@@ -128,8 +128,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
-    double tt = MPI_Wtime(); //Start time
-
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
             "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
@@ -140,17 +138,29 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
-
+    
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-        FTI_Print("Saving to temporary global directory", FTI_DBUG);
+        
+        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
-        //Create global temp directory
-        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create global directory", FTI_EROR);
-                return FTI_NSCS;
+            //Create global temp directory
+            if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create global directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
+                    if (errno != EEXIST) {
+                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                        return FTI_NSCS;
+                    }
+                }
             }
         }
 
@@ -177,11 +187,22 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else {
-        FTI_Print("Saving to temporary local directory", FTI_DBUG);
-        //Create local temp directory
-        if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create local directory", FTI_EROR);
+        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary local directory", FTI_DBUG);
+            //Create local temp directory
+            if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create local directory", FTI_EROR);
+                }
+            }
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                if (mkdir(FTI_Ckpt[1].dcpDir, 0777) == -1) {
+                    if (errno != EEXIST) {
+                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                        return FTI_NSCS;
+                    }
+                }
             }
         }
         switch (FTI_Conf->ioMode) {
@@ -206,11 +227,23 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-
-    snprintf(str, FTI_BUFS, "Time writing checkpoint file : %f seconds.", MPI_Wtime() - tt);
-    FTI_Print(str, FTI_DBUG);
+    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        // After dCP update store total data and dCP sizes in application rank 0
+        long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
+        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.dataSize };
+        MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+        if ( FTI_Topo->splitRank ==  0 ) {
+            FTI_Exec->FTIFFMeta.dcpSize = dcpStats[0]; 
+            FTI_Exec->FTIFFMeta.dataSize = dcpStats[1];
+        }
+    }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+    
+    if ( FTI_Conf->dcpEnabled && (FTI_Topo->splitRank == 0) ) {
+        FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+    }
+
     return res;
 }
 
@@ -282,6 +315,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
         snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
@@ -290,7 +324,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             //checkpoint was not saved in global temporary directory
             int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
             if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
-                FTI_Print("Cannot rename local directory", FTI_EROR);
+                char dbg_str[FTI_BUFS];
+                snprintf(dbg_str, FTI_BUFS, "Cannot rename local directory (%s)", FTI_Conf->lTmpDir);
+                FTI_Print(dbg_str, FTI_EROR);
             }
             else {
                 FTI_Print("Local directory renamed", FTI_DBUG);
@@ -298,6 +334,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
+    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
         if (FTI_Exec->ckptLvel == 4) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {
@@ -374,6 +411,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Finalize();
         }
 
+        int isDcpCnt = 0;
         // FTI-FF: receive meta data information from the application ranks.
         if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
 
@@ -390,12 +428,21 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
                 FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
                 FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
+                isDcpCnt += headInfo[i].isDcp;
                 MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
                 sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
             }
             strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+            
+            if ( FTI_Conf->dcpEnabled ) {
+                if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpEnabled ) {
+                    FTI_Ckpt[4].isDcp = true;
+                }
+            } else {
+                isDcpCnt = 0;
+            }
 
             free(headInfo);
 
@@ -403,6 +450,12 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //Check if checkpoint was written correctly by all processes
         int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
+        
+        // check for consistency of dCP request (isDcpCnt is 0 if dCP is disabled)
+        if ( (isDcpCnt > 0) && (isDcpCnt < FTI_Topo->nbApprocs) ) {
+            FTI_Print( "dCP was requested by some but not all ranks, discarding checkpoint request!", FTI_WARN );
+            res = FTI_NSCS;
+        }
         int allRes;
         MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
         if (allRes == FTI_SCES) { //If checkpoint was written correctly do post-processing

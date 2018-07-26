@@ -88,6 +88,12 @@ include(FortranCInterface)
 include(CheckFortranCompilerFlag)
 include(CheckCCompilerFlag)
 
+#check for ZLIB (crc32)
+find_package(ZLIB)
+if(NOT ZLIB_FOUND)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_NOZLIB")
+endif()
+
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
@@ -111,7 +117,7 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c)
+	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c)
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -164,8 +170,13 @@ if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 	find_library(LIBM m DOC "The math library")
 endif()
 
-target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
-target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+if(ZLIB_FOUND)
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
+else()
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+endif()
 
 if(ENABLE_LUSTRE)
     if(LUSTREAPI_FOUND)

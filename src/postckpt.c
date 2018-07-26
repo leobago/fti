@@ -444,8 +444,46 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // get hash of meta data
             FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
 
-            // append meta info to RS file
-            fwrite(FTIFFMeta, sizeof(FTIFF_metaInfo), 1, efd);
+            // serialize data block variable meta data and append to encoded file
+            char* buffer_ser = (char*) malloc ( FTI_filemetastructsize );
+            if( buffer_ser == NULL ) {
+                snprintf( str, FTI_BUFS, "FTI_RSenc - failed to allocate %d bytes for 'buffer_ser'", FTI_dbvarstructsize );
+                FTI_Print(str, FTI_EROR);
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                errno = 0;
+                return FTI_NSCS;
+            }
+            if( FTIFF_SerializeFileMeta( FTIFFMeta, buffer_ser ) != FTI_SCES ) {
+                FTI_Print("FTI_RSenc - failed to serialize 'currentdbvar'", FTI_EROR);
+                free(buffer_ser);
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                errno = 0;
+                return FTI_NSCS;
+            }
+            fwrite(buffer_ser, FTI_filemetastructsize, 1, efd);
+            if ( ferror( efd ) ) {
+                snprintf(str, FTI_BUFS, "FTI_RSenc - could not write metadata in file: %s", efn);
+                FTI_Print(str, FTI_EROR);
+                errno=0;
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+                return FTI_NSCS;
+            }
+            free( buffer_ser );
 
         }
 
@@ -502,11 +540,25 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
-    // create global temp directory
-    if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global directory", FTI_EROR);
-            return FTI_NSCS;
+
+    if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        FTI_Print("Saving to temporary global directory", FTI_DBUG);
+
+        //Create global temp directory
+        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
+            if (errno != EEXIST) {
+                FTI_Print("Cannot create global directory", FTI_EROR);
+                return FTI_NSCS;
+            }
+        }
+    } else {
+        if ( !FTI_Ckpt[4].hasDcp ) {
+            if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
         }
     }
     int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
@@ -653,7 +705,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "Post-processing for proc %d started.", proc);
         FTI_Print(str, FTI_DBUG);
         char lfn[FTI_BUFS], gfn[FTI_BUFS];
-        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        if ( FTI_Ckpt[4].isDcp ) {
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        } else {
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+        }
         snprintf(str, FTI_BUFS, "Global temporary file name for proc %d: %s", proc, gfn);
         FTI_Print(str, FTI_DBUG);
         FILE* gfd = fopen(gfn, "wb");
@@ -664,7 +720,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         if (level == 0) {
-            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            if ( FTI_Ckpt[4].isDcp ) {
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            } else {
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            }
         }
         else {
             snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
