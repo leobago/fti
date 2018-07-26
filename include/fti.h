@@ -315,15 +315,15 @@ extern "C" {
      *  This type stores all the metadata necessary for the restart.
      */
     typedef struct FTIT_metadata {
-        int*             exists;             /**< TRUE if metadata exists        */
-        long*            maxFs;              /**< Maximum file size.             */
-        long*            fs;                 /**< File size.                     */
-        long*            pfs;                /**< Partner file size.             */
-        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
-	char*            currentCkptFile;    /**< Current Ckpt file name. [FTI_BUFS]   */        
-	int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
-        int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
-        long*            varSize;            /**< Variable size. [FTI_BUFS]      */
+        int*             exists;             /**< TRUE if metadata exists               */
+        long*            maxFs;              /**< Maximum file size.                    */
+        long*            fs;                 /**< File size.                            */
+        long*            pfs;                /**< Partner file size.                    */
+        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
+	    char*            currentCkptFile;    /**< Current Ckpt file name. [FTI_BUFS]    */        
+	    int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
+        int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
+        long*            varSize;            /**< Variable size. [FTI_BUFS]             */
     } FTIT_metadata;
 
     /** @typedef    FTIT_execution
@@ -434,19 +434,19 @@ extern "C" {
      *  This type stores all the checkpoint metadata.
      */
     typedef struct FTIT_checkpoint {
-        char            dir[FTI_BUFS];      /**< Checkpoint directory.          */
-        char            dcpDir[FTI_BUFS];   /**< dCP directory.                 */
-	char            archDir[FTI_BUFS];  /**< Checkpoint directory.          */        
-	char            metaDir[FTI_BUFS];  /**< Metadata directory.            */
-        char            dcpName[FTI_BUFS];  /**< dCP file name.                 */
-        bool            isDcp;              /**< TRUE if dCP requested          */
-        bool            hasDcp;             /**< TRUE if execution has already a dCP  */
-	bool            hasCkpt;            /**< TRUE if level has ckpt         */        
-	int             isInline;           /**< TRUE if work is inline.        */
-        int             ckptIntv;           /**< Checkpoint interval.           */
-        int             ckptCnt;            /**< Checkpoint counter.            */
-        int             ckptDcpIntv;        /**< Checkpoint interval.           */
-        int             ckptDcpCnt;         /**< Checkpoint counter.            */
+        char            dir[FTI_BUFS];      /**< Checkpoint directory.                  */
+        char            dcpDir[FTI_BUFS];   /**< dCP directory.                         */
+	    char            archDir[FTI_BUFS];  /**< Checkpoint directory.                  */        
+	    char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
+        char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
+        bool            isDcp;              /**< TRUE if dCP requested                  */
+        bool            hasDcp;             /**< TRUE if execution has already a dCP    */
+	    bool            hasCkpt;            /**< TRUE if level has ckpt                 */        
+	    int             isInline;           /**< TRUE if work is inline.                */
+        int             ckptIntv;           /**< Checkpoint interval.                   */
+        int             ckptCnt;            /**< Checkpoint counter.                    */
+        int             ckptDcpIntv;        /**< Checkpoint interval.                   */
+        int             ckptDcpCnt;         /**< Checkpoint counter.                    */
 
     } FTIT_checkpoint;
 
