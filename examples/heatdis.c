@@ -12,6 +12,32 @@
 #include <fti.h>
 #include <unistd.h>
 
+char * status_string( int val ) {
+    
+    static char pend[] = "PENDING"; 
+    static char actv[] = "ACTIVE"; 
+    static char sces[] = "SUCCESS"; 
+    static char fail[] = "FAILED"; 
+    static char nini[] = "NOT INITIALIZED"; 
+    
+    if ( val == FTI_SI_PEND ) {
+        return pend;
+    }
+    if ( val == FTI_SI_ACTV ) {
+        return actv;
+    }
+    if ( val == FTI_SI_SCES ) {
+        return sces;
+    }
+    if ( val == FTI_SI_FAIL ) {
+        return fail;
+    }
+    if ( val == FTI_SI_NINI ) {
+        return nini;
+    }
+}
+        
+
 
 #define PRECISION   0.005
 #define ITER_TIMES  5000
@@ -110,9 +136,9 @@ int main(int argc, char *argv[])
         rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file1.f", fn1 ); 
         rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file2.f", fn2 ); 
         fti_req1 = FTI_SendFile( fn1, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile1.f" );
-        FTI_GetStageStatus( fti_req1 );
+        printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req1 )));
         fti_req2 = FTI_SendFile( fn2, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile2.f" );
-        FTI_GetStageStatus( fti_req2 );
+        printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req2 )));
     }
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
@@ -130,8 +156,8 @@ int main(int argc, char *argv[])
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
         if ((rank == 0) && (i%100 == 0) ) {
-            FTI_GetStageStatus( fti_req1 );
-            FTI_GetStageStatus( fti_req2 );
+            printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req1 )));
+            printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req2 )));
         }
         int checkpointed = FTI_Snapshot();
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);

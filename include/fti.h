@@ -69,7 +69,14 @@
 #define FTI_IO_MPI 1002
 /** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
-/** indicator for an invalid stage request                                 */
+
+/** status for stage requests                                              */
+// 3 bit field
+#define FTI_SI_FAIL 0x4
+#define FTI_SI_SCES 0x3
+#define FTI_SI_ACTV 0x2
+#define FTI_SI_PEND 0x1
+#define FTI_SI_NINI 0x0
 
 // this is as well the size of the shared memory window exposed by each rank
 #define FTI_SI_MAX_NUM (512L*1024L) // 2MB for each rank
@@ -382,6 +389,7 @@ extern "C" {
         int             groupID;            /**< Group ID in the node.          */
         int             amIaHead;           /**< TRUE if FTI process.           */
         int             headRank;           /**< Rank of the head in this node. */
+        int             headRankNode;       /**< Rank of the head in node comm. */
         int             nodeRank;           /**< Rank of the node.              */
         int             groupRank;          /**< My rank in the group comm.     */
         int             right;              /**< Proc. on the right of the ring.*/

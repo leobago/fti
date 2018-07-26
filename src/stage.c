@@ -17,6 +17,14 @@
 // location of ID corresponding request array element (rank local)
 static uint32_t *idxRequest;
 
+int FTI_GetRequestIdx( int ID ) {
+    if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
+        return FTI_GetRequestField( ID, FTI_SIF_IDX );
+    } else {
+        return -1;
+    }
+}
+
 int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_topology *FTI_Topo ) 
 {
     
@@ -30,8 +38,8 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     int num = ( FTI_Topo->amIaHead ) ? FTI_Topo->nbApprocs : 1;
     FTI_Exec->stageInfo = malloc( num * sizeof(FTIT_StageInfo) );
 
-    // allocate request idx array
-    idxRequest = malloc( arr_size );
+    // allocate request idx array and init to 0x0
+    idxRequest = calloc( 1, arr_size );
 
     // set init request value (important since we call realloc)
     FTI_Exec->stageInfo->request = NULL;
@@ -62,6 +70,10 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
 
     // store rank
     MPI_Comm_rank( FTI_Exec->nodeComm, &FTI_Topo->nodeRank );
+    
+    // store head rank in node communicator
+    // NOTE: should be the highest rank number
+    FTI_Topo->headRankNode = size-1;
 
     // create shared memory window
     int disp = sizeof(uint8_t);
@@ -75,10 +87,10 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     MPI_Win_sync(FTI_Exec->stageInfo->stageWin);
     MPI_Barrier(FTI_Exec->nodeComm);
 
+    // init shared memory window segments to 0x0
     if ( !(FTI_Topo->amIaHead) ) {
         MPI_Aint qsize;
         int qdisp;
-        // init status array for application ranks to 0x0
         MPI_Win_shared_query( FTI_Exec->stageInfo->stageWin, FTI_Topo->nodeRank, &qsize, &qdisp, &(FTI_Exec->stageInfo->status) );
         memset( FTI_Exec->stageInfo->status, 0x0, win_size );
     }
@@ -96,7 +108,7 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
 int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, uint32_t ID ) 
 {
     
-    idxRequest[ID] = FTI_Exec->stageInfo->nbRequest++;
+    int idx = FTI_Exec->stageInfo->nbRequest++;
     FTI_Exec->stageInfo->request = realloc( FTI_Exec->stageInfo->request, sizeof(FTIT_StageAppInfo) * FTI_Exec->stageInfo->nbRequest );
     if( FTI_Exec->stageInfo->request == NULL ) {
         // TODO this is a fatal error, finalize staging feature required
@@ -106,7 +118,12 @@ int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, 
 
     // init structure
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_PEND, FTI_SIF_VAL, FTI_Topo->nodeRank );
-    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idxRequest[ID]].mpiReq = MPI_REQUEST_NULL;
+    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq = MPI_REQUEST_NULL;
+
+    FTI_SetRequestField( ID, FTI_SI_IALL, FTI_SIF_ALL );
+    FTI_SetRequestField( ID, idx, FTI_SIF_IDX );
+
+    return FTI_SCES;
 
 }
 
@@ -115,7 +132,7 @@ int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec
 {
     
     FTIT_StageInfo *si = &(FTI_Exec->stageInfo[source]); 
-    idxRequest[ID] = si->nbRequest++;
+    int idx = si->nbRequest++;
     si->request = realloc( si->request, sizeof(FTIT_StageHeadInfo) * si->nbRequest );
     if( si->request == NULL ) {
         // TODO this is a fatal error, finalize staging feature required
@@ -123,17 +140,56 @@ int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec
         return FTI_NSCS;
     }
 
-    strncpy( FTI_SI_HPTR(si->request)[idxRequest[ID]].lpath, lpath, FTI_BUFS );
-    strncpy( FTI_SI_HPTR(si->request)[idxRequest[ID]].rpath, rpath, FTI_BUFS );
-    FTI_SI_HPTR(si->request)[idxRequest[ID]].offset = 0;
-    FTI_SI_HPTR(si->request)[idxRequest[ID]].size = 0;
+    strncpy( FTI_SI_HPTR(si->request)[idx].lpath, lpath, FTI_BUFS );
+    strncpy( FTI_SI_HPTR(si->request)[idx].rpath, rpath, FTI_BUFS );
+    FTI_SI_HPTR(si->request)[idx].offset = 0;
+    FTI_SI_HPTR(si->request)[idx].size = 0;
 
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_ACTV, FTI_SIF_VAL, source );
+
+    FTI_SetRequestField( ID, FTI_SI_IALL, FTI_SIF_ALL );
+    FTI_SetRequestField( ID, idx, FTI_SIF_IDX );
+    
+    return FTI_SCES;
     
 }
 
-int FTI_FreeStageRequest( int ID ) 
-{
+void FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID ) 
+{ 
+    if ( !FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
+        return;
+    }
+    
+    int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
+
+    size_t type_size = ( FTI_Topo->amIaHead ) ? sizeof(FTIT_StageHeadInfo) : sizeof(FTIT_StageAppInfo);
+    size_t offset_ID = ( FTI_Topo->amIaHead ) ? offsetof( FTIT_StageHeadInfo, ID ) : offsetof( FTIT_StageAppInfo, ID );
+
+    // ptr is all we need
+    void *ptr = FTI_Exec->stageInfo->request;
+
+    // if last element in array, we just need to truncate the array.
+    if ( idx == (FTI_Exec->stageInfo->nbRequest-1) ) {
+        ptr = realloc( ptr, type_size * (--FTI_Exec->stageInfo->nbRequest) );
+    } 
+    // if not last element, we need to truncate array and move elements (before truncation)
+    else {
+        void *dest = ptr + type_size*idx;
+        void *src = ptr + type_size*(idx+1);
+        size_t mem_size = (FTI_Exec->stageInfo->nbRequest - (idx+1)) * type_size; 
+        memmove( dest, src, mem_size );
+        ptr = realloc( ptr, type_size * (--FTI_Exec->stageInfo->nbRequest) );
+        // re-assign the correct values
+        int i = idx;
+        void *pos = ptr + type_size*idx;
+        for ( ; i<FTI_Exec->stageInfo->nbRequest; ++i, pos+=type_size ) {
+            int ID = *(int*)(pos + offset_ID);
+            FTI_SetRequestField( ID, i, FTI_SIF_IDX );
+        }
+    }
+
+    FTI_SetRequestField( ID, FTI_SI_NALL, FTI_SIF_ALL );
+
 }
 
 int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, uint32_t ID ) 
@@ -221,7 +277,6 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
             return FTI_NSCS;
         }
         pos += write_bytes;
-        printf("pos: %lu, write_bytes: %lu, read_bytes: %lu, buf_bytes: %lu\n", pos, write_bytes, read_bytes, buf_bytes);
     }
 
     // deallocate buffer and close file descriptors
@@ -260,8 +315,9 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     MPI_Type_commit( &buf_t );
    
     // send request to head
-    int ierr = MPI_Isend( buf_ser, 1, buf_t, 1, 
-            FTI_Conf->stageTag, FTI_Exec->nodeComm, &(FTI_SI_APTR(FTI_Exec->stageInfo->request)[idxRequest[ID]].mpiReq) );
+    int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
+    int ierr = MPI_Isend( buf_ser, 1, buf_t, FTI_Topo->headRankNode, 
+            FTI_Conf->stageTag, FTI_Exec->nodeComm, &(FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq) );
     if ( ierr != MPI_SUCCESS ) {
         char errstr[FTI_BUFS], mpierrbuf[FTI_BUFS];
         int reslen;
@@ -389,7 +445,6 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
             return FTI_NSCS;
         }
         pos += write_bytes;
-        printf("pos: %lu, write_bytes: %lu, read_bytes: %lu, buf_bytes: %lu\n", pos, write_bytes, read_bytes, buf_bytes);
     }
 
     // deallocate buffer and close file descriptors
@@ -411,10 +466,78 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     // here lock window and put the new value FTI_SI_SCES to status
     
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_SCES, FTI_SIF_VAL, source );
+    FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID );
 
     return FTI_SCES;
 }
 
+int FTI_GetRequestField( int ID, FTIT_StatusField val ) 
+{
+
+    if( (val < FTI_SIF_ALL) || (val > FTI_SIF_IDX) ) {
+        FTI_Print( "invalid argument for 'FTI_GetRequestIdxField'", FTI_WARN );
+        return FTI_NSCS;
+    }
+    
+    const uint32_t all_mask = 0x00080000;
+    const uint32_t idx_mask = 0x0007FFFF; // 524,288 ID's, max ID: 524,287
+
+    uint32_t field = idxRequest[ID];
+
+    switch( val ) {
+
+        case FTI_SIF_ALL:
+            return (int)((field & all_mask) >> 19);
+        case FTI_SIF_IDX:
+            return ((int)(field & idx_mask));
+
+    }
+
+}
+
+int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
+{
+
+    if( (val < FTI_SIF_ALL) || (val > FTI_SIF_IDX) ) {
+        FTI_Print( "invalid argument for 'FTI_SetRequestIdxField'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    const uint32_t all_mask = 0x00080000;
+    const uint32_t idx_mask = 0x0007FFFF; // 524,288 ID's, max ID: 524,287
+
+    int ierr = (int) entry;
+
+    uint32_t field = idxRequest[ID];
+
+    switch( val ) {
+
+        case FTI_SIF_ALL:
+            if ( ( entry > 0x1 ) ) { 
+                FTI_Print( "invalid argument for 'FTI_SetRequestIdxField'", FTI_WARN );
+                ierr = FTI_NSCS;
+                break;
+            }
+            field = (entry << 19) | ((~all_mask) & field);
+            break;
+        case FTI_SIF_IDX:
+            if ( entry > idx_mask ) {
+                FTI_Print( "invalid argument for 'FTI_SetRequestIdxField'", FTI_WARN );
+                ierr = FTI_NSCS;
+                break;
+            }
+            field = entry | ((~idx_mask) & field);
+            break;
+
+    }
+    
+    if ( ierr != FTI_NSCS ) {
+        idxRequest[ID] = field;
+    }
+    
+    return ierr;
+
+}
     
 int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, FTIT_StatusField val, int source ) 
 {
@@ -538,7 +661,7 @@ void FTI_PrintStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID,
     }
 
     // get idx string
-    val = idxRequest[ID];
+    val = FTI_GetRequestField( ID, FTI_SIF_IDX );
     char idxstr[FTI_BUFS];
     if ( val < 0 ) {
         snprintf(idxstr, FTI_BUFS, "not valid ('%d')", val );
