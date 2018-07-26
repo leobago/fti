@@ -229,8 +229,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
                 if (allRes == FTI_SCES) {
+                    int sbuf[] = { FTI_SCES, level }, rbuf[2];
                     //Inform heads that recovered successfully
-                    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+                    MPI_Allreduce(sbuf, rbuf, 2, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
 
                     // FTI-FF: ckptID is already set properly
                     if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
@@ -244,6 +245,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Exec->ckptID = ckptID;
                     FTI_Exec->ckptLvel = level;
                     FTI_Exec->lastCkptLvel = level;
+                    
                     return FTI_SCES; //Recovered successfully
                 }
                 else {
@@ -256,8 +258,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Cannot recover from any checkpoint level.", FTI_INFO);
 
         //Inform heads that cannot recover
-        int res = FTI_NSCS, allRes;
-        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+        int res[] = { FTI_NSCS, level }, allRes[2];
+        MPI_Allreduce(res, allRes, 2, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
 
         //Reset ckptID and ckptLevel
         FTI_Exec->ckptLvel = 0;
@@ -265,12 +267,18 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     else { //Head processes
-        int res = FTI_SCES, allRes;
-        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-        if (allRes != FTI_SCES) {
+        int res[] = { FTI_SCES, 0 }, allRes[2];
+        MPI_Allreduce(res, allRes, 2, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+        if (allRes[0] != FTI_SCES) {
             //Recover not successful
             return FTI_NSCS;
         }
+        FTI_Exec->ckptLvel = allRes[1]/(FTI_Topo->nbNodes*FTI_Topo->nbApprocs);
+        FTI_Exec->lastCkptLvel = allRes[1]/(FTI_Topo->nbNodes+FTI_Topo->nbApprocs);
+        // expose to FTI that level has ckpt
+        FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+        DBG_MSG("level: %d, FTI_Ckpt[level].hasCkpt:%d",-1, FTI_Exec->ckptLvel, FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt);
+
         return FTI_SCES;
     }
 }
