@@ -124,40 +124,75 @@ int main(int argc, char *argv[])
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
-    int fti_req1, fti_req2;
+    int fti_req[FTI_BUFS];
+    int reqcnt = 0;
 
     char s_dir[FTI_BUFS];
-    char fn1[FTI_BUFS];
-    char fn2[FTI_BUFS];
-    if ( rank == 0 ) {
-        FTI_GetStageDir( s_dir, FTI_BUFS );
-        snprintf( fn1, FTI_BUFS, "%s/%s", s_dir, "testfile1.f" );
-        snprintf( fn2, FTI_BUFS, "%s/%s", s_dir, "testfile2.f" );
-        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file1.f", fn1 ); 
-        rename( "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/file2.f", fn2 ); 
-        fti_req1 = FTI_SendFile( fn1, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile1.f" );
-        printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req1 )));
-        fti_req2 = FTI_SendFile( fn2, "/home/kellekai/WORK/FTI/FTI-REPO-LEO/build/examples/testfile2.f" );
-        printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req2 )));
+    FTI_GetStageDir( s_dir, FTI_BUFS );
+    
+    const int NUM_FILES = 1;
+    char *fn_local[FTI_BUFS];
+    char *fn_global[FTI_BUFS];
+    int jj;
+    for( jj=0; jj<NUM_FILES; ++jj ) {
+        fn_local[jj] = malloc( FTI_BUFS );
+        fn_global[jj] = malloc( FTI_BUFS );
+        snprintf( fn_local[jj], FTI_BUFS, "%s/file-0-%d-%d", s_dir, jj, rank );
+        snprintf( fn_global[jj], FTI_BUFS, "./file-0-%d-%d", jj, rank );
+        fn_local[jj][FTI_BUFS-1]='\0';
+        fn_global[jj][FTI_BUFS-1]='\0';
+        FILE *fd = fopen( fn_local[jj], "w+" );
+        fclose( fd );
+        truncate( fn_local[jj], 1024L*1024L*1024L );
+    }
+
+    if ( (rank == 0) || (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) {
+        int jj;
+        for ( jj=0; jj<NUM_FILES; ++jj ) {
+            fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+        }
     }
     if (rank == 0) {
         printf("Local data size is %d x %d = %f MB (%d).\n", M, nbLines, memSize, arg);
         printf("Target precision : %f \n", PRECISION);
         printf("Maximum number of iterations : %d \n", ITER_TIMES);
         sleep(1);
-        FTI_GetStageStatus( fti_req1 );
-        FTI_GetStageStatus( fti_req2 );
     }
-
+    
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
     FTI_Protect(2, g, M*nbLines, FTI_DBLE);
 
+    bool printed = false;
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
-        if ((rank == 0) && (i%100 == 0) ) {
-            printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req1 )));
-            printf("| STAGING STATUS -> %s |\n", status_string(FTI_GetStageStatus( fti_req2 )));
+        if (((rank == 0)|| (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) && (i%40 == 0) && !(i==0) ) {
+            bool all_finished = true;
+            for ( jj=0; jj<reqcnt; ++jj ) {
+                if ( FTI_GetStageStatus( fti_req[jj] ) != FTI_SI_SCES ) {
+                    printf("| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(FTI_GetStageStatus( fti_req[jj] )));
+                    all_finished = false;
+                }
+            }
+            if ( all_finished && !printed ) {
+                printf("| [rank:%02d|iter:%d] ALL STAGING REQUEST COMPLETED\t|\n", rank, i);
+                printed = true;
+            }
+            if ( i == 40 ) {
+                for( jj=0; jj<NUM_FILES; ++jj ) {
+                    snprintf( fn_local[jj], FTI_BUFS, "%s/file-%d-%d-%d", s_dir, i, jj, rank );
+                    snprintf( fn_global[jj], FTI_BUFS, "./file-%d-%d-%d", i, jj, rank );
+                    fn_local[jj][FTI_BUFS-1]='\0';
+                    fn_global[jj][FTI_BUFS-1]='\0';
+                    FILE *fd = fopen( fn_local[jj], "w+" );
+                    fclose( fd );
+                    truncate( fn_local[jj], 1024L*1024L*1024L );
+                }
+                for ( jj=0; jj<NUM_FILES; ++jj ) {
+                    fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+                }
+            }
+
         }
         int checkpointed = FTI_Snapshot();
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);

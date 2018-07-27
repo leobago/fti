@@ -111,9 +111,7 @@ extern "C" {
     // 'i' index of FTIT_StageAppInfo and FTIT_StageHeadInfo arrays
     typedef struct FTIT_StageInfo {
         int nbRequest;
-        uint8_t *status;                    /**< status of request              */
         void *request;
-        MPI_Win stageWin;
     } FTIT_StageInfo;
 
     /** @typedef    FTIFF_metaInfo

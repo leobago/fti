@@ -427,7 +427,7 @@ int FTI_GetStageStatus( int ID )
     // get status of request
     int status;
     status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
-
+    //FTI_PrintStatus( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
     // check for valid ID
     if ( status == FTI_SI_NINI ) {
         FTI_Print( "invalid ID passed to 'FTI_GetStageStatus'", FTI_WARN );
@@ -447,7 +447,7 @@ int FTI_GetStageStatus( int ID )
                 usleep(100000); // wait 0.1 seconds
                 status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
                 if ( status == FTI_SI_PEND ) {
-                    FTI_Print( "Inconsistency in status. Send was successfully completed but status is pending!", FTI_WARN );
+                    //FTI_Print( "Inconsistency in status. Send was successfully completed but status is pending!", FTI_WARN );
                 } else {
                     free_req = true;
                 }
@@ -466,10 +466,11 @@ int FTI_GetStageStatus( int ID )
     }
 
     if ( free_req ) {
-        FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID );
+        FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
     }
    
     if ( (status==FTI_SI_FAIL) || (status==FTI_SCES) ) {
+        printf("SET VALUE TO NINI\n");
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
     }
@@ -505,7 +506,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     ID = reqID;
 
     FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, ID );
-
+    
     if ( FTI_Topo.nbHeads == 0 ) {
 
         if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Conf, ID ) != FTI_SCES ) {
@@ -518,7 +519,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     if ( FTI_Topo.nbHeads > 0 ) {
         
         if ( FTI_AsyncStage( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, ID ) != FTI_SCES ) {
-            FTI_Print("synchronous staging failed!", FTI_WARN);
+            FTI_Print("asynchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
     
