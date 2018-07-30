@@ -133,7 +133,6 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
-    // TODO if( FTI_Conf.stagingEnabled ) {
     if( FTI_Conf.stagingEnabled ) {
         FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
     }
