@@ -323,6 +323,9 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
     }
+    if ( FTI_Conf->stagingEnabled && !FTI_Topo->nbHeads ) {
+        FTI_Print( "Staging is enabled but no dedicated head process, staging will be performed inline!", FTI_WARN );
+    }
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;
     }
