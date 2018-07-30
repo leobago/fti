@@ -134,7 +134,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTIFF_InitMpiTypes();
     }
     // TODO if( FTI_Conf.stagingEnabled ) {
-    if(1) {
+    if( FTI_Conf.stagingEnabled ) {
         FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
     }
     FTI_Exec.initSCES = 1;
@@ -391,8 +391,14 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
-int FTI_GetStageDir( char* stageDir, int maxLen) {
+int FTI_GetStageDir( char* stageDir, int maxLen) 
+{
     
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_GetStageDir' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     if( stageDir == NULL ) {
         FTI_Print( "invalid value for stageDir ('nil')!", FTI_WARN );
         return FTI_NSCS;
@@ -418,50 +424,32 @@ int FTI_GetStageDir( char* stageDir, int maxLen) {
 }
 
 
+// returns status (including FTI_SI_NINI after a successful or failed request)
 int FTI_GetStageStatus( int ID )
 {
 
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_GetStageStatus' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     // indicator if we still need the request structure allocated
+    // (i.e. send buffer not released by MPI)
     bool free_req = true;
 
     // get status of request
     int status;
     status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
-    //FTI_PrintStatus( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
-    // check for valid ID
-    if ( status == FTI_SI_NINI ) {
-        FTI_Print( "invalid ID passed to 'FTI_GetStageStatus'", FTI_WARN );
-        return FTI_NSCS;
-    }
 
     // check if pending
     if ( status == FTI_SI_PEND ) {
-        free_req = false;
-        int flag;
-        MPI_Status stat;
-        // if pending check for receive errors
-        int mpi_err = MPI_Test( &(FTI_SI_APTR(FTI_Exec.stageInfo->request)[FTI_GetRequestIdx(ID)].mpiReq), &flag, &stat );
-        if ( mpi_err == MPI_SUCCESS ) {
-            if ( flag == 1 ) {
-                // update status field (recv may be completed during this function)
-                usleep(100000); // wait 0.1 seconds
-                status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
-                if ( status == FTI_SI_PEND ) {
-                    //FTI_Print( "Inconsistency in status. Send was successfully completed but status is pending!", FTI_WARN );
-                } else {
-                    free_req = true;
-                }
-            }
-        } else {
-            char errstr[FTI_BUFS];
-            char mpierrstr[FTI_BUFS];
-            int reslen;
-            MPI_Error_string( mpi_err, mpierrstr, &reslen );
-            mpierrstr[FTI_BUFS-1] = '\0';
-            snprintf( errstr, FTI_BUFS, "MPI_TEST returned error '%s'", mpierrstr );
-            FTI_Print( errstr, FTI_WARN );
-            free_req = true;
-            status = FTI_SI_FAIL;
+        int flag = 1, idx;
+        // if pending check if we can free the send buffer
+        if ( (idx = FTI_GetRequestIdx(ID)) >= 0 ) { 
+            MPI_Test( &(FTI_SI_APTR(FTI_Exec.stageInfo->request)[idx].mpiReq), &flag, MPI_STATUS_IGNORE );
+        }
+        if ( flag == 0 ) {
+            free_req = false;
         }
     }
 
@@ -469,8 +457,7 @@ int FTI_GetStageStatus( int ID )
         FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
     }
    
-    if ( (status==FTI_SI_FAIL) || (status==FTI_SCES) ) {
-        printf("SET VALUE TO NINI\n");
+    if ( (status==FTI_SI_FAIL) || (status==FTI_SI_SCES) ) {
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
     }
@@ -480,7 +467,14 @@ int FTI_GetStageStatus( int ID )
 }
 
 int FTI_SendFile( char* lpath, char *rpath )
-{   
+{ 
+
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_SendFile' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    printf("RANK: %d CALLED\n", FTI_Topo.myRank);
     char errstr[FTI_BUFS];
 
     int ID = FTI_NSCS;
@@ -509,7 +503,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     
     if ( FTI_Topo.nbHeads == 0 ) {
 
-        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Conf, ID ) != FTI_SCES ) {
+        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Topo, &FTI_Conf, ID ) != FTI_SCES ) {
             FTI_Print("synchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }

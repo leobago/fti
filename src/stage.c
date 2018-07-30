@@ -1,5 +1,11 @@
 #include "interface.h"
 
+/* TODO
+ * (1)  supply function to remove all files from staging folder.
+ * (2)  add flag to FTI_SendFile( ..., FTI_SI_RM ) that indicates if the local file
+ *      shall be deleted at success or failure.
+ */
+
 /* NOTE: 
  *
  * The status variable is assumed to be written in an atomic operation since it is
@@ -19,7 +25,12 @@ static uint32_t *idxRequest;
 static uint8_t *status;                    /**< status of request              */
 static MPI_Win stageWin;
 
+bool *enableStagingPtr;
+
 int FTI_GetRequestIdx( int ID ) {
+
+    char str[FTI_BUFS];
+
     if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
         return FTI_GetRequestField( ID, FTI_SIF_IDX );
     } else {
@@ -30,26 +41,46 @@ int FTI_GetRequestIdx( int ID ) {
 int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_topology *FTI_Topo ) 
 {
     
+    if ( !FTI_Conf->stagingEnabled ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_InitStage'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     // memory window size
     size_t win_size = FTI_SI_MAX_NUM * sizeof(uint8_t) * !(FTI_Topo->amIaHead);
     
     // requestIdx array size
     size_t arr_size = FTI_SI_MAX_NUM * sizeof(uint32_t);
 
+    // keep ptr to enableStaging flag local to file
+    enableStagingPtr = &FTI_Conf->stagingEnabled;
+
     // allocate nbApproc instances of Stage info for heads but only one for application processes
     int num = ( FTI_Topo->amIaHead ) ? FTI_Topo->nbApprocs : 1;
     FTI_Exec->stageInfo = calloc( num, sizeof(FTIT_StageInfo) );
+    if ( FTI_Exec->stageInfo == NULL ) {
+        FTI_DISABLE_STAGING;
+        FTI_Print( "Failed to allocate memory for 'FTI_Exec->stageInfo'", FTI_EROR );
+        return FTI_NSCS;
+    }
 
-    // allocate request idx array and init to 0x0
+    // allocate request idx array and init to 0x0. Head does not have one (would double memory consumption).
     if ( FTI_Topo->amIaHead ) {
         idxRequest = NULL;
     } else {
         idxRequest = calloc( 1, arr_size );
+        if ( idxRequest == NULL ) {
+            FTI_DISABLE_STAGING;
+            FTI_Print( "Failed to allocate memory for 'idxRequest'", FTI_EROR );
+            free( FTI_Exec->stageInfo );
+            return FTI_NSCS;
+        }
     }
 
     // create node communicator
-    // NOTE: head is assigned rank 0. It is important to take this in mind in order
-    // to access the stageInfo array by FTI_Topo->nodeRank (i.e. source-1)
+    // NOTE: head is assigned rank 0. This is important in order 
+    // to access the stageInfo array at the  head rank in the 
+    // implemented way (array[app_rank-1], app_ranks = 1 -> nodeSize-1)
     int key = (FTI_Topo->amIaHead) ? 0 : 1;
     if ( FTI_Conf->test ) {
         int color = FTI_Topo->nodeID;
@@ -61,12 +92,14 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     // check for a consistant communicator size
     int size;
     MPI_Comm_size( FTI_Exec->nodeComm, &size );
-    if ( size != (FTI_Topo->nbApprocs+1) ) {
+    if ( size != FTI_Topo->nodeSize ) {
+        FTI_DISABLE_STAGING;
         char str[FTI_BUFS];
-        snprintf(str, FTI_BUFS, "Wrong size (%d != %s) of node communicator, disable staging!", size, FTI_Topo->nbApprocs );
+        snprintf(str, FTI_BUFS, "Wrong size (%d != %d) of node communicator, disable staging!", size, FTI_Topo->nodeSize );
         FTI_Print(str, FTI_WARN );
-        FTI_Conf->stagingEnabled = false;
         MPI_Comm_free( &FTI_Exec->nodeComm );
+        free( FTI_Exec->stageInfo );
+        free( idxRequest );
         return FTI_NSCS;
     }
 
@@ -76,8 +109,6 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     // store head rank in node communicator
     // NOTE: must(!!) be the lowest rank number
     FTI_Topo->headRankNode = 0;
-
-    printf("head:%d, rank:%d, win_size: %lu, num: %d\n", FTI_Topo->amIaHead, FTI_Topo->nodeRank, win_size, num);
     
     // create shared memory window
     int disp = sizeof(uint8_t);
@@ -100,6 +131,11 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     snprintf(FTI_Conf->stageDir, FTI_BUFS, "%s/stage", FTI_Conf->localDir);
     if (mkdir(FTI_Conf->stageDir, 0777) == -1) {
         if (errno != EEXIST) {
+            FTI_DISABLE_STAGING;
+            MPI_Win_free( &stageWin );
+            MPI_Comm_free( &FTI_Exec->nodeComm );
+            free( FTI_Exec->stageInfo );
+            free( idxRequest );
             FTI_Print("Cannot create stage directory", FTI_EROR);
         }
     }
@@ -108,27 +144,33 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
 
 int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, uint32_t ID ) 
 {
-    
-    int idx = FTI_Exec->stageInfo->nbRequest++;
-    FTI_Exec->stageInfo->request = realloc( FTI_Exec->stageInfo->request, sizeof(FTIT_StageAppInfo) * FTI_Exec->stageInfo->nbRequest );
-    if( FTI_Exec->stageInfo->request == NULL ) {
-        // TODO this is a fatal error, finalize staging feature required
-        FTI_Print( "failed to allocate memory", FTI_EROR );
+   
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled! Invalid call to 'FTI_InitStageRequestApp'", FTI_WARN );
         return FTI_NSCS;
     }
 
-    // init structure
-    FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_PEND, FTI_SIF_VAL, FTI_Topo->nodeRank );
-    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq = MPI_REQUEST_NULL;
+    if ( ID  > FTI_SI_MAX_ID ) {
+        FTI_Print( "passed invalid ID to 'FTI_InitStageRequestApp'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
+    void *ptr = realloc( FTI_Exec->stageInfo->request, sizeof(FTIT_StageAppInfo) * (FTI_Exec->stageInfo->nbRequest+1) );
+    if( ptr == NULL ) {
+        FTI_Print( "failed to allocate memory for 'FTI_Exec->stageInfo->request'", FTI_EROR );
+        return FTI_NSCS;
+    }
+    FTI_Exec->stageInfo->request = ptr;
+    int idx = FTI_Exec->stageInfo->nbRequest++;
+
+    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq = MPI_REQUEST_NULL;
+    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].sendBuf = NULL;
+    
+    FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_PEND, FTI_SIF_VAL, FTI_Topo->nodeRank );
     FTI_SetRequestField( ID, FTI_SI_IALL, FTI_SIF_ALL );
     FTI_SetRequestField( ID, idx, FTI_SIF_IDX );
     
     FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].ID = ID;
-
-    //printf("###\n# INIT (ID:%d, idx:%d, head:%d, rank:%d, req-field: %p) #\n###\n", 
-    //        ID, idx, FTI_Topo->amIaHead, FTI_Topo->myRank, (void*)(uintptr_t)idxRequest[ID] );
-    //fflush(stdout);
 
     return FTI_SCES;
 
@@ -137,15 +179,25 @@ int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, 
 int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec, 
         FTIT_topology *FTI_Topo, int source, uint32_t ID ) 
 {
+   
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_InitStageRequestHead'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    if ( ID  > FTI_SI_MAX_ID ) {
+        FTI_Print( "passed invalid ID to 'FTI_InitStageRequestHead'", FTI_WARN );
+        return FTI_NSCS;
+    }
     
-    FTIT_StageInfo *si = &(FTI_Exec->stageInfo[source-1]); 
-    int idx = si->nbRequest++;
-    si->request = realloc( si->request, sizeof(FTIT_StageHeadInfo) * si->nbRequest );
-    if( si->request == NULL ) {
-        // TODO this is a fatal error, finalize staging feature required
+    void *ptr = realloc( FTI_Exec->stageInfo[source-1].request, sizeof(FTIT_StageHeadInfo) * (FTI_Exec->stageInfo[source-1].nbRequest+1) );
+    if( ptr == NULL ) {
         FTI_Print( "failed to allocate memory", FTI_EROR );
         return FTI_NSCS;
     }
+    FTIT_StageInfo *si = &(FTI_Exec->stageInfo[source-1]); 
+    si->request = ptr;
+    int idx = si->nbRequest++;
 
     strncpy( FTI_SI_HPTR(si->request)[idx].lpath, lpath, FTI_BUFS );
     strncpy( FTI_SI_HPTR(si->request)[idx].rpath, rpath, FTI_BUFS );
@@ -155,26 +207,29 @@ int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec
 
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_ACTV, FTI_SIF_VAL, source );
     
-    //printf("###\n# INIT (ID:%d, idx:%d, head:%d, rank:%d) #\n###\n", 
-    //        ID, idx, FTI_Topo->amIaHead, FTI_Topo->myRank );
-    //fflush(stdout);
     return FTI_SCES;
     
 }
 
-void FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ) 
+int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ) 
 { 
+
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_FreeStageRequest'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int status;
+    status = FTI_GetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SIF_VAL, source );  
+
     if ( !FTI_Topo->amIaHead ) {
         
+        // if request already free, just return
         if ( !FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
-            return;
+            return FTI_SCES;
         }
-
+        
         int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
-    
-       // printf("###\n# BEGIN FREE (ID:%d, idx:%d, head:%d, rank:%d, req-field: %p) #\n###\n", 
-       //         ID, idx, FTI_Topo->amIaHead, FTI_Topo->myRank, (void*)(uintptr_t)idxRequest[ID] );
-       // fflush(stdout);
     
         size_t type_size = sizeof(FTIT_StageAppInfo);
   
@@ -183,70 +238,124 @@ void FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, in
 
         // if last element in array, we just need to truncate the array.
         if ( idx == (FTI_Exec->stageInfo->nbRequest-1) ) {
-            FTI_Exec->stageInfo->request = realloc( ptr, type_size * (--FTI_Exec->stageInfo->nbRequest) );
+            void *ptr_cpy = ptr;
+            void *buf_ptr = ptr->sendBuf;
+            ptr = realloc( ptr, type_size * (FTI_Exec->stageInfo->nbRequest-1) );
+            if ( (ptr == NULL) && (FTI_Exec->stageInfo->nbRequest > 1) ) {
+                FTI_Print( "failed to allocate memory for 'ptr' in 'FTI_FreeStageRequest'", FTI_EROR );
+                return FTI_NSCS;
+            }
+            free( buf_ptr );
+            --FTI_Exec->stageInfo->nbRequest;
+            FTI_Exec->stageInfo->request = (FTI_Exec->stageInfo->nbRequest == 0) ? NULL : (void*)ptr;
         } 
         // if not last element, we need to truncate array and move elements (before truncation)
         else {
             void *dest = &ptr[idx];
+            void *dest_cpy = malloc( type_size );
+            if ( dest_cpy == NULL ) {
+                FTI_Print( "failed to allocate memory for 'dest_cpy' in 'FTI_FreeStageRequest'", FTI_EROR );
+                return FTI_NSCS;
+            }
+            memcpy( dest_cpy, dest, type_size );
             void *src = &ptr[idx+1];
             size_t mem_size = (FTI_Exec->stageInfo->nbRequest - (idx+1)) * type_size; 
             memmove( dest, src, mem_size );
-            FTI_Exec->stageInfo->request = realloc( ptr, type_size * (--FTI_Exec->stageInfo->nbRequest) );
+            ptr = realloc( ptr, type_size * (FTI_Exec->stageInfo->nbRequest-1) );
+            if ( ptr == NULL ) {
+                FTI_Print( "failed to allocate memory for 'ptr' in 'FTI_FreeStageRequest'", FTI_EROR );
+                memmove( src, dest, mem_size );
+                memcpy( dest, dest_cpy, type_size );
+                free( dest_cpy);
+                return FTI_NSCS;
+            }
+            free( dest_cpy );
+            FTI_Exec->stageInfo->request = (void*)ptr;
+            --FTI_Exec->stageInfo->nbRequest;
             // re-assign the correct values
             int i = idx;
             for ( ; i<FTI_Exec->stageInfo->nbRequest; ++i ) {
-                int ID = ptr[i].ID;
-                FTI_SetRequestField( ID, i, FTI_SIF_IDX );
+                int ID_tmp = ptr[i].ID;
+                FTI_SetRequestField( ID_tmp, i, FTI_SIF_IDX );
             }
         }
 
         FTI_SetRequestField( ID, FTI_SI_NALL, FTI_SIF_ALL );
-        
-        //printf("###\n# END FREE (ID:%d, idx:%d, head:%d, rank:%d, req-field: %p) #\n###\n", 
-        //        ID, idx, FTI_Topo->amIaHead, FTI_Topo->myRank, (void*)(uintptr_t)idxRequest[ID] );
-        //fflush(stdout);
     
     } else {
         
         int nbRequest = FTI_Exec->stageInfo[source-1].nbRequest;
         FTIT_StageHeadInfo *ptr = FTI_SI_HPTR(FTI_Exec->stageInfo[source-1].request);
         int idx;
+        // locate idx, heads do not have a look-up table
         for( idx=0; idx<nbRequest; ++idx ) {
             if(ptr->ID == ID) {
                 break;
             }
         }
         if ( idx == nbRequest ) {
-            FTI_Print("Invalid ID!", FTI_WARN);
-            return;
+            FTI_Print("invalid ID! Failed to free stage request meta info (FTI head process).", FTI_WARN);
+            return FTI_NSCS;
         }
         
         size_t type_size = sizeof(FTIT_StageHeadInfo);
         
         // if last element in array, we just need to truncate the array.
         if ( idx == (nbRequest-1) ) {
-            FTI_Exec->stageInfo[source-1].request = realloc( ptr, type_size * (--FTI_Exec->stageInfo[source-1].nbRequest) );
+            ptr = realloc( ptr, type_size * (nbRequest-1) );
+            if ( (ptr == NULL) && (nbRequest > 1) ) {
+                FTI_Print( "failed to allocate memory for 'ptr' in 'FTI_FreeStageRequest'", FTI_EROR );
+                return FTI_NSCS;
+            }
+            --FTI_Exec->stageInfo[source-1].nbRequest;
+            FTI_Exec->stageInfo[source-1].request = (FTI_Exec->stageInfo[source-1].nbRequest == 0) ? NULL : (void*)ptr;
         } 
         
         // if not last element, we need to truncate array and move elements (before truncation)
         else {
             void *dest = &(ptr[idx]);
+            void *dest_cpy = malloc( type_size );
+            if ( dest_cpy == NULL ) {
+                FTI_Print( "failed to allocate memory for 'dest_cpy' in 'FTI_FreeStageRequest'", FTI_EROR );
+                return FTI_NSCS;
+            }
+            memcpy( dest_cpy, dest, type_size );
             void *src = &(ptr[idx+1]);
             size_t mem_size = (nbRequest - (idx+1)) * type_size; 
             memmove( dest, src, mem_size );
-            FTI_Exec->stageInfo[source-1].request = realloc( ptr, type_size * (--FTI_Exec->stageInfo[source-1].nbRequest) );
+            ptr = realloc( ptr, type_size * (nbRequest-1) );
+            if ( ptr == NULL ) {
+                FTI_Print( "failed to allocate memory for 'ptr' in 'FTI_FreeStageRequest'", FTI_EROR );
+                memmove( src, dest, mem_size );
+                memcpy( dest, dest_cpy, type_size );
+                free( dest_cpy);
+                return FTI_NSCS;
+            }
+            free( dest_cpy);
+            FTI_Exec->stageInfo[source-1].request = ptr;
+            --FTI_Exec->stageInfo[source-1].nbRequest;
         }
 
     }
 
+    return FTI_SCES;
+
 }
 
-int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, uint32_t ID ) 
+int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID ) 
 {
-
-    status[ID] = FTI_SI_ACTV; // init status fail
     
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_SyncStage'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     char errstr[FTI_BUFS];
+    
+    int source = FTI_Topo->nodeRank;
+
+    // for consistency
+    FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_ACTV, FTI_SIF_VAL, source );
 
     // set buffer size for the file data transfer
     size_t bs = FTI_Conf->transferSize;
@@ -254,17 +363,16 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
     // check local file and get file size
     struct stat st;
     if(  stat( lpath, &st ) == -1 ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         snprintf( errstr, FTI_BUFS, "Could not stat the local file ('%s') for staging", lpath );
         FTI_Print( errstr, FTI_EROR );
-        errno = 0;
-        //status[ID] = FTI_SI_FAIL; // init status fail
         return FTI_NSCS;
     }
     if( !S_ISREG(st.st_mode) ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         snprintf( errstr, FTI_BUFS, "'%s' is not a regular file, staging failed.", lpath );
         FTI_Print( errstr, FTI_EROR );
         errno = 0;
-        //status[ID] = FTI_SI_FAIL; // init status fail
         return FTI_NSCS;
     }
 
@@ -273,16 +381,16 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
     // open local file
     int fd_local = open( lpath, O_RDONLY );
     if( fd_local == -1 ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         FTI_Print("Could not open the local file for staging", FTI_EROR);
-        //status[ID] = FTI_SI_FAIL; // init status fail
         return FTI_NSCS;
     }
     // open file on remote fs
     int fd_global = open( rpath, O_WRONLY|O_CREAT, (mode_t) 0600 );
     if( fd_global == -1 ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         FTI_Print("Could not open the destination file for staging", FTI_EROR);
         close( fd_local );
-        //status[ID] = FTI_SI_FAIL; // init status fail
         return FTI_NSCS;
     }
     // allocate buffer
@@ -302,27 +410,26 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
             free( buf );
             close( fd_local );
             close( fd_global );
-            //status[ID] = FTI_SI_FAIL; // init status fail
             return FTI_NSCS;
         }
         if( (read_bytes = read( fd_local, buf, buf_bytes )) == -1 ) {
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
             snprintf( errstr, FTI_BUFS, "unable to read from '%s'.", lpath );
             FTI_Print( errstr, FTI_EROR );
             errno = 0;
             free( buf );
             close( fd_local );
             close( fd_global );
-            //status[ID] = FTI_SI_FAIL; // init status fail
             return FTI_NSCS;
         }
         if( (write_bytes = write( fd_global, buf, read_bytes )) == -1 ) {  
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
             snprintf( errstr, FTI_BUFS, "unable to write to '%s'.", rpath );
             FTI_Print( errstr, FTI_EROR );
             errno = 0;
             free( buf );
             close( fd_local );
             close( fd_global );
-            //status[ID] = FTI_SI_FAIL; // init status fail
             return FTI_NSCS;
         }
         pos += write_bytes;
@@ -338,11 +445,10 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
         snprintf( errstr, FTI_BUFS, "Could not remove local file '%s'.", lpath );
         FTI_Print( errstr, FTI_WARN );
         errno = 0;
-        //status[ID] = FTI_SI_FAIL; // init status fail
         return FTI_NSCS;
     }
-
-    //status[ID] = FTI_SI_SCES;
+    
+    FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_SCES, FTI_SIF_VAL, source );
     
     return FTI_SCES;
 
@@ -350,8 +456,19 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_conf
 int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf, 
         FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID ) {
     
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_AsyncStage'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
+    
     // serialize request before sending to the head
     void *buf_ser = malloc ( 2*FTI_BUFS + sizeof(int) );
+    if ( buf_ser == NULL ) {
+        FTI_Print("failed to allocate memory for 'buf_ser' in FTI_AsyncStage'", FTI_EROR );
+        return FTI_NSCS;
+    }
     int pos = 0;
     memcpy( buf_ser, lpath, FTI_BUFS );   
     pos += FTI_BUFS;
@@ -363,21 +480,12 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     MPI_Type_contiguous( pos, MPI_BYTE, &buf_t );
     MPI_Type_commit( &buf_t );
    
-    //printf("ID: %d, ID(vd): %p\n", ID, (void*)(uintptr_t)ID);
     // send request to head
-    int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
-    //printf("headRank:%d\n", FTI_Topo->headRankNode );
-    int ierr = MPI_Isend( buf_ser, 1, buf_t, FTI_Topo->headRankNode, 
-            FTI_Conf->stageTag, FTI_Exec->nodeComm, &(FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq) );
-    if ( ierr != MPI_SUCCESS ) {
-        char errstr[FTI_BUFS], mpierrbuf[FTI_BUFS];
-        int reslen;
-        MPI_Error_string( ierr, mpierrbuf, &reslen );
-        snprintf( errstr, FTI_BUFS, "MPI_Isend failed: %s", mpierrbuf );  
-        FTI_Print( errstr, FTI_WARN );
-        return FTI_NSCS;
-    }
-
+    MPI_Request *mpiReq = &(FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq);
+    MPI_Isend( buf_ser, 1, buf_t, FTI_Topo->headRankNode, FTI_Conf->stageTag, FTI_Exec->nodeComm, mpiReq );
+    
+    // keep send buffer until it may be freed (MPI_Test check in 'FTI_GetStageStatus') 
+    FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].sendBuf = buf_ser;
     MPI_Type_free( &buf_t );
 
     return FTI_SCES;
@@ -386,12 +494,20 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source)
 {      
-    //printf("CALL TO HANDLE STAGE REQUEST\n");
+
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_HandleStageRequest'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
     char errstr[FTI_BUFS];
  
     size_t buf_ser_size = 2*FTI_BUFS + sizeof(int);
     void *buf_ser = malloc ( buf_ser_size );
+    if ( buf_ser == NULL ) {
+        FTI_Print( "failed to allocate memory for 'buf_ser' in FTI_HandleStageRequest", FTI_EROR );
+        return FTI_NSCS; 
+    }
     MPI_Datatype buf_t;
     MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
     MPI_Type_commit( &buf_t );
@@ -400,18 +516,20 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     // set local file path
     char lpath[FTI_BUFS];
     char rpath[FTI_BUFS];
-    memset( lpath, 0x0, FTI_BUFS );
-    memset( rpath, 0x0, FTI_BUFS );
 
     strncpy( lpath, buf_ser, FTI_BUFS );
     strncpy( rpath, buf_ser+FTI_BUFS, FTI_BUFS );
+    lpath[FTI_BUFS-1] = '\0';
+    rpath[FTI_BUFS-1] = '\0';
     int ID = *(int*)(buf_ser+2*FTI_BUFS);
     
+    free( buf_ser );
+    MPI_Type_free( &buf_t );
+
     // init Head staging meta data
     if ( FTI_InitStageRequestHead( lpath, rpath, FTI_Exec, FTI_Topo, source, ID ) != FTI_SCES ) {
         FTI_Print( "failed to initialize stage request meta info!", FTI_WARN );
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         return FTI_NSCS;
     }
     
@@ -421,19 +539,17 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     // check local file and get file size
     struct stat st;
     if(  stat( lpath, &st ) == -1 ) {
-        snprintf( errstr, FTI_BUFS, "Could not stat the local file ('%s') for staging", lpath );
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        snprintf( errstr, FTI_BUFS, "Could not stat the local file ('%s') for staging.", lpath );
         FTI_Print( errstr, FTI_EROR );
-        errno = 0;
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
         return FTI_NSCS;
     }
     if( !S_ISREG(st.st_mode) ) {
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         snprintf( errstr, FTI_BUFS, "'%s' is not a regular file, staging failed.", lpath );
         FTI_Print( errstr, FTI_EROR );
-        errno = 0;
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
         return FTI_NSCS;
     }
 
@@ -442,22 +558,30 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     // open local file
     int fd_local = open( lpath, O_RDONLY );
     if( fd_local == -1 ) {
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         FTI_Print("Could not open the local file for staging", FTI_EROR);
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
         return FTI_NSCS;
     }
     // open file on remote fs
     int fd_global = open( rpath, O_WRONLY|O_CREAT, (mode_t) 0600 );
     if( fd_global == -1 ) {
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
         FTI_Print("Could not open the destination file for staging", FTI_EROR);
         close( fd_local );
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
         return FTI_NSCS;
     }
     // allocate buffer
     char *buf = (char*) malloc( bs );
+    if ( buf == NULL ) {
+        close ( fd_local );
+        close ( fd_global );
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        FTI_Print( "failed to allocate memory for 'buf' in 'FTI_HandleStageRequest'", FTI_EROR );
+        return FTI_NSCS;
+    }
 
     // move file to destination
     off_t pos = 0;
@@ -467,36 +591,36 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         buf_bytes = ( (eof - pos) < bs ) ? eof - pos : bs;
         // for the case we have written less then we have read
         if( lseek( fd_local, pos, SEEK_SET ) == -1 ) {
+            FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
             snprintf( errstr, FTI_BUFS, "unable to seek in '%s'.", lpath );
             FTI_Print( errstr, FTI_EROR );
             errno = 0;
             free( buf );
             close( fd_local );
             close( fd_global );
-            // TODO
-            // here lock window and put the new value FTI_SI_FAIL to status
             return FTI_NSCS;
         }
         if( (read_bytes = read( fd_local, buf, buf_bytes )) == -1 ) {
+            FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
             snprintf( errstr, FTI_BUFS, "unable to read from '%s'.", lpath );
             FTI_Print( errstr, FTI_EROR );
             errno = 0;
             free( buf );
             close( fd_local );
             close( fd_global );
-            // TODO
-            // here lock window and put the new value FTI_SI_FAIL to status
             return FTI_NSCS;
         }
         if( (write_bytes = write( fd_global, buf, read_bytes )) == -1 ) {  
+            FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
             snprintf( errstr, FTI_BUFS, "unable to write to '%s'.", rpath );
             FTI_Print( errstr, FTI_EROR );
             errno = 0;
             free( buf );
             close( fd_local );
             close( fd_global );
-            // TODO
-            // here lock window and put the new value FTI_SI_FAIL to status
             return FTI_NSCS;
         }
         pos += write_bytes;
@@ -507,19 +631,7 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     close( fd_local );
     fsync( fd_global );
     close( fd_global );
-
-    if( remove( lpath ) == -1 ) {
-        snprintf( errstr, FTI_BUFS, "Could not remove local file '%s'.", lpath );
-        FTI_Print( errstr, FTI_WARN );
-        errno = 0;
-        // TODO
-        // here lock window and put the new value FTI_SI_FAIL to status
-        return FTI_NSCS;
-    }
-
-    // TODO
-    // here lock window and put the new value FTI_SI_SCES to status
-    
+ 
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_SCES, FTI_SIF_VAL, source );
     FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
 
@@ -528,6 +640,11 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 
 int FTI_GetRequestField( int ID, FTIT_StatusField val ) 
 {
+
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_GetRequestField'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
     if( (val < FTI_SIF_ALL) || (val > FTI_SIF_IDX) ) {
         FTI_Print( "invalid argument for 'FTI_GetRequestIdxField'", FTI_WARN );
@@ -552,6 +669,11 @@ int FTI_GetRequestField( int ID, FTIT_StatusField val )
 
 int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
 {
+
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_SetRequestField'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
     if( (val < FTI_SIF_ALL) || (val > FTI_SIF_IDX) ) {
         FTI_Print( "invalid argument for 'FTI_SetRequestIdxField'", FTI_WARN );
@@ -598,6 +720,10 @@ int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
 int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, FTIT_StatusField val, int source ) 
 {   
     
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_GetStatusField'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
     if( (val < 0) || (val > FTI_SIF_VAL) ) {
         FTI_Print( "invalid argument for 'FTI_GetStatusField'", FTI_WARN );
@@ -625,6 +751,11 @@ int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
 
 int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, uint8_t entry, FTIT_StatusField val, int source )
 {
+
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_SetStatusField'", FTI_WARN );
+        return FTI_NSCS;
+    }
 
     if ( (val < 0) || (val > FTI_SIF_VAL) ) {
         FTI_Print( "invalid argument for 'FTI_GetStatusField'", FTI_WARN );
@@ -674,6 +805,11 @@ int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
 int FTI_GetRequestID( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo ) 
 {
 
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_GetRequestID'", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     int ID = -1;
 
     static int req_cnt = 0;
@@ -690,14 +826,19 @@ int FTI_GetRequestID( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo )
             }
         }
     }
-    //printf("RETURNED ID: %d\n", ID);
     return ID;
 
 }
 
-void FTI_PrintStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ) 
+// FOR DEBUGGING
+void FTI_PrintStageStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ) 
 {
     
+    if ( !FTI_SI_ENABLED ) {
+        FTI_Print( "Staging disabled, invalid call to 'FTI_PrintStageStatus'", FTI_WARN );
+        return;
+    }
+
     MPI_Aint qsize;
     int qdisp;
     MPI_Win_shared_query( stageWin, source, &qsize, &qdisp, &(status) );

@@ -13,6 +13,9 @@
 
 #define FTI_SI_MAX_ID (0x7ffff)
 
+#define FTI_DISABLE_STAGING do{*enableStagingPtr = false;} while(0)
+#define FTI_SI_ENABLED (*(bool*)enableStagingPtr)
+
 typedef enum {
     FTI_SIF_AVL = 0,
     FTI_SIF_VAL,
@@ -30,6 +33,7 @@ typedef struct FTIT_StageHeadInfo {
 } FTIT_StageHeadInfo;
 
 typedef struct FTIT_StageAppInfo {
+    void *sendBuf;
     MPI_Request mpiReq;
     int ID;
 } FTIT_StageAppInfo;
@@ -42,15 +46,16 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
         FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID );
 int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec, 
         FTIT_topology *FTI_Topo, int source, uint32_t ID );
-int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, uint32_t ID ); 
+int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, 
+        FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID ); 
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source);
 int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, FTIT_StatusField val, int source ); 
 int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, uint8_t entry, FTIT_StatusField val, int source );
 int FTI_GetRequestField( int ID, FTIT_StatusField val ); 
 int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val );
-void FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
-//void FTI_PrintStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
+int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
+void FTI_PrintStageStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
 int FTI_GetRequestIdx( int ID );
 
 #endif

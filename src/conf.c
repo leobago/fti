@@ -153,6 +153,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].ckptCnt  = 1;
     FTI_Ckpt[3].ckptCnt  = 1;
     FTI_Ckpt[4].ckptCnt  = 1;
+    
+    FTI_Conf->stagingEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_staging", 0);
 
     // Reading/setting configuration metadata
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);

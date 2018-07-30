@@ -340,7 +340,7 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
-        int             stagingEnabled;
+        bool            stagingEnabled;
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
         int             verbosity;          /**< Verbosity level.               */

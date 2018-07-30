@@ -11,6 +11,7 @@
 #include <math.h>
 #include <fti.h>
 #include <unistd.h>
+#include <string.h>
 
 char * status_string( int val ) {
     
@@ -128,28 +129,31 @@ int main(int argc, char *argv[])
     int reqcnt = 0;
 
     char s_dir[FTI_BUFS];
-    FTI_GetStageDir( s_dir, FTI_BUFS );
+    int serr = FTI_GetStageDir( s_dir, FTI_BUFS );
     
-    const int NUM_FILES = 1;
-    char *fn_local[FTI_BUFS];
-    char *fn_global[FTI_BUFS];
     int jj;
-    for( jj=0; jj<NUM_FILES; ++jj ) {
-        fn_local[jj] = malloc( FTI_BUFS );
-        fn_global[jj] = malloc( FTI_BUFS );
-        snprintf( fn_local[jj], FTI_BUFS, "%s/file-0-%d-%d", s_dir, jj, rank );
-        snprintf( fn_global[jj], FTI_BUFS, "./file-0-%d-%d", jj, rank );
-        fn_local[jj][FTI_BUFS-1]='\0';
-        fn_global[jj][FTI_BUFS-1]='\0';
-        FILE *fd = fopen( fn_local[jj], "w+" );
-        fclose( fd );
-        truncate( fn_local[jj], 1024L*1024L*1024L );
-    }
-
-    if ( (rank == 0) || (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) {
-        int jj;
-        for ( jj=0; jj<NUM_FILES; ++jj ) {
-            fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+    const int NUM_FILES = 1;
+    char **fn_local = (char**) malloc( sizeof(char*) * FTI_BUFS );
+    char **fn_global = (char**) malloc( sizeof(char*) * FTI_BUFS );
+    if ( serr == FTI_SCES ) {
+        if ( (rank == 0) || (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) {
+            for( jj=0; jj<NUM_FILES; ++jj ) {
+                fn_local[jj] = (char*)malloc( FTI_BUFS );
+                fn_global[jj] = (char*)malloc( FTI_BUFS );
+                snprintf( fn_local[jj], FTI_BUFS, "%s/file-0-%d-%d", s_dir, jj, rank );
+                snprintf( fn_global[jj], FTI_BUFS, "./file-0-%d-%d", jj, rank );
+                fn_local[jj][FTI_BUFS-1]='\0';
+                fn_global[jj][FTI_BUFS-1]='\0';
+                FILE *fd = fopen( fn_local[jj], "w+" );
+                fclose( fd );
+                truncate( fn_local[jj], 1024L*1024L*512L );
+                char tmp = *(fn_local[jj]+strlen(s_dir)); 
+                if( (rank == 0) && (jj == 0) ) {
+                    *(fn_local[jj]+strlen(s_dir)) = 'G';
+                }
+                fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+                *(fn_local[jj]+strlen(s_dir)) = tmp;
+            }
         }
     }
     if (rank == 0) {
@@ -166,11 +170,12 @@ int main(int argc, char *argv[])
     bool printed = false;
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
-        if (((rank == 0)|| (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) && (i%40 == 0) && !(i==0) ) {
+        if (((rank == 0)|| (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) && (i%40 == 0) && !(i==0) && serr==FTI_SCES ) {
             bool all_finished = true;
             for ( jj=0; jj<reqcnt; ++jj ) {
-                if ( FTI_GetStageStatus( fti_req[jj] ) != FTI_SI_SCES ) {
-                    printf("| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(FTI_GetStageStatus( fti_req[jj] )));
+                int res = FTI_GetStageStatus( fti_req[jj] );
+                printf( "| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(res) );
+                if ( (res != FTI_SI_SCES) || (res != FTI_SI_FAIL) ) {
                     all_finished = false;
                 }
             }
@@ -186,10 +191,10 @@ int main(int argc, char *argv[])
                     fn_global[jj][FTI_BUFS-1]='\0';
                     FILE *fd = fopen( fn_local[jj], "w+" );
                     fclose( fd );
-                    truncate( fn_local[jj], 1024L*1024L*1024L );
+                    truncate( fn_local[jj], 1024L*1024L*512L );
                 }
                 for ( jj=0; jj<NUM_FILES; ++jj ) {
-                    fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+                    fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj]);
                 }
             }
 
