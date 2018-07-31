@@ -70,16 +70,22 @@
 /** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
 
-/** status for stage requests                                              */
-// 3 bit field
+/** status 'failed' for stage requests                                     */
 #define FTI_SI_FAIL 0x4
+/** status 'succeed' for stage requests                                    */
 #define FTI_SI_SCES 0x3
+/** status 'active' for stage requests                                     */
 #define FTI_SI_ACTV 0x2
+/** status 'pending' for stage requests                                    */
 #define FTI_SI_PEND 0x1
+/** status 'not initialized' for stage requests                            */
 #define FTI_SI_NINI 0x0
 
-// this is as well the size of the shared memory window exposed by each rank
-#define FTI_SI_MAX_NUM (512L*1024L) // 2MB for each rank
+/** Maximum amount of concurrent active staging requests                   
+    @note leads to 2.5MB for the application processes as minimum memory
+    allocated
+ **/
+#define FTI_SI_MAX_NUM (512L*1024L) 
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -104,15 +110,6 @@ extern "C" {
     /*---------------------------------------------------------------------------
       FTI-FF types
       ---------------------------------------------------------------------------*/
-
-    // status field 0xiiiiiiiiiiii0ssa 
-    // 's' status indicator (pending, active, success or failed)
-    // 'a' 1 if status ID is available 
-    // 'i' index of FTIT_StageAppInfo and FTIT_StageHeadInfo arrays
-    typedef struct FTIT_StageInfo {
-        int nbRequest;
-        void *request;
-    } FTIT_StageInfo;
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -171,6 +168,20 @@ extern "C" {
     /*---------------------------------------------------------------------------
       New types
       ---------------------------------------------------------------------------*/
+
+    /** @typedef    FTIT_StageInfo
+     *  @brief      Staging meta info.
+     *  
+     *  The request pointer is void in order to allow the structure to
+     *  keep the head rank staging info if used by a head process or the
+     *  application rank staging info otherwise. The cast is performed
+     *  via the macros 'FTI_SI_HPTR( ptr )' for the head processes and
+     *  'FTI_SI_APTR( ptr )' for the application processes.
+     */
+    typedef struct FTIT_StageInfo {
+        int nbRequest;  /**< Number of allocated request info structures        */
+        void *request;  /**< pointer to request meta info array                 */
+    } FTIT_StageInfo;
 
     /** @typedef    FTIT_double
      *  @brief      Double mapped as two integers to allow bit-wise operations.

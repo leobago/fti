@@ -16,26 +16,37 @@
 #define FTI_DISABLE_STAGING do{*enableStagingPtr = false;} while(0)
 #define FTI_SI_ENABLED (*(bool*)enableStagingPtr)
 
+/** @typedef    FTIT_StatusField
+ *  @brief      valid fields of 'status' and 'idxRequest'.
+ * 
+ *  enum that keeps the particular field identifiers for the 'status'
+ *  and 'idxRequest' fields.
+ */
 typedef enum {
     FTI_SIF_AVL = 0,
     FTI_SIF_VAL,
-    FTI_SIF_RNK,
     FTI_SIF_ALL,
     FTI_SIF_IDX
 } FTIT_StatusField;
 
+/** @typedef    FTIT_StageHeadInfo
+ *  @brief      Head rank staging meta info.
+ */
 typedef struct FTIT_StageHeadInfo {
-    char lpath[FTI_BUFS];                    /**< file path                      */
-    char rpath[FTI_BUFS];                      /**< file name                      */
-    size_t offset;                          /**< current offset of file pointer */
-    size_t size;                            /**< file size                      */
-    int ID;
+    char lpath[FTI_BUFS];           /**< file path                      */
+    char rpath[FTI_BUFS];           /**< file name                      */
+    size_t offset;                  /**< current offset of file pointer */
+    size_t size;                    /**< file size                      */
+    int ID;                         /**< ID of request                  */
 } FTIT_StageHeadInfo;
 
+/** @typedef    FTIT_StageAppInfo
+ *  @brief      Application rank staging meta info.
+ */
 typedef struct FTIT_StageAppInfo {
-    void *sendBuf;
-    MPI_Request mpiReq;
-    int ID;
+    void *sendBuf;                  /**< send buffer of MPI_Isend       */
+    MPI_Request mpiReq;             /**< MPI_Request of MPI_Isend       */
+    int ID;                         /**< ID of request                  */
 } FTIT_StageAppInfo;
 
 

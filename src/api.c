@@ -390,6 +390,18 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Places the FTI staging directory path into 'stageDir'.
+  @param      stageDir        pointer to allocated memory region.
+  @param      maxLen          size of allocated memory region in bytes.
+  @return     integer         FTI_SCES if successful, FTI_NSCS else.
+
+  This function places the FTI staging directory path in 'stageDir'. If
+  allocation size is not sufficiant, no action is perfoprmed and
+  FTI_NSCS is returned.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetStageDir( char* stageDir, int maxLen) 
 {
     
@@ -423,7 +435,31 @@ int FTI_GetStageDir( char* stageDir, int maxLen)
 }
 
 
-// returns status (including FTI_SI_NINI after a successful or failed request)
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns status of staging request.
+  @param      ID            ID of staging request.
+  @return     integer       Status of staging request on success, 
+                            FTI_NSCS else.
+
+  This function returns the status of the staging request corresponding
+  to ID. The ID is returned by the function 'FTI_SendFile'. The status
+  may be one of the five possible statuses:
+  
+  @par
+  FTI_SI_FAIL - Stage request failed
+  FTI_SI_SCES - Stage request succeed
+  FTI_SI_ACTV - Stage request is currently processed
+  FTI_SI_PEND - Stage request is pending
+  FTI_SI_NINI - There is no stage request with this ID
+  
+  @note If the status is FTI_SI_NINI, the ID is either invalid or the
+  request was finished (succeeded or failed). In the latter case,
+  'FTI_GetStageStatus' returns FTI_SI_FAIL or FTI_SI_SCES and frees the
+  stage request ressources. In the consecutive call it will then return
+  FTI_SI_NINI.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetStageStatus( int ID )
 {
 
@@ -465,6 +501,24 @@ int FTI_GetStageStatus( int ID )
         
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Copies file asynchronously from 'lpath' to 'rpath'.
+  @param      lpath           absolute path local file.
+  @param      rpath           absolute path remote file.
+  @return     integer         Request handle (ID) on success, FTI_NSCS else.
+
+  This function may be used to copy a file local on the nodes via the
+  FTI head process asynchronously to the PFS. The file will not be
+  removed after successful transfer, however, if stored in the directory
+  returned by 'FTI_GetStageDir' it will be removed during
+  'FTI_Finalize'.
+  
+  @par
+  If staging is enabled but no head process, the staging will be
+  performed synchronously (i.e. by the calling rank).
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SendFile( char* lpath, char *rpath )
 { 
 
@@ -473,7 +527,6 @@ int FTI_SendFile( char* lpath, char *rpath )
         return FTI_NSCS;
     }
 
-    printf("RANK: %d CALLED\n", FTI_Topo.myRank);
     char errstr[FTI_BUFS];
 
     int ID = FTI_NSCS;

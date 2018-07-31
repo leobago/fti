@@ -1,43 +1,123 @@
+/** Copyright (c) 2017 Leonardo A. Bautista-Gomez All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran
+ *  applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
+ *  documentation and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its
+ *  contributors may be used to endorse or promote products derived from
+ *  this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @author Kai Keller (kellekai@gmx.de) @file   stage.c @date   July,
+ *  2018 @brief  helper functions for the FTI staging feature.
+ */
+
 #include "interface.h"
 
-/* TODO
+/**
+ * @todo
  * (1)  supply function to remove all files from staging folder.
- * (2)  add flag to FTI_SendFile( ..., FTI_SI_RM ) that indicates if the local file
- *      shall be deleted at success or failure.
+ * @par
+ * (2)  add flag to FTI_SendFile( ..., FTI_SI_RM ) that indicates if the
+ * local file shall be deleted at success or failure.
+ * @par
+ * (3)  implement an interrupt for the staging process of the heads in
+ * order to allow the heads to process the checkpoints as soon as
+ * requested.
+ **/
+
+/* @note 
+ * The status variable is assumed to be written in an atomic operation
+ * since it is a 8-bit data type
+ * (https://stackoverflow.com/questions/24931456/how-does-sig-atomic-t-actually-work)
+ * @par
+ * However, we need to assure, that operations that consist of multiple
+ * instructions are performed on a copy of the status field. The final
+ * value of the copy is then assigned to the  original status field
+ * variable in memory.
+ *
  */
 
-/* NOTE: 
+/** 
+ * @brief Look-up table for the stage info request array elements. 
  *
- * The status variable is assumed to be written in an atomic operation since it is
- * a 32-bit data type (https://stackoverflow.com/questions/24931456/how-does-sig-atomic-t-actually-work)
- *
- * Therefor we do not use MPI_Accumulate with MPI_REPLACE operation (which ensures to replace each 
- * element in an atomic operation).
- * 
- * However, we need to assure, that operations that consist of multiple instructions are performed
- * on a copy of the status field. The final value of the copy is then assigned to the  original 
- * status field variable in memory.
- *
- */
-
-// location of ID corresponding request array element (rank local)
+ * The elements of the array, 'idxRequest', keep informations about 'ID'
+ * at 'idxRequest[ID]'.  These are a flag if for 'ID' exists an
+ * allocated request element and if, the index of the ID corresponding
+ * element fo 'FTI_Exec->stageInfo->request'. The two fields may be
+ * requested by 'FTI_GetRequestFiled' and may be set by
+ * 'FTI_SetRequestField'. The most significant 19 bits hold the indices
+ * and the 20th bit holds a flag that indicates if the ID has a
+ * corresponding request structure allocated. the bits 21 to 32 are
+ * free. Only the application ranks allocate memory for this field. The
+ * head processes use a linear search to locate the 'ID' corresponding
+ * request element.
+ **/
 static uint32_t *idxRequest;
-static uint8_t *status;                    /**< status of request              */
+
+/** 
+ * @brief holds status of the user requested staging action. 
+ *
+ * this variable is a contiguous memory region partitioned into
+ * 'FTI_SI_MAX_NUM' 8 bit fields. The elements of the region are
+ * assigned to the corresponding 'ID' at 'status[ID]'. The first
+ * significant bit of the status field keeps a flag that indicates
+ * whether the 'ID' is available and the next 3 bits encode 5 statuses;
+ * 'not initialized', 'pending', 'active', 'failed' or 'success'. Only
+ * the application ranks allocate memory for this field (the heads never
+ * request staging). However, the field is exposed to all the ranks on
+ * the common node using a shared memory MPI window. Since the staging
+ * is supposed to operate asynchronously, this allows the dedicated
+ * process to set the proper status 'remotely'.     
+**/
+static uint8_t *status;
+
+/** 
+ * @brief shared memory window to query the status field address. 
+ **/
 static MPI_Win stageWin;
 
+/** 
+ * @brief pointer to FTI_Conf->stagingEnabled (set in 'FTI_InitStage'). 
+ **/
 bool *enableStagingPtr;
 
-int FTI_GetRequestIdx( int ID ) {
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the FTI staging feature
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
 
-    char str[FTI_BUFS];
-
-    if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
-        return FTI_GetRequestField( ID, FTI_SIF_IDX );
-    } else {
-        return -1;
-    }
-}
-
+  This function allocates memory for the 'idxRequest' and 'status'
+  fields, creates a node communicator and an MPI shared memory window.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_topology *FTI_Topo ) 
 {
     
@@ -142,6 +222,20 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes new stage meta info element (application rank)
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      integer         'ID' of staging request
+
+  This function appends a new staging meta info element for the
+  application ranks to 'FTI_Exec->stageInfo->request'. Beside that it
+  also initializes the status field (status -> pending) corresponding to
+  'ID' and assigns the proper index of the meta info element to the 'ID'
+  corresponding 'idxRequest' field. 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, uint32_t ID ) 
 {
    
@@ -176,6 +270,22 @@ int FTI_InitStageRequestApp( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, 
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes new stage meta info element (head rank)
+  @param      string          'lpath', absolute path of local file
+  @param      string          'rpath', absolute path of remote file
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      integer         'source', application rank of stage request
+  @param      integer         'ID' of staging request
+  @return     'FTI_SCES' on success, 'FTI_NSCS' else.  
+
+  This function appends a new staging meta info element for the
+  head ranks to 'FTI_Exec->stageInfo->request'. Beside that it
+  also changes the status field corresponding to 'ID' (status -> active).
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec, 
         FTIT_topology *FTI_Topo, int source, uint32_t ID ) 
 {
@@ -211,6 +321,20 @@ int FTI_InitStageRequestHead( char* lpath, char *rpath, FTIT_execution *FTI_Exec
     
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      frees stage meta info element (head/application rank)
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      integer         'ID' of staging request
+  @param      integer         'source', application rank of stage request
+
+  This function eliminates the 'ID' corresponding element from the stage
+  meta info array and frees the corresponding memory. In the application
+  ranks it also reorders the index information in the 'idxRequestÄ array
+  corresponding to 'ID'. 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ) 
 { 
 
@@ -342,7 +466,42 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
 
 }
 
-int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID ) 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      returns the index of desired stage meta info element.
+  @param      integer         'ID' of staging request
+  @return     index if 'ID' corresponding meta info structure was allocated
+              -1, else.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetRequestIdx( int ID ) {
+
+    char str[FTI_BUFS];
+
+    if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
+        return FTI_GetRequestField( ID, FTI_SIF_IDX );
+    } else {
+        return -1;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function synchronously stages the local file to the PFS.
+  @param      string          'lpath', absolute path of local file
+  @param      string          'rpath', absolute path of remote file
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      integer         'ID' of staging request
+  @return     'FTI_SCES' on success, 'FTI_NSCS' else.  
+
+  This function should be called only if the staging feature is enabled
+  without the head process being enabled. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, 
+        FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID ) 
 {
     
     if ( !FTI_SI_ENABLED ) {
@@ -453,6 +612,23 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec, FTIT_topo
     return FTI_SCES;
 
 }
+
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      This function triggers the asynchronous stage.
+  @param      string          'lpath', absolute path of local file
+  @param      string          'rpath', absolute path of remote file
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      integer         'ID' of staging request
+  @return     'FTI_SCES' on success, 'FTI_NSCS' else.
+
+  This function uses a non-blocking send (MPI_Isend) in order to pass
+  the information that is needed by the head process to perform an
+  asynchronous staging of the local file to the PFS. 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf, 
         FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID ) {
     
@@ -491,6 +667,18 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      This function asynchronously stages the local file to the PFS.
+  @param      string          'lpath', absolute path of local file.
+  @param      string          'rpath', absolute path of remote file.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      integer         'source', application rank of stage request.
+  @return     'FTI_SCES' on success, 'FTI_NSCS' else.  
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source)
 {      
@@ -638,6 +826,14 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      Returns value from the 'idxRequest' field array at 'ID'.
+  @param      integer           'ID' of staging request
+  @param      FTIT_StatusField  requested field
+  @return     Field value on success, 'FTI_NSCS' else.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetRequestField( int ID, FTIT_StatusField val ) 
 {
 
@@ -667,6 +863,15 @@ int FTI_GetRequestField( int ID, FTIT_StatusField val )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      Sets value of the 'idxRequest' field array at 'ID'.
+  @param      integer           'ID' of staging request
+  @param      integer           'entry', new value of field
+  @param      FTIT_StatusField  requested field
+  @return     'entry' on success, 'FTI_NSCS' else.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
 {
 
@@ -717,6 +922,17 @@ int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
     
 }
     
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      Returns value from the 'status' field array at 'ID'.
+  @param      FTI_Exec          Execution metadata.
+  @param      FTI_Topo          Topology metadata.
+  @param      integer           'ID' of staging request
+  @param      FTIT_StatusField  requested field
+  @param      integer           'source', application rank of stage request. 
+  @return     Field value on success, 'FTI_NSCS' else.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, FTIT_StatusField val, int source ) 
 {   
     
@@ -749,6 +965,18 @@ int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      Sets value from the 'status' field array at 'ID'.
+  @param      FTI_Exec          Execution metadata.
+  @param      FTI_Topo          Topology metadata.
+  @param      integer           'ID' of staging request
+  @param      integer           'entry', new value of field
+  @param      FTIT_StatusField  requested field
+  @param      integer           'source', application rank of stage request. 
+  @return     'entry' value on success, 'FTI_NSCS' else.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, uint8_t entry, FTIT_StatusField val, int source )
 {
 
@@ -801,7 +1029,14 @@ int FTI_SetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
 
 }
 
-// stage request counter returns -1 if too many requests.
+/*-------------------------------------------------------------------------*/
+/**            
+  @brief      Returns unique 'ID' for staging request.
+  @param      FTI_Exec          Execution metadata.
+  @param      FTI_Topo          Topology metadata.
+  @return     'ID' on success, -1 else.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetRequestID( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo ) 
 {
 

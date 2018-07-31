@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     char **fn_local = (char**) malloc( sizeof(char*) * FTI_BUFS );
     char **fn_global = (char**) malloc( sizeof(char*) * FTI_BUFS );
     if ( serr == FTI_SCES ) {
-        if ( (rank == 0) || (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) {
+        if ( rank%4==0 ) {
             for( jj=0; jj<NUM_FILES; ++jj ) {
                 fn_local[jj] = (char*)malloc( FTI_BUFS );
                 fn_global[jj] = (char*)malloc( FTI_BUFS );
@@ -170,12 +170,14 @@ int main(int argc, char *argv[])
     bool printed = false;
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
-        if (((rank == 0)|| (rank == 1) || (rank==3) || (rank==9) || (rank==13) || (rank==20) ) && (i%40 == 0) && !(i==0) && serr==FTI_SCES ) {
+        if ( (rank%4==0) && (i%40==0) && !(i==0) && serr==FTI_SCES ) {
             bool all_finished = true;
             for ( jj=0; jj<reqcnt; ++jj ) {
                 int res = FTI_GetStageStatus( fti_req[jj] );
-                printf( "| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(res) );
-                if ( (res != FTI_SI_SCES) || (res != FTI_SI_FAIL) ) {
+                if ( res != FTI_SI_NINI ) {
+                    printf( "| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(res) );
+                }
+                if ( (res == FTI_SI_ACTV) || (res == FTI_SI_PEND) ) {
                     all_finished = false;
                 }
             }
