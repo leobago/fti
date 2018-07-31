@@ -63,6 +63,8 @@
  *
  */
 
+static MPI_Datatype buf_t;
+
 /** 
  * @brief Look-up table for the stage info request array elements. 
  *
@@ -126,6 +128,9 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
         return FTI_NSCS;
     }
 
+    MPI_Type_contiguous( 2*FTI_BUFS + sizeof(int), MPI_BYTE, &buf_t );
+    MPI_Type_commit( &buf_t );
+    
     // memory window size
     size_t win_size = FTI_SI_MAX_NUM * sizeof(uint8_t) * !(FTI_Topo->amIaHead);
     
@@ -362,8 +367,7 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
 
         // if last element in array, we just need to truncate the array.
         if ( idx == (FTI_Exec->stageInfo->nbRequest-1) ) {
-            void *ptr_cpy = ptr;
-            void *buf_ptr = ptr->sendBuf;
+            void *buf_ptr = ptr[idx].sendBuf;
             ptr = realloc( ptr, type_size * (FTI_Exec->stageInfo->nbRequest-1) );
             if ( (ptr == NULL) && (FTI_Exec->stageInfo->nbRequest > 1) ) {
                 FTI_Print( "failed to allocate memory for 'ptr' in 'FTI_FreeStageRequest'", FTI_EROR );
@@ -375,6 +379,7 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
         } 
         // if not last element, we need to truncate array and move elements (before truncation)
         else {
+            void *buf_ptr = ptr[idx].sendBuf;
             void *dest = &ptr[idx];
             void *dest_cpy = malloc( type_size );
             if ( dest_cpy == NULL ) {
@@ -393,6 +398,7 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
                 free( dest_cpy);
                 return FTI_NSCS;
             }
+            free( buf_ptr );
             free( dest_cpy );
             FTI_Exec->stageInfo->request = (void*)ptr;
             --FTI_Exec->stageInfo->nbRequest;
@@ -638,7 +644,6 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     }
 
     int idx = FTI_GetRequestField( ID, FTI_SIF_IDX );
-    
     // serialize request before sending to the head
     void *buf_ser = malloc ( 2*FTI_BUFS + sizeof(int) );
     if ( buf_ser == NULL ) {
@@ -652,9 +657,6 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     pos += FTI_BUFS;
     memcpy( buf_ser + pos, &ID, sizeof(int) );   
     pos += sizeof(int);
-    MPI_Datatype buf_t;
-    MPI_Type_contiguous( pos, MPI_BYTE, &buf_t );
-    MPI_Type_commit( &buf_t );
    
     // send request to head
     MPI_Request *mpiReq = &(FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].mpiReq);
@@ -662,7 +664,6 @@ int FTI_AsyncStage( char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
     
     // keep send buffer until it may be freed (MPI_Test check in 'FTI_GetStageStatus') 
     FTI_SI_APTR(FTI_Exec->stageInfo->request)[idx].sendBuf = buf_ser;
-    MPI_Type_free( &buf_t );
 
     return FTI_SCES;
 }
@@ -687,6 +688,9 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         FTI_Print( "Staging disabled, invalid call to 'FTI_HandleStageRequest'", FTI_WARN );
         return FTI_NSCS;
     }
+    
+    //static int ccnt = 0;
+    //printf("[start] rank %d, call:%d\n", FTI_Topo->myRank, ccnt);
 
     char errstr[FTI_BUFS];
  
@@ -696,11 +700,9 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         FTI_Print( "failed to allocate memory for 'buf_ser' in FTI_HandleStageRequest", FTI_EROR );
         return FTI_NSCS; 
     }
-    MPI_Datatype buf_t;
-    MPI_Type_contiguous( buf_ser_size, MPI_CHAR, &buf_t );
-    MPI_Type_commit( &buf_t );
+    
     MPI_Recv( buf_ser, 1, buf_t, source, FTI_Conf->stageTag, FTI_Exec->nodeComm, MPI_STATUS_IGNORE );
-  
+    
     // set local file path
     char lpath[FTI_BUFS];
     char rpath[FTI_BUFS];
@@ -712,8 +714,7 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     int ID = *(int*)(buf_ser+2*FTI_BUFS);
     
     free( buf_ser );
-    MPI_Type_free( &buf_t );
-
+    
     // init Head staging meta data
     if ( FTI_InitStageRequestHead( lpath, rpath, FTI_Exec, FTI_Topo, source, ID ) != FTI_SCES ) {
         FTI_Print( "failed to initialize stage request meta info!", FTI_WARN );
@@ -823,6 +824,9 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_SCES, FTI_SIF_VAL, source );
     FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
 
+    //printf("[end] rank %d, call:%d\n", FTI_Topo->myRank, ccnt);
+    //ccnt++;
+    
     return FTI_SCES;
 }
 
@@ -1058,6 +1062,7 @@ int FTI_GetRequestID( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo )
             if ( FTI_GetStatusField( FTI_Exec, FTI_Topo, i, FTI_SIF_AVL, FTI_Topo->nodeRank ) == FTI_SI_IAVL ) {
                 ID = i;
                 FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_NAVL, FTI_SIF_AVL, FTI_Topo->nodeRank );
+                break;
             }
         }
     }

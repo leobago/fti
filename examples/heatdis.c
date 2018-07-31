@@ -125,18 +125,18 @@ int main(int argc, char *argv[])
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
-    int fti_req[FTI_BUFS];
+    int fti_req[1024L*512L];
     int reqcnt = 0;
 
     char s_dir[FTI_BUFS];
     int serr = FTI_GetStageDir( s_dir, FTI_BUFS );
     
     int jj;
-    const int NUM_FILES = 1;
-    char **fn_local = (char**) malloc( sizeof(char*) * FTI_BUFS );
-    char **fn_global = (char**) malloc( sizeof(char*) * FTI_BUFS );
+    const int NUM_FILES = 1000;
+    char **fn_local = (char**) malloc( sizeof(char*) * NUM_FILES );
+    char **fn_global = (char**) malloc( sizeof(char*) * NUM_FILES );
     if ( serr == FTI_SCES ) {
-        if ( rank%4==0 ) {
+        if ( rank%1==0 ) {
             for( jj=0; jj<NUM_FILES; ++jj ) {
                 fn_local[jj] = (char*)malloc( FTI_BUFS );
                 fn_global[jj] = (char*)malloc( FTI_BUFS );
@@ -145,14 +145,25 @@ int main(int argc, char *argv[])
                 fn_local[jj][FTI_BUFS-1]='\0';
                 fn_global[jj][FTI_BUFS-1]='\0';
                 FILE *fd = fopen( fn_local[jj], "w+" );
+                fsync(fileno(fd));
                 fclose( fd );
-                truncate( fn_local[jj], 1024L*1024L*512L );
-                char tmp = *(fn_local[jj]+strlen(s_dir)); 
-                if( (rank == 0) && (jj == 0) ) {
-                    *(fn_local[jj]+strlen(s_dir)) = 'G';
-                }
+                truncate( fn_local[jj], 1024L );
+//                usleep(200000);
+                //char tmp = *(fn_local[jj]+strlen(s_dir)); 
+                //if( (rank == 0) && (jj == 0) ) {
+                //    *(fn_local[jj]+strlen(s_dir)) = 'G';
+                //}
+                //fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
+                //*(fn_local[jj]+strlen(s_dir)) = tmp;
+            }
+            for( jj=0; jj<NUM_FILES; ++jj ) {
                 fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
-                *(fn_local[jj]+strlen(s_dir)) = tmp;
+                usleep(30000);
+                int kk;
+                printf("last ID: %d\n", fti_req[reqcnt-1]);
+                for( kk=0; kk<reqcnt; ++kk ){
+                    FTI_GetStageStatus( fti_req[kk] );
+                }
             }
         }
     }
@@ -170,12 +181,12 @@ int main(int argc, char *argv[])
     bool printed = false;
     wtime = MPI_Wtime();
     for (i = 0; i < ITER_TIMES; i++) {
-        if ( (rank%4==0) && (i%40==0) && !(i==0) && serr==FTI_SCES ) {
+        if ( (rank%1==0) && (i%1==0) && !(i==0) && serr==FTI_SCES ) {
             bool all_finished = true;
             for ( jj=0; jj<reqcnt; ++jj ) {
                 int res = FTI_GetStageStatus( fti_req[jj] );
                 if ( res != FTI_SI_NINI ) {
-                    printf( "| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(res) );
+                    //printf( "| [rank:%02d|iter:%d] STAGING STATUS -> %s\t\t|\n", rank, i, status_string(res) );
                 }
                 if ( (res == FTI_SI_ACTV) || (res == FTI_SI_PEND) ) {
                     all_finished = false;
@@ -193,10 +204,16 @@ int main(int argc, char *argv[])
                     fn_global[jj][FTI_BUFS-1]='\0';
                     FILE *fd = fopen( fn_local[jj], "w+" );
                     fclose( fd );
-                    truncate( fn_local[jj], 1024L*1024L*512L );
+                    truncate( fn_local[jj], 1024L );
                 }
                 for ( jj=0; jj<NUM_FILES; ++jj ) {
                     fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj]);
+                    usleep(30000);
+                    int kk;
+                    printf("last ID: %d\n", fti_req[reqcnt-1]);
+                    for( kk=0; kk<reqcnt; ++kk ){
+                        FTI_GetStageStatus( fti_req[kk] );
+                    }
                 }
             }
 

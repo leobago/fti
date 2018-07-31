@@ -42,6 +42,7 @@
 
 #include <string.h>
 
+#include <unistd.h>
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -363,7 +364,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } 
 
         if ( stage_flag ) {
-
+            
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]

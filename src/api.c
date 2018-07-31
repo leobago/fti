@@ -1273,6 +1273,10 @@ int FTI_Finalize()
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.finalTag, FTI_Exec.globalComm);
     }
+    
+    // for staging, we have to ensure, that the call to FTI_Clean 
+    // comes after the heads have written all the staging files.
+    MPI_Barrier(FTI_Exec.globalComm);
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
@@ -1318,7 +1322,6 @@ int FTI_Finalize()
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
-    MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
 }
