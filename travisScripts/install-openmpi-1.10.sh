@@ -5,5 +5,5 @@ cd openmpi-1.10.7
 bash ./configure --prefix=$HOME/openmpi-1.10
 make -j
 sudo make install
-export PATH="$PATH:$HOME/openmpi-1.10/bin"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/openmpi-1.10/lib/"
+export PATH=$PATH:$HOME/openmpi-1.10/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/openmpi-1.10/lib/
