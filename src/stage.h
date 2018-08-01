@@ -68,5 +68,6 @@ int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val );
 int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
 void FTI_PrintStageStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source ); 
 int FTI_GetRequestIdx( int ID );
+void FTI_FinalizeStage( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf ); 
 
 #endif

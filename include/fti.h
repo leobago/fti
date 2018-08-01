@@ -364,7 +364,6 @@ extern "C" {
 #endif
         int             ckptTag;            /**< MPI tag for ckpt requests.     */
         int             stageTag;           /**< MPI tag for staging comm.      */
-        int             infoTag;            /**< MPI tag for check comm.        */
         int             finalTag;           /**< MPI tag for finalize comm.     */
         int             generalTag;         /**< MPI tag for general comm.      */
         int             test;               /**< TRUE if local test.            */

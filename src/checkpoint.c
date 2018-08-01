@@ -327,38 +327,25 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 
-    MPI_Status ckpt_status;         int ckpt_flag;
-    MPI_Status stage_status;        int stage_flag;
-    MPI_Status info_status;         int info_flag;
-    MPI_Status finalize_status;     int finalize_flag;
+    MPI_Status ckpt_status;         int ckpt_flag = 0;
+    MPI_Status stage_status;        int stage_flag = 0;
+    MPI_Status finalize_status;     int finalize_flag = 0;
 
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
 
         FTI_Print("Head waits for message...", FTI_DBUG);
 
-        // TODO maybe useful to implement a mutex here to avoid 100% cpu usage
-
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->ckptTag, FTI_Exec->globalComm, &ckpt_flag, &ckpt_status );
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->stageTag, FTI_Exec->nodeComm, &stage_flag, &stage_status );
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->infoTag, FTI_Exec->nodeComm, &info_flag, &info_status );
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
-
-        if ( info_flag ) {
-
-            // These are requests of app ranks about the status of the staging process.
-            // May be extended for checkpoint status requests.
-            // (treated first, since very fast)
-            FTI_HandleInfoRequest ( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );  
-            continue;
-
-        } 
 
         if( ckpt_flag ) {
 
             // head will process the whole checkpoint
             // (treated second due to priority)
             FTI_HandleCkptRequest( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+            ckpt_flag = 0;
             continue;
 
         } 
@@ -369,47 +356,52 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
             FTI_HandleStageRequest( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, stage_status.MPI_SOURCE );
+            stage_flag = 0;
             continue;
 
         } 
 
-        // the 'continue' statement ensures that we first process all requests,
-        // send by the app processes.
-
-        // 
+        // the 'continue' statement ensures that we first process all
+        // checkpoint and staging request before we call finalize.
         if ( finalize_flag ) {
-            char str[FTI_BUFS]; //For console output
-            int flags[7]; //Increment index if get corresponding value from application process
-            //(index (1 - 4): checkpoint level; index 5: stops head; index 6: reject checkpoint)
-            int i;
-            for (i = 0; i < 7; i++) { // Initialize flags
-                flags[i] = 0;
-            }
+            
+            char str[FTI_BUFS];
             FTI_Print("Head waits for message...", FTI_DBUG);
+            
+            int val = 0, i;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
-                MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], 3107, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->finalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
                 snprintf(str, FTI_BUFS, "The head received a %d message", buf);
                 FTI_Print(str, FTI_DBUG);
-                flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
+                val += buf;
             }
-            for (i = 1; i < 7; i++) {
-                if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
-                    FTI_Exec->ckptLvel = i;
-                }
+
+            val /= FTI_Topo->nbApprocs;
+
+            if ( val != FTI_ENDW) { // If we were asked to finalize
+                FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
             }
-            if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
-                FTI_Print("Head stopped listening.", FTI_DBUG);
-                FTI_Finalize();
-            }
-            //FTI_Print("Head stopped listening.", FTI_DBUG);
-            //FTI_Finalize();
+            
+            FTI_Print("Head stopped listening.", FTI_DBUG);
+            FTI_Finalize();
+
         }
 
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      handles checkpoint requests from application ranks (if head).
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
@@ -435,10 +427,6 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     }
     if (flags[6] > 0) {
         FTI_Exec->ckptLvel = 6;
-    }
-    if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
-        FTI_Print("Head stopped listening.", FTI_DBUG);
-        FTI_Finalize();
     }
 
     // FTI-FF: receive meta data information from the application ranks.
@@ -489,95 +477,6 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     return FTI_SCES;
 }
 
-int FTI_HandleInfoRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
-    return FTI_SCES;
-}
-
-
-
-//int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-//        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-//{
-//    FTI_Print("Head starts listening...", FTI_DBUG);
-//    while (1) { //heads can stop only by receiving FTI_ENDW
-//        char str[FTI_BUFS]; //For console output
-//        int flags[7]; //Increment index if get corresponding value from application process
-//        //(index (1 - 4): checkpoint level; index 5: stops head; index 6: reject checkpoint)
-//        int i;
-//        for (i = 0; i < 7; i++) { // Initialize flags
-//            flags[i] = 0;
-//        }
-//        FTI_Print("Head waits for message...", FTI_DBUG);
-//        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
-//            int buf;
-//            MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-//            snprintf(str, FTI_BUFS, "The head received a %d message", buf);
-//            FTI_Print(str, FTI_DBUG);
-//            flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
-//        }
-//        for (i = 1; i < 7; i++) {
-//            if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
-//                FTI_Exec->ckptLvel = i;
-//            }
-//        }
-//        if (flags[6] > 0) {
-//            FTI_Exec->ckptLvel = 6;
-//        }
-//        if (FTI_Exec->ckptLvel == 5) { // If we were asked to finalize
-//            FTI_Print("Head stopped listening.", FTI_DBUG);
-//            FTI_Finalize();
-//        }
-//
-//        // FTI-FF: receive meta data information from the application ranks.
-//        if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
-//
-//            // init headInfo
-//            FTIFF_headInfo *headInfo;
-//            headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
-//
-//            int k;
-//            for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
-//                k = i+1;
-//                MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-//                FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
-//                FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
-//                FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
-//                FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
-//                FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
-//                MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-//                MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-//                strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
-//                sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
-//            }
-//            strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
-//
-//            free(headInfo);
-//
-//        }
-//
-//        //Check if checkpoint was written correctly by all processes
-//        int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
-//        int allRes;
-//        MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-//        if (allRes == FTI_SCES) { //If checkpoint was written correctly do post-processing
-//            res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
-//            if (res == FTI_SCES) {
-//                res = FTI_Exec->ckptLvel; //return ckptLvel if post-processing succeeds
-//            }
-//        }
-//        else {  //If checkpoint wasn't written correctly
-//            FTI_Print("Checkpoint have not been witten correctly. Discarding current checkpoint...", FTI_WARN);
-//            FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
-//            res = FTI_NSCS;
-//        }
-//        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
-//            MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->tag, FTI_Exec->globalComm);
-//        }
-//    }
-//}
-//
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes ckpt to PFS using POSIX.

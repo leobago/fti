@@ -158,12 +158,12 @@ int main(int argc, char *argv[])
             }
             for( jj=0; jj<NUM_FILES; ++jj ) {
                 fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj] );
-                usleep(30000);
-                int kk;
-                printf("last ID: %d\n", fti_req[reqcnt-1]);
-                for( kk=0; kk<reqcnt; ++kk ){
-                    FTI_GetStageStatus( fti_req[kk] );
-                }
+                //usleep(30000);
+                //int kk;
+                //printf("last ID: %d\n", fti_req[reqcnt-1]);
+                //for( kk=0; kk<reqcnt; ++kk ){
+                //    FTI_GetStageStatus( fti_req[kk] );
+                //}
             }
         }
     }
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
                 printf("| [rank:%02d|iter:%d] ALL STAGING REQUEST COMPLETED\t|\n", rank, i);
                 printed = true;
             }
-            if ( i == 40 ) {
+            if ( i%1000 == 0 ) {
                 for( jj=0; jj<NUM_FILES; ++jj ) {
                     snprintf( fn_local[jj], FTI_BUFS, "%s/file-%d-%d-%d", s_dir, i, jj, rank );
                     snprintf( fn_global[jj], FTI_BUFS, "./file-%d-%d-%d", i, jj, rank );
@@ -208,12 +208,11 @@ int main(int argc, char *argv[])
                 }
                 for ( jj=0; jj<NUM_FILES; ++jj ) {
                     fti_req[reqcnt++] = FTI_SendFile( fn_local[jj], fn_global[jj]);
-                    usleep(30000);
-                    int kk;
-                    printf("last ID: %d\n", fti_req[reqcnt-1]);
-                    for( kk=0; kk<reqcnt; ++kk ){
-                        FTI_GetStageStatus( fti_req[kk] );
-                    }
+                    //usleep(30000);
+                    //int kk;
+                    //for( kk=0; kk<reqcnt; ++kk ){
+                    //    FTI_GetStageStatus( fti_req[kk] );
+                    //}
                 }
             }
 

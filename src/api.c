@@ -1252,6 +1252,9 @@ int FTI_Finalize()
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
+        if ( FTI_Conf.stagingEnabled ) {
+            FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+        }
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
@@ -1276,7 +1279,10 @@ int FTI_Finalize()
     
     // for staging, we have to ensure, that the call to FTI_Clean 
     // comes after the heads have written all the staging files.
-    MPI_Barrier(FTI_Exec.globalComm);
+    // Thus FTI_FinalizeStage is blocking on global communicator.
+    if ( FTI_Conf.stagingEnabled ) {
+        FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+    }
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if (FTI_Conf.saveLastCkpt && FTI_Exec.ckptID > 0) {
@@ -1322,6 +1328,7 @@ int FTI_Finalize()
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
+    MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
 }

@@ -63,6 +63,7 @@
  *
  */
 
+/** MPI derived datatype to send staging info   */
 static MPI_Datatype buf_t;
 
 /** 
@@ -107,7 +108,7 @@ static MPI_Win stageWin;
 /** 
  * @brief pointer to FTI_Conf->stagingEnabled (set in 'FTI_InitStage'). 
  **/
-bool *enableStagingPtr;
+static bool *enableStagingPtr;
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -226,6 +227,79 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
     }
     
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes staging feature
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Conf        Configuration metadata.
+
+  This function frees allocated ressources, removes local staging files
+  and the staging directory and destroys the node communicator
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_FinalizeStage( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf ) 
+{
+
+    // free request structures
+    // NOTE: the heads should already have freed all the ressources during the execution.
+    if ( FTI_Topo->amIaHead ) {
+        
+        int i = 0;
+        for( ; i<FTI_Topo->nbApprocs; ++i ) {
+            int nbRequest = FTI_Exec->stageInfo[i].nbRequest; 
+            if ( nbRequest ) {
+                free( FTI_Exec->stageInfo[i].request );
+            }
+        }
+
+    } else {
+
+        int nbRequest = FTI_Exec->stageInfo->nbRequest;
+        FTIT_StageAppInfo *ptr = FTI_SI_APTR( FTI_Exec->stageInfo->request );
+        if ( nbRequest ) {
+            int i = 0;
+            for ( ; i<nbRequest; ++i ) {
+                free( ptr[i].sendBuf );
+            }
+            free( ptr );
+        }
+
+    }
+    
+    // ensure that before removing local files, all is on the PFS.
+    MPI_Barrier( FTI_Exec->nodeComm );
+    
+    // remove staging directory and all the staging files.
+    FTI_RmDir(FTI_Conf->stageDir, FTI_Topo->amIaHead);
+
+    // ensure that before removing local directory, all staging files
+    // are removed.
+    MPI_Barrier( FTI_Exec->globalComm );
+    
+    // free stage info
+    free( FTI_Exec->stageInfo );
+
+    // free idxRequest field array
+    free( idxRequest );
+   
+    // free window 
+    // NOTE: this also releases the ressources for the status field array
+    MPI_Win_free( &stageWin );
+   
+    // free mpi type
+    MPI_Type_free( &buf_t );
+    
+    // destroy node comm
+    MPI_Comm_free( &FTI_Exec->nodeComm );
+    
+    FTI_DISABLE_STAGING;
+
+}
+    
+
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -688,9 +762,6 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         FTI_Print( "Staging disabled, invalid call to 'FTI_HandleStageRequest'", FTI_WARN );
         return FTI_NSCS;
     }
-    
-    //static int ccnt = 0;
-    //printf("[start] rank %d, call:%d\n", FTI_Topo->myRank, ccnt);
 
     char errstr[FTI_BUFS];
  
@@ -823,9 +894,6 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
  
     FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_SCES, FTI_SIF_VAL, source );
     FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
-
-    //printf("[end] rank %d, call:%d\n", FTI_Topo->myRank, ccnt);
-    //ccnt++;
     
     return FTI_SCES;
 }

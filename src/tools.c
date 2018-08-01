@@ -114,7 +114,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
     /* int           */ FTI_Conf->ckptTag               =0;
     /* int           */ FTI_Conf->stageTag              =0;
-    /* int           */ FTI_Conf->infoTag               =0;
     /* int           */ FTI_Conf->finalTag              =0;
     /* int           */ FTI_Conf->generalTag            =0;
     /* int           */ FTI_Conf->test                  =0;
@@ -788,9 +787,6 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
     // If it is the very last cleaning and we DO NOT keep the last checkpoint
     if (level == 5) {
-        if ( FTI_Conf->stagingEnabled ) {
-            FTI_RmDir(FTI_Conf->stageDir, nodeFlag);
-        }
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
         rmdir(FTI_Conf->glbalDir);
@@ -806,9 +802,6 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
     // If it is the very last cleaning and we DO keep the last checkpoint
     if (level == 6) {
-        if ( FTI_Conf->stagingEnabled ) {
-            FTI_RmDir(FTI_Conf->stageDir, nodeFlag);
-        }
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
     }
