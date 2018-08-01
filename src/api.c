@@ -527,8 +527,6 @@ int FTI_SendFile( char* lpath, char *rpath )
         return FTI_NSCS;
     }
 
-    char errstr[FTI_BUFS];
-
     int ID = FTI_NSCS;
     
     // discard if path is NULL

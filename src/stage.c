@@ -33,8 +33,10 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  @author Kai Keller (kellekai@gmx.de) @file   stage.c @date   July,
- *  2018 @brief  helper functions for the FTI staging feature.
+ *  @author Kai Keller (kellekai@gmx.de) 
+ *  @file   stage.c 
+ *  @date   July, 2018 
+ *  @brief  helper functions for the FTI staging feature.
  */
 
 #include "interface.h"
@@ -225,6 +227,8 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
             FTI_Print("Cannot create stage directory", FTI_EROR);
         }
     }
+
+    return FTI_SCES;
     
 }
 
@@ -422,9 +426,6 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
         return FTI_NSCS;
     }
 
-    int status;
-    status = FTI_GetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SIF_VAL, source );  
-
     if ( !FTI_Topo->amIaHead ) {
         
         // if request already free, just return
@@ -555,8 +556,6 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_GetRequestIdx( int ID ) {
-
-    char str[FTI_BUFS];
 
     if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
         return FTI_GetRequestField( ID, FTI_SIF_IDX );
@@ -906,7 +905,7 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
   @return     Field value on success, 'FTI_NSCS' else.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetRequestField( int ID, FTIT_StatusField val ) 
+int FTI_GetRequestField( int ID, FTIT_RequestField val ) 
 {
 
     if ( !FTI_SI_ENABLED ) {
@@ -933,6 +932,8 @@ int FTI_GetRequestField( int ID, FTIT_StatusField val )
 
     }
 
+    __builtin_unreachable();
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -944,7 +945,7 @@ int FTI_GetRequestField( int ID, FTIT_StatusField val )
   @return     'entry' on success, 'FTI_NSCS' else.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SetRequestField( int ID, uint32_t entry, FTIT_StatusField val )
+int FTI_SetRequestField( int ID, uint32_t entry, FTIT_RequestField val )
 {
 
     if ( !FTI_SI_ENABLED ) {
@@ -1034,6 +1035,8 @@ int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
             return ((int)(status_cpy & avl_mask));
 
     }
+
+    __builtin_unreachable();
 
 }
 
