@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     int serr = FTI_GetStageDir( s_dir, FTI_BUFS );
     
     int jj;
-    const int NUM_FILES = 1000;
+    const int NUM_FILES = 2500;
     char **fn_local = (char**) malloc( sizeof(char*) * NUM_FILES );
     char **fn_global = (char**) malloc( sizeof(char*) * NUM_FILES );
     if ( serr == FTI_SCES ) {
