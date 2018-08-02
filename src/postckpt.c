@@ -589,7 +589,7 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
             }
         } else {
             int i;
-            for ( i=0; i<FTI_Topo->nbApprocs; ++i ) {
+            for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
                 snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS] ); 
                 snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS] ); 
                 if ( rename(fn_from,fn_to) != 0 ) {

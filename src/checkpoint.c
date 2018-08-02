@@ -275,8 +275,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         strncpy(FTI_Exec->meta[0].currentCkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
     } else {
         int i;
-        for( i=0; i<FTI_Topo->nbApprocs; ++i ) {
-            strncpy(&FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS], &FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile[i * FTI_BUFS], FTI_BUFS);
+        for( i=1; i<FTI_Topo->nodeSize; ++i ) {
+            strncpy(&FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS], &FTI_Exec->meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
         }
     }
 
