@@ -475,7 +475,7 @@ int main(int argc, char** argv) {
         dictionary* ini = iniparser_load(argv[1]);
         int heads = (int)iniparser_getint(ini, "Basic:head", -1);
         int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-        int tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
+        int tag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
         int res;
         if (checkpoint_level != 1) {
             int isInline = -1;
