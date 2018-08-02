@@ -40,14 +40,28 @@
 #ifndef _FTIFF_H
 #define _FTIFF_H
 
+#include "fti.h"
+#ifndef FTI_NOZLIB
+#   include "zlib.h"
+#endif
+#include <assert.h>
+#include <string.h>
+
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-#include "fti.h"
-#include <assert.h>
+#define DBG_MSG(MSG,RANK,...) do { \
+    int rank; \
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
+    if ( rank == RANK ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+    if ( RANK == -1 ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+} while (0)
 
 /**
 
@@ -56,6 +70,15 @@
   +-------------------------------------------------------------------------+
 
  **/
+
+/** @typedef    dcpBLK_t
+ *  @brief      unsigned short (0 - 65535).
+ *  
+ *  Type that keeps the block sizes inside the hash meta data. 
+ *  unsigned short is a trade off between memory occupation and block 
+ *  size range.
+ */
+typedef unsigned short dcpBLK_t;
 
 /** @typedef    FTIFF_headInfo
  *  @brief      Runtime meta info for the heads.
@@ -71,6 +94,7 @@ typedef struct FTIFF_headInfo {
     long maxFs;
     long fs;
     long pfs;
+    int isDcp;
 } FTIFF_headInfo;
 
 /** @typedef    FTIFF_L2Info
@@ -138,12 +162,18 @@ typedef struct FTIFF_MPITypeInfo {
  **/
 
 void FTIFF_InitMpiTypes();
+int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
+int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
+int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
+int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
+int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
+int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
-int FTIFF_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, char* checksum);
 int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
 int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
-int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
-int FTIFF_ReadDbFTIFF( FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
+int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf );
+int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
+int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, unsigned char *hash );
 int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
@@ -156,7 +186,9 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int* erased);
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
-        FTIT_checkpoint* FTI_Ckpt, char *checksum);
+        FTIT_checkpoint* FTI_Ckpt);
 void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta );
-void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
+void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db );
+void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar );
+void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 #endif
