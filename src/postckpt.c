@@ -631,8 +631,8 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
     }
     if ( (FTI_Conf->ioMode == FTI_IO_POSIX) || (FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Conf->ioMode == FTI_IO_HDF5) ) {
         if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].currentCkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].currentCkptFile ); 
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].currentL4CkptFile ); 
             if ( rename(fn_from,fn_to) != 0 ) {
                 snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
                 FTI_Print( strerr, FTI_EROR );
@@ -642,8 +642,8 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
         } else {
             int i;
             for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS] ); 
-                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentCkptFile[i * FTI_BUFS] ); 
+                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
+                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
                 if ( rename(fn_from,fn_to) != 0 ) {
                     snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
                     FTI_Print( strerr, FTI_EROR );
@@ -654,8 +654,8 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
         }
     } else {
         if ( FTI_Topo->splitRank == 0 ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentCkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentCkptFile ); 
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
             if ( rename(fn_from,fn_to) != 0 ) {
                 snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
                 FTI_Print( strerr, FTI_EROR );

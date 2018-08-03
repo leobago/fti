@@ -320,7 +320,7 @@ extern "C" {
         long*            fs;                 /**< File size.                            */
         long*            pfs;                /**< Partner file size.                    */
         char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
-        char*            currentCkptFile;    /**< Current Ckpt file name. [FTI_BUFS]    */        
+        char*            currentL4CkptFile;  /**< Current Ckpt file name. [FTI_BUFS]    */        
         int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
         int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
         long*            varSize;            /**< Variable size. [FTI_BUFS]             */

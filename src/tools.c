@@ -333,7 +333,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
@@ -345,7 +345,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
-            FTI_Exec->meta[i].currentCkptFile = calloc(FTI_BUFS, sizeof(char));
+            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
