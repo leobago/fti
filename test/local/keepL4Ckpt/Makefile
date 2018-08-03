@@ -1,9 +1,9 @@
 # SET TO FTI SOURCE DIRECTORY
-FTI_HOME :=
+FTI_HOME := /home/kellekai/WORK/FTI/FTI-REPO-LEO
 # SET TO FTI RELEASE DIRECTORY
-FTI_RELEASE :=
+FTI_RELEASE := /home/kellekai/WORK/FTI/FTI-REPO-LEO/build/RELEASE
 # SET TO FTI BUILD DIRECTORY
-FTI_BUILD :=
+FTI_BUILD := /home/kellekai/WORK/FTI/FTI-REPO-LEO/build
 FTI_INC_DIR := $(FTI_RELEASE)/include
 FTI_LIB_DIR := $(FTI_RELEASE)/lib
 FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
@@ -26,12 +26,14 @@ run-head: test Makefile
 	cp cfg/HEAD config.fti
 	mpirun -n 8 ./$<
 	mpirun -n 8 ./$<
+	sleep 1
 	find Global
 
 run-nohead: test Makefile
 	cp cfg/NOHEAD config.fti
 	mpirun -n 8 ./$<
 	mpirun -n 8 ./$<
+	sleep 1
 	find Global
 
 clean:

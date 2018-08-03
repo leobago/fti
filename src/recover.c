@@ -246,15 +246,18 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Exec->lastCkptLvel = level;
                     if ( FTI_Conf->keepL4Ckpt ) {
                         ckptID = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+                        int hasL4Ckpt = ( ckptID >= 0 ) ? 1 : 0;
                         if ( (FTI_Topo->nbHeads > 0 ) && (FTI_Topo->nodeRank == 1) ) {
                             // send level and ckpt ID to head process in node
-                            int sendBuf[2] = { 1, ckptID };
+                            int sendBuf[2] = { hasL4Ckpt, ckptID };
                             MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->tag, FTI_Exec->globalComm ); 
                         }
+                        if( hasL4Ckpt ) {
+                            snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
+                                FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
+                            FTI_Ckpt[4].hasCkpt = true;
+                        }
                     }
-                    snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
-                            FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
-                    FTI_Ckpt[4].hasCkpt = true;
                     return FTI_SCES; //Recovered successfully
                 }
                 else {
