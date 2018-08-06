@@ -173,7 +173,7 @@ int main(int argc, char** argv)
             break;
         }
         if (i >= ITER_TIMES - ITER_SLOW) {
-            sleep(1);
+            usleep(100000);
         }
     }
     if (rank == 0) {
