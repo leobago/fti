@@ -56,7 +56,7 @@ containsElement () { #$1 - element $2 - array
 }
 
 cp configs/$1 config.fti
-mpirun -n $2 ./syncIntv config.fti
+mpirun -n $2 ./syncIntv config.fti > logfile
 check logFile config.fti
 if [ $? -eq 0 ]; then
     echo "Test passed."
