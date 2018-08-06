@@ -74,7 +74,8 @@ void simulateCrashWithoutCkpt() {
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
+    int ckpt_tag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
+    int final_tag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
     int res;
     iniparser_freedict(ini);
 

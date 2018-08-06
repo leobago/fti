@@ -923,16 +923,18 @@ int FTI_GetRequestField( int ID, FTIT_RequestField val )
 
     uint32_t field = idxRequest[ID];
 
+    int query;
+
     switch( val ) {
 
         case FTI_SIF_ALL:
-            return (int)((field & all_mask) >> 19);
+            query = (int)((field & all_mask) >> 19);
         case FTI_SIF_IDX:
-            return ((int)(field & idx_mask));
+            query = ((int)(field & idx_mask));
 
     }
 
-    __builtin_unreachable();
+    return query;
 
 }
 
@@ -1026,17 +1028,19 @@ int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
     MPI_Aint size;
     MPI_Win_shared_query( stageWin, source, &size, &disp, &(status) ); 
     uint8_t status_cpy = status[ID];
+    
+    int query;
 
     switch( val ) {
 
         case FTI_SIF_VAL:
-            return ((int)(status_cpy & val_mask)) >> 1;
+            query = ((int)(status_cpy & val_mask)) >> 1;
         case FTI_SIF_AVL:
-            return ((int)(status_cpy & avl_mask));
+            query = ((int)(status_cpy & avl_mask));
 
     }
-
-    __builtin_unreachable();
+    
+    return query;
 
 }
 
