@@ -417,7 +417,7 @@ before_install:
   - cd ..
   - cmake --version
   - if [[ -z "$COMPILER" ]] ; then sudo apt-get install -y gfortran && source ./travisScripts/install-openmpi-1.10.sh ; fi
-  - if [[ "$COMPILER" = "clang" ]] ; then export CC=clang && sudo apt-get install -y gfortran && source ./travisScripts/install-openmpi-1.10.sh ; fi
+  - if [[ "$COMPILER" = "clang" ]] ; then export CC=clang && export OMPI_CXX=clang++ && export OMPI_MPICC=clang && sudo apt-get install -y gfortran && source ./travisScripts/install-openmpi-1.10.sh ; fi
   - if [[ "$COMPILER" = "icc" ]] ; then export MPICC=mpiicc && export MPIFC=ifort && source ./travisScripts/before-script-icc.sh ; fi
   - if [[ "$COMPILER" = "pgi" ]] ; then source ./travisScripts/before-script-pgi.sh ; fi
   - if [[ "$TEST" = "hdf5" ]] ; then sudo apt-get install -y libhdf5-serial-dev hdf5-tools ; fi
