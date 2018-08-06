@@ -4,10 +4,10 @@ wget --no-check-certificate https://www.open-mpi.org/software/ompi/v1.10/downloa
 tar -zxf openmpi-1.10.7.tar.gz
 cd openmpi-1.10.7
 echo "CONFIGURE OPENMPI (VER: $MPIVER)"
-bash ./configure --prefix=$HOME/openmpi-1.10 > /dev/null 2>&1
+bash ./configure --prefix=$HOME/openmpi-$MPIVER CC=gcc CXX=g++ > /dev/null 2>&1
 echo "MAKE OPENMPI (VER: $MPIVER)"
 make -j 4 > /dev/null 2>&1
 echo "INSTALL OPENMPI (VER: $MPIVER)"
 sudo make install > /dev/null 2>&1
-export PATH=$PATH:$HOME/openmpi-1.10/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/openmpi-1.10/lib/
+export PATH=$PATH:$HOME/openmpi-$MPIVER/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/openmpi-$MPIVER/lib/
