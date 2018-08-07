@@ -162,6 +162,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
+    FTI_Conf->keepL4Ckpt = (bool)iniparser_getboolean(ini, "Basic:keep_l4_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
     FTI_Conf->transferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
     FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
@@ -457,6 +458,7 @@ CHECK_DCP_SETTING_END:
     int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
     {
+        char strerr[FTI_BUFS];
         char fn[FTI_BUFS]; //Path of metadata directory
 
         // Create metadata timestamp directory
@@ -485,6 +487,16 @@ CHECK_DCP_SETTING_END:
         snprintf(FTI_Ckpt[4].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->glbalDir);
         snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
         snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
+        snprintf(FTI_Ckpt[4].archDir, FTI_BUFS, "%s/l4_archive", FTI_Conf->glbalDir);
+        if ( FTI_Conf->keepL4Ckpt ) {
+            if (mkdir(FTI_Ckpt[4].archDir, (mode_t) 0777) == -1) {
+                if (errno != EEXIST) {
+                    snprintf(strerr, FTI_BUFS, "failed to create directory '%s', cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
+                    FTI_Print(strerr, FTI_EROR);
+                    FTI_Conf->keepL4Ckpt = false;
+                }
+            }
+        }
 
         // Create local checkpoint timestamp directory
         if (FTI_Conf->test) { // If local test generate name by topology
