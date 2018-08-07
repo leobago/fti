@@ -587,6 +587,93 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      It moves the level 4 ckpt. to the archive folder.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function is called if keepL4Ckpt is enabled in the configuration file.
+  It moves the old level 4 ckpt file to the archive folder before the l4 
+  folder in the global directory is deleted. 
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint *FTI_Ckpt,
+        FTIT_topology *FTI_Topo ) 
+{
+    char strerr[FTI_BUFS];
+    char fn_from[FTI_BUFS];
+    char fn_to[FTI_BUFS];
+    struct stat st;
+    errno = 0;
+    stat( FTI_Ckpt[4].archDir, &st );
+    switch ( errno ) {
+        case 0:
+            if ( !(S_ISDIR( st.st_mode )) ) {
+                snprintf(strerr, FTI_BUFS, "'%s' is not a directory, cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
+                FTI_Print(strerr, FTI_WARN);
+                errno = 0;
+                return FTI_NSCS;
+            } 
+            break;
+        case ENOENT:
+            snprintf(strerr, FTI_BUFS, "directory '%s' does not exist, cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
+            FTI_Print(strerr, FTI_WARN);
+            errno = 0;
+            return FTI_NSCS;
+        default:
+            snprintf(strerr, FTI_BUFS, "error with stats on '%s', cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
+            FTI_Print(strerr, FTI_EROR);
+            errno = 0;
+            return FTI_NSCS;
+    }
+    if ( (FTI_Conf->ioMode == FTI_IO_POSIX) || (FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Conf->ioMode == FTI_IO_HDF5) ) {
+        if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].currentL4CkptFile ); 
+            if ( rename(fn_from,fn_to) != 0 ) {
+                snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
+                FTI_Print( strerr, FTI_EROR );
+                errno = 0;
+                return FTI_NSCS;
+            }
+        } else {
+            int i;
+            for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
+                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
+                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
+                if ( rename(fn_from,fn_to) != 0 ) {
+                    snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
+                    FTI_Print( strerr, FTI_EROR );
+                    errno = 0;
+                    return FTI_NSCS;
+                }
+            }
+        }
+    } else {
+        if ( FTI_Topo->splitRank == 0 ) {
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
+            if ( rename(fn_from,fn_to) != 0 ) {
+                snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
+                FTI_Print( strerr, FTI_EROR );
+                errno = 0;
+                return FTI_NSCS;
+            }
+        }
+    }
+
+    // needed to avoid that the files get deleted before we can move them
+    MPI_Barrier(FTI_COMM_WORLD);
+
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      It flushes the local ckpt. files in to the PFS using POSIX.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.

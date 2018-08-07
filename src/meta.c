@@ -416,6 +416,62 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Loads relevant data from checkpoint meta data 
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
+{
+	char str[FTI_BUFS], fn[FTI_BUFS];
+    snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+   
+    dictionary* ini;
+
+    if ( access( fn, F_OK ) != 0 ) { 
+        snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
+        FTI_Print(str, FTI_EROR);
+    }     
+    
+    // initialize dictionary
+    ini = iniparser_load(fn);
+    if ( ini == NULL ) {
+        FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    if ( ((int)(ini->n)-6) < 0 ) {
+        FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    char currCkpt[FTI_BUFS];
+    
+    // ini->key[2] must be the level field
+    int ckptID;
+    int i=0;
+    bool hasL4Ckpt = false;
+    for(; i<ini->n; i+=6) {
+        memset( currCkpt, 0x0, FTI_BUFS );
+        strncpy( currCkpt, ini->key[i], FTI_BUFS-1 );
+        char level_key[FTI_BUFS];
+        snprintf( level_key, FTI_BUFS, "%s:level", currCkpt );
+        if( iniparser_getint( ini, level_key, -1) == 4 ){
+            hasL4Ckpt = true;
+            sscanf( currCkpt, "checkpoint_id.%d", &ckptID );
+        }
+    }
+    
+    // if we find a level 4 checkpoint return the id if not return -1
+    return (hasL4Ckpt) ? ckptID : -1;    
+
+}
 
 /*-------------------------------------------------------------------------*/
 /**

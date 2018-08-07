@@ -240,7 +240,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
-    if ( FTI_Conf->dcpEnabled && (FTI_Topo->splitRank == 0) ) {
+    if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
@@ -298,6 +298,22 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     double t2 = MPI_Wtime(); //Post-processing time
 
+    // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
+    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
+        if ( FTI_Ckpt[4].hasCkpt ) {
+            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+        }
+        // store current ckpt file name in meta data.
+        if ( !FTI_Topo->amIaHead ) {
+            strncpy(FTI_Exec->meta[0].currentL4CkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+        } else {
+            int i;
+            for( i=1; i<FTI_Topo->nodeSize; ++i ) {
+                strncpy(&FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS], &FTI_Exec->meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
+            }
+        }
+    }
+
     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
@@ -340,6 +356,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Post-checkpoint took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
             t3 - t1, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
+
+    // expose to FTI that a checkpoint exists for level
+    FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+
     return FTI_SCES;
 }
 

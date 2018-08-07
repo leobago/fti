@@ -112,7 +112,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
                         FTI_Exec->stageInfo             =NULL;
-                        FTI_Exec->stageInfo             =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
@@ -131,6 +130,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* int           */ FTI_Conf->stripeOffset          =0;
     /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
+    /* bool          */ FTI_Conf->keepL4Ckpt            =0;
     /* int           */ FTI_Conf->ckptTag               =0;
     /* int           */ FTI_Conf->stageTag              =0;
     /* int           */ FTI_Conf->finalTag              =0;
@@ -210,23 +210,23 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
 
-        MD5_CTX mdContext;
-        MD5_Init (&mdContext);
-        int i;
+    MD5_CTX mdContext;
+    MD5_Init (&mdContext);
+    int i;
 
-        //iterate all variables
-        for (i = 0; i < FTI_Exec->nbVar; i++) {
-            MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-        }
+    //iterate all variables
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
+    }
 
-        unsigned char hash[MD5_DIGEST_LENGTH];
-        MD5_Final (hash, &mdContext);
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    MD5_Final (hash, &mdContext);
 
-        int ii = 0;
-        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksum[ii], "%02x", hash[i]);
-            ii += 2;
-        }
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
+    }
 
     return FTI_SCES;
 }
@@ -337,6 +337,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
@@ -348,6 +349,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
