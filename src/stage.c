@@ -616,6 +616,47 @@ int FTI_SyncStage( char* lpath, char *rpath, FTIT_execution *FTI_Exec,
 
     off_t eof = st.st_size;
 
+    // duplicate rpath (dirname modifies its argument!)
+    char *dirc = strdup(rpath);
+    if ( dirc == NULL ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        FTI_Print( "failed to allocate memory for 'dirc' in 'FTI_HandleStageRequest'", FTI_EROR );
+        return FTI_NSCS;
+    }
+    char *dir_name = dirname(dirc);
+
+    // check if remote directory exists
+    if ( stat( dir_name, &st ) != 0 ) {
+        if ( errno == ENOENT ) {
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+            snprintf( errstr, FTI_BUFS, "The directory '%s' does not exist, staging failed.", dir_name );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        } else {
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+            snprintf( errstr, FTI_BUFS, "Failed to stat '%s', abort staging.", dir_name );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    // check if it is indeed a directory
+    if ( !S_ISDIR(st.st_mode) ) {
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        snprintf( errstr, FTI_BUFS, "'%s' is not a directory, abort staging.", dir_name );
+        FTI_Print( errstr, FTI_EROR );
+        return FTI_NSCS;
+    }
+    
+    free( dirc );
+
+    // check if remote file already exist
+    if(  stat( rpath, &st ) == 0 ) {
+        if( S_ISREG(st.st_mode) ) {
+            char warnstr[FTI_BUFS];
+            snprintf( warnstr, FTI_BUFS, "remote file '%s' already exists, attempt to overwrite.", rpath );
+            FTI_Print( warnstr, FTI_WARN );
+        }
+    }
     // open local file
     int fd_local = open( lpath, O_RDONLY );
     if( fd_local == -1 ) {
@@ -813,6 +854,53 @@ int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     }
 
     off_t eof = st.st_size;
+    
+    // duplicate rpath (dirname modifies its argument!)
+    char *dirc = strdup(rpath);
+    if ( dirc == NULL ) {
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        FTI_Print( "failed to allocate memory for 'dirc' in 'FTI_HandleStageRequest'", FTI_EROR );
+        return FTI_NSCS;
+    }
+    char *dir_name = dirname(dirc);
+
+    // check if remote directory exists
+    if ( stat( dir_name, &st ) != 0 ) {
+        if ( errno == ENOENT ) {
+            FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+            snprintf( errstr, FTI_BUFS, "The directory '%s' does not exist, staging failed.", dir_name );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        } else {
+            FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+            FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+            snprintf( errstr, FTI_BUFS, "Failed to stat '%s', abort staging.", dir_name );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    // check if it is indeed a directory
+    if ( !S_ISDIR(st.st_mode) ) {
+        FTI_FreeStageRequest( FTI_Exec, FTI_Topo, ID, source );
+        FTI_SetStatusField( FTI_Exec, FTI_Topo, ID, FTI_SI_FAIL, FTI_SIF_VAL, source );
+        snprintf( errstr, FTI_BUFS, "'%s' is not a directory, abort staging.", dir_name );
+        FTI_Print( errstr, FTI_EROR );
+        return FTI_NSCS;
+    }
+    
+    free( dirc );
+
+    // check if remote file already exist
+    if(  stat( rpath, &st ) == 0 ) {
+        if( S_ISREG(st.st_mode) ) {
+            char warnstr[FTI_BUFS];
+            snprintf( warnstr, FTI_BUFS, "remote file '%s' already exists, attempt to overwrite.", rpath );
+            FTI_Print( warnstr, FTI_WARN );
+        }
+    }
+    
 
     // open local file
     int fd_local = open( lpath, O_RDONLY );
