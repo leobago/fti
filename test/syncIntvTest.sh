@@ -44,7 +44,7 @@ check () { #$1 - log name $2 - config name
             echo "Resync doesnt match."
             return 1
         fi
-    done < <(grep "Current iter" $1)
+    done < <(grep "Current iter" $1 | awk 'NF == 24 {print}')
     echo "All resync done at correct iterations."
 }
 
