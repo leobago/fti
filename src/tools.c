@@ -111,6 +111,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+                        FTI_Exec->stageInfo             =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
@@ -130,7 +131,10 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
     /* bool          */ FTI_Conf->keepL4Ckpt            =0;
-    /* int           */ FTI_Conf->tag                   =0;
+    /* int           */ FTI_Conf->ckptTag               =0;
+    /* int           */ FTI_Conf->stageTag              =0;
+    /* int           */ FTI_Conf->finalTag              =0;
+    /* int           */ FTI_Conf->generalTag            =0;
     /* int           */ FTI_Conf->test                  =0;
     /* int           */ FTI_Conf->l3WordSize            =0;
     /* int           */ FTI_Conf->ioMode                =0;
@@ -578,6 +582,7 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
+    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
@@ -605,6 +610,7 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 /*-------------------------------------------------------------------------*/
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
+    char str[FTI_BUFS];
     ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
     if (ftiGroup->h5groupID < 0) {
         FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);

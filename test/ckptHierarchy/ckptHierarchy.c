@@ -24,7 +24,8 @@ void simulateCrash() {
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
+    int ckpt_tag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
+    int final_tag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
     int res;
     if (checkpoint_level[3] != 1) {
         int isInline = -1;
@@ -42,14 +43,14 @@ void simulateCrash() {
         }
         if (isInline == 0) {
             //waiting untill head do Post-checkpointing
-            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , ckpt_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
     iniparser_freedict(ini);
     if (heads > 0) {
         res = FTI_ENDW;
         //sending END WORK to head to stop listening
-        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), tag, MPI_COMM_WORLD);
+        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
         //Barrier needed for heads (look FTI_Finalize() in api.c)
         MPI_Barrier(MPI_COMM_WORLD);
     }

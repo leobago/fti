@@ -117,7 +117,8 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c src/diff-checkpoint.c)
+	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
+	src/diff-checkpoint.c src/stage.c)
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -137,14 +138,12 @@ endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
 
-append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
-
 if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
 else()
 	add_library(fti.static STATIC ${SRC_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
@@ -157,6 +156,9 @@ else()
 	unset(OPENSSL_LIBRARIES)
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
+
+append_property(SOURCE ${SRC_FTI}
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
 
 append_property(TARGET fti.static fti.shared

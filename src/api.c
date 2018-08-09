@@ -133,6 +133,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
+    if( FTI_Conf.stagingEnabled ) {
+        FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
+    }
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -391,6 +394,188 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Places the FTI staging directory path into 'stageDir'.
+  @param      stageDir        pointer to allocated memory region.
+  @param      maxLen          size of allocated memory region in bytes.
+  @return     integer         FTI_SCES if successful, FTI_NSCS else.
+
+  This function places the FTI staging directory path in 'stageDir'. If
+  allocation size is not sufficiant, no action is perfoprmed and
+  FTI_NSCS is returned.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetStageDir( char* stageDir, int maxLen) 
+{
+    
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_GetStageDir' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    if( stageDir == NULL ) {
+        FTI_Print( "invalid value for stageDir ('nil')!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    if( maxLen < 1 ) { 
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "invalid value for maxLen ('%d')!", maxLen );
+        FTI_Print( errstr, FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int len = strlen(FTI_Conf.stageDir);
+    if( maxLen < len+1 ) {
+        FTI_Print( "insufficient buffer size (maxLen too small)!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    strncpy( stageDir, FTI_Conf.stageDir, FTI_BUFS );
+
+    return FTI_SCES;
+
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns status of staging request.
+  @param      ID            ID of staging request.
+  @return     integer       Status of staging request on success, 
+                            FTI_NSCS else.
+
+  This function returns the status of the staging request corresponding
+  to ID. The ID is returned by the function 'FTI_SendFile'. The status
+  may be one of the five possible statuses:
+  
+  @par
+  FTI_SI_FAIL - Stage request failed
+  FTI_SI_SCES - Stage request succeed
+  FTI_SI_ACTV - Stage request is currently processed
+  FTI_SI_PEND - Stage request is pending
+  FTI_SI_NINI - There is no stage request with this ID
+  
+  @note If the status is FTI_SI_NINI, the ID is either invalid or the
+  request was finished (succeeded or failed). In the latter case,
+  'FTI_GetStageStatus' returns FTI_SI_FAIL or FTI_SI_SCES and frees the
+  stage request ressources. In the consecutive call it will then return
+  FTI_SI_NINI.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetStageStatus( int ID )
+{
+
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_GetStageStatus' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    // indicator if we still need the request structure allocated
+    // (i.e. send buffer not released by MPI)
+    bool free_req = true;
+
+    // get status of request
+    int status;
+    status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
+
+    // check if pending
+    if ( status == FTI_SI_PEND ) {
+        int flag = 1, idx;
+        // if pending check if we can free the send buffer
+        if ( (idx = FTI_GetRequestIdx(ID)) >= 0 ) { 
+            MPI_Test( &(FTI_SI_APTR(FTI_Exec.stageInfo->request)[idx].mpiReq), &flag, MPI_STATUS_IGNORE );
+        }
+        if ( flag == 0 ) {
+            free_req = false;
+        }
+    }
+
+    if ( free_req ) {
+        FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
+    }
+   
+    if ( (status==FTI_SI_FAIL) || (status==FTI_SI_SCES) ) {
+        FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
+        FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
+    }
+
+    return status;
+        
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Copies file asynchronously from 'lpath' to 'rpath'.
+  @param      lpath           absolute path local file.
+  @param      rpath           absolute path remote file.
+  @return     integer         Request handle (ID) on success, FTI_NSCS else.
+
+  This function may be used to copy a file local on the nodes via the
+  FTI head process asynchronously to the PFS. The file will not be
+  removed after successful transfer, however, if stored in the directory
+  returned by 'FTI_GetStageDir' it will be removed during
+  'FTI_Finalize'.
+  
+  @par
+  If staging is enabled but no head process, the staging will be
+  performed synchronously (i.e. by the calling rank).
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_SendFile( char* lpath, char *rpath )
+{ 
+
+    if ( !FTI_Conf.stagingEnabled ) {
+        FTI_Print( "'FTI_SendFile' -> Staging disabled, no action performed.", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int ID = FTI_NSCS;
+    
+    // discard if path is NULL
+    if ( lpath == NULL ){
+        FTI_Print( "local path field is NULL!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    if ( rpath == NULL ){
+        FTI_Print( "remote path field is NULL!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    // asign new request ID
+    // note: if ID found, FTI_Exec->stageInfo->status[ID] is set to not available
+    int reqID = FTI_GetRequestID( &FTI_Exec, &FTI_Topo );
+    if (reqID < 0) {
+        FTI_Print("Too many stage requests!", FTI_WARN);
+        return FTI_NSCS;
+    }
+    ID = reqID;
+
+    FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, ID );
+    
+    if ( FTI_Topo.nbHeads == 0 ) {
+
+        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Topo, &FTI_Conf, ID ) != FTI_SCES ) {
+            FTI_Print("synchronous staging failed!", FTI_WARN);
+            return FTI_NSCS;
+        }
+
+    }
+    
+    if ( FTI_Topo.nbHeads > 0 ) {
+        
+        if ( FTI_AsyncStage( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, ID ) != FTI_SCES ) {
+            FTI_Print("asynchronous staging failed!", FTI_WARN);
+            return FTI_NSCS;
+        }
+    
+    }
+    
+    return ID;
+
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -844,7 +1029,7 @@ int FTI_Checkpoint(int id, int level)
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
-        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
             FTI_Exec.lastCkptLvel = lastLevel; //Store last successful post-processing checkpoint level
             sprintf(str, "LastCkptLvel received from head: %d", lastLevel);
@@ -890,7 +1075,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
             value = FTI_REJW; //Send reject checkpoint token to head
         }
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
         // FTIFF: send meta info to the heads
         if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
             headInfo = malloc(sizeof(FTIFF_headInfo));
@@ -904,10 +1089,10 @@ int FTI_Checkpoint(int id, int level)
                 strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
             } else {
                 strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            }
-            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+            }            
+	    MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
             free(headInfo);
         }
 
@@ -1171,6 +1356,9 @@ int FTI_Finalize()
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
+        if ( FTI_Conf.stagingEnabled ) {
+            FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+        }
         MPI_Barrier(FTI_Exec.globalComm);
         MPI_Finalize();
         exit(0);
@@ -1181,7 +1369,7 @@ int FTI_Finalize()
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
         int lastLevel;
-        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
             FTI_Exec.lastCkptLvel = lastLevel;
         }
@@ -1190,7 +1378,14 @@ int FTI_Finalize()
     // Send notice to the head to stop listening
     if (FTI_Topo.nbHeads == 1) {
         int value = FTI_ENDW;
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.tag, FTI_Exec.globalComm);
+        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.finalTag, FTI_Exec.globalComm);
+    }
+    
+    // for staging, we have to ensure, that the call to FTI_Clean 
+    // comes after the heads have written all the staging files.
+    // Thus FTI_FinalizeStage is blocking on global communicator.
+    if ( FTI_Conf.stagingEnabled ) {
+        FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint

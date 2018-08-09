@@ -156,6 +156,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[4].ckptCnt  = 1;
     FTI_Ckpt[4].ckptDcpCnt  = 1;
 
+    FTI_Conf->stagingEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_staging", 0);
+
     // Reading/setting configuration metadata
     FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
     FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
@@ -165,7 +167,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->keepL4Ckpt = (bool)iniparser_getboolean(ini, "Basic:keep_l4_ckpt", 0);
     FTI_Conf->blockSize = (int)iniparser_getint(ini, "Advanced:block_size", -1) * 1024;
     FTI_Conf->transferSize = (int)iniparser_getint(ini, "Advanced:transfer_size", -1) * 1024 * 1024;
-    FTI_Conf->tag = (int)iniparser_getint(ini, "Advanced:mpi_tag", -1);
+    FTI_Conf->ckptTag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
+    FTI_Conf->stageTag = (int)iniparser_getint(ini, "Advanced:stage_tag", 406);
+    FTI_Conf->finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
+    FTI_Conf->generalTag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
@@ -352,6 +357,9 @@ CHECK_DCP_SETTING_END:
     } else if (FTI_Exec->syncIterMax == 0) {
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is set to default (512 iterations).", FTI_DBUG);
+    }
+    if ( FTI_Conf->stagingEnabled && !FTI_Topo->nbHeads ) {
+        FTI_Print( "Staging is enabled but no dedicated head process, staging will be performed inline!", FTI_WARN );
     }
     if (FTI_Topo->groupSize < 1) {
         FTI_Topo->groupSize = 1;

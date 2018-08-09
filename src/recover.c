@@ -250,7 +250,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         if ( (FTI_Topo->nbHeads > 0 ) && (FTI_Topo->nodeRank == 1) ) {
                             // send level and ckpt ID to head process in node
                             int sendBuf[2] = { hasL4Ckpt, ckptID };
-                            MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->tag, FTI_Exec->globalComm ); 
+                            MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm ); 
                         }
                         if( hasL4Ckpt ) {
                             snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
@@ -288,7 +288,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if ( FTI_Conf->keepL4Ckpt ) {
             // receive level and ckpt ID from first application process in node
             int recvBuf[2];
-            MPI_Recv( recvBuf, 2, MPI_INT, FTI_Topo->body[0], FTI_Conf->tag, FTI_Exec->globalComm, MPI_STATUS_IGNORE ); 
+            MPI_Recv( recvBuf, 2, MPI_INT, FTI_Topo->body[0], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE ); 
             if ( recvBuf[0] == 4 ) {
                 FTI_Ckpt[4].hasCkpt = true;
                 FTI_Exec->ckptLvel = recvBuf[0];

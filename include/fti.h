@@ -74,6 +74,23 @@
 /** Token for IO mode FTI-FF.                                              */
 #define FTI_IO_FTIFF 1003
 
+/** status 'failed' for stage requests                                     */
+#define FTI_SI_FAIL 0x4
+/** status 'succeed' for stage requests                                    */
+#define FTI_SI_SCES 0x3
+/** status 'active' for stage requests                                     */
+#define FTI_SI_ACTV 0x2
+/** status 'pending' for stage requests                                    */
+#define FTI_SI_PEND 0x1
+/** status 'not initialized' for stage requests                            */
+#define FTI_SI_NINI 0x0
+
+/** Maximum amount of concurrent active staging requests                   
+    @note leads to 2.5MB for the application processes as minimum memory
+    allocated
+ **/
+#define FTI_SI_MAX_NUM (512L*1024L) 
+
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
 /** MD5-hash: hex converted char digest length.                            */
@@ -207,6 +224,20 @@ extern "C" {
     /*---------------------------------------------------------------------------
       New types
       ---------------------------------------------------------------------------*/
+
+    /** @typedef    FTIT_StageInfo
+     *  @brief      Staging meta info.
+     *  
+     *  The request pointer is void in order to allow the structure to
+     *  keep the head rank staging info if used by a head process or the
+     *  application rank staging info otherwise. The cast is performed
+     *  via the macros 'FTI_SI_HPTR( ptr )' for the head processes and
+     *  'FTI_SI_APTR( ptr )' for the application processes.
+     */
+    typedef struct FTIT_StageInfo {
+        int nbRequest;  /**< Number of allocated request info structures        */
+        void *request;  /**< pointer to request meta info array                 */
+    } FTIT_StageInfo;
 
     /** @typedef    FTIT_double
      *  @brief      Double mapped as two integers to allow bit-wise operations.
@@ -366,8 +397,10 @@ extern "C" {
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
+        FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
+        MPI_Comm        nodeComm;
     } FTIT_execution;
 
     /** @typedef    FTIT_configuration
@@ -376,8 +409,10 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
+        bool            stagingEnabled;
         bool            dcpEnabled;         /**< Enable differential ckpt.      */
-        int             dcpMode;            /**< dCP mode.                      */
+        bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
+	int             dcpMode;            /**< dCP mode.                      */
         int             dcpBlockSize;       /**< Block size for dCP hash        */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
@@ -389,11 +424,14 @@ extern "C" {
         int             stripeOffset;       /**< Striping Offset for Lustre FS  */
         int             stripeFactor;       /**< Striping Factor for Lustre FS  */
 #endif
-        int             tag;                /**< Tag for MPI messages in FTI.   */
+        int             ckptTag;            /**< MPI tag for ckpt requests.     */
+        int             stageTag;           /**< MPI tag for staging comm.      */
+        int             finalTag;           /**< MPI tag for finalize comm.     */
+        int             generalTag;         /**< MPI tag for general comm.      */
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
-        bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */
+        char            stageDir[FTI_BUFS];
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
@@ -421,6 +459,7 @@ extern "C" {
         int             groupID;            /**< Group ID in the node.          */
         int             amIaHead;           /**< TRUE if FTI process.           */
         int             headRank;           /**< Rank of the head in this node. */
+        int             headRankNode;       /**< Rank of the head in node comm. */
         int             nodeRank;           /**< Rank of the node.              */
         int             groupRank;          /**< My rank in the group comm.     */
         int             right;              /**< Proc. on the right of the ring.*/
@@ -517,6 +556,9 @@ extern "C" {
     void* FTI_Realloc(int id, void* ptr);
     int FTI_BitFlip(int datasetID);
     int FTI_Checkpoint(int id, int level);
+    int FTI_GetStageDir( char* stageDir, int maxLen );
+    int FTI_GetStageStatus( int ID );
+    int FTI_SendFile( char* lpath, char *rpath );
     int FTI_Recover();
     int FTI_Snapshot();
     int FTI_Finalize();

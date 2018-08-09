@@ -57,8 +57,10 @@
 #include "hdf5_hl.h"
 #endif
 
+#include "stage.h"
+
 #include <stdint.h>
-#include <openssl/md5.h>
+#include "../deps/md5/md5.h"
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -79,6 +81,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include <libgen.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
@@ -123,6 +126,10 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
         __attribute__((noreturn));
+int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
+int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source);
 
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int restart);
@@ -247,6 +254,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo);
 int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint *FTI_Ckpt,
         FTIT_topology *FTI_Topo );
+void FTI_PrintStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID, int source );
 
 #endif
 

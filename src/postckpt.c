@@ -109,7 +109,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
             return FTI_NSCS;
         }
 
-        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->tag, FTI_Exec->groupComm);
+        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->generalTag, FTI_Exec->groupComm);
         toSend -= bytes;
     }
 
@@ -156,7 +156,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     unsigned long toRecv = FTI_Exec->meta[0].pfs[postFlag]; //remaining data to receive
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
-        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         fwrite(buffer, sizeof(char), recvSize, pfd);
 
         if (ferror(pfd)) {
@@ -378,8 +378,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 if (cnt != FTI_Topo->groupSize - 1) {
                     dest = (dest + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
                     int src = (i + 1) % FTI_Topo->groupSize;
-                    MPI_Isend(myData, bytes, MPI_CHAR, dest, FTI_Conf->tag, FTI_Exec->groupComm, &reqSend);
-                    MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf->tag, FTI_Exec->groupComm, &reqRecv);
+                    MPI_Isend(myData, bytes, MPI_CHAR, dest, FTI_Conf->generalTag, FTI_Exec->groupComm, &reqSend);
+                    MPI_Irecv(&(data[(1 - offset) * bs]), bs, MPI_CHAR, src, FTI_Conf->generalTag, FTI_Exec->groupComm, &reqRecv);
                 }
 
                 int matVal = matrix[FTI_Topo->groupRank * FTI_Topo->groupSize + i];
