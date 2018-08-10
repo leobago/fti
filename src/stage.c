@@ -1017,8 +1017,10 @@ int FTI_GetRequestField( int ID, FTIT_RequestField val )
 
         case FTI_SIF_ALL:
             query = (int)((field & all_mask) >> 19);
+            break;
         case FTI_SIF_IDX:
             query = ((int)(field & idx_mask));
+            break;
 
     }
 
@@ -1123,8 +1125,10 @@ int FTI_GetStatusField( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int I
 
         case FTI_SIF_VAL:
             query = ((int)(status_cpy & val_mask)) >> 1;
+            break;
         case FTI_SIF_AVL:
             query = ((int)(status_cpy & avl_mask));
+            break;
 
     }
     
