@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <cuda_runtime.h>
+#include <stdbool.h>
 #include "fti.h"
 #include "api_cuda.h"
 
@@ -88,7 +89,7 @@ static size_t suspension_count;
  *
  * Sets *complete* to 1 or 0 respectively if the kernel is finished or not.
  */
-static void computation_complete(int *complete)
+static void computation_complete(bool *complete)
 {
   size_t i = 0;
   for(i = 0; i < block_amt; i++)
@@ -99,7 +100,26 @@ static void computation_complete(int *complete)
     }
     break;
   }
-  *complete = (i == block_amt) ? 1 : 0;
+  *complete = (i == block_amt) ? true : false;
+}
+
+static FTIT_topology *FTI_Topo = NULL;
+
+int FTI_get_topo(FTIT_topology *topology)
+{
+  FTI_Topo = topology; 
+  return FTI_SCES;
+}
+
+bool *all_done_array = NULL;
+bool FTI_all_procs_complete(bool *procs)
+{
+  int i = 0;
+  for(i = 0; i < FTI_Topo->nbProc; i++)
+  {
+    if(procs[i] == false)break;
+  }
+  return (i == FTI_Topo->nbProc) ? true : false;
 }
 
 /**
@@ -126,6 +146,7 @@ static int free_memory()
 {
   //safeFree((void **)&h_is_block_executed);
   free(h_is_block_executed);
+  free(all_done_array);
 
   /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
   CUDA_ERROR_CHECK(cudaFree(d_is_block_executed));
@@ -150,6 +171,7 @@ static int reset_globals()
   d_is_block_executed = NULL;
   suspension_count = 0;
   quantum_inc = 0.0;
+  all_done_array = NULL;
 
   /* Globals from cuda_backup.h */
 
@@ -171,15 +193,16 @@ static int reset_globals()
  * may communicate with the device directly without an explicit memory copy. The boolean array
  * has a size of *num_blocks* and has a record of which blocks have executed at each interrupt.
  */
-int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, int *complete, dim3 num_blocks)
+int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, bool *complete, bool **all_done, dim3 num_blocks)
 {
+  *all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
   char str[FTI_BUFS];
   FTI_Print("Initialized backup", FTI_DBUG);
 
   /* Set default values */
   suspension_count = 0;
   size_t i = 0;
-  *complete = 0;
+  *complete = false;
 
   block_amt = num_blocks.x * num_blocks.y * num_blocks.z; 
 
@@ -213,7 +236,8 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   /* Keep track of some things locally */
   t = *timeout;
   d_is_block_executed = *b_info;
-  
+  all_done_array = *all_done;
+  //print_rank_globals(rank_id, "INIT"); 
   return FTI_SCES;
 }
 
@@ -283,7 +307,7 @@ void FTI_BACKUP_cleanup(const char *kernel_name)
  * unnecessarily when a large quantum is set and the kernel completes very
  * early.
  */
-int FTI_BACKUP_monitor(int *complete)
+int FTI_BACKUP_monitor(bool *complete)
 {
   //int ret;
   char str[FTI_BUFS];
@@ -306,7 +330,7 @@ int FTI_BACKUP_monitor(int *complete)
         break;
       }
       FTI_Print("sleep()", FTI_DBUG);
-      sleep(1);
+      sleep(10);
       FTI_Print("sleep() Waking up", FTI_DBUG);
       q--;
     }
@@ -318,27 +342,30 @@ int FTI_BACKUP_monitor(int *complete)
     usleep(quantum);
     FTI_Print("usleep() Waking up", FTI_DBUG);
   }
-  FTI_Print("Signalling kernel to return...", FTI_DBUG);
-  *t = 1;
-  FTI_Print("Waiting on kernel...", FTI_DBUG);
-  CUDA_ERROR_CHECK(cudaDeviceSynchronize());
-  FTI_Print("Kernel came back...", FTI_DBUG);
 
-  CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
-  FTI_Print("Checking if complete", FTI_DBUG);
-  computation_complete(complete);
-
-  sprintf(str, "Done checking: %d", *complete);
-  FTI_Print(str, FTI_DBUG);
-
-  if(*complete == 0)
+  FTI_Print("Attempting to snapshot", FTI_DBUG);
+  int res = FTI_Snapshot();
+  
+  if(res == FTI_DONE)
   {
-    int res = FTI_Snapshot();
-    
-    if(res == FTI_DONE)
-    {
-      FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
-    }
+    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
+  }
+
+  if(*complete == false)
+  {
+    FTI_Print("Signalling kernel to return...", FTI_DBUG);
+    *t = 1;
+    FTI_Print("Waiting on kernel...", FTI_DBUG);
+    CUDA_ERROR_CHECK(cudaDeviceSynchronize());
+    FTI_Print("Kernel came back...", FTI_DBUG);
+
+    CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
+    FTI_Print("Checking if complete", FTI_DBUG);
+    computation_complete(complete);
+
+    sprintf(str, "Done checking: %s", *complete ? "True" : "False");
+    FTI_Print(str, FTI_DBUG);
+
 
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *t = 0;

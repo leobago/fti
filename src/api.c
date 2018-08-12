@@ -108,6 +108,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
+    FTI_get_topo(&FTI_Topo);
     snprintf(FTI_Conf.cfgFile, FTI_BUFS, "%s", configFile);
     FTI_Conf.verbosity = 1; //Temporary needed for output in FTI_LoadConf.
     FTI_Exec.initSCES = 0;

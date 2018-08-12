@@ -94,7 +94,7 @@ do{                                                                             
     int ret;   \
     char str[FTI_BUFS];                                                                             \
     ret = FTI_BACKUP_init(&BACKUP_timeout, &BACKUP_block_info, quantum,                                  \
-                     &BACKUP_complete, grid_dim);                                           \
+                     &BACKUP_complete, &BACKUP_all_done, grid_dim);                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");\
@@ -104,12 +104,14 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(!BACKUP_complete)                                                                             \
+      while((BACKUP_complete == false) || (FTI_all_procs_complete(BACKUP_all_done) == false))                                                                             \
       {                                                                                                   \
         /*BACKUP_dbug_println(); */                                                                       \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                          \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                      \
-        kernel_name<<<grid_dim, block_dim, ns, s>>>(BACKUP_timeout, BACKUP_block_info, ## __VA_ARGS__);   \
+        if(BACKUP_complete == false){\
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(BACKUP_timeout, BACKUP_block_info, ## __VA_ARGS__);   \
+        }\
         FTI_BACKUP_monitor(&BACKUP_complete);                                                       \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
@@ -117,6 +119,7 @@ do{                                                                             
           FTI_BACKUP_Print(str, FTI_EROR);                                \
         }                                                                                                 \
         count = count + 1;                                                                                \
+        MPI_Allgather(&BACKUP_complete, 1, MPI_C_BOOL, BACKUP_all_done, 1, MPI_C_BOOL, FTI_COMM_WORLD);  \
       }                                                                                                   \
       FTI_BACKUP_cleanup(#kernel_name);                                                                   \
     }                                                                                                    \
@@ -151,12 +154,14 @@ do{                                                                             
   }                                                                                                       \
 }while(0)
 
-int BACKUP_complete;
+bool BACKUP_complete;
 volatile unsigned int *BACKUP_timeout;
 typedef unsigned short int backup_t;
+bool *BACKUP_all_done;
+bool FTI_all_procs_complete(bool *procs);
 backup_t *BACKUP_block_info; /* Initialized and then passed at kernel launch */
-int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, int *complete, dim3 num_blocks);
-int FTI_BACKUP_monitor(int *complete);
+int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, bool *complete, bool **all_done, dim3 num_blocks);
+int FTI_BACKUP_monitor(bool *complete);
 void FTI_BACKUP_cleanup(const char *kernel_name);
 void FTI_BACKUP_Print(char *msg, int priority);
 
