@@ -104,7 +104,7 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while((BACKUP_complete == false) || (FTI_all_procs_complete(BACKUP_all_done) == false))                                                                             \
+      while(FTI_all_procs_complete(BACKUP_all_done) == false)                                                                             \
       {                                                                                                   \
         /*BACKUP_dbug_println(); */                                                                       \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                          \
