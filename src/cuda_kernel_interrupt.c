@@ -359,24 +359,27 @@ int FTI_BACKUP_monitor(bool *complete)
     CUDA_ERROR_CHECK(cudaDeviceSynchronize());
     FTI_Print("Kernel came back...", FTI_DBUG);
 
-    CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
+    CUDA_ERROR_CHECK(cudaMemcpy((void*)h_is_block_executed, (const void*)d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
     FTI_Print("Checking if complete", FTI_DBUG);
     computation_complete(complete);
 
     sprintf(str, "Done checking: %s", *complete ? "True" : "False");
     FTI_Print(str, FTI_DBUG);
 
+    if(*complete == false)
+    {
+      FTI_Print("Incomplete, resuming", FTI_DBUG);
+      *t = 0;
 
-    FTI_Print("Incomplete, resuming", FTI_DBUG);
-    *t = 0;
+      CUDA_ERROR_CHECK(cudaMemcpy((void*)d_is_block_executed, (const void*)h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice)); 
+      FTI_Print("Increasing quantum", FTI_DBUG);
+      /* Automatically increase quantum, may not be necessary! */
+      quantum = quantum + initial_quantum;
 
-    FTI_Print("Increasing quantum", FTI_DBUG);
-    /* Automatically increase quantum, may not be necessary! */
-    quantum = quantum + initial_quantum;
-
-    sprintf(str, "Quantum is now: %d", quantum);
-    FTI_Print(str, FTI_DBUG);
-    suspension_count++; 
+      sprintf(str, "Quantum is now: %d", quantum);
+      FTI_Print(str, FTI_DBUG);
+      suspension_count++; 
+    }
   }
   //else
   //{
