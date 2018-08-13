@@ -237,7 +237,16 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   t = *timeout;
   d_is_block_executed = *b_info;
   all_done_array = *all_done;
-  //print_rank_globals(rank_id, "INIT"); 
+
+  /* Now protect all necessary variables */
+  FTIT_type C_BOOL;
+  FTI_InitType(&C_BOOL, sizeof(bool));
+  FTI_Protect(22, (void *)all_done_array, FTI_Topo->nbProc, C_BOOL);
+  FTI_Protect(23, (void *)complete, 1, C_BOOL);
+  FTI_Protect(24, (void *)h_is_block_executed, block_amt, FTI_USHT);
+  FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
+  FTI_Protect(26, (void *)t, 1, FTI_UINT);
+
   return FTI_SCES;
 }
 
