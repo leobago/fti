@@ -195,8 +195,17 @@ static int reset_globals()
  */
 int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, bool *complete, bool **all_done, dim3 num_blocks)
 {
-  *all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
   char str[FTI_BUFS];
+
+  *all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
+  
+  if(*all_done == NULL)
+  {
+    sprintf(str, "Cannot allocate memory for all_done");
+    FTI_Print(str, FTI_EROR);
+    return FTI_NSCS;
+  }
+
   FTI_Print("Initialized backup", FTI_DBUG);
 
   /* Set default values */
@@ -220,6 +229,11 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   for(i = 0; i < block_amt; i++)
   {
     h_is_block_executed[i] = 0;
+  }
+
+  for(i = 0; i < FTI_Topo->nbProc; i++)
+  {
+    (*all_done)[i] = false;
   }
 
   quantum = seconds_to_microseconds(q);
@@ -352,6 +366,9 @@ int FTI_BACKUP_monitor(bool *complete)
     FTI_Print("usleep() Waking up", FTI_DBUG);
   }
 
+  FTI_Print("Signalling kernel to return...", FTI_DBUG);
+  *t = 1;
+
   FTI_Print("Attempting to snapshot", FTI_DBUG);
   int res = FTI_Snapshot();
   
@@ -359,16 +376,18 @@ int FTI_BACKUP_monitor(bool *complete)
   {
     FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
   }
+  else
+  {
+    FTI_Print("No snapshot was taken", FTI_DBUG);
+  }
 
   if(*complete == false)
   {
-    FTI_Print("Signalling kernel to return...", FTI_DBUG);
-    *t = 1;
     FTI_Print("Waiting on kernel...", FTI_DBUG);
     CUDA_ERROR_CHECK(cudaDeviceSynchronize());
     FTI_Print("Kernel came back...", FTI_DBUG);
 
-    CUDA_ERROR_CHECK(cudaMemcpy((void*)h_is_block_executed, (const void*)d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
+    CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
     FTI_Print("Checking if complete", FTI_DBUG);
     computation_complete(complete);
 
@@ -379,8 +398,9 @@ int FTI_BACKUP_monitor(bool *complete)
     {
       FTI_Print("Incomplete, resuming", FTI_DBUG);
       *t = 0;
+      //sleep(120);
 
-      CUDA_ERROR_CHECK(cudaMemcpy((void*)d_is_block_executed, (const void*)h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice)); 
+      CUDA_ERROR_CHECK(cudaMemcpy(d_is_block_executed, h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice)); 
       FTI_Print("Increasing quantum", FTI_DBUG);
       /* Automatically increase quantum, may not be necessary! */
       quantum = quantum + initial_quantum;

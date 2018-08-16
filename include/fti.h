@@ -104,8 +104,7 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(BACKUP_all_done) == false)                                                                             \
-      {                                                                                                   \
+      while(FTI_all_procs_complete(BACKUP_all_done) == false)                                                                 {                                                                                                   \
         /*BACKUP_dbug_println(); */                                                                       \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                          \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                      \
@@ -118,7 +117,9 @@ do{                                                                             
           sprintf(str, "Monitoring of kernel execution failed");\
           FTI_BACKUP_Print(str, FTI_EROR);                                \
         }                                                                                                 \
-        count = count + 1;                                                                                \
+        if(BACKUP_complete == false){\
+          count = count + 1;                                                                                \
+        }\
         MPI_Allgather(&BACKUP_complete, 1, MPI_C_BOOL, BACKUP_all_done, 1, MPI_C_BOOL, FTI_COMM_WORLD);  \
       }                                                                                                   \
       FTI_BACKUP_cleanup(#kernel_name);                                                                   \
