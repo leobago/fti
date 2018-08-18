@@ -261,6 +261,17 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
   FTI_Protect(26, (void *)t, 1, FTI_UINT);
 
+  if(FTI_Status() != 0)
+  {
+    FTI_Recover();
+  
+    for(i = 0; i < block_amt; i++)
+    {
+      sprintf(str, "block_executed[%zu]=%d\n", i, h_is_block_executed[i]);
+      FTI_Print(str, FTI_DBUG);
+    }
+  }
+
   return FTI_SCES;
 }
 
