@@ -50,7 +50,7 @@ static size_t block_info_bytes = 0;
  * Assigned to 1 in BACKUP_monitor() when the quantum has expired so that 
  * the kernel can know it should not launch any new blocks.  
  */
-static volatile unsigned int *t = NULL;
+static volatile bool *t = NULL;
 
 /**
  * @brief              Host-side boolean array.
@@ -60,12 +60,12 @@ static volatile unsigned int *t = NULL;
  * has finished executing. Is copied to host at each interrupt and checked
  * to determine if all blocks have executed.
  */
-backup_t *h_is_block_executed = NULL;
+bool *h_is_block_executed = NULL;
 
 /**
  * @brief              Device-side boolean array. See #h_is_block_executed.
  */
-backup_t *d_is_block_executed = NULL;
+bool *d_is_block_executed = NULL;
 
 /**
  * @brief              Used to specify the amount quantum should be increased by.
@@ -94,7 +94,7 @@ static void computation_complete(bool *complete)
   size_t i = 0;
   for(i = 0; i < block_amt; i++)
   {
-    if(h_is_block_executed[i] == 1)
+    if(h_is_block_executed[i] == true)
     {
       continue;
     }
@@ -193,13 +193,13 @@ static int reset_globals()
  * may communicate with the device directly without an explicit memory copy. The boolean array
  * has a size of *num_blocks* and has a record of which blocks have executed at each interrupt.
  */
-int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, bool *complete, bool **all_done, dim3 num_blocks)
+int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
 {
   char str[FTI_BUFS];
 
-  *all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
+  *all_processes_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
   
-  if(*all_done == NULL)
+  if(*all_processes_done == NULL)
   {
     sprintf(str, "Cannot allocate memory for all_done");
     FTI_Print(str, FTI_EROR);
@@ -216,8 +216,8 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   block_amt = num_blocks.x * num_blocks.y * num_blocks.z; 
 
   /* Block info host setup */
-  block_info_bytes = block_amt * sizeof(backup_t);
-  h_is_block_executed = (backup_t *)malloc(block_info_bytes);
+  block_info_bytes = block_amt * sizeof(bool);
+  h_is_block_executed = (bool *)malloc(block_info_bytes);
 
   if(h_is_block_executed == NULL)
   {
@@ -228,18 +228,18 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
 
   for(i = 0; i < block_amt; i++)
   {
-    h_is_block_executed[i] = 0;
+    h_is_block_executed[i] = false;
   }
 
   for(i = 0; i < FTI_Topo->nbProc; i++)
   {
-    (*all_done)[i] = false;
+    (*all_processes_done)[i] = false;
   }
 
   quantum = seconds_to_microseconds(q);
   initial_quantum = quantum;
 
-  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*timeout), sizeof(volatile unsigned int), cudaHostAllocMapped));
+  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*timeout), sizeof(volatile bool), cudaHostAllocMapped));
 
   /* Block info device setup */
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), block_info_bytes));
@@ -250,14 +250,14 @@ int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q
   /* Keep track of some things locally */
   t = *timeout;
   d_is_block_executed = *b_info;
-  all_done_array = *all_done;
+  all_done_array = *all_processes_done;
 
   /* Now protect all necessary variables */
   FTIT_type C_BOOL;
   FTI_InitType(&C_BOOL, sizeof(bool));
   FTI_Protect(22, (void *)all_done_array, FTI_Topo->nbProc, C_BOOL);
   FTI_Protect(23, (void *)complete, 1, C_BOOL);
-  FTI_Protect(24, (void *)h_is_block_executed, block_amt, FTI_USHT);
+  FTI_Protect(24, (void *)h_is_block_executed, block_amt, C_BOOL);
   FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
   FTI_Protect(26, (void *)t, 1, FTI_UINT);
 
@@ -376,7 +376,7 @@ int FTI_BACKUP_monitor(bool *complete)
   }
 
   FTI_Print("Signalling kernel to return...", FTI_DBUG);
-  *t = 1;
+  *t = true;
   FTI_Print("Attempting to snapshot", FTI_DBUG);
 
   int res = FTI_Snapshot();

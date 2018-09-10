@@ -94,7 +94,7 @@ do{                                                                             
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
     ret = FTI_BACKUP_init(&BACKUP_timeout, &BACKUP_block_info, quantum,                                   \
-                     &BACKUP_complete, &BACKUP_all_done, grid_dim);                                       \
+                     &BACKUP_complete, &BACKUP_all_processes_done, grid_dim);                             \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -104,7 +104,7 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(BACKUP_all_done) == false)                                             \
+      while(FTI_all_procs_complete(BACKUP_all_processes_done) == false)                                   \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
@@ -120,48 +120,48 @@ do{                                                                             
         if(BACKUP_complete == false){                                                                     \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        MPI_Allgather(&BACKUP_complete, 1, MPI_C_BOOL, BACKUP_all_done, 1, MPI_C_BOOL, FTI_COMM_WORLD);   \
+        MPI_Allgather(&BACKUP_complete, 1, MPI_C_BOOL, BACKUP_all_processes_done, 1, MPI_C_BOOL,          \
+            FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
       FTI_BACKUP_cleanup(#kernel_name);                                                                   \
     }                                                                                                     \
 }while(0)
 
 #define FTI_KERNEL_DEF(kernel_name, ...)                                                                  \
-  kernel_name(volatile unsigned int *timeout, backup_t *is_block_executed, ## __VA_ARGS__)
+  kernel_name(volatile bool *timeout, bool *is_block_executed, ## __VA_ARGS__)
 
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
   /* These can be NULL if BACKUP_config is not called prior to kernel launch */                           \
   if(timeout != NULL && is_block_executed != NULL)                                                        \
   {                                                                                                       \
-    __shared__ unsigned int block_time_out;                                                               \
+    __shared__ bool block_time_out;                                                                       \
     unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);          \
     if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                         \
     {                                                                                                     \
        block_time_out = *timeout;                                                                         \
     }                                                                                                     \
                                                                                                           \
-    if(is_block_executed[bid] == 1)                                                                       \
+    if(is_block_executed[bid])                                                                            \
     {                                                                                                     \
       return;                                                                                             \
     }                                                                                                     \
     __syncthreads();                                                                                      \
                                                                                                           \
-    if(block_time_out == 1 && is_block_executed[bid] == 0)                                                \
+    if(block_time_out && is_block_executed[bid] == false)                                                 \
     {                                                                                                     \
       return;                                                                                             \
     }                                                                                                     \
-    is_block_executed[bid] = 1;                                                                           \
+    is_block_executed[bid] = true;                                                                        \
   }                                                                                                       \
 }while(0)
 
 bool BACKUP_complete;
-volatile unsigned int *BACKUP_timeout;
-typedef unsigned short int backup_t;
-bool *BACKUP_all_done;
+volatile bool *BACKUP_timeout;
+bool *BACKUP_all_processes_done;
 bool FTI_all_procs_complete(bool *procs);
-backup_t *BACKUP_block_info; /* Initialized and then passed at kernel launch */
-int FTI_BACKUP_init(volatile unsigned int **timeout, backup_t **b_info, double q, bool *complete, bool **all_done, dim3 num_blocks);
+bool *BACKUP_block_info; /* Initialized and then passed at kernel launch */
+int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(bool *complete);
 void FTI_BACKUP_cleanup(const char *kernel_name);
 void FTI_BACKUP_Print(char *msg, int priority);
