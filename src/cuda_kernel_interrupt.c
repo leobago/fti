@@ -372,20 +372,18 @@ int FTI_BACKUP_monitor(bool *complete)
   }
   else
   {
-    FTI_Print("usleep()", FTI_DBUG);
     usleep(quantum);
-    FTI_Print("usleep() Waking up", FTI_DBUG);
   }
 
   FTI_Print("Signalling kernel to return...", FTI_DBUG);
   *t = 1;
-
   FTI_Print("Attempting to snapshot", FTI_DBUG);
+
   int res = FTI_Snapshot();
   
   if(res == FTI_DONE)
   {
-    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
+    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
   }
   else
   {
@@ -409,7 +407,6 @@ int FTI_BACKUP_monitor(bool *complete)
     {
       FTI_Print("Incomplete, resuming", FTI_DBUG);
       *t = 0;
-      //sleep(120);
 
       CUDA_ERROR_CHECK(cudaMemcpy(d_is_block_executed, h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice)); 
       FTI_Print("Increasing quantum", FTI_DBUG);
@@ -421,15 +418,6 @@ int FTI_BACKUP_monitor(bool *complete)
       suspension_count++; 
     }
   }
-  //else
-  //{
-  //  ret = FTI_Try(cleanup(kernel_name), "cleaning up resources");
-  //  if(ret != FTI_SCES)
-  //  {
-  //    FTI_Print("Failed to clean up resources", FTI_WARN);
-  //    return ret;
-  //  }
-  //}
 
   return FTI_SCES;
 }
