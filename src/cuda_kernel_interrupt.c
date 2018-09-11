@@ -50,7 +50,7 @@ static size_t block_info_bytes = 0;
  * Assigned to 1 in BACKUP_monitor() when the quantum has expired so that 
  * the kernel can know it should not launch any new blocks.  
  */
-static volatile bool *t = NULL;
+static volatile bool *quantum_expired = NULL;
 
 /**
  * @brief              Host-side boolean array.
@@ -150,7 +150,7 @@ static int free_memory()
 
   /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
   CUDA_ERROR_CHECK(cudaFree(d_is_block_executed));
-  CUDA_ERROR_CHECK(cudaFreeHost((void *)t));
+  CUDA_ERROR_CHECK(cudaFreeHost((void *)quantum_expired));
 
   return FTI_SCES;
 } 
@@ -166,7 +166,7 @@ static int reset_globals()
   quantum = 0.0;
   initial_quantum = 0.0;
   block_info_bytes = 0;
-  t = NULL;
+  quantum_expired = NULL;
   h_is_block_executed = NULL;
   d_is_block_executed = NULL;
   suspension_count = 0;
@@ -248,7 +248,7 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   **timeout = 0;
 
   /* Keep track of some things locally */
-  t = *timeout;
+  quantum_expired = *timeout;
   d_is_block_executed = *b_info;
   all_done_array = *all_processes_done;
 
@@ -259,7 +259,7 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   FTI_Protect(23, (void *)complete, 1, C_BOOL);
   FTI_Protect(24, (void *)h_is_block_executed, block_amt, C_BOOL);
   FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
-  FTI_Protect(26, (void *)t, 1, FTI_UINT);
+  FTI_Protect(26, (void *)quantum_expired, 1, FTI_UINT);
 
   if(FTI_Status() != 0)
   {
@@ -323,27 +323,16 @@ void FTI_BACKUP_cleanup(const char *kernel_name)
 }
 
 /**
- * @brief              Monitors the kernel's execution until it completes.
- * @param[out]         complete           Initialized to 0 or 1 if the kernel has finished or not. 
- * @param[in]          do_memory_backup   Whether to perform device to host transfers at each interrupt. 
- * @return             #FTI_SCES or #FTI_NSCS for success or failure respectively.
+ * @brief           Waits for quantum to expire.
  *
- * Sleeps until the quantum has expired and then sets the timeout variable to 1
- * and waits for the kernel to return. The value in timeout is immediately
- * available to the kernel which then does not allow any new blocks to execute.
- * After the kernel returns, the boolean array is copied to the host and
- * checked to determine if all blocks executed. If all blocks are finished
- * complete is set to 1 and no further kernel launches are made. Otherwise this
- * process repeats iteratively.
- *
- * If the quantum is in seconds or larger the kernel's execution is checked
- * every second for completion. This is avoids the case of the host sleeping
- * unnecessarily when a large quantum is set and the kernel completes very
- * early.
+ * Used in #FTI_BACKUP_monitor when initially waiting for the kernel to expire.
+ * If the specified quantum is in minutes this function loops to perform a
+ * cudaEventQuery every second; this is to handle the case of the kernel
+ * returning before the quantum has expired so that no long period of time is
+ * spent idly waiting.
  */
-int FTI_BACKUP_monitor(bool *complete)
+static inline void wait()
 {
-  //int ret;
   char str[FTI_BUFS];
   int q = quantum / 1000000.0f; /* Convert to seconds */
 
@@ -363,9 +352,7 @@ int FTI_BACKUP_monitor(bool *complete)
       {
         break;
       }
-      FTI_Print("sleep()", FTI_DBUG);
-      sleep(10);
-      FTI_Print("sleep() Waking up", FTI_DBUG);
+      sleep(1);
       q--;
     }
     cudaEventDestroy(event);
@@ -374,50 +361,110 @@ int FTI_BACKUP_monitor(bool *complete)
   {
     usleep(quantum);
   }
+}
+
+/**
+ * @brief             Signals the GPU to return and then waits for it to return.
+ * @param[in,out]     complete      Initialized to *true* or *false* if all blocks
+ *                                  in kernel have finished or not
+ * @return             #FTI_SCES or #FTI_NSCS for success or failure respectively.
+ *
+ * Called in #FTI_BACKUP_monitor() so tell the GPU it should finish the currently
+ * executing blocks and prevent new blocks from continuing on to their main
+ * body of work.
+ */
+static inline int signal_gpu_then_wait(bool *complete)
+{
+  char str[FTI_BUFS];
 
   FTI_Print("Signalling kernel to return...", FTI_DBUG);
-  *t = true;
+  *quantum_expired = true;
   FTI_Print("Attempting to snapshot", FTI_DBUG);
 
   int res = FTI_Snapshot();
   
   if(res == FTI_DONE)
   {
-    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
+    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
   }
   else
   {
     FTI_Print("No snapshot was taken", FTI_DBUG);
   }
 
+
+  FTI_Print("Waiting on kernel...", FTI_DBUG);
+  CUDA_ERROR_CHECK(cudaDeviceSynchronize());
+  FTI_Print("Kernel came back...", FTI_DBUG);
+
+  CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
+  FTI_Print("Checking if complete", FTI_DBUG);
+  computation_complete(complete);
+
+  sprintf(str, "Done checking: %d", *complete);
+  FTI_Print(str, FTI_DBUG);
+
+  return FTI_SCES;
+}
+
+/**
+ * @brief            Executed when control is returned to host after GPU is interrupted or finished.
+ * @parm[in]         complete          Used to check if kernel finished executing all blocks or not. 
+ *
+ * This function handles the control returned to the host after the GPU has finished executing. It
+ * also executes any callback function to be executed at GPU interrupt. The callback function is
+ * only executed if the GPU is not finished. This function also increases the quantum by a default
+ * or specified amount. This increase is necessary in cases where the quantum is short enough to 
+ * cause the GPU to return again by the time it has finished re-launching previously executed blocks.
+ */
+static inline void handle_gpu_suspension(bool *complete)
+{
+  char str[FTI_BUFS];
   if(*complete == false)
   {
-    FTI_Print("Waiting on kernel...", FTI_DBUG);
-    CUDA_ERROR_CHECK(cudaDeviceSynchronize());
-    FTI_Print("Kernel came back...", FTI_DBUG);
 
-    CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
-    FTI_Print("Checking if complete", FTI_DBUG);
-    computation_complete(complete);
+    FTI_Print("Incomplete, resuming", FTI_DBUG);
+    *quantum_expired = false;
 
-    sprintf(str, "Done checking: %s", *complete ? "True" : "False");
+    quantum = quantum + initial_quantum;
+
+    sprintf(str, "Quantum is now: %u", quantum);
     FTI_Print(str, FTI_DBUG);
-
-    if(*complete == false)
-    {
-      FTI_Print("Incomplete, resuming", FTI_DBUG);
-      *t = 0;
-
-      CUDA_ERROR_CHECK(cudaMemcpy(d_is_block_executed, h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice)); 
-      FTI_Print("Increasing quantum", FTI_DBUG);
-      /* Automatically increase quantum, may not be necessary! */
-      quantum = quantum + initial_quantum;
-
-      sprintf(str, "Quantum is now: %d", quantum);
-      FTI_Print(str, FTI_DBUG);
-      suspension_count++; 
-    }
+    suspension_count++; 
   }
+}
+
+/**
+ * @brief              Monitors the kernel's execution until it completes.
+ * @param[in,out]      complete           Initialized to *true* or *false* if the kernel has finished or not. 
+ * @return             #FTI_SCES or #FTI_NSCS for success or failure respectively.
+ *
+ * Sleeps until the quantum has expired and then sets the quantum_expired
+ * variable to *true* and waits for the kernel to return. The value in
+ * quantum_expired is immediately available to the kernel which then does not
+ * allow any new blocks to execute.  After the kernel returns, the boolean
+ * array is copied to the host and checked to determine if all blocks executed.
+ * If all blocks are finished *complete* is set to *true* and no further kernel
+ * launches are made.  Otherwise this process repeats iteratively.
+ */
+int FTI_BACKUP_monitor(bool *complete)
+{
+  int ret;
+
+  /* Wait for quantum to expire */
+  wait();
+  
+  /* Tell GPU to finish and come back now */
+  ret = FTI_Try(signal_gpu_then_wait(complete), "signal and wait on kernel");
+
+  if(ret != FTI_SCES)
+  {
+    FTI_Print("Failed to signal and wait on kernel", FTI_EROR);
+    return FTI_NSCS;
+  }
+
+  /* Handle interrupted GPU */
+  handle_gpu_suspension(complete);
 
   return FTI_SCES;
 }
@@ -429,6 +476,8 @@ int FTI_BACKUP_monitor(bool *complete)
  *
  * Used so that kernel interrupt macros can have access
  * to the standard FTI_Print() function.
+ *
+ * TODO: check if this is still needed.
  */
 void FTI_BACKUP_Print(char *msg, int priority)
 {

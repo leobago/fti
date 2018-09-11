@@ -128,18 +128,18 @@ do{                                                                             
 }while(0)
 
 #define FTI_KERNEL_DEF(kernel_name, ...)                                                                  \
-  kernel_name(volatile bool *timeout, bool *is_block_executed, ## __VA_ARGS__)
+  kernel_name(volatile bool *qtm_expired, bool *is_block_executed, ## __VA_ARGS__)
 
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
   /* These can be NULL if BACKUP_config is not called prior to kernel launch */                           \
-  if(timeout != NULL && is_block_executed != NULL)                                                        \
+  if(qtm_expired != NULL && is_block_executed != NULL)                                                    \
   {                                                                                                       \
-    __shared__ bool block_time_out;                                                                       \
+    __shared__ bool quantum_expired;                                                                      \
     unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);          \
     if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                         \
     {                                                                                                     \
-       block_time_out = *timeout;                                                                         \
+       quantum_expired = *qtm_expired;                                                                    \
     }                                                                                                     \
                                                                                                           \
     if(is_block_executed[bid])                                                                            \
@@ -148,7 +148,7 @@ do{                                                                             
     }                                                                                                     \
     __syncthreads();                                                                                      \
                                                                                                           \
-    if(block_time_out && is_block_executed[bid] == false)                                                 \
+    if(quantum_expired && is_block_executed[bid] == false)                                                \
     {                                                                                                     \
       return;                                                                                             \
     }                                                                                                     \
