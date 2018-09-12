@@ -1,9 +1,9 @@
 # SET TO FTI SOURCE DIRECTORY
-FTI_HOME :=
-# SET TO FTI RELEASE DIRECTORY
-FTI_RELEASE :=
+FTI_HOME ?= $(shell dirname $(shell dirname $(shell dirname `pwd`)))
 # SET TO FTI BUILD DIRECTORY
-FTI_BUILD :=
+FTI_BUILD ?= $(FTI_HOME)/build
+# SET TO FTI RELEASE DIRECTORY
+FTI_RELEASE ?= $(FTI_BUILD)/RELEASE
 FTI_INC_DIR := $(FTI_RELEASE)/include
 FTI_LIB_DIR := $(FTI_RELEASE)/lib
 FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
@@ -29,19 +29,10 @@ diff_test_func.o: diff_test_func.c diff_test.h Makefile fti
 diff_test: diff_test_func.o diff_test.c diff_test.h Makefile fti
 	mpicc -o diff_test diff_test.c -g $(CDEF) $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti -lcrypto
 
-run: diff_test Makefile fti
-	cp cfg/config.fti .
-	mpirun -n 8 ./$<
-
 run-test: diff_test Makefile
 	cp cfg/config.fti .
 	mpirun -n 8 ./$<
 	mpirun -n 8 ./$<
-
-run-valgrind: diff_test Makefile
-	cp cfg/config.fti .
-	#mpirun -n 1 valgrind ./$< : -n 7 ./$<
-	mpirun -n 8 valgrind ./$<
 
 clean:
 	rm -rf *.o diff_test Global Local Meta config.fti
