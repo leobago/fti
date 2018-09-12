@@ -31,8 +31,6 @@ int main() {
         xor_data( i, &info );
         FTI_Checkpoint( i+2, FTI_L4_DCP );
         FTI_Checkpoint( i+3, FTI_L4_DCP );
-//        sleep(10);
-//        MPI_Abort(MPI_COMM_WORLD,0);
         if ( numHeads > 0 ) {
             int value = FTI_ENDW;
             MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
@@ -43,7 +41,6 @@ int main() {
             MPI_Abort( MPI_COMM_WORLD, EXIT_ID_ERROR_RECOVERY );
         }
         invert_data( &info );
-        //memset(info.buffer[0], 0x45, 32);
         exit_status = ( valid( &info ) ) ? EXIT_ID_SUCCESS : EXIT_ID_ERROR_DATA;
         MPI_Barrier(FTI_COMM_WORLD);
         FTI_Finalize();
