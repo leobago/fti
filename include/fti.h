@@ -133,28 +133,24 @@ do{                                                                             
 
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
-  /* These can be NULL if BACKUP_config is not called prior to kernel launch */                           \
-  if(qtm_expired != NULL && is_block_executed != NULL)                                                    \
+  __shared__ bool quantum_expired;                                                                        \
+  unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);            \
+  if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                           \
   {                                                                                                       \
-    __shared__ bool quantum_expired;                                                                      \
-    unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);          \
-    if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                         \
-    {                                                                                                     \
-       quantum_expired = *qtm_expired;                                                                    \
-    }                                                                                                     \
-                                                                                                          \
-    if(is_block_executed[bid])                                                                            \
-    {                                                                                                     \
-      return;                                                                                             \
-    }                                                                                                     \
-    __syncthreads();                                                                                      \
-                                                                                                          \
-    if(quantum_expired && is_block_executed[bid] == false)                                                \
-    {                                                                                                     \
-      return;                                                                                             \
-    }                                                                                                     \
-    is_block_executed[bid] = true;                                                                        \
+     quantum_expired = *qtm_expired;                                                                      \
   }                                                                                                       \
+                                                                                                          \
+  if(is_block_executed[bid])                                                                              \
+  {                                                                                                       \
+    return;                                                                                               \
+  }                                                                                                       \
+  __syncthreads();                                                                                        \
+                                                                                                          \
+  if(quantum_expired && is_block_executed[bid] == false)                                                  \
+  {                                                                                                       \
+    return;                                                                                               \
+  }                                                                                                       \
+  is_block_executed[bid] = true;                                                                          \
 }while(0)
 
 bool BACKUP_complete;
