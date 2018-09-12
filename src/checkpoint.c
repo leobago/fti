@@ -442,9 +442,17 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
+            if ( FTI_Conf->keepHeadsAlive ) {
+                break;
+            }
+
         }
 
     }
+
+    // will be reached only if keepHeadsAlive is TRUE
+    return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/

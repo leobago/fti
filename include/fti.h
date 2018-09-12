@@ -41,6 +41,8 @@
 #define FTI_NSCS -1
 /** Token returned if recovery fails.                                      */
 #define FTI_NREC -2
+/** Token that indicates a head process in user space                      */
+#define FTI_HEAD 2
 
 /** Verbosity level to print only errors.                                  */
 #define FTI_EROR 4
@@ -412,7 +414,8 @@ extern "C" {
         bool            stagingEnabled;
         bool            dcpEnabled;         /**< Enable differential ckpt.      */
         bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
-	int             dcpMode;            /**< dCP mode.                      */
+	    bool            keepHeadsAlive;     /**< TRUE if heads return           */
+        int             dcpMode;            /**< dCP mode.                      */
         int             dcpBlockSize;       /**< Block size for dCP hash        */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
         int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */

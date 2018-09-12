@@ -159,6 +159,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stagingEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_staging", 0);
 
     // Reading/setting configuration metadata
+    FTI_Conf->keepHeadsAlive = (bool)iniparser_getboolean(ini, "Basic:keep_heads_alive", 0);
     FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
     FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
@@ -285,6 +286,11 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
     if (FTI_Conf->blockSize > (2048 * 1024) || FTI_Conf->blockSize < (1 * 1024)) {
         FTI_Print("Block size needs to be set between 1 and 2048.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if ( FTI_Conf->keepHeadsAlive && ( FTI_Topo->nbHeads == 0 ) ) {
+        FTI_Print("Head feature is disabled but 'keep_heads_alive' is activated. Incompatiple setting!.", FTI_WARN);
         return FTI_NSCS;
     }
 

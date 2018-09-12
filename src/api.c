@@ -146,6 +146,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             }
         }
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
+        return FTI_HEAD;
     }
     else { // If I am an application process
         // call in any case. treatment for diffCkpt disabled inside initializer.
@@ -1360,8 +1361,12 @@ int FTI_Finalize()
             FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
         }
         MPI_Barrier(FTI_Exec.globalComm);
-        MPI_Finalize();
-        exit(0);
+        if ( !FTI_Conf.keepHeadsAlive ) { 
+            MPI_Finalize();
+            exit(0);
+        } else {
+            return FTI_SCES;
+        }
     }
 
     // Notice: The following code is only executed by the application procs
