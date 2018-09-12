@@ -414,7 +414,7 @@ extern "C" {
         bool            stagingEnabled;
         bool            dcpEnabled;         /**< Enable differential ckpt.      */
         bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
-	    bool            keepHeadsAlive;     /**< TRUE if heads return           */
+        bool            keepHeadsAlive;     /**< TRUE if heads return           */
         int             dcpMode;            /**< dCP mode.                      */
         int             dcpBlockSize;       /**< Block size for dCP hash        */
         char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */

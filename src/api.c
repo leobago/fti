@@ -146,6 +146,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             }
         }
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
+        // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
         return FTI_HEAD;
     }
     else { // If I am an application process
