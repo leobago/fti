@@ -93,7 +93,7 @@ extern "C" {
 do{                                                                                                       \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
-    ret = FTI_BACKUP_init(&BACKUP_timeout, &BACKUP_block_info, quantum,                                   \
+    ret = FTI_BACKUP_init(&BACKUP_quantum_expired, &BACKUP_block_info, quantum,                           \
                      &BACKUP_complete, &BACKUP_all_processes_done, grid_dim);                             \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
@@ -109,7 +109,8 @@ do{                                                                             
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
         if(BACKUP_complete == false){                                                                     \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(BACKUP_timeout, BACKUP_block_info, ## __VA_ARGS__); \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(BACKUP_quantum_expired, BACKUP_block_info,          \
+                      ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
         FTI_BACKUP_monitor(&BACKUP_complete);                                                             \
         if(ret != FTI_SCES)                                                                               \
@@ -157,7 +158,7 @@ do{                                                                             
 }while(0)
 
 bool BACKUP_complete;
-volatile bool *BACKUP_timeout;
+volatile bool *BACKUP_quantum_expired;
 bool *BACKUP_all_processes_done;
 bool FTI_all_procs_complete(bool *procs);
 bool *BACKUP_block_info; /* Initialized and then passed at kernel launch */
