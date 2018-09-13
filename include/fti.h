@@ -89,6 +89,33 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief              Used to re-write kernel launch.
+ * @param[in]          quantum        Time kernel has to execute before being interrupted.
+ * @param[in]          kernel_name    The name of the kernel.
+ * @param[in]          grid_dim       Specifies the dimension of the kernel grid.
+ * @param[in]          block_dim      Specifies the dimension of each block.
+ * @param[in]          ns             specifies the number of bytes in shared
+ *                                    memory that is dynamically allocated per 
+ *                                    block for this call in addition to the
+ *                                    statically allocated memory.
+ * @param[in]          s              Of type cudaStream_t and specifies the associated stream.
+ * @param[in]          ...            Other arguments for the kernel.
+ *
+ * Rewrites kernel launch in a loop and modifies argument list to include
+ * #BACKUP_quantum_expired and #BACKUP_block_info. Since kernel launches are
+ * asynchronous #FTI_BACKUP_monitor() is called immediately after the kernel is
+ * launched. #BACKUP_monitor() waits until #BACKUP_quantum expires and copies
+ * the boolean array (#h_is_block_executed) to the host and checks if all
+ * blocks were executed. If all blocks were executed it means the kernel is
+ * complete and #BACKUP_complete is set to *true* and the loop terminates.
+ * Otherwise, the loop continues until all blocks have executed. After the
+ * kernel is complete #BACKUP_cleanup() is called to clean up allocated
+ * resources.
+ *
+ * @remark *ns* and *s* must be specified and can be set to 0 if not used.
+ */
 #define FTI_KERNEL_LAUNCH(quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                          \
 do{                                                                                                       \
     int ret;                                                                                              \
@@ -128,9 +155,25 @@ do{                                                                             
     }                                                                                                     \
 }while(0)
 
+/**
+ * @brief              Rewrites the kernel's definition.
+ * @param[in]          kernel_name    The name of the kernel.
+ * @param[in]          ...            The rest of the kernel's arguments.
+ *
+ * Modifies the kernel's definition to augment the argument list with
+ * #BACKUP_quantum_expired and #BACKUP_block_info.
+ */
 #define FTI_KERNEL_DEF(kernel_name, ...)                                                                  \
   kernel_name(volatile bool *qtm_expired, bool *is_block_executed, ## __VA_ARGS__)
 
+/**
+ * @brief              Determines whether block should execute or not.
+ *
+ * This macro should be placed in the first line of the kernel's body because
+ * it introduces the code that checks the quantum to determine if the block
+ * should execute or not. It also checks the boolean array to determine if the
+ * block has previously executed.
+ */
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
   __shared__ bool quantum_expired;                                                                        \
