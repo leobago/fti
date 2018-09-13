@@ -11,6 +11,7 @@ if [ $1 = 0 ]; then
                 /Ckpt. ID 7/ {VAL=0}
                 END { if ( !dcpEnabled ) print "dCP is disabled!"; exit(-1)} 
             '
+    exit $?
 elif [ $1 = 1 ]; then
     make run-test-head | \
         awk '
@@ -23,5 +24,6 @@ elif [ $1 = 1 ]; then
                 /Ckpt. ID 7/ {VAL=0}
                 END { if ( !dcpEnabled ) print "dCP is disabled!"; exit(-1)} 
             '
+    exit $?
 fi
 cd @CMAKE_BINARY_DIR@/test/local

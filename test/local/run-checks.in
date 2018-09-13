@@ -296,7 +296,7 @@ if [ $testFailed = 1 ]; then
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 &>> check.log )
+( set -x; bash checkDCP.sh 1 &>> check.log )
 dCP_check $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
