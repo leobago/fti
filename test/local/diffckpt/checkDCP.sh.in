@@ -1,0 +1,13 @@
+cd @CMAKE_SOURCE_DIR@/test/local/diffckpt
+make run-test | \
+    awk '
+            BEGIN {VAL=100; dcpEnabled=0};
+            /L4 dCP requested, but dCP is disabled!/ {print "dCP is disabled!"; exit(-1)}
+            /FTI  dCP Message/ {dcpEnabled=1};
+            {print}; 
+            /DEBUG/ {VAL=$10}; 
+            /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
+            /Ckpt. ID 7/ {VAL=0}
+            END { if ( !dcpEnabled ) print "dCP is disabled!"; exit(-1)} 
+        '
+cd @CMAKE_BINARY_DIR@/test/local

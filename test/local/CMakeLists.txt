@@ -26,6 +26,7 @@ set(DIR ${CMAKE_BINARY_DIR}/)
 
 configure_file(run-checks.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks.sh @ONLY)
 configure_file(diffckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/diffckpt/Makefile @ONLY)
+configure_file(diffckpt/checkDCP.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkDCP.sh @ONLY)
 configure_file(run-checks-f90.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks-f90.sh @ONLY)
 configure_file(run-travis-locally.in ${CMAKE_CURRENT_SOURCE_DIR}/run-travis-locally.sh @ONLY)
 
