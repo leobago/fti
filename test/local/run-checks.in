@@ -240,6 +240,17 @@ should_fail() {
 	fi
 }
 
+dCP_check() {
+	if [ $1 = 0 ]; then
+	    echo -e "\033[0;32mpassed\033[m"
+		let SUCCEED=SUCCEED+1
+	elif [ $1 = 255 ]; then
+        echo -e "\033[0;31mfailed\033[m"
+		let FAILED=FAILED+1
+		testFailed=1
+    fi
+}
+
 set_inline() {
     case $1 in
         1)
@@ -273,6 +284,18 @@ INLINE_L3=(0 1)
 INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
+
+#                     #
+# ---- Check dCP ---- #
+#                     #
+echo -e "[ \033[1m*** Testing dCP ***\033[m ]"
+( set -x; bash checkDCP.sh &>> check.log )
+dCP_check $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check failed!" >> failed.log
+    testFailed=0
+fi
+
 for io in $(seq 1 @IO@); do
     let io_id=io-1
     awk -v var="$io" '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
