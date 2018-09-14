@@ -1,9 +1,5 @@
 #include "diff_test.h"
 
-int numHeads;
-int finalTag;
-int headRank;
-
 int A[1]  = {100};
 int B[2]  = {30,70};
 int C[3]  = {20,40,40};
@@ -47,29 +43,8 @@ double get_share_ratio() {
 }
 
 void init( dcp_info_t * info, unsigned long alloc_size ) {
-
-    int wsize;
-    MPI_Comm_size(MPI_COMM_WORLD, &wsize);
-    MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     
-    dictionary* ini;
-
-    if (access("config.fti", R_OK) == 0) {
-        ini = iniparser_load("config.fti");
-        if (ini == NULL) {
-            WARN_MSG("failed to parse FTI config file!");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        EXIT_STD_ERR("cannot access FTI config file!");
-    }
-
-    finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
-    numHeads = (int)iniparser_getint(ini, "Basic:head", 0);
-    int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-
-    headRank = grank - grank%nodeSize;
-
+    MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     //DBG_MSG("alloc_size: %lu",0,alloc_size);
     init_share();
     
