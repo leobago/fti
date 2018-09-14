@@ -1,0 +1,38 @@
+cd @CMAKE_SOURCE_DIR@/test/local/staging
+if [ $1 = 1 ]; then
+    make run-test-head | \
+        awk '
+                {print}; 
+                /of staging completed/ {PROGRESS=$2*1.0; FILES_DONE=$7; FILES_TODO=$9;}
+                END { 
+                        if ( PROGRESS != 100.00 )
+                            { 
+                                print "staging incomplete!"; exit(-1) 
+                            } 
+                        if ( FILES_DONE != FILES_TODO )
+                            {
+                                print "number of files differ!"; exit(-1)
+                            }
+                    } 
+            '
+    RTN=$?
+elif [ $1 = 0 ]; then
+    make run-test-nohead | \
+        awk '
+                {print}; 
+                /of staging completed/ {PROGRESS=$2*1.0; FILES_DONE=$7; FILES_TODO=$9;}
+                END { 
+                        if ( PROGRESS != 100.00 )
+                            { 
+                                print "staging incomplete!"; exit(-1) 
+                            } 
+                        if ( FILES_DONE != FILES_TODO )
+                            {
+                                print "number of files differ!"; exit(-1)
+                            }
+                    } 
+            '
+    RTN=$?
+fi
+cd @CMAKE_BINARY_DIR@/test/local
+exit $RTN

@@ -303,6 +303,42 @@ if [ $testFailed = 1 ]; then
     testFailed=0
 fi
 
+#                     #
+# ---- Check GIO ---- #
+#                     #
+echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
+( set -x; bash checkGIO.sh 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "GIO check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
+( set -x; bash checkGIO.sh 0 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "GIO check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+
+#                     #
+# ---- Check KL4 ---- #
+#                     #
+echo -e "[ \033[1m*** Testing KL4: head=0 ***\033[m ]"
+( set -x; bash checkKL4.sh 0 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
+( set -x; bash checkKL4.sh 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+
 for io in $(seq 1 @IO@); do
     let io_id=io-1
     awk -v var="$io" '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
