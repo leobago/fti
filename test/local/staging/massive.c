@@ -164,7 +164,7 @@ bool check_status( int request_counter, int *reqID, bool printout )
         MPI_Allreduce( &completed, &completed_all, 1, MPI_UNSIGNED_LONG, MPI_SUM, FTI_COMM_WORLD );
         acc = 100*((double)completed_all)/num_files;
         if ( rank == 0 ) {
-            printf( "[%.2lf%% of staging completed (%lu/%lu)...]\n", acc, completed_all, num_files );           
+            printf( "[ %.2lf%% of staging completed ( %lu / %lu )... ]\n", acc, completed_all, num_files );           
         }
         wait = !( completed_all == num_files );
     }
