@@ -240,7 +240,7 @@ should_fail() {
 	fi
 }
 
-GIO_check() {
+check_return_val() {
     if [ $1 = 0 ]; then
         echo -e "\033[0;32mpassed\033[m"
         let SUCCEED=SUCCEED+1
@@ -281,14 +281,14 @@ set_inline() {
 #                     #
 echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
 ( set -x; bash checkGIO.sh 1 &>> check.log )
-GIO_check $?
+check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "GIO check (head=1) failed" >> failed.log
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
 ( set -x; bash checkGIO.sh 0 &>> check.log )
-GIO_check $?
+check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "GIO check (head=0) failed" >> failed.log
     testFailed=0
