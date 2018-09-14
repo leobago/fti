@@ -240,6 +240,17 @@ should_fail() {
 	fi
 }
 
+KL4_check() {
+    if [ $1 = 0 ]; then
+        echo -e "\033[0;32mpassed\033[m"
+        let SUCCEED=SUCCEED+1
+    elif [ $1 = 255 ]; then
+        echo -e "\033[0;31mfailed\033[m"
+        let FAILED=FAILED+1
+        testFailed=1
+    fi
+}
+
 set_inline() {
     case $1 in
         1)
@@ -264,6 +275,25 @@ set_inline() {
             ;;
     esac
 }
+
+#                     #
+# ---- Check KL4 ---- #
+#                     #
+echo -e "[ \033[1m*** Testing KL4: head=0 ***\033[m ]"
+( set -x; bash checkKL4.sh 0 &>> check.log )
+KL4_check $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
+( set -x; bash checkKL4.sh 1 &>> check.log )
+KL4_check $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+
 #						 #
 # ---- TEST SCRIPTS ---- #
 #	#
