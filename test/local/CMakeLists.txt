@@ -25,6 +25,8 @@ endif()
 set(DIR ${CMAKE_BINARY_DIR}/)
 
 configure_file(run-checks.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks.sh @ONLY)
+configure_file(keepL4Ckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/keepL4Ckpt/Makefile @ONLY)
+configure_file(keepL4Ckpt/checkKL4.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkKL4.sh @ONLY)
 configure_file(run-checks-f90.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks-f90.sh @ONLY)
 configure_file(run-travis-locally.in ${CMAKE_CURRENT_SOURCE_DIR}/run-travis-locally.sh @ONLY)
 

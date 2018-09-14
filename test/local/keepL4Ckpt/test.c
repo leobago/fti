@@ -16,12 +16,22 @@ int main() {
     MPI_Init(NULL, NULL);
     FTI_Init("config.fti", MPI_COMM_WORLD);
     
-    dictionary *ini = iniparser_load( "config.fti" );
-    int nbHeads = (int)iniparser_getint(ini, "Basic:head", 0); 
-
     int rank, grank;
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     MPI_Comm_rank( MPI_COMM_WORLD, &grank );
+    
+    dictionary *ini = iniparser_load( "config.fti" );
+    
+    int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
+    int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
+    int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
+    int headRank = grank - grank%nodeSize;
+
+    if ( (nbHeads<0) || (nodeSize<0) ) {
+        printf("wrong configuration (for head or node-size settings)!\n");
+        MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+
     uint32_t* buffer = (uint32_t*) malloc( N*sizeof(uint32_t) );
     int i = 0;
     srand(time(NULL));
@@ -49,7 +59,7 @@ int main() {
         FTI_Checkpoint( id_cnt++, 3 );
         if( nbHeads > 0 ) { 
             int value = FTI_ENDW;
-            MPI_Send(&value, 1, MPI_INT, (grank/2)*2, 2612, MPI_COMM_WORLD);
+            MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
             MPI_Barrier(MPI_COMM_WORLD);
         }
         MPI_Finalize();
