@@ -240,7 +240,7 @@ should_fail() {
 	fi
 }
 
-dCP_check() {
+check_return_val() {
 	if [ $1 = 0 ]; then
 	    echo -e "\033[0;32mpassed\033[m"
 		let SUCCEED=SUCCEED+1
@@ -290,14 +290,14 @@ IO_NAMES=(@IO_NAMES@)
 #                     #
 echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
 ( set -x; bash checkDCP.sh 0 &>> check.log )
-dCP_check $?
+check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
 ( set -x; bash checkDCP.sh 1 &>> check.log )
-dCP_check $?
+check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
     testFailed=0
