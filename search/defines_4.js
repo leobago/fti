@@ -11,7 +11,6 @@ var searchData=
   ['fti_5fdone',['FTI_DONE',['../fti_8h.html#a7dee5a1994faa8e4a2664942d4d8c024',1,'fti.h']]],
   ['fti_5fendw',['FTI_ENDW',['../fti_8h.html#a9d4e7a150970f56378722be0262d1abb',1,'fti.h']]],
   ['fti_5feror',['FTI_EROR',['../fti_8h.html#a5cb1252ae17ef4ac13b3dbe5a8b1ab13',1,'fti.h']]],
-  ['fti_5fhead',['FTI_HEAD',['../fti_8h.html#a13af42079571ed8dd290fad82fd11c2d',1,'fti.h']]],
   ['fti_5fidcp',['FTI_IDCP',['../fti_8h.html#a1f830f16990f67e20896cef5e40e949d',1,'fti.h']]],
   ['fti_5finfo',['FTI_INFO',['../fti_8h.html#a26a561f0e03eec3d15541c85a2a21ffd',1,'fti.h']]],
   ['fti_5fio_5fftiff',['FTI_IO_FTIFF',['../fti_8h.html#a2b6ae4a8dc77345c8aa9497f8cb9291b',1,'fti.h']]],

@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>Fault Tolerance Interface: cmake</title>
+<title>Fault Tolerance Interface: CMake Options</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -98,15 +98,36 @@ $(document).ready(function(){initNavTree('md__home_kellekai_WORK_FTI_FTI-REPO-LE
 
 <div class="header">
   <div class="headertitle">
-<div class="title">cmake </div>  </div>
+<div class="title">CMake Options </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"></div></div><!-- contents -->
+<div class="textblock"><table class="doxtable">
+<tr>
+<th>Option </th><th>What it's for </th><th>default  </th></tr>
+<tr>
+<td><code>ENABLE_FORTRAN</code> </td><td>Enables the generation of the Fortran wrapper for <a class="el" href="namespaceFTI.html" title="Modul: FTI. ">FTI</a> </td><td>ON </td></tr>
+<tr>
+<td><code>ENABLE_EXAMPLES</code> </td><td>Enables the generation of examples </td><td>ON </td></tr>
+<tr>
+<td><code>ENABLE_SIONLIB</code> </td><td>Enables the parallel I/O SIONlib for <a class="el" href="namespaceFTI.html" title="Modul: FTI. ">FTI</a> </td><td>OFF </td></tr>
+<tr>
+<td><code>ENABLE_TESTS</code> </td><td>Enables the generation of tests </td><td>ON </td></tr>
+<tr>
+<td><code>ENABLE_LUSTRE</code> </td><td>Enables Lustre Support </td><td>OFF </td></tr>
+<tr>
+<td><code>ENABLE_DOCU</code> </td><td>Enables the generation of a Doxygen documentation </td><td>OFF </td></tr>
+</table>
+<h1>Other configurations</h1>
+<p>To use a certain compiler, set the environment variables <code>CC</code> and <code>FC</code> to the name of the compiler executables.</p>
+<p>For instance if it is desired to use the PGI compiler, try:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX:PATH=install/here/fti ..</div></div><!-- fragment --><p>To use the built-in MD5 rather than OpenSSL, please configure using:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..</div></div><!-- fragment --><p>On Cray systems, it might be helping to use the cmake flag:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;-CMAKE_SYSTEM_NAME=CrayLinuxEnvironment</div></div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Sep 17 2018 12:20:47 for Fault Tolerance Interface by
+    <li class="footer">Generated on Mon Sep 17 2018 12:25:23 for Fault Tolerance Interface by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.11 </li>
   </ul>

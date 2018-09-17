@@ -20,7 +20,6 @@ var searchData=
   ['ckptnext',['ckptNext',['../structFTIT__execution.html#a753ca607f3813ca1fa4e24f6c50c8902',1,'FTIT_execution']]],
   ['ckptsize',['ckptSize',['../structFTIFF__metaInfo.html#a461e3179572871d9602d07b30505aaa0',1,'FTIFF_metaInfo::ckptSize()'],['../structFTIT__execution.html#a19693c7f3a31b31d90a40dcf7fc34183',1,'FTIT_execution::ckptSize()']]],
   ['ckpttag',['ckptTag',['../structFTIT__configuration.html#a78ac66926a7bc33c451303033995b04c',1,'FTIT_configuration']]],
-  ['cmake_20configuration',['CMake configuration',['../cmake.html',1,'']]],
   ['cmake_2emd',['cmake.md',['../cmake_8md.html',1,'']]],
   ['conf_2ec',['conf.c',['../conf_8c.html',1,'']]],
   ['config_2emd',['config.md',['../config_8md.html',1,'']]],
@@ -31,6 +30,5 @@ var searchData=
   ['counter',['counter',['../structFTIT__injection.html#ab12d3237041b7c64f040763fd8f2b399',1,'FTIT_injection']]],
   ['cptr',['cptr',['../structFTIFF__dbvar.html#a3b26cf65fbfba0f24268628e36aeea45',1,'FTIFF_dbvar']]],
   ['currentl4ckptfile',['currentL4CkptFile',['../structFTIT__metadata.html#abfd4b28cb351b43f5f0d83d06c12c699',1,'FTIT_metadata']]],
-  ['cmake',['cmake',['../md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_cmake.html',1,'']]],
-  ['config',['config',['../md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_config.html',1,'']]]
+  ['cmake_20options',['CMake Options',['../md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_cmake.html',1,'']]]
 ];

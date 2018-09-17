@@ -11,7 +11,6 @@ var structFTIT__configuration =
     [ "glbalDir", "structFTIT__configuration.html#a9f5fdc68c73f688072cc4eb32d1ed9e7", null ],
     [ "gTmpDir", "structFTIT__configuration.html#ab5c4f469d7c85ea0efe36f891be796fa", null ],
     [ "ioMode", "structFTIT__configuration.html#a5853fc734fbdc50680125595e6cc4f74", null ],
-    [ "keepHeadsAlive", "structFTIT__configuration.html#a688e263d23e6dfec49b576cf18f333eb", null ],
     [ "keepL4Ckpt", "structFTIT__configuration.html#aade25d97154976c2efbf75f1343fada5", null ],
     [ "l3WordSize", "structFTIT__configuration.html#a5c2ce69a1a6fd591cb67831ac7da56b2", null ],
     [ "localDir", "structFTIT__configuration.html#a016dadf213155c54820771627930cb68", null ],

@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['default_20configuration_20file',['Default Configuration File',['../config.html',1,'']]],
   ['datadiffhash',['dataDiffHash',['../structFTIFF__dbvar.html#a01d450e6230cf0770e143ce265de006e',1,'FTIFF_dbvar']]],
   ['datasize',['dataSize',['../structFTIFF__metaInfo.html#a05166809cf795ff0c9fbfce2d0ae3b0c',1,'FTIFF_metaInfo']]],
   ['dbg_5fmsg',['DBG_MSG',['../ftiff_8h.html#aa98b567f2c0a1039c9490472975ce96d',1,'ftiff.h']]],
@@ -17,5 +16,6 @@ var searchData=
   ['dimlength',['dimLength',['../structFTIT__typeField.html#af0e311f38f7f6b7ab7ff04e3897f6c37',1,'FTIT_typeField::dimLength()'],['../structFTIT__dataset.html#ad0a974da814771e2f244bef0542c9d25',1,'FTIT_dataset::dimLength()']]],
   ['dir',['dir',['../structFTIT__checkpoint.html#a98f4f26f6e99e7a07d4fde76b23515ea',1,'FTIT_checkpoint']]],
   ['dirty',['dirty',['../structFTIT__DataDiffHash.html#a0eeb5d9f09b1537073588ad165255c4b',1,'FTIT_DataDiffHash']]],
-  ['dptr',['dptr',['../structFTIFF__dbvar.html#a88a4bfa7de62ff82a3f9d2b2347eeee0',1,'FTIFF_dbvar']]]
+  ['dptr',['dptr',['../structFTIFF__dbvar.html#a88a4bfa7de62ff82a3f9d2b2347eeee0',1,'FTIFF_dbvar']]],
+  ['default_20configuration_20file',['Default Configuration File',['../md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_config.html',1,'']]]
 ];

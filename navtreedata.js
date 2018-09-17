@@ -2,14 +2,10 @@ var NAVTREE =
 [
   [ "Fault Tolerance Interface", "index.html", [
     [ "What is FTI?", "index.html", null ],
-    [ "cmake", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_cmake.html", null ],
-    [ "CMake configuration", "cmake.html", null ],
-    [ "config", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_config.html", null ],
-    [ "Default Configuration File", "config.html", null ],
-    [ "make", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_make.html", null ],
-    [ "Make Commands", "make.html", null ],
-    [ "ftiff", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_ftiff.html", null ],
-    [ "FTI File Format (FTI-FF)", "ftiff.html", null ],
+    [ "CMake Options", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_cmake.html", null ],
+    [ "Default Configuration File", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_config.html", null ],
+    [ "Make Commands", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_make.html", null ],
+    [ "FTI File Format (FTI-FF)", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_ftiff.html", null ],
     [ "Namespace List", "namespaces.html", "namespaces" ],
     [ "Namespace Members", "namespacemembers.html", [
       [ "All", "namespacemembers.html", null ],
@@ -43,10 +39,10 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"functions.html",
-"interface_8F90.html#a0ae192807546e2771c464277a8dc57e2",
-"interface_8h.html#af7ae0209528e53e50e05c8cb94262474",
-"structFTIT__execution.html#a2c780326f5e9cefc7f2b5904eca1d318"
+"functions_e.html",
+"interface_8F90.html#a111b5cdc34f4a64f15e4751804cee167",
+"interface_8h_source.html",
+"structFTIT__execution.html#a5ff8dd064b2a4cc4b7272abddacb8cc1"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

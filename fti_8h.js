@@ -29,7 +29,6 @@ var fti_8h =
     [ "FTI_DONE", "fti_8h.html#a7dee5a1994faa8e4a2664942d4d8c024", null ],
     [ "FTI_ENDW", "fti_8h.html#a9d4e7a150970f56378722be0262d1abb", null ],
     [ "FTI_EROR", "fti_8h.html#a5cb1252ae17ef4ac13b3dbe5a8b1ab13", null ],
-    [ "FTI_HEAD", "fti_8h.html#a13af42079571ed8dd290fad82fd11c2d", null ],
     [ "FTI_IDCP", "fti_8h.html#a1f830f16990f67e20896cef5e40e949d", null ],
     [ "FTI_INFO", "fti_8h.html#a26a561f0e03eec3d15541c85a2a21ffd", null ],
     [ "FTI_IO_FTIFF", "fti_8h.html#a2b6ae4a8dc77345c8aa9497f8cb9291b", null ],
