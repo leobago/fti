@@ -1,5 +1,3 @@
-\page make Make Commands
-
 # Make Commands  
   
 To build the whole project, execute in the build directory:  

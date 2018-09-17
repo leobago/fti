@@ -1,4 +1,4 @@
-\page ftiff FTI File Format (FTI-FF)
+# FTI File Format (FTI-FF)
 ## What for?
 FTI writes meta data related to the checkpoint files in separate text files. The meta data is needed to perform a restart from the last checkpoint. FTI-FF includes the meta data in the checkpoint files, thus reduces the amount of files on the PFS. This can be beneficial for executions with several thousands of processes.
 

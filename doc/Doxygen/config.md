@@ -1,5 +1,3 @@
-\page config Default Configuration File
-
 # Default Configuration File
 
 ```
