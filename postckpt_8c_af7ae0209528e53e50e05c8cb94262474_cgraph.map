@@ -1,0 +1,8 @@
+<map id="FTI_Flush" name="FTI_Flush">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="303,110,379,137"/>
+<area shape="rect" id="node3" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="161,34,228,61"/>
+<area shape="rect" id="node4" href="$interface_8h.html#afce9f65bec69ebda8443d7038a762dff" title="It gets the metadata to recover the data after a failure. " alt="" coords="141,85,248,111"/>
+<area shape="rect" id="node5" href="$postckpt_8c.html#aca74ba7dfa6daf939480ae5cee1559ed" title="It flushes the local ckpt. files in to the PFS using POSIX. " alt="" coords="137,135,252,162"/>
+<area shape="rect" id="node6" href="$postckpt_8c.html#a942405074f2ad9c0d05ae4dc34b43b1a" title="It flushes the local ckpt. files in to the PFS using MPI&#45;I/O. " alt="" coords="143,186,247,213"/>
+<area shape="rect" id="node7" href="$postckpt_8c.html#acfa35381a751a5ad7aae5a73dc080524" title="It flushes the local ckpt. files in to the PFS using SIONlib. " alt="" coords="135,237,255,263"/>
+</map>

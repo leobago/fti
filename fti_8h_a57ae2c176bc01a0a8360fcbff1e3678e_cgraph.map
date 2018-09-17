@@ -1,3 +1,51 @@
 <map id="FTI_Init" name="FTI_Init">
-<area shape="rect" id="node2" href="$interface_8h.html#ad95399f229aa8c9ae4aef2574d732f7d" title="Init of the static variables. " alt="" coords="123,5,252,32"/>
+<area shape="rect" id="node2" href="$interface_8h.html#ad95399f229aa8c9ae4aef2574d732f7d" title="Init of the static variables. " alt="" coords="142,5,265,32"/>
+<area shape="rect" id="node3" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="855,563,921,589"/>
+<area shape="rect" id="node4" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="1033,1044,1109,1071"/>
+<area shape="rect" id="node5" href="$conf_8c.html#a89e78abb2e98f65c3d65e2979550e99d" title="It reads and tests the configuration given. " alt="" coords="598,284,703,311"/>
+<area shape="rect" id="node10" href="$interface_8h.html#aeff729c7cc86f39b20d320ead76aa2b6" title="It builds and saves the topology of the current execution. " alt="" coords="600,461,701,488"/>
+<area shape="rect" id="node15" href="$interface_8h.html#ad41f9b1988730c56c052047cfb3f6283" title="It mallocs memory for the metadata. " alt="" coords="120,1880,287,1907"/>
+<area shape="rect" id="node16" href="$interface_8h.html#a924446571112185f563d5ec1e386afb1" title="It creates the basic datatypes and the dataset array. " alt="" coords="136,1931,271,1957"/>
+<area shape="rect" id="node18" href="$conf_8c.html#a072119e00ecaef96e6b516174beb0321" title="Sets the exec. ID and failure parameters in the conf. file. " alt="" coords="591,1525,710,1552"/>
+<area shape="rect" id="node19" href="$interface_8h.html#a803fddbbbdc2e160a5cb4249100e8a00" title="It mallocs memory for the metadata. " alt="" coords="145,1981,261,2008"/>
+<area shape="rect" id="node20" href="$interface_8h.html#afce9f65bec69ebda8443d7038a762dff" title="It gets the metadata to recover the data after a failure. " alt="" coords="369,1728,476,1755"/>
+<area shape="rect" id="node21" href="$interface_8h.html#a099b42118594b7ec8469348819bfaf93" title="It frees memory for the metadata. " alt="" coords="599,1627,703,1653"/>
+<area shape="rect" id="node22" href="$ftiff_8c.html#aaa25a6bde962b1166436ec45d7e8bcef" title="Initializes the derived MPI data types used for FTI&#45;FF. " alt="" coords="134,2032,273,2059"/>
+<area shape="rect" id="node23" href="$stage_8c.html#a46b8c1f1c37f48eb4261fc646e460478" title="Initializes the FTI staging feature. " alt="" coords="153,1779,254,1805"/>
+<area shape="rect" id="node24" href="$interface_8h.html#aa5ca92e3168d5b1ee7830507f8847dec" title="It decides wich action take depending on the restart level. " alt="" coords="140,1120,267,1147"/>
+<area shape="rect" id="node42" href="$checkpoint_8c.html#a305fb1ae4c686e64fe62c9429d2f4f4c" title="It listens for checkpoint notifications. " alt="" coords="161,1551,245,1577"/>
+<area shape="rect" id="node46" href="$diff-checkpoint_8c.html#ac32ae99d23ccedc0e80992efe7b752b7" title="Initializes dCP. " alt="" coords="158,56,249,83"/>
+<area shape="rect" id="node47" href="$ftiff_8c.html#a6e37c1b8ea7dc0c04af0c0e4d1a9371d" title="Reads datablock structure for FTI File Format from ckpt file. " alt="" coords="576,1855,725,1881"/>
+<area shape="rect" id="node6" href="$conf_8c.html#a42e37d4585f16c3d958e7825d2d06bd2" title="It reads the configuration given in the configuration file. " alt="" coords="834,208,942,235"/>
+<area shape="rect" id="node7" href="$conf_8c.html#a85fa285a8ef0f88312f482f355e0c14c" title="It tests that the configuration given is correct. " alt="" coords="832,259,944,285"/>
+<area shape="rect" id="node8" href="$conf_8c.html#a1fd3729e1cd570f4b5944e334ebddce6" title="It tests that the directories given is correct. " alt="" coords="819,309,957,336"/>
+<area shape="rect" id="node9" href="$conf_8c.html#afcc58051e6dc11db94fa1467a9ee0467" title="It creates the directories required for current execution. " alt="" coords="832,157,944,184"/>
+<area shape="rect" id="node11" href="$topo_8c.html#a39b796a67f541fd75aeaa73a9b29025a" title="It builds the list of nodes in the current execution. " alt="" coords="823,411,953,437"/>
+<area shape="rect" id="node12" href="$topo_8c.html#a8b39f445072e18cec2fa531d36e22dc1" title="It reorders the nodes following the previous topology. " alt="" coords="821,512,955,539"/>
+<area shape="rect" id="node13" href="$topo_8c.html#a23d88a13c6359b801a14789fe13f245a" title="It writes the topology in a file for recovery. " alt="" coords="835,360,941,387"/>
+<area shape="rect" id="node14" href="$topo_8c.html#a1f57d69148df779a939b4b9a48223d67" title="It builds the list of nodes in the current execution. " alt="" coords="821,461,955,488"/>
+<area shape="rect" id="node17" href="$fti_8h.html#a725ffe84dd16beb533e7b4b74fa4e9c4" title="It initializes a data type. " alt="" coords="375,1931,470,1957"/>
+<area shape="rect" id="node25" href="$interface_8h.html#aa7721e19ddfc87db2b9f661d738cf23f" title="Loads relevant data from checkpoint meta data. " alt="" coords="341,1171,504,1197"/>
+<area shape="rect" id="node26" href="$interface_8h.html#a09811bb56f318eab67b3d37bff86cf7f" title="It erases the previous checkpoints and their metadata. " alt="" coords="609,1424,692,1451"/>
+<area shape="rect" id="node28" href="$interface_8h.html#aaaa733e3e06a982a2708d44127b910cc" title="It recovers L4 ckpt. files from the PFS. " alt="" coords="367,1221,479,1248"/>
+<area shape="rect" id="node33" href="$interface_8h.html#aea4c42a08ca465deaeb0c76623082288" title="It recovers L3 ckpt. files ordering the RS decoding algorithm. " alt="" coords="367,943,479,969"/>
+<area shape="rect" id="node37" href="$interface_8h.html#a0a4241a43154efa7c39cfecfc32e9783" title="It recovers L2 ckpt. files using the partner copy. " alt="" coords="595,715,707,741"/>
+<area shape="rect" id="node40" href="$interface_8h.html#ae513de18753ddba0cc2c35607cf4c063" title="It checks that all L1 ckpt. files are present. " alt="" coords="595,765,707,792"/>
+<area shape="rect" id="node41" href="$interface_8h.html#ab085ec4982c28053c8a0c158e83da34d" title="Loads relevant data from checkpoint meta data. " alt="" coords="335,860,511,887"/>
+<area shape="rect" id="node27" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="845,1373,931,1400"/>
+<area shape="rect" id="node29" href="$postreco_8c.html#a2a96d12b9b4b33e0a6ca93807a999dc4" title="It recovers L4 ckpt. files from the PFS using POSIX. " alt="" coords="578,1019,723,1045"/>
+<area shape="rect" id="node31" href="$postreco_8c.html#a6c51b90bb030d3389a36f83a34a73fff" title="It recovers L4 ckpt. files from the PFS using MPI&#45;I/O. " alt="" coords="584,1221,717,1248"/>
+<area shape="rect" id="node32" href="$postreco_8c.html#a13d07e04c75ee95bb4703956c643b10c" title="It recovers L4 ckpt. files from the PFS using SIONlib. " alt="" coords="575,1272,726,1299"/>
+<area shape="rect" id="node30" href="$interface_8h.html#a0d67927230e5cfb7848475129aa3b97c" title="It detects all the erasures for a particular level. " alt="" coords="819,816,957,843"/>
+<area shape="rect" id="node34" href="$ftiff_8c.html#a69af9b448e55caf4dad6d32793d3d7ae" title="Init of FTI&#45;FF L3 recovery. " alt="" coords="559,917,743,944"/>
+<area shape="rect" id="node35" href="$postreco_8c.html#a9194ab2d8e8bb7b1b6466766ff0b631f" title="It recovers a set of ckpt. files using RS decoding. " alt="" coords="603,1069,698,1096"/>
+<area shape="rect" id="node36" href="$ftiff_8c.html#a19f7e94055ef638b98bcf7315c7cda26" title="deserializes FTI&#45;FF file meta data " alt="" coords="798,1677,978,1704"/>
+<area shape="rect" id="node38" href="$ftiff_8c.html#a7e1b0ca1955eab58eb5f10565391ada0" title="Init of FTI&#45;FF L2 recovery. " alt="" coords="796,664,980,691"/>
+<area shape="rect" id="node39" href="$postreco_8c.html#aac6ac7e3dd2152045baa8f8402a49cd7" title="It sends checkpint file. " alt="" coords="817,715,959,741"/>
+<area shape="rect" id="node43" href="$checkpoint_8c.html#a5fa0457202662dc64ce0194d6a205ba8" title="handles checkpoint requests from application ranks (if head). " alt="" coords="339,1424,506,1451"/>
+<area shape="rect" id="node44" href="$interface_8h.html#a7e59d3bafaa826d69a91493c80a417e3" title="This function asynchronously stages the local file to the PFS. " alt="" coords="336,1525,509,1552"/>
+<area shape="rect" id="node45" href="$fti_8h.html#aa58102aa8540ed35f2efba23cf2dc19b" title="It closes FTI properly on the application processes. " alt="" coords="375,1576,470,1603"/>
+<area shape="rect" id="node48" href="$ftiff_8c.html#a7f498cbe4e2457e8c5d69a2b870f1178" title="deserializes FTI&#45;FF file data block meta data " alt="" coords="800,1981,976,2008"/>
+<area shape="rect" id="node49" href="$ftiff_8c.html#ac8c9acc28caef7c7da7633cbf0920876" title="deserializes FTI&#45;FF data chunk meta data " alt="" coords="791,1829,985,1856"/>
+<area shape="rect" id="node50" href="$diff-checkpoint_8c.html#ab425fd97dfb5db7e718bffabe356e337" title="Initializes a new hash meta data structure for data chunk. " alt="" coords="807,1880,969,1907"/>
 </map>

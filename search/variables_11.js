@@ -1,7 +1,10 @@
 var searchData=
 [
-  ['value',['value',['../unionFTIT__double.html#acd4afd0055313efa11db8c5ce3269212',1,'FTIT_double::value()'],['../unionFTIT__float.html#a6e0f110ab7c280686e92ec2ded46c95f',1,'FTIT_float::value()']]],
-  ['varid',['varID',['../structFTIT__metadata.html#aed21e735edbac0db31f09e23eb2e3b2f',1,'FTIT_metadata']]],
-  ['varsize',['varSize',['../structFTIT__metadata.html#aa823ffc7331029d058ef43a742309231',1,'FTIT_metadata']]],
-  ['verbosity',['verbosity',['../structFTIT__configuration.html#a2776919d74dd1310a03eb046a1c16d0f',1,'FTIT_configuration']]]
+  ['test',['test',['../structFTIT__configuration.html#ae2196814ada1f4c5f8d78f34812bc4c1',1,'FTIT_configuration']]],
+  ['timer',['timer',['../structFTIT__injection.html#a95bf2ff87b433ce58c6a228b9baf164a',1,'FTIT_injection']]],
+  ['timestamp',['timestamp',['../structFTIFF__metaInfo.html#af841af4e3befdc30fede114602199d57',1,'FTIFF_metaInfo']]],
+  ['totalitertime',['totalIterTime',['../structFTIT__execution.html#a1a0ae3ba0820ef65eb3a877d770f1140',1,'FTIT_execution']]],
+  ['transfersize',['transferSize',['../structFTIT__configuration.html#a090ca8bd3b6c624641bad1cb94678167',1,'FTIT_configuration']]],
+  ['type',['type',['../structFTIT__dataset.html#a564e1a87d53b7b4e834ea0ece45c35fb',1,'FTIT_dataset']]],
+  ['typeid',['typeID',['../structFTIT__typeField.html#ac81ba503b07eae0ed82ad1e2f5ecdced',1,'FTIT_typeField']]]
 ];

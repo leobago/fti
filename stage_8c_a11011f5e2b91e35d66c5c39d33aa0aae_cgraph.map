@@ -1,0 +1,5 @@
+<map id="FTI_PrintStageStatus" name="FTI_PrintStageStatus">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="396,24,472,50"/>
+<area shape="rect" id="node3" href="$stage_8c.html#a03ebd25f6254d11bc790e70e9aabd9eb" title="Returns value from the &#39;status&#39; field array at &#39;ID&#39;. " alt="" coords="207,24,343,50"/>
+<area shape="rect" id="node4" href="$stage_8c.html#a1b29cd8c8e9446f2dbd8dafac4d07f05" title="Returns value from the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="201,74,348,101"/>
+</map>

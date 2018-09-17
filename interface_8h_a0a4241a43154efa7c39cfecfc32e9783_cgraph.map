@@ -1,0 +1,14 @@
+<map id="FTI_RecoverL2" name="FTI_RecoverL2">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="859,251,935,278"/>
+<area shape="rect" id="node3" href="$ftiff_8c.html#a7e1b0ca1955eab58eb5f10565391ada0" title="Init of FTI&#45;FF L2 recovery. " alt="" coords="165,124,349,151"/>
+<area shape="rect" id="node8" href="$interface_8h.html#a0d67927230e5cfb7848475129aa3b97c" title="It detects all the erasures for a particular level. " alt="" coords="188,302,327,328"/>
+<area shape="rect" id="node12" href="$postreco_8c.html#aac6ac7e3dd2152045baa8f8402a49cd7" title="It sends checkpint file. " alt="" coords="411,428,554,455"/>
+<area shape="rect" id="node13" href="$postreco_8c.html#ab2d117d464d1812be1de69c19de5267c" title="It receives checkpint file. " alt="" coords="186,479,329,506"/>
+<area shape="rect" id="node4" href="$ftiff_8c.html#a5e2c943fe1bd7e487a0911b5203ad9d7" title="Computes hash of the FTI&#45;FF file meta data structure. " alt="" coords="399,99,567,126"/>
+<area shape="rect" id="node5" href="$ftiff_8c.html#a5f5e7538badebffa9dfcf869e81f21d7" title="Determines checksum of checkpoint data. " alt="" coords="397,150,568,176"/>
+<area shape="rect" id="node6" href="$ftiff_8c.html#a7f498cbe4e2457e8c5d69a2b870f1178" title="deserializes FTI&#45;FF file data block meta data " alt="" coords="625,150,801,176"/>
+<area shape="rect" id="node7" href="$ftiff_8c.html#ac8c9acc28caef7c7da7633cbf0920876" title="deserializes FTI&#45;FF data chunk meta data " alt="" coords="616,200,811,227"/>
+<area shape="rect" id="node9" href="$interface_8h.html#aca5c277b6c86b50f182cfa1326ebb6e1" title="It gets the checksums from metadata. " alt="" coords="643,302,783,328"/>
+<area shape="rect" id="node10" href="$recover_8c.html#a29f1aae84d9ec782867b16905241e531" title="It checks if a file exist and that its size is &#39;correct&#39;. " alt="" coords="429,352,537,379"/>
+<area shape="rect" id="node11" href="$interface_8h.html#a0abe7d90a75d724af67071b5a672785d" title="It compares checksum of the checkpoint file. " alt="" coords="641,403,786,430"/>
+</map>

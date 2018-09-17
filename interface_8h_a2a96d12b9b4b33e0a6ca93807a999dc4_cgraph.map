@@ -1,0 +1,12 @@
+<map id="FTI_RecoverL4Posix" name="FTI_RecoverL4Posix">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="892,207,968,233"/>
+<area shape="rect" id="node3" href="$ftiff_8c.html#af1f55a7da4c3bd7403bde57b902ecef7" title="Init of FTI&#45;FF L4 recovery. " alt="" coords="199,105,383,132"/>
+<area shape="rect" id="node8" href="$interface_8h.html#a0d67927230e5cfb7848475129aa3b97c" title="It detects all the erasures for a particular level. " alt="" coords="221,283,360,309"/>
+<area shape="rect" id="node4" href="$ftiff_8c.html#a5e2c943fe1bd7e487a0911b5203ad9d7" title="Computes hash of the FTI&#45;FF file meta data structure. " alt="" coords="432,105,600,132"/>
+<area shape="rect" id="node5" href="$ftiff_8c.html#a5f5e7538badebffa9dfcf869e81f21d7" title="Determines checksum of checkpoint data. " alt="" coords="431,156,601,183"/>
+<area shape="rect" id="node6" href="$ftiff_8c.html#a7f498cbe4e2457e8c5d69a2b870f1178" title="deserializes FTI&#45;FF file data block meta data " alt="" coords="659,156,835,183"/>
+<area shape="rect" id="node7" href="$ftiff_8c.html#ac8c9acc28caef7c7da7633cbf0920876" title="deserializes FTI&#45;FF data chunk meta data " alt="" coords="649,207,844,233"/>
+<area shape="rect" id="node9" href="$interface_8h.html#aca5c277b6c86b50f182cfa1326ebb6e1" title="It gets the checksums from metadata. " alt="" coords="677,308,817,335"/>
+<area shape="rect" id="node10" href="$recover_8c.html#a29f1aae84d9ec782867b16905241e531" title="It checks if a file exist and that its size is &#39;correct&#39;. " alt="" coords="462,359,570,385"/>
+<area shape="rect" id="node11" href="$interface_8h.html#a0abe7d90a75d724af67071b5a672785d" title="It compares checksum of the checkpoint file. " alt="" coords="674,409,819,436"/>
+</map>

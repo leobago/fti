@@ -1,0 +1,32 @@
+<map id="FTI_RecoverFiles" name="FTI_RecoverFiles">
+<area shape="rect" id="node2" href="$interface_8h.html#aa7721e19ddfc87db2b9f661d738cf23f" title="Loads relevant data from checkpoint meta data. " alt="" coords="187,16,349,43"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="1305,726,1381,752"/>
+<area shape="rect" id="node4" href="$interface_8h.html#a09811bb56f318eab67b3d37bff86cf7f" title="It erases the previous checkpoints and their metadata. " alt="" coords="883,168,966,195"/>
+<area shape="rect" id="node6" href="$interface_8h.html#aaaa733e3e06a982a2708d44127b910cc" title="It recovers L4 ckpt. files from the PFS. " alt="" coords="212,320,324,347"/>
+<area shape="rect" id="node19" href="$interface_8h.html#aea4c42a08ca465deaeb0c76623082288" title="It recovers L3 ckpt. files ordering the RS decoding algorithm. " alt="" coords="423,636,535,663"/>
+<area shape="rect" id="node25" href="$interface_8h.html#a0a4241a43154efa7c39cfecfc32e9783" title="It recovers L2 ckpt. files using the partner copy. " alt="" coords="423,1154,535,1180"/>
+<area shape="rect" id="node29" href="$interface_8h.html#ae513de18753ddba0cc2c35607cf4c063" title="It checks that all L1 ckpt. files are present. " alt="" coords="423,903,535,930"/>
+<area shape="rect" id="node31" href="$interface_8h.html#ab085ec4982c28053c8a0c158e83da34d" title="Loads relevant data from checkpoint meta data. " alt="" coords="180,1378,356,1404"/>
+<area shape="rect" id="node5" href="$tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452" title="It erases a directory and all its files. " alt="" coords="1117,118,1203,144"/>
+<area shape="rect" id="node7" href="$postreco_8c.html#a2a96d12b9b4b33e0a6ca93807a999dc4" title="It recovers L4 ckpt. files from the PFS using POSIX. " alt="" coords="407,447,552,474"/>
+<area shape="rect" id="node17" href="$postreco_8c.html#a6c51b90bb030d3389a36f83a34a73fff" title="It recovers L4 ckpt. files from the PFS using MPI&#45;I/O. " alt="" coords="413,270,546,296"/>
+<area shape="rect" id="node18" href="$postreco_8c.html#a13d07e04c75ee95bb4703956c643b10c" title="It recovers L4 ckpt. files from the PFS using SIONlib. " alt="" coords="404,320,555,347"/>
+<area shape="rect" id="node8" href="$ftiff_8c.html#af1f55a7da4c3bd7403bde57b902ecef7" title="Init of FTI&#45;FF L4 recovery. " alt="" coords="603,638,787,664"/>
+<area shape="rect" id="node13" href="$interface_8h.html#a0d67927230e5cfb7848475129aa3b97c" title="It detects all the erasures for a particular level. " alt="" coords="625,972,764,999"/>
+<area shape="rect" id="node9" href="$ftiff_8c.html#a5e2c943fe1bd7e487a0911b5203ad9d7" title="Computes hash of the FTI&#45;FF file meta data structure. " alt="" coords="841,726,1009,752"/>
+<area shape="rect" id="node10" href="$ftiff_8c.html#a5f5e7538badebffa9dfcf869e81f21d7" title="Determines checksum of checkpoint data. " alt="" coords="839,827,1010,854"/>
+<area shape="rect" id="node11" href="$ftiff_8c.html#a7f498cbe4e2457e8c5d69a2b870f1178" title="deserializes FTI&#45;FF file data block meta data " alt="" coords="1072,776,1248,803"/>
+<area shape="rect" id="node12" href="$ftiff_8c.html#ac8c9acc28caef7c7da7633cbf0920876" title="deserializes FTI&#45;FF data chunk meta data " alt="" coords="1063,827,1257,854"/>
+<area shape="rect" id="node14" href="$interface_8h.html#aca5c277b6c86b50f182cfa1326ebb6e1" title="It gets the checksums from metadata. " alt="" coords="1090,1182,1230,1208"/>
+<area shape="rect" id="node15" href="$recover_8c.html#a29f1aae84d9ec782867b16905241e531" title="It checks if a file exist and that its size is &#39;correct&#39;. " alt="" coords="871,972,979,999"/>
+<area shape="rect" id="node16" href="$interface_8h.html#a0abe7d90a75d724af67071b5a672785d" title="It compares checksum of the checkpoint file. " alt="" coords="1087,928,1233,955"/>
+<area shape="rect" id="node20" href="$ftiff_8c.html#a69af9b448e55caf4dad6d32793d3d7ae" title="Init of FTI&#45;FF L3 recovery. " alt="" coords="603,700,787,727"/>
+<area shape="rect" id="node21" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="1127,726,1193,752"/>
+<area shape="rect" id="node22" href="$postreco_8c.html#a9194ab2d8e8bb7b1b6466766ff0b631f" title="It recovers a set of ckpt. files using RS decoding. " alt="" coords="647,523,742,550"/>
+<area shape="rect" id="node23" href="$ftiff_8c.html#a19f7e94055ef638b98bcf7315c7cda26" title="deserializes FTI&#45;FF file meta data " alt="" coords="835,422,1015,448"/>
+<area shape="rect" id="node24" href="$ftiff_8c.html#a9f60f1e2979942619c3c346f4fa56ad9" title="serializes FTI&#45;FF file meta data " alt="" coords="842,472,1007,499"/>
+<area shape="rect" id="node26" href="$ftiff_8c.html#a7e1b0ca1955eab58eb5f10565391ada0" title="Init of FTI&#45;FF L2 recovery. " alt="" coords="603,896,787,923"/>
+<area shape="rect" id="node27" href="$postreco_8c.html#aac6ac7e3dd2152045baa8f8402a49cd7" title="It sends checkpint file. " alt="" coords="853,1283,996,1310"/>
+<area shape="rect" id="node28" href="$postreco_8c.html#ab2d117d464d1812be1de69c19de5267c" title="It receives checkpint file. " alt="" coords="1089,1334,1231,1360"/>
+<area shape="rect" id="node30" href="$ftiff_8c.html#a71bd120785bee61ba32584b0b8f3273c" title="Init of FTI&#45;FF L1 recovery. " alt="" coords="603,834,787,860"/>
+</map>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['fti',['fti',['../namespacefti.html',1,'']]]
+  ['fti',['FTI',['../namespaceFTI.html',1,'']]]
 ];

@@ -11,5 +11,7 @@ var tools_8c =
     [ "FTI_RmDir", "tools_8c.html#ac4bfe54a9748e8915a5a43c17b334452", null ],
     [ "FTI_Try", "tools_8c.html#a950803008f7cef4892fbba9b2069928e", null ],
     [ "FTI_VerifyChecksum", "tools_8c.html#a0abe7d90a75d724af67071b5a672785d", null ],
-    [ "FTI_dbstructsize", "tools_8c.html#a19eb168398f314ff41716ef4de47e689", null ]
+    [ "FTI_dbstructsize", "tools_8c.html#a19eb168398f314ff41716ef4de47e689", null ],
+    [ "FTI_dbvarstructsize", "tools_8c.html#a64296f986b5c5646a4e7a04ea5b07cf9", null ],
+    [ "FTI_filemetastructsize", "tools_8c.html#a7e21e961f7125132ee473d83c31dfe7f", null ]
 ];

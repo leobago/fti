@@ -1,0 +1,5 @@
+<map id="FTI_FreeStageRequest" name="FTI_FreeStageRequest">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="407,24,483,50"/>
+<area shape="rect" id="node3" href="$stage_8c.html#a1b29cd8c8e9446f2dbd8dafac4d07f05" title="Returns value from the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="212,24,359,50"/>
+<area shape="rect" id="node4" href="$stage_8c.html#a35eb6e7616b99b2d7713d802327fe061" title="Sets value of the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="212,74,359,101"/>
+</map>

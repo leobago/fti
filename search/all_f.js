@@ -1,15 +1,10 @@
 var searchData=
 [
-  ['rank',['rank',['../structFTIT__typeField.html#ad46ee30f23a6af1c5ac85ecce834cdc2',1,'FTIT_typeField::rank()'],['../structFTIT__dataset.html#abc5e19eb9d5f9ab72fd1cc4e2c6c4f8f',1,'FTIT_dataset::rank()'],['../structFTIT__injection.html#aba75a38cd410b415bfb78121f30435e7',1,'FTIT_injection::rank()']]],
-  ['raw',['raw',['../structFTIFF__MPITypeInfo.html#a7b160776ffe115e6e0bb0634b7eb175d',1,'FTIFF_MPITypeInfo']]],
-  ['raw_5ftype',['raw_type',['../structfti_1_1fti__type.html#ac636f9f98acc6e2826c0885752e4511c',1,'fti::fti_type']]],
-  ['readme_2emd',['README.md',['../README_8md.html',1,'']]],
-  ['reco',['reco',['../structFTIT__execution.html#a061085b1c93b22c4fafbe527e7b1f165',1,'FTIT_execution']]],
-  ['recover_2ec',['recover.c',['../recover_8c.html',1,'']]],
-  ['red',['RED',['../fti_8h.html#a8d23feea868a983c8c2b661e1e16972f',1,'fti.h']]],
-  ['reset',['RESET',['../fti_8h.html#ab702106cf3b3e96750b6845ded4e0299',1,'fti.h']]],
-  ['right',['right',['../structFTIT__topology.html#ab7e5bb797fc3a2066f0db3b3e3e3297c',1,'FTIT_topology']]],
-  ['rightidx',['rightIdx',['../structFTIFF__L2Info.html#a89617ab326689c5d2711d90ac5886ded',1,'FTIFF_L2Info']]],
-  ['rsfileexists',['RSFileExists',['../structFTIFF__L3Info.html#aa6eebb670d1c06c407ac2878f81be075',1,'FTIFF_L3Info']]],
-  ['rsfs',['RSfs',['../structFTIFF__L3Info.html#ab8356ee4ecaf8184560138b250777676',1,'FTIFF_L3Info']]]
+  ['pfs',['pfs',['../structFTIT__metadata.html#a6fa6fc30c05438be2be4e7bf9d8aa2bf',1,'FTIT_metadata::pfs()'],['../structFTIFF__headInfo.html#adb3ae8b25717f089e9fa8ada9b622476',1,'FTIFF_headInfo::pfs()'],['../structFTIFF__L2Info.html#a548893bbe75a1fbe7238031c41fe7ac2',1,'FTIFF_L2Info::pfs()']]],
+  ['position',['position',['../structFTIT__injection.html#a68feabeb9e29d210543ec154ad3951e8',1,'FTIT_injection']]],
+  ['postckpt_2ec',['postckpt.c',['../postckpt_8c.html',1,'']]],
+  ['postreco_2ec',['postreco.c',['../postreco_8c.html',1,'']]],
+  ['previous',['previous',['../structFTIFF__db.html#a21fdc67220f708c989d856a199831e6c',1,'FTIFF_db']]],
+  ['ptfs',['ptFs',['../structFTIFF__metaInfo.html#aa644d8667e54136cb18304dd2bab8fbc',1,'FTIFF_metaInfo']]],
+  ['ptr',['ptr',['../structFTIT__dataset.html#a36ee086d6d8ddace556bdbdbd142acbb',1,'FTIT_dataset']]]
 ];

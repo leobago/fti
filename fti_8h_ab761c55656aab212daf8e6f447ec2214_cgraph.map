@@ -1,3 +1,4 @@
 <map id="FTI_Recover" name="FTI_Recover">
-<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="153,5,232,32"/>
+<area shape="rect" id="node2" href="$ftiff_8c.html#a02a595e489b636c9bddb81266f8d121e" title="Recovers protected data to the variable pointers for FTI&#45;FF. " alt="" coords="152,5,267,32"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="315,31,391,57"/>
 </map>

@@ -1,33 +1,14 @@
-/*
-@ @licstart  The following is the entire license notice for the
-JavaScript code in this file.
-
-Copyright (C) 1997-2017 by Dimitri van Heesch
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-@licend  The above is the entire license notice
-for the JavaScript code in this file
-*/
 var NAVTREE =
 [
   [ "Fault Tolerance Interface", "index.html", [
     [ "What is FTI?", "index.html", null ],
+    [ "cmake", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_cmake.html", null ],
     [ "CMake configuration", "cmake.html", null ],
+    [ "config", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_config.html", null ],
     [ "Default Configuration File", "config.html", null ],
+    [ "make", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_make.html", null ],
     [ "Make Commands", "make.html", null ],
+    [ "ftiff", "md__home_kellekai_WORK_FTI_FTI-REPO-LEO_doc_Doxygen_ftiff.html", null ],
     [ "FTI File Format (FTI-FF)", "ftiff.html", null ],
     [ "Namespace List", "namespaces.html", "namespaces" ],
     [ "Namespace Members", "namespacemembers.html", [
@@ -41,16 +22,17 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", null ],
-        [ "Variables", "functions_vars.html", null ]
+        [ "Variables", "functions_vars.html", "functions_vars" ]
       ] ]
     ] ],
-    [ "Files", "files.html", [
-      [ "File List", "files.html", "files_dup" ],
+    [ "Files", null, [
+      [ "File List", "files.html", "files" ],
       [ "File Members", "globals.html", [
         [ "All", "globals.html", "globals_dup" ],
-        [ "Functions", "globals_func.html", null ],
+        [ "Functions", "globals_func.html", "globals_func" ],
         [ "Variables", "globals_vars.html", null ],
         [ "Typedefs", "globals_type.html", null ],
+        [ "Enumerations", "globals_enum.html", null ],
         [ "Enumerator", "globals_eval.html", null ],
         [ "Macros", "globals_defs.html", null ]
       ] ]
@@ -61,9 +43,10 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"interface_8F90.html#a28648d7f8b21061043cdb2f973745e22",
-"interfacefti_1_1fti__protect.html#a0d4a49bae105b76b600ad2fd7948f338",
-"structFTIT__configuration.html#a0a5da07618e9a1963840fc8a2367580c"
+"functions.html",
+"interface_8F90.html#a0ae192807546e2771c464277a8dc57e2",
+"interface_8h.html#af7ae0209528e53e50e05c8cb94262474",
+"structFTIT__execution.html#a2c780326f5e9cefc7f2b5904eca1d318"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -1,4 +1,4 @@
 var namespaces =
 [
-    [ "fti", "namespacefti.html", null ]
+    [ "FTI", "namespaceFTI.html", null ]
 ];

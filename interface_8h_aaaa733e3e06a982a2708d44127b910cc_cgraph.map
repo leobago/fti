@@ -1,0 +1,15 @@
+<map id="FTI_RecoverL4" name="FTI_RecoverL4">
+<area shape="rect" id="node2" href="$postreco_8c.html#a2a96d12b9b4b33e0a6ca93807a999dc4" title="It recovers L4 ckpt. files from the PFS using POSIX. " alt="" coords="168,237,313,264"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="1057,313,1133,340"/>
+<area shape="rect" id="node13" href="$postreco_8c.html#a6c51b90bb030d3389a36f83a34a73fff" title="It recovers L4 ckpt. files from the PFS using MPI&#45;I/O. " alt="" coords="389,541,523,568"/>
+<area shape="rect" id="node14" href="$postreco_8c.html#a13d07e04c75ee95bb4703956c643b10c" title="It recovers L4 ckpt. files from the PFS using SIONlib. " alt="" coords="165,592,316,619"/>
+<area shape="rect" id="node4" href="$ftiff_8c.html#af1f55a7da4c3bd7403bde57b902ecef7" title="Init of FTI&#45;FF L4 recovery. " alt="" coords="364,161,548,188"/>
+<area shape="rect" id="node9" href="$interface_8h.html#a0d67927230e5cfb7848475129aa3b97c" title="It detects all the erasures for a particular level. " alt="" coords="387,313,525,340"/>
+<area shape="rect" id="node5" href="$ftiff_8c.html#a5e2c943fe1bd7e487a0911b5203ad9d7" title="Computes hash of the FTI&#45;FF file meta data structure. " alt="" coords="597,136,765,163"/>
+<area shape="rect" id="node6" href="$ftiff_8c.html#a5f5e7538badebffa9dfcf869e81f21d7" title="Determines checksum of checkpoint data. " alt="" coords="596,187,767,213"/>
+<area shape="rect" id="node7" href="$ftiff_8c.html#a7f498cbe4e2457e8c5d69a2b870f1178" title="deserializes FTI&#45;FF file data block meta data " alt="" coords="824,187,1000,213"/>
+<area shape="rect" id="node8" href="$ftiff_8c.html#ac8c9acc28caef7c7da7633cbf0920876" title="deserializes FTI&#45;FF data chunk meta data " alt="" coords="815,237,1009,264"/>
+<area shape="rect" id="node10" href="$interface_8h.html#aca5c277b6c86b50f182cfa1326ebb6e1" title="It gets the checksums from metadata. " alt="" coords="842,339,982,365"/>
+<area shape="rect" id="node11" href="$recover_8c.html#a29f1aae84d9ec782867b16905241e531" title="It checks if a file exist and that its size is &#39;correct&#39;. " alt="" coords="627,389,735,416"/>
+<area shape="rect" id="node12" href="$interface_8h.html#a0abe7d90a75d724af67071b5a672785d" title="It compares checksum of the checkpoint file. " alt="" coords="839,440,985,467"/>
+</map>

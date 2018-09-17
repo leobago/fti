@@ -1,10 +1,12 @@
 <map id="FTIT_execution" name="FTIT_execution">
-<area shape="rect" id="node2" href="$structFTIFF__metaInfo.html" title="FTIFF_metaInfo" alt="" coords="5,185,127,212"/>
-<area shape="rect" id="node3" href="$structFTIT__H5Group.html" title="FTIT_H5Group" alt="" coords="113,95,227,121"/>
-<area shape="rect" id="node6" href="$structFTIT__type.html" title="FTIT_type" alt="" coords="266,185,351,212"/>
-<area shape="rect" id="node4" href="$structFTIFF__db.html" title="FTIFF_db" alt="" coords="376,185,455,212"/>
-<area shape="rect" id="node5" href="$structFTIFF__dbvar.html" title="FTIFF_dbvar" alt="" coords="419,95,518,121"/>
-<area shape="rect" id="node7" href="$structFTIT__complexType.html" title="FTIT_complexType" alt="" coords="251,95,395,121"/>
-<area shape="rect" id="node8" href="$structFTIT__typeField.html" title="FTIT_typeField" alt="" coords="265,5,381,32"/>
-<area shape="rect" id="node9" href="$structFTIT__metadata.html" title="FTIT_metadata" alt="" coords="564,185,683,212"/>
+<area shape="rect" id="node2" href="$structFTIFF__metaInfo.html" title="FTIFF_metaInfo" alt="" coords="5,185,121,212"/>
+<area shape="rect" id="node3" href="$structFTIT__H5Group.html" title="FTIT_H5Group" alt="" coords="110,95,219,121"/>
+<area shape="rect" id="node7" href="$structFTIT__type.html" title="FTIT_type" alt="" coords="255,185,338,212"/>
+<area shape="rect" id="node4" href="$structFTIFF__db.html" title="FTIFF_db" alt="" coords="363,185,441,212"/>
+<area shape="rect" id="node5" href="$structFTIFF__dbvar.html" title="FTIFF_dbvar" alt="" coords="405,95,503,121"/>
+<area shape="rect" id="node6" href="$structFTIT__DataDiffHash.html" title="FTIT_DataDiffHash" alt="" coords="387,5,523,32"/>
+<area shape="rect" id="node8" href="$structFTIT__complexType.html" title="FTIT_complexType" alt="" coords="244,95,379,121"/>
+<area shape="rect" id="node9" href="$structFTIT__typeField.html" title="FTIT_typeField" alt="" coords="252,5,363,32"/>
+<area shape="rect" id="node10" href="$structFTIT__StageInfo.html" title="FTIT_StageInfo" alt="" coords="543,185,656,212"/>
+<area shape="rect" id="node11" href="$structFTIT__metadata.html" title="FTIT_metadata" alt="" coords="680,185,791,212"/>
 </map>

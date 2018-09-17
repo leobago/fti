@@ -1,0 +1,11 @@
+<map id="FTI_SendFile" name="FTI_SendFile">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="569,209,645,236"/>
+<area shape="rect" id="node3" href="$stage_8c.html#af704cfca36ed0ca9ab685a838518c114" title="Returns unique &#39;ID&#39; for staging request. " alt="" coords="173,133,307,160"/>
+<area shape="rect" id="node6" href="$stage_8c.html#add93ac9ae93c0bc729d2d68f1617341c" title="Initializes new stage meta info element (application rank) " alt="" coords="153,197,327,224"/>
+<area shape="rect" id="node8" href="$stage_8c.html#a182f1f60a5374160a724cee0034c572d" title="This function synchronously stages the local file to the PFS. " alt="" coords="183,248,297,274"/>
+<area shape="rect" id="node9" href="$stage_8c.html#a61d6e550d9f80163986a523bc8f2d33d" title="This function triggers the asynchronous stage. " alt="" coords="180,361,300,388"/>
+<area shape="rect" id="node4" href="$stage_8c.html#ab210803902592adb2ebb22b9a9a28dda" title="Sets value from the &#39;status&#39; field array at &#39;ID&#39;. " alt="" coords="381,158,515,185"/>
+<area shape="rect" id="node5" href="$stage_8c.html#a03ebd25f6254d11bc790e70e9aabd9eb" title="Returns value from the &#39;status&#39; field array at &#39;ID&#39;. " alt="" coords="380,57,516,84"/>
+<area shape="rect" id="node7" href="$stage_8c.html#a35eb6e7616b99b2d7713d802327fe061" title="Sets value of the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="375,260,521,286"/>
+<area shape="rect" id="node10" href="$stage_8c.html#a1b29cd8c8e9446f2dbd8dafac4d07f05" title="Returns value from the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="375,361,521,388"/>
+</map>

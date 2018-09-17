@@ -1,0 +1,7 @@
+<map id="FTI_Ptner" name="FTI_Ptner">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="313,84,389,110"/>
+<area shape="rect" id="node3" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="166,33,233,60"/>
+<area shape="rect" id="node4" href="$interface_8h.html#a5ed5581a61c8d9ecbf067ce3dee7ae2a" title="It gets the temporary metadata. " alt="" coords="133,84,265,110"/>
+<area shape="rect" id="node5" href="$postckpt_8c.html#a4f2290436308b66400ea6a3442ee3204" title="It sends Ckpt file. " alt="" coords="146,134,253,161"/>
+<area shape="rect" id="node6" href="$postckpt_8c.html#a0a76016a8c02ccb729df3b6112e2b0be" title="It receives Ptner file. " alt="" coords="144,185,255,212"/>
+</map>

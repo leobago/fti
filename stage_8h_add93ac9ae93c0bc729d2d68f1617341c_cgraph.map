@@ -1,0 +1,5 @@
+<map id="FTI_InitStageRequestApp" name="FTI_InitStageRequestApp">
+<area shape="rect" id="node2" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="421,24,497,50"/>
+<area shape="rect" id="node3" href="$stage_8c.html#ab210803902592adb2ebb22b9a9a28dda" title="Sets value from the &#39;status&#39; field array at &#39;ID&#39;. " alt="" coords="233,24,367,50"/>
+<area shape="rect" id="node4" href="$stage_8c.html#a35eb6e7616b99b2d7713d802327fe061" title="Sets value of the &#39;idxRequest&#39; field array at &#39;ID&#39;. " alt="" coords="227,74,373,101"/>
+</map>

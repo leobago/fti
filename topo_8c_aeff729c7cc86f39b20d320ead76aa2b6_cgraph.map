@@ -1,0 +1,8 @@
+<map id="FTI_Topology" name="FTI_Topology">
+<area shape="rect" id="node2" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="189,5,255,32"/>
+<area shape="rect" id="node4" href="$topo_8c.html#a39b796a67f541fd75aeaa73a9b29025a" title="It builds the list of nodes in the current execution. " alt="" coords="157,56,287,83"/>
+<area shape="rect" id="node5" href="$topo_8c.html#a8b39f445072e18cec2fa531d36e22dc1" title="It reorders the nodes following the previous topology. " alt="" coords="155,107,289,133"/>
+<area shape="rect" id="node6" href="$topo_8c.html#a23d88a13c6359b801a14789fe13f245a" title="It writes the topology in a file for recovery. " alt="" coords="169,157,275,184"/>
+<area shape="rect" id="node7" href="$topo_8c.html#a1f57d69148df779a939b4b9a48223d67" title="It builds the list of nodes in the current execution. " alt="" coords="155,208,289,235"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="337,81,413,108"/>
+</map>

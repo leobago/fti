@@ -1,6 +1,6 @@
 var annotated_dup =
 [
-    [ "fti", "namespacefti.html", "namespacefti" ],
+    [ "FTI", "namespaceFTI.html", "namespaceFTI" ],
     [ "FTIFF_db", "structFTIFF__db.html", "structFTIFF__db" ],
     [ "FTIFF_dbvar", "structFTIFF__dbvar.html", "structFTIFF__dbvar" ],
     [ "FTIFF_headInfo", "structFTIFF__headInfo.html", "structFTIFF__headInfo" ],
@@ -11,6 +11,7 @@ var annotated_dup =
     [ "FTIT_checkpoint", "structFTIT__checkpoint.html", "structFTIT__checkpoint" ],
     [ "FTIT_complexType", "structFTIT__complexType.html", "structFTIT__complexType" ],
     [ "FTIT_configuration", "structFTIT__configuration.html", "structFTIT__configuration" ],
+    [ "FTIT_DataDiffHash", "structFTIT__DataDiffHash.html", "structFTIT__DataDiffHash" ],
     [ "FTIT_dataset", "structFTIT__dataset.html", "structFTIT__dataset" ],
     [ "FTIT_double", "unionFTIT__double.html", "unionFTIT__double" ],
     [ "FTIT_execution", "structFTIT__execution.html", "structFTIT__execution" ],
@@ -18,6 +19,9 @@ var annotated_dup =
     [ "FTIT_H5Group", "structFTIT__H5Group.html", "structFTIT__H5Group" ],
     [ "FTIT_injection", "structFTIT__injection.html", "structFTIT__injection" ],
     [ "FTIT_metadata", "structFTIT__metadata.html", "structFTIT__metadata" ],
+    [ "FTIT_StageAppInfo", "structFTIT__StageAppInfo.html", "structFTIT__StageAppInfo" ],
+    [ "FTIT_StageHeadInfo", "structFTIT__StageHeadInfo.html", "structFTIT__StageHeadInfo" ],
+    [ "FTIT_StageInfo", "structFTIT__StageInfo.html", "structFTIT__StageInfo" ],
     [ "FTIT_topology", "structFTIT__topology.html", "structFTIT__topology" ],
     [ "FTIT_type", "structFTIT__type.html", "structFTIT__type" ],
     [ "FTIT_typeField", "structFTIT__typeField.html", "structFTIT__typeField" ]

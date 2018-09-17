@@ -6,6 +6,7 @@ var structFTIT__topology =
     [ "groupRank", "structFTIT__topology.html#ae8e3386463c1ce97ca24713c7d47b9b4", null ],
     [ "groupSize", "structFTIT__topology.html#a3b3935614c24137493f43615cd8b4f8b", null ],
     [ "headRank", "structFTIT__topology.html#ad6b000c681a3230febbc5829c6ad9247", null ],
+    [ "headRankNode", "structFTIT__topology.html#a01a744b0c9a84006be57cbca1f76abf5", null ],
     [ "left", "structFTIT__topology.html#afabfbf43460d6493b05efe06d80572d8", null ],
     [ "myRank", "structFTIT__topology.html#afd9e834e60e98abbce232192a38a7d58", null ],
     [ "nbApprocs", "structFTIT__topology.html#ab2b0c3441e7d43d243de5fefb4d8bf5d", null ],

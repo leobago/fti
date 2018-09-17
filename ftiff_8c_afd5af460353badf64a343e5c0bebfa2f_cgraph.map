@@ -1,0 +1,21 @@
+<map id="FTIFF_WriteFTIFF" name="FTIFF_WriteFTIFF">
+<area shape="rect" id="node2" href="$ftiff_8c.html#aaa2a7a8ba27a5e34053738a5a446b78f" title="updates datablock structure for FTI File Format. " alt="" coords="185,183,389,209"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="717,385,793,412"/>
+<area shape="rect" id="node13" href="$ftiff_8c.html#aff223b6bdbc46ad0519713469fd98017" title="serializes FTI&#45;FF file data block meta data " alt="" coords="207,461,368,488"/>
+<area shape="rect" id="node14" href="$ftiff_8c.html#a993be527d944b0cc1a7004fe7b5ba3cc" title="serializes FTI&#45;FF data chunk meta data " alt="" coords="197,512,377,539"/>
+<area shape="rect" id="node15" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="254,625,321,652"/>
+<area shape="rect" id="node16" href="$ftiff_8c.html#a5d82e0f5eb91ad610d33e82d25426270" title="Assign meta data to runtime and file meta data types. " alt="" coords="208,563,367,589"/>
+<area shape="rect" id="node18" href="$ftiff_8c.html#a9f60f1e2979942619c3c346f4fa56ad9" title="serializes FTI&#45;FF file meta data " alt="" coords="205,360,370,387"/>
+<area shape="rect" id="node19" href="$diff-checkpoint_8c.html#aff2aa9c15bc35742248d650d8857395e" title="Returns pointer and size of buffer to write during checkpoint. " alt="" coords="206,701,369,728"/>
+<area shape="rect" id="node4" href="$diff-checkpoint_8c.html#ab425fd97dfb5db7e718bffabe356e337" title="Initializes a new hash meta data structure for data chunk. " alt="" coords="453,5,616,32"/>
+<area shape="rect" id="node8" href="$ftiff_8c.html#a103f831a8b05db0f49424cd6f555aa22" title="Computes hash of the FTI&#45;FF data chunk meta data structure. " alt="" coords="460,208,609,235"/>
+<area shape="rect" id="node9" href="$ftiff_8c.html#a75932be0781ccb83b2b89d0911a89998" title="Computes hash of the FTI&#45;FF file data block meta data structure. " alt="" coords="469,259,600,285"/>
+<area shape="rect" id="node10" href="$diff-checkpoint_8c.html#ac5f11bac86b0c6815d8bc45177b4c7ce" title="Finalizes dCP. " alt="" coords="475,309,594,336"/>
+<area shape="rect" id="node11" href="$diff-checkpoint_8c.html#a81e4927ccfdcbcf802e3091dc5dd1b21" title="Expands an existing hash meta data structure for data chunk. " alt="" coords="441,56,629,83"/>
+<area shape="rect" id="node12" href="$diff-checkpoint_8c.html#a1b9d949c3d69cecc79ee913c656371e2" title="Shrinks an existing hash meta data structure for data chunk. " alt="" coords="437,107,632,133"/>
+<area shape="rect" id="node5" href="$diff-checkpoint_8c.html#a7951d40c32fbcd6bb42c9745a4c5b609" title="Computes number of hashblocks for chunk size. " alt="" coords="680,56,829,83"/>
+<area shape="rect" id="node6" href="$diff-checkpoint_8c.html#aa144736a4ea5fca66085f094f10d90d1" title="Returns the dCP mode. " alt="" coords="691,107,818,133"/>
+<area shape="rect" id="node7" href="$diff-checkpoint_8c.html#a400abbe3cb80eb6070e63902d99d0d55" title="Returns the dCP block size. " alt="" coords="680,5,829,32"/>
+<area shape="rect" id="node17" href="$ftiff_8c.html#a5e2c943fe1bd7e487a0911b5203ad9d7" title="Computes hash of the FTI&#45;FF file meta data structure. " alt="" coords="451,613,619,640"/>
+<area shape="rect" id="node20" href="$diff-checkpoint_8c.html#a4b27ecb6509e9d694f3b053461a64bdf" title="Checks if data block is dirty, clean or invalid. " alt="" coords="481,715,589,741"/>
+</map>

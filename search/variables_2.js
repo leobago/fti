@@ -7,6 +7,8 @@ var searchData=
   ['chunksize',['chunksize',['../structFTIFF__dbvar.html#abd18d0816f74b3703c504f6d40a19bd9',1,'FTIFF_dbvar']]],
   ['ckpt',['ckpt',['../structFTIT__execution.html#a752b91211397ec95434a69c45751c38e',1,'FTIT_execution']]],
   ['ckptcnt',['ckptCnt',['../structFTIT__execution.html#a590db72f82171781a3ac02de59b350f6',1,'FTIT_execution::ckptCnt()'],['../structFTIT__checkpoint.html#a1871c770167dad43a41f1b64adbbf53b',1,'FTIT_checkpoint::ckptCnt()']]],
+  ['ckptdcpcnt',['ckptDcpCnt',['../structFTIT__checkpoint.html#a77515c8a3f343d7b73ac7e63df0000e9',1,'FTIT_checkpoint']]],
+  ['ckptdcpintv',['ckptDcpIntv',['../structFTIT__checkpoint.html#aa704831ea3ad4d17e37e7a5f310ded04',1,'FTIT_checkpoint']]],
   ['ckptfile',['ckptFile',['../structFTIT__metadata.html#af649446726d9d2147f208dee79a75a75',1,'FTIT_metadata::ckptFile()'],['../structFTIFF__headInfo.html#a04b704665201f1e460c736be1cad6ef1',1,'FTIFF_headInfo::ckptFile()']]],
   ['ckpticnt',['ckptIcnt',['../structFTIT__execution.html#ab2c8d7fc648d2fc4f9812da6bbf45c6f',1,'FTIT_execution']]],
   ['ckptid',['ckptID',['../structFTIT__execution.html#afe4ababcb4c2ea0a21a87b237f8d7a00',1,'FTIT_execution::ckptID()'],['../structFTIFF__L2Info.html#a2f4350ee1c6be129495c9206e13de896',1,'FTIFF_L2Info::ckptID()'],['../structFTIFF__L3Info.html#af4a2ac631734c8fb8598c39a31ceb977',1,'FTIFF_L3Info::ckptID()']]],
@@ -15,9 +17,12 @@ var searchData=
   ['ckptlvel',['ckptLvel',['../structFTIT__execution.html#a19a4f92c1d8dd2c86350f59eb7372ca8',1,'FTIT_execution']]],
   ['ckptnext',['ckptNext',['../structFTIT__execution.html#a753ca607f3813ca1fa4e24f6c50c8902',1,'FTIT_execution']]],
   ['ckptsize',['ckptSize',['../structFTIFF__metaInfo.html#a461e3179572871d9602d07b30505aaa0',1,'FTIFF_metaInfo::ckptSize()'],['../structFTIT__execution.html#a19693c7f3a31b31d90a40dcf7fc34183',1,'FTIT_execution::ckptSize()']]],
+  ['ckpttag',['ckptTag',['../structFTIT__configuration.html#a78ac66926a7bc33c451303033995b04c',1,'FTIT_configuration']]],
   ['containerid',['containerid',['../structFTIFF__dbvar.html#a48a6f0a5da0e493c024105530408fec6',1,'FTIFF_dbvar']]],
   ['containersize',['containersize',['../structFTIFF__dbvar.html#ac4cd23615c48b2bb0a1fbb291a369f63',1,'FTIFF_dbvar']]],
   ['copyexists',['CopyExists',['../structFTIFF__L2Info.html#a76d6b15a6f91a713d42d5c1170854ab9',1,'FTIFF_L2Info']]],
   ['count',['count',['../structFTIT__dataset.html#abc07f32e21abf951afcae67f9636e65c',1,'FTIT_dataset']]],
-  ['counter',['counter',['../structFTIT__injection.html#ab12d3237041b7c64f040763fd8f2b399',1,'FTIT_injection']]]
+  ['counter',['counter',['../structFTIT__injection.html#ab12d3237041b7c64f040763fd8f2b399',1,'FTIT_injection']]],
+  ['cptr',['cptr',['../structFTIFF__dbvar.html#a3b26cf65fbfba0f24268628e36aeea45',1,'FTIFF_dbvar']]],
+  ['currentl4ckptfile',['currentL4CkptFile',['../structFTIT__metadata.html#abfd4b28cb351b43f5f0d83d06c12c699',1,'FTIT_metadata']]]
 ];

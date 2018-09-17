@@ -1,0 +1,8 @@
+<map id="FTI_LoadConf" name="FTI_LoadConf">
+<area shape="rect" id="node2" href="$interface_8h.html#a950803008f7cef4892fbba9b2069928e" title="It receives the return code of a function and prints a message. " alt="" coords="194,5,261,32"/>
+<area shape="rect" id="node4" href="$conf_8c.html#a42e37d4585f16c3d958e7825d2d06bd2" title="It reads the configuration given in the configuration file. " alt="" coords="173,56,281,83"/>
+<area shape="rect" id="node5" href="$conf_8c.html#a85fa285a8ef0f88312f482f355e0c14c" title="It tests that the configuration given is correct. " alt="" coords="171,107,283,133"/>
+<area shape="rect" id="node6" href="$conf_8c.html#a1fd3729e1cd570f4b5944e334ebddce6" title="It tests that the directories given is correct. " alt="" coords="159,157,296,184"/>
+<area shape="rect" id="node7" href="$conf_8c.html#afcc58051e6dc11db94fa1467a9ee0467" title="It creates the directories required for current execution. " alt="" coords="171,208,283,235"/>
+<area shape="rect" id="node3" href="$api_8c.html#a691a9e560e92286bb5bc1b5cf2f7b199" title="Prints FTI messages. " alt="" coords="344,107,420,133"/>
+</map>
