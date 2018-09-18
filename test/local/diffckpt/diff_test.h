@@ -14,6 +14,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "../../../deps/iniparser/dictionary.h"
+#include "../../../deps/iniparser/iniparser.h"
 
 #ifndef NUM_DCKPT
 #   define NUM_DCKPT 5
@@ -35,7 +37,7 @@
 
 #define EXIT_STD_ERR(MSG,...) do {                                                              \
     fprintf( stderr, "[ERROR-%d] " MSG " : %s\n", grank, ##__VA_ARGS__, strerror(errno));       \
-    exit(ERR_STD);                                                                              \
+    exit(EXIT_FAILURE);                                                                              \
 } while (0)
 
 #define WARN_MSG(MSG,...) do {                                                                  \
@@ -64,6 +66,10 @@ enum ALLOC_FLAGS {
 };
 
 int grank;
+
+int numHeads;
+int finalTag;
+int headRank;
 
 FTIT_type FTI_UI;
 FTIT_type FTI_XOR_INFO;
