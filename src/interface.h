@@ -145,13 +145,13 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_injection *FTI_Inje);
 
 #ifdef ENABLE_HDF5
-int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                  FTIT_dataset* FTI_Data);
-int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data);
-int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                        FTIT_dataset* FTI_Data, int id);
+    int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+                      FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+                      FTIT_dataset* FTI_Data);
+    int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                        FTIT_dataset* FTI_Data);
+    int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                            FTIT_dataset* FTI_Data, int id);
 #endif
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -226,11 +226,11 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
-void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
-void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
-void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
-void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
-void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
+    void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+    void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+    void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
+    void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
+    void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 #endif
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
