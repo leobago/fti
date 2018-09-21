@@ -1,5 +1,3 @@
-\page cmake CMake configuration
-
 # CMake Options  
 
 Option             |       What it's for                                         | default
