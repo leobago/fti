@@ -40,8 +40,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
 
 #define N 100000
 #define CNTRLD_EXIT 10
@@ -147,19 +145,6 @@ int main(int argc, char* argv[]) {
 
     MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
-    dictionary *ini = iniparser_load( argv[1] );
-    int grank;    
-    MPI_Comm_rank(MPI_COMM_WORLD,&grank);
-    int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
-    int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
-    int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int headRank = grank - grank%nodeSize;
-
-    if ( (nbHeads<0) || (nodeSize<0) ) {
-        printf("wrong configuration (for head or node-size settings)!\n");
-        MPI_Abort(MPI_COMM_WORLD, -1);
-    }
-
     asize = N;
 
     if (diff_sizes) {
@@ -210,17 +195,11 @@ int main(int argc, char* argv[]) {
     if (state == INIT) {
         init_arrays(A, B, asize);
         write_data(B, &asize, FTI_APP_RANK);
-        FTI_Checkpoint(1,level);
         MPI_Barrier(FTI_COMM_WORLD);
-        
-        if ( crash ) {
-            if( nbHeads > 0 ) { 
-                int value = FTI_ENDW;
-                MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
-                MPI_Barrier(MPI_COMM_WORLD);
-            }
-            MPI_Finalize();
-            exit(0);
+        FTI_Checkpoint(1,level);
+        sleep(5);
+        if (crash && FTI_APP_RANK == 0) {
+            exit(CNTRLD_EXIT);
         }
     }
 

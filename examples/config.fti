@@ -37,6 +37,11 @@ Ckpt_L3 = 7
 # Level 4 ckpt interval in minutes of L4 ckpts (PFS write)
 Ckpt_L4 = 11
 
+# dCP interval in minutes for level 4 checkpoints
+# dCP - differential checkpointing
+# This setting requires io_mode=3 (FTI-FF) and dcp_enabled=1
+Dcp_L4 = 0
+
 # 1 if Level 2 ckpt is inline (synchronous) 0 if not (asynchronous)
 Inline_L2 = 1
 
@@ -50,6 +55,9 @@ Inline_L4 = 1
 # Set to 0 if you want to erase all checkpoints after finalize
 keep_last_ckpt = 0
 
+# Enabled, all level 4 checkpoints of the execution will be kept in 'Glbl_dir/l4_archive'
+keep_l4_ckpt   = 0
+
 # The size of the encoding groups (Something between 4 and 16)
 # The total number of nodes MUST be multiple of this parameter
 Group_size = 4
@@ -58,8 +66,32 @@ Group_size = 4
 # If you app has iterations of varying length set this value between (1 and 10)
 max_sync_intv               = 0
 
-# Set to 1 for POSIX, 2 for MPI-IO or 3 for SIONLib.
+# Set to: 
+# 1 -> POSIX 
+# 2 -> MPI-IO
+# 3 -> FTI-FF
+# 4 -> SIONLib
+# 5 -> HDF5.
 ckpt_io                     = 1
+
+# Enable staging feature
+Enable_Staging              = 0
+
+# Enable differential checkpointing (dCP)
+Enable_dCP                  = 0
+
+# Select dCP hashing algorithm:
+# 1 -> MD5
+# 2 -> CRC32
+# The modes may be set as well by the environment variable 'FTI_DCP_HASH_MODE=[0|1]'
+# This will overwrite the setting from the configuration file!
+dCP_Mode                    = 0
+
+# Set hash-partition block size
+# The partition block size, b,  must be: 512 < b < USHRT_MAX (Bytes)
+# b may be set as well by the environment variable 'FTI_DCP_BLOCK_SIZE=b (in bytes)'
+# This will overwrite the setting from the configuration file!
+dCP_Block_Size              = 16384
 
 # The verbosity of FTI. (2 is recommended)
 # 3 (Print only errors, silent mode)
@@ -117,7 +149,6 @@ Transfer_size = 16
 general_tag = 2612
 ckpt_tag = 711   
 stage_tag = 406
-info_tag = 2906
 final_tag = 3107
 
 # Set to 1 if you are doing a test in local in a single computer
