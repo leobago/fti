@@ -63,13 +63,13 @@
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
-/*
+/**
 
   +-------------------------------------------------------------------------+
   |   FTI-FF TYPES                                                          |
   +-------------------------------------------------------------------------+
 
-*/
+ **/
 
 /** @typedef    dcpBLK_t
  *  @brief      unsigned short (0 - 65535).
@@ -126,13 +126,13 @@ typedef struct FTIFF_L3Info {
     long RSfs;  // maxFs
 } FTIFF_L3Info;
 
-/*
+/**
 
   +-------------------------------------------------------------------------+
   |   MPI DERIVED DATA TYPES                                                |
   +-------------------------------------------------------------------------+
 
-*/
+ **/
 
 // ID MPI types
 enum {
@@ -153,13 +153,13 @@ typedef struct FTIFF_MPITypeInfo {
     MPI_Aint*           mbrDisp;
 } FTIFF_MPITypeInfo;
 
-/*
+/**
 
   +-------------------------------------------------------------------------+
   |   FUNCTION DECLARATIONS                                                 |
   +-------------------------------------------------------------------------+
 
-*/
+ **/
 
 void FTIFF_InitMpiTypes();
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
