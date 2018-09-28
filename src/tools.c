@@ -395,7 +395,8 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) 
+{
     FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
     if (FTI_Exec->FTI_Type == NULL) {
         return FTI_NSCS;
@@ -427,7 +428,8 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) 
+{
     int i;
     for (i = 0; i < FTI_Exec->nbType; i++) {
         if (FTI_Exec->FTI_Type[i]->structure != NULL) {
@@ -702,7 +704,6 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
 
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_RmDir(char path[FTI_BUFS], int flag)
 {
     if (flag) {

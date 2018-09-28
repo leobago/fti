@@ -555,7 +555,8 @@ int FTI_FreeStageRequest( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int
               -1, else.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetRequestIdx( int ID ) {
+int FTI_GetRequestIdx( int ID ) 
+{
 
     if ( FTI_GetRequestField( ID, FTI_SIF_ALL ) ) {
         return FTI_GetRequestField( ID, FTI_SIF_IDX );

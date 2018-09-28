@@ -26,7 +26,7 @@ void simulateCrash() {
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int ckpt_tag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
+    int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
     int final_tag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
     int res;
     if (checkpoint_level != 1) {
@@ -46,7 +46,7 @@ void simulateCrash() {
         if (isInline == 0) {
             //waiting untill head do Post-checkpointing
             printf("%d: Receiving.\n", world_rank);
-            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , ckpt_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , general_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             printf("%d: Received.\n", world_rank);
         }
     }
@@ -74,7 +74,7 @@ void simulateCrashWithoutCkpt() {
     dictionary* ini = iniparser_load("config.fti");
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-    int ckpt_tag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
+    int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
     int final_tag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
     int res;
     iniparser_freedict(ini);
