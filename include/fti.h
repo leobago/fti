@@ -369,6 +369,16 @@ void FTI_BACKUP_Print(char *msg, int priority);
         FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
 
+    typedef struct FTIT_gpuInfo{
+        bool            exists; //TODO initialize this
+        size_t          block_amt;
+        bool*           all_done;
+        bool            complete;
+        bool*           h_is_block_executed; 
+        double          quantum;
+        bool            quantum_expired;
+    }FTIT_gpuInfo;
+
     /** @typedef    FTIT_metadata
      *  @brief      Metadata for restart.
      *

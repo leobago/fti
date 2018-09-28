@@ -12,6 +12,7 @@
 #include <cuda_runtime.h>
 #include <stdbool.h>
 #include "fti.h"
+#include "interface.h"
 #include "api_cuda.h"
 
 /** 
@@ -100,14 +101,16 @@ static void computation_complete(bool *complete)
     }
     break;
   }
-  *complete = (i == block_amt) ? true : false;
+  *complete = (i == block_amt); //? true : false;
 }
 
 static FTIT_topology *FTI_Topo = NULL;
+static FTIT_execution *FTI_Exec = NULL;
 
-int FTI_get_topo(FTIT_topology *topology)
+int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
 {
-  FTI_Topo = topology; 
+  FTI_Topo = topo; 
+  FTI_Exec = exec;
   return FTI_SCES;
 }
 
@@ -119,7 +122,7 @@ bool FTI_all_procs_complete(bool *procs)
   {
     if(procs[i] == false)break;
   }
-  return (i == FTI_Topo->nbProc) ? true : false;
+  return (i == FTI_Topo->nbProc); //? true : false;
 }
 
 /**
@@ -213,7 +216,7 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   size_t i = 0;
   *complete = false;
 
-  block_amt = num_blocks.x * num_blocks.y * num_blocks.z; 
+  block_amt = num_blocks.x * num_blocks.y * num_blocks.z; //TODO remove from global scope in file
 
   /* Block info host setup */
   block_info_bytes = block_amt * sizeof(bool);
@@ -250,27 +253,47 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   /* Keep track of some things locally */
   quantum_expired = *timeout;
   d_is_block_executed = *b_info;
-  all_done_array = *all_processes_done;
+  all_done_array = *all_processes_done; 
 
   /* Now protect all necessary variables */
-  FTIT_type C_BOOL;
-  FTI_InitType(&C_BOOL, sizeof(bool));
-  FTI_Protect(22, (void *)all_done_array, FTI_Topo->nbProc, C_BOOL);
-  FTI_Protect(23, (void *)complete, 1, C_BOOL);
-  FTI_Protect(24, (void *)h_is_block_executed, block_amt, C_BOOL);
-  FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
-  FTI_Protect(26, (void *)quantum_expired, 1, FTI_UINT);
+  //FTIT_type C_BOOL;
+  //FTI_InitType(&C_BOOL, sizeof(bool));
+  //FTI_Protect(22, (void *)all_done_array, FTI_Topo->nbProc, C_BOOL);
+  //FTI_Protect(23, (void *)complete, 1, C_BOOL);
+  //FTI_Protect(24, (void *)h_is_block_executed, block_amt, C_BOOL);
+  //FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
+  //FTI_Protect(26, (void *)quantum_expired, 1, C_BOOL);
 
-  if(FTI_Status() != 0)
-  {
-    FTI_Recover();
-  
-    for(i = 0; i < block_amt; i++)
-    {
-      sprintf(str, "block_executed[%zu]=%d\n", i, h_is_block_executed[i]);
-      FTI_Print(str, FTI_DBUG);
-    }
+  if(FTI_Exec->gpuInfo.exists){
+    //TODO restore values here
+    block_amt = FTI_Exec->gpuInfo.block_amt;
+    *complete = FTI_Exec->gpuInfo.complete;
+    all_done_array = FTI_Exec->gpuInfo.all_done;
+    h_is_block_executed = FTI_Exec->gpuInfo.h_is_block_executed;
+    quantum = FTI_Exec->gpuInfo.quantum;
+    *quantum_expired = FTI_Exec->gpuInfo.quantum_expired;
   }
+  else{
+    //Keep track of things here
+    FTI_Exec->gpuInfo.block_amt = block_amt; 
+    FTI_Exec->gpuInfo.complete = *complete;
+    FTI_Exec->gpuInfo.all_done = all_done_array;
+    FTI_Exec->gpuInfo.h_is_block_executed = h_is_block_executed;
+    FTI_Exec->gpuInfo.quantum = quantum;
+    FTI_Exec->gpuInfo.quantum_expired = *quantum_expired;
+    FTI_Exec->gpuInfo.exists = true;
+  }
+
+  //if(FTI_Status() != 0)
+  //{
+  //  FTI_Recover();
+  //
+  //  for(i = 0; i < block_amt; i++)
+  //  {
+  //    sprintf(str, "block_executed[%zu]=%d\n", i, h_is_block_executed[i]);
+  //    FTI_Print(str, FTI_DBUG);
+  //  }
+  //}
 
   return FTI_SCES;
 }
@@ -385,7 +408,7 @@ static inline int signal_gpu_then_wait(bool *complete)
   
   if(res == FTI_DONE)
   {
-    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_WARN);
+    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
   }
   else
   {
