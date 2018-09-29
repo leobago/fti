@@ -105,12 +105,13 @@ static void computation_complete(bool *complete)
 }
 
 static FTIT_topology *FTI_Topo = NULL;
-static FTIT_execution *FTI_Exec = NULL;
+static FTIT_gpuInfo *FTI_GpuInfo = NULL;
 
-int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
+//TODO comment this function, and rename it to something like "FTI_gpu_internal_init" ?
+int FTI_get_topo_and_gpuinfo(FTIT_topology *topo, FTIT_gpuInfo *gpuInfo)
 {
   FTI_Topo = topo; 
-  FTI_Exec = exec;
+  FTI_GpuInfo = gpuInfo;
   return FTI_SCES;
 }
 
@@ -255,33 +256,24 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   d_is_block_executed = *b_info;
   all_done_array = *all_processes_done; 
 
-  /* Now protect all necessary variables */
-  //FTIT_type C_BOOL;
-  //FTI_InitType(&C_BOOL, sizeof(bool));
-  //FTI_Protect(22, (void *)all_done_array, FTI_Topo->nbProc, C_BOOL);
-  //FTI_Protect(23, (void *)complete, 1, C_BOOL);
-  //FTI_Protect(24, (void *)h_is_block_executed, block_amt, C_BOOL);
-  //FTI_Protect(25, (void *)&quantum, 1, FTI_DBLE);
-  //FTI_Protect(26, (void *)quantum_expired, 1, C_BOOL);
-
-  if(FTI_Exec->gpuInfo.exists){
+  if(FTI_GpuInfo->exists){
     //TODO restore values here
-    block_amt = FTI_Exec->gpuInfo.block_amt;
-    *complete = FTI_Exec->gpuInfo.complete;
-    all_done_array = FTI_Exec->gpuInfo.all_done;
-    h_is_block_executed = FTI_Exec->gpuInfo.h_is_block_executed;
-    quantum = FTI_Exec->gpuInfo.quantum;
-    *quantum_expired = FTI_Exec->gpuInfo.quantum_expired;
+    block_amt = FTI_GpuInfo->block_amt;
+    *complete = FTI_GpuInfo->complete;
+    all_done_array = FTI_GpuInfo->all_done;
+    h_is_block_executed = FTI_GpuInfo->h_is_block_executed;
+    quantum = FTI_GpuInfo->quantum;
+    *quantum_expired = FTI_GpuInfo->quantum_expired;
   }
   else{
     //Keep track of things here
-    FTI_Exec->gpuInfo.block_amt = block_amt; 
-    FTI_Exec->gpuInfo.complete = *complete;
-    FTI_Exec->gpuInfo.all_done = all_done_array;
-    FTI_Exec->gpuInfo.h_is_block_executed = h_is_block_executed;
-    FTI_Exec->gpuInfo.quantum = quantum;
-    FTI_Exec->gpuInfo.quantum_expired = *quantum_expired;
-    FTI_Exec->gpuInfo.exists = true;
+    FTI_GpuInfo->block_amt = block_amt; 
+    FTI_GpuInfo->complete = *complete;
+    FTI_GpuInfo->all_done = all_done_array;
+    FTI_GpuInfo->h_is_block_executed = h_is_block_executed;
+    FTI_GpuInfo->quantum = quantum;
+    FTI_GpuInfo->quantum_expired = *quantum_expired;
+    FTI_GpuInfo->exists = true;
   }
 
   //if(FTI_Status() != 0)
