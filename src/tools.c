@@ -97,6 +97,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     /* MPI_Comm      */ FTI_Exec->globalComm            =0;
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
+    /* unsigned int  */ FTI_Exec->nbKernels             =0;
 
     // +--------- +
     // | FTI_Conf |

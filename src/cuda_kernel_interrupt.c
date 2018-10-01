@@ -105,13 +105,15 @@ static void computation_complete(bool *complete)
 }
 
 static FTIT_topology *FTI_Topo = NULL;
+static FTIT_execution *FTI_Exec = NULL;
 static FTIT_gpuInfo *FTI_GpuInfo = NULL;
 
 //TODO comment this function, and rename it to something like "FTI_gpu_internal_init" ?
-int FTI_get_topo_and_gpuinfo(FTIT_topology *topo, FTIT_gpuInfo *gpuInfo)
+int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
 {
   FTI_Topo = topo; 
-  FTI_GpuInfo = gpuInfo;
+  FTI_Exec = exec;
+  FTI_GpuInfo = exec->gpuInfo;
   return FTI_SCES;
 }
 
@@ -197,8 +199,21 @@ static int reset_globals()
  * may communicate with the device directly without an explicit memory copy. The boolean array
  * has a size of *num_blocks* and has a record of which blocks have executed at each interrupt.
  */
-int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
+int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
 {
+  /* TODO loop over GpuInfo IDs if an ID is found then return */
+  size_t i = 0;
+  for(i = 0; i < FTI_BUFS; i++){
+    if(id == FTI_GpuInfo[i].id){
+      return FTI_SCES;
+    }
+  }
+
+  if(FTI_Exec->nbKernels >= FTI_BUFS){
+    FTI_Print("Unable to register kernel. Too many kernels already registered.", FTI_WARN);
+    return FTI_NSCS;
+  }
+
   char str[FTI_BUFS];
 
   *all_processes_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
@@ -212,9 +227,7 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
 
   FTI_Print("Initialized backup", FTI_DBUG);
 
-  /* Set default values */
   suspension_count = 0;
-  size_t i = 0;
   *complete = false;
 
   block_amt = num_blocks.x * num_blocks.y * num_blocks.z; //TODO remove from global scope in file
@@ -256,35 +269,25 @@ int FTI_BACKUP_init(volatile bool **timeout, bool **b_info, double q, bool *comp
   d_is_block_executed = *b_info;
   all_done_array = *all_processes_done; 
 
-  if(FTI_GpuInfo->exists){
-    //TODO restore values here
-    block_amt = FTI_GpuInfo->block_amt;
-    *complete = FTI_GpuInfo->complete;
-    all_done_array = FTI_GpuInfo->all_done;
-    h_is_block_executed = FTI_GpuInfo->h_is_block_executed;
-    quantum = FTI_GpuInfo->quantum;
-    *quantum_expired = FTI_GpuInfo->quantum_expired;
-  }
-  else{
-    //Keep track of things here
-    FTI_GpuInfo->block_amt = block_amt; 
-    FTI_GpuInfo->complete = *complete;
-    FTI_GpuInfo->all_done = all_done_array;
-    FTI_GpuInfo->h_is_block_executed = h_is_block_executed;
-    FTI_GpuInfo->quantum = quantum;
-    FTI_GpuInfo->quantum_expired = *quantum_expired;
-    FTI_GpuInfo->exists = true;
-  }
-
-  //if(FTI_Status() != 0)
-  //{
-  //  FTI_Recover();
-  //
-  //  for(i = 0; i < block_amt; i++)
-  //  {
-  //    sprintf(str, "block_executed[%zu]=%d\n", i, h_is_block_executed[i]);
-  //    FTI_Print(str, FTI_DBUG);
-  //  }
+  //if(FTI_GpuInfo->exists){
+  //  //TODO restore values here
+  //  block_amt = FTI_GpuInfo->block_amt;
+  //  *complete = FTI_GpuInfo->complete;
+  //  all_done_array = FTI_GpuInfo->all_done;
+  //  h_is_block_executed = FTI_GpuInfo->h_is_block_executed;
+  //  quantum = FTI_GpuInfo->quantum;
+  //  *quantum_expired = FTI_GpuInfo->quantum_expired;
+  //}
+  //else{
+  //  //Keep track of things here
+  FTI_GpuInfo[FTI_Exec->nbKernels].id = id; 
+  FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = block_amt; 
+  FTI_GpuInfo[FTI_Exec->nbKernels].complete = *complete;
+  FTI_GpuInfo[FTI_Exec->nbKernels].all_done = all_done_array;
+  FTI_GpuInfo[FTI_Exec->nbKernels].h_is_block_executed = h_is_block_executed;
+  FTI_GpuInfo[FTI_Exec->nbKernels].quantum = quantum;
+  FTI_GpuInfo[FTI_Exec->nbKernels].quantum_expired = *quantum_expired;
+  FTI_Exec->nbKernels = FTI_Exec->nbKernels + 1;
   //}
 
   return FTI_SCES;

@@ -143,7 +143,8 @@ typedef struct FTIT_execution {
     cudaEvent_t     cEvents[2];         /**< CUDA event.                    */
     void*           cHostBufs[2];       /**< CUDA host buffer.              */
     MD5_CTX         mdContext;          /**< MD5 Checksum.                  */
-    FTIT_gpuInfo    gpuInfo;            /**< Info about GPU interruptions   */
+    unsigned int    nbKernels;          /**< Number of protected kernels    */
+    FTIT_gpuInfo    gpuInfo[FTI_BUFS];  /**< Info about GPU interruptions   */
   } FTIT_execution;
 
 
