@@ -269,17 +269,7 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
   d_is_block_executed = *b_info;
   all_done_array = *all_processes_done; 
 
-  //if(FTI_GpuInfo->exists){
-  //  //TODO restore values here
-  //  block_amt = FTI_GpuInfo->block_amt;
-  //  *complete = FTI_GpuInfo->complete;
-  //  all_done_array = FTI_GpuInfo->all_done;
-  //  h_is_block_executed = FTI_GpuInfo->h_is_block_executed;
-  //  quantum = FTI_GpuInfo->quantum;
-  //  *quantum_expired = FTI_GpuInfo->quantum_expired;
-  //}
-  //else{
-  //  //Keep track of things here
+  /* Add information necessary to protect interrupt info */
   FTI_GpuInfo[FTI_Exec->nbKernels].id = id; 
   FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = block_amt; 
   FTI_GpuInfo[FTI_Exec->nbKernels].complete = *complete;
@@ -288,7 +278,6 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
   FTI_GpuInfo[FTI_Exec->nbKernels].quantum = quantum;
   FTI_GpuInfo[FTI_Exec->nbKernels].quantum_expired = *quantum_expired;
   FTI_Exec->nbKernels = FTI_Exec->nbKernels + 1;
-  //}
 
   return FTI_SCES;
 }

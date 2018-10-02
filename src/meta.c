@@ -483,6 +483,19 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + j]);
             iniparser_set(ini, str, buf);
         }
+
+        for (j = 0; j < FTI_Exec->nbKernels; j++)
+        {
+            snprintf(str, FTI_BUFS, "%dkernel %d", i, FTI_Exec->gpuInfo[j].id);
+            iniparser_set(ini, str, NULL);
+            size_t k = 0;
+            for(k = 0; k < FTI_Exec->gpuInfo[j].block_amt; k++)
+            {
+              snprintf(str, FTI_BUFS, "%dkernel %d:block%zu", i, FTI_Exec->gpuInfo[j].id, k);
+              snprintf(buf, FTI_BUFS, "%s",(FTI_Exec->gpuInfo[j].h_is_block_executed[k] == true) ? "T" : "F");
+              iniparser_set(ini, str, buf);
+            }
+        }
     }
 
     // Remove topology section
