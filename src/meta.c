@@ -342,6 +342,92 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     //Save number of variables in metadata
                     FTI_Exec->meta[i].nbVar[0] = k;
 
+                    char kernelInfoSection[FTI_BUFS];
+                    snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
+                    int sectionExists = iniparser_find_entry(ini, kernelInfoSection);
+                    if(sectionExists){
+                      snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
+                      FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
+                    //Restore GPU info
+                    fprintf(stdout, "Restoring GPU info1\n");
+                    fflush(stdout);
+                    for(k = 0; k < FTI_Exec->nbKernels; k++) {
+                      snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, k);
+                      FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+
+                      char gpuInfoSection[FTI_BUFS];
+                      snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", k, FTI_Exec->gpuInfo[k].id); 
+
+                      //int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
+
+                      //if(sectionExists == 0){
+                      //  fprintf(stdout, "No more sections: %d\n", k);
+                      //  fflush(stdout);
+                      //  //No more GPU sections
+                      //  break;
+                      //}
+
+                      //snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
+                      //FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+
+                      snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
+                      char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
+                      sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
+
+                      snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
+                      FTI_Exec->gpuInfo[k].complete = malloc(sizeof(bool));
+                      if(FTI_Exec->gpuInfo[k].complete == NULL){
+                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        return FTI_NSCS;
+                      }
+                      *(FTI_Exec->gpuInfo[k].complete) = iniparser_getboolean(ini, str, -1);
+
+                      snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
+                      FTI_Exec->gpuInfo[k].quantum = malloc(sizeof(unsigned int));
+                      if(FTI_Exec->gpuInfo[k].quantum == NULL){
+                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        return FTI_NSCS;
+                      }
+                      *(FTI_Exec->gpuInfo[k].quantum) = (unsigned int)iniparser_getint(ini, str, -1.0);
+
+                      snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
+                      FTI_Exec->gpuInfo[k].quantum_expired = malloc(sizeof(bool));
+                      if(FTI_Exec->gpuInfo[k].quantum_expired == NULL){
+                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        return FTI_NSCS;
+                      }
+                      *(FTI_Exec->gpuInfo[k].quantum_expired) = iniparser_getboolean(ini, str, -1);
+      
+                      size_t idx = 0;              
+                      //Get information on whether all processes have completed this kernel
+                      FTI_Exec->gpuInfo[k].all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
+
+                      if(FTI_Exec->gpuInfo[k].all_done == NULL){
+                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        return FTI_NSCS;
+                      }
+  
+                      for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+                        snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
+                        FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
+                      }
+
+                      //Get information on blocks of the current kernel
+                      FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(sizeof(bool) * FTI_Exec->gpuInfo[k].block_amt);
+
+                      if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
+                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        return FTI_NSCS;
+                      }
+                      
+                      for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
+                      {
+                         snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
+                         FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
+                      }
+                    }
+                    }/* Kernel Info section exists */
+
                     iniparser_freedict(ini);
                 }
             }
@@ -407,6 +493,61 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         //Save number of variables in metadata
                         FTI_Exec->meta[i].nbVar[j] = k;
 
+                        //Restore GPU info
+                        fprintf(stdout, "Restoring GPU info2\n");
+                        fflush(stdout);
+                        for(k = 0; k < FTI_BUFS; k++) {
+                          char gpuInfoSection[FTI_BUFS];
+                          snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupID, k); 
+
+                          int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
+
+                          if(sectionExists == 0){
+                            //No more GPU sections
+                            break;
+                          }
+
+                          snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
+                          FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+
+                          snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
+                          char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
+                          sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
+
+                          snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
+                          //FTI_Exec->gpuInfo[k].complete = iniparser_getboolean(ini, str, -1);
+
+                          snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
+                          //FTI_Exec->gpuInfo[k].quantum = iniparser_getdouble(ini, str, -1.0);
+      
+                          size_t idx = 0;              
+                          //Get information on whether all processes have completed this kernel
+                          FTI_Exec->gpuInfo[k].all_done = malloc(FTI_Topo->nbProc);
+
+                          if(FTI_Exec->gpuInfo[k].all_done == NULL){
+                            FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                            return FTI_NSCS;
+                          }
+
+                          for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+                            snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
+                            FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
+                          }
+
+                          //Get information on blocks of the current kernel
+                          FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(FTI_Exec->gpuInfo[k].block_amt);
+
+                          if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
+                            FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                            return FTI_NSCS;
+                          }
+                          
+                          for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
+                          {
+                             snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
+                             FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
+                          }
+                        }
                         iniparser_freedict(ini);
                     }
                 }
@@ -487,45 +628,75 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         //Save GPU Info
         for (j = 0; j < FTI_Exec->nbKernels; j++)
         {
+            fprintf(stdout, "got here 1\n");
+            fflush(stdout);
             char gpuInfoSection[FTI_BUFS];
-            snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", i, FTI_Exec->gpuInfo[j].id);
-            iniparser_set(ini, gpuInfoSection, NULL);
+            char kernelInfoSection[FTI_BUFS]; //TODO come up with a better name for this??
+            snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
+            iniparser_set(ini, kernelInfoSection, NULL);
 
-            snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
+            fprintf(stdout, "got here 2\n");
+            fflush(stdout);
+            snprintf(str, FTI_BUFS, "%s:nbKernels", kernelInfoSection);
+            snprintf(buf, FTI_BUFS, "%u", FTI_Exec->nbKernels);
+            iniparser_set(ini, str, buf);
+
+            fprintf(stdout, "got here 3\n");
+            fflush(stdout);
+            snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, j);
             snprintf(buf, FTI_BUFS, "%d", FTI_Exec->gpuInfo[j].id);
             iniparser_set(ini, str, buf);
 
+            fprintf(stdout, "got here 4\n");
+            fflush(stdout);
+            snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", i, FTI_Exec->gpuInfo[j].id);
+            iniparser_set(ini, gpuInfoSection, NULL);
+
+            fprintf(stdout, "got here 5\n");
+            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
             snprintf(buf, FTI_BUFS, "%zu", FTI_Exec->gpuInfo[j].block_amt);
             iniparser_set(ini, str, buf);
 
+            fprintf(stdout, "got here 6\n");
+            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-            snprintf(buf, FTI_BUFS, "%s", (FTI_Exec->gpuInfo[j].complete == true) ? "T" : "F");
+            snprintf(buf, FTI_BUFS, "%s", *FTI_Exec->gpuInfo[j].complete ? "T" : "F");
             iniparser_set(ini, str, buf);
 
+            fprintf(stdout, "got here 7\n");
+            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-            snprintf(buf, FTI_BUFS, "%f", FTI_Exec->gpuInfo[j].quantum);
+            snprintf(buf, FTI_BUFS, "%u", *FTI_Exec->gpuInfo[j].quantum);
             iniparser_set(ini, str, buf);
 
+            fprintf(stdout, "got here 8\n");
+            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-            snprintf(buf, FTI_BUFS, "%s", (FTI_Exec->gpuInfo[j].quantum_expired == true) ? "T" : "F");
+            snprintf(buf, FTI_BUFS, "%s", *FTI_Exec->gpuInfo[j].quantum_expired ? "T" : "F");
             iniparser_set(ini, str, buf);
 
+            fprintf(stdout, "got here 9\n");
+            fflush(stdout);
             int n = 0;
             for(n = 0; n < FTI_Topo->nbProc; n++)
             {
               snprintf(str, FTI_BUFS, "%s:all_done%d", gpuInfoSection, n);
-              snprintf(buf, FTI_BUFS, "%s", (FTI_Exec->gpuInfo[j].all_done[n] == true) ? "T" : "F");
+              snprintf(buf, FTI_BUFS, "%s", FTI_Exec->gpuInfo[j].all_done[n] ? "T" : "F");
               iniparser_set(ini, str, buf);
             }
 
+            fprintf(stdout, "got here 10\n");
+            fflush(stdout);
             size_t k = 0;
             for(k = 0; k < FTI_Exec->gpuInfo[j].block_amt; k++)
             {
               snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, k);
-              snprintf(buf, FTI_BUFS, "%s",(FTI_Exec->gpuInfo[j].h_is_block_executed[k] == true) ? "T" : "F");
+              snprintf(buf, FTI_BUFS, "%s",FTI_Exec->gpuInfo[j].h_is_block_executed[k] ? "T" : "F");
               iniparser_set(ini, str, buf);
             }
+            fprintf(stdout, "got here 11\n");
+            fflush(stdout);
         }
     }
 

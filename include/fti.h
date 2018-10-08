@@ -144,7 +144,7 @@ do{                                                                             
           kernel_name<<<grid_dim, block_dim, ns, s>>>(quantum_expired, block_info,                        \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(&complete);                                                                    \
+        FTI_BACKUP_monitor(&complete); /*TODO only expose variables needed by macro*/                     \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -374,10 +374,10 @@ void FTI_BACKUP_Print(char *msg, int priority);
         int             id;
         size_t          block_amt;
         bool*           all_done;
-        bool            complete;
+        bool*           complete; //
         bool*           h_is_block_executed; 
-        double          quantum;
-        bool            quantum_expired;
+        unsigned int*   quantum;//
+        volatile bool*  quantum_expired; //
     }FTIT_gpuInfo;
 
     /** @typedef    FTIT_metadata
