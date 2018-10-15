@@ -95,13 +95,16 @@ static void computation_complete(bool *complete)
   size_t i = 0;
   for(i = 0; i < block_amt; i++)
   {
-    if(h_is_block_executed[i] == true)
+    if(h_is_block_executed[i])
     {
       continue;
     }
     break;
   }
+  //fprintf(stdout, "%s this is i: %zu\n", __func__, i);
+  //fflush(stdout);
   *complete = (i == block_amt); //? true : false;
+  //fprintf(stdout, "%zu == %zu ? %s\n", i, block_amt, *complete ? "True" : "False");
 }
 
 static FTIT_topology *FTI_Topo = NULL;
@@ -125,6 +128,8 @@ bool FTI_all_procs_complete(bool *procs)
   {
     if(procs[i] == false)break;
   }
+  //fprintf(stdout, "%s returning %s\n", __func__, (i == FTI_Topo->nbProc) ? "True" : "False");
+  //fflush(stdout);
   return (i == FTI_Topo->nbProc); //? true : false;
 }
 
@@ -208,33 +213,48 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
   suspension_count = 0;
 
   for(i = 0; i < FTI_Exec->nbKernels; i++){
-    if(id == FTI_GpuInfo[i].id){
+    if(id == *FTI_GpuInfo[i].id){
       kernel_already_protected = true;
       break;
     }
   }
 
-  fprintf(stdout, "Kernel already protected: %s\n", kernel_already_protected ? "True" : "False");
-  fflush(stdout);
+  //fprintf(stdout, "Kernel already protected: %s\n", kernel_already_protected ? "True" : "False");
+  //fflush(stdout);
 
   CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*timeout), sizeof(volatile bool), cudaHostAllocMapped));
 
   if(kernel_already_protected){
     //restore data
     *complete = *FTI_GpuInfo[i].complete;
-    block_amt = FTI_GpuInfo[i].block_amt; //TODO does this need storage? It can be recalculated from the argument
+    block_amt = *FTI_GpuInfo[i].block_amt; //TODO does this need storage? It can be recalculated from the argument
     *all_processes_done = FTI_GpuInfo[i].all_done;
     h_is_block_executed = FTI_GpuInfo[i].h_is_block_executed;
     quantum = *FTI_GpuInfo[i].quantum;
     **timeout = *FTI_GpuInfo[i].quantum_expired; //TODO do I need to keep track of this??
 
-    block_info_bytes = FTI_GpuInfo[i].block_amt * sizeof(bool); //TODO make this a part of the gpuInfo struct?
+    block_info_bytes = *FTI_GpuInfo[i].block_amt * sizeof(bool); //TODO make this a part of the gpuInfo struct?
 
-    fprintf(stdout, "Complete: %s\n", (*complete) ? "True" : "False");
-    fflush(stdout);
+    //fprintf(stdout, "Complete: %s\n", (*complete) ? "True" : "False");
+    //fflush(stdout);
+
     free((void *)FTI_GpuInfo[i].complete);
     free((void *)FTI_GpuInfo[i].quantum);
     free((void *)FTI_GpuInfo[i].quantum_expired);
+
+    size_t t = 0, f=0;
+    for(i = 0; i < block_amt; i++){
+      if(h_is_block_executed[i])
+      {
+        t++;
+      }
+      else{
+        f++;
+      }
+    }
+
+    fprintf(stdout, "True: %zu false: %zu\n", t, f);
+    fflush(stdout); 
   }
   else{
     **timeout = false;
@@ -285,16 +305,12 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
     //quantum_expired = *timeout;
 
     /* Add information necessary to protect interrupt info */
-    FTI_GpuInfo[FTI_Exec->nbKernels].id = id; 
+    FTI_GpuInfo[FTI_Exec->nbKernels].id = &id; 
     FTI_GpuInfo[FTI_Exec->nbKernels].complete = complete;
-    FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = block_amt;
+    FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = &block_amt;
     FTI_GpuInfo[FTI_Exec->nbKernels].all_done = *all_processes_done;
     FTI_GpuInfo[FTI_Exec->nbKernels].h_is_block_executed = h_is_block_executed;
     FTI_GpuInfo[FTI_Exec->nbKernels].quantum = &quantum;
-    fprintf(stdout, "Actual quantum: %u\n", quantum);
-    fflush(stdout);
-    fprintf(stdout, "Quantum saved: %u\n", *FTI_GpuInfo[FTI_Exec->nbKernels].quantum);
-    fflush(stdout);
     FTI_GpuInfo[FTI_Exec->nbKernels].quantum_expired = *timeout;
     FTI_Exec->nbKernels = FTI_Exec->nbKernels + 1;
   }
@@ -423,6 +439,10 @@ static inline int signal_gpu_then_wait(bool *complete)
   *quantum_expired = true;
   FTI_Print("Attempting to snapshot", FTI_DBUG);
 
+  FTI_Print("Waiting on kernel...", FTI_DBUG);
+  CUDA_ERROR_CHECK(cudaDeviceSynchronize());
+  FTI_Print("Kernel came back...", FTI_DBUG);
+
   int res = FTI_Snapshot();
   
   if(res == FTI_DONE)
@@ -433,11 +453,6 @@ static inline int signal_gpu_then_wait(bool *complete)
   {
     FTI_Print("No snapshot was taken", FTI_DBUG);
   }
-
-
-  FTI_Print("Waiting on kernel...", FTI_DBUG);
-  CUDA_ERROR_CHECK(cudaDeviceSynchronize());
-  FTI_Print("Kernel came back...", FTI_DBUG);
 
   CUDA_ERROR_CHECK(cudaMemcpy(h_is_block_executed, d_is_block_executed, block_info_bytes, cudaMemcpyDeviceToHost)); 
   FTI_Print("Checking if complete", FTI_DBUG);

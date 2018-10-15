@@ -325,6 +325,9 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                     FTI_Exec->meta[i].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
 
+                    //fprintf(stdout, "%d group rank: %d:%s\n", FTI_Topo->myRank, FTI_Topo->groupRank, metaFileName);
+                    //fflush(stdout);
+
                     int k;
                     for (k = 0; k < FTI_BUFS; k++) {
                         snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
@@ -342,92 +345,94 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     //Save number of variables in metadata
                     FTI_Exec->meta[i].nbVar[0] = k;
 
-                    char kernelInfoSection[FTI_BUFS];
-                    snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
-                    int sectionExists = iniparser_find_entry(ini, kernelInfoSection);
-                    if(sectionExists){
-                      snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
-                      FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
-                    //Restore GPU info
-                    fprintf(stdout, "Restoring GPU info1\n");
-                    fflush(stdout);
-                    for(k = 0; k < FTI_Exec->nbKernels; k++) {
-                      snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, k);
-                      FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+                      char kernelInfoSection[FTI_BUFS];
+                      snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
+                      int sectionExists = iniparser_find_entry(ini, kernelInfoSection);
+                      if(sectionExists){
+                        snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
+                        FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
+                      //Restore GPU info
+                      int j = 0;
+                      //TODO Find a better way to handle all the allocations???
+                      //TODO verify that all allocations are freed at some point!
+                      for(j = 0; j < FTI_Exec->nbKernels; j++) {
+                        snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, j);
+                        FTI_Exec->gpuInfo[j].id = malloc(sizeof(int));
+                        if(FTI_Exec->gpuInfo[j].block_amt == NULL){
+                          FTI_Print("Failed to allocated memory when loading gpuInfo id", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        *FTI_Exec->gpuInfo[j].id = iniparser_getint(ini, str, -1);
 
-                      char gpuInfoSection[FTI_BUFS];
-                      snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", k, FTI_Exec->gpuInfo[k].id); 
+                        char gpuInfoSection[FTI_BUFS];
+                        snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupRank, j); 
 
-                      //int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
+                        //fprintf(stdout, "%d reading %s\n", FTI_Topo->myRank, gpuInfoSection);
+                        //fflush(stdout);
 
-                      //if(sectionExists == 0){
-                      //  fprintf(stdout, "No more sections: %d\n", k);
-                      //  fflush(stdout);
-                      //  //No more GPU sections
-                      //  break;
-                      //}
+                        snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
+                        char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
+                        FTI_Exec->gpuInfo[j].block_amt = malloc(sizeof(size_t));
+                        if(FTI_Exec->gpuInfo[j].block_amt == NULL){
+                          FTI_Print("Failed to allocated memory when loading gpuInfo block_amt", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        sscanf(strBlockAmt, "%zu", FTI_Exec->gpuInfo[j].block_amt);
 
-                      //snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
-                      //FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+                        snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
+                        FTI_Exec->gpuInfo[j].complete = malloc(sizeof(bool));
+                        if(FTI_Exec->gpuInfo[j].complete == NULL){
+                          FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        *(FTI_Exec->gpuInfo[j].complete) = iniparser_getboolean(ini, str, -1);
 
-                      snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-                      char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
-                      sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
+                        snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
+                        FTI_Exec->gpuInfo[j].quantum = malloc(sizeof(unsigned int));
+                        if(FTI_Exec->gpuInfo[j].quantum == NULL){
+                          FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        //TODO don't cast, use iniparser_getstring and then use sscanf to convert to unsigned int
+                        *(FTI_Exec->gpuInfo[j].quantum) = (unsigned int)iniparser_getint(ini, str, -1.0);
 
-                      snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-                      FTI_Exec->gpuInfo[k].complete = malloc(sizeof(bool));
-                      if(FTI_Exec->gpuInfo[k].complete == NULL){
-                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        return FTI_NSCS;
-                      }
-                      *(FTI_Exec->gpuInfo[k].complete) = iniparser_getboolean(ini, str, -1);
-
-                      snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-                      FTI_Exec->gpuInfo[k].quantum = malloc(sizeof(unsigned int));
-                      if(FTI_Exec->gpuInfo[k].quantum == NULL){
-                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        return FTI_NSCS;
-                      }
-                      *(FTI_Exec->gpuInfo[k].quantum) = (unsigned int)iniparser_getint(ini, str, -1.0);
-
-                      snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-                      FTI_Exec->gpuInfo[k].quantum_expired = malloc(sizeof(bool));
-                      if(FTI_Exec->gpuInfo[k].quantum_expired == NULL){
-                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        return FTI_NSCS;
-                      }
-                      *(FTI_Exec->gpuInfo[k].quantum_expired) = iniparser_getboolean(ini, str, -1);
+                        snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
+                        FTI_Exec->gpuInfo[j].quantum_expired = malloc(sizeof(bool));
+                        if(FTI_Exec->gpuInfo[j].quantum_expired == NULL){
+                          FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        *(FTI_Exec->gpuInfo[j].quantum_expired) = iniparser_getboolean(ini, str, -1);
       
-                      size_t idx = 0;              
-                      //Get information on whether all processes have completed this kernel
-                      FTI_Exec->gpuInfo[k].all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
+                        size_t idx = 0;              
+                        //Get information on whether all processes have completed this kernel
+                        FTI_Exec->gpuInfo[j].all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
 
-                      if(FTI_Exec->gpuInfo[k].all_done == NULL){
-                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        return FTI_NSCS;
-                      }
+                        if(FTI_Exec->gpuInfo[j].all_done == NULL){
+                          FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                          return FTI_NSCS;
+                        }
   
-                      for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-                        snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
-                        FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
-                      }
+                        for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+                          snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
+                          FTI_Exec->gpuInfo[j].all_done[idx] = iniparser_getboolean(ini, str, -1);
+                        }
 
-                      //Get information on blocks of the current kernel
-                      FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(sizeof(bool) * FTI_Exec->gpuInfo[k].block_amt);
+                        //Get information on blocks of the current kernel
+                        FTI_Exec->gpuInfo[j].h_is_block_executed = malloc(sizeof(bool) * *FTI_Exec->gpuInfo[j].block_amt);
 
-                      if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
-                        FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        return FTI_NSCS;
+                        if(FTI_Exec->gpuInfo[j].h_is_block_executed == NULL){
+                          FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                          return FTI_NSCS;
+                        }
+                        
+                        for(idx = 0; idx < *FTI_Exec->gpuInfo[j].block_amt; idx++)
+                        {
+                           snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
+                           FTI_Exec->gpuInfo[j].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
+                        }
                       }
-                      
-                      for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
-                      {
-                         snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
-                         FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
-                      }
-                    }
-                    }/* Kernel Info section exists */
-
+                      }/* Kernel Info section exists */
                     iniparser_freedict(ini);
                 }
             }
@@ -494,60 +499,60 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTI_Exec->meta[i].nbVar[j] = k;
 
                         //Restore GPU info
-                        fprintf(stdout, "Restoring GPU info2\n");
-                        fflush(stdout);
-                        for(k = 0; k < FTI_BUFS; k++) {
-                          char gpuInfoSection[FTI_BUFS];
-                          snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupID, k); 
+                        //fprintf(stdout, "Restoring GPU info2\n");
+                        //fflush(stdout);
+                        //for(k = 0; k < FTI_BUFS; k++) {
+                        //  char gpuInfoSection[FTI_BUFS];
+                        //  snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupID, k); 
 
-                          int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
+                        //  int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
 
-                          if(sectionExists == 0){
-                            //No more GPU sections
-                            break;
-                          }
+                        //  if(sectionExists == 0){
+                        //    //No more GPU sections
+                        //    break;
+                        //  }
 
-                          snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
-                          FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
+                        //  snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
+                        //  FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
 
-                          snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-                          char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
-                          sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
+                        //  snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
+                        //  char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
+                        //  sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
 
-                          snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-                          //FTI_Exec->gpuInfo[k].complete = iniparser_getboolean(ini, str, -1);
+                        //  snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
+                        //  //FTI_Exec->gpuInfo[k].complete = iniparser_getboolean(ini, str, -1);
 
-                          snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-                          //FTI_Exec->gpuInfo[k].quantum = iniparser_getdouble(ini, str, -1.0);
+                        //  snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
+                        //  //FTI_Exec->gpuInfo[k].quantum = iniparser_getdouble(ini, str, -1.0);
       
-                          size_t idx = 0;              
-                          //Get information on whether all processes have completed this kernel
-                          FTI_Exec->gpuInfo[k].all_done = malloc(FTI_Topo->nbProc);
+                        //  size_t idx = 0;              
+                        //  //Get information on whether all processes have completed this kernel
+                        //  FTI_Exec->gpuInfo[k].all_done = malloc(FTI_Topo->nbProc);
 
-                          if(FTI_Exec->gpuInfo[k].all_done == NULL){
-                            FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                            return FTI_NSCS;
-                          }
+                        //  if(FTI_Exec->gpuInfo[k].all_done == NULL){
+                        //    FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        //    return FTI_NSCS;
+                        //  }
 
-                          for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-                            snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
-                            FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
-                          }
+                        //  for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+                        //    snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
+                        //    FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
+                        //  }
 
-                          //Get information on blocks of the current kernel
-                          FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(FTI_Exec->gpuInfo[k].block_amt);
+                        //  //Get information on blocks of the current kernel
+                        //  FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(FTI_Exec->gpuInfo[k].block_amt);
 
-                          if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
-                            FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                            return FTI_NSCS;
-                          }
-                          
-                          for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
-                          {
-                             snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
-                             FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
-                          }
-                        }
+                        //  if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
+                        //    FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
+                        //    return FTI_NSCS;
+                        //  }
+                        //  
+                        //  for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
+                        //  {
+                        //     snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
+                        //     FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
+                        //  }
+                        //}
                         iniparser_freedict(ini);
                     }
                 }
@@ -628,56 +633,38 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         //Save GPU Info
         for (j = 0; j < FTI_Exec->nbKernels; j++)
         {
-            fprintf(stdout, "got here 1\n");
-            fflush(stdout);
             char gpuInfoSection[FTI_BUFS];
             char kernelInfoSection[FTI_BUFS]; //TODO come up with a better name for this??
             snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
             iniparser_set(ini, kernelInfoSection, NULL);
 
-            fprintf(stdout, "got here 2\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:nbKernels", kernelInfoSection);
             snprintf(buf, FTI_BUFS, "%u", FTI_Exec->nbKernels);
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 3\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, j);
-            snprintf(buf, FTI_BUFS, "%d", FTI_Exec->gpuInfo[j].id);
+            snprintf(buf, FTI_BUFS, "%d", *FTI_Exec->gpuInfo[j].id);
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 4\n");
-            fflush(stdout);
-            snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", i, FTI_Exec->gpuInfo[j].id);
+            snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", i, j);
             iniparser_set(ini, gpuInfoSection, NULL);
 
-            fprintf(stdout, "got here 5\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-            snprintf(buf, FTI_BUFS, "%zu", FTI_Exec->gpuInfo[j].block_amt);
+            snprintf(buf, FTI_BUFS, "%zu", *FTI_Exec->gpuInfo[j].block_amt);
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 6\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
             snprintf(buf, FTI_BUFS, "%s", *FTI_Exec->gpuInfo[j].complete ? "T" : "F");
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 7\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
             snprintf(buf, FTI_BUFS, "%u", *FTI_Exec->gpuInfo[j].quantum);
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 8\n");
-            fflush(stdout);
             snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
             snprintf(buf, FTI_BUFS, "%s", *FTI_Exec->gpuInfo[j].quantum_expired ? "T" : "F");
             iniparser_set(ini, str, buf);
 
-            fprintf(stdout, "got here 9\n");
-            fflush(stdout);
             int n = 0;
             for(n = 0; n < FTI_Topo->nbProc; n++)
             {
@@ -686,16 +673,18 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               iniparser_set(ini, str, buf);
             }
 
-            fprintf(stdout, "got here 10\n");
-            fflush(stdout);
             size_t k = 0;
-            for(k = 0; k < FTI_Exec->gpuInfo[j].block_amt; k++)
+            size_t t=0,f=0;
+            for(k = 0; k < *FTI_Exec->gpuInfo[j].block_amt; k++)
             {
               snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, k);
               snprintf(buf, FTI_BUFS, "%s",FTI_Exec->gpuInfo[j].h_is_block_executed[k] ? "T" : "F");
               iniparser_set(ini, str, buf);
+
+              if(FTI_Exec->gpuInfo[j].h_is_block_executed[k]){t++;}else{f++;}
             }
-            fprintf(stdout, "got here 11\n");
+            snprintf(str, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+            fprintf(stdout, "%d True: %zu False: %zu %s:%s\n", FTI_Topo->myRank, t, f, str, gpuInfoSection);
             fflush(stdout);
         }
     }
@@ -846,20 +835,120 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int* allVarIDs;
     long* allVarSizes;
+
+    //For GPU stuff
+    int *allKernelIds = NULL;
+    size_t *allBlock_amt = NULL;
+    bool *allAll_done = NULL;
+    bool *allComplete = NULL;
+    bool *allH_is_block_executed = NULL;
+    unsigned int *allQuantum = NULL;
+    bool *allQuantum_expired = NULL;
+    
+    //For Kernel variables
+    FTIT_gpuInfo *FTI_GpuInfo = NULL;
+    FTI_GpuInfo = malloc(sizeof(FTIT_gpuInfo) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+
+    if(FTI_GpuInfo == NULL){
+      FTI_Print("Failed to allocate memory to load GPU Info", FTI_WARN);
+      return FTI_NSCS;
+    }
+
+    size_t all_total_blocks = 0;
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+
+        if(FTI_Exec->nbKernels != 0){
+          //For GPU stuff
+          unsigned int i = 0;
+          allKernelIds = malloc(sizeof(int) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allBlock_amt = malloc(sizeof(size_t) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allAll_done = malloc(sizeof(bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allComplete = malloc(sizeof(bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allQuantum = malloc(sizeof(unsigned int) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allQuantum_expired = malloc(sizeof(volatile bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+
+          for(i = 0; i < FTI_Exec->nbKernels; i++){
+            all_total_blocks = all_total_blocks + *FTI_Exec->gpuInfo[i].block_amt;
+          }
+          allH_is_block_executed = malloc(sizeof(bool) * all_total_blocks * FTI_Topo->groupSize);
+        }
     }
+
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);
+
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         myVarIDs[i] = FTI_Data[i].id;
         myVarSizes[i] =  FTI_Data[i].size;
     }
+
+    int *myKernelIds = NULL;
+    size_t *myBlock_amt = NULL;
+    bool *myAll_done = NULL;
+    bool *myComplete = NULL;
+    bool *myH_is_block_executed = NULL;
+    unsigned int *myQuantum = NULL;
+    bool *myQuantum_expired = NULL;
+
     //Gather variables IDs
     MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar, MPI_INT, 0, FTI_Exec->groupComm);
     //Gather variables sizes
     MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+
+    if(FTI_Exec->nbKernels != 0){
+      //Gather GPU stuff
+      MPI_Gather(myKernelIds, FTI_Exec->nbKernels, MPI_INT, allKernelIds, FTI_Exec->nbKernels, MPI_INT, 0, FTI_Exec->groupComm);
+      MPI_Gather(myBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, allBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, 0, FTI_Exec->groupComm);
+      MPI_Gather(myAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, allAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      MPI_Gather(myComplete, FTI_Exec->nbKernels, MPI_C_BOOL, allComplete, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      //MPI_Gather(myH_is_block_executed, /* FIXME */, MPI_C_BOOL, allH_is_block_executed, /* FIXME */, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+        MPI_Gather(myQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, allQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, 0, FTI_Exec->groupComm);     
+        MPI_Gather(myQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, allQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+    }
+
+    if(FTI_Exec->nbKernels != 0){
+      //All processes have the same number of kernels to protect
+      //TODO check mallocs were successful
+      //TODO maybe use talloc instead???
+      myKernelIds = malloc(sizeof(int) * FTI_Exec->nbKernels);
+      myBlock_amt = malloc(sizeof(size_t) * FTI_Exec->nbKernels);
+      myAll_done  = malloc(sizeof(bool) * FTI_Exec->nbKernels * FTI_Topo->nbProc);
+      myComplete = malloc(sizeof(bool) * FTI_Exec->nbKernels);
+      myQuantum = malloc(sizeof(unsigned int) * FTI_Exec->nbKernels);
+      myQuantum_expired = malloc(sizeof(volatile bool) * FTI_Exec->nbKernels);
+
+      unsigned int i = 0;
+      unsigned int j = 0;
+      unsigned int k = 0;
+      size_t total_blocks = 0;
+      size_t idx1 = 0;
+      size_t idx2 = 0;
+
+      for(i = 0; i < FTI_Exec->nbKernels; i++){
+        myKernelIds[i] = *FTI_Exec->gpuInfo[i].id;
+        myBlock_amt[i] = *FTI_Exec->gpuInfo[i].block_amt;
+        myComplete[i] = *FTI_Exec->gpuInfo[i].complete;
+        myQuantum[i] = *FTI_Exec->gpuInfo[i].quantum;
+        myQuantum_expired[i] = *FTI_Exec->gpuInfo[i].quantum_expired;
+        total_blocks = total_blocks + *FTI_Exec->gpuInfo[i].block_amt;
+      }
+
+      myH_is_block_executed = malloc(sizeof(bool) * total_blocks);
+
+      for(i = 0; i < FTI_Exec->nbKernels; i++){
+        for(j = 0; j < *FTI_Exec->gpuInfo[i].block_amt; j++){
+          myH_is_block_executed[idx1] = FTI_Exec->gpuInfo[i].h_is_block_executed[j];
+          idx1++;
+        } 
+
+        for(k = 0; k < FTI_Topo->nbProc; k++){
+          myAll_done[idx2] = FTI_Exec->gpuInfo[i].all_done[k];
+          idx2++;
+        }
+      } 
+    }
 
     free(myVarIDs);
     free(myVarSizes);

@@ -371,13 +371,13 @@ void FTI_BACKUP_Print(char *msg, int priority);
     } FTIT_dataset;
 
     typedef struct FTIT_gpuInfo{
-        int             id;
-        size_t          block_amt;
+        int*            id;
+        size_t*         block_amt;
         bool*           all_done;
-        bool*           complete; //
+        bool*           complete;
         bool*           h_is_block_executed; 
-        unsigned int*   quantum;//
-        volatile bool*  quantum_expired; //
+        unsigned int*   quantum;
+        volatile bool*  quantum_expired;
     }FTIT_gpuInfo;
 
     /** @typedef    FTIT_metadata
