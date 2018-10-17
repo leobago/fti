@@ -582,7 +582,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
+        FTIT_topology* FTI_Topo, FTIT_gpuInfo* FTI_GpuInfo, long* fs, long mfs, char* fnl,
         char* checksums, int* allVarIDs, long* allVarSizes)
 {
     // no metadata files for FTI-FF
@@ -853,7 +853,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     //For Kernel variables
     FTIT_gpuInfo *FTI_GpuInfo = NULL;
-    FTI_GpuInfo = malloc(sizeof(FTIT_gpuInfo) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+    FTI_GpuInfo = malloc(sizeof(FTIT_gpuInfo)/* * FTI_Topo->groupSize * FTI_Exec->nbKernels*/);
 
     if(FTI_GpuInfo == NULL){
       FTI_Print("Failed to allocate memory to load GPU Info", FTI_WARN);
@@ -937,90 +937,58 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //Gather variables sizes
     MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
 
-    int r = FTI_Topo->myRank;
     if(FTI_Exec->nbKernels != 0){
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 1\n", r);
-        fflush(stdout);
-      }
       //Gather GPU stuff
       MPI_Gather(myKernelIds, FTI_Exec->nbKernels, MPI_INT, allKernelIds, FTI_Exec->nbKernels, MPI_INT, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 2\n", r);
-        fflush(stdout);
-      }
       MPI_Gather(myBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, allBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 3\n", r);
-        fflush(stdout);
-      }
       MPI_Gather(myAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, allAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 4\n", r);
-        fflush(stdout);
-      }
       MPI_Gather(myComplete, FTI_Exec->nbKernels, MPI_C_BOOL, allComplete, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 5\n", r);
-        fflush(stdout);
-        fprintf(stdout, "Total blocks: %zu\n", total_blocks);
-        fflush(stdout);
-      }
       MPI_Gather(myH_is_block_executed, total_blocks, MPI_C_BOOL, allH_is_block_executed, total_blocks, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 6\n", r);
-        fflush(stdout);
-      }
         MPI_Gather(myQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, allQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, 0, FTI_Exec->groupComm);     
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d kernel stuff 7\n", r);
-        fflush(stdout);
-      }
         MPI_Gather(myQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, allQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
-        fprintf(stdout, "%d done doing kernel stuff\n", r);
-        fflush(stdout);
-      }
-    }
 
-    FTI_GpuInfo->id = allKernelIds;
-    FTI_GpuInfo->block_amt = allBlock_amt;
-    FTI_GpuInfo->all_done = allAll_done;
-    FTI_GpuInfo->complete = allComplete;
-    FTI_GpuInfo->h_is_block_executed = allH_is_block_executed;
-    FTI_GpuInfo->quantum = allQuantum;
-    FTI_GpuInfo->quantum_expired = allQuantum_expired;
+      FTI_GpuInfo->id = allKernelIds;
+      FTI_GpuInfo->block_amt = allBlock_amt;
+      FTI_GpuInfo->all_done = allAll_done;
+      FTI_GpuInfo->complete = allComplete;
+      FTI_GpuInfo->h_is_block_executed = allH_is_block_executed;
+      FTI_GpuInfo->quantum = allQuantum;
+      FTI_GpuInfo->quantum_expired = allQuantum_expired;
+    }
 
     free(myVarIDs);
     free(myVarSizes);
 
-    //Free GPU stuff
-    free(myKernelIds);
-    free(myBlock_amt);
-    free(myAll_done);
-    free(myComplete);
-    free(myH_is_block_executed);
-    free(myQuantum);
-    free(myQuantum_expired);
+    if(FTI_Exec->nbKernels != 0){
+      //Free GPU stuff
+      free(myKernelIds);
+      free(myBlock_amt);
+      free(myAll_done);
+      free(myComplete);
+      free(myH_is_block_executed);
+      free(myQuantum);
+      free(myQuantum_expired);
+    }
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_GpuInfo, fileSizes, mfs,
                     ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
         free(ckptFileNames);
         free(checksums);
 
-        //Free GPU stuff
-        free(allKernelIds);
-        free(allBlock_amt);
-        free(allAll_done);
-        free(allComplete);
-        free(allH_is_block_executed);
-        free(allQuantum);
-        free(allQuantum_expired);
+        if(FTI_Exec->nbKernels != 0){
+          //Free GPU stuff
+          free(allKernelIds);
+          free(allBlock_amt);
+          free(allAll_done);
+          free(allComplete);
+          free(allH_is_block_executed);
+          free(allQuantum);
+          free(allQuantum_expired);
+        }
         free(FTI_GpuInfo);
-        
 
         if (res == FTI_NSCS) {
             return FTI_NSCS;
