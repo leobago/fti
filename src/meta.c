@@ -844,7 +844,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     bool *allH_is_block_executed = NULL;
     unsigned int *allQuantum = NULL;
     bool *allQuantum_expired = NULL;
+    size_t total_blocks = 0;
     
+    unsigned int n = 0;
+    for(n = 0; n < FTI_Exec->nbKernels; n++){
+      total_blocks = total_blocks + *FTI_Exec->gpuInfo[n].block_amt;
+    }
+
     //For Kernel variables
     FTIT_gpuInfo *FTI_GpuInfo = NULL;
     FTI_GpuInfo = malloc(sizeof(FTIT_gpuInfo) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
@@ -854,25 +860,19 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
 
-    size_t all_total_blocks = 0;
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
 
         if(FTI_Exec->nbKernels != 0){
           //For GPU stuff
-          unsigned int i = 0;
           allKernelIds = malloc(sizeof(int) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
           allBlock_amt = malloc(sizeof(size_t) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
-          allAll_done = malloc(sizeof(bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allAll_done = malloc(sizeof(bool) * FTI_Topo->nbProc * FTI_Topo->groupSize * FTI_Exec->nbKernels);
           allComplete = malloc(sizeof(bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
+          allH_is_block_executed = malloc(sizeof(bool) * total_blocks * FTI_Topo->groupSize);
           allQuantum = malloc(sizeof(unsigned int) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
           allQuantum_expired = malloc(sizeof(volatile bool) * FTI_Topo->groupSize * FTI_Exec->nbKernels);
-
-          for(i = 0; i < FTI_Exec->nbKernels; i++){
-            all_total_blocks = all_total_blocks + *FTI_Exec->gpuInfo[i].block_amt;
-          }
-          allH_is_block_executed = malloc(sizeof(bool) * all_total_blocks * FTI_Topo->groupSize);
         }
     }
 
@@ -892,22 +892,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned int *myQuantum = NULL;
     bool *myQuantum_expired = NULL;
 
-    //Gather variables IDs
-    MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar, MPI_INT, 0, FTI_Exec->groupComm);
-    //Gather variables sizes
-    MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
-
-    if(FTI_Exec->nbKernels != 0){
-      //Gather GPU stuff
-      MPI_Gather(myKernelIds, FTI_Exec->nbKernels, MPI_INT, allKernelIds, FTI_Exec->nbKernels, MPI_INT, 0, FTI_Exec->groupComm);
-      MPI_Gather(myBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, allBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, 0, FTI_Exec->groupComm);
-      MPI_Gather(myAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, allAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      MPI_Gather(myComplete, FTI_Exec->nbKernels, MPI_C_BOOL, allComplete, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-      //MPI_Gather(myH_is_block_executed, /* FIXME */, MPI_C_BOOL, allH_is_block_executed, /* FIXME */, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-        MPI_Gather(myQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, allQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, 0, FTI_Exec->groupComm);     
-        MPI_Gather(myQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, allQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
-    }
-
     if(FTI_Exec->nbKernels != 0){
       //All processes have the same number of kernels to protect
       //TODO check mallocs were successful
@@ -916,13 +900,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       myBlock_amt = malloc(sizeof(size_t) * FTI_Exec->nbKernels);
       myAll_done  = malloc(sizeof(bool) * FTI_Exec->nbKernels * FTI_Topo->nbProc);
       myComplete = malloc(sizeof(bool) * FTI_Exec->nbKernels);
+      myH_is_block_executed = malloc(sizeof(bool) * total_blocks);
       myQuantum = malloc(sizeof(unsigned int) * FTI_Exec->nbKernels);
-      myQuantum_expired = malloc(sizeof(volatile bool) * FTI_Exec->nbKernels);
+      myQuantum_expired = malloc(sizeof(bool) * FTI_Exec->nbKernels);
 
       unsigned int i = 0;
       unsigned int j = 0;
       unsigned int k = 0;
-      size_t total_blocks = 0;
       size_t idx1 = 0;
       size_t idx2 = 0;
 
@@ -932,10 +916,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         myComplete[i] = *FTI_Exec->gpuInfo[i].complete;
         myQuantum[i] = *FTI_Exec->gpuInfo[i].quantum;
         myQuantum_expired[i] = *FTI_Exec->gpuInfo[i].quantum_expired;
-        total_blocks = total_blocks + *FTI_Exec->gpuInfo[i].block_amt;
       }
 
-      myH_is_block_executed = malloc(sizeof(bool) * total_blocks);
 
       for(i = 0; i < FTI_Exec->nbKernels; i++){
         for(j = 0; j < *FTI_Exec->gpuInfo[i].block_amt; j++){
@@ -950,8 +932,76 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       } 
     }
 
+    //Gather variables IDs
+    MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar, MPI_INT, 0, FTI_Exec->groupComm);
+    //Gather variables sizes
+    MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+
+    int r = FTI_Topo->myRank;
+    if(FTI_Exec->nbKernels != 0){
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 1\n", r);
+        fflush(stdout);
+      }
+      //Gather GPU stuff
+      MPI_Gather(myKernelIds, FTI_Exec->nbKernels, MPI_INT, allKernelIds, FTI_Exec->nbKernels, MPI_INT, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 2\n", r);
+        fflush(stdout);
+      }
+      MPI_Gather(myBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, allBlock_amt, FTI_Exec->nbKernels, MPI_UNSIGNED_LONG_LONG, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 3\n", r);
+        fflush(stdout);
+      }
+      MPI_Gather(myAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, allAll_done, FTI_Exec->nbKernels * FTI_Topo->nbProc, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 4\n", r);
+        fflush(stdout);
+      }
+      MPI_Gather(myComplete, FTI_Exec->nbKernels, MPI_C_BOOL, allComplete, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 5\n", r);
+        fflush(stdout);
+        fprintf(stdout, "Total blocks: %zu\n", total_blocks);
+        fflush(stdout);
+      }
+      MPI_Gather(myH_is_block_executed, total_blocks, MPI_C_BOOL, allH_is_block_executed, total_blocks, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 6\n", r);
+        fflush(stdout);
+      }
+        MPI_Gather(myQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, allQuantum, FTI_Exec->nbKernels, MPI_UNSIGNED, 0, FTI_Exec->groupComm);     
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d kernel stuff 7\n", r);
+        fflush(stdout);
+      }
+        MPI_Gather(myQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, allQuantum_expired, FTI_Exec->nbKernels, MPI_C_BOOL, 0, FTI_Exec->groupComm);
+      if(r == 0 || r == 1 || r == 8 || r == 9 || r == 16 || r == 17 || r == 24 || r == 25){
+        fprintf(stdout, "%d done doing kernel stuff\n", r);
+        fflush(stdout);
+      }
+    }
+
+    FTI_GpuInfo->id = allKernelIds;
+    FTI_GpuInfo->block_amt = allBlock_amt;
+    FTI_GpuInfo->all_done = allAll_done;
+    FTI_GpuInfo->complete = allComplete;
+    FTI_GpuInfo->h_is_block_executed = allH_is_block_executed;
+    FTI_GpuInfo->quantum = allQuantum;
+    FTI_GpuInfo->quantum_expired = allQuantum_expired;
+
     free(myVarIDs);
     free(myVarSizes);
+
+    //Free GPU stuff
+    free(myKernelIds);
+    free(myBlock_amt);
+    free(myAll_done);
+    free(myComplete);
+    free(myH_is_block_executed);
+    free(myQuantum);
+    free(myQuantum_expired);
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
         int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
@@ -960,6 +1010,18 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         free(allVarSizes);
         free(ckptFileNames);
         free(checksums);
+
+        //Free GPU stuff
+        free(allKernelIds);
+        free(allBlock_amt);
+        free(allAll_done);
+        free(allComplete);
+        free(allH_is_block_executed);
+        free(allQuantum);
+        free(allQuantum_expired);
+        free(FTI_GpuInfo);
+        
+
         if (res == FTI_NSCS) {
             return FTI_NSCS;
         }
