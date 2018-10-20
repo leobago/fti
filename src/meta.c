@@ -848,22 +848,22 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       unsigned int i = 0;
       unsigned int j = 0;
 
-      //size_t total_blocks = 0;
-      //for(i = 0; i < FTI_Exec->nbKernels; i++){
-      //  total_blocks = total_blocks + *FTI_Exec->gpuInfo[i].block_amt;
-      //}
-
+      //TODO free all allocations made after WriteMetadata is called
       //TODO consider switching the cases around?? would this be clearer?
       if(FTI_Topo->groupRank != 0){
+        fprintf(stdout, "%d trying to send kernel data\n", FTI_Topo->myRank);
+        fflush(stdout);
         for(i = 0; i < FTI_Exec->nbKernels; i++){  
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].id, 1, MPI_INT, dest, tag, FTI_Exec->groupComm);
-          MPI_Send((const void*)FTI_Exec->gpuInfo[i].block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->nbKernels);
+          MPI_Send((const void*)FTI_Exec->gpuInfo[i].block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->groupComm);
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].all_done, FTI_Topo->nbProc, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].complete, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].h_is_block_executed, *FTI_Exec->gpuInfo[i].block_amt, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].quantum, 1, MPI_UNSIGNED, dest, tag, FTI_Exec->groupComm);
           MPI_Send((const void*)FTI_Exec->gpuInfo[i].quantum_expired, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
         }
+        fprintf(stdout, "%d done sending kernel data\n", FTI_Topo->myRank);
+        fflush(stdout);
       }
       else{
         /* Gather data from head of group (i.e FTI_Topo->groupRank = 0) */
@@ -914,55 +914,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 //End of Max's mods
 /**********************************************************************/
-/**********************************************************************/
-//Max's junk
-      //int number = FTI_Topo->myRank;
-      //int number2 = FTI_Topo->myRank + 100;
-        //FTI_GpuInfo[FTI_Topo->groupRank].id                   = talloc(int, FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].block_amt            = talloc(size_t, FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].all_done             = talloc(bool, FTI_Topo->nbProc * FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].complete             = talloc(bool, FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].h_is_block_executed  = talloc(bool, FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].quantum              = talloc(unsigned int, FTI_Exec->nbKernels);
-        //FTI_GpuInfo[FTI_Topo->groupRank].quantum_expired      = talloc(bool, FTI_Exec->nbKernels);
-
-         //for(i = 0; i < FTI_Exec->nbKernels; i++){
-             //FTI_GpuInfo[FTI_Topo->groupRank].id[i]                   = *FTI_Exec->gpuInfo[i].id;
-             //FTI_GpuInfo[FTI_Topo->groupRank].block_amt[i]            = FTI_Exec->gpuInfo[i].block_amt;
-             //FTI_GpuInfo[FTI_Topo->groupRank].all_done[i]             = FTI_Exec->gpuInfo[i].all_done;
-             //FTI_GpuInfo[FTI_Topo->groupRank].complete[i]             = FTI_Exec->gpuInfo[i].complete;
-             //FTI_GpuInfo[FTI_Topo->groupRank].h_is_block_executed[i]  = FTI_Exec->gpuInfo[i].h_is_block_executed;
-             //FTI_GpuInfo[FTI_Topo->groupRank].quantum[i]              = FTI_Exec->gpuInfo[i].quantum;
-             //FTI_GpuInfo[FTI_Topo->groupRank].quantum_expired[i]      = FTI_Exec->gpuInfo[i].quantum_expired;
-         //}
-         //start the receiving loop with for(i=FTI_Exec->nbKernels ...
-//////////////////////////////////////////////////////////////////////////////////////
-        //for(i = 1; i < FTI_Exec->nbKernels; i++){
-          //FTI_GpuInfo[i].id                   = talloc(int, FTI_Exec->nbKernels);
-          //FTI_GpuInfo[i].block_amt            = talloc(size_t, FTI_Exec->nbKernels);
-          //FTI_GpuInfo[i].all_done             = talloc(bool, FTI_Exec->nbKernels * FTI_Exec->nbKernels);
-          //FTI_GpuInfo[i].complete             = talloc(bool, FTI_Exec->nbKernels);
-          //FTI_GpuInfo[i].h_is_block_executed  = talloc(bool,total_blocks);
-          //FTI_GpuInfo[i].quantum              = talloc(unsigned int, FTI_Exec->nbKernels);
-          //FTI_GpuInfo[i].quantum_expired      = talloc(bool, FTI_Exec->nbKernels); 
-        //}
-
-        //MPI_Status status;
-        //for(i = 1; i < FTI_Topo->groupSize; i++){ 
-        //  MPI_Recv((void *)&number, 1, MPI_INT, MPI_ANY_SOURCE, i, FTI_Exec->groupComm, &status);
-        //  fprintf(stdout, "%d: Message source = %d, Tag = %d data = %d\n", FTI_Topo->myRank, FTI_Topo->myRank, status.MPI_TAG, number);
-        //  fflush(stdout);
-        //}
-
-         // MPI_Recv((void *)&number2, 1, MPI_INT, MPI_ANY_SOURCE, i, FTI_Exec->groupComm, &status);
-          //fprintf(stdout, "%d: Message source = %d, Tag = %d data = %d\n", FTI_Topo->myRank, status.MPI_SOURCE, status.MPI_TAG, number2);
-          //fflush(stdout);
-
-          //fprintf(stdout, "%d:Received %d\n", FTI_Topo->myRank, number);
-          //fprintf(stdout, "%d:Received %d\n", FTI_Topo->myRank, number2);
-          //fflush(stdout);
-//End of Max's junk
-/**********************************************************************/
 
     int* allVarIDs;
     long* allVarSizes;
@@ -991,6 +942,36 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         free(allVarSizes);
         free(ckptFileNames);
         free(checksums);
+
+/***************************************************************/
+//Max's mods
+        if(FTI_GpuInfoMetadata != NULL){
+          fprintf(stdout, "Trying to free tallocations\n");
+          fflush(stdout);
+          unsigned int i = 0;
+          unsigned int j = 0;
+          /* Only free FTI_GpuInfo for group head */
+          free(FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo);
+
+          /* Free other allocations used to receive data from other processes */
+          for(i = 1; i < FTI_Topo->groupSize; i++){
+            for(j = 0; j < FTI_Exec->nbKernels; j++){
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum);
+              free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired);
+            }
+            free(FTI_GpuInfoMetadata[i].FTI_GpuInfo);
+          } 
+          free(FTI_GpuInfoMetadata);
+          fprintf(stdout, "Done freeing tallocations\n");
+          fflush(stdout);
+        }
+//End of Max's mods
+/***************************************************************/
         if (res == FTI_NSCS) {
             return FTI_NSCS;
         }
