@@ -370,6 +370,7 @@ void FTI_BACKUP_Print(char *msg, int priority);
         FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
 
+    //TODO Comment this
     typedef struct FTIT_gpuInfo{
         int*            id;
         size_t*         block_amt;
@@ -379,6 +380,11 @@ void FTI_BACKUP_Print(char *msg, int priority);
         unsigned int*   quantum;
         volatile bool*  quantum_expired;
     }FTIT_gpuInfo;
+
+    typedef struct FTIT_gpuInfoMetadata{
+        int             groupRank;
+        FTIT_gpuInfo*   FTI_GpuInfo;
+    }FTIT_gpuInfoMetadata; 
 
     /** @typedef    FTIT_metadata
      *  @brief      Metadata for restart.
