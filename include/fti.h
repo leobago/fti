@@ -125,7 +125,8 @@ do{                                                                             
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
-    ret = FTI_BACKUP_init(id, &quantum_expired, &block_info, quantum,                                     \
+    int kernel_id = id;                                                                                   \
+    ret = FTI_BACKUP_init(&kernel_id, &quantum_expired, &block_info, quantum,                             \
                      &complete, &all_processes_done, grid_dim);                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
@@ -202,7 +203,7 @@ do{                                                                             
 }while(0)
 
 bool FTI_all_procs_complete(bool *procs);                                                             
-int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
+int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(bool *complete);
 void FTI_BACKUP_cleanup(const char *kernel_name);
 void FTI_BACKUP_Print(char *msg, int priority);

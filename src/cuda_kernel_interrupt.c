@@ -204,7 +204,7 @@ static int reset_globals()
  * may communicate with the device directly without an explicit memory copy. The boolean array
  * has a size of *num_blocks* and has a record of which blocks have executed at each interrupt.
  */
-int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
+int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
 {
   char str[FTI_BUFS];
   size_t i = 0;
@@ -213,7 +213,7 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
   suspension_count = 0;
 
   for(i = 0; i < FTI_Exec->nbKernels; i++){
-    if(id == *FTI_GpuInfo[i].id){
+    if(*id == *FTI_GpuInfo[i].id){
       kernel_already_protected = true;
       break;
     }
@@ -238,23 +238,24 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
     //fprintf(stdout, "Complete: %s\n", (*complete) ? "True" : "False");
     //fflush(stdout);
 
-    free((void *)FTI_GpuInfo[i].complete);
-    free((void *)FTI_GpuInfo[i].quantum);
-    free((void *)FTI_GpuInfo[i].quantum_expired);
+    //TODO figure out if these frees are needed 
+    //free((void *)FTI_GpuInfo[i].complete);
+    //free((void *)FTI_GpuInfo[i].quantum);
+    //free((void *)FTI_GpuInfo[i].quantum_expired);
 
-    size_t t = 0, f=0;
-    for(i = 0; i < block_amt; i++){
-      if(h_is_block_executed[i])
-      {
-        t++;
-      }
-      else{
-        f++;
-      }
-    }
+    //size_t t = 0, f=0;
+    //for(i = 0; i < block_amt; i++){
+    //  if(h_is_block_executed[i])
+    //  {
+    //    t++;
+    //  }
+    //  else{
+    //    f++;
+    //  }
+    //}
 
-    fprintf(stdout, "True: %zu false: %zu\n", t, f);
-    fflush(stdout); 
+    //fprintf(stdout, "True: %zu false: %zu\n", t, f);
+    //fflush(stdout); 
   }
   else{
     **timeout = false;
@@ -305,7 +306,7 @@ int FTI_BACKUP_init(int id, volatile bool **timeout, bool **b_info, double q, bo
     //quantum_expired = *timeout;
 
     /* Add information necessary to protect interrupt info */
-    FTI_GpuInfo[FTI_Exec->nbKernels].id = &id; 
+    FTI_GpuInfo[FTI_Exec->nbKernels].id = id; 
     FTI_GpuInfo[FTI_Exec->nbKernels].complete = complete;
     FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = &block_amt;
     FTI_GpuInfo[FTI_Exec->nbKernels].all_done = *all_processes_done;
@@ -353,6 +354,8 @@ static void print_stats(const char *kernel_name)
  */
 static int cleanup(const char *kernel_name)
 {
+  //TODO have this function iterate over the array of GpuInfo
+  //structures and free all memory
   int res;
   print_stats(kernel_name);
   res = FTI_Try(free_memory(), "free memory");
