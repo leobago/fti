@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /*---------------------------------------------------------------------------
   Defines
@@ -140,6 +141,21 @@ extern "C" {
     typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
     typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
+
+    /** @typedef    FTIT_iCPInfo
+     *  @brief      Meta Information needed for iCP.
+     *
+     *  Keeps information about the file. 'checksum' is the hash of the file
+     *  excluding the file meta data. 'myHash' is the hash of the file meta data.
+     *
+     */
+    typedef struct FTIT_iCPInfo {
+        bool isFirstCp;
+        bool isActive;
+        int  result;
+        int lastCkptLvel;
+        FILE *fd;
+    } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -400,6 +416,7 @@ extern "C" {
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
         FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
+        FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
         MPI_Comm        nodeComm;
@@ -566,6 +583,9 @@ extern "C" {
     int FTI_Snapshot();
     int FTI_Finalize();
     int FTI_RecoverVar(int id);
+    int FTI_InitICP(int id, int level, bool activate);
+    int FTI_AddVarICP( int varID ); 
+    int FTI_FinalizeICP(); 
 
 #ifdef __cplusplus
 }
