@@ -1216,7 +1216,7 @@ int FTI_InitICP(int id, int level, bool activate)
             level = 4;
         }
 
-        double t0 = MPI_Wtime(); //Start time
+        FTI_Exec.iCPInfo.t0 = MPI_Wtime(); //Start time
         if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
             int lastLevel;
             MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
@@ -1228,20 +1228,50 @@ int FTI_InitICP(int id, int level, bool activate)
                 FTI_Print("Head failed to do post-processing after previous checkpoint.", FTI_WARN);
             }
         }
-
-        double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
+        
+        FTI_Exec.iCPInfo.t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
         int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
         FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
-    
+        
+        FTI_Exec.iCPInfo.result = FTI_NSCS;
+        
+        //update ckpt file name
+        snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
+                "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
+
+        //If checkpoint is inlin and level 4 save directly to PFS
+        if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+
+            FTI_Print("Saving to temporary global directory", FTI_DBUG);
+
+            //Create global temp directory
+            if (mkdir(FTI_Conf.gTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create global directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
+        }
+        else {  // write local, head performs post-processing
+            FTI_Print("Saving to temporary local directory", FTI_DBUG);
+            //Create local temp directory
+            if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create local directory", FTI_EROR);
+                    return FTI_NSCS;
+                }
+            }
+        }
+     
         int res;
         switch (FTI_Conf.ioMode) {
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_InitPosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (POSIX I/O).");
                 break;
-#if 0
             case FTI_IO_MPI:
-                res = FTI_Try(FTI_InitMpiICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "Initialize iCP (MPI-IO).");
+                res = FTI_Try(FTI_InitMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (MPI-IO).");
                 break;
+#if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
             case FTI_IO_SIONLIB:
                 res = FTI_Try(FTI_InitSionlibICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "Initialize iCP (Sionlib).");
@@ -1275,10 +1305,10 @@ int FTI_AddVarICP( int varID )
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_WritePosixVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write dataset to ckpt file.");
                 break;
-#if 0
             case FTI_IO_MPI:
-                res = FTI_Try(FTI_InitMpiICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "Initialize iCP (MPI-IO).");
+                res = FTI_Try(FTI_WriteMpiVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write dataset (iCP) (MPI-IO).");
                 break;
+#if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
             case FTI_IO_SIONLIB:
                 res = FTI_Try(FTI_InitSionlibICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "Initialize iCP (Sionlib).");
@@ -1300,145 +1330,184 @@ int FTI_AddVarICP( int varID )
 
 int FTI_FinalizeICP() 
 {
+    if ( FTI_Exec.iCPInfo.isActive ) {
 
-    double t2 = MPI_Wtime(); //Time after writing checkpoint
-   
-    /*
-     * HERE WE NEED AN ALLREDUCE IN ORDER TO WAIT FOR ALL PROCESSES TO FINISH
-     * THE LOCAL WRITE OF THE CP DATA
-     */
+        double t2 = MPI_Wtime(); //Time after writing checkpoint
 
-    int res;
-    char str[FTI_BUFS];
-    res = FTI_FinalizePosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+        /*
+         * HERE WE NEED AN ALLREDUCE IN ORDER TO WAIT FOR ALL PROCESSES TO FINISH
+         * THE LOCAL WRITE OF THE CP DATA
+         */
 
-    // set hasCkpt flags true
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
-        FTIFF_db* currentDB = FTI_Exec.firstdb;
-        currentDB->update = false;
-        do {    
-            int varIdx;
-            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
-                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
-                currentdbVar->hasCkpt = true;
-                currentdbVar->update = false;
+        char str[FTI_BUFS];
+        int res;
+        switch (FTI_Conf.ioMode) {
+            case FTI_IO_POSIX:
+                res = FTI_FinalizePosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+                break;
+            case FTI_IO_MPI:
+                res = FTI_Try(FTI_FinalizeMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (MPI-IO).");
+                break;
+#if 0
+#ifdef ENABLE_SIONLIB //If SIONlib is installed
+            case FTI_IO_SIONLIB:
+                res = FTI_Try(FTI_InitSionlibICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "Initialize iCP (Sionlib).");
+                break;
+#endif
+            case FTI_IO_FTIFF:
+                res = FTI_Try(FTI_InitFtiffICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                break;
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+            case FTI_IO_HDF5:
+                res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+                break;
+#endif
+#endif
+        }
+        res = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+#if 0 // will be needed in dcp (FTI-FF) implementation    
+        if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
+            FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        }
+#endif
+        
+        if (res != FTI_SCES) {
+            sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NSCS;
+        }
+        
+        // set hasCkpt flags true
+        if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+            FTIFF_db* currentDB = FTI_Exec.firstdb;
+            currentDB->update = false;
+            do {    
+                int varIdx;
+                for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
+                    FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
+                    currentdbVar->hasCkpt = true;
+                    currentdbVar->update = false;
+                }
+            }
+            while ( (currentDB = currentDB->next) != NULL );    
+
+
+            FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
+            FTI_Ckpt[4].hasDcp = true;
+        }
+
+        // FTIFF: send meta info to the heads
+        FTIFF_headInfo *headInfo;
+        if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
+            FTI_Exec.wasLastOffline = 1;
+            // Head needs ckpt. ID to determine ckpt file name.
+            int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
+            if (res != FTI_SCES) { //If Writing checkpoint failed
+                FTI_Exec.ckptLvel = FTI_Exec.iCPInfo.lastCkptLvel; //Set previous ckptLvel
+                value = FTI_REJW; //Send reject checkpoint token to head
+            }
+            MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+            // FTIFF: send meta info to the heads
+            if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
+                headInfo = malloc(sizeof(FTIFF_headInfo));
+                headInfo->exists = FTI_Exec.meta[0].exists[0];
+                headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
+                headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
+                headInfo->fs = FTI_Exec.meta[0].fs[0];
+                headInfo->pfs = FTI_Exec.meta[0].pfs[0];
+                headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
+                if( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+                    strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
+                } else {
+                    strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
+                }            
+                MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
+                MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
+                MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
+                free(headInfo);
+            }
+
+        }
+        else { //If post-processing is inline
+            FTI_Exec.wasLastOffline = 0;
+            if (res != FTI_SCES) { //If Writing checkpoint failed
+                FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
+            }
+            res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+            if (res == FTI_SCES) { //If post-processing succeed
+                FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
             }
         }
-        while ( (currentDB = currentDB->next) != NULL );    
-        
-    
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
-        FTI_Ckpt[4].hasDcp = true;
-    }
-    
-    // FTIFF: send meta info to the heads
-    FTIFF_headInfo *headInfo;
-    if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
-        FTI_Exec.wasLastOffline = 1;
-        // Head needs ckpt. ID to determine ckpt file name.
-        int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
-        if (res != FTI_SCES) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_Exec.iCPInfo.lastCkptLvel; //Set previous ckptLvel
-            value = FTI_REJW; //Send reject checkpoint token to head
+
+        double t3 = MPI_Wtime(); //Time after post-processing
+        if (res != FTI_SCES) {
+            sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NSCS;
         }
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
-        // FTIFF: send meta info to the heads
-        if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
-            headInfo = malloc(sizeof(FTIFF_headInfo));
-            headInfo->exists = FTI_Exec.meta[0].exists[0];
-            headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
-            headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
-            headInfo->fs = FTI_Exec.meta[0].fs[0];
-            headInfo->pfs = FTI_Exec.meta[0].pfs[0];
-            headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-            if( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
-                strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
+
+        sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
+                FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
+        FTI_Print(str, FTI_INFO);
+
+        if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+
+            long norder_data, norder_dcp;
+            char corder_data[3], corder_dcp[3];
+            long DCP_TB = (1024L*1024L*1024L*1024L);
+            long DCP_GB = (1024L*1024L*1024L);
+            long DCP_MB = (1024L*1024L);
+            if ( FTI_Exec.FTIFFMeta.dataSize > DCP_TB ) {
+                norder_data = DCP_TB;
+                snprintf( corder_data, 3, "TB" );
+            } else if ( FTI_Exec.FTIFFMeta.dataSize > DCP_GB ) {
+                norder_data = DCP_GB;
+                snprintf( corder_data, 3, "GB" );
             } else {
-                strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            }            
-	    MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            free(headInfo);
+                norder_data = DCP_MB;
+                snprintf( corder_data, 3, "MB" );
+            }
+            if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_TB ) {
+                norder_dcp = DCP_TB;
+                snprintf( corder_dcp, 3, "TB" );
+            } else if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_GB ) {
+                norder_dcp = DCP_GB;
+                snprintf( corder_dcp, 3, "GB" );
+            } else {
+                norder_dcp = DCP_MB;
+                snprintf( corder_dcp, 3, "MB" );
+            }
+
+            if ( FTI_Topo.splitRank != 0 ) {
+                snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
+                        (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                        (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
+                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+                FTI_Print( str, FTI_DBUG );
+            } else {
+                snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
+                        (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                        (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
+                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+            }
+
+            FTI_Print(str, FTI_IDCP);
+        }
+        if (FTI_Exec.iCPInfo.isFirstCp && FTI_Topo.splitRank == 0) {
+            //Setting recover flag to 1 (to recover from current ckpt level)
+            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+            FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
         }
 
-    }
-    else { //If post-processing is inline
-        FTI_Exec.wasLastOffline = 0;
-        if (res != FTI_SCES) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
-        }
-        res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
-        if (res == FTI_SCES) { //If post-processing succeed
-            FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
-        }
-    }
-
-    double t3 = MPI_Wtime(); //Time after post-processing
-    if (res != FTI_SCES) {
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
-            FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), 0, 0, 0, 0);
-    FTI_Print(str, FTI_INFO);
-    
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
-        
-        long norder_data, norder_dcp;
-        char corder_data[3], corder_dcp[3];
-        long DCP_TB = (1024L*1024L*1024L*1024L);
-        long DCP_GB = (1024L*1024L*1024L);
-        long DCP_MB = (1024L*1024L);
-        if ( FTI_Exec.FTIFFMeta.dataSize > DCP_TB ) {
-            norder_data = DCP_TB;
-            snprintf( corder_data, 3, "TB" );
-        } else if ( FTI_Exec.FTIFFMeta.dataSize > DCP_GB ) {
-            norder_data = DCP_GB;
-            snprintf( corder_data, 3, "GB" );
-        } else {
-            norder_data = DCP_MB;
-            snprintf( corder_data, 3, "MB" );
-        }
-        if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_TB ) {
-            norder_dcp = DCP_TB;
-            snprintf( corder_dcp, 3, "TB" );
-        } else if ( FTI_Exec.FTIFFMeta.dcpSize > DCP_GB ) {
-            norder_dcp = DCP_GB;
-            snprintf( corder_dcp, 3, "GB" );
-        } else {
-            norder_dcp = DCP_MB;
-            snprintf( corder_dcp, 3, "MB" );
+        if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+            FTI_Ckpt[4].isDcp = false;
         }
 
-        if ( FTI_Topo.splitRank != 0 ) {
-            snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
-                    (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
-            FTI_Print( str, FTI_DBUG );
-        } else {
-            snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
-                    (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
-        }
-        
-        FTI_Print(str, FTI_IDCP);
+        return FTI_DONE;
+
     }
-    if (FTI_Exec.iCPInfo.isFirstCp && FTI_Topo.splitRank == 0) {
-        //Setting recover flag to 1 (to recover from current ckpt level)
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
-        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
-    }
-    
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
-        FTI_Ckpt[4].isDcp = false;
-    }
- 
-    return FTI_DONE;
+
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/

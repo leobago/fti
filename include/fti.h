@@ -154,7 +154,11 @@ extern "C" {
         bool isActive;
         int  result;
         int lastCkptLvel;
-        FILE *fd;
+        double t0;
+        double t1;
+        void* fh;
+        MPI_Offset offset;
+        MPI_File pfh;
     } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
