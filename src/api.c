@@ -1239,6 +1239,13 @@ int FTI_InitICP(int id, int level, bool activate)
         snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
                 "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
 
+#ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+    }
+#endif
+
         //If checkpoint is inlin and level 4 save directly to PFS
         if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
 
@@ -1333,11 +1340,6 @@ int FTI_FinalizeICP()
     if ( FTI_Exec.iCPInfo.isActive ) {
 
         double t2 = MPI_Wtime(); //Time after writing checkpoint
-
-        /*
-         * HERE WE NEED AN ALLREDUCE IN ORDER TO WAIT FOR ALL PROCESSES TO FINISH
-         * THE LOCAL WRITE OF THE CP DATA
-         */
 
         char str[FTI_BUFS];
         int res;
