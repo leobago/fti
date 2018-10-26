@@ -150,15 +150,16 @@ extern "C" {
      *
      */
     typedef struct FTIT_iCPInfo {
+        void* fh;
         bool isFirstCp;
         bool isActive;
         int  result;
         int lastCkptLvel;
         double t0;
         double t1;
-        void* fh;
         MPI_Offset offset;
         MPI_File pfh;
+        int sid;
     } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
