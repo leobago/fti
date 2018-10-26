@@ -329,7 +329,8 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
   //}
     all_done_array = *all_processes_done; 
     quantum_expired = *timeout;
-    initial_quantum = quantum; 
+    //initial_quantum = quantum; 
+    initial_quantum = seconds_to_microseconds(q); 
 
   return FTI_SCES;
 }
@@ -482,6 +483,9 @@ static inline void handle_gpu_suspension(bool *complete)
   char str[FTI_BUFS];
   if(*complete == false)
   {
+    //TODO remove this print
+    //fprintf(stdout, "Incomplete, resuming\n");
+    //fflush(stdout);
 
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *quantum_expired = false;
