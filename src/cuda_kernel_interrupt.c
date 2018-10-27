@@ -82,7 +82,16 @@ static double quantum_inc = 0.0;
  *
  * This value is printed when the kernel has completed.
  */
-static size_t suspension_count; //TODO should this be saved and restored as well?
+static size_t suspension_count;
+
+/**
+ * @brief              Keeps track of finished kernels.
+ *
+ * When a process has completed its kernel a value of true
+ * is written to this array. The application does not proceed
+ * until all processes have updated this array.
+ */
+bool *all_done_array = NULL;
 
 /** 
  * @brief              Determines if kernel is complete by checking #h_is_block_executed. 
@@ -101,10 +110,7 @@ static void computation_complete(bool *complete)
     }
     break;
   }
-  //fprintf(stdout, "%s this is i: %zu\n", __func__, i);
-  //fflush(stdout);
   *complete = (i == block_amt); //? true : false;
-  //fprintf(stdout, "%zu == %zu ? %s\n", i, block_amt, *complete ? "True" : "False");
 }
 
 static FTIT_topology *FTI_Topo = NULL;
@@ -120,7 +126,6 @@ int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
   return FTI_SCES;
 }
 
-bool *all_done_array = NULL; //TODO Put this somewhere above and comment it
 bool FTI_all_procs_complete(bool *procs)
 {
   int i = 0;
@@ -128,8 +133,6 @@ bool FTI_all_procs_complete(bool *procs)
   {
     if(procs[i] == false)break;
   }
-  //fprintf(stdout, "%s returning %s\n", __func__, (i == FTI_Topo->nbProc) ? "True" : "False");
-  //fflush(stdout);
   return (i == FTI_Topo->nbProc); //? true : false;
 }
 
@@ -224,18 +227,13 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
   if(kernel_already_protected){
     //restore data
     *complete = *FTI_GpuInfo[i].complete;
-    block_amt = *FTI_GpuInfo[i].block_amt; //TODO does this need storage? It can be recalculated from the argument
+    block_amt = *FTI_GpuInfo[i].block_amt;
     *all_processes_done = FTI_GpuInfo[i].all_done;
     h_is_block_executed = FTI_GpuInfo[i].h_is_block_executed;
     quantum = *FTI_GpuInfo[i].quantum;
-    **timeout = *FTI_GpuInfo[i].quantum_expired; //TODO do I need to keep track of this??
+    **timeout = *FTI_GpuInfo[i].quantum_expired;
 
-    block_info_bytes = *FTI_GpuInfo[i].block_amt * sizeof(bool); //TODO make this a part of the gpuInfo struct?
-
-    //TODO figure out if these frees are needed 
-    //free((void *)FTI_GpuInfo[i].complete);
-    //free((void *)FTI_GpuInfo[i].quantum);
-    //free((void *)FTI_GpuInfo[i].quantum_expired);
+    block_info_bytes = *FTI_GpuInfo[i].block_amt * sizeof(bool);
   }
   else{
     **timeout = false;
@@ -277,7 +275,6 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
     }
 
     quantum = seconds_to_microseconds(q);
-    //initial_quantum = quantum;//TODO should this be kept track of? Is it even relevant in FTI? No kernels should take more than 1 minute 
     *complete = false;
 
     /* Add information necessary to protect interrupt info */
@@ -293,9 +290,7 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
 
   //Do things that both protected and non-protected kernels need here
 
-  /* Block info device setup */
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), block_info_bytes));
-
   CUDA_ERROR_CHECK(cudaMemcpy(*b_info, h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice));
 
   d_is_block_executed = *b_info;
@@ -454,10 +449,6 @@ static inline void handle_gpu_suspension(bool *complete)
   char str[FTI_BUFS];
   if(*complete == false)
   {
-    //TODO remove this print
-    //fprintf(stdout, "Incomplete, resuming\n");
-    //fflush(stdout);
-
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *quantum_expired = false;
 
