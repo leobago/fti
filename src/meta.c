@@ -275,94 +275,111 @@ int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, dicti
   char str[FTI_BUFS];
   char kernelInfoSection[FTI_BUFS];
   char gpuInfoSection[FTI_BUFS];
-  snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
 
+  snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
   snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection); 
   FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
 
-  int j = 0;
-  //TODO check all mallocs were successful
+  int i = 0;
   //TODO check that necessary frees were done
-  for(j = 0; j < FTI_Exec->nbKernels; j++){
-    snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, j);
-    int *id = malloc(sizeof(int));  
-    *id = iniparser_getint(ini, str, -1);
-    FTI_Exec->gpuInfo[j].id = id;
+  for(i = 0; i < FTI_Exec->nbKernels; i++){
 
-    snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupRank, *FTI_Exec->gpuInfo[j].id);
+    /* Allocations */
+    int *id                       = talloc(int, 1);  
+    size_t *block_amt             = talloc(size_t, 1);
+    bool *complete                = talloc(bool, 1);
+    unsigned int *quantum         = talloc(unsigned int, 1); //TODO this was the wrong type if a weird error now occurs!
+    bool *quantum_expired         = talloc(bool, 1);
+    FTI_Exec->gpuInfo[i].all_done = talloc(bool, FTI_Topo->nbProc);
+
+    /* Return if any allocations failed */
+    if(id                             == NULL){return FTI_NSCS;}
+    if(block_amt                      == NULL){return FTI_NSCS;}
+    if(complete                       == NULL){return FTI_NSCS;}
+    if(quantum                        == NULL){return FTI_NSCS;}
+    if(quantum_expired                == NULL){return FTI_NSCS;}
+    if(FTI_Exec->gpuInfo[i].all_done  == NULL){return FTI_NSCS;}
+
+    snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
+
+    *id = iniparser_getint(ini, str, -1);
+    FTI_Exec->gpuInfo[i].id = id;
+
+    snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupRank, *FTI_Exec->gpuInfo[i].id);
     snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
     char *str_block_amt = iniparser_getstring(ini, str, NULL);
-    size_t *block_amt = malloc(sizeof(size_t));
-    sscanf(str_block_amt, "%zu", block_amt);
-    FTI_Exec->gpuInfo[j].block_amt = block_amt;
 
-    bool *complete = malloc(sizeof(bool));
+    sscanf(str_block_amt, "%zu", block_amt);
+    FTI_Exec->gpuInfo[i].block_amt = block_amt;
+
     snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
     *complete = iniparser_getboolean(ini, str, -1);
-    FTI_Exec->gpuInfo[j].complete = complete;
+    FTI_Exec->gpuInfo[i].complete = complete;
 
     snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-    unsigned int *quantum = malloc(sizeof(quantum));
+
     char *str_quantum = iniparser_getstring(ini, str, NULL); 
     sscanf(str_quantum, "%u", quantum);
-    FTI_Exec->gpuInfo[j].quantum = quantum;
+    FTI_Exec->gpuInfo[i].quantum = quantum;
 
     snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-    bool *quantum_expired = malloc(sizeof(bool));
     *quantum_expired = iniparser_getboolean(ini, str, -1);
-    FTI_Exec->gpuInfo[j].quantum_expired = quantum_expired;
+    FTI_Exec->gpuInfo[i].quantum_expired = quantum_expired;
 
     size_t idx = 0;
-    FTI_Exec->gpuInfo[j].all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
     for(idx = 0; idx < FTI_Topo->nbProc; idx++){
       snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
-      FTI_Exec->gpuInfo[j].all_done[idx] = iniparser_getboolean(ini, str, -1);
+      FTI_Exec->gpuInfo[i].all_done[idx] = iniparser_getboolean(ini, str, -1);
     }
 
-    FTI_Exec->gpuInfo[j].h_is_block_executed = malloc(sizeof(bool) * *FTI_Exec->gpuInfo[j].block_amt);
+    FTI_Exec->gpuInfo[i].h_is_block_executed = malloc(sizeof(bool) * *FTI_Exec->gpuInfo[i].block_amt);
 
-    for(idx = 0; idx < *FTI_Exec->gpuInfo[j].block_amt; idx++){
+    if(FTI_Exec->gpuInfo[i].h_is_block_executed == NULL){
+      return FTI_NSCS;
+    }
+
+    for(idx = 0; idx < *FTI_Exec->gpuInfo[i].block_amt; idx++){
       snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx);
-      FTI_Exec->gpuInfo[j].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
+      FTI_Exec->gpuInfo[i].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
     }
   }
 
-  size_t num_blocks_true = 0;
-  size_t num_blocks_false = 0;
-  size_t all_done_true = 0;
-  size_t all_done_false = 0;
-  size_t idx = 0;
-  j = j - 1;
+  //size_t num_blocks_true = 0;
+  //size_t num_blocks_false = 0;
+  //size_t all_done_true = 0;
+  //size_t all_done_false = 0;
+  //size_t idx = 0;
+  //i = i - 1;
 
-  for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-    if(FTI_Exec->gpuInfo[j].all_done[idx]){
-      all_done_true = all_done_true + 1;
-    }
-    else{
-      all_done_false = all_done_false + 1;
-    }
-  }
+  //for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+  //  if(FTI_Exec->gpuInfo[i].all_done[idx]){
+  //    all_done_true = all_done_true + 1;
+  //  }
+  //  else{
+  //    all_done_false = all_done_false + 1;
+  //  }
+  //}
 
-  for(idx = 0; idx < *FTI_Exec->gpuInfo[j].block_amt; idx++){
-    if(FTI_Exec->gpuInfo[j].h_is_block_executed[idx]){
-      num_blocks_true = num_blocks_true + 1;
-    }
-    else{
-      num_blocks_false = num_blocks_false + 1; 
-    }
-  }
+  //for(idx = 0; idx < *FTI_Exec->gpuInfo[i].block_amt; idx++){
+  //  if(FTI_Exec->gpuInfo[i].h_is_block_executed[idx]){
+  //    num_blocks_true = num_blocks_true + 1;
+  //  }
+  //  else{
+  //    num_blocks_false = num_blocks_false + 1; 
+  //  }
+  //}
 
   //fprintf(stdout, "comm,rank,id,block_amt,all_doneTrue,all_doneFalse,complete,num_blocks_true,num_blocks_false,quantum,quantum_expired\n%s,%d,%d,%zu,%zu,%zu,%s,%zu,%zu,%u,%s\n",
   //    "restart",
   //    FTI_Topo->myRank,
-  //    *FTI_Exec->gpuInfo[j].id,
-  //    *FTI_Exec->gpuInfo[j].block_amt,
+  //    *FTI_Exec->gpuInfo[i].id,
+  //    *FTI_Exec->gpuInfo[i].block_amt,
   //    all_done_true,
   //    all_done_false,
-  //    *FTI_Exec->gpuInfo[j].complete ? "True" : "False",
+  //    *FTI_Exec->gpuInfo[i].complete ? "True" : "False",
   //    num_blocks_true,
   //    num_blocks_false,
-  //    *FTI_Exec->gpuInfo[j].quantum,
+  //    *FTI_Exec->gpuInfo[i].quantum,
   //    *FTI_Exec->gpuInfo->quantum_expired ? "True" : "False");
   //fflush(stdout);
 
@@ -442,9 +459,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     }
                     //Save number of variables in metadata
                     FTI_Exec->meta[i].nbVar[0] = k;
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// START Max's Mods
-                      int sectionExists = iniparser_find_entry(ini, "Kernel Info");
+                    int sectionExists = iniparser_find_entry(ini, "Kernel Info");
 
                       if(sectionExists){
                         int res = FTI_Try(FTI_LoadGpuMetadata(FTI_Exec, FTI_Topo, ini), "load gpu metadata");
@@ -453,113 +468,6 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                           return FTI_NSCS;
                         }
                       }
-                      //char kernelInfoSection[FTI_BUFS];
-                      //char gpuInfoSection[FTI_BUFS];
-                      //snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
-                      //int sectionExists = iniparser_find_entry(ini, kernelInfoSection);
-
-                      //if(sectionExists){
-
-                      //  snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection); 
-                      //  FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
-
-                      //  int j = 0;
-                      //  //TODO check all mallocs were successful
-                      //  //TODO check that necessary frees were done
-                      //  for(j = 0; j < FTI_Exec->nbKernels; j++){
-                      //    snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, j);
-                      //    int *id = malloc(sizeof(int));  
-                      //    *id = iniparser_getint(ini, str, -1);
-                      //    FTI_Exec->gpuInfo[j].id = id;
-        
-                      //    snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupRank, *FTI_Exec->gpuInfo[j].id);
-                      //    snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-                      //    char *str_block_amt = iniparser_getstring(ini, str, NULL);
-                      //    size_t *block_amt = malloc(sizeof(size_t));
-                      //    sscanf(str_block_amt, "%zu", block_amt);
-                      //    FTI_Exec->gpuInfo[j].block_amt = block_amt;
-          
-                      //    bool *complete = malloc(sizeof(bool));
-                      //    snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-                      //    *complete = iniparser_getboolean(ini, str, -1);
-                      //    FTI_Exec->gpuInfo[j].complete = complete;
-
-                      //    snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-                      //    unsigned int *quantum = malloc(sizeof(quantum));
-                      //    char *str_quantum = iniparser_getstring(ini, str, NULL); 
-                      //    sscanf(str_quantum, "%u", quantum);
-                      //    FTI_Exec->gpuInfo[j].quantum = quantum;
-
-                      //    snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-                      //    bool *quantum_expired = malloc(sizeof(bool));
-                      //    *quantum_expired = iniparser_getboolean(ini, str, -1);
-                      //    FTI_Exec->gpuInfo[j].quantum_expired = quantum_expired;
-
-                      //    size_t idx = 0;
-                      //    FTI_Exec->gpuInfo[j].all_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
-                      //    for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-                      //      snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
-                      //      FTI_Exec->gpuInfo[j].all_done[idx] = iniparser_getboolean(ini, str, -1);
-                      //    }
-
-                      //    FTI_Exec->gpuInfo[j].h_is_block_executed = malloc(sizeof(bool) * *FTI_Exec->gpuInfo[j].block_amt);
-
-                      //    for(idx = 0; idx < *FTI_Exec->gpuInfo[j].block_amt; idx++){
-                      //      snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx);
-                      //      FTI_Exec->gpuInfo[j].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
-                      //    }
-                      //  }
-
-                      //  size_t num_blocks_true = 0;
-                      //  size_t num_blocks_false = 0;
-                      //  size_t all_done_true = 0;
-                      //  size_t all_done_false = 0;
-                      //  size_t idx = 0;
-                      //  j = j - 1;
-
-                      //  fprintf(stdout, "about to do the first loop j = %d\n", j);
-                      //  fflush(stdout);
-
-                      //  for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-                      //    if(FTI_Exec->gpuInfo[j].all_done[idx]){
-                      //      all_done_true = all_done_true + 1;
-                      //    }
-                      //    else{
-                      //      all_done_false = all_done_false + 1;
-                      //    }
-                      //  }
-
-                      //  fprintf(stdout, "about to do the second loop\n");
-                      //  fflush(stdout);
-
-                      //  for(idx = 0; idx < *FTI_Exec->gpuInfo[j].block_amt; idx++){
-                      //    if(FTI_Exec->gpuInfo[j].h_is_block_executed[idx]){
-                      //      num_blocks_true = num_blocks_true + 1;
-                      //    }
-                      //    else{
-                      //      num_blocks_false = num_blocks_false + 1; 
-                      //    }
-                      //  }
-                      //  fprintf(stdout, "About to print\n");
-                      //  fflush(stdout);
-
-                      //  fprintf(stdout, "comm,rank,id,block_amt,all_doneTrue,all_doneFalse,complete,num_blocks_true,num_blocks_false,quantum,quantum_expired\n%s,%d,%d,%zu,%zu,%zu,%s,%zu,%zu,%u,%s\n",
-                      //      "restart",
-                      //      FTI_Topo->myRank,
-                      //      *FTI_Exec->gpuInfo[j].id,
-                      //      *FTI_Exec->gpuInfo[j].block_amt,
-                      //      all_done_true,
-                      //      all_done_false,
-                      //      *FTI_Exec->gpuInfo[j].complete ? "True" : "False",
-                      //      num_blocks_true,
-                      //      num_blocks_false,
-                      //      *FTI_Exec->gpuInfo[j].quantum,
-                      //      *FTI_Exec->gpuInfo->quantum_expired ? "True" : "False");
-                      //  fflush(stdout);
-
-                      //}
-// END Max's Mods                    
-///////////////////////////////////////////////////////////////////////////////////////////////////
                     iniparser_freedict(ini);
                 }
             }
@@ -624,62 +532,15 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         }
                         //Save number of variables in metadata
                         FTI_Exec->meta[i].nbVar[j] = k;
+                        int sectionExists = iniparser_find_entry(ini, "Kernel Info");
 
-                        //Restore GPU info
-                        //fprintf(stdout, "Restoring GPU info2\n");
-                        //fflush(stdout);
-                        //for(k = 0; k < FTI_BUFS; k++) {
-                        //  char gpuInfoSection[FTI_BUFS];
-                        //  snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_Topo->groupID, k); 
+                        if(sectionExists){
+                          int res = FTI_Try(FTI_LoadGpuMetadata(FTI_Exec, FTI_Topo, ini), "load gpu metadata");
 
-                        //  int sectionExists = iniparser_find_entry(ini, (const char*)gpuInfoSection);
-
-                        //  if(sectionExists == 0){
-                        //    //No more GPU sections
-                        //    break;
-                        //  }
-
-                        //  snprintf(str, FTI_BUFS, "%s:id", gpuInfoSection);
-                        //  FTI_Exec->gpuInfo[k].id = iniparser_getint(ini, str, -1);
-
-                        //  snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-                        //  char *strBlockAmt  = iniparser_getstring(ini, str, NULL);
-                        //  sscanf(strBlockAmt, "%zu", &FTI_Exec->gpuInfo[k].block_amt);
-
-                        //  snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-                        //  //FTI_Exec->gpuInfo[k].complete = iniparser_getboolean(ini, str, -1);
-
-                        //  snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-                        //  //FTI_Exec->gpuInfo[k].quantum = iniparser_getdouble(ini, str, -1.0);
-      
-                        //  size_t idx = 0;              
-                        //  //Get information on whether all processes have completed this kernel
-                        //  FTI_Exec->gpuInfo[k].all_done = malloc(FTI_Topo->nbProc);
-
-                        //  if(FTI_Exec->gpuInfo[k].all_done == NULL){
-                        //    FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        //    return FTI_NSCS;
-                        //  }
-
-                        //  for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-                        //    snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
-                        //    FTI_Exec->gpuInfo[k].all_done[idx] = iniparser_getboolean(ini, str, -1);
-                        //  }
-
-                        //  //Get information on blocks of the current kernel
-                        //  FTI_Exec->gpuInfo[k].h_is_block_executed = malloc(FTI_Exec->gpuInfo[k].block_amt);
-
-                        //  if(FTI_Exec->gpuInfo[k].h_is_block_executed == NULL){
-                        //    FTI_Print("Failed to allocate memory when loading gpu info", FTI_WARN);
-                        //    return FTI_NSCS;
-                        //  }
-                        //  
-                        //  for(idx = 0; idx < FTI_Exec->gpuInfo[k].block_amt; idx++)
-                        //  {
-                        //     snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, idx); 
-                        //     FTI_Exec->gpuInfo[k].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
-                        //  }
-                        //}
+                          if(res == FTI_NSCS){
+                            return FTI_NSCS;
+                          }
+                        }
                         iniparser_freedict(ini);
                     }
                 }

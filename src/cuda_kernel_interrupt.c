@@ -219,9 +219,6 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
     }
   }
 
-  //fprintf(stdout, "Kernel already protected: %s\n", kernel_already_protected ? "True" : "False");
-  //fflush(stdout);
-
   CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*timeout), sizeof(volatile bool), cudaHostAllocMapped));
 
   if(kernel_already_protected){
@@ -235,31 +232,13 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
 
     block_info_bytes = *FTI_GpuInfo[i].block_amt * sizeof(bool); //TODO make this a part of the gpuInfo struct?
 
-    //fprintf(stdout, "Complete: %s\n", (*complete) ? "True" : "False");
-    //fflush(stdout);
-
     //TODO figure out if these frees are needed 
     //free((void *)FTI_GpuInfo[i].complete);
     //free((void *)FTI_GpuInfo[i].quantum);
     //free((void *)FTI_GpuInfo[i].quantum_expired);
-
-    //size_t t = 0, f=0;
-    //for(i = 0; i < block_amt; i++){
-    //  if(h_is_block_executed[i])
-    //  {
-    //    t++;
-    //  }
-    //  else{
-    //    f++;
-    //  }
-    //}
-
-    //fprintf(stdout, "True: %zu false: %zu\n", t, f);
-    //fflush(stdout); 
   }
   else{
     **timeout = false;
-    //Only do things for a non-protected kernel here
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
       return FTI_NSCS;
@@ -299,11 +278,7 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
 
     quantum = seconds_to_microseconds(q);
     //initial_quantum = quantum;//TODO should this be kept track of? Is it even relevant in FTI? No kernels should take more than 1 minute 
-    //to launch all blocks 
     *complete = false;
-
-    /* Keep track of some things locally */
-    //quantum_expired = *timeout;
 
     /* Add information necessary to protect interrupt info */
     FTI_GpuInfo[FTI_Exec->nbKernels].id = id; 
@@ -321,16 +296,12 @@ int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, b
   /* Block info device setup */
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), block_info_bytes));
 
-  //if(kernel_already_protected == false){
-
   CUDA_ERROR_CHECK(cudaMemcpy(*b_info, h_is_block_executed, block_info_bytes, cudaMemcpyHostToDevice));
 
-    d_is_block_executed = *b_info;
-  //}
-    all_done_array = *all_processes_done; 
-    quantum_expired = *timeout;
-    //initial_quantum = quantum; 
-    initial_quantum = seconds_to_microseconds(q); 
+  d_is_block_executed = *b_info;
+  all_done_array = *all_processes_done; 
+  quantum_expired = *timeout;
+  initial_quantum = seconds_to_microseconds(q); 
 
   return FTI_SCES;
 }
