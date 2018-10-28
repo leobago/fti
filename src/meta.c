@@ -271,7 +271,20 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, dictionary *ini){
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It gets the GPU metadata to recover the data after a failure.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      ini             The ini dictionary from which to load GPU metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function reads the metadata file created during checkpointing to recover
+  the metadata necessary to re-initialize the GpuInfo member of FTI_Exec.
+
+ **/
+/*-------------------------------------------------------------------------*/
+static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, dictionary *ini){
   char str[FTI_BUFS];
   char kernelInfoSection[FTI_BUFS];
   char gpuInfoSection[FTI_BUFS];
@@ -550,7 +563,21 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-int FTI_WriteGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_gpuInfoMetadata* FTI_GpuInfoMetadata, dictionary *ini, int groupIdx){
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It writes the GPU metadata to recover the data after a failure.
+  @param      FTI_Exec              Execution metadata.
+  @param      FTI_Topo              Topology metadata.
+  @param      FTI_GpuInfoMetadata   GPU metadata.
+  @param      ini                   The metadata ini dictionary to write to.
+  @param      groupIdx              The process's group index to which the GPU information belongs.
+  @return     integer               FTI_SCES if successful.
+
+  This function should only be called in FTI_Writemetadata. It writes the
+  metadata to recover partially executed GPU kernels.
+ **/
+/*-------------------------------------------------------------------------*/
+static int FTI_WriteGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_gpuInfoMetadata* FTI_GpuInfoMetadata, dictionary *ini, int groupIdx){
 	char str[FTI_BUFS]; 
   char buf[FTI_BUFS];
   char kernelInfoSection[FTI_BUFS];
@@ -808,7 +835,21 @@ int FTI_FreeGpuMetadata(FTIT_gpuInfoMetadata* FTI_GpuInfoMetadata, FTIT_topology
   return FTI_SCES;
 }
 
-int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_gpuInfoMetadata *FTI_GpuInfoMetadata){
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It creates the GPU metadata to recover the data after a failure.
+  @param      FTI_Exec              Execution metadata.
+  @param      FTI_Conf              Configuration metadata.
+  @param      FTI_Topo              Topology metadata.
+  @param      FTI_gpuInfoMetadata   GPU metadata structure to populate with GPU metadata
+  @return     integer               FTI_SCES if successful.
+
+  This function sends all kernel data from each process to the head process of the group.
+  The kernel data from each process is received by the head process andthen used to 
+  populate FTI_GpuInfoMetadata.
+ **/
+/*-------------------------------------------------------------------------*/
+static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_gpuInfoMetadata *FTI_GpuInfoMetadata){
   unsigned int i = 0;
   unsigned int j = 0;
 

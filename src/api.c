@@ -139,7 +139,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     FTI_Exec.initSCES = 1;
 
-    FTI_get_topo_and_exec(&FTI_Topo, &FTI_Exec);
+    FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
     
     // Initialize CUDA-related params
     CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));

@@ -93,6 +93,21 @@ static size_t suspension_count;
  */
 bool *all_done_array = NULL;
 
+/**
+ * @brief              Initialized to reference to FTI_Topo.
+ */
+static FTIT_topology *FTI_Topo = NULL;
+
+/**
+ * @brief              Initialized to reference to FTI_Exec.
+ */
+static FTIT_execution *FTI_Exec = NULL;
+
+/**
+ * @brief              Initialized to reference to FTI_Exec->FTI_GpuInfo.
+ */
+static FTIT_gpuInfo *FTI_GpuInfo = NULL;
+
 /** 
  * @brief              Determines if kernel is complete by checking #h_is_block_executed. 
  * @param[in,out]      complete   Indicates whether kernel is complete or not.
@@ -110,15 +125,17 @@ static void computation_complete(bool *complete)
     }
     break;
   }
-  *complete = (i == block_amt); //? true : false;
+  *complete = (i == block_amt);
 }
 
-static FTIT_topology *FTI_Topo = NULL;
-static FTIT_execution *FTI_Exec = NULL;
-static FTIT_gpuInfo *FTI_GpuInfo = NULL;
-
-//TODO comment this function, and rename it to something like "FTI_gpu_internal_init" ?
-int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
+/** 
+ * @brief              Gets a reference to the topology and execution structures. 
+ * @param[in]          topo The current FTI_Topo object.
+ * @param[in]          exec The current FTI_Exec object.
+ *
+ * @return             FTI_SCES on completion
+ */
+int FTI_gpu_protect_init(FTIT_topology *topo, FTIT_execution *exec)
 {
   FTI_Topo = topo; 
   FTI_Exec = exec;
@@ -126,6 +143,15 @@ int FTI_get_topo_and_exec(FTIT_topology *topo, FTIT_execution *exec)
   return FTI_SCES;
 }
 
+/** 
+ * @brief              Determines if all processes have executed their kernels. 
+ * @param[in]          procs The current FTI_Exec object.
+ *
+ * @return             True or False whether all processes are complete or not.
+ *
+ * This function iterates over the procs array. If all values in the array have
+ * a true value then all processes have completed executing the current kernel.
+ */
 bool FTI_all_procs_complete(bool *procs)
 {
   int i = 0;
@@ -133,7 +159,7 @@ bool FTI_all_procs_complete(bool *procs)
   {
     if(procs[i] == false)break;
   }
-  return (i == FTI_Topo->nbProc); //? true : false;
+  return (i == FTI_Topo->nbProc);
 }
 
 /**
@@ -323,6 +349,7 @@ static int cleanup(const char *kernel_name)
 {
   //TODO have this function iterate over the array of GpuInfo
   //structures and free all memory
+  //TODO come back to this after making library "thread-safe"
   int res;
   print_stats(kernel_name);
   res = FTI_Try(free_memory(), "free memory");
@@ -502,8 +529,6 @@ int FTI_BACKUP_monitor(bool *complete)
  *
  * Used so that kernel interrupt macros can have access
  * to the standard FTI_Print() function.
- *
- * TODO: check if this is still needed.
  */
 void FTI_BACKUP_Print(char *msg, int priority)
 {
