@@ -28,25 +28,24 @@ do {                                                                            
     }                                                                                   \
 } while(0)
 
-/* Delcare this globally in cuda_kernel_interrupt.c
- * of size FTI_BUFS. (FTI_BUFS is the maximum amount of
- * kernels that can be registered anyway). Use the ID
- * member to identify which handle should be used. The
- * number of handles in use should be equal to FTI_Exec->nbKernels.
- * A helper function to find the handle by id will be needed. Set
- * the id member equal to the kernel ID.
+/** @typedef    FTIT_kernelProtectHandle
+ *  @brief      Stores information specific to a protected kernel
+ *
+ *  The values stored in this structure are used to monitor and interrupt
+ *  an executing kernel. A type of this structure is used as a handle for
+ *  a protected kernel.
  */
 typedef struct FTIT_kernelProtectHandle{
-  int                 id; /* Kernel ID */
-  size_t              block_amt;
-  useconds_t          quantum;
-  useconds_t          initial_quantum;
-  size_t              block_info_bytes;
-  volatile bool       *quantum_expired;
-  bool                *h_is_block_executed;
-  bool                *d_is_block_executed;
-  size_t              suspension_count; /* Do I really need this?? */
-  bool                *all_done_array;
+  int                 id;                    /**< ID of protected kernel.                                    */
+  size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
+  useconds_t          quantum;               /**< Time to wait before interrupting kernel.                   */
+  useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
+  size_t              block_info_bytes;      /**< Size of memory required for boolean array.                 */
+  volatile bool*      quantum_expired;       /**< Checked by kernel to determine whether to return.          */
+  bool*               h_is_block_executed;   /**< Host boolean array. Each element represents a thread block */
+  bool*               d_is_block_executed;   /**< Device-side boolean array.                                 */
+  size_t              suspension_count;      /**< Counts how many times the kernel was interrupted           */
+  bool*               all_done_array;        /**< Keeps track of finished kernels                            */
 }FTIT_kernelProtectHandle;
 
 typedef enum FTIT_ptrtype {

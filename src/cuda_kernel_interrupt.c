@@ -15,84 +15,6 @@
 #include "interface.h"
 #include "api_cuda.h"
 
-///** 
-// * @brief              Used to determine the size of boolean array.
-// *
-// * The boolean array is used for book-keeping to keep track of executed
-// * blocks.
-// */
-//static size_t block_amt  = 0;
-//
-///**
-// * @brief              Determines how frequently the kernel is interrupted.
-// */
-//static useconds_t quantum = 0.0;
-//
-///**
-// * @brief              Keeps track of the value initially passed to the quantum.
-// *
-// * During configuration (see BACKUP_config()), if the quantum is set to increase
-// * but no increase value is specified, the quantum is increased per interrupt by
-// * its initial amount. I.e the amount assigned to #initial_quantum.
-// */
-//static useconds_t initial_quantum = 0.0; 
-//
-///**
-// * @brief              Represents the size in bytes of the boolean array.
-// *
-// * Initialized in BACKUP_init and is used later in BACKUP_monitor when
-// * performing a device to host transfer of the boolean array (#h_is_block_executed). 
-// */
-//static size_t block_info_bytes = 0;
-//
-///**
-// * @brief              Holds a reference to the timeout variable.
-// *
-// * Assigned to 1 in BACKUP_monitor() when the quantum has expired so that 
-// * the kernel can know it should not launch any new blocks.  
-// */
-//static volatile bool *quantum_expired = NULL;
-//
-///**
-// * @brief              Host-side boolean array.
-// *
-// * An array of unsigned short int type with size #block_amt. Each value
-// * in the array represents a thread block and is set to 1 when the block
-// * has finished executing. Is copied to host at each interrupt and checked
-// * to determine if all blocks have executed.
-// */
-//bool *h_is_block_executed = NULL;
-//
-///**
-// * @brief              Device-side boolean array. See #h_is_block_executed.
-// */
-//bool *d_is_block_executed = NULL;
-//
-///**
-// * @brief              Used to specify the amount quantum should be increased by.
-// *
-// * If not set to zero and #increase_quantum is set to true, the quantum is increased
-// * by this amount at each interrupt. If set to zero and #increase_quantum is true, then
-// * the quantum is increased by #initial_quantum at each kernel interrupt.
-// */
-//static double quantum_inc = 0.0;
-//
-///**
-// * @brief              Keeps track of how many times the kernel was interrupted.
-// *
-// * This value is printed when the kernel has completed.
-// */
-//static size_t suspension_count;
-//
-///**
-// * @brief              Keeps track of finished kernels.
-// *
-// * When a process has completed its kernel a value of true
-// * is written to this array. The application does not proceed
-// * until all processes have updated this array.
-// */
-//bool *all_done_array = NULL;
-//
 /**
  * @brief              Initialized to reference to FTI_Topo.
  */
@@ -108,6 +30,13 @@ static FTIT_execution *FTI_Exec = NULL;
  */
 static FTIT_gpuInfo *FTI_GpuInfo = NULL;
 
+/**
+ * @brief              Array of handles for protected kernels.
+ *
+ * A handle at index FTI_Exec->nbKernels is initialized for each new kernel.
+ * This handle is then later searched for by the protected kernel's ID. The
+ * functions in this file use a kernel's handle for monitoring and interruption.
+ */
 static FTIT_kernelProtectHandle FTI_KernelProtectHandle[FTI_BUFS];
 
 /** 
@@ -255,7 +184,6 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   bool kernel_already_protected = false;
   FTIT_kernelProtectHandle *handle = NULL;
 
-
   for(i = 0; i < FTI_Exec->nbKernels; i++){
     if(kernelId == *FTI_GpuInfo[i].id){
       kernel_already_protected = true;
@@ -337,7 +265,7 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(*b_info, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
 
-  handle->suspension_count = 0;
+  handle->suspension_count = 0; //TODO store this with metadata??
   handle->d_is_block_executed = *b_info;
   handle->all_done_array = *all_processes_done; 
   handle->quantum_expired = *timeout;
