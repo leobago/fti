@@ -110,6 +110,10 @@
     #include "hdf5.h"
 #endif
 
+#define FTI_ICP_NINI 0
+#define FTI_ICP_ACTV 1
+#define FTI_ICP_FAIL 2
+
 #define FTI_GT(NUM1, NUM2) (NUM1 > NUM2) ? NUM1 : NUM2
 #define FTI_PO_FH FILE*
 #define FTI_FF_FH int
@@ -179,7 +183,7 @@ extern "C" {
      */
     typedef struct FTIT_iCPInfo {
         bool isFirstCp;
-        bool isActive;
+        short status;
         int  result;
         int lastCkptLvel;
         double t0;
