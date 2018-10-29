@@ -214,7 +214,7 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
       return FTI_NSCS;
     }
 
-    *all_processes_done = malloc(sizeof(bool) * FTI_Topo->nbProc);
+    *all_processes_done = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
 
     if(*all_processes_done == NULL)
     {
