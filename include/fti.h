@@ -98,7 +98,6 @@
 #define MD5_DIGEST_LENGTH 16
 /** MD5-hash: hex converted char digest length.                            */
 #define MD5_DIGEST_STRING_LENGTH 33
-
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 /** Token for IO mode SIONlib.                                             */
 #define FTI_IO_SIONLIB 1004

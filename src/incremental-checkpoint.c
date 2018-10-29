@@ -1022,7 +1022,6 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     
-    FTI_Exec->iCPInfo.fh = malloc(sizeof(int));
     memcpy(FTI_Exec->iCPInfo.fh, &sid, sizeof(int));
 
     FTI_Exec->iCPInfo.result = FTI_SCES;
@@ -1053,7 +1052,8 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
         FTIT_dataset* FTI_Data)
 {
 
-    int sid = *(int*)(FTI_Exec->iCPInfo.fh);
+    int sid;
+    memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );
 
     unsigned long offset = 0;
     // write datasets into file
@@ -1125,7 +1125,8 @@ int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         return FTI_NSCS;
     }
 
-    int sid = *(int*)(FTI_Exec->iCPInfo.fh);
+    int sid;
+    memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );
     
     // close parallel file
     if (sion_parclose_mapped_mpi(sid) == -1) {

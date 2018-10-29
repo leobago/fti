@@ -1274,17 +1274,20 @@ int FTI_InitICP(int id, int level, bool activate)
      
         int res;
         switch (FTI_Conf.ioMode) {
+#ifdef ENABLE_SIONLIB 
+            case FTI_IO_SIONLIB:
+                FTI_Print("iCP is currently not supported using SIONlib I/O, falling back to POSIX", FTI_WARN);
+#if 0
+                res = FTI_Try(FTI_InitSionlibICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (Sionlib).");
+                break;
+#endif // 0
+#endif // If SIONlib is installed
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_InitPosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (POSIX I/O).");
                 break;
             case FTI_IO_MPI:
                 res = FTI_Try(FTI_InitMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (MPI-IO).");
                 break;
-#ifdef ENABLE_SIONLIB //If SIONlib is installed
-            case FTI_IO_SIONLIB:
-                res = FTI_Try(FTI_InitSionlibICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (Sionlib).");
-                break;
-#endif
             case FTI_IO_FTIFF:
                 res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
@@ -1310,16 +1313,21 @@ int FTI_AddVarICP( int varID )
     if ( FTI_Exec.iCPInfo.status == FTI_ICP_ACTV ) {
 
         switch (FTI_Conf.ioMode) {
+#ifdef ENABLE_SIONLIB //If SIONlib is installed
+                case FTI_IO_SIONLIB:
+#endif
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_WritePosixVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write dataset to ckpt file.");
                 break;
             case FTI_IO_MPI:
                 res = FTI_Try(FTI_WriteMpiVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write dataset (iCP) (MPI-IO).");
                 break;
+#if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
             case FTI_IO_SIONLIB:
                 res = FTI_WriteSionlibVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
                 break;
+#endif
 #endif
             case FTI_IO_FTIFF:
                 res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
@@ -1350,16 +1358,21 @@ int FTI_FinalizeICP()
         int res;
         if ( FTI_Exec.iCPInfo.status == FTI_ICP_ACTV ) {
             switch (FTI_Conf.ioMode) {
+#ifdef ENABLE_SIONLIB //If SIONlib is installed
+                case FTI_IO_SIONLIB:
+#endif
                 case FTI_IO_POSIX:
                     res = FTI_FinalizePosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
                     break;
                 case FTI_IO_MPI:
                     res = FTI_Try(FTI_FinalizeMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (MPI-IO).");
                     break;
+#if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
                 case FTI_IO_SIONLIB:
                     res = FTI_Try(FTI_FinalizeSionlibICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (Sionlib).");
                     break;
+#endif
 #endif
                 case FTI_IO_FTIFF:
                     res = FTI_Try(FTI_FinalizeFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
