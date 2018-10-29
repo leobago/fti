@@ -157,7 +157,6 @@ do{                                                                             
         MPI_Allgather(&complete, 1, MPI_C_BOOL, all_processes_done, 1, MPI_C_BOOL,                        \
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
-      FTI_BACKUP_cleanup(kernel_id, #kernel_name);                                                        \
     }                                                                                                     \
 }while(0)
 
@@ -205,7 +204,6 @@ do{                                                                             
 bool FTI_all_procs_complete(bool *procs);                                                             
 int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(int kernelId, bool *complete);
-void FTI_BACKUP_cleanup(int kernelId, const char *kernel_name);
 void FTI_BACKUP_Print(char *msg, int priority);
 
     /*---------------------------------------------------------------------------

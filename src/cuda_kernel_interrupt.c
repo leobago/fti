@@ -107,45 +107,45 @@ static inline useconds_t seconds_to_microseconds(double quantum)
   return fabs(quantum) * 1000000.0; 
 }
 
-/** 
- * @brief              Frees host and device allocated memory
- * @return             FTI_SCES or FTI_NSCS on success or failure respectively.
- *
- * Frees any memory that was allocated to help execute and suspend the kernel.
- */
-static int free_memory(FTIT_kernelProtectHandle *handle)
-{
-  //safeFree((void **)&h_is_block_executed);
-  free(handle->h_is_block_executed);
-  free(handle->all_done_array);
+///** 
+// * @brief              Frees host and device allocated memory
+// * @return             FTI_SCES or FTI_NSCS on success or failure respectively.
+// *
+// * Frees any memory that was allocated to help execute and suspend the kernel.
+// */
+//static int free_memory(FTIT_kernelProtectHandle *handle)
+//{
+//  //safeFree((void **)&h_is_block_executed);
+//  free(handle->h_is_block_executed);
+//  free(handle->all_done_array);
+//
+//  /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
+//  CUDA_ERROR_CHECK(cudaFree(handle->d_is_block_executed));
+//  CUDA_ERROR_CHECK(cudaFreeHost((void *)handle->quantum_expired));
+//
+//  return FTI_SCES;
+//} 
 
-  /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
-  CUDA_ERROR_CHECK(cudaFree(handle->d_is_block_executed));
-  CUDA_ERROR_CHECK(cudaFreeHost((void *)handle->quantum_expired));
-
-  return FTI_SCES;
-} 
-
-/**
- * @brief              Resets all global variables to their default value.
- * @return             FTI_SCES or FTI_NSCS on success or failure respectively.
- */
-static int reset_globals(FTIT_kernelProtectHandle *handle)
-{
-  /* Reset all globals */
-  //TODO is this even needed??
-  //block_amt = 0;
-  //quantum = 0.0;
-  //initial_quantum = 0.0;
-  //block_info_bytes = 0;
-  //quantum_expired = NULL;
-  //h_is_block_executed = NULL;
-  //d_is_block_executed = NULL;
-  //suspension_count = 0;
-  //all_done_array = NULL;
-
-  return FTI_SCES;
-}
+///**
+// * @brief              Resets all global variables to their default value.
+// * @return             FTI_SCES or FTI_NSCS on success or failure respectively.
+// */
+//static int reset_globals(FTIT_kernelProtectHandle *handle)
+//{
+//  /* Reset all globals */
+//  //TODO is this even needed??
+//  //block_amt = 0;
+//  //quantum = 0.0;
+//  //initial_quantum = 0.0;
+//  //block_info_bytes = 0;
+//  //quantum_expired = NULL;
+//  //h_is_block_executed = NULL;
+//  //d_is_block_executed = NULL;
+//  //suspension_count = 0;
+//  //all_done_array = NULL;
+//
+//  return FTI_SCES;
+//}
 
 static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
   int i = 0;
@@ -177,8 +177,6 @@ static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
  */
 int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks)
 {
-  //TODO break this function up into smaller pieces
-  //TODO Try to organise this more
   char str[FTI_BUFS];
   size_t i = 0;
   bool kernel_already_protected = false;
@@ -194,30 +192,32 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*timeout), sizeof(volatile bool), cudaHostAllocMapped));
 
   if(kernel_already_protected){
+    /* Restore kernel information */
     handle = getKernelProtectHandle(kernelId);
-    //restore data
+
     *complete = *FTI_GpuInfo[i].complete;
-    handle->block_amt = *FTI_GpuInfo[i].block_amt;
     *all_processes_done = FTI_GpuInfo[i].all_done;
-    handle->h_is_block_executed = FTI_GpuInfo[i].h_is_block_executed;
-    handle->quantum = *FTI_GpuInfo[i].quantum;
     **timeout = *FTI_GpuInfo[i].quantum_expired;
 
     handle->block_info_bytes = *FTI_GpuInfo[i].block_amt * sizeof(bool);
+    handle->block_amt = *FTI_GpuInfo[i].block_amt;
+    handle->h_is_block_executed = FTI_GpuInfo[i].h_is_block_executed;
+    handle->quantum = *FTI_GpuInfo[i].quantum;
   }
   else{
+    /* Initialize new kernel */
     handle =  &FTI_KernelProtectHandle[FTI_Exec->nbKernels];
     handle->id = kernelId;
-    **timeout = false;
+
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
       return FTI_NSCS;
     }
 
+    **timeout = false;
     *all_processes_done = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
 
-    if(*all_processes_done == NULL)
-    {
+    if(*all_processes_done == NULL){
       sprintf(str, "Cannot allocate memory for all_done");
       FTI_Print(str, FTI_EROR);
       return FTI_NSCS;
@@ -229,20 +229,17 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
     handle->block_info_bytes = handle->block_amt * sizeof(bool);
     handle->h_is_block_executed = (bool *)malloc(handle->block_info_bytes);
 
-    if(handle->h_is_block_executed == NULL)
-    {
+    if(handle->h_is_block_executed == NULL){
       sprintf(str, "Cannot allocate %zu bytes for block info!", handle->block_info_bytes);
       FTI_Print(str, FTI_EROR);
       return FTI_NSCS;
     }
 
-    for(i = 0; i < handle->block_amt; i++)
-    {
+    for(i = 0; i < handle->block_amt; i++){
       handle->h_is_block_executed[i] = false;
     }
 
-    for(i = 0; i < FTI_Topo->nbProc; i++)
-    {
+    for(i = 0; i < FTI_Topo->nbProc; i++){
       (*all_processes_done)[i] = false;
     }
 
@@ -260,12 +257,12 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
     FTI_Exec->nbKernels = FTI_Exec->nbKernels + 1;
   }
 
-  //Do things that both protected and non-protected kernels need here
+  //Do things that both protected and non-protected kernels need
 
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(*b_info, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
 
-  handle->suspension_count = 0; //TODO store this with metadata??
+  handle->suspension_count = 0;
   handle->d_is_block_executed = *b_info;
   handle->all_done_array = *all_processes_done; 
   handle->quantum_expired = *timeout;
@@ -278,12 +275,13 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
  * @brief              Prints how many times the kernel was suspended. 
  * @param[in]          kernel_name  The name of the kernel.
  */
-static void print_stats(FTIT_kernelProtectHandle *handle, const char *kernel_name)
-{
-  char str[FTI_BUFS];
-  sprintf(str,"%s suspensions = %zu", kernel_name, handle->suspension_count);
-  FTI_Print(str, FTI_DBUG);
-}
+//TODO Should I still use this?
+//static void print_stats(FTIT_kernelProtectHandle *handle, const char *kernel_name)
+//{
+//  char str[FTI_BUFS];
+//  sprintf(str,"%s suspensions = %zu", kernel_name, handle->suspension_count);
+//  FTI_Print(str, FTI_DBUG);
+//}
 
 /**
  * @brief              Prints kernel suspension count and frees memory.
@@ -292,21 +290,21 @@ static void print_stats(FTIT_kernelProtectHandle *handle, const char *kernel_nam
  *  
  * This function calls #print_stats() and #free_memory().
  */
-static int cleanup(FTIT_kernelProtectHandle *handle, const char *kernel_name)
-{
-  //TODO have this function iterate over the array of GpuInfo
-  //structures and free all memory
-  //TODO come back to this after making library "thread-safe"
-
-  int res;
-  print_stats(handle, kernel_name);
-  res = FTI_Try(free_memory(handle), "free memory");
-
-  /* Reset global variables to their defaults */
-  FTI_Try(reset_globals(handle), "reset global variables");
-
-  return res;
-}
+//static int cleanup(FTIT_kernelProtectHandle *handle, const char *kernel_name)
+//{
+//  //TODO have this function iterate over the array of GpuInfo
+//  //structures and free all memory
+//  //TODO come back to this after making library "thread-safe"
+//
+//  int res;
+//  print_stats(handle, kernel_name);
+//  res = FTI_Try(free_memory(handle), "free memory");
+//
+//  /* Reset global variables to their defaults */
+//  FTI_Try(reset_globals(handle), "reset global variables");
+//
+//  return res;
+//}
 
 /**
  * @brief              Calls #cleanup().
@@ -315,15 +313,38 @@ static int cleanup(FTIT_kernelProtectHandle *handle, const char *kernel_name)
  * An interface function to clean up allocated resources and print
  * how often *kernel_name* was suspended.
  */
-void FTI_BACKUP_cleanup(int kernelId, const char *kernel_name)
+int FTI_FreeGpuInfo()
 {
-  FTIT_kernelProtectHandle *handle = getKernelProtectHandle(kernelId);
-  int ret = FTI_Try(cleanup(handle, kernel_name), "cleaning up resources");
-  
-  if(ret != FTI_SCES)
-  {
-    FTI_Print("Failed to properly clean up resources", FTI_EROR);
+  FTI_Print("Freeing memory used for GPU Info", FTI_DBUG);
+  int i = 0;
+  for(i = 0; i < FTI_Exec->nbKernels; i++){
+     fprintf(stdout, "Cleaning up kernel information\n");
+     fflush(stdout);
+     free(FTI_Exec->gpuInfo[i].id);
+     free(FTI_Exec->gpuInfo[i].block_amt);
+     free(FTI_Exec->gpuInfo[i].all_done);
+     free(FTI_Exec->gpuInfo[i].complete);
+     free(FTI_Exec->gpuInfo[i].h_is_block_executed);
+     free(FTI_Exec->gpuInfo[i].quantum);
+     free((void *)FTI_Exec->gpuInfo[i].quantum_expired);
+
+     free(FTI_KernelProtectHandle[i].h_is_block_executed);
+     free(FTI_KernelProtectHandle[i].all_done_array);
+
+     /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
+     CUDA_ERROR_CHECK(cudaFree(FTI_KernelProtectHandle[i].d_is_block_executed));
+     CUDA_ERROR_CHECK(cudaFreeHost((void *)FTI_KernelProtectHandle[i].quantum_expired));
   }
+
+  fprintf(stdout, "Finished cleaning kernel information\n");
+  fflush(stdout);
+  return FTI_SCES;
+  //int ret = FTI_Try(cleanup(handle, kernel_name), "cleaning up resources");
+  //
+  //if(ret != FTI_SCES)
+  //{
+  //  FTI_Print("Failed to properly clean up resources", FTI_EROR);
+  //}
 }
 
 /**
