@@ -776,6 +776,198 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
 }
 
+#ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It writes the checkpoint data in the target file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function checks whether the checkpoint needs to be local or remote,
+  opens the target file and writes dataset per dataset, the checkpoint data,
+  it finally flushes and closes the checkpoint file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
+{
+    FTI_Print("I/O mode: HDF5.", FTI_DBUG);
+    char str[FTI_BUFS], fn[FTI_BUFS];
+    int level = FTI_Exec->ckptLvel;
+    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+    }
+
+    //Creating new hdf5 file
+    hid_t file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if (file_id < 0) {
+        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+        FTI_Print(str, FTI_EROR);
+
+        return FTI_NSCS;
+    }
+    FTI_Exec->H5groups[0]->h5groupID = file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+
+    int i;
+    for (i = 0; i < rootGroup->childrenNo; i++) {
+        FTI_CreateGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
+    }
+
+    memcpy( FTI_Exec->iCPInfo.fh, &file_id, sizeof(FTI_H5_FH) );
+
+    FTI_Exec->iCPInfo.result = FTI_SCES;
+    
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes ckpt to PFS using POSIX.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
+{
+
+    char str[FTI_BUFS];
+
+    hid_t file_id;
+    memcpy( &file_id, FTI_Exec->iCPInfo.fh, sizeof(FTI_H5_FH) );
+
+    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    
+    // write data into ckpt file
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if( FTI_Data[i].id == varID ) {
+            int toCommit = 0;
+            if (FTI_Data[i].type->h5datatype < 0) {
+                toCommit = 1;
+            }
+            sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_Data[i].type->id, FTI_Data[i].type->h5datatype);
+            FTI_Print(str, FTI_DBUG);
+            FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+            if (toCommit == 1) {
+                char name[FTI_BUFS];
+                if (FTI_Data[i].type->structure == NULL) {
+                    //this is the array of bytes with no name
+                    sprintf(name, "Type%d", FTI_Data[i].type->id);
+                } else {
+                    strncpy(name, FTI_Data[i].type->structure->name, FTI_BUFS);
+                }
+                herr_t res = H5Tcommit(FTI_Data[i].type->h5group->h5groupID, name, FTI_Data[i].type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                if (res < 0) {
+                    sprintf(str, "Datatype #%d could not be commited", FTI_Data[i].id);
+                    FTI_Print(str, FTI_EROR);
+                    int j;
+                    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+                        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+                    }
+                    H5Fclose(file_id);
+                    return FTI_NSCS;
+                }
+            }
+            //convert dimLength array to hsize_t
+            int j;
+            hsize_t dimLength[32];
+            for (j = 0; j < FTI_Data[i].rank; j++) {
+                dimLength[j] = FTI_Data[i].dimLength[j];
+            }
+            herr_t res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+            if (res < 0) {
+                sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
+                FTI_Print(str, FTI_EROR);
+                int j;
+                for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+                    FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+                }
+                H5Fclose(file_id);
+                return FTI_NSCS;
+            }
+        }
+    }
+    
+    FTI_Exec->iCPInfo.result = FTI_SCES;
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It writes the checkpoint data in the target file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function checks whether the checkpoint needs to be local or remote,
+  opens the target file and writes dataset per dataset, the checkpoint data,
+  it finally flushes and closes the checkpoint file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
+{
+    
+    int allRes;
+
+    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if (allRes != FTI_SCES) {
+        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    hid_t file_id;
+    memcpy( &file_id, FTI_Exec->iCPInfo.fh, sizeof(FTI_H5_FH) );
+
+    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+    }
+
+    int j;
+    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+    }
+
+    // close file
+    FTI_Exec->H5groups[0]->h5groupID = -1;
+    if (H5Fclose(file_id) < 0) {
+        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    
+    return FTI_SCES;
+    
+}
+#endif
+
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 /*-------------------------------------------------------------------------*/
 /**

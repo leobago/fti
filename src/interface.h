@@ -344,3 +344,15 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
+
+int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+
+int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+
+int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);

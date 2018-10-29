@@ -1240,9 +1240,9 @@ int FTI_InitICP(int id, int level, bool activate)
                 "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
-    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
+                    "Ckpt%d-Rank%d.h5", FTI_Exec.ckptID, FTI_Topo.myRank);
     }
 #endif
 
@@ -1286,12 +1286,10 @@ int FTI_InitICP(int id, int level, bool activate)
             case FTI_IO_FTIFF:
                 res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
-#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
-                res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+                res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
                 break;
-#endif
 #endif
         }
 
@@ -1324,12 +1322,10 @@ int FTI_AddVarICP( int varID )
             case FTI_IO_FTIFF:
                 res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
-#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
-                res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+                res = FTI_Try(FTI_WriteHdf5Var(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
                 break;
-#endif
 #endif
         }
     }
@@ -1359,14 +1355,12 @@ int FTI_FinalizeICP()
                 break;
 #endif
             case FTI_IO_FTIFF:
-                res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                res = FTI_Try(FTI_FinalizeFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
-#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
-                res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+                res = FTI_Try(FTI_FinalizeHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
                 break;
-#endif
 #endif
         }
         res = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
