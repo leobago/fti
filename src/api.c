@@ -1283,10 +1283,10 @@ int FTI_InitICP(int id, int level, bool activate)
                 res = FTI_Try(FTI_InitSionlibICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (Sionlib).");
                 break;
 #endif
-#if 0
             case FTI_IO_FTIFF:
-                res = FTI_Try(FTI_InitFtiffICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
+#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
                 res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
@@ -1321,10 +1321,10 @@ int FTI_AddVarICP( int varID )
                 res = FTI_WriteSionlibVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
                 break;
 #endif
-#if 0
             case FTI_IO_FTIFF:
-                res = FTI_Try(FTI_InitFtiffICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
+#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
                 res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
@@ -1358,10 +1358,10 @@ int FTI_FinalizeICP()
                 res = FTI_Try(FTI_FinalizeSionlibICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (Sionlib).");
                 break;
 #endif
-#if 0
             case FTI_IO_FTIFF:
-                res = FTI_Try(FTI_InitFtiffICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
+#if 0
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
                 res = FTI_Try(FTI_InitHDF5ICP(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");

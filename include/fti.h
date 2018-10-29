@@ -110,6 +110,34 @@
     #include "hdf5.h"
 #endif
 
+#define FTI_GT(NUM1, NUM2) (NUM1 > NUM2) ? NUM1 : NUM2
+#define FTI_PO_FH FILE*
+#define FTI_FF_FH int
+#define FTI_MI_FH MPI_File
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+#   define FTI_SL_FH int
+#endif
+#ifdef ENABLE_HDF5 // --> If HDF5 is desired
+#   define FTI_H5_FH hid_t
+#endif
+
+#if !defined (ENABLE_SIONLIB) && !defined (ENABLE_HDF5) 
+#   define FTI_ICP_FH_SIZE FTI_GT( sizeof(FTI_PO_FH), FTI_GT( sizeof(FTI_FF_FH), sizeof(FTI_MI_FH) ) )
+#elif !defined (ENABLE_SIONLIB) && defined (ENABLE_HDF5)
+#   define FTI_ICP_FH_SIZE FTI_GT( \
+        FTI_GT( sizeof(FTI_PO_FH), sizeof(FTI_H5_FH) ), \
+        FTI_GT( sizeof(FTI_FF_FH), sizeof(FTI_MI_FH) ) )
+#elif defined (ENABLE_SIONLIB) && !defined (ENABLE_HDF5)
+#   define FTI_ICP_FH_SIZE FTI_GT( \
+        FTI_GT( sizeof(FTI_PO_FH), sizeof(FTI_SL_FH) ), \
+        FTI_GT( sizeof(FTI_FF_FH), sizeof(FTI_MI_FH) ) )
+#elif defined (ENABLE_SIONLIB) && defined (ENABLE_HDF5)
+#   define FTI_ICP_FH_SIZE FTI_GT( \
+        FTI_GT( sizeof(FTI_PO_FH), sizeof(FTI_H5_FH) ), \
+        FTI_GT( sizeof(FTI_FF_FH),\
+        FTI_GT( sizeof(FTI_SL_FH), sizeof(FTI_MI_FH) ) ) )
+#endif
+
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
 #define FTI_DCP_MODE_CRC32 2002
@@ -150,16 +178,14 @@ extern "C" {
      *
      */
     typedef struct FTIT_iCPInfo {
-        void* fh;
         bool isFirstCp;
         bool isActive;
         int  result;
         int lastCkptLvel;
         double t0;
         double t1;
-        MPI_Offset offset;
-        MPI_File pfh;
-        int sid;
+        char fh[FTI_ICP_FH_SIZE];
+        unsigned long long offset;
     } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
