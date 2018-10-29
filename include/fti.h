@@ -126,7 +126,7 @@ do{                                                                             
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
     int kernel_id = id;                                                                                   \
-    ret = FTI_BACKUP_init(&kernel_id, &quantum_expired, &block_info, quantum,                             \
+    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                             \
                      &complete, &all_processes_done, grid_dim);                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
@@ -145,7 +145,7 @@ do{                                                                             
           kernel_name<<<grid_dim, block_dim, ns, s>>>(quantum_expired, block_info,                        \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(&complete); /*TODO only expose variables needed by macro*/                     \
+        FTI_BACKUP_monitor(kernel_id, &complete); /*TODO only expose variables needed by macro*/          \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -157,7 +157,7 @@ do{                                                                             
         MPI_Allgather(&complete, 1, MPI_C_BOOL, all_processes_done, 1, MPI_C_BOOL,                        \
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
-      FTI_BACKUP_cleanup(#kernel_name);                                                                   \
+      FTI_BACKUP_cleanup(kernel_id, #kernel_name);                                                        \
     }                                                                                                     \
 }while(0)
 
@@ -203,9 +203,9 @@ do{                                                                             
 }while(0)
 
 bool FTI_all_procs_complete(bool *procs);                                                             
-int FTI_BACKUP_init(int *id, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
-int FTI_BACKUP_monitor(bool *complete);
-void FTI_BACKUP_cleanup(const char *kernel_name);
+int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
+int FTI_BACKUP_monitor(int kernelId, bool *complete);
+void FTI_BACKUP_cleanup(int kernelId, const char *kernel_name);
 void FTI_BACKUP_Print(char *msg, int priority);
 
     /*---------------------------------------------------------------------------

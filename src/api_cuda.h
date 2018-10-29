@@ -9,6 +9,7 @@
 #define _API_CUDA_H
 
 #include <cuda_runtime_api.h>
+#include <unistd.h>
 #include "interface.h"
 
 #define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
@@ -26,6 +27,27 @@ do {                                                                            
       return FTI_NSCS;                                                                  \
     }                                                                                   \
 } while(0)
+
+/* Delcare this globally in cuda_kernel_interrupt.c
+ * of size FTI_BUFS. (FTI_BUFS is the maximum amount of
+ * kernels that can be registered anyway). Use the ID
+ * member to identify which handle should be used. The
+ * number of handles in use should be equal to FTI_Exec->nbKernels.
+ * A helper function to find the handle by id will be needed. Set
+ * the id member equal to the kernel ID.
+ */
+typedef struct FTIT_kernelProtectHandle{
+  int                 id; /* Kernel ID */
+  size_t              block_amt;
+  useconds_t          quantum;
+  useconds_t          initial_quantum;
+  size_t              block_info_bytes;
+  volatile bool       *quantum_expired;
+  bool                *h_is_block_executed;
+  bool                *d_is_block_executed;
+  size_t              suspension_count; /* Do I really need this?? */
+  bool                *all_done_array;
+}FTIT_kernelProtectHandle;
 
 typedef enum FTIT_ptrtype {
     FTIT_PTRTYPE_CPU = 0,
