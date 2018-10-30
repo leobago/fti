@@ -1199,7 +1199,7 @@ int FTI_Checkpoint(int id, int level)
 int FTI_InitICP(int id, int level, bool activate)
 {
      
-    int res;
+    int res = FTI_SCES;
     
     if ( activate ) {
         char str[FTI_BUFS]; //For console output
@@ -1265,9 +1265,12 @@ int FTI_InitICP(int id, int level, bool activate)
         }
 #endif
 
-        //If checkpoint is inlin and level 4 save directly to PFS
-        if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
 
+    //If checkpoint is inlin and level 4 save directly to PFS
+    int res; //response from writing funcitons
+    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+
+        if ( !(FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
             //Create global temp directory
@@ -1277,21 +1280,41 @@ int FTI_InitICP(int id, int level, bool activate)
                     return FTI_NSCS;
                 }
             }
-        }
-        else {  // write local, head performs post-processing
-            FTI_Print("Saving to temporary local directory", FTI_DBUG);
-            //Create local temp directory
-            if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
-                if (errno != EEXIST) {
-                    FTI_Print("Cannot create local directory", FTI_EROR);
-                    return FTI_NSCS;
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
+                    if (errno != EEXIST) {
+                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                        return FTI_NSCS;
+                    }
                 }
             }
         }
-        
-        FTI_Exec.iCPInfo.status = FTI_ICP_ACTV;
-     
-        int res;
+
+        //        //If checkpoint is inlin and level 4 save directly to PFS
+        //        if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+        //
+        //            FTI_Print("Saving to temporary global directory", FTI_DBUG);
+        //
+        //            //Create global temp directory
+        //            if (mkdir(FTI_Conf.gTmpDir, 0777) == -1) {
+        //                if (errno != EEXIST) {
+        //                    FTI_Print("Cannot create global directory", FTI_EROR);
+        //                    return FTI_NSCS;
+        //                }
+        //            }
+        //        }
+        //        else {  // write local, head performs post-processing
+        //            FTI_Print("Saving to temporary local directory", FTI_DBUG);
+        //            //Create local temp directory
+        //            if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
+        //                if (errno != EEXIST) {
+        //                    FTI_Print("Cannot create local directory", FTI_EROR);
+        //                    return FTI_NSCS;
+        //                }
+        //            }
+        //        }
+
         switch (FTI_Conf.ioMode) {
 #ifdef ENABLE_SIONLIB 
             case FTI_IO_SIONLIB:
@@ -1316,10 +1339,44 @@ int FTI_InitICP(int id, int level, bool activate)
                 break;
 #endif
         }
-
-        if ( res != FTI_SCES ) {
-            FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+    }
+    else {
+        if ( !(FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary local directory", FTI_DBUG);
+            //Create local temp directory
+            if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    FTI_Print("Cannot create local directory", FTI_EROR);
+                }
+            }
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                if (mkdir(FTI_Ckpt[1].dcpDir, 0777) == -1) {
+                    if (errno != EEXIST) {
+                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
+                        return FTI_NSCS;
+                    }
+                }
+            }
         }
+        switch (FTI_Conf.ioMode) {
+            case FTI_IO_FTIFF:
+        
+                res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+                break;
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+            case FTI_IO_HDF5:
+                res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+                break;
+#endif
+            default:
+                res = FTI_Try(FTI_InitPosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (POSIX I/O).");
+                break;
+        }
+
+    }
+
+    FTI_Exec.iCPInfo.status = (res == FTI_SCES) ? FTI_ICP_ACTV : FTI_ICP_FAIL;
 
     }
     return res;
@@ -1351,7 +1408,11 @@ int FTI_AddVarICP( int varID )
                 res = FTI_Try(FTI_WritePosixVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write dataset to ckpt file.");
                 break;
             case FTI_IO_MPI:
-                res = FTI_Try(FTI_WriteMpiVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write dataset (iCP) (MPI-IO).");
+                if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+                    res = FTI_Try(FTI_WriteMpiVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write dataset (iCP) (MPI-IO).");
+                } else {
+                    res = FTI_Try(FTI_WritePosixVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write dataset to ckpt file.");
+                }
                 break;
 #if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
@@ -1372,7 +1433,7 @@ int FTI_AddVarICP( int varID )
 
         if ( res != FTI_SCES ) {
             FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-        }
+        }    
     }
 
     return res;
@@ -1406,7 +1467,11 @@ int FTI_FinalizeICP()
                     res = FTI_FinalizePosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
                     break;
                 case FTI_IO_MPI:
-                    res = FTI_Try(FTI_FinalizeMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (MPI-IO).");
+                    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+                        res = FTI_Try(FTI_FinalizeMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Finalize iCP (MPI-IO).");
+                    } else {
+                        res = FTI_FinalizePosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+                    }
                     break;
 #if 0
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
