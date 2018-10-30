@@ -1177,6 +1177,25 @@ int FTI_Checkpoint(int id, int level)
     return FTI_DONE;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initialize an incremental checkpoint.
+  @param      id              Checkpoint ID.
+  @param      level           Checkpoint level.
+  @param      activate        Boolean expression.
+  @return     integer         FTI_SCES if successful.
+
+  This function defines the environment for the incremental checkpointing
+  mechanism. The iCP mechanism consists of three functions: FTI_InitICP,
+  FTI_AddVarICP and FTI_FinalizeICP. The two functions FTI_InitICP and
+  FTI_FinalizeICP define the iCP region within the user may write the
+  protected variables in any order. The iCP region is active, when the
+  expression passed through 'activate' evaluates to TRUE.
+
+  @note This function is not blocking for POSIX, FTI-FF and HDF5, but,
+  blocking for MPI-IO. This is due to the collective open call in MPI_IO
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitICP(int id, int level, bool activate)
 {
      
@@ -1306,6 +1325,18 @@ int FTI_InitICP(int id, int level, bool activate)
     return res;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Write variable into the CP file.
+  @param      id              Protected variable ID.
+  @return     integer         FTI_SCES if successful.
+    
+  With this function, the user may write the protected datasets in any
+  order into the checkpoint file. However, before the call to
+  FTI_FinalizeICP, all protected variables must have been written into
+  the file.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_AddVarICP( int varID ) 
 {
     int res;
@@ -1348,6 +1379,16 @@ int FTI_AddVarICP( int varID )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalize an incremental checkpoint.
+  @return     integer         FTI_SCES if successful.
+    
+  This function finalizes an incremental checkpoint. In contrast to
+  InitICP, this function is collective on the communicator
+  FTI_COMM_WORLD and blocking.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FinalizeICP() 
 {
     if ( FTI_Exec.iCPInfo.status ) {

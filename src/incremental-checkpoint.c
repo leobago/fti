@@ -1,3 +1,4 @@
+#include <int/incremental_checkpoint.h>
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -968,6 +969,12 @@ int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 #endif
 
+/* 
+ * As long SIONlib does not support seek in a single file
+ * FTI does not support SIONlib I/O for incremental
+ * checkpointing
+ */
+#if 0
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 /*-------------------------------------------------------------------------*/
 /**
@@ -1138,3 +1145,4 @@ int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     
 }
 #endif // SIONlib enabled
+#endif
