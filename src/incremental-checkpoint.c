@@ -44,7 +44,6 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     memcpy( FTI_Exec->iCPInfo.fh, &fd, sizeof(FTI_PO_FH) );
-    FTI_Exec->iCPInfo.result = FTI_SCES;
 
     return FTI_SCES;
 }
@@ -79,7 +78,6 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
             clearerr(fd);
             if ( fseek( fd, offset, SEEK_SET ) == -1 ) {
                 FTI_Print("Error on fseek in writeposixvar", FTI_EROR );
-                FTI_Exec->iCPInfo.result = FTI_NSCS;
                 return FTI_NSCS;
             }
             size_t written = 0;
@@ -90,7 +88,6 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                 fwrite_errno = errno;
             }
             if (ferror(fd)) {
-                FTI_Exec->iCPInfo.result = FTI_NSCS;
                 char error_msg[FTI_BUFS];
                 error_msg[0] = 0;
                 strerror_r(fwrite_errno, error_msg, FTI_BUFS);
@@ -102,7 +99,8 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
         }
         offset += FTI_Data[i].count*FTI_Data[i].eleSize;
     }
-
+    
+    FTI_Exec->iCPInfo.result = FTI_SCES;
 
     return FTI_SCES;
 
@@ -128,18 +126,8 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    int allRes;
     FILE *fd;
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
-
-    //Check if all processes have written correctly (every process must succeed)
-    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes != FTI_SCES) {
-        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
-        fclose(fd);
-        return FTI_NSCS;
-    }
-    DBG_MSG("until here",-1);
     
     // close file
     if (fclose(fd) != 0) {
@@ -237,7 +225,6 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     memcpy( FTI_Exec->iCPInfo.fh, &pfh, sizeof(FTI_MI_FH) );
     MPI_Info_free(&info);
 
-    FTI_Exec->iCPInfo.result = FTI_SCES;
     return FTI_SCES;
 
 }
@@ -284,7 +271,6 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
                 int res = MPI_File_write_at(pfh, offset, data_ptr, 1, dType, MPI_STATUS_IGNORE);
                 // check if successful
                 if (res != 0) {
-                    FTI_Exec->iCPInfo.result = FTI_NSCS;
                     errno = 0;
                     int reslen;
                     MPI_Error_string(res, mpi_err, &reslen);
@@ -301,6 +287,8 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         }
         offset += FTI_Data[i].size;
     }
+    
+    FTI_Exec->iCPInfo.result = FTI_SCES;
 
     return FTI_SCES;
 
@@ -326,17 +314,9 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    int allRes;
     MPI_File pfh;
     memcpy( &pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
-    //Check if all processes have written correctly (every process must succeed)
-    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes != FTI_SCES) {
-        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
-        MPI_File_close(&pfh);
-        return FTI_NSCS;
-    }
     MPI_File_close(&pfh);
     return FTI_SCES;
     
@@ -602,11 +582,10 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free( buffer_ser );
     
     FTI_Exec->FTIFFMeta.dataSize = dataSize;
-    FTI_Exec->FTIFFMeta.dataSize = 0;
-        
+    FTI_Exec->FTIFFMeta.dcpSize = 0;
+
     memcpy( FTI_Exec->iCPInfo.fh, &fd, sizeof(FTI_FF_FH) );
 
-    FTI_Exec->iCPInfo.result = FTI_SCES;
     return FTI_SCES;
 
 }
@@ -638,7 +617,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     // block size for fwrite buffer in file.
     long membs = 1024*1024*16; // 16 MB
     long cpybuf, cpynow, cpycnt;//, fptr;
-    long dcpSize;
+    long dcpSize = 0;
  
     int fd;
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
@@ -733,6 +712,8 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     
     // only for printout of dCP share in FTI_Checkpoint
     FTI_Exec->FTIFFMeta.dcpSize += dcpSize;
+    
+    FTI_Exec->iCPInfo.result = FTI_SCES;
 
     return FTI_SCES;
 
@@ -760,15 +741,6 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     int fd; 
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
-
-    //Check if all processes have written correctly (every process must succeed)
-    int allRes;
-    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes != FTI_SCES) {
-        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
-        close(fd);
-        return FTI_NSCS;
-    }
 
     fdatasync( fd );
     close( fd );
@@ -825,9 +797,7 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     memcpy( FTI_Exec->iCPInfo.fh, &file_id, sizeof(FTI_H5_FH) );
-
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-    
+ 
     return FTI_SCES;
 
 }
@@ -933,14 +903,6 @@ int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     
-    int allRes;
-
-    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes != FTI_SCES) {
-        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
-        return FTI_NSCS;
-    }
-
     hid_t file_id;
     memcpy( &file_id, FTI_Exec->iCPInfo.fh, sizeof(FTI_H5_FH) );
 
@@ -1030,9 +992,7 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     
     memcpy(FTI_Exec->iCPInfo.fh, &sid, sizeof(int));
-
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-    
+ 
     free(file_map);
     free(rank_map);
     free(ranks);
@@ -1096,9 +1056,8 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
         offset += FTI_Data[i].size;
 
     }
-    
-    DBG_MSG("sid: %d; *(int*)(FTI_Exec->iCPInfo.fh): %d",0, sid, *(int*)(FTI_Exec->iCPInfo.fh));
 
+    FTI_Exec->iCPInfo.result = FTI_SCES;
     return FTI_SCES;
 
 }
@@ -1123,14 +1082,6 @@ int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    
-    int allRes;
-
-    MPI_Allreduce(&(FTI_Exec->iCPInfo.result), &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes != FTI_SCES) {
-        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
-        return FTI_NSCS;
-    }
 
     int sid;
     memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );

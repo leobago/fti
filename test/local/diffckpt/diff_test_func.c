@@ -130,6 +130,18 @@ void protect_buffers( dcp_info_t *info ) {
     }
 }
 
+void checkpoint_iCP( dcp_info_t *info, int ID, int level ) {
+    FTI_InitICP( ID, level, 1 );
+    int idx;
+    for ( idx=0; idx<info->nbuffer; ++idx ) {
+        FTI_AddVarICP( idx );
+    }
+    FTI_AddVarICP( PAT_ID );  
+    FTI_AddVarICP( XOR_INFO_ID );  
+    FTI_AddVarICP( NBUFFER_ID );  
+    FTI_FinalizeICP();
+}
+
 void deallocate_buffers( dcp_info_t * info ) {
     int idx; 
     for( idx=0; idx<info->nbuffer; ++idx ) {
