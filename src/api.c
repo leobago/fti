@@ -1109,6 +1109,8 @@ int FTI_Finalize()
         return FTI_NSCS;
     }
 
+    FTI_Try(FTI_FreeGpuInfo(), "Free GPU Info memory"); //TODO check if any kernels were used before calling this
+
     cudaError_t err;
     char err_str[FTI_BUFS];
 
@@ -1137,8 +1139,6 @@ int FTI_Finalize()
         sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
         FTI_Print(err_str, FTI_DBUG);
     }
-    
-    FTI_Try(FTI_FreeGpuInfo(), "Free GPU Info memory");
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);

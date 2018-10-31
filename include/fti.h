@@ -119,14 +119,14 @@ extern "C" {
 #define FTI_Protect_Kernel(id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                     \
 do{                                                                                                       \
     bool complete;                                                                                        \
-    volatile bool *quantum_expired;                                                                       \
-    bool *all_processes_done;                                                                             \
-    bool *block_info;                                                                                     \
+    volatile bool *quantum_expired = NULL;                                                                \
+    bool *all_processes_done = NULL;                                                                      \
+    bool *block_info = NULL;                                                                              \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
     int kernel_id = id;                                                                                   \
-    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                             \
+    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
                      &complete, &all_processes_done, grid_dim);                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
@@ -158,7 +158,14 @@ do{                                                                             
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
     }                                                                                                     \
-}while(0)
+}while(0);
+/*
+FTI_FreeGpuInfo();\
+fprintf(stdout, "Finished cleaning....\n");\
+fflush(stdout);
+*/
+
+//int FTI_FreeGpuInfo();
 
 /**
  * @brief              Rewrites the kernel's definition.
@@ -205,6 +212,7 @@ bool FTI_all_procs_complete(bool *procs);
 int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(int kernelId, bool *complete);
 void FTI_BACKUP_Print(char *msg, int priority);
+int FTI_FreeGpuInfo();
 
     /*---------------------------------------------------------------------------
       FTI-FF types

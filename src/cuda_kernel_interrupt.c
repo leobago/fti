@@ -262,7 +262,7 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*b_info), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(*b_info, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
 
-  handle->suspension_count = 0;
+  handle->suspension_count = 0; //TODO is this even necessary? The kernel launch macro has its own count
   handle->d_is_block_executed = *b_info;
   handle->all_done_array = *all_processes_done; 
   handle->quantum_expired = *timeout;
@@ -318,33 +318,12 @@ int FTI_FreeGpuInfo()
   FTI_Print("Freeing memory used for GPU Info", FTI_DBUG);
   int i = 0;
   for(i = 0; i < FTI_Exec->nbKernels; i++){
-     fprintf(stdout, "Cleaning up kernel information\n");
-     fflush(stdout);
-     free(FTI_Exec->gpuInfo[i].id);
-     free(FTI_Exec->gpuInfo[i].block_amt);
      free(FTI_Exec->gpuInfo[i].all_done);
-     free(FTI_Exec->gpuInfo[i].complete);
      free(FTI_Exec->gpuInfo[i].h_is_block_executed);
-     free(FTI_Exec->gpuInfo[i].quantum);
-     free((void *)FTI_Exec->gpuInfo[i].quantum_expired);
-
-     free(FTI_KernelProtectHandle[i].h_is_block_executed);
-     free(FTI_KernelProtectHandle[i].all_done_array);
-
-     /* MACROS surrounding CUDA functions return FTI_NSCS on error. */
      CUDA_ERROR_CHECK(cudaFree(FTI_KernelProtectHandle[i].d_is_block_executed));
      CUDA_ERROR_CHECK(cudaFreeHost((void *)FTI_KernelProtectHandle[i].quantum_expired));
   }
-
-  fprintf(stdout, "Finished cleaning kernel information\n");
-  fflush(stdout);
   return FTI_SCES;
-  //int ret = FTI_Try(cleanup(handle, kernel_name), "cleaning up resources");
-  //
-  //if(ret != FTI_SCES)
-  //{
-  //  FTI_Print("Failed to properly clean up resources", FTI_EROR);
-  //}
 }
 
 /**
