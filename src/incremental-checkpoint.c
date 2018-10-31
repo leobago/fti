@@ -25,6 +25,10 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Initialize incremental checkpoint (ID: %d, Lvl: %d, I/O: POSIX)",
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
+    
+    //update ckpt file name
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
@@ -126,6 +130,10 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
+
     FILE *fd;
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
     
@@ -314,6 +322,10 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
+
     MPI_File pfh;
     memcpy( &pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
@@ -350,6 +362,10 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
     
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
+
+    //update ckpt file name
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     // check if metadata exists
     if( FTI_Exec->firstdb == NULL ) {
@@ -738,7 +754,11 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
-{
+{   
+    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
+
     int fd; 
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
 
@@ -772,6 +792,12 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
     char str[FTI_BUFS], fn[FTI_BUFS];
+    
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
+                "Ckpt%d-Rank%d.h5", FTI_Exec.ckptID, FTI_Topo.myRank);
+    }
+
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
@@ -818,6 +844,10 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+
+    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
 
     char str[FTI_BUFS];
 

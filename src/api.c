@@ -1016,6 +1016,8 @@ int FTI_Checkpoint(int id, int level)
     int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
 
+    // reset dcp requests.
+    FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
         if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
             if ( FTI_Conf.dcpEnabled ) {
@@ -1230,6 +1232,8 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Exec.iCPInfo.isFirstCp = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
 
+    // reset dcp requests.
+    FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
         if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
             if ( FTI_Conf.dcpEnabled ) {
@@ -1259,18 +1263,6 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Exec.iCPInfo.t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     FTI_Exec.iCPInfo.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
-
-    //update ckpt file name
-    snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
-            "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
-
-#ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
-                "Ckpt%d-Rank%d.h5", FTI_Exec.ckptID, FTI_Topo.myRank);
-    }
-#endif
-
 
     //If checkpoint is inlin and level 4 save directly to PFS
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
@@ -1420,10 +1412,6 @@ int FTI_AddVarICP( int varID )
 #endif
     }
 
-    if ( res != FTI_SCES ) {
-        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-    }    
-
     return res;
 
 }
@@ -1444,11 +1432,6 @@ int FTI_FinalizeICP()
     // if iCP uninitialized, don't step in.
     if ( FTI_Exec.iCPInfo.status == FTI_ICP_NINI ) {
         return FTI_SCES;
-    }
-    // return FTI_NSCS if something went wrong and reset iCP.
-    if ( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) {
-        FTI_Exec.iCPInfo.status == FTI_ICP_NINI;
-        return FTI_NSCS;
     }
 
     double t2 = MPI_Wtime(); //Time after writing checkpoint
