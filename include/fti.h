@@ -145,7 +145,7 @@ do{                                                                             
           kernel_name<<<grid_dim, block_dim, ns, s>>>(quantum_expired, block_info,                        \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(kernel_id, &complete); /*TODO only expose variables needed by macro*/          \
+        FTI_BACKUP_monitor(kernel_id);                                                                    \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -210,7 +210,7 @@ do{                                                                             
 
 bool FTI_all_procs_complete(bool *procs);                                                             
 int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
-int FTI_BACKUP_monitor(int kernelId, bool *complete);
+int FTI_BACKUP_monitor(int kernelId);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
 

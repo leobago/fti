@@ -45,7 +45,7 @@ static FTIT_kernelProtectHandle FTI_KernelProtectHandle[FTI_BUFS];
  *
  * Sets *complete* to 1 or 0 respectively if the kernel is finished or not.
  */
-static void computation_complete(FTIT_kernelProtectHandle *handle, bool *complete)
+static void computation_complete(FTIT_kernelProtectHandle *handle)
 {
   size_t i = 0;
   for(i = 0; i < handle->block_amt; i++)
@@ -56,7 +56,7 @@ static void computation_complete(FTIT_kernelProtectHandle *handle, bool *complet
     }
     break;
   }
-  *complete = (i == handle->block_amt);
+  *handle->complete = (i == handle->block_amt);
 }
 
 /** 
@@ -203,11 +203,13 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
     handle->block_amt = *FTI_GpuInfo[i].block_amt;
     handle->h_is_block_executed = FTI_GpuInfo[i].h_is_block_executed;
     handle->quantum = *FTI_GpuInfo[i].quantum;
+    handle->complete = complete;
   }
   else{
     /* Initialize new kernel */
     handle =  &FTI_KernelProtectHandle[FTI_Exec->nbKernels];
     handle->id = kernelId;
+    handle->complete = complete;
 
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
@@ -244,11 +246,11 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
     }
 
     handle->quantum = seconds_to_microseconds(q);
-    *complete = false;
+    *handle->complete = false;
 
     /* Add information necessary to protect interrupt info */
     FTI_GpuInfo[FTI_Exec->nbKernels].id = &kernelId; 
-    FTI_GpuInfo[FTI_Exec->nbKernels].complete = complete;
+    FTI_GpuInfo[FTI_Exec->nbKernels].complete = handle->complete;
     FTI_GpuInfo[FTI_Exec->nbKernels].block_amt = &handle->block_amt;
     FTI_GpuInfo[FTI_Exec->nbKernels].all_done = *all_processes_done;
     FTI_GpuInfo[FTI_Exec->nbKernels].h_is_block_executed = handle->h_is_block_executed;
@@ -377,7 +379,7 @@ static inline void wait(FTIT_kernelProtectHandle *handle)
  * executing blocks and prevent new blocks from continuing on to their main
  * body of work.
  */
-static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle, bool *complete)
+static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle)
 {
   char str[FTI_BUFS];
 
@@ -402,9 +404,9 @@ static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle, bool *c
 
   CUDA_ERROR_CHECK(cudaMemcpy(handle->h_is_block_executed, handle->d_is_block_executed, handle->block_info_bytes, cudaMemcpyDeviceToHost)); 
   FTI_Print("Checking if complete", FTI_DBUG);
-  computation_complete(handle, complete);
+  computation_complete(handle);
 
-  sprintf(str, "Done checking: %s", *complete ? "True" : "False");
+  sprintf(str, "Done checking: %s", *handle->complete ? "True" : "False");
   FTI_Print(str, FTI_DBUG);
 
   return FTI_SCES;
@@ -420,10 +422,10 @@ static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle, bool *c
  * or specified amount. This increase is necessary in cases where the quantum is short enough to 
  * cause the GPU to return again by the time it has finished re-launching previously executed blocks.
  */
-static inline void handle_gpu_suspension(FTIT_kernelProtectHandle *handle, bool *complete)
+static inline void handle_gpu_suspension(FTIT_kernelProtectHandle *handle)
 {
   char str[FTI_BUFS];
-  if(*complete == false)
+  if(*handle->complete == false)
   {
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *handle->quantum_expired = false;
@@ -449,7 +451,7 @@ static inline void handle_gpu_suspension(FTIT_kernelProtectHandle *handle, bool 
  * If all blocks are finished *complete* is set to *true* and no further kernel
  * launches are made.  Otherwise this process repeats iteratively.
  */
-int FTI_BACKUP_monitor(int kernelId, bool *complete)
+int FTI_BACKUP_monitor(int kernelId)
 {
   FTIT_kernelProtectHandle *handle = getKernelProtectHandle(kernelId);
   int ret;
@@ -458,7 +460,7 @@ int FTI_BACKUP_monitor(int kernelId, bool *complete)
   wait(handle);
   
   /* Tell GPU to finish and come back now */
-  ret = FTI_Try(signal_gpu_then_wait(handle, complete), "signal and wait on kernel");
+  ret = FTI_Try(signal_gpu_then_wait(handle), "signal and wait on kernel");
 
   if(ret != FTI_SCES)
   {
@@ -467,7 +469,7 @@ int FTI_BACKUP_monitor(int kernelId, bool *complete)
   }
 
   /* Handle interrupted GPU */
-  handle_gpu_suspension(handle, complete);
+  handle_gpu_suspension(handle);
 
   return FTI_SCES;
 }

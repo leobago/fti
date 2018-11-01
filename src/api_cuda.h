@@ -37,6 +37,7 @@ do {                                                                            
  */
 typedef struct FTIT_kernelProtectHandle{
   int                 id;                    /**< ID of protected kernel.                                    */
+  bool*               complete;
   size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
   useconds_t          quantum;               /**< Time to wait before interrupting kernel.                   */
   useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
