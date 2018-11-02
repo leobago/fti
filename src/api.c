@@ -1109,7 +1109,9 @@ int FTI_Finalize()
         return FTI_NSCS;
     }
 
-    FTI_Try(FTI_FreeGpuInfo(), "Free GPU Info memory"); //TODO check if any kernels were used before calling this
+    if(FTI_Exec.nbKernels != 0){
+      FTI_Try(FTI_FreeGpuInfo(), "Free GPU Info memory");
+    }
 
     cudaError_t err;
     char err_str[FTI_BUFS];

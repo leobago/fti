@@ -37,16 +37,16 @@ do {                                                                            
  */
 typedef struct FTIT_kernelProtectHandle{
   int                 id;                    /**< ID of protected kernel.                                    */
-  bool*               complete;
+  bool*               complete;              /**< Boolean value to set to true when kernel is complete       */
   size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
   useconds_t          quantum;               /**< Time to wait before interrupting kernel.                   */
   useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
   size_t              block_info_bytes;      /**< Size of memory required for boolean array.                 */
-  volatile bool*      quantum_expired;       /**< Checked by kernel to determine whether to return.          */
+  volatile bool**     quantum_expired;       /**< Checked by kernel to determine whether to return.          */
   bool*               h_is_block_executed;   /**< Host boolean array. Each element represents a thread block */
-  bool*               d_is_block_executed;   /**< Device-side boolean array.                                 */
+  bool**              d_is_block_executed;   /**< Device-side boolean array.                                 */
   size_t              suspension_count;      /**< Counts how many times the kernel was interrupted           */
-  bool*               all_done_array;        /**< Keeps track of finished kernels                            */
+  bool**              all_done_array;        /**< Keeps track of finished kernels                            */
 }FTIT_kernelProtectHandle;
 
 typedef enum FTIT_ptrtype {
