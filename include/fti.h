@@ -144,20 +144,19 @@ extern "C" {
 
     /** @typedef    FTIT_iCPInfo
      *  @brief      Meta Information needed for iCP.
-     *
-     *  Keeps information about the file. 'checksum' is the hash of the file
-     *  excluding the file meta data. 'myHash' is the hash of the file meta data.
-     *
+     *  
+     *  The member fh is a generic file handle container large enough to hold any
+     *  file handle type of I/O modes that are used within FTI.
      */
     typedef struct FTIT_iCPInfo {
-        bool isFirstCp;
-        short status;
-        int  result;
-        int lastCkptLvel;
-        double t0;
-        double t1;
-        char fh[FTI_ICP_FH_SIZE];
-        unsigned long long offset;
+        bool isFirstCp;             /**< TRUE if first cp in run                */
+        short status;               /**< holds status (active,failed) of iCP    */
+        int  result;                /**< holds result of I/O specific write     */
+        int lastCkptLvel;           /**< holds last successful cp level         */
+        double t0;                  /**< timing for CP statistics               */
+        double t1;                  /**< timing for CP statistics               */
+        char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
+        unsigned long long offset;  /**< file offset (for MPI-IO only)          */
     } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
@@ -454,7 +453,7 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
-        char            stageDir[FTI_BUFS];
+        char            stageDir[FTI_BUFS]; /**< Staging directory.             */
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
