@@ -53,9 +53,19 @@
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
+#define INFO_MSG(MSG,...) do { \
+    int rank; \
+    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
+    if ( rank == 0 ) \
+        printf( "%s:%d[INFO] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+} while (0)
+
 #define KB (1024L)
 #define MB (1024L*KB)
 #define GB (1024L*MB)
+
+#define TEST_ICP 1
+#define TEST_NOICP 0
 
 #define UI_UNIT sizeof(uint32_t)
 #define STATIC_SEED 310793 
@@ -102,6 +112,7 @@ typedef struct _dcp_info {
     unsigned long *size;
     unsigned long *oldsize;
     int nbuffer;
+    int test_mode;
     unsigned char **hash;
     xor_info_t xor_info[NUM_DCKPT];
 } dcp_info_t;
@@ -126,5 +137,6 @@ void invert_data( dcp_info_t *info );
 double get_share_ratio();
 bool valid( dcp_info_t * info );
 void protect_buffers( dcp_info_t *info );
+void checkpoint( dcp_info_t *info, int ID, int level );
 void deallocate_buffers( dcp_info_t * info );
 #endif

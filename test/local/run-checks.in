@@ -248,7 +248,11 @@ check_return_val() {
         echo -e "\033[0;31mfailed\033[m"
 		let FAILED=FAILED+1
 		testFailed=1
-    fi
+	else
+		echo "Unknown exit status: "$1
+		let FAULTY=FAULTY+1
+		testFailed=1
+	fi
 }
 
 set_inline() {
@@ -289,20 +293,37 @@ IO_NAMES=(@IO_NAMES@)
 # ---- Check dCP ---- #
 #                     #
 echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 &>> check.log )
+( set -x; bash checkDCP.sh 0 NOICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 1 &>> check.log )
+( set -x; bash checkDCP.sh 1 NOICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
     testFailed=0
 fi
 
+#                     #
+# ---- Check iCP ---- #
+#                     #
+echo -e "[ \033[1m*** Testing iCP: head=0 ***\033[m ]"
+( set -x; bash checkDCP.sh 0 ICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
+( set -x; bash checkDCP.sh 1 ICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=1) failed" >> failed.log
+    testFailed=0
+fi
 #                     #
 # ---- Check GIO ---- #
 #                     #

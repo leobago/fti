@@ -70,6 +70,23 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
 
     headRank = grank - grank%nodeSize;
 
+    char* env = getenv( "TEST_MODE" );
+    if( env ) {
+        if( strcmp( env, "ICP" ) == 0 ) {
+            info->test_mode = TEST_ICP;
+            INFO_MSG("TEST MODE -> ICP");
+        } else if ( strcmp( env, "NOICP") == 0 ) {
+            info->test_mode = TEST_NOICP;
+            INFO_MSG("TEST MODE -> NOICP");
+        } else {
+            info->test_mode = TEST_NOICP;
+            INFO_MSG("TEST MODE -> NOICP");
+        }
+    } else {
+        info->test_mode = TEST_NOICP;
+        INFO_MSG("TEST MODE -> NOICP");
+    }
+
     //DBG_MSG("alloc_size: %lu",0,alloc_size);
     init_share();
     
@@ -127,6 +144,27 @@ void protect_buffers( dcp_info_t *info ) {
     int idx;
     for ( idx=0; idx<info->nbuffer; ++idx ) {
         FTI_Protect( idx, info->buffer[idx], info->size[idx], FTI_CHAR );
+    }
+}
+
+void checkpoint( dcp_info_t *info, int ID, int level ) {
+    if ( info->test_mode == TEST_ICP ) {
+        INFO_MSG("ICP: START CKPT");
+        FTI_InitICP( ID, level, 1 );
+        int idx;
+        for ( idx=0; idx<info->nbuffer; ++idx ) {
+            FTI_AddVarICP( idx );
+        }
+        FTI_AddVarICP( PAT_ID );  
+        FTI_AddVarICP( XOR_INFO_ID );  
+        FTI_AddVarICP( NBUFFER_ID );  
+        FTI_FinalizeICP();
+        INFO_MSG("ICP: END CKPT");
+    }
+    if ( info->test_mode == TEST_NOICP ) {
+        INFO_MSG("NOICP: START CKPT");
+        FTI_Checkpoint( ID, level );
+        INFO_MSG("NOICP: END CKPT");
     }
 }
 
