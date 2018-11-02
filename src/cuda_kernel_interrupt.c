@@ -39,6 +39,8 @@ static FTIT_gpuInfo *FTI_GpuInfo = NULL;
  */
 static FTIT_kernelProtectHandle FTI_KernelProtectHandle[FTI_BUFS];
 
+static unsigned int handle_index = 0;
+
 /** 
  * @brief              Determines if kernel is complete by checking #h_is_block_executed. 
  * @param[in,out]      complete   Indicates whether kernel is complete or not.
@@ -92,6 +94,9 @@ bool FTI_all_procs_complete(bool *procs)
     if(procs[i] == false)break;
   }
   FTI_Print("Returning from checking if all procs complete", FTI_DBUG);
+  //fprintf(stdout, "All procs complete: %d\n", i);
+  //fflush(stdout);
+  
   return (i == FTI_Topo->nbProc);
 }
 
@@ -109,18 +114,18 @@ static inline useconds_t seconds_to_microseconds(double quantum)
   return fabs(quantum) * 1000000.0; 
 }
 
-static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
-  int i = 0;
-  FTIT_kernelProtectHandle *handle = NULL;
-  for(i = 0; i < FTI_Exec->nbKernels; i++){
-    if(FTI_KernelProtectHandle[i].id == kernelId){
-      handle = &FTI_KernelProtectHandle[i];
-      break;
-    }
-  }
-  //Return pointer to handle for current kernel
-  return handle;
-}
+//static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
+//  int i = 0;
+//  FTIT_kernelProtectHandle *handle = NULL;
+//  for(i = 0; i < FTI_Exec->nbKernels; i++){
+//    if(FTI_KernelProtectHandle[i].id == kernelId){
+//      handle = &FTI_KernelProtectHandle[i];
+//      break;
+//    }
+//  }
+//  //Return pointer to handle for current kernel
+//  return handle;
+//}
 
 static inline bool is_kernel_protected(int kernelId, unsigned int *index){
   unsigned int i = 0;
@@ -143,31 +148,16 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   FTIT_kernelProtectHandle *handle = NULL;
 
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
-  handle = &FTI_KernelProtectHandle[0];
+  //handle = kernel_protected ? getKernelProtectHandle(kernelId) : &FTI_KernelProtectHandle[FTI_Exec->nbKernels];
+  handle = &FTI_KernelProtectHandle[handle_index];
+  handle_index = handle_index + 1;
 
-  fprintf(stdout, "Number of kernels: %d\n", FTI_Exec->nbKernels);
-  fflush(stdout);
-  fprintf(stdout, "handle == null:%s\n", (handle == NULL) ? "True" : "False");
-  fflush(stdout);
-
-  handle->id = kernelId;
-  fprintf(stdout, "got here 0\n");
-  fflush(stdout);
+  handle->id                  = kernelId;
   handle->complete            = complete;
-  fprintf(stdout, "got here 1\n");
-  fflush(stdout);
   handle->all_done_array      = all_processes_done;
-  fprintf(stdout, "got here 2\n");
-  fflush(stdout);
   handle->quantum_expired     = timeout;
-  fprintf(stdout, "got here 3\n");
-  fflush(stdout);
   handle->d_is_block_executed = b_info;
-  fprintf(stdout, "got here 4\n");
-  fflush(stdout);
   handle->initial_quantum     = seconds_to_microseconds(q);
-  fprintf(stdout, "got here 5\n");
-  fflush(stdout);
 
   CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(*handle->quantum_expired), sizeof(volatile bool), cudaHostAllocMapped));
 
@@ -219,7 +209,7 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
   else{
     fprintf(stdout, "Kernel already protected\n");
     fflush(stdout);
-    handle->complete              =  FTI_GpuInfo[kernel_index].complete;
+    *handle->complete             =  *FTI_GpuInfo[kernel_index].complete;
     *handle->all_done_array       =  FTI_GpuInfo[kernel_index].all_done;
     **handle->quantum_expired     = *FTI_GpuInfo[kernel_index].quantum_expired;
     handle->block_info_bytes      = *FTI_GpuInfo[kernel_index].block_amt * sizeof(bool);
@@ -230,8 +220,8 @@ int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double
 
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(*handle->d_is_block_executed), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(*handle->d_is_block_executed, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
-  fprintf(stdout, "Leaving %s\n", __func__);
-  fflush(stdout);
+  //fprintf(stdout, "Leaving %s\n", __func__);
+  //fflush(stdout);
   return FTI_SCES;
 }
 /**
@@ -495,7 +485,8 @@ static inline void handle_gpu_suspension(FTIT_kernelProtectHandle *handle)
 int FTI_BACKUP_monitor(int kernelId)
 {
   FTI_Print("Monitoring kernel execution", FTI_DBUG);
-  FTIT_kernelProtectHandle *handle = getKernelProtectHandle(kernelId);
+  //FTIT_kernelProtectHandle *handle = getKernelProtectHandle(kernelId);
+  FTIT_kernelProtectHandle *handle = &FTI_KernelProtectHandle[0];
   int ret;
 
   /* Wait for quantum to expire */
