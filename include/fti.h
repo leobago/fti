@@ -126,8 +126,8 @@ do{                                                                             
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
     int kernel_id = id;                                                                                   \
-    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
-                     &complete, &all_processes_done, grid_dim);                                           \
+    ret = FTI_Try(FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                      \
+                     &complete, &all_processes_done, grid_dim), "initialize kernel protect");             \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
