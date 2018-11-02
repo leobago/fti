@@ -234,8 +234,8 @@ set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
-install(FILES "include/int/incremental_checkpoint.h"
-	DESTINATION "include/int" )
+install(FILES "include/fti-int/incremental_checkpoint.h"
+	DESTINATION "include/fti-int" )
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)

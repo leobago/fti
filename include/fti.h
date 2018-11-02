@@ -108,7 +108,7 @@
     #include "hdf5.h"
 #endif
 
-#include <int/incremental_checkpoint.h>
+#include <fti-int/incremental_checkpoint.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001

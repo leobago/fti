@@ -1,4 +1,4 @@
-#include <int/incremental_checkpoint.h>
+#include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -359,7 +359,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //FOR DEVELOPING 
     //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
-    char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
+    char fn[FTI_BUFS], strerr[FTI_BUFS];
     
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
@@ -418,7 +418,6 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     assert(FTI_Exec->firstdb);
     FTIFF_db *currentdb = FTI_Exec->firstdb;
     FTIFF_dbvar *currentdbvar = NULL;
-    char *dptr;
     int dbvar_idx, dbcounter=0;
     long mdoffset;
     long endoffile = FTI_filemetastructsize;
