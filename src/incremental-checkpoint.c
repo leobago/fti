@@ -3,7 +3,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Initializes iCP for POSIX I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -11,10 +11,8 @@
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed before
+  protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -54,14 +52,13 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes dataset into ckpt file using POSIX.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
-
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -112,7 +109,7 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Finalizes iCP for POSIX I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -120,10 +117,8 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed to
+  finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -149,7 +144,7 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Initializes iCP for MPI I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -157,10 +152,8 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed before
+  protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -239,14 +232,13 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes dataset into ckpt file using MPI-IO.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
-
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -304,7 +296,7 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Finalizes iCP for MPI I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -312,10 +304,8 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed to
+  finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -336,7 +326,7 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Initializes iCP for FTI-FF I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -344,10 +334,8 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed before
+  protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -607,14 +595,13 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes dataset into ckpt file using FTI-FF.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
-
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -736,7 +723,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Finalizes iCP for FTI-FF I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -744,10 +731,8 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed to
+  finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -771,7 +756,7 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_HDF5
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Initializes iCP for HDF5 I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -779,10 +764,8 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed before
+  protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -829,14 +812,13 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes dataset into ckpt file using HDF5.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
-
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -913,7 +895,7 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Finalizes iCP for HDF5 I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -921,10 +903,8 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed to
+  finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -969,7 +949,7 @@ int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Initializes iCP for SIONlib I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -977,10 +957,8 @@ int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed before
+  protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -1033,14 +1011,13 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes dataset into ckpt file using SIONlib.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
-
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -1093,7 +1070,7 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the checkpoint data in the target file.
+  @brief      Finalizes iCP for SIONlib I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -1101,10 +1078,8 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function checks whether the checkpoint needs to be local or remote,
-  opens the target file and writes dataset per dataset, the checkpoint data,
-  it finally flushes and closes the checkpoint file.
-
+  This function takes care of the I/O specific actions needed to
+  finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
