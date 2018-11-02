@@ -18,23 +18,19 @@ int main() {
     if (FTI_Status() == 0) {
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
         protect_buffers( &info );
-        //FTI_Checkpoint( 1, FTI_L4_DCP );
-        checkpoint_iCP( &info, 1, FTI_L4_DCP );
+        FTI_Checkpoint( 1, FTI_L4_DCP );
         int i;
         for ( i=0; i<NUM_DCKPT-1; ++i ) {
             unsigned long allocated = reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
             protect_buffers( &info );
             xor_data( i, &info );
-            //FTI_Checkpoint( i+2, FTI_L4_DCP );
-            checkpoint_iCP( &info, i+2, FTI_L4_DCP );
+            FTI_Checkpoint( i+2, FTI_L4_DCP );
         }
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_FULL );
         protect_buffers( &info );
         xor_data( i, &info );
-        //FTI_Checkpoint( i+2, FTI_L4_DCP );
-        checkpoint_iCP( &info, i+2, FTI_L4_DCP );
-        //FTI_Checkpoint( i+3, FTI_L4_DCP );
-        checkpoint_iCP( &info, i+3, FTI_L4_DCP );
+        FTI_Checkpoint( i+2, FTI_L4_DCP );
+        FTI_Checkpoint( i+3, FTI_L4_DCP );
         if ( numHeads > 0 ) {
             int value = FTI_ENDW;
             MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);

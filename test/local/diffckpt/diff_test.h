@@ -126,6 +126,5 @@ void invert_data( dcp_info_t *info );
 double get_share_ratio();
 bool valid( dcp_info_t * info );
 void protect_buffers( dcp_info_t *info );
-void checkpoint_iCP( dcp_info_t *info, int ID, int level );
 void deallocate_buffers( dcp_info_t * info );
 #endif
