@@ -126,8 +126,8 @@ do{                                                                             
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
     int kernel_id = id;                                                                                   \
-    ret = FTI_Try(FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                      \
-                     &complete, &all_processes_done, grid_dim), "initialize kernel protect");             \
+    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
+                     &complete, &all_processes_done, grid_dim);                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -159,13 +159,6 @@ do{                                                                             
       }                                                                                                   \
     }                                                                                                     \
 }while(0);
-/*
-FTI_FreeGpuInfo();\
-fprintf(stdout, "Finished cleaning....\n");\
-fflush(stdout);
-*/
-
-//int FTI_FreeGpuInfo();
 
 /**
  * @brief              Rewrites the kernel's definition.
