@@ -116,18 +116,20 @@ extern "C" {
  *
  * @remark *ns* and *s* must be specified and can be set to 0 if not used.
  */
-#define FTI_Protect_Kernel(id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                     \
+#define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                     \
 do{                                                                                                       \
-    bool complete;                                                                                        \
+    FTIT_gpuInfo FTI_GpuInfo;                                                                                 \
+    /*bool complete;                                                                                        \
     volatile bool *quantum_expired = NULL;                                                                \
     bool *all_processes_done = NULL;                                                                      \
-    bool *block_info = NULL;                                                                              \
+    bool *block_info = NULL;*/                                                                              \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
-    int kernel_id = id;                                                                                   \
-    ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
-                     &complete, &all_processes_done, grid_dim);                                           \
+    /*int kernel_id = id; */                                                                                  \
+    ret = FTI_BACKUP_init(&FTI_GpuInfo, kernel_id, quantum, grid_dim);                                           \
+    /*ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
+                     &complete, &all_processes_done, grid_dim);*/                                           \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -137,24 +139,24 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(all_processes_done) == false)                                          \
+      while(FTI_all_procs_complete(FTI_GpuInfo.all_done) == false)                                          \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
-        if(complete == false){                                                                            \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(quantum_expired, block_info,                        \
-                      ## __VA_ARGS__);                                                                    \
+        if(*FTI_GpuInfo.complete == false){                                                                            \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_GpuInfo.quantum_expired, FTI_GpuInfo.d_is_block_executed,                        \
+                      ## __VA_ARGS__);                                                                   \
         }                                                                                                 \
-        FTI_BACKUP_monitor(kernel_id);                                                                    \
+        FTI_BACKUP_monitor(*FTI_GpuInfo.id);                                                                    \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
           FTI_BACKUP_Print(str, FTI_EROR);                                                                \
         }                                                                                                 \
-        if(complete == false){                                                                            \
+        if(*FTI_GpuInfo.complete == false){                                                                            \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        MPI_Allgather(&complete, 1, MPI_C_BOOL, all_processes_done, 1, MPI_C_BOOL,                        \
+        MPI_Allgather(FTI_GpuInfo.complete, 1, MPI_C_BOOL, FTI_GpuInfo.all_done, 1, MPI_C_BOOL,                        \
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
     }                                                                                                     \
@@ -201,8 +203,35 @@ do{                                                                             
   is_block_executed[bid] = true;                                                                          \
 }while(0)
 
+    /** @typedef    FTIT_gpuInfo
+     *  @brief      Stores data necessary for GPU kernel interruption.
+     *
+     *  This type stores all the GPU data necessary for kernel interruption. 
+     */
+    typedef struct FTIT_gpuInfo{
+        int*            id;                   /**< ID to search/update dataset.                          */
+        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
+        bool*           all_done;             /**< Record of processes that have completed kernel        */
+        bool*           complete;             /**< Whether kernel is done or not                         */
+        bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
+        bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
+        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
+        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
+    }FTIT_gpuInfo;
+
+    /** @typedef    FTIT_gpuInfoMetadata
+     *  @brief      Stores GPU metadata necessary for restart.
+     *
+     *  This is used to store the GPU metatadata for each kernel from each process.
+     */
+    typedef struct FTIT_gpuInfoMetadata{
+        int             groupRank;            /**< Rank of the process in the group           */
+        FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
+    }FTIT_gpuInfoMetadata; 
+
 bool FTI_all_procs_complete(bool *procs);                                                             
-int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
+int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
+//int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(int kernelId);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
@@ -370,30 +399,31 @@ int FTI_FreeGpuInfo();
         FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
 
-    /** @typedef    FTIT_gpuInfo
-     *  @brief      Stores data necessary for GPU kernel interruption.
-     *
-     *  This type stores all the GPU data necessary for kernel interruption. 
-     */
-    typedef struct FTIT_gpuInfo{
-        int*            id;                   /**< ID to search/update dataset.                     */
-        size_t*         block_amt;            /**< Number of blocks launched by kernel              */
-        bool*           all_done;             /**< Record of processes that have completed kernel   */
-        bool*           complete;             /**< Whether kernel is done or not                    */
-        bool*           h_is_block_executed;  /**< Number of blocks successfully executed by kernel */
-        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt        */
-        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not           */
-    }FTIT_gpuInfo;
-
-    /** @typedef    FTIT_gpuInfoMetadata
-     *  @brief      Stores GPU metadata necessary for restart.
-     *
-     *  This is used to store the GPU metatadata for each kernel from each process.
-     */
-    typedef struct FTIT_gpuInfoMetadata{
-        int             groupRank;            /**< Rank of the process in the group           */
-        FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
-    }FTIT_gpuInfoMetadata; 
+//    /** @typedef    FTIT_gpuInfo
+//     *  @brief      Stores data necessary for GPU kernel interruption.
+//     *
+//     *  This type stores all the GPU data necessary for kernel interruption. 
+//     */
+//    typedef struct FTIT_gpuInfo{
+//        int*            id;                   /**< ID to search/update dataset.                          */
+//        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
+//        bool*           all_done;             /**< Record of processes that have completed kernel        */
+//        bool*           complete;             /**< Whether kernel is done or not                         */
+//        bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
+//        bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
+//        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
+//        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
+//    }FTIT_gpuInfo;
+//
+//    /** @typedef    FTIT_gpuInfoMetadata
+//     *  @brief      Stores GPU metadata necessary for restart.
+//     *
+//     *  This is used to store the GPU metatadata for each kernel from each process.
+//     */
+//    typedef struct FTIT_gpuInfoMetadata{
+//        int             groupRank;            /**< Rank of the process in the group           */
+//        FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
+//    }FTIT_gpuInfoMetadata; 
 
     /** @typedef    FTIT_metadata
      *  @brief      Metadata for restart.
