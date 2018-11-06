@@ -14,12 +14,17 @@ if(ENABLE_FORTRAN)
 	target_compile_options(fcheck.exe PRIVATE -cpp)
 endif()
 
+set(IO 3)
+set(IO_NAMES "POSIX MPIIO FTIFF")
+
 if(ENABLE_SIONLIB)
-    set(IO 4)
-    set(IO_NAMES "POSIX MPIIO FTIFF SIONLIB")
-else()
-    set(IO 3)
-    set(IO_NAMES "POSIX MPIIO FTIFF")
+    MATH(EXPR IO "${IO}+1")
+    set(IO_NAMES "${IO_NAMES} SIONLIB")
+endif()
+
+if(ENABLE_HDF5)
+    MATH(EXPR IO "${IO}+1")
+    set(IO_NAMES "${IO_NAMES} HDF5")
 endif()
 
 set(DIR ${CMAKE_BINARY_DIR}/)

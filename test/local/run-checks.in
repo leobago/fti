@@ -23,6 +23,7 @@ FAILED=0
 SUCCEED=0
 FAULTY=0
 testFailed=0
+io_mode=0
 display_usage() {
 cat <<EOF
 Usage: ./run-checks.sh [options]
@@ -179,6 +180,20 @@ EOF
 #								 #
 # ---- FUNCTION DEFINITIONS ---- #
 #								 #
+get_io() {
+    if [ "$1" = "POSIX" ]; then
+        io_mode=1
+    elif [ "$1" = "MPIIO" ]; then 
+        io_mode=2
+    elif [ "$1" = "FTIFF" ]; then 
+        io_mode=3
+    elif [ "$1" = "SIONLIB" ]; then 
+        io_mode=4
+    elif [ "$1" = "HDF5" ]; then 
+        io_mode=5
+    fi
+}
+
 should_not_fail() {
 	if [ $1 = 0 ]; then
 	    echo -e "\033[0;32mpassed\033[m"
@@ -289,80 +304,81 @@ INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
 
-#                     #
-# ---- Check dCP ---- #
-#                     #
-echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 1 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-
-#                     #
-# ---- Check iCP ---- #
-#                     #
-echo -e "[ \033[1m*** Testing iCP: head=0 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 1 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-#                     #
-# ---- Check GIO ---- #
-#                     #
-echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
-( set -x; bash checkGIO.sh 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "GIO check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
-( set -x; bash checkGIO.sh 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "GIO check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-
-#                     #
-# ---- Check KL4 ---- #
-#                     #
-echo -e "[ \033[1m*** Testing KL4: head=0 ***\033[m ]"
-( set -x; bash checkKL4.sh 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
-( set -x; bash checkKL4.sh 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=1) failed" >> failed.log
-    testFailed=0
-fi
+##                     #
+## ---- Check dCP ---- #
+##                     #
+#echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
+#( set -x; bash checkDCP.sh 0 NOICP &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "dCP check (head=0) failed" >> failed.log
+#    testFailed=0
+#fi
+#echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
+#( set -x; bash checkDCP.sh 1 NOICP &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "dCP check (head=1) failed" >> failed.log
+#    testFailed=0
+#fi
+#
+##                     #
+## ---- Check iCP ---- #
+##                     #
+#echo -e "[ \033[1m*** Testing iCP: head=0 ***\033[m ]"
+#( set -x; bash checkDCP.sh 0 ICP &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "dCP check (head=0) failed" >> failed.log
+#    testFailed=0
+#fi
+#echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
+#( set -x; bash checkDCP.sh 1 ICP &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "dCP check (head=1) failed" >> failed.log
+#    testFailed=0
+#fi
+##                     #
+## ---- Check GIO ---- #
+##                     #
+#echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
+#( set -x; bash checkGIO.sh 1 &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "GIO check (head=1) failed" >> failed.log
+#    testFailed=0
+#fi
+#echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
+#( set -x; bash checkGIO.sh 0 &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "GIO check (head=0) failed" >> failed.log
+#    testFailed=0
+#fi
+#
+##                     #
+## ---- Check KL4 ---- #
+##                     #
+#echo -e "[ \033[1m*** Testing KL4: head=0 ***\033[m ]"
+#( set -x; bash checkKL4.sh 0 &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "KL4 check (head=0) failed" >> failed.log
+#    testFailed=0
+#fi
+#echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
+#( set -x; bash checkKL4.sh 1 &>> check.log )
+#check_return_val $?
+#if [ $testFailed = 1 ]; then
+#    echo -e "KL4 check (head=1) failed" >> failed.log
+#    testFailed=0
+#fi
 
 for io in $(seq 1 @IO@); do
     let io_id=io-1
-    awk -v var="$io" '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
+    get_io ${IO_NAMES[$io_id]}
+    awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
     for keep in ${KEEP[*]}; do
         NAME="H0K"$keep"I111"
         #                  #
