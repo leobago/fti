@@ -294,7 +294,6 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
   FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
 
   int i = 0;
-  //TODO check that necessary frees were done
   for(i = 0; i < FTI_Exec->nbKernels; i++){
 
     /* Allocations */
@@ -302,7 +301,6 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
     size_t *block_amt             = talloc(size_t, 1);
     bool *complete                = talloc(bool, 1);
     unsigned int *quantum         = talloc(unsigned int, 1);
-    //bool *quantum_expired         = talloc(bool, 1);
     FTI_Exec->gpuInfo[i].all_done = talloc(bool, FTI_Topo->nbProc);
 
     /* Return if any allocations failed */
@@ -310,7 +308,6 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
     if(block_amt                      == NULL){return FTI_NSCS;}
     if(complete                       == NULL){return FTI_NSCS;}
     if(quantum                        == NULL){return FTI_NSCS;}
-    //if(quantum_expired                == NULL){return FTI_NSCS;}
     if(FTI_Exec->gpuInfo[i].all_done  == NULL){return FTI_NSCS;}
 
     snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
@@ -335,10 +332,6 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
     sscanf(str_quantum, "%u", quantum);
     FTI_Exec->gpuInfo[i].quantum = quantum;
 
-    //snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-    //*quantum_expired = iniparser_getboolean(ini, str, -1);
-    //FTI_Exec->gpuInfo[i].quantum_expired = quantum_expired;
-
     size_t idx = 0;
     for(idx = 0; idx < FTI_Topo->nbProc; idx++){
       snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
@@ -356,45 +349,6 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
       FTI_Exec->gpuInfo[i].h_is_block_executed[idx] = iniparser_getboolean(ini, str, -1);
     }
   }
-
-  //size_t num_blocks_true = 0;
-  //size_t num_blocks_false = 0;
-  //size_t all_done_true = 0;
-  //size_t all_done_false = 0;
-  //size_t idx = 0;
-  //i = i - 1;
-
-  //for(idx = 0; idx < FTI_Topo->nbProc; idx++){
-  //  if(FTI_Exec->gpuInfo[i].all_done[idx]){
-  //    all_done_true = all_done_true + 1;
-  //  }
-  //  else{
-  //    all_done_false = all_done_false + 1;
-  //  }
-  //}
-
-  //for(idx = 0; idx < *FTI_Exec->gpuInfo[i].block_amt; idx++){
-  //  if(FTI_Exec->gpuInfo[i].h_is_block_executed[idx]){
-  //    num_blocks_true = num_blocks_true + 1;
-  //  }
-  //  else{
-  //    num_blocks_false = num_blocks_false + 1; 
-  //  }
-  //}
-
-  //fprintf(stdout, "comm,rank,id,block_amt,all_doneTrue,all_doneFalse,complete,num_blocks_true,num_blocks_false,quantum,quantum_expired\n%s,%d,%d,%zu,%zu,%zu,%s,%zu,%zu,%u,%s\n",
-  //    "restart",
-  //    FTI_Topo->myRank,
-  //    *FTI_Exec->gpuInfo[i].id,
-  //    *FTI_Exec->gpuInfo[i].block_amt,
-  //    all_done_true,
-  //    all_done_false,
-  //    *FTI_Exec->gpuInfo[i].complete ? "True" : "False",
-  //    num_blocks_true,
-  //    num_blocks_false,
-  //    *FTI_Exec->gpuInfo[i].quantum,
-  //    *FTI_Exec->gpuInfo->quantum_expired ? "True" : "False");
-  //fflush(stdout);
 
   return FTI_SCES;
 }
@@ -452,9 +406,6 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Exec->meta[i].pfs[0] = iniparser_getlint(ini, str, -1);
 
                     FTI_Exec->meta[i].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
-
-                    //fprintf(stdout, "%d group rank: %d:%s\n", FTI_Topo->myRank, FTI_Topo->groupRank, metaFileName);
-                    //fflush(stdout);
 
                     int k;
                     for (k = 0; k < FTI_BUFS; k++) {
@@ -613,10 +564,6 @@ static int FTI_WriteGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Top
     snprintf(buf, FTI_BUFS, "%u", *FTI_GpuInfoMetadata[groupIdx].FTI_GpuInfo[i].quantum);
     iniparser_set(ini, str, buf);
 
-    //snprintf(str, FTI_BUFS, "%s:quantum_expired", gpuInfoSection);
-    //snprintf(buf, FTI_BUFS, "%s", *FTI_GpuInfoMetadata[groupIdx].FTI_GpuInfo[i].quantum_expired ? "T" : "F");
-    //iniparser_set(ini, str, buf);
-
     int j = 0;
     for(j = 0; j < FTI_Topo->nbProc; j++){
       snprintf(str, FTI_BUFS, "%s:all_done%d", gpuInfoSection, j); 
@@ -750,65 +697,19 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
-//TODO remember to delete this
-//static void printGpuInfo(FTIT_gpuInfo *GpuInfo, int nbProc, int rank, char *comm, int groupHead){
-//  size_t num_blocks_true = 0;
-//  size_t num_blocks_false = 0;
-//  size_t all_done_true = 0;
-//  size_t all_done_false = 0;
-//  size_t i = 0;
-//
-//  for(i = 0; i < nbProc; i++){
-//    if(GpuInfo->all_done[i]){
-//      all_done_true = all_done_true + 1;
-//    }
-//    else{
-//      all_done_false = all_done_false + 1;
-//    }
-//  }
-//
-//  for(i = 0; i < *GpuInfo->block_amt; i++){
-//    if(GpuInfo->h_is_block_executed[i]){
-//      num_blocks_true = num_blocks_true + 1;
-//    }
-//    else{
-//      num_blocks_false = num_blocks_false + 1; 
-//    }
-//  }
-//
-//  if(groupHead == -1){
-//    fprintf(stdout, "comm,rank,id,block_amt,all_doneTrue,all_doneFalse,complete,num_blocks_true,num_blocks_false,quantum,quantum_expired\n%s,%d,%d,%zu,%zu,%zu,%s,%zu,%zu,%u,%s\n", 
-//           comm,
-//           rank,
-//           *GpuInfo->id,
-//           *GpuInfo->block_amt,
-//           all_done_true,
-//           all_done_false,
-//           *GpuInfo->complete ? "True" : "False",
-//           num_blocks_true,
-//           num_blocks_false,
-//           *GpuInfo->quantum, 
-//           *GpuInfo->quantum_expired ? "True" : "False");
-//    fflush(stdout);
-//  }
-//  else{
-//    fprintf(stdout, "comm,rank,id,block_amt,all_doneTrue,all_doneFalse,complete,num_blocks_true,num_blocks_false,quantum,quantum_expired,grpHead\n%s,%d,%d,%zu,%zu,%zu,%s,%zu,%zu,%u,%s,%d\n", 
-//           comm,
-//           rank,
-//           *GpuInfo->id,
-//           *GpuInfo->block_amt,
-//           all_done_true,
-//           all_done_false,
-//           *GpuInfo->complete == true ? "True" : "False",
-//           num_blocks_true,
-//           num_blocks_false,
-//           *GpuInfo->quantum, 
-//           *GpuInfo->quantum_expired == true ? "True" : "False",
-//           groupHead);
-//    fflush(stdout);
-//  }
-//}
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It writes the metadata to recover the data after a failure.
+  @param      FTI_GpuInfoMetadata   Gpu metadata.
+  @param      FTI_Topo              Topology metadata.
+  @param      FTI_Exec              Execution metadata.
+  @return     integer               FTI_SCES if successful.
 
+  This function should be executed only by one process per group. It
+  writes the metadata file used to recover in case of failure.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FreeGpuMetadata(FTIT_gpuInfoMetadata* FTI_GpuInfoMetadata, FTIT_topology* FTI_Topo, FTIT_execution *FTI_Exec){
   if(FTI_GpuInfoMetadata != NULL){
     unsigned int i = 0;
@@ -825,7 +726,6 @@ int FTI_FreeGpuMetadata(FTIT_gpuInfoMetadata* FTI_GpuInfoMetadata, FTIT_topology
         free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete);
         free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed);
         free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum);
-        //free((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired);
       }
       free(FTI_GpuInfoMetadata[i].FTI_GpuInfo);
     } 
@@ -858,14 +758,12 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
     int dest= 0; //Send to head of group
 
     for(i = 0; i < FTI_Exec->nbKernels; i++){  
-      //printGpuInfo(&FTI_Exec->gpuInfo[i], FTI_Topo->nbProc, FTI_Topo->myRank, "SEND", -1);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].id, 1, MPI_INT, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].all_done, FTI_Topo->nbProc, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].complete, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].h_is_block_executed, *FTI_Exec->gpuInfo[i].block_amt, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].quantum, 1, MPI_UNSIGNED, dest, tag, FTI_Exec->groupComm);
-      //MPI_Send((const void*)FTI_Exec->gpuInfo[i].quantum_expired, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
     }
   }
   else{
@@ -880,8 +778,6 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
       FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i].complete            = FTI_Exec->gpuInfo[i].complete;
       FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i].h_is_block_executed = FTI_Exec->gpuInfo[i].h_is_block_executed;
       FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i].quantum             = FTI_Exec->gpuInfo[i].quantum;
-      //FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i].quantum_expired     = FTI_Exec->gpuInfo[i].quantum_expired;
-      //printGpuInfo(&FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i], FTI_Topo->nbProc, FTI_Topo->myRank, "SEND", -1);
     }
   }
 
@@ -897,7 +793,6 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete             = talloc(bool, FTI_Exec->nbKernels);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed  = talloc(bool, *FTI_Exec->gpuInfo[j].block_amt);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum              = talloc(unsigned int, FTI_Exec->nbKernels);
-        //FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired      = talloc(bool, FTI_Exec->nbKernels);
 
         if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id                   == NULL){return FTI_NSCS;}
         if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt            == NULL){return FTI_NSCS;}
@@ -905,20 +800,13 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
         if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete             == NULL){return FTI_NSCS;}
         if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed  == NULL){return FTI_NSCS;}
         if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum              == NULL){return FTI_NSCS;}
-        //if(FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired      == NULL){return FTI_NSCS;}
       }
     }
 
     /* Now receive data */
-    //MPI_Status *status = malloc(sizeof(MPI_Status) * 7);
     int src = 0;
     int tag = 0;
     FTI_GpuInfoMetadata[FTI_Topo->groupRank].groupRank = FTI_Topo->groupRank; /* Necessary so that kernel information is mapped to rank of process in group */
-
-    //TODO remove this debugging loop
-    //for(i = 0; i < FTI_Exec->nbKernels; i++){
-    //  printGpuInfo(&FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo[i], FTI_Topo->nbProc, FTI_Topo->myRank, "RECV", FTI_Topo->myRank);
-    //}
 
     for(i = 1; i < FTI_Topo->groupSize; i++){
       src = i; /* Rank of process in group from which to receive data */
@@ -933,36 +821,6 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed, *FTI_Exec->gpuInfo[j].block_amt, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum, 1, MPI_UNSIGNED, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id, 1, MPI_INT, src, tag, FTI_Exec->groupComm, &status[0]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt, 1, MPI_UNSIGNED_LONG_LONG, src, tag, FTI_Exec->groupComm, &status[1]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done, FTI_Topo->nbProc, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, &status[2]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, &status[3]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed, *FTI_Exec->gpuInfo[j].block_amt, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, &status[4]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum, 1, MPI_UNSIGNED, src, tag, FTI_Exec->groupComm, &status[5]);
-        //MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum_expired, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, &status[6]);
-        //if(status[0].MPI_SOURCE == status[1].MPI_SOURCE && 
-        //   status[1].MPI_SOURCE == status[2].MPI_SOURCE && 
-        //   status[2].MPI_SOURCE == status[3].MPI_SOURCE && 
-        //   status[3].MPI_SOURCE == status[4].MPI_SOURCE &&
-        //   status[4].MPI_SOURCE == status[5].MPI_SOURCE &&
-        //   status[5].MPI_SOURCE == status[6].MPI_SOURCE){
-        //   printGpuInfo(&FTI_GpuInfoMetadata[i].FTI_GpuInfo[j], FTI_Topo->nbProc, status[0].MPI_SOURCE, "RECV", FTI_Topo->myRank);
-        //}
-        //else{
-        //  fprintf(stdout, "%d: Something is wrong!!%d,%d,%d,%d,%d,%d,%d\n", 
-        //      i, 
-        //      status[0].MPI_SOURCE,
-        //      status[1].MPI_SOURCE,
-        //      status[2].MPI_SOURCE,
-        //      status[3].MPI_SOURCE,
-        //      status[4].MPI_SOURCE,
-        //      status[5].MPI_SOURCE,
-        //      status[6].MPI_SOURCE
-        //      );
-        //  fflush(stdout);
-        //}
       }
     }
   }

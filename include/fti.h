@@ -118,12 +118,12 @@ extern "C" {
  */
 #define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)              \
 do{                                                                                                       \
-    FTIT_gpuInfo FTI_MacroInfo;                                                                             \
+    FTIT_gpuInfo FTI_MacroInfo;                                                                           \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
                                                                                                           \
-    ret = FTI_BACKUP_init(&FTI_MacroInfo, kernel_id, quantum, grid_dim);                                    \
+    ret = FTI_BACKUP_init(&FTI_MacroInfo, kernel_id, quantum, grid_dim);                                  \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -133,25 +133,26 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(FTI_MacroInfo.all_done) == false)                                        \
+      /*TODO is it necessary to pass out all_done again? It's being tracked internally. */                \
+      while(FTI_all_procs_complete(FTI_MacroInfo.all_done) == false)                                      \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
-        if(*FTI_MacroInfo.complete == false){                                                               \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo.quantum_expired,                        \
-              FTI_MacroInfo.d_is_block_executed,                                                            \
+        if(*FTI_MacroInfo.complete == false){                                                             \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo.quantum_expired,                      \
+              FTI_MacroInfo.d_is_block_executed,                                                          \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                              \
+        FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                            \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
           FTI_BACKUP_Print(str, FTI_EROR);                                                                \
         }                                                                                                 \
-        if(*FTI_MacroInfo.complete == false){                                                               \
+        if(*FTI_MacroInfo.complete == false){                                                             \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        MPI_Allgather(FTI_MacroInfo.complete, 1, MPI_C_BOOL, FTI_MacroInfo.all_done, 1, MPI_C_BOOL,           \
+        MPI_Allgather(FTI_MacroInfo.complete, 1, MPI_C_BOOL, FTI_MacroInfo.all_done, 1, MPI_C_BOOL,       \
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
     }                                                                                                     \
