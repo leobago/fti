@@ -26,7 +26,7 @@ typedef struct FTIT_kernelProtectHandle{
   int                 id;                    /**< ID of protected kernel.                                    */
   bool*               complete;              /**< Boolean value to set to true when kernel is complete       */
   size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
-  useconds_t          quantum;               /**< Time to wait before interrupting kernel.                   */
+  useconds_t*         quantum;               /**< Time to wait before interrupting kernel.                   */
   useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
   size_t              block_info_bytes;      /**< Size of memory required for boolean array.                 */
   volatile bool*      quantum_expired;       /**< Checked by kernel to determine whether to return.          */
@@ -149,7 +149,7 @@ static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
   unsigned int kernel_index = 0;
 
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
-  
+
   if(kernel_protected){
     handle = &FTI_KernelProtectHandle[kernel_index];
   }
@@ -161,7 +161,6 @@ static FTIT_kernelProtectHandle* getKernelProtectHandle(int kernelId){
 }
 
 /* A better re-write? */
-//int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks){
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks){
   size_t i = 0;
   unsigned int kernel_index = 0;
@@ -173,8 +172,6 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
   handle->id                  = kernelId;
   handle->initial_quantum     = seconds_to_microseconds(quantum);
 
-  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(handle->quantum_expired), sizeof(volatile bool), cudaHostAllocMapped));
-
   if(!kernel_protected){
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
@@ -183,16 +180,17 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
 
     handle->block_amt = num_blocks.x * num_blocks.y * num_blocks.z;
     handle->block_info_bytes = handle->block_amt * sizeof(bool);
-    handle->quantum = seconds_to_microseconds(quantum);
     handle->suspension_count = 0; //TODO is this even necessary, kernel launch macro has its own count
 
     handle->h_is_block_executed = (bool *)malloc(handle->block_info_bytes);
     handle->all_done_array = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
     handle->complete = (bool *)malloc(sizeof(bool));
+    handle->quantum = (useconds_t *)malloc(sizeof(useconds_t));
 
     if(handle->h_is_block_executed  == NULL){return FTI_NSCS;}
     if(handle->all_done_array       == NULL){return FTI_NSCS;}
     if(handle->complete             == NULL){return FTI_NSCS;}
+    if(handle->quantum              == NULL){return FTI_NSCS;}
 
     for(i = 0; i < FTI_Topo->nbProc; i++){
       handle->all_done_array[i] = false;
@@ -203,41 +201,43 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     }
 
     *handle->complete = false;
-    *handle->quantum_expired = false;
+    *handle->quantum = seconds_to_microseconds(quantum);
 
     /* Add information necessary to protect interrupt info */
-    FTI_GpuInfo[FTI_Exec->nbKernels].id                   = &handle->id; 
+    FTI_GpuInfo[FTI_Exec->nbKernels].id                   = &handle->id;
     FTI_GpuInfo[FTI_Exec->nbKernels].complete             = handle->complete;
     FTI_GpuInfo[FTI_Exec->nbKernels].block_amt            = &handle->block_amt;
     FTI_GpuInfo[FTI_Exec->nbKernels].all_done             = handle->all_done_array;
     FTI_GpuInfo[FTI_Exec->nbKernels].h_is_block_executed  = handle->h_is_block_executed;
-    FTI_GpuInfo[FTI_Exec->nbKernels].quantum              = &handle->quantum;
-    FTI_GpuInfo[FTI_Exec->nbKernels].quantum_expired      = handle->quantum_expired;
+    FTI_GpuInfo[FTI_Exec->nbKernels].quantum              = handle->quantum;
+    //FTI_GpuInfo[FTI_Exec->nbKernels].quantum_expired      = handle->quantum_expired;
     FTI_Exec->nbKernels                                   = FTI_Exec->nbKernels + 1;
-  }  
+  }
   else{
     //TODO ensure only references are restored and not values so that
     //the gpu data can be updated correctly for all future checkpoints!
-    handle->complete              = FTI_GpuInfo[kernel_index].complete;
+    handle->complete              =  FTI_GpuInfo[kernel_index].complete;
     handle->all_done_array        =  FTI_GpuInfo[kernel_index].all_done;
-    *handle->quantum_expired      = *FTI_GpuInfo[kernel_index].quantum_expired;
+    //*handle->quantum_expired       =  *FTI_GpuInfo[kernel_index].quantum_expired;
     handle->block_info_bytes      = *FTI_GpuInfo[kernel_index].block_amt * sizeof(bool);
     handle->block_amt             = *FTI_GpuInfo[kernel_index].block_amt;
     handle->h_is_block_executed   =  FTI_GpuInfo[kernel_index].h_is_block_executed;
-    handle->quantum               = *FTI_GpuInfo[kernel_index].quantum;
+    handle->quantum               =  FTI_GpuInfo[kernel_index].quantum;
   }
 
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(handle->d_is_block_executed), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(handle->d_is_block_executed, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
+  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(handle->quantum_expired), sizeof(volatile bool), cudaHostAllocMapped));
+  *handle->quantum_expired = false;
 
   /* Add information for Macro */
-  GpuMacroInfo->id                   = &handle->id; 
+  GpuMacroInfo->id                   = &handle->id;
   GpuMacroInfo->complete             = handle->complete;
-  GpuMacroInfo->block_amt            = &handle->block_amt;
+  //GpuMacroInfo->block_amt            = &handle->block_amt;
   GpuMacroInfo->all_done             = handle->all_done_array;
-  GpuMacroInfo->h_is_block_executed  = handle->h_is_block_executed;
+  //GpuMacroInfo->h_is_block_executed  = handle->h_is_block_executed;
   GpuMacroInfo->d_is_block_executed  = handle->d_is_block_executed;
-  GpuMacroInfo->quantum              = &handle->quantum;
+  //GpuMacroInfo->quantum              = handle->quantum;
   GpuMacroInfo->quantum_expired      = handle->quantum_expired;
 
   return FTI_SCES;
@@ -245,14 +245,14 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
 /**
  * @brief              Initializes the backup library.
  * @param[in,out]      timeout      Pinned variable used by host to communicate with kernel.
- * @param[in,out]      b_info       The boolean array to be passed to kernel. 
+ * @param[in,out]      b_info       The boolean array to be passed to kernel.
  * @param[in]          q            The quantum for the kernel execution time.
  * @param[in,out]      complete     Track reference to tell kernel execution loop when to quit.
  * @param[in]          num_blocks   The number of blocks used in the kernel launch.
- * @return             #FTI_SCES or #FTI_NSCS for success or failure respectively. 
+ * @return             #FTI_SCES or #FTI_NSCS for success or failure respectively.
  *
  * This function sets up the library to interrupt the kernel. Variables to track the kernel
- * execution are initialized and kept track of. Of particular importance is the *timeout* and 
+ * execution are initialized and kept track of. Of particular importance is the *timeout* and
  * boolean array (*b_info*). The timeout is allocated using cudaHostAlloc() so that the host
  * may communicate with the device directly without an explicit memory copy. The boolean array
  * has a size of *num_blocks* and has a record of which blocks have executed at each interrupt.
@@ -369,6 +369,8 @@ int FTI_FreeGpuInfo()
   for(i = 0; i < FTI_Exec->nbKernels; i++){
      free(FTI_Exec->gpuInfo[i].all_done);
      free(FTI_Exec->gpuInfo[i].h_is_block_executed);
+     free(FTI_Exec->gpuInfo[i].complete);
+     free(FTI_Exec->gpuInfo[i].quantum);
      CUDA_ERROR_CHECK(cudaFree(FTI_KernelProtectHandle[i].d_is_block_executed));
      CUDA_ERROR_CHECK(cudaFreeHost((void *)FTI_KernelProtectHandle[i].quantum_expired));
   }
@@ -388,7 +390,7 @@ static inline void wait(FTIT_kernelProtectHandle *handle)
 {
   FTI_Print("IN kernel wait function", FTI_DBUG);
   char str[FTI_BUFS];
-  int q = handle->quantum / 1000000.0f; /* Convert to seconds */
+  int q = *handle->quantum / 1000000.0f; /* Convert to seconds */
 
   /* If quantum is in seconds or minutes check kernel every second */
   if(q != 0)
@@ -414,7 +416,7 @@ static inline void wait(FTIT_kernelProtectHandle *handle)
   else
   {
     FTI_Print("Sleeping...", FTI_DBUG);
-    usleep(handle->quantum);
+    usleep(*handle->quantum);
   }
 }
 
@@ -437,11 +439,16 @@ static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle)
   FTI_Print("Attempting to snapshot", FTI_DBUG);
 
   FTI_Print("Waiting on kernel...", FTI_DBUG);
-  CUDA_ERROR_CHECK(cudaDeviceSynchronize());
+  //CUDA_ERROR_CHECK(cudaDeviceSynchronize());
+  cudaError_t e = cudaDeviceSynchronize();
+  if(e != cudaSuccess){
+    fprintf(stdout, "Cuda synch error: %s\n", cudaGetErrorString(e));
+    exit(EXIT_FAILURE);
+  }
   FTI_Print("Kernel came back...", FTI_DBUG);
 
   int res = FTI_Snapshot();
-  
+
   if(res == FTI_DONE)
   {
     FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
@@ -451,7 +458,14 @@ static inline int signal_gpu_then_wait(FTIT_kernelProtectHandle *handle)
     FTI_Print("No snapshot was taken", FTI_DBUG);
   }
 
-  CUDA_ERROR_CHECK(cudaMemcpy(handle->h_is_block_executed, handle->d_is_block_executed, handle->block_info_bytes, cudaMemcpyDeviceToHost)); 
+  //CUDA_ERROR_CHECK(cudaMemcpy(handle->h_is_block_executed, handle->d_is_block_executed, handle->block_info_bytes, cudaMemcpyDeviceToHost));
+  cudaError_t err = cudaMemcpy(handle->h_is_block_executed, handle->d_is_block_executed, handle->block_info_bytes, cudaMemcpyDeviceToHost);
+
+  if(err != cudaSuccess){
+    fprintf(stdout, "Cuda error: %s\n", cudaGetErrorString(err));
+    exit(EXIT_FAILURE);
+  }
+
   FTI_Print("Checking if complete", FTI_DBUG);
   computation_complete(handle);
 
@@ -479,9 +493,9 @@ static inline void handle_gpu_suspension(FTIT_kernelProtectHandle *handle)
     FTI_Print("Incomplete, resuming", FTI_DBUG);
     *handle->quantum_expired = false;
 
-    handle->quantum = handle->quantum + handle->initial_quantum;
+    *handle->quantum = *handle->quantum + handle->initial_quantum;
 
-    sprintf(str, "Quantum is now: %u", handle->quantum);
+    sprintf(str, "Quantum is now: %u", *handle->quantum);
     FTI_Print(str, FTI_DBUG);
     handle->suspension_count++; 
   }

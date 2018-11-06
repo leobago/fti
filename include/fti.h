@@ -116,20 +116,14 @@ extern "C" {
  *
  * @remark *ns* and *s* must be specified and can be set to 0 if not used.
  */
-#define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)                     \
+#define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)              \
 do{                                                                                                       \
-    FTIT_gpuInfo FTI_GpuInfo;                                                                                 \
-    /*bool complete;                                                                                        \
-    volatile bool *quantum_expired = NULL;                                                                \
-    bool *all_processes_done = NULL;                                                                      \
-    bool *block_info = NULL;*/                                                                              \
+    FTIT_gpuInfo FTI_MacroInfo;                                                                             \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
-    /*int kernel_id = id; */                                                                                  \
-    ret = FTI_BACKUP_init(&FTI_GpuInfo, kernel_id, quantum, grid_dim);                                           \
-    /*ret = FTI_BACKUP_init(kernel_id, &quantum_expired, &block_info, quantum,                              \
-                     &complete, &all_processes_done, grid_dim);*/                                           \
+                                                                                                          \
+    ret = FTI_BACKUP_init(&FTI_MacroInfo, kernel_id, quantum, grid_dim);                                    \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -139,24 +133,25 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(FTI_GpuInfo.all_done) == false)                                          \
+      while(FTI_all_procs_complete(FTI_MacroInfo.all_done) == false)                                        \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
-        if(*FTI_GpuInfo.complete == false){                                                                            \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_GpuInfo.quantum_expired, FTI_GpuInfo.d_is_block_executed,                        \
-                      ## __VA_ARGS__);                                                                   \
+        if(*FTI_MacroInfo.complete == false){                                                               \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo.quantum_expired,                        \
+              FTI_MacroInfo.d_is_block_executed,                                                            \
+                      ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(*FTI_GpuInfo.id);                                                                    \
+        FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                              \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
           FTI_BACKUP_Print(str, FTI_EROR);                                                                \
         }                                                                                                 \
-        if(*FTI_GpuInfo.complete == false){                                                                            \
+        if(*FTI_MacroInfo.complete == false){                                                               \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        MPI_Allgather(FTI_GpuInfo.complete, 1, MPI_C_BOOL, FTI_GpuInfo.all_done, 1, MPI_C_BOOL,                        \
+        MPI_Allgather(FTI_MacroInfo.complete, 1, MPI_C_BOOL, FTI_MacroInfo.all_done, 1, MPI_C_BOOL,           \
             FTI_COMM_WORLD);                                                                              \
       }                                                                                                   \
     }                                                                                                     \
@@ -231,7 +226,6 @@ do{                                                                             
 
 bool FTI_all_procs_complete(bool *procs);                                                             
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
-//int FTI_BACKUP_init(int kernelId, volatile bool **timeout, bool **b_info, double q, bool *complete, bool **all_processes_done, dim3 num_blocks);
 int FTI_BACKUP_monitor(int kernelId);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
