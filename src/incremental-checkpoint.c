@@ -775,9 +775,9 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
     char str[FTI_BUFS], fn[FTI_BUFS];
     
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS,
-                "Ckpt%d-Rank%d.h5", FTI_Exec.ckptID, FTI_Topo.myRank);
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
+        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+                "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 
     int level = FTI_Exec->ckptLvel;
