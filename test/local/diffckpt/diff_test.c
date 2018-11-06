@@ -13,7 +13,7 @@ int main() {
     
     dcp_info_t info;
     init( &info, ALLOC_SIZE );
-   
+    
     protect_buffers( &info );
     if (FTI_Status() == 0) {
         reallocate_buffers( &info, ALLOC_SIZE, ALLOC_RANDOM );
@@ -35,6 +35,7 @@ int main() {
         checkpoint( &info, i+2, FTI_L4_DCP );
         //FTI_Checkpoint( i+3, FTI_L4_DCP );
         checkpoint( &info, i+3, FTI_L4_DCP );
+        MPI_Barrier(FTI_COMM_WORLD);
         if ( numHeads > 0 ) {
             int value = FTI_ENDW;
             MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);

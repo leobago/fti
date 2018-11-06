@@ -75,29 +75,29 @@ enum ALLOC_FLAGS {
     ALLOC_RANDOM
 };
 
-int grank;
+static int grank;
 
-int numHeads;
-int finalTag;
-int headRank;
+extern int numHeads;
+extern int finalTag;
+extern int headRank;
 
-FTIT_type FTI_UI;
-FTIT_type FTI_XOR_INFO;
-uint32_t pat;
-double share_ratio;
+static FTIT_type FTI_UI;
+static FTIT_type FTI_XOR_INFO;
+static uint32_t pat;
+static double share_ratio;
 
-int A[1];
-int B[2];
-int C[3];
-int D[4];
-int E[5];
-int F[6];
-int G[7];
-int H[8];
-int I[9];
-int J[10];
+extern int A[1];
+extern int B[2];
+extern int C[3];
+extern int D[4];
+extern int E[5];
+extern int F[6];
+extern int G[7];
+extern int H[8];
+extern int I[9];
+extern int J[10];
 
-int **SHARE;
+extern int **SHARE;
 
 void init_share();
 

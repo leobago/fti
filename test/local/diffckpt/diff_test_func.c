@@ -15,6 +15,8 @@ int H[8]  = {8,12,23,7,15,8,13,14};
 int I[9]  = {7,13,21,9,12,8,8,13,9};
 int J[10] = {2,6,14,8,5,12,7,11,15,20};
 
+int **SHARE;
+
 void init_share() {
     
     SHARE = (int**) malloc( 10 * sizeof(int*) );
