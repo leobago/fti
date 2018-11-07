@@ -168,6 +168,13 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Info info;
     MPI_Info_create(&info);
     MPI_Info_set(info, "romio_cb_write", "enable");
+    
+    /* 
+     * update ckpt file name (neccessary for the restart!)
+     * not very nice TODO we should think about another mechanism
+     */
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
+            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     // TODO enable to set stripping unit in the config file (Maybe also other hints)
     // set stripping unit to 4MB
