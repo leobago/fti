@@ -26,6 +26,7 @@ typedef struct FTIT_kernelProtectHandle{
   int                 id;                    /**< ID of protected kernel.                                    */
   bool*               complete;              /**< Boolean value to set to true when kernel is complete       */
   size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
+  //TODO change useconds_t to unsigned int as per the notes in man usleep
   useconds_t*         quantum;               /**< Time to wait before interrupting kernel.                   */
   useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
   size_t              block_info_bytes;      /**< Size of memory required for boolean array.                 */
@@ -92,28 +93,6 @@ int FTI_gpu_protect_init(FTIT_topology *topo, FTIT_execution *exec)
   FTI_Exec = exec;
   FTI_GpuInfo = exec->gpuInfo;
   return FTI_SCES;
-}
-
-/**
- * @brief              Determines if all processes have executed their kernels.
- * @param[in]          procs The current FTI_Exec object.
- *
- * @return             True or False whether all processes are complete or not.
- *
- * This function iterates over the procs array. If all values in the array have
- * a true value then all processes have completed executing the current kernel.
- */
-bool FTI_all_procs_complete(bool *procs)
-{
-  FTI_Print("Checking if all procs complete", FTI_DBUG);
-  int i = 0;
-  for(i = 0; i < FTI_Topo->nbProc; i++)
-  {
-    if(procs[i] == false)break;
-  }
-  FTI_Print("Returning from checking if all procs complete", FTI_DBUG);
-
-  return (i == FTI_Topo->nbProc);
 }
 
 /**
@@ -185,6 +164,8 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
   handle->id                  = kernelId;
   handle->initial_quantum     = seconds_to_microseconds(quantum);
 
+  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(handle->quantum_expired), sizeof(volatile bool), cudaHostAllocMapped));
+
   if(!kernel_protected){
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
@@ -214,6 +195,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
 
     *handle->complete = false;
     *handle->quantum = seconds_to_microseconds(quantum);
+    *handle->quantum_expired = false;
 
     /* Add information necessary to protect interrupt info */
     FTI_GpuInfo[FTI_Exec->nbKernels].id                   = &handle->id;
@@ -233,13 +215,12 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     handle->block_amt             = *FTI_GpuInfo[kernel_index].block_amt;
     handle->h_is_block_executed   =  FTI_GpuInfo[kernel_index].h_is_block_executed;
     handle->quantum               =  FTI_GpuInfo[kernel_index].quantum;
+    *handle->quantum_expired      =  true;
   }
 
   //TODO check if removing the cast to void** affects anything
   CUDA_ERROR_CHECK(cudaMalloc((void **)&(handle->d_is_block_executed), handle->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(handle->d_is_block_executed, handle->h_is_block_executed, handle->block_info_bytes, cudaMemcpyHostToDevice));
-  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&(handle->quantum_expired), sizeof(volatile bool), cudaHostAllocMapped));
-  *handle->quantum_expired = false;
 
   /* Add information for Macro */
   GpuMacroInfo->id                   = &handle->id;
@@ -274,6 +255,31 @@ int FTI_FreeGpuInfo()
 }
 
 /**
+ * @brief              Determines if all processes have executed their kernels.
+ * @param[in]          kernelId The ID of the kernel to check.
+ *
+ * @return             True or False whether all processes are complete or not.
+ *
+ * This function iterates over the procs array. If all values in the array have
+ * a true value then all processes have completed executing the current kernel.
+ */
+bool FTI_all_procs_complete(int kernelId)
+{
+  FTI_Print("Checking if all procs complete", FTI_DBUG);
+
+  FTIT_kernelProtectHandle *handle = getKernelProtectHandle(kernelId);
+
+  int i = 0;
+  for(i = 0; i < FTI_Topo->nbProc; i++){
+    if(!handle->all_done_array[i]){
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * @brief           Waits for quantum to expire.
  *
  * Used in #FTI_BACKUP_monitor when initially waiting for the kernel to expire.
@@ -291,13 +297,16 @@ static inline void wait(FTIT_kernelProtectHandle *handle)
   /* If quantum is in seconds or minutes check kernel every second */
   if(q != 0)
   {
+    sprintf(str, "Sleeping for : %d seconds\n", q);
+    FTI_Print(str, FTI_DBUG);
+    
     cudaEvent_t event;
     cudaEventCreate(&event);
     cudaEventRecord(event, 0);
     cudaError_t err;
     while(q)
     {
-      err = cudaEventQuery(event); 
+      err = cudaEventQuery(event);
       sprintf(str, "Event Query: %s", cudaGetErrorString(err));
       FTI_Print(str, FTI_DBUG);
       if(err == cudaSuccess)
@@ -311,7 +320,8 @@ static inline void wait(FTIT_kernelProtectHandle *handle)
   }
   else
   {
-    FTI_Print("Sleeping...", FTI_DBUG);
+    sprintf(str, "Sleeping for : %u microseconds\n", *handle->quantum);
+    FTI_Print(str, FTI_DBUG);
     usleep(*handle->quantum);
   }
 }

@@ -133,8 +133,7 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      /*TODO is it necessary to pass out all_done again? It's being tracked internally. */                \
-      while(FTI_all_procs_complete(FTI_MacroInfo.all_done) == false)                                      \
+      while(FTI_all_procs_complete(kernel_id) == false)                                                   \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
@@ -143,7 +142,7 @@ do{                                                                             
               FTI_MacroInfo.d_is_block_executed,                                                          \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                            \
+        ret = FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                      \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -192,6 +191,7 @@ do{                                                                             
   }                                                                                                       \
   __syncthreads();                                                                                        \
                                                                                                           \
+  /*TODO chek this condition. At this point we know is_block_executed has to be false*/                   \
   if(quantum_expired && is_block_executed[bid] == false)                                                  \
   {                                                                                                       \
     return;                                                                                               \
@@ -225,7 +225,7 @@ do{                                                                             
         FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
     }FTIT_gpuInfoMetadata; 
 
-bool FTI_all_procs_complete(bool *procs);                                                             
+bool FTI_all_procs_complete(int kernelId);                                                             
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
 int FTI_BACKUP_monitor(int kernelId);
 void FTI_BACKUP_Print(char *msg, int priority);
