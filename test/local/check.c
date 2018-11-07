@@ -47,6 +47,7 @@
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
+#define WRONG_ENVIRONMENT 50
 #define KEEP 2
 #define RESTART 1
 #define INIT 0
@@ -127,7 +128,7 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
 
 int main(int argc, char* argv[]) {
 
-    unsigned char parity, crash, level, state, diff_sizes;
+    unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
     int FTI_APP_RANK, result, tmp, success = 1;
     double *A, *B, *B_chk;
 
@@ -144,6 +145,22 @@ int main(int argc, char* argv[]) {
     crash = atoi(argv[2]);
     level = atoi(argv[3]);
     diff_sizes = atoi(argv[4]);
+    
+
+    char *env = getenv("ENABLE_ICP");
+    if( env ) {
+        if( !strcmp(env, "ON") ) {
+            enable_icp = 1;
+        }
+        else if( !strcmp(env, "OFF") ) {
+            enable_icp = 0;
+        }
+        else {
+            exit(WRONG_ENVIRONMENT);
+        }
+    } else {
+        exit(WRONG_ENVIRONMENT);
+    }
 
     MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
@@ -210,7 +227,19 @@ int main(int argc, char* argv[]) {
     if (state == INIT) {
         init_arrays(A, B, asize);
         write_data(B, &asize, FTI_APP_RANK);
-        FTI_Checkpoint(1,level);
+        if ( enable_icp == 1 ) {
+            FTI_InitICP( 1, level, 1 );
+            FTI_AddVarICP( 2 );  
+            FTI_AddVarICP( 0 );  
+            FTI_AddVarICP( 1 );  
+            FTI_FinalizeICP();
+        } else
+        if ( enable_icp == 0 ) {
+            FTI_Checkpoint(1,level);
+        } else
+        {
+            exit(WRONG_ENVIRONMENT);
+        }
         MPI_Barrier(FTI_COMM_WORLD);
         
         if ( crash ) {
