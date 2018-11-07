@@ -15,27 +15,6 @@
 #include "interface.h"
 #include "api_cuda.h"
 
-///** @typedef    FTIT_kernelProtectHandle
-// *  @brief      Stores information specific to a protected kernel
-// *
-// *  The values stored in this structure are used to monitor and interrupt
-// *  an executing kernel. A type of this structure is used as a handle for
-// *  a protected kernel.
-// */
-//typedef struct FTIT_kernelProtectHandle{
-//  int                 id;                    /**< ID of protected kernel.                                    */
-//  bool*               complete;              /**< Boolean value to set to true when kernel is complete       */
-//  size_t              block_amt;             /**< Number of blocks launched by kernel.                       */
-//  //TODO change useconds_t to unsigned int as per the notes in man usleep
-//  useconds_t*         quantum;               /**< Time to wait before interrupting kernel.                   */
-//  useconds_t          initial_quantum;       /**< The initial quantum specified.                             */
-//  size_t              block_info_bytes;      /**< Size of memory required for boolean array.                 */
-//  volatile bool*      quantum_expired;       /**< Checked by kernel to determine whether to return.          */
-//  bool*               h_is_block_executed;   /**< Host boolean array. Each element represents a thread block */
-//  bool*               d_is_block_executed;   /**< Device-side boolean array.                                 */
-//  bool*               all_done_array;        /**< Keeps track of finished kernels                            */
-//}FTIT_kernelProtectHandle;
-
 /**
  * @brief              Initialized to reference to FTI_Topo.
  */
@@ -59,17 +38,17 @@ static FTIT_gpuInfo *FTI_GpuInfo = NULL;
  */
 static void computation_complete(FTIT_gpuInfo* FTI_GpuInfo)
 {
-  //TODO rewrite this similar to FTI_all_procs_complete()
   size_t i = 0;
+  bool complete = true;
   for(i = 0; i < *FTI_GpuInfo->block_amt; i++)
   {
-    if(FTI_GpuInfo->h_is_block_executed[i])
+    if(!FTI_GpuInfo->h_is_block_executed[i])
     {
-      continue;
+      complete = false; 
+      break;
     }
-    break;
   }
-  *FTI_GpuInfo->complete = (i == *FTI_GpuInfo->block_amt);
+  *FTI_GpuInfo->complete = complete;
 }
 
 /**
@@ -172,7 +151,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
       GpuMacroInfo->h_is_block_executed[i] = false;
     }
 
-    /* Add information necessary to protect interrupt info */
+    /* Save for checkpointing */
     FTI_GpuInfo[FTI_Exec->nbKernels].id                   = GpuMacroInfo->id;
     FTI_GpuInfo[FTI_Exec->nbKernels].complete             = GpuMacroInfo->complete;
     FTI_GpuInfo[FTI_Exec->nbKernels].block_amt            = GpuMacroInfo->block_amt;
@@ -182,8 +161,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     FTI_Exec->nbKernels                                   = FTI_Exec->nbKernels + 1;
   }
   else{
-    //TODO ensure only references are restored and not values so that
-    //the gpu data can be updated correctly for all future checkpoints!
+    /* Restore after restart */
     GpuMacroInfo->id                    =  FTI_GpuInfo[kernel_index].id;
     GpuMacroInfo->complete              =  FTI_GpuInfo[kernel_index].complete;
     GpuMacroInfo->all_done              =  FTI_GpuInfo[kernel_index].all_done;
@@ -215,6 +193,8 @@ int FTI_FreeGpuInfo()
   FTI_Print("Freeing memory used for GPU Info", FTI_DBUG);
   int i = 0;
   for(i = 0; i < FTI_Exec->nbKernels; i++){
+     free(FTI_Exec->gpuInfo[i].id);
+     free(FTI_Exec->gpuInfo[i].block_amt);
      free(FTI_Exec->gpuInfo[i].all_done);
      free(FTI_Exec->gpuInfo[i].h_is_block_executed);
      free(FTI_Exec->gpuInfo[i].complete);
