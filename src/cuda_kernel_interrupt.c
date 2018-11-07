@@ -26,11 +26,6 @@ static FTIT_topology *FTI_Topo = NULL;
 static FTIT_execution *FTI_Exec = NULL;
 
 /**
- * @brief              Initialized to reference to FTI_Exec->FTI_GpuInfo.
- */
-static FTIT_gpuInfo *FTI_GpuInfo = NULL;
-
-/**
  * @brief              Determines if kernel is complete by checking #h_is_block_executed.
  * @param[in,out]      complete   Indicates whether kernel is complete or not.
  *
@@ -62,7 +57,6 @@ int FTI_gpu_protect_init(FTIT_topology *topo, FTIT_execution *exec)
 {
   FTI_Topo = topo;
   FTI_Exec = exec;
-  FTI_GpuInfo = exec->gpuInfo;
   return FTI_SCES;
 }
 
@@ -75,7 +69,7 @@ int FTI_gpu_protect_init(FTIT_topology *topo, FTIT_execution *exec)
  * to microseconds. Microseconds are needed because usleep() is used to be able to
  * give the kernel shorter timeouts than 1 second (as would be the case if sleep() was used).
  */
-static inline useconds_t seconds_to_microseconds(double quantum)
+static inline unsigned int seconds_to_microseconds(double quantum)
 {
   return fabs(quantum) * 1000000.0;
 }
@@ -84,7 +78,7 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
   unsigned int i = 0;
   bool kernel_protected = false;
   for(i = 0; i < FTI_Exec->nbKernels; i++){
-    if(kernelId == *FTI_GpuInfo[i].id){
+    if(kernelId == *FTI_Exec->gpuInfo[i].id){
       kernel_protected = true;
       break;
     }
@@ -126,7 +120,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     GpuMacroInfo->block_amt           = (size_t *)malloc(sizeof(size_t));
     GpuMacroInfo->all_done            = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
     GpuMacroInfo->complete            = (bool *)malloc(sizeof(bool));
-    GpuMacroInfo->quantum             = (useconds_t *)malloc(sizeof(useconds_t));
+    GpuMacroInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
 
     if(GpuMacroInfo->id                   == NULL){return FTI_NSCS;}
     if(GpuMacroInfo->all_done             == NULL){return FTI_NSCS;}
@@ -152,23 +146,23 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     }
 
     /* Save for checkpointing */
-    FTI_GpuInfo[FTI_Exec->nbKernels].id                   = GpuMacroInfo->id;
-    FTI_GpuInfo[FTI_Exec->nbKernels].complete             = GpuMacroInfo->complete;
-    FTI_GpuInfo[FTI_Exec->nbKernels].block_amt            = GpuMacroInfo->block_amt;
-    FTI_GpuInfo[FTI_Exec->nbKernels].all_done             = GpuMacroInfo->all_done;
-    FTI_GpuInfo[FTI_Exec->nbKernels].h_is_block_executed  = GpuMacroInfo->h_is_block_executed;
-    FTI_GpuInfo[FTI_Exec->nbKernels].quantum              = GpuMacroInfo->quantum;
-    FTI_Exec->nbKernels                                   = FTI_Exec->nbKernels + 1;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].id                   = GpuMacroInfo->id;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].complete             = GpuMacroInfo->complete;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].block_amt            = GpuMacroInfo->block_amt;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].all_done             = GpuMacroInfo->all_done;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].h_is_block_executed  = GpuMacroInfo->h_is_block_executed;
+    FTI_Exec->gpuInfo[FTI_Exec->nbKernels].quantum              = GpuMacroInfo->quantum;
+    FTI_Exec->nbKernels                                         = FTI_Exec->nbKernels + 1;
   }
   else{
     /* Restore after restart */
-    GpuMacroInfo->id                    =  FTI_GpuInfo[kernel_index].id;
-    GpuMacroInfo->complete              =  FTI_GpuInfo[kernel_index].complete;
-    GpuMacroInfo->all_done              =  FTI_GpuInfo[kernel_index].all_done;
-    GpuMacroInfo->block_info_bytes      = *FTI_GpuInfo[kernel_index].block_amt * sizeof(bool);
-    GpuMacroInfo->block_amt             =  FTI_GpuInfo[kernel_index].block_amt;
-    GpuMacroInfo->h_is_block_executed   =  FTI_GpuInfo[kernel_index].h_is_block_executed;
-    GpuMacroInfo->quantum               =  FTI_GpuInfo[kernel_index].quantum;
+    GpuMacroInfo->id                    =  FTI_Exec->gpuInfo[kernel_index].id;
+    GpuMacroInfo->complete              =  FTI_Exec->gpuInfo[kernel_index].complete;
+    GpuMacroInfo->all_done              =  FTI_Exec->gpuInfo[kernel_index].all_done;
+    GpuMacroInfo->block_info_bytes      = *FTI_Exec->gpuInfo[kernel_index].block_amt * sizeof(bool);
+    GpuMacroInfo->block_amt             =  FTI_Exec->gpuInfo[kernel_index].block_amt;
+    GpuMacroInfo->h_is_block_executed   =  FTI_Exec->gpuInfo[kernel_index].h_is_block_executed;
+    GpuMacroInfo->quantum               =  FTI_Exec->gpuInfo[kernel_index].quantum;
     *GpuMacroInfo->quantum_expired      =  true;
   }
 
