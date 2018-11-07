@@ -133,7 +133,7 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(kernel_id) == false)                                                   \
+      while(FTI_all_procs_complete(&FTI_MacroInfo) == false)                                              \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
@@ -142,7 +142,7 @@ do{                                                                             
               FTI_MacroInfo.d_is_block_executed,                                                          \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        ret = FTI_BACKUP_monitor(*FTI_MacroInfo.id);                                                      \
+        ret = FTI_BACKUP_monitor(&FTI_MacroInfo);                                                         \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -178,6 +178,7 @@ do{                                                                             
  */
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
+  /*TODO write logic to skip this if library init failed and kernel has to do a default run*/             \
   __shared__ bool quantum_expired;                                                                        \
   unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);            \
   if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                           \
@@ -206,13 +207,15 @@ do{                                                                             
      */
     typedef struct FTIT_gpuInfo{
         int*            id;                   /**< ID to search/update dataset.                          */
-        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
-        bool*           all_done;             /**< Record of processes that have completed kernel        */
         bool*           complete;             /**< Whether kernel is done or not                         */
+        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
+        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
+        unsigned int    initial_quantum;      /**< The initial quantum specified.                        */
+        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
+        bool*           all_done;             /**< Record of processes that have completed kernel        */
+        size_t          block_info_bytes;     /**< Size of memory required for boolean array.            */
         bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
         bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
-        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
-        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
     }FTIT_gpuInfo;
 
     /** @typedef    FTIT_gpuInfoMetadata
@@ -225,9 +228,9 @@ do{                                                                             
         FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
     }FTIT_gpuInfoMetadata; 
 
-bool FTI_all_procs_complete(int kernelId);                                                             
+bool FTI_all_procs_complete(FTIT_gpuInfo* FTI_GpuInfo);                                                             
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
-int FTI_BACKUP_monitor(int kernelId);
+int FTI_BACKUP_monitor(FTIT_gpuInfo* FTI_GpuInfo);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
 
