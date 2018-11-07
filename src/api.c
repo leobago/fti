@@ -1401,7 +1401,7 @@ int FTI_AddVarICP( int varID )
         validID |= (FTI_Data[i].id == varID);
     }
     if( !validID ) {
-        snprintf( str, FTI_BUFS, "FTI_AddVarICP: dataset ID: %d is invalid! No action performed.", varID );
+        snprintf( str, FTI_BUFS, "FTI_AddVarICP: dataset ID: %d is invalid!", varID );
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
@@ -1480,14 +1480,14 @@ int FTI_FinalizeICP()
     }
 
     int allRes[2];
-    int locRes[2] = { FTI_Exec.iCPInfo.result, FTI_Exec.iCPInfo.countVar };
-    //Check if all processes have wrote all the datasets and failure free.
+    int locRes[2] = { (int)(FTI_Exec.iCPInfo.result==FTI_SCES), (int)(FTI_Exec.iCPInfo.countVar==FTI_Exec.nbVar) };
+    //Check if all processes have written all the datasets failure free.
     MPI_Allreduce(locRes, allRes, 2, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    if (allRes[0] != FTI_SCES) {
+    if (allRes[0] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
         FTI_Print("Not all variables were successfully written!.", FTI_EROR);
     }
-    if (allRes[1] != FTI_Topo.nbApprocs*FTI_Topo.nbNodes*FTI_Exec.nbVar) {
+    if (allRes[1] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
         FTI_Print("Not all datasets were added to the CP file!.", FTI_EROR);
     }
