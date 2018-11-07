@@ -153,6 +153,9 @@ extern "C" {
         short status;               /**< holds status (active,failed) of iCP    */
         int  result;                /**< holds result of I/O specific write     */
         int lastCkptLvel;           /**< holds last successful cp level         */
+        int lastCkptID;             /**< holds last successful cp ID            */
+        int countVar;               /**< counts datasets written                */
+        int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
         double t0;                  /**< timing for CP statistics               */
         double t1;                  /**< timing for CP statistics               */
         char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
