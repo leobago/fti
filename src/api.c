@@ -1200,6 +1200,10 @@ int FTI_Checkpoint(int id, int level)
 /*-------------------------------------------------------------------------*/
 int FTI_InitICP(int id, int level, bool activate)
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
      
     // only step in if activate TRUE.
     if ( !activate ) {
@@ -1370,6 +1374,10 @@ int FTI_InitICP(int id, int level, bool activate)
 /*-------------------------------------------------------------------------*/
 int FTI_AddVarICP( int varID ) 
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
     // only step in if iCP was successfully initialized
     if ( FTI_Exec.iCPInfo.status == FTI_ICP_NINI ) {
@@ -1428,6 +1436,10 @@ int FTI_AddVarICP( int varID )
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeICP() 
 {
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
     // if iCP uninitialized, don't step in.
     if ( FTI_Exec.iCPInfo.status == FTI_ICP_NINI ) {
