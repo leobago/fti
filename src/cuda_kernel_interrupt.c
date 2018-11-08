@@ -95,13 +95,15 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
  * @param              num_blocks     The number of blocks launched by the kernel.
  * @return             integer        FTI_SCES if successful.
  *
- * This function does initialization for the kernel launch macro and
- * initializes a handle of type FTIT_kernelProtectHandle. The macro's values
- * are returned via the GpuMacroInfo parameter. The internal handle is specific
- * to the kernel ID and is used to initialize FTI_GpuInfo within FTI_Exec. This
- * is so that the kernel's information can be captured at checkpoint time.
+ * This function initializes the GpumacroInfo parameter and saves a reference
+ * to the members of this parameter whose values need to be saved to the
+ * metadata files at checkpoint time. In the event that the application needs to
+ * be restarted, this function is called again. If the kernel has already been
+ * protected, then the values for it to resume will be restored from
+ * FTI_Exec->gpuInfo.
  */
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks){
+  return FTI_NSCS;
   size_t i = 0;
   unsigned int kernel_index = 0;
 
@@ -115,17 +117,16 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
       return FTI_NSCS;
     }
 
-    //TODO ensure all of this is freed
     GpuMacroInfo->id                  = (int *)malloc(sizeof(int));
     GpuMacroInfo->block_amt           = (size_t *)malloc(sizeof(size_t));
     GpuMacroInfo->all_done            = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
     GpuMacroInfo->complete            = (bool *)malloc(sizeof(bool));
     GpuMacroInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
 
-    if(GpuMacroInfo->id                   == NULL){return FTI_NSCS;}
-    if(GpuMacroInfo->all_done             == NULL){return FTI_NSCS;}
-    if(GpuMacroInfo->complete             == NULL){return FTI_NSCS;}
-    if(GpuMacroInfo->quantum              == NULL){return FTI_NSCS;}
+    if(GpuMacroInfo->id              == NULL){return FTI_NSCS;}
+    if(GpuMacroInfo->all_done        == NULL){return FTI_NSCS;}
+    if(GpuMacroInfo->complete        == NULL){return FTI_NSCS;}
+    if(GpuMacroInfo->quantum         == NULL){return FTI_NSCS;}
 
     *GpuMacroInfo->id                 = kernelId;
     *GpuMacroInfo->complete           = false;

@@ -178,26 +178,27 @@ do{                                                                             
  */
 #define FTI_CONTINUE()                                                                                    \
 do{                                                                                                       \
-  /*TODO write logic to skip this if library init failed and kernel has to do a default run*/             \
-  __shared__ bool quantum_expired;                                                                        \
-  unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);            \
-  if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                           \
-  {                                                                                                       \
-     quantum_expired = *qtm_expired;                                                                      \
-  }                                                                                                       \
+  if(qtm_expired != NULL && is_block_executed != NULL){                                                   \
+    __shared__ bool quantum_expired;                                                                      \
+    unsigned long long int bid = blockIdx.x + gridDim.x * (blockIdx.y + gridDim.z * blockIdx.z);          \
+    if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)                                         \
+    {                                                                                                     \
+       quantum_expired = *qtm_expired;                                                                    \
+    }                                                                                                     \
                                                                                                           \
-  if(is_block_executed[bid])                                                                              \
-  {                                                                                                       \
-    return;                                                                                               \
-  }                                                                                                       \
-  __syncthreads();                                                                                        \
+    if(is_block_executed[bid])                                                                            \
+    {                                                                                                     \
+      return;                                                                                             \
+    }                                                                                                     \
+    __syncthreads();                                                                                      \
                                                                                                           \
-  /*TODO chek this condition. At this point we know is_block_executed has to be false*/                   \
-  if(quantum_expired && is_block_executed[bid] == false)                                                  \
-  {                                                                                                       \
-    return;                                                                                               \
+    /*TODO check this condition. At this point we know is_block_executed has to be false*/                \
+    if(quantum_expired && is_block_executed[bid] == false)                                                \
+    {                                                                                                     \
+      return;                                                                                             \
+    }                                                                                                     \
+    is_block_executed[bid] = true;                                                                        \
   }                                                                                                       \
-  is_block_executed[bid] = true;                                                                          \
 }while(0)
 
     /** @typedef    FTIT_gpuInfo
