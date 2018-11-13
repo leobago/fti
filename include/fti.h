@@ -400,32 +400,6 @@ int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo);
         FTIT_H5Group*   h5group;            /**< Group of this dataset          */
     } FTIT_dataset;
 
-//    /** @typedef    FTIT_gpuInfo
-//     *  @brief      Stores data necessary for GPU kernel interruption.
-//     *
-//     *  This type stores all the GPU data necessary for kernel interruption. 
-//     */
-//    typedef struct FTIT_gpuInfo{
-//        int*            id;                   /**< ID to search/update dataset.                          */
-//        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
-//        bool*           all_done;             /**< Record of processes that have completed kernel        */
-//        bool*           complete;             /**< Whether kernel is done or not                         */
-//        bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
-//        bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
-//        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
-//        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
-//    }FTIT_gpuInfo;
-//
-//    /** @typedef    FTIT_gpuInfoMetadata
-//     *  @brief      Stores GPU metadata necessary for restart.
-//     *
-//     *  This is used to store the GPU metatadata for each kernel from each process.
-//     */
-//    typedef struct FTIT_gpuInfoMetadata{
-//        int             groupRank;            /**< Rank of the process in the group           */
-//        FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
-//    }FTIT_gpuInfoMetadata; 
-
     /** @typedef    FTIT_metadata
      *  @brief      Metadata for restart.
      *
