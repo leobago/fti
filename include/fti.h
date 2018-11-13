@@ -151,9 +151,9 @@ do{                                                                             
         if(*FTI_MacroInfo.complete == false){                                                             \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        MPI_Allgather(FTI_MacroInfo.complete, 1, MPI_C_BOOL, FTI_MacroInfo.all_done, 1, MPI_C_BOOL,       \
-            FTI_COMM_WORLD);                                                                              \
+        FTI_BACKUP_gather_kernel_status(&FTI_MacroInfo);                                                  \
       }                                                                                                   \
+      FTI_FreeDeviceAlloc(&FTI_MacroInfo);                                                                \
     }                                                                                                     \
 }while(0);
 
@@ -234,6 +234,8 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
 int FTI_BACKUP_monitor(FTIT_gpuInfo* FTI_GpuInfo);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
+int FTI_BACKUP_gather_kernel_status(FTIT_gpuInfo* FTI_GpuInfo);
+int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo);
 
     /*---------------------------------------------------------------------------
       FTI-FF types

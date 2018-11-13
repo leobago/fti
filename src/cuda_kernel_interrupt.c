@@ -103,7 +103,6 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
  * FTI_Exec->gpuInfo.
  */
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks){
-  return FTI_NSCS;
   size_t i = 0;
   unsigned int kernel_index = 0;
 
@@ -176,6 +175,15 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
   return FTI_SCES;
 }
 
+int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo){
+  char str[FTI_BUFS];
+  sprintf(str, "Freeing device allocations made for kernel %d", *FTI_GpuInfo->id);
+  FTI_Print(str, FTI_DBUG);
+  CUDA_ERROR_CHECK(cudaFree(FTI_GpuInfo->d_is_block_executed));
+  CUDA_ERROR_CHECK(cudaFreeHost((void *)FTI_GpuInfo->quantum_expired));
+  return FTI_SCES;
+}
+
 /**
  * @brief              Calls #cleanup().
  * @param[in]          kernel_name    The name of the kernel.
@@ -194,8 +202,6 @@ int FTI_FreeGpuInfo()
      free(FTI_Exec->gpuInfo[i].h_is_block_executed);
      free(FTI_Exec->gpuInfo[i].complete);
      free(FTI_Exec->gpuInfo[i].quantum);
-     CUDA_ERROR_CHECK(cudaFree(FTI_Exec->gpuInfo[i].d_is_block_executed));
-     CUDA_ERROR_CHECK(cudaFreeHost((void *)FTI_Exec->gpuInfo[i].quantum_expired));
   }
   return FTI_SCES;
 }
@@ -372,6 +378,26 @@ int FTI_BACKUP_monitor(FTIT_gpuInfo* FTI_GpuInfo)
   /* Handle interrupted GPU */
   handle_gpu_suspension(FTI_GpuInfo);
 
+  return FTI_SCES;
+}
+
+/**
+ * @brief              Gathers the complete status of current kernel.
+ * @param              FTI_GpuInfo  Struct with information about the executing kernel. 
+ * @return             FTI_SCES
+ *
+ * FTI needs to synchronize all processes at checkpoint time. Each kernel makes
+ * a call to FTI_Snapshot at interrupt time and if it is time to checkpoint, all
+ * processes need to synchronize. This function is needed to ensure that no
+ * process finishes its kernel early and exits the kernel launch loop. If some
+ * processes finish their kernels before others, the remaining kernel executions
+ * may trigger a checkpoint that will cause the application to hang. So to avoid
+ * this, the kernel launch loop is only terminated when all processes have
+ * finished executing their kernels. This function gathers the complete status of
+ * the currently executing kernel at each kernel interrupt
+ */
+int FTI_BACKUP_gather_kernel_status(FTIT_gpuInfo* FTI_GpuInfo){
+  MPI_Allgather(FTI_GpuInfo->complete, 1, MPI_C_BOOL, FTI_GpuInfo->all_done, 1, MPI_C_BOOL, FTI_COMM_WORLD);
   return FTI_SCES;
 }
 
