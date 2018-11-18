@@ -163,6 +163,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
+
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
                 res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
             }

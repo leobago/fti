@@ -224,6 +224,9 @@ do{                                                                             
      *
      *  This is used to store the GPU metatadata for each kernel from each process.
      */
+    //TODO consider if this structure is really necessary or can be renamed
+    //appropriately, since it is only used for gathering GPU info at the time
+    //of checkpointing
     typedef struct FTIT_gpuInfoMetadata{
         int             groupRank;            /**< Rank of the process in the group           */
         FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
@@ -406,14 +409,16 @@ int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo);
      *  This type stores all the metadata necessary for the restart.
      */
     typedef struct FTIT_metadata {
-        int*             exists;             /**< True if metadata exists        */
-        long*            maxFs;              /**< Maximum file size.             */
-        long*            fs;                 /**< File size.                     */
-        long*            pfs;                /**< Partner file size.             */
-        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]     */
-        int*             nbVar;              /**< Number of variables. [FTI_BUFS]*/
-        int*             varID;              /**< Variable id for size.[FTI_BUFS]*/
-        long*            varSize;            /**< Variable size. [FTI_BUFS]      */
+        int*             exists;              /**< True if metadata exists                            */
+        long*            maxFs;               /**< Maximum file size.                                 */
+        long*            fs;                  /**< File size.                                         */
+        long*            pfs;                 /**< Partner file size.                                 */
+        char*            ckptFile;            /**< Ckpt file name. [FTI_BUFS]                         */
+        int*             nbVar;               /**< Number of variables. [FTI_BUFS]                    */
+        int*             varID;               /**< Variable id for size.[FTI_BUFS]                    */
+        long*            varSize;             /**< Variable size. [FTI_BUFS]                          */
+        /* GPU Metadata */
+        FTIT_gpuInfo*    gpuInfo; 
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration

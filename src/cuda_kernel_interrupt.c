@@ -25,6 +25,14 @@ static FTIT_topology *FTI_Topo = NULL;
  */
 static FTIT_execution *FTI_Exec = NULL;
 
+
+/**
+ * @brief              Set at level from which restart occured.
+ * 
+ * Used to index metal level from which GPU info should be restored.
+ */
+//static int ckptLvel;
+
 /**
  * @brief              Determines if kernel is complete by checking #h_is_block_executed.
  * @param[in,out]      complete   Indicates whether kernel is complete or not.
@@ -47,6 +55,31 @@ static void computation_complete(FTIT_gpuInfo* FTI_GpuInfo)
 }
 
 /**
+ * @brief              Recovers GPU information of protected kernels at restart.
+ *
+ * @return             FTI_SCES on completion
+ */
+static int recover_gpuInfo(){
+  int i = 0;
+  char str[FTI_BUFS];
+
+  sprintf(str, "Restoring GPU info from level %d", FTI_Exec->ckptLvel);
+  FTI_Print(str, FTI_DBUG);
+
+  for(i = 0; i < FTI_Exec->nbKernels; i++){
+    FTI_Exec->gpuInfo[i].id                   = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].id;
+    FTI_Exec->gpuInfo[i].complete             = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].complete;
+    FTI_Exec->gpuInfo[i].all_done             = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].all_done;
+    FTI_Exec->gpuInfo[i].block_info_bytes     = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].block_info_bytes;
+    FTI_Exec->gpuInfo[i].block_amt            = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].block_amt;
+    FTI_Exec->gpuInfo[i].h_is_block_executed  = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].h_is_block_executed;
+    FTI_Exec->gpuInfo[i].quantum              = FTI_Exec->meta[FTI_Exec->ckptLvel].gpuInfo[i].quantum;
+  }
+
+  return FTI_SCES;
+}
+
+/**
  * @brief              Gets a reference to the topology and execution structures.
  * @param[in]          topo The current FTI_Topo object.
  * @param[in]          exec The current FTI_Exec object.
@@ -57,6 +90,15 @@ int FTI_gpu_protect_init(FTIT_topology *topo, FTIT_execution *exec)
 {
   FTI_Topo = topo;
   FTI_Exec = exec;
+
+  if(FTI_Exec->reco){
+    int res = FTI_Try(recover_gpuInfo(), "recover GPU info");
+    
+    if(res != FTI_SCES){
+      return FTI_NSCS;
+    }
+  }
+
   return FTI_SCES;
 }
 
