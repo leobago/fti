@@ -300,7 +300,7 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
     size_t *block_amt                          = talloc(size_t, 1);
     bool *complete                             = talloc(bool, 1);
     unsigned int *quantum                      = talloc(unsigned int, 1);
-    FTI_Exec->meta[level].gpuInfo[i].all_done  = talloc(bool, FTI_Topo->nbProc);
+    FTI_Exec->meta[level].gpuInfo[i].all_done  = talloc(bool, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
 
     /* Return if any allocations failed */
     if(id                                         == NULL){return FTI_NSCS;}
@@ -332,7 +332,7 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
     FTI_Exec->meta[level].gpuInfo[i].quantum = quantum;
 
     size_t idx = 0;
-    for(idx = 0; idx < FTI_Topo->nbProc; idx++){
+    for(idx = 0; idx < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; idx++){
       snprintf(str, FTI_BUFS, "%s:all_done%zu", gpuInfoSection, idx);
       FTI_Exec->meta[level].gpuInfo[i].all_done[idx] = iniparser_getboolean(ini, str, -1);
     }
@@ -506,7 +506,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the GPU metadata to recover the data after a failure.
+  @brief      It adds the GPU metadata to recover the data after a failure.
   @param      FTI_Exec              Execution metadata.
   @param      FTI_Topo              Topology metadata.
   @param      FTI_GpuInfoMetadata   GPU metadata.
@@ -555,7 +555,7 @@ static int FTI_AddGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     iniparser_set(ini, str, buf);
 
     int j = 0;
-    for(j = 0; j < FTI_Topo->nbProc; j++){
+    for(j = 0; j < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; j++){
       snprintf(str, FTI_BUFS, "%s:all_done%d", gpuInfoSection, j); 
       snprintf(buf, FTI_BUFS, "%s", FTI_GpuInfoMetadata[groupIdx].FTI_GpuInfo[i].all_done[j] ? "T" : "F");
       iniparser_set(ini, str, buf);
@@ -750,7 +750,7 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
     for(i = 0; i < FTI_Exec->nbKernels; i++){  
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].id, 1, MPI_INT, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->gpuInfo[i].all_done, FTI_Topo->nbProc, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->gpuInfo[i].all_done, FTI_Topo->nbApprocs * FTI_Topo->nbNodes, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].complete, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].h_is_block_executed, *FTI_Exec->gpuInfo[i].block_amt, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
       MPI_Send((const void*)FTI_Exec->gpuInfo[i].quantum, 1, MPI_UNSIGNED, dest, tag, FTI_Exec->groupComm);
@@ -779,7 +779,7 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
       for(j = 0; j < FTI_Exec->nbKernels; j++){
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id                   = talloc(int, FTI_Exec->nbKernels);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt            = talloc(size_t, FTI_Exec->nbKernels);
-        FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done             = talloc(bool, FTI_Topo->nbProc * FTI_Exec->nbKernels);
+        FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done             = talloc(bool, FTI_Topo->nbApprocs * FTI_Topo->nbNodes * FTI_Exec->nbKernels);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete             = talloc(bool, FTI_Exec->nbKernels);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed  = talloc(bool, *FTI_Exec->gpuInfo[j].block_amt);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum              = talloc(unsigned int, FTI_Exec->nbKernels);
@@ -807,7 +807,7 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
       for(j = 0; j < FTI_Exec->nbKernels; j++){
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id, 1, MPI_INT, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt, 1, MPI_UNSIGNED_LONG_LONG, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done, FTI_Topo->nbProc, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].all_done, FTI_Topo->nbApprocs * FTI_Topo->nbNodes, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].complete, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].h_is_block_executed, *FTI_Exec->gpuInfo[j].block_amt, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum, 1, MPI_UNSIGNED, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);

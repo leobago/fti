@@ -144,6 +144,7 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
  * protected, then the values for it to resume will be restored from
  * FTI_Exec->gpuInfo.
  */
+//TODO rename this to something like "kernel_init" ?
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks){
   size_t i = 0;
   unsigned int kernel_index = 0;
@@ -160,7 +161,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
 
     GpuMacroInfo->id                  = (int *)malloc(sizeof(int));
     GpuMacroInfo->block_amt           = (size_t *)malloc(sizeof(size_t));
-    GpuMacroInfo->all_done            = (bool *)malloc(sizeof(bool) * FTI_Topo->nbProc);
+    GpuMacroInfo->all_done            = (bool *)malloc(sizeof(bool) * FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
     GpuMacroInfo->complete            = (bool *)malloc(sizeof(bool));
     GpuMacroInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
 
@@ -179,7 +180,7 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     GpuMacroInfo->h_is_block_executed = (bool *)malloc(GpuMacroInfo->block_info_bytes);
     if(GpuMacroInfo->h_is_block_executed  == NULL){return FTI_NSCS;}
 
-    for(i = 0; i < FTI_Topo->nbProc; i++){
+    for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
       GpuMacroInfo->all_done[i] = false;
     }
 
@@ -262,7 +263,7 @@ bool FTI_all_procs_complete(FTIT_gpuInfo* FTI_GpuInfo)
   FTI_Print("Checking if all procs complete", FTI_DBUG);
 
   int i = 0;
-  for(i = 0; i < FTI_Topo->nbProc; i++){
+  for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
     if(!FTI_GpuInfo->all_done[i]){
       return false;
     }
