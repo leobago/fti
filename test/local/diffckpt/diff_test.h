@@ -53,9 +53,19 @@
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
+#define INFO_MSG(MSG,...) do { \
+    int rank; \
+    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
+    if ( rank == 0 ) \
+        printf( "%s:%d[INFO] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+} while (0)
+
 #define KB (1024L)
 #define MB (1024L*KB)
 #define GB (1024L*MB)
+
+#define TEST_ICP 1
+#define TEST_NOICP 0
 
 #define UI_UNIT sizeof(uint32_t)
 #define STATIC_SEED 310793 
@@ -65,29 +75,29 @@ enum ALLOC_FLAGS {
     ALLOC_RANDOM
 };
 
-int grank;
+static int grank;
 
-int numHeads;
-int finalTag;
-int headRank;
+extern int numHeads;
+extern int finalTag;
+extern int headRank;
 
-FTIT_type FTI_UI;
-FTIT_type FTI_XOR_INFO;
-uint32_t pat;
-double share_ratio;
+static FTIT_type FTI_UI;
+static FTIT_type FTI_XOR_INFO;
+static uint32_t pat;
+static double share_ratio;
 
-int A[1];
-int B[2];
-int C[3];
-int D[4];
-int E[5];
-int F[6];
-int G[7];
-int H[8];
-int I[9];
-int J[10];
+extern int A[1];
+extern int B[2];
+extern int C[3];
+extern int D[4];
+extern int E[5];
+extern int F[6];
+extern int G[7];
+extern int H[8];
+extern int I[9];
+extern int J[10];
 
-int **SHARE;
+extern int **SHARE;
 
 void init_share();
 
@@ -102,6 +112,7 @@ typedef struct _dcp_info {
     unsigned long *size;
     unsigned long *oldsize;
     int nbuffer;
+    int test_mode;
     unsigned char **hash;
     xor_info_t xor_info[NUM_DCKPT];
 } dcp_info_t;
@@ -126,5 +137,6 @@ void invert_data( dcp_info_t *info );
 double get_share_ratio();
 bool valid( dcp_info_t * info );
 void protect_buffers( dcp_info_t *info );
+void checkpoint( dcp_info_t *info, int ID, int level );
 void deallocate_buffers( dcp_info_t * info );
 #endif

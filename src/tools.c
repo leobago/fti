@@ -108,6 +108,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* unsigned int  */ FTI_Exec->nbType                =0;
     /* int           */ FTI_Exec->metaAlloc             =0;
     /* int           */ FTI_Exec->initSCES              =0;
+    /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
     /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;

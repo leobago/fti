@@ -97,7 +97,6 @@
 #define MD5_DIGEST_LENGTH 16
 /** MD5-hash: hex converted char digest length.                            */
 #define MD5_DIGEST_STRING_LENGTH 33
-
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 /** Token for IO mode SIONlib.                                             */
 #define FTI_IO_SIONLIB 1004
@@ -108,6 +107,8 @@
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
     #include "hdf5.h"
 #endif
+
+#include <fti-int/incremental_checkpoint.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -140,6 +141,26 @@ extern "C" {
     typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
     typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
+
+    /** @typedef    FTIT_iCPInfo
+     *  @brief      Meta Information needed for iCP.
+     *  
+     *  The member fh is a generic file handle container large enough to hold any
+     *  file handle type of I/O modes that are used within FTI.
+     */
+    typedef struct FTIT_iCPInfo {
+        bool isFirstCp;             /**< TRUE if first cp in run                */
+        short status;               /**< holds status (active,failed) of iCP    */
+        int  result;                /**< holds result of I/O specific write     */
+        int lastCkptLvel;           /**< holds last successful cp level         */
+        int lastCkptID;             /**< holds last successful cp ID            */
+        int countVar;               /**< counts datasets written                */
+        int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
+        double t0;                  /**< timing for CP statistics               */
+        double t1;                  /**< timing for CP statistics               */
+        char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
+        unsigned long long offset;  /**< file offset (for MPI-IO only)          */
+    } FTIT_iCPInfo;
 
     /** @typedef    FTIFF_metaInfo
      *  @brief      Meta Information about file.
@@ -400,6 +421,7 @@ extern "C" {
         FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
         FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
         FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
+        FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
         MPI_Comm        globalComm;         /**< Global communicator.           */
         MPI_Comm        groupComm;          /**< Group communicator.            */
         MPI_Comm        nodeComm;
@@ -434,7 +456,7 @@ extern "C" {
         int             test;               /**< TRUE if local test.            */
         int             l3WordSize;         /**< RS encoding word size.         */
         int             ioMode;             /**< IO mode for L4 ckpt.           */
-        char            stageDir[FTI_BUFS];
+        char            stageDir[FTI_BUFS]; /**< Staging directory.             */
         char            localDir[FTI_BUFS]; /**< Local directory.               */
         char            glbalDir[FTI_BUFS]; /**< Global directory.              */
         char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
@@ -566,6 +588,9 @@ extern "C" {
     int FTI_Snapshot();
     int FTI_Finalize();
     int FTI_RecoverVar(int id);
+    int FTI_InitICP(int id, int level, bool activate);
+    int FTI_AddVarICP( int varID ); 
+    int FTI_FinalizeICP(); 
 
 #ifdef __cplusplus
 }

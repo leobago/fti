@@ -118,7 +118,7 @@ set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
-	src/diff-checkpoint.c src/stage.c)
+	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c)
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -207,6 +207,7 @@ if(ENABLE_SIONLIB)
     find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
     find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
     target_link_libraries(fti.static "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
+    target_link_libraries(fti.shared "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     add_definitions(-DENABLE_SIONLIB)
 endif()
 
@@ -233,6 +234,8 @@ set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
+install(FILES "include/fti-int/incremental_checkpoint.h"
+	DESTINATION "include/fti-int" )
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
