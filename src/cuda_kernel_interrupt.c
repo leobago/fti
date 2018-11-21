@@ -148,6 +148,10 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
 int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks){
   size_t i = 0;
   unsigned int kernel_index = 0;
+  char str[FTI_BUFS];
+
+  snprintf(str, FTI_BUFS, "Entered function %s", __func__); 
+  FTI_Print(str, FTI_DBUG);
 
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
 
@@ -180,10 +184,12 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     GpuMacroInfo->h_is_block_executed = (bool *)malloc(GpuMacroInfo->block_info_bytes);
     if(GpuMacroInfo->h_is_block_executed  == NULL){return FTI_NSCS;}
 
+    //TODO should I use memset instead to initialize?
     for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
       GpuMacroInfo->all_done[i] = false;
     }
 
+    //TODO should I use memset instead to initialize?
     for(i = 0; i < *GpuMacroInfo->block_amt; i++){
       GpuMacroInfo->h_is_block_executed[i] = false;
     }
@@ -207,6 +213,26 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     GpuMacroInfo->h_is_block_executed   =  FTI_Exec->gpuInfo[kernel_index].h_is_block_executed;
     GpuMacroInfo->quantum               =  FTI_Exec->gpuInfo[kernel_index].quantum;
     *GpuMacroInfo->quantum_expired      =  true;
+
+    if(FTI_Exec->reco == 0 && *GpuMacroInfo->complete){
+      /* Kernel needs to be executed again */
+      snprintf(str, FTI_BUFS, "Executing kernel %d again", *GpuMacroInfo->id);
+      FTI_Print(str, FTI_DBUG);
+
+      *GpuMacroInfo->complete = false;
+      *GpuMacroInfo->quantum_expired = false;
+      *GpuMacroInfo->quantum = seconds_to_microseconds(quantum);
+
+      //TODO should I use memset instead to initialize?
+      for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
+        GpuMacroInfo->all_done[i] = false;
+      }
+
+      //TODO should I use memset instead to initialize?
+      for(i = 0; i < *GpuMacroInfo->block_amt; i++){
+        GpuMacroInfo->h_is_block_executed[i] = false;
+      }
+    }
   }
 
   //TODO check if removing the cast to void** affects anything
