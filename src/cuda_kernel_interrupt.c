@@ -129,6 +129,20 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
   return kernel_protected;
 }
 
+static inline bool all_kernels_complete(){
+  int i = 0;
+
+  for(i = 0; i < FTI_Exec->nbKernels; i++){
+    if(*FTI_Exec->gpuInfo[i].complete == false){
+      fprintf(stdout, "Kernel %d not complete!\n", *FTI_Exec->gpuInfo[i].id);
+      fflush(stdout);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * @brief              Initializes protection for a kernel.
  * @param              GpuMacroInfo   Initialized with values required by kernel launch macro.
@@ -214,7 +228,9 @@ int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, di
     GpuMacroInfo->quantum               =  FTI_Exec->gpuInfo[kernel_index].quantum;
     *GpuMacroInfo->quantum_expired      =  true;
 
-    if(FTI_Exec->reco == 0 && *GpuMacroInfo->complete){
+    bool all_protected_kernels_complete = all_kernels_complete();
+
+    if(all_protected_kernels_complete){
       /* Kernel needs to be executed again */
       snprintf(str, FTI_BUFS, "Executing kernel %d again", *GpuMacroInfo->id);
       FTI_Print(str, FTI_DBUG);
