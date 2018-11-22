@@ -276,6 +276,7 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @brief      It gets the GPU metadata to recover the data after a failure.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
+  @param      level           Which metadada level to load from.
   @param      ini             The ini dictionary from which to load GPU metadata.
   @return     integer         FTI_SCES if successful.
   This function reads the metadata file created during checkpointing to recover
@@ -292,6 +293,7 @@ static int FTI_LoadGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo
   snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection); 
   FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
 
+  /* Load metadata for each protected kernel */
   int i = 0;
   for(i = 0; i < FTI_Exec->nbKernels; i++){
 
@@ -524,7 +526,7 @@ static int FTI_AddGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
   char kernelInfoSection[FTI_BUFS];
   char gpuInfoSection[FTI_BUFS];
 
-  //Save GPU Info
+  /* Iterate over all protected kernels and add their info to the dictionary */
   int i = 0;
   for (i = 0; i < FTI_Exec->nbKernels; i++)
   {
@@ -744,6 +746,9 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
   unsigned int j = 0;
 
   if(FTI_Topo->groupRank != 0){
+    /* Process sends data if it is not the head of its group */
+    FTI_Print("Sending protected kernel data to group head.", FTI_DBUG);
+
     int tag = FTI_Topo->groupRank;
     int dest= 0; //Send to head of group
 
@@ -758,6 +763,8 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
   }
   else{
     /* Gather data from head of group (i.e FTI_Topo->groupRank = 0) */
+    FTI_Print("Group head gathering its own protected kernel data.", FTI_DBUG);
+
     FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo = talloc(FTIT_gpuInfo, FTI_Exec->nbKernels);
     if(FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo == NULL){return FTI_NSCS;}
 
@@ -773,9 +780,11 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
 
   if(FTI_Topo->groupRank == 0){
     /* init loop to receive kernel info from other processes */
+    FTI_Print("Group head allocating memory to receive protected kernel information.", FTI_DBUG);
     for(i = 1; i < FTI_Topo->groupSize; i++){
       FTI_GpuInfoMetadata[i].FTI_GpuInfo = talloc(FTIT_gpuInfo, FTI_Exec->nbKernels);
       if(FTI_GpuInfoMetadata[FTI_Topo->groupRank].FTI_GpuInfo == NULL){return FTI_NSCS;}
+
       for(j = 0; j < FTI_Exec->nbKernels; j++){
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].id                   = talloc(int, FTI_Exec->nbKernels);
         FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].block_amt            = talloc(size_t, FTI_Exec->nbKernels);
@@ -794,11 +803,13 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
     }
 
     /* Now receive data */
+    FTI_Print("Group head receiving protected kernel info from other processes in group.", FTI_DBUG);
+
     int src = 0;
     int tag = 0;
     FTI_GpuInfoMetadata[FTI_Topo->groupRank].groupRank = FTI_Topo->groupRank; /* Necessary so that kernel information is mapped to rank of process in group */
 
-    for(i = 1; i < FTI_Topo->groupSize; i++){
+    for(i = 1; i < FTI_Topo->groupSize; i++){ //i = 1 to skip group head. i.e the group head does not need to send protected kernel info to itself.
       src = i; /* Rank of process in group from which to receive data */
       tag = i; /* Processes use their group rank as the tag when sending */
 
@@ -813,6 +824,7 @@ static int FTI_CreateGpuMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
         MPI_Recv((void *)FTI_GpuInfoMetadata[i].FTI_GpuInfo[j].quantum, 1, MPI_UNSIGNED, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
       }
     }
+    FTI_Print("Group head finished receiving protected kernel info from other processes in group", FTI_DBUG);
   }
 
   return FTI_SCES;

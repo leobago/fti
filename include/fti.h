@@ -123,7 +123,7 @@ do{                                                                             
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
                                                                                                           \
-    ret = FTI_BACKUP_init(&FTI_MacroInfo, kernel_id, quantum, grid_dim);                                  \
+    ret = FTI_kernel_init(&FTI_MacroInfo, kernel_id, quantum, grid_dim);                                  \
     if(ret != FTI_SCES)                                                                                   \
     {                                                                                                     \
       sprintf(str, "Running kernel without interrupts");                                                  \
@@ -142,7 +142,7 @@ do{                                                                             
               FTI_MacroInfo.d_is_block_executed,                                                          \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        ret = FTI_BACKUP_monitor(&FTI_MacroInfo);                                                         \
+        ret = FTI_kernel_monitor(&FTI_MacroInfo);                                                         \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
@@ -206,6 +206,7 @@ do{                                                                             
      *
      *  This type stores all the GPU data necessary for kernel interruption. 
      */
+    //TODO Rename this to FTIT_gpuExecution or FTIT_kernelExecution or FTIT_kernelInfo??
     typedef struct FTIT_gpuInfo{
         int*            id;                   /**< ID to search/update dataset.                          */
         bool*           complete;             /**< Whether kernel is done or not                         */
@@ -233,8 +234,8 @@ do{                                                                             
     }FTIT_gpuInfoMetadata; 
 
 bool FTI_all_procs_complete(FTIT_gpuInfo* FTI_GpuInfo);                                                             
-int FTI_BACKUP_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
-int FTI_BACKUP_monitor(FTIT_gpuInfo* FTI_GpuInfo);
+int FTI_kernel_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
+int FTI_kernel_monitor(FTIT_gpuInfo* FTI_GpuInfo);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeGpuInfo();
 int FTI_BACKUP_gather_kernel_status(FTIT_gpuInfo* FTI_GpuInfo);

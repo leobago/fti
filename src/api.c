@@ -139,6 +139,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     }
     FTI_Exec.initSCES = 1;
 
+    /* Initialize kernel protection mechanism */
     FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
     
     // Initialize CUDA-related params
@@ -163,6 +164,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     else { // If I am an application process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            /* Kernel protection mechanism is initialized here in case this is a restart */
             FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
 
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
