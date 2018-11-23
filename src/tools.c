@@ -379,7 +379,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
-            FTI_Exec->meta[i].gpuInfo = calloc(FTI_BUFS, sizeof(FTIT_gpuInfo));
+            FTI_Exec->meta[i].kernelInfo = calloc(FTI_BUFS, sizeof(FTIT_kernelInfo));
         }
     }
     FTI_Exec->metaAlloc = 1;

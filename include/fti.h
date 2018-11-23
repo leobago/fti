@@ -92,12 +92,13 @@ extern "C" {
 
 /**
  * @brief              Used to re-write kernel launch.
+ * @param[in]          kernel_id      The ID of the kernel to protect.
  * @param[in]          quantum        Time kernel has to execute before being interrupted.
  * @param[in]          kernel_name    The name of the kernel.
  * @param[in]          grid_dim       Specifies the dimension of the kernel grid.
  * @param[in]          block_dim      Specifies the dimension of each block.
  * @param[in]          ns             specifies the number of bytes in shared
- *                                    memory that is dynamically allocated per 
+ *                                    memory that is dynamically allocated per
  *                                    block for this call in addition to the
  *                                    statically allocated memory.
  * @param[in]          s              Of type cudaStream_t and specifies the associated stream.
@@ -118,7 +119,7 @@ extern "C" {
  */
 #define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)              \
 do{                                                                                                       \
-    FTIT_gpuInfo FTI_MacroInfo;                                                                           \
+    FTIT_kernelInfo FTI_MacroInfo;                                                                        \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
@@ -201,13 +202,12 @@ do{                                                                             
   }                                                                                                       \
 }while(0)
 
-    /** @typedef    FTIT_gpuInfo
-     *  @brief      Stores data necessary for GPU kernel interruption.
+    /** @typedef    FTIT_kernelInfo
+     *  @brief      Stores data necessary for kernel protection.
      *
-     *  This type stores all the GPU data necessary for kernel interruption. 
+     *  This type stores all the kernel data necessary for kernel protection.
      */
-    //TODO Rename this to FTIT_gpuExecution or FTIT_kernelExecution or FTIT_kernelInfo??
-    typedef struct FTIT_gpuInfo{
+    typedef struct FTIT_kernelInfo{
         int*            id;                   /**< ID to search/update dataset.                          */
         bool*           complete;             /**< Whether kernel is done or not                         */
         size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
@@ -218,28 +218,25 @@ do{                                                                             
         size_t          block_info_bytes;     /**< Size of memory required for boolean array.            */
         bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
         bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
-    }FTIT_gpuInfo;
+    }FTIT_kernelInfo;
 
-    /** @typedef    FTIT_gpuInfoMetadata
-     *  @brief      Stores GPU metadata necessary for restart.
+    /** @typedef    FTIT_kernelInfoMetadata
+     *  @brief      Stores kernel metadata necessary for restart.
      *
-     *  This is used to store the GPU metatadata for each kernel from each process.
+     *  This is used to store the kernel metatadata for each kernel from each process.
      */
-    //TODO consider if this structure is really necessary or can be renamed
-    //appropriately, since it is only used for gathering GPU info at the time
-    //of checkpointing
-    typedef struct FTIT_gpuInfoMetadata{
-        int             groupRank;            /**< Rank of the process in the group           */
-        FTIT_gpuInfo*   FTI_GpuInfo;          /**< The GPU info for the process in groupRank  */
-    }FTIT_gpuInfoMetadata; 
+    typedef struct FTIT_kernelInfoMetadata{
+        int                groupRank;            /**< Rank of the process in the group              */
+        FTIT_kernelInfo*   FTI_KernelInfo;       /**< The kernel info for the process in groupRank  */
+    }FTIT_kernelInfoMetadata;
 
-bool FTI_all_procs_complete(FTIT_gpuInfo* FTI_GpuInfo);                                                             
-int FTI_kernel_init(FTIT_gpuInfo* GpuMacroInfo, int kernelId, double quantum, dim3 num_blocks);
-int FTI_kernel_monitor(FTIT_gpuInfo* FTI_GpuInfo);
+bool FTI_all_procs_complete(FTIT_kernelInfo* FTI_KernelInfo);
+int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quantum, dim3 num_blocks);
+int FTI_kernel_monitor(FTIT_kernelInfo* FTI_KernelInfo);
 void FTI_BACKUP_Print(char *msg, int priority);
-int FTI_FreeGpuInfo();
-int FTI_BACKUP_gather_kernel_status(FTIT_gpuInfo* FTI_GpuInfo);
-int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo);
+int FTI_FreeKernelInfo();
+int FTI_BACKUP_gather_kernel_status(FTIT_kernelInfo* FTI_KernelInfo);
+int FTI_FreeDeviceAlloc(FTIT_kernelInfo* FTI_KernelInfo);
 
     /*---------------------------------------------------------------------------
       FTI-FF types
@@ -418,8 +415,7 @@ int FTI_FreeDeviceAlloc(FTIT_gpuInfo* FTI_GpuInfo);
         int*             nbVar;               /**< Number of variables. [FTI_BUFS]                    */
         int*             varID;               /**< Variable id for size.[FTI_BUFS]                    */
         long*            varSize;             /**< Variable size. [FTI_BUFS]                          */
-        /* GPU Metadata */
-        FTIT_gpuInfo*    gpuInfo; 
+        FTIT_kernelInfo* kernelInfo;          /**< Metadata for protected kernel                      */
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration

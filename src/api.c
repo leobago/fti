@@ -140,8 +140,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.initSCES = 1;
 
     /* Initialize kernel protection mechanism */
-    FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
-    
+    FTI_kernel_protect_init(&FTI_Topo, &FTI_Exec);
+
     // Initialize CUDA-related params
     CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
     CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
@@ -165,7 +165,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             /* Kernel protection mechanism is initialized here in case this is a restart */
-            FTI_gpu_protect_init(&FTI_Topo, &FTI_Exec);
+            FTI_kernel_protect_init(&FTI_Topo, &FTI_Exec);
 
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
                 res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
@@ -1114,7 +1114,7 @@ int FTI_Finalize()
     }
 
     if(FTI_Exec.nbKernels != 0){
-      FTI_Try(FTI_FreeGpuInfo(), "Free GPU Info memory");
+      FTI_Try(FTI_FreeKernelInfo(), "Free GPU Info memory");
     }
 
     cudaError_t err;
