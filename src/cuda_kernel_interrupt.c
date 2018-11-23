@@ -1,6 +1,6 @@
 /**
  * @file kernel_interrupt.c
- * @brief Interface functions for the library.
+ * @brief Interface functions to protect long-running kernels.
  *
  * @author Max M. Baird (maxbaird.gy@gmail.com)
  */
@@ -187,7 +187,7 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
     FTI_Print(str, FTI_DBUG);
     KernelMacroInfo->id                  = (int *)malloc(sizeof(int));
     KernelMacroInfo->block_amt           = (size_t *)malloc(sizeof(size_t));
-    KernelMacroInfo->all_done            = (bool *)malloc(sizeof(bool) * FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
+    KernelMacroInfo->all_done            = (bool *)calloc(FTI_Topo->nbApprocs * FTI_Topo->nbNodes, sizeof(bool));
     KernelMacroInfo->complete            = (bool *)malloc(sizeof(bool));
     KernelMacroInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
 
@@ -209,21 +209,11 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
     snprintf(str, FTI_BUFS, "Allocating memory for block_info_bytes for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
 
-    KernelMacroInfo->h_is_block_executed = (bool *)malloc(KernelMacroInfo->block_info_bytes);
+    KernelMacroInfo->h_is_block_executed = (bool *)calloc(KernelMacroInfo->block_info_bytes, sizeof(bool));
     if(KernelMacroInfo->h_is_block_executed  == NULL){return FTI_NSCS;}
 
     snprintf(str, FTI_BUFS, "Successfully allocated block_info_bytes for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
-
-    //TODO should I use calloc instead to initialize? - yes
-    for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
-      KernelMacroInfo->all_done[i] = false;
-    }
-
-    //TODO should I use calloc instead to initialize? - yes
-    for(i = 0; i < *KernelMacroInfo->block_amt; i++){
-      KernelMacroInfo->h_is_block_executed[i] = false;
-    }
 
     /* Save for checkpointing */
     FTI_Exec->kernelInfo[FTI_Exec->nbKernels].id                   = KernelMacroInfo->id;
@@ -255,16 +245,17 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
       snprintf(str, FTI_BUFS, "All other kernels complete. kernel Id %d will be re-executed", kernelId);
       FTI_Print(str, FTI_DBUG);
 
+      /* Reset necessary values so kernel is re-executed */
       *KernelMacroInfo->complete = false;
       *KernelMacroInfo->quantum_expired = false;
       *KernelMacroInfo->quantum = seconds_to_microseconds(quantum);
 
-      //TODO should I use memset instead to initialize? - yes
+      /* Reset array indicating that this kernel has been completed by all processes */
       for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
         KernelMacroInfo->all_done[i] = false;
       }
 
-      //TODO should I use memset instead to initialize? - yes
+      /* Reset array keeping track of executed blocks */
       for(i = 0; i < *KernelMacroInfo->block_amt; i++){
         KernelMacroInfo->h_is_block_executed[i] = false;
       }
