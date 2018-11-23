@@ -12,7 +12,7 @@
 #define FTI_ICP_ACTV 1
 #define FTI_ICP_FAIL 2
 
-#define FTI_GT(NUM1, NUM2) (NUM1 > NUM2) ? NUM1 : NUM2
+#define FTI_GT(NUM1, NUM2) ((NUM1) > (NUM2)) ? NUM1 : NUM2
 #define FTI_PO_FH FILE*
 #define FTI_FF_FH int
 #define FTI_MI_FH MPI_File
