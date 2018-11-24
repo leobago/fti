@@ -16,6 +16,15 @@
 #include "api_cuda.h"
 
 /**
+ * @brief Maximum value quantum should be increased to.
+ *
+ * The quantum will be increased up to this limit if it has been
+ * set to less than 5 seconds and a kernel launch does not progress
+ * between interrupts.
+ */
+#define MAX_QUANTUM 5000000 /* 5 seconds */
+
+/**
  * @brief              Initialized to reference to FTI_Topo.
  */
 static FTIT_topology *FTI_Topo = NULL;
@@ -465,7 +474,8 @@ static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
  * any unexecuted blocks are scheduled. This function handles the case of a tiny quantum.
  */
 static inline void increase_quantum(FTIT_kernelInfo* FTI_KernelInfo){
-  if(FTI_KernelInfo->executedBlockCnt <= FTI_KernelInfo->lastExecutedBlockCnt){
+  if(FTI_KernelInfo->executedBlockCnt <= FTI_KernelInfo->lastExecutedBlockCnt &&
+     *FTI_KernelInfo->quantum < MAX_QUANTUM){
     *FTI_KernelInfo->quantum = *FTI_KernelInfo->quantum + FTI_KernelInfo->initial_quantum;
   }
 }
