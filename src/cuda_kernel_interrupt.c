@@ -26,24 +26,26 @@ static FTIT_topology *FTI_Topo = NULL;
 static FTIT_execution *FTI_Exec = NULL;
 
 /**
- * @brief              Determines if kernel is complete by checking #h_is_block_executed.
- * @param[in,out]      FTI_KernelInfo Metadata of the currently executing protected kernel.
+ * @brief             Updates the number of executed blocks.
+ * @param             FTI_KernelInfo kernel metadata.
  *
- * Sets FTI_KernelInfo->complete to true or false respectively if the kernel is finished or not.
+ * This function updates the previous count of executed blocks
+ * as well as the current count. This function is called each time
+ * the kernel is interrupted.
  */
-static void computation_complete(FTIT_kernelInfo* FTI_KernelInfo)
-{
+static void update_executed_block_count(FTIT_kernelInfo *FTI_KernelInfo){
   size_t i = 0;
-  bool complete = true;
-  for(i = 0; i < *FTI_KernelInfo->block_amt; i++)
-  {
-    if(!FTI_KernelInfo->h_is_block_executed[i])
-    {
-      complete = false;
+
+ /* Store total number of blocks executed at the last kernel interrupt */
+ FTI_KernelInfo->lastExecutedBlockCnt = FTI_KernelInfo->executedBlockCnt;
+
+ /* Count total blocks executed thus far by kernel */
+  for(i = 0; i < *FTI_KernelInfo->block_amt; i++){
+    if(!FTI_KernelInfo->h_is_block_executed[i]){
       break;
     }
   }
-  *FTI_KernelInfo->complete = complete;
+ FTI_KernelInfo->executedBlockCnt = i;
 }
 
 /**
@@ -138,8 +140,6 @@ static inline bool all_kernels_complete(){
 
   for(i = 0; i < FTI_Exec->nbKernels; i++){
     if(*FTI_Exec->kernelInfo[i].complete == false){
-      fprintf(stdout, "Kernel %d not complete!\n", *FTI_Exec->kernelInfo[i].id);
-      fflush(stdout);
       return false;
     }
   }
@@ -167,7 +167,7 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
   unsigned int kernel_index = 0;
   char str[FTI_BUFS];
 
-  snprintf(str, FTI_BUFS, "Entered function %s", __func__); 
+  snprintf(str, FTI_BUFS, "Entered function %s", __func__);
   FTI_Print(str, FTI_DBUG);
 
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
@@ -191,10 +191,10 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
     KernelMacroInfo->complete            = (bool *)malloc(sizeof(bool));
     KernelMacroInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
 
-    if(KernelMacroInfo->id              == NULL){return FTI_NSCS;}
-    if(KernelMacroInfo->all_done        == NULL){return FTI_NSCS;}
-    if(KernelMacroInfo->complete        == NULL){return FTI_NSCS;}
-    if(KernelMacroInfo->quantum         == NULL){return FTI_NSCS;}
+    if(KernelMacroInfo->id                  == NULL){return FTI_NSCS;}
+    if(KernelMacroInfo->all_done            == NULL){return FTI_NSCS;}
+    if(KernelMacroInfo->complete            == NULL){return FTI_NSCS;}
+    if(KernelMacroInfo->quantum             == NULL){return FTI_NSCS;}
 
     snprintf(str, FTI_BUFS, "Successfully allocated memory for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
@@ -215,7 +215,7 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
     snprintf(str, FTI_BUFS, "Successfully allocated block_info_bytes for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
 
-    /* Save for checkpointing */
+    /* Keep track of KernelMacroInfo for checkpointing */
     FTI_Exec->kernelInfo[FTI_Exec->nbKernels].id                   = KernelMacroInfo->id;
     FTI_Exec->kernelInfo[FTI_Exec->nbKernels].complete             = KernelMacroInfo->complete;
     FTI_Exec->kernelInfo[FTI_Exec->nbKernels].block_amt            = KernelMacroInfo->block_amt;
@@ -262,7 +262,11 @@ int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quant
     }
   }
 
-  //TODO check if removing the cast to void** affects anything
+  KernelMacroInfo->executedBlockCnt = 0;
+  KernelMacroInfo->lastExecutedBlockCnt = 0;
+
+  update_executed_block_count(KernelMacroInfo); //Update the count of executed blocks
+
   snprintf(str, FTI_BUFS, "Kernel Id %d allocating memory on GPU", kernelId);
   FTI_Print(str, FTI_DBUG);
   CUDA_ERROR_CHECK(cudaMalloc((void **)&KernelMacroInfo->d_is_block_executed, KernelMacroInfo->block_info_bytes));
@@ -391,7 +395,7 @@ static inline void wait(FTIT_kernelInfo* FTI_KernelInfo)
  * executing blocks and prevent new blocks from continuing on to their main
  * body of work.
  */
-static inline int signal_kernel_then_wait(FTIT_kernelInfo* FTI_KernelInfo)
+static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
 {
   char str[FTI_BUFS];
 
@@ -436,12 +440,34 @@ static inline int signal_kernel_then_wait(FTIT_kernelInfo* FTI_KernelInfo)
   FTI_Print(str, FTI_DBUG);
   CUDA_ERROR_CHECK(cudaMemcpy(FTI_KernelInfo->h_is_block_executed, FTI_KernelInfo->d_is_block_executed, FTI_KernelInfo->block_info_bytes, cudaMemcpyDeviceToHost));
 
-  computation_complete(FTI_KernelInfo);
+  update_executed_block_count(FTI_KernelInfo);
 
+  *FTI_KernelInfo->complete = *FTI_KernelInfo->block_amt == FTI_KernelInfo->executedBlockCnt;
   sprintf(str, "Kernel id %d complete: %s", *FTI_KernelInfo->id, *FTI_KernelInfo->complete ? "True" : "False");
   FTI_Print(str, FTI_DBUG);
 
   return FTI_SCES;
+}
+
+/**
+ * @brief            Increases quantum if necessary.
+ * @param            FTI_KernelInfo     Metadata of currently protected kernel.
+ *
+ * This function will increase the quantum by comparing previous number of executed
+ * blocks with the current number of executed blocks. If the current number of blocks
+ * executed by the kernel thus far is less than or equal to the previous total number
+ * of blocks, the quantum is increased.
+ *
+ * Each time a protected kernel is launched it will attempt to execute all blocks. As
+ * the kernel progresses, more and more blocks will be marked as complete. However,
+ * the kernel will still spend time launching already completed blocks each time it is
+ * invoked. This takes time and if the quantum is very very small, it can expire before
+ * any unexecuted blocks are scheduled. This function handles the case of a tiny quantum.
+ */
+static inline void increase_quantum(FTIT_kernelInfo* FTI_KernelInfo){
+  if(FTI_KernelInfo->executedBlockCnt <= FTI_KernelInfo->lastExecutedBlockCnt){
+    *FTI_KernelInfo->quantum = *FTI_KernelInfo->quantum + FTI_KernelInfo->initial_quantum;
+  }
 }
 
 /**
@@ -472,8 +498,7 @@ static inline void handle_kernel_suspension(FTIT_kernelInfo* FTI_KernelInfo)
       interrupt.  This should not be necessary for a quantum in minutes and should be
       removed.
     */
-    //TODO consider if this is still necessary.
-    *FTI_KernelInfo->quantum = *FTI_KernelInfo->quantum + FTI_KernelInfo->initial_quantum;
+    increase_quantum(FTI_KernelInfo);
   }
 }
 
@@ -494,7 +519,7 @@ int FTI_kernel_monitor(FTIT_kernelInfo* FTI_KernelInfo)
   wait(FTI_KernelInfo);
 
   /* Tell kernel to finish and return */
-  ret = FTI_Try(signal_kernel_then_wait(FTI_KernelInfo), "signal and wait on kernel");
+  ret = FTI_Try(signal_kernel(FTI_KernelInfo), "signal and wait on kernel");
 
   if(ret != FTI_SCES)
   {

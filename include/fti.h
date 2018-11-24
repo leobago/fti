@@ -209,15 +209,17 @@ do{                                                                             
      */
     typedef struct FTIT_kernelInfo{
         int*            id;                   /**< ID to search/update dataset.                          */
-        bool*           complete;             /**< Whether kernel is done or not                         */
-        size_t*         block_amt;            /**< Number of blocks launched by kernel                   */
-        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt             */
+        bool*           complete;             /**< Whether kernel is done or not.                        */
+        size_t*         block_amt;            /**< Number of blocks launched by kernel.                  */
+        unsigned int*   quantum;              /**< Current quantum used for kernel interrupt.            */
         unsigned int    initial_quantum;      /**< The initial quantum specified.                        */
-        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not                */
-        bool*           all_done;             /**< Record of processes that have completed kernel        */
+        volatile bool*  quantum_expired;      /**< Whether the quantum has expired or not.               */
+        bool*           all_done;             /**< Record of processes that have completed kernel.       */
         size_t          block_info_bytes;     /**< Size of memory required for boolean array.            */
-        bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel    */
-        bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel  */
+        bool*           h_is_block_executed;  /**< Host No. of blocks successfully executed by kernel.   */
+        bool*           d_is_block_executed;  /**< Device No. of blocks successfully executed by kernel. */
+        size_t          executedBlockCnt;     /**< Count of executed blocks.                             */
+        size_t          lastExecutedBlockCnt; /**< Previous count of executed blocks.                    */
     }FTIT_kernelInfo;
 
     /** @typedef    FTIT_kernelInfoMetadata
