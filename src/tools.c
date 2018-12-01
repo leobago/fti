@@ -407,6 +407,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].nbVar);
             free(FTI_Exec->meta[i].varID);
             free(FTI_Exec->meta[i].varSize);
+            free(FTI_Exec->meta[i].kernelInfo);
         }
         FTI_Exec->metaAlloc = 0;
     }

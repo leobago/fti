@@ -119,7 +119,7 @@ extern "C" {
  */
 #define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)              \
 do{                                                                                                       \
-    FTIT_kernelInfo FTI_MacroInfo;                                                                        \
+    FTIT_kernelInfo *FTI_MacroInfo = NULL;                                                                        \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
@@ -134,27 +134,27 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(&FTI_MacroInfo) == false)                                              \
+      while(FTI_all_procs_complete(FTI_MacroInfo) == false)                                              \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
-        if(*FTI_MacroInfo.complete == false){                                                             \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo.quantum_expired,                      \
-              FTI_MacroInfo.d_is_block_executed,                                                          \
+        if(*FTI_MacroInfo->complete == false){                                                             \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo->quantum_expired,                      \
+              FTI_MacroInfo->d_is_block_executed,                                                          \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        ret = FTI_kernel_monitor(&FTI_MacroInfo);                                                         \
+        ret = FTI_kernel_monitor(FTI_MacroInfo);                                                         \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
           FTI_BACKUP_Print(str, FTI_EROR);                                                                \
         }                                                                                                 \
-        if(*FTI_MacroInfo.complete == false){                                                             \
+        if(*FTI_MacroInfo->complete == false){                                                             \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        FTI_BACKUP_gather_kernel_status(&FTI_MacroInfo);                                                  \
+        FTI_BACKUP_gather_kernel_status(FTI_MacroInfo);                                                  \
       }                                                                                                   \
-      FTI_FreeDeviceAlloc(&FTI_MacroInfo);                                                                \
+      FTI_FreeDeviceAlloc(FTI_MacroInfo);                                                                \
     }                                                                                                     \
 }while(0);
 
@@ -233,7 +233,7 @@ do{                                                                             
     }FTIT_kernelInfoMetadata;
 
 bool FTI_all_procs_complete(FTIT_kernelInfo* FTI_KernelInfo);
-int FTI_kernel_init(FTIT_kernelInfo* KernelMacroInfo, int kernelId, double quantum, dim3 num_blocks);
+int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quantum, dim3 num_blocks);
 int FTI_kernel_monitor(FTIT_kernelInfo* FTI_KernelInfo);
 void FTI_BACKUP_Print(char *msg, int priority);
 int FTI_FreeKernelInfo();
@@ -409,15 +409,15 @@ int FTI_FreeDeviceAlloc(FTIT_kernelInfo* FTI_KernelInfo);
      *  This type stores all the metadata necessary for the restart.
      */
     typedef struct FTIT_metadata {
-        int*             exists;              /**< True if metadata exists                            */
-        long*            maxFs;               /**< Maximum file size.                                 */
-        long*            fs;                  /**< File size.                                         */
-        long*            pfs;                 /**< Partner file size.                                 */
-        char*            ckptFile;            /**< Ckpt file name. [FTI_BUFS]                         */
-        int*             nbVar;               /**< Number of variables. [FTI_BUFS]                    */
-        int*             varID;               /**< Variable id for size.[FTI_BUFS]                    */
-        long*            varSize;             /**< Variable size. [FTI_BUFS]                          */
-        FTIT_kernelInfo* kernelInfo;          /**< Metadata for protected kernel                      */
+        int*             exists;      /**< True if metadata exists                   */
+        long*            maxFs;       /**< Maximum file size.                        */
+        long*            fs;          /**< File size.                                */
+        long*            pfs;         /**< Partner file size.                        */
+        char*            ckptFile;    /**< Ckpt file name. [FTI_BUFS]                */
+        int*             nbVar;       /**< Number of variables. [FTI_BUFS]           */
+        int*             varID;       /**< Variable id for size.[FTI_BUFS]           */
+        long*            varSize;     /**< Variable size. [FTI_BUFS]                 */
+        FTIT_kernelInfo* kernelInfo;  /**< Metadata for protected kernel. [FTI_BUFS] */
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration

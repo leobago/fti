@@ -37,7 +37,6 @@
  */
 
 #include "interface.h"
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It gets the checksums from metadata.
@@ -298,17 +297,17 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
   for(i = 0; i < FTI_Exec->nbKernels; i++){
 
     /* Allocations */
-    int *id                                    = talloc(int, 1);
-    size_t *block_amt                          = talloc(size_t, 1);
-    bool *complete                             = talloc(bool, 1);
-    unsigned int *quantum                      = talloc(unsigned int, 1);
+    int *id                                       = talloc(int, 1);
+    size_t *block_amt                             = talloc(size_t, 1);
+    bool *complete                                = talloc(bool, 1);
+    unsigned int *quantum                         = talloc(unsigned int, 1);
     FTI_Exec->meta[level].kernelInfo[i].all_done  = talloc(bool, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
 
     /* Return if any allocations failed */
-    if(id                                         == NULL){return FTI_NSCS;}
-    if(block_amt                                  == NULL){return FTI_NSCS;}
-    if(complete                                   == NULL){return FTI_NSCS;}
-    if(quantum                                    == NULL){return FTI_NSCS;}
+    if(id                                            == NULL){return FTI_NSCS;}
+    if(block_amt                                     == NULL){return FTI_NSCS;}
+    if(complete                                      == NULL){return FTI_NSCS;}
+    if(quantum                                       == NULL){return FTI_NSCS;}
     if(FTI_Exec->meta[level].kernelInfo[i].all_done  == NULL){return FTI_NSCS;}
 
     snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
@@ -329,7 +328,7 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
 
     snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
 
-    char *str_quantum = iniparser_getstring(ini, str, NULL); 
+    char *str_quantum = iniparser_getstring(ini, str, NULL);
     sscanf(str_quantum, "%u", quantum);
     FTI_Exec->meta[level].kernelInfo[i].quantum = quantum;
 
@@ -753,12 +752,12 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
     int dest= 0; //Send to head of group
 
     for(i = 0; i < FTI_Exec->nbKernels; i++){
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].id, 1, MPI_INT, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].all_done, FTI_Topo->nbApprocs * FTI_Topo->nbNodes, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].complete, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].h_is_block_executed, *FTI_Exec->kernelInfo[i].block_amt, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
-      MPI_Send((const void*)FTI_Exec->kernelInfo[i].quantum, 1, MPI_UNSIGNED, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->id, 1, MPI_INT, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->block_amt, 1, MPI_UNSIGNED_LONG_LONG, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->all_done, FTI_Topo->nbApprocs * FTI_Topo->nbNodes, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->complete, 1, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->h_is_block_executed, *FTI_Exec->kernelInfo[i]->block_amt, MPI_C_BOOL, dest, tag, FTI_Exec->groupComm);
+      MPI_Send((const void*)FTI_Exec->kernelInfo[i]->quantum, 1, MPI_UNSIGNED, dest, tag, FTI_Exec->groupComm);
     }
   }
   else{
@@ -769,12 +768,12 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
     if(FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo == NULL){return FTI_NSCS;}
 
     for(i = 0; i < FTI_Exec->nbKernels; i++){
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].id                  = FTI_Exec->kernelInfo[i].id;
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].block_amt           = FTI_Exec->kernelInfo[i].block_amt;
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].all_done            = FTI_Exec->kernelInfo[i].all_done;
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].complete            = FTI_Exec->kernelInfo[i].complete;
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].h_is_block_executed = FTI_Exec->kernelInfo[i].h_is_block_executed;
-      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].quantum             = FTI_Exec->kernelInfo[i].quantum;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].id                  = FTI_Exec->kernelInfo[i]->id;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].block_amt           = FTI_Exec->kernelInfo[i]->block_amt;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].all_done            = FTI_Exec->kernelInfo[i]->all_done;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].complete            = FTI_Exec->kernelInfo[i]->complete;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].h_is_block_executed = FTI_Exec->kernelInfo[i]->h_is_block_executed;
+      FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo[i].quantum             = FTI_Exec->kernelInfo[i]->quantum;
     }
   }
 
@@ -790,7 +789,7 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
         FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].block_amt            = talloc(size_t, FTI_Exec->nbKernels);
         FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].all_done             = talloc(bool, FTI_Topo->nbApprocs * FTI_Topo->nbNodes * FTI_Exec->nbKernels);
         FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].complete             = talloc(bool, FTI_Exec->nbKernels);
-        FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].h_is_block_executed  = talloc(bool, *FTI_Exec->kernelInfo[j].block_amt);
+        FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].h_is_block_executed  = talloc(bool, *FTI_Exec->kernelInfo[j]->block_amt);
         FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].quantum              = talloc(unsigned int, FTI_Exec->nbKernels);
 
         if(FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].id                   == NULL){return FTI_NSCS;}
@@ -820,7 +819,7 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
         MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].block_amt, 1, MPI_UNSIGNED_LONG_LONG, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].all_done, FTI_Topo->nbApprocs * FTI_Topo->nbNodes, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].complete, 1, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].h_is_block_executed, *FTI_Exec->kernelInfo[j].block_amt, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].h_is_block_executed, *FTI_Exec->kernelInfo[j]->block_amt, MPI_C_BOOL, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         MPI_Recv((void *)FTI_KernelInfoMetadata[i].FTI_KernelInfo[j].quantum, 1, MPI_UNSIGNED, src, tag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
       }
     }
