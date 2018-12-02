@@ -119,7 +119,7 @@ extern "C" {
  */
 #define FTI_Protect_Kernel(kernel_id, quantum, kernel_name, grid_dim, block_dim, ns, s, ...)              \
 do{                                                                                                       \
-    FTIT_kernelInfo *FTI_MacroInfo = NULL;                                                                        \
+    FTIT_kernelInfo *FTI_MacroInfo = NULL;                                                                \
                                                                                                           \
     int ret;                                                                                              \
     char str[FTI_BUFS];                                                                                   \
@@ -134,27 +134,27 @@ do{                                                                             
     else                                                                                                  \
     {                                                                                                     \
       size_t count = 0;                                                                                   \
-      while(FTI_all_procs_complete(FTI_MacroInfo) == false)                                              \
+      while(FTI_all_procs_complete(FTI_MacroInfo) == false)                                               \
       {                                                                                                   \
         sprintf(str, "%s interrupts = %zu", #kernel_name, count);                                         \
         FTI_BACKUP_Print(str, FTI_DBUG);                                                                  \
-        if(*FTI_MacroInfo->complete == false){                                                             \
-          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo->quantum_expired,                      \
-              FTI_MacroInfo->d_is_block_executed,                                                          \
+        if(*FTI_MacroInfo->complete == false){                                                            \
+          kernel_name<<<grid_dim, block_dim, ns, s>>>(FTI_MacroInfo->quantum_expired,                     \
+              FTI_MacroInfo->d_is_block_executed,                                                         \
                       ## __VA_ARGS__);                                                                    \
         }                                                                                                 \
-        ret = FTI_kernel_monitor(FTI_MacroInfo);                                                         \
+        ret = FTI_kernel_monitor(FTI_MacroInfo);                                                          \
         if(ret != FTI_SCES)                                                                               \
         {                                                                                                 \
           sprintf(str, "Monitoring of kernel execution failed");                                          \
           FTI_BACKUP_Print(str, FTI_EROR);                                                                \
         }                                                                                                 \
-        if(*FTI_MacroInfo->complete == false){                                                             \
+        if(*FTI_MacroInfo->complete == false){                                                            \
           count = count + 1;                                                                              \
         }                                                                                                 \
-        FTI_BACKUP_gather_kernel_status(FTI_MacroInfo);                                                  \
+        FTI_BACKUP_gather_kernel_status(FTI_MacroInfo);                                                   \
       }                                                                                                   \
-      FTI_FreeDeviceAlloc(FTI_MacroInfo);                                                                \
+      FTI_FreeDeviceAlloc(FTI_MacroInfo);                                                                 \
     }                                                                                                     \
 }while(0);
 

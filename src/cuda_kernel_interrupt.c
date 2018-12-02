@@ -20,7 +20,14 @@
  *
  * The quantum will be increased up to this limit if it has been
  * set to less than 5 seconds and a kernel launch does not progress
- * between interrupts.
+ * between interrupts. Not progressing means that the number of executed
+ * blocks has not increased before the kernel was interrupted. When this
+ * happens it means that the quantum expired before the kernel was able
+ * to launch any new blocks which means the quantum needs to be increased.
+ *
+ * The MAX_QUANTUM is the ceiling to how much the quantum needs to be increased.
+ * This is a VERY generous value as the launching of all blocks should take
+ * less than 1 second.
  */
 #define MAX_QUANTUM 5000000 /* 5 seconds */
 
@@ -33,6 +40,32 @@ static FTIT_topology *FTI_Topo = NULL;
  * @brief              Initialized to reference to FTI_Exec.
  */
 static FTIT_execution *FTI_Exec = NULL;
+
+/*
+ * @brief List of references to protected kernel handles to be freed.
+ *
+ * This list is necessary so that allocated handles
+ * can be freed during the finalization of FTI. While FTI_execution holds a
+ * reference to protected kernels, the type of reference can change if the
+ * application has been restarted. When initializing a kernel for protection,
+ * memory for its handle is allocated and a reference to this handle is stored
+ * in FTI_exec->kernelInfo. At restart, the reference is restored from
+ * FTI_exec->meta[].kernelInfo which is a single allocation of size FTI_BUFS.
+ * Because of the two different allocations that can be made to protect kernels,
+ * two different frees need to be made. This list stores references to allocations
+ * made when initializing protected kernels, so that they can be freed later.
+*/
+static FTIT_kernelInfo *kernelMacroHandle[FTI_BUFS];
+
+/*
+ * @brief Count of newly initialized kernels.
+ *
+ * This variable keeps track of the number of initialized kernels that
+ * have not been restored. This is so that the correct number of frees
+ * can be made on their handles if the application does not need to be
+ * restarted again.
+*/
+static int protectedInitCount;
 
 /**
  * @brief             Updates the number of executed blocks.
@@ -145,8 +178,6 @@ static inline bool all_kernels_complete(){
 
   for(i = 0; i < FTI_Exec->nbKernels; i++){
     if(*FTI_Exec->kernelInfo[i]->complete == false){
-      fprintf(stdout, "Kernel :%d not complete\n", *FTI_Exec->kernelInfo[i]->id);
-      fflush(stdout);
       return false;
     }
   }
@@ -173,22 +204,25 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
   size_t i = 0;
   unsigned int kernel_index = 0;
   char str[FTI_BUFS];
-  FTIT_kernelInfo *kernelInfo = (FTIT_kernelInfo *)malloc(sizeof(FTIT_kernelInfo));
-
-  if(kernelInfo == NULL){
-    return FTI_NSCS;
-  }
+  volatile bool *quantum_expired = NULL;
+  FTIT_kernelInfo *kernelInfo = NULL;
 
   snprintf(str, FTI_BUFS, "Entered function %s", __func__);
   FTI_Print(str, FTI_DBUG);
 
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
 
-  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&kernelInfo->quantum_expired, sizeof(volatile bool), cudaHostAllocMapped));
+  CUDA_ERROR_CHECK(cudaHostAlloc((void **)&quantum_expired, sizeof(volatile bool), cudaHostAllocMapped));
 
   if(!kernel_protected){
     snprintf(str, FTI_BUFS, "kernelId %d not protected.", kernelId);
     FTI_Print(str, FTI_DBUG);
+
+    kernelInfo = (FTIT_kernelInfo *)malloc(sizeof(FTIT_kernelInfo));
+
+    if(kernelInfo == NULL){
+      return FTI_NSCS;
+    }
 
     if(FTI_Exec->nbKernels >= FTI_BUFS){
       FTI_Print("Unable to protect kernel. Too many kernels already registered.", FTI_WARN);
@@ -202,6 +236,7 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     kernelInfo->all_done            = (bool *)calloc(FTI_Topo->nbApprocs * FTI_Topo->nbNodes, sizeof(bool));
     kernelInfo->complete            = (bool *)malloc(sizeof(bool));
     kernelInfo->quantum             = (unsigned int*)malloc(sizeof(unsigned int));
+    kernelInfo->quantum_expired     = quantum_expired;
 
     if(kernelInfo->id                  == NULL){return FTI_NSCS;}
     if(kernelInfo->all_done            == NULL){return FTI_NSCS;}
@@ -229,19 +264,26 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
 
     /* Keep track of KernelMacroInfo for checkpointing */
     FTI_Exec->kernelInfo[FTI_Exec->nbKernels] = kernelInfo;
+    /* Increase index of protected kernel */
     FTI_Exec->nbKernels = FTI_Exec->nbKernels + 1;
+
+    /* Store handle so that it can be freed later */
+    kernelMacroHandle[FTI_Exec->nbKernels] = kernelInfo;
+    /* Increase count of initialized kernels */
+    protectedInitCount = protectedInitCount + 1;
   }
   else{
     /* Restore after restart */
     snprintf(str, FTI_BUFS, "Restoring kernel execution data for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
 
-    FTI_Exec->kernelInfo[kernel_index]->quantum_expired = kernelInfo->quantum_expired;
+    //FTI_Exec->kernelInfo[kernel_index]->quantum_expired = kernelInfo->quantum_expired;
     kernelInfo = FTI_Exec->kernelInfo[kernel_index];
 
     /* Not checkpointed, so block_info_bytes needs to be recalculated */
     kernelInfo->block_info_bytes = *kernelInfo->block_amt * sizeof(bool);
 
+    kernelInfo->quantum_expired = quantum_expired;
     *kernelInfo->quantum_expired = true;
 
     bool all_protected_kernels_complete = all_kernels_complete();
@@ -250,9 +292,6 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
       /* Kernel needs to be executed again */
       snprintf(str, FTI_BUFS, "All other kernels complete. kernel Id %d will be re-executed", kernelId);
       FTI_Print(str, FTI_DBUG);
-
-      fprintf(stdout, "Kernel id %d re-executing\n", kernelId);
-      fflush(stdout);
 
       /* Reset necessary values so kernel is re-executed */
       *kernelInfo->complete = false;
@@ -323,6 +362,13 @@ int FTI_FreeKernelInfo()
      free(FTI_Exec->kernelInfo[i]->h_is_block_executed);
      free(FTI_Exec->kernelInfo[i]->complete);
      free(FTI_Exec->kernelInfo[i]->quantum);
+  }
+
+  /* Free handles for kernels which were not restored from a checkpoint */
+  for(i = 0; i < protectedInitCount; i++){
+    fprintf(stdout, "%d freeing initCount\n", FTI_Topo->myRank);
+    fflush(stdout);
+    free(kernelMacroHandle[i]);
   }
 
   return FTI_SCES;
