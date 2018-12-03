@@ -90,6 +90,8 @@ static void update_executed_block_count(FTIT_kernelInfo *FTI_KernelInfo){
   }
 
  FTI_KernelInfo->executedBlockCnt = cnt;
+ //fprintf(stdout, "%d block count = %zu\n", FTI_Topo->myRank, FTI_KernelInfo->executedBlockCnt);
+ //fflush(stdout);
 }
 
 /**
@@ -201,7 +203,7 @@ static inline bool all_kernels_complete(){
  * FTI_Exec->kernelInfo.
  */
 int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quantum, dim3 num_blocks){
-  size_t i = 0;
+  //size_t i = 0;
   unsigned int kernel_index = 0;
   char str[FTI_BUFS];
   volatile bool *quantum_expired = NULL;
@@ -289,6 +291,8 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     bool all_protected_kernels_complete = all_kernels_complete();
 
     if(all_protected_kernels_complete){
+      fprintf(stdout, "All other kernels complete kernel %d executing again\n", kernelId);
+      fflush(stdout);
       /* Kernel needs to be executed again */
       snprintf(str, FTI_BUFS, "All other kernels complete. kernel Id %d will be re-executed", kernelId);
       FTI_Print(str, FTI_DBUG);
@@ -299,15 +303,10 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
       *kernelInfo->quantum = seconds_to_microseconds(quantum);
 
       /* Reset array indicating that this kernel has been completed by all processes */
-      for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
-        kernelInfo->all_done[i] = false;
-      }
+      memset(kernelInfo->all_done, 0, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
 
-      //TODO use memcpy to clear this memory faster?
       /* Reset array keeping track of executed blocks */
-      for(i = 0; i < *kernelInfo->block_amt; i++){
-        kernelInfo->h_is_block_executed[i] = false;
-      }
+      memset(kernelInfo->h_is_block_executed, 0, *kernelInfo->block_amt);
     }
   }
 
@@ -366,8 +365,6 @@ int FTI_FreeKernelInfo()
 
   /* Free handles for kernels which were not restored from a checkpoint */
   for(i = 0; i < protectedInitCount; i++){
-    fprintf(stdout, "%d freeing initCount\n", FTI_Topo->myRank);
-    fflush(stdout);
     free(kernelMacroHandle[i]);
   }
 
