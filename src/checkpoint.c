@@ -637,7 +637,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             else {
                 res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
-                MD5_Update(&FTI_Exec->mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
             }
         }
 
@@ -807,7 +806,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         else {
             res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
-            MD5_Update(&FTI_Exec->mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
         }
 
         // check if successful
