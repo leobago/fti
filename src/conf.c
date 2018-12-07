@@ -157,7 +157,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[4].ckptDcpCnt  = 1;
 
     FTI_Conf->stagingEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_staging", 0);
-
+    FTI_Conf->deviceCpEnabled = (bool) iniparser_getboolean(ini, "Basic:enable_gpu", 0);
     // Reading/setting configuration metadata
     FTI_Conf->keepHeadsAlive = (bool)iniparser_getboolean(ini, "Basic:keep_heads_alive", 0);
     FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
@@ -175,6 +175,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
+    FTI_Conf->cHostBufSize = (size_t)iniparser_getlint(ini, "Advanced:gpu_host_bufsize", FTI_DEFAULT_CHOSTBUF_SIZE_MB) * ((size_t)1 << 20);
 #ifdef LUSTRE
     FTI_Conf->stripeUnit = (int)iniparser_getint(ini, "Advanced:lustre_stiping_unit", 4194304);
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
@@ -293,6 +294,12 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Head feature is disabled but 'keep_heads_alive' is activated. Incompatiple setting!.", FTI_WARN);
         return FTI_NSCS;
     }
+
+    if (FTI_Conf->dcpEnabled && FTI_Conf->deviceCpEnabled ){
+      FTI_Print( "Device Checkpoint Enabled and dCP Enabled.! dCP Setting will be ignored.", FTI_WARN );
+      FTI_Conf->dcpEnabled=false;
+    }
+
 
     // check dCP settings only if dCP is enabled
     if ( FTI_Conf->dcpEnabled ) {

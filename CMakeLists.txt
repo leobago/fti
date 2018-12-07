@@ -5,8 +5,11 @@ if(POLICY CMP0054)
 endif()
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	project(FTI C Fortran)
+	project(FTI C Fortran CUDA)
 endif()
+
+FIND_PACKAGE(CUDA)
+
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
@@ -114,11 +117,13 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
+include_directories(${CUDA_INCLUDE_DIRS})
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
-	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c)
+	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
+  src/api_cuda.c)
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -173,11 +178,11 @@ if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 endif()
 
 if(ZLIB_FOUND)
-    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
-    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
 else()
-    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
-    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" ${CUDA_LIBRARIES})
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" ${CUDA_LIBRARIES})
 endif()
 
 if(ENABLE_LUSTRE)

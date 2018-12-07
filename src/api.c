@@ -39,6 +39,12 @@
 
 #include "interface.h"
 
+#include <cuda_runtime_api.h>
+
+#include "ftiff.h"
+#include "api_cuda.h"
+
+
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
 
@@ -137,6 +143,16 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
     }
     FTI_Exec.initSCES = 1;
+  
+    // Initialize CUDA-related params
+    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+
+//    MD5_Init(&FTI_Exec.mdContext);
+    
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -1764,7 +1780,37 @@ int FTI_Recover()
     }
 
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+      FTIT_ptrinfo ptrInfo;
+        int res = FTI_Try(FTI_get_pointer_info((const void*)FTI_Data[i].ptr, &ptrInfo), "determine pointer type");
+      
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
+
+        if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+            void  *dev_ptr = FTI_Data[i].ptr;
+            FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+
+            if (FTI_Data[i].ptr == NULL)
+            {
+                FTI_Print("Failed to allocate scratch buffer in", FTI_EROR);
+                return FTI_NSCS;
+            }
+            
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            res = FTI_Try(FTI_copy_to_device(dev_ptr, FTI_Data[i].ptr, FTI_Data[i].size, &ptrInfo, &FTI_Exec), "copying data to GPU");
+
+            if (res == FTI_NSCS) {
+              return FTI_NSCS;
+            }
+
+            free(FTI_Data[i].ptr);
+            FTI_Data[i].ptr = dev_ptr;
+        }
+        else {
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        }
+
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
@@ -1865,6 +1911,35 @@ int FTI_Finalize()
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
+    }
+
+    cudaError_t err;
+    char err_str[FTI_BUFS];
+
+    if ((err = cudaStreamSynchronize(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot synchronize the internal cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaEventDestroy(FTI_Exec.cEvents[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cEvents[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaStreamDestroy(FTI_Exec.cStream)) != cudaSuccess) {
+        sprintf(err_str, "Cannot destroy cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[0])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
+    }
+    if ((err = cudaFreeHost(FTI_Exec.cHostBufs[1])) != cudaSuccess) {
+        sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
+        FTI_Print(err_str, FTI_DBUG);
     }
 
     if (FTI_Topo.amIaHead) {
