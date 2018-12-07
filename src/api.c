@@ -39,9 +39,13 @@
 
 #include "interface.h"
 
-#include <cuda_runtime_api.h>
 
 #include "ftiff.h"
+
+#ifdef GPUSUPPORT
+#include <cuda_runtime_api.h>
+#endif 
+
 #include "api_cuda.h"
 
 
@@ -145,13 +149,14 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.initSCES = 1;
   
     // Initialize CUDA-related params
+#ifdef GPUSUPPORT   
     CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
     CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
     CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
     CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
     CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+#endif    
 
-//    MD5_Init(&FTI_Exec.mdContext);
     
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -1787,7 +1792,11 @@ int FTI_Recover()
             return FTI_NSCS;
         }
 
-        if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+        if (ptrInfo.type == FTIT_PTRTYPE_CPU ){
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        }
+#ifdef GPUSUPPORT        
+        else if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
             void  *dev_ptr = FTI_Data[i].ptr;
             FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
 
@@ -1807,9 +1816,7 @@ int FTI_Recover()
             free(FTI_Data[i].ptr);
             FTI_Data[i].ptr = dev_ptr;
         }
-        else {
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-        }
+#endif        
 
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
@@ -1912,7 +1919,7 @@ int FTI_Finalize()
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+#ifdef GPUSUPPORT
     cudaError_t err;
     char err_str[FTI_BUFS];
 
@@ -1941,6 +1948,7 @@ int FTI_Finalize()
         sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
         FTI_Print(err_str, FTI_DBUG);
     }
+#endif
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);

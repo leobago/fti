@@ -37,6 +37,7 @@
  */
 
 #include "interface.h"
+#include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -158,6 +159,12 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Conf->stagingEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_staging", 0);
     FTI_Conf->deviceCpEnabled = (bool) iniparser_getboolean(ini, "Basic:enable_gpu", 0);
+#ifndef GPUSUPPORT
+    if (FTI_Conf->deviceCpEnabled){
+      FTI_Print("Enabled GPU checkpointing: Library not COMPILED with GPU support",FTI_EROR);
+      return FTI_NSCS;
+    }
+#endif
     // Reading/setting configuration metadata
     FTI_Conf->keepHeadsAlive = (bool)iniparser_getboolean(ini, "Basic:keep_heads_alive", 0);
     FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
@@ -175,7 +182,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
+#ifdef GPUSUPPORT
     FTI_Conf->cHostBufSize = (size_t)iniparser_getlint(ini, "Advanced:gpu_host_bufsize", FTI_DEFAULT_CHOSTBUF_SIZE_MB) * ((size_t)1 << 20);
+#endif
+
 #ifdef LUSTRE
     FTI_Conf->stripeUnit = (int)iniparser_getint(ini, "Advanced:lustre_stiping_unit", 4194304);
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);

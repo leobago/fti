@@ -4,11 +4,18 @@ if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
 endif()
 
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	project(FTI C Fortran CUDA)
-endif()
-
-FIND_PACKAGE(CUDA)
+if (DEFINED GPUSUPPORT)
+  message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
+  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+	  project(FTI C Fortran CUDA)
+  endif()
+  FIND_PACKAGE(CUDA)
+else ()
+  message(AUTHOR_WARNING "  ** Project is going to be build WITH NO GPU Support")
+  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+	  project(FTI C Fortran )
+  endif()
+endif()  
 
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
@@ -117,13 +124,20 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
-include_directories(${CUDA_INCLUDE_DIRS})
+
+
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-  src/api_cuda.c)
+  src/api_cuda.c
+  )
+
+if (DEFINED GPUSUPPORT)
+  include_directories(${CUDA_INCLUDE_DIRS})
+  set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
+endif()
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")

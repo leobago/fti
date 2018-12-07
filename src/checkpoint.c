@@ -44,8 +44,8 @@
 
 #include "interface.h"
 #include "ftiff.h"
-#include "api_cuda.h"
 
+#include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -613,11 +613,10 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // write data into ckpt file
     int i;
-    //Temp Var to determine location of data.
     FTIT_ptrinfo ptrInfo;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         clearerr(fd);
-
+        //Check where are the data stored
         if ((res = FTI_Try(
             FTI_get_pointer_info((const void *)FTI_Data[i].ptr, &ptrInfo), 
             "determine pointer type")) != FTI_SCES)
@@ -625,7 +624,14 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         if (!ferror(fd)) {
             errno = 0;
-            if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+            // if data are stored to CPU just write them
+            if (ptrInfo.type == FTIT_PTRTYPE_CPU){
+                res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
+            }
+#ifdef GPUSUPPORT            
+            // if data are stored to the GPU move them from device
+            // memory to cpu memory and store them.
+            else if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
                 if ((res = FTI_Try(
                     FTI_pipeline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, FTI_Conf, write_posix, fd),
                     "moving data from GPU to storage")) != FTI_SCES) {
@@ -635,9 +641,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return res;
                 }
             }
-            else {
-                res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
-            }
+#endif            
         }
 
         if (ferror(fd)) {
@@ -793,8 +797,14 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         
         // determine the type of data pointer
+        // Data are stored in the CPU side. 
+        if ( ptrInfo.type == FTIT_PTRTYPE_CPU){
+            res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
+        }
+#ifdef GPUSUPPORT
         // dowload data from the GPU if necessary
-        if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
+        // Data are stored in the GPU side.
+        else if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
             if ((res = FTI_Try(
                 FTI_pipeline_gpu_to_storage(&FTI_Data[i], &ptrInfo, FTI_Exec, FTI_Conf, write_mpi, &write_info),
                 "moving data from GPU to storage")) != FTI_SCES) {
@@ -804,9 +814,8 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return res;
             }
         }
-        else {
-            res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
-        }
+#endif
+        
 
         // check if successful
         if (res != 0) {

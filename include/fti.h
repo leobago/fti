@@ -13,7 +13,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
+#endif
 
 /*---------------------------------------------------------------------------
   Defines
@@ -426,9 +428,11 @@ extern "C" {
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
     MPI_Comm        nodeComm;
+#ifdef GPUSUPPORT    
     cudaStream_t    cStream;            /**< CUDA stream.                   */
     cudaEvent_t     cEvents[2];         /**< CUDA event.                    */
     void*           cHostBufs[2];       /**< CUDA host buffer.              */
+#endif
   } FTIT_execution;
 
   /** @typedef    FTIT_configuration
@@ -437,7 +441,7 @@ extern "C" {
    *  This type stores the general configuration metadata.
    */
   typedef struct FTIT_configuration {
-    bool            deviceCpEnabled;    /**< TRUE if ckpts accelator (GPU) **/
+    bool            deviceCpEnabled;    /**< TRUE if ckpts accelator (GPU) */
     bool            stagingEnabled;
     bool            dcpEnabled;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
@@ -468,7 +472,10 @@ extern "C" {
     char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.     */
     char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.    */
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.  */
+#ifdef GPUSUPPORT    
     size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
+#endif
+
   } FTIT_configuration;
 
   /** @typedef    FTIT_topology

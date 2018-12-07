@@ -224,7 +224,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     if(res == FTI_NSCS){
       return FTI_NSCS;
     }
-
+#ifdef GPUSUPPORT
     void *dev_ptr = NULL;
     if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
       dev_ptr = FTI_Data[i].ptr;
@@ -241,13 +241,15 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
         return FTI_NSCS;
       }
     }
-
+#endif
     MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
 
+#ifdef GPUSUPPORT    
     if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
       free(FTI_Data[i].ptr);
       FTI_Data[i].ptr = dev_ptr;
     }
+#endif
   }
 
   unsigned char hash[MD5_DIGEST_LENGTH];

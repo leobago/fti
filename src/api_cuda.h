@@ -8,12 +8,8 @@
 #ifndef _API_CUDA_H
 #define _API_CUDA_H
 
+#ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
-#include "interface.h"
-
-#define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
-
-#define MIN(x, y) (x < y ? x : y)
 
 #define CUDA_ERROR_CHECK(fun)                                                           \
 do {                                                                                    \
@@ -26,6 +22,14 @@ do {                                                                            
       return FTI_NSCS;                                                                  \
     }                                                                                   \
 } while(0)
+
+#endif
+#include "interface.h"
+
+#define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
+
+#define MIN(x, y) (x < y ? x : y)
+
 
 typedef enum FTIT_ptrtype {
     FTIT_PTRTYPE_CPU = 0,
