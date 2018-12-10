@@ -1,0 +1,49 @@
+#ifndef _FAILURE_INJECTION_H
+#define _FAILURE_INJECTION_H
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <limits.h>
+
+static inline uint64_t get_ruint() {
+    uint64_t buffer;
+    int fd = open("/dev/urandom", O_RDWR);
+    read(fd, &buffer, 8);
+    close(fd);
+    return buffer%INT_MAX;
+}
+
+void init_fi();
+
+float PROBABILITY();
+
+#ifdef ENABLE_FI
+#define FI_WRITE( ERR, FD, BUF, COUNT, FN ) \
+    do { \
+        if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
+            close(FD); \
+            FD = open(FN, O_RDONLY); \
+            ERR = write( FD, BUF, COUNT ); \
+        } else  { \
+            ERR = write( FD, BUF, COUNT ); \
+        } \
+    } while(0)
+#define FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) \
+    do { \
+        if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
+            fclose(FSTREAM); \
+            FSTREAM = fopen(FN, "rb"); \
+            ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
+        } else  { \
+            ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
+        } \
+    } while(0)
+#else
+#define FI_WRITE( ERR, FD, BUF, COUNT, FN ) ERR = write( FD, BUF, COUNT )
+#define FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) ERR = fwrite( BUF, SIZE, COUNT, FSTREAM )
+#endif
+
+#endif //_FAILURE_INJECTION_H
