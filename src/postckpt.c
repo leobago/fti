@@ -157,7 +157,9 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        fwrite(buffer, sizeof(char), recvSize, pfd);
+        int err;
+        FI_FWRITE( err, buffer, sizeof(char), recvSize, pfd, pfn );
+        //fwrite(buffer, sizeof(char), recvSize, pfd);
 
         if (ferror(pfd)) {
             FTI_Print("Error writing data to L2 ptner file", FTI_DBUG);

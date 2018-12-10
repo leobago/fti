@@ -599,10 +599,10 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int fwrite_errno;
         while (written < FTI_Data[i].count && !ferror(fd)) {
             errno = 0;
-            //written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
-            int err;
-            FI_FWRITE( err, ((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd, fn );
-            written += err; 
+            written += fwrite(((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd);
+            //int err;
+            //FI_FWRITE( err, ((char*)FTI_Data[i].ptr) + (FTI_Data[i].eleSize*written), FTI_Data[i].eleSize, FTI_Data[i].count - written, fd, fn );
+            //written += err; 
             fwrite_errno = errno;
         }
         if (ferror(fd)) {

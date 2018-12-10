@@ -118,7 +118,7 @@ set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
-	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c)
+	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c src/failure-injection.c)
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
