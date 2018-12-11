@@ -90,8 +90,6 @@ static void update_executed_block_count(FTIT_kernelInfo *FTI_KernelInfo){
   }
 
  FTI_KernelInfo->executedBlockCnt = cnt;
- //fprintf(stdout, "%d block count = %zu\n", FTI_Topo->myRank, FTI_KernelInfo->executedBlockCnt);
- //fflush(stdout);
 }
 
 /**
@@ -103,6 +101,7 @@ static int recover_kernelInfo(){
   int i = 0;
   char str[FTI_BUFS];
 
+  FTI_Exec->nbKernels = *FTI_Exec->meta[FTI_Exec->ckptLvel].nbKernel;
   sprintf(str, "Restoring kernel info from level %d", FTI_Exec->ckptLvel);
   FTI_Print(str, FTI_DBUG);
 
@@ -178,10 +177,12 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
 static inline bool all_kernels_complete(){
   int i = 0;
 
+  //fprintf(stdout, "No of registered kernels: %d\n", FTI_Exec->nbKernels);
+  //fflush(stdout);
   for(i = 0; i < FTI_Exec->nbKernels; i++){
-    if(*FTI_Exec->kernelInfo[i]->complete == false){
-      return false;
-    }
+     if(!FTI_all_procs_complete(FTI_Exec->kernelInfo[i])){
+        return false;
+     }
   }
 
   return true;
@@ -258,7 +259,7 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     snprintf(str, FTI_BUFS, "Allocating memory for block_info_bytes for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
 
-    kernelInfo->h_is_block_executed = (bool *)calloc(kernelInfo->block_info_bytes, sizeof(bool));
+    kernelInfo->h_is_block_executed = (bool *)calloc(*kernelInfo->block_amt, sizeof(bool));
     if(kernelInfo->h_is_block_executed  == NULL){return FTI_NSCS;}
 
     snprintf(str, FTI_BUFS, "Successfully allocated block_info_bytes for kernelId %d", kernelId);
@@ -275,20 +276,27 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     protectedInitCount = protectedInitCount + 1;
   }
   else{
+    //fprintf(stdout, "Restoring kernel %d\n", kernelId);
+    //fflush(stdout);
     /* Restore after restart */
     snprintf(str, FTI_BUFS, "Restoring kernel execution data for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
 
-    //FTI_Exec->kernelInfo[kernel_index]->quantum_expired = kernelInfo->quantum_expired;
     kernelInfo = FTI_Exec->kernelInfo[kernel_index];
 
     /* Not checkpointed, so block_info_bytes needs to be recalculated */
     kernelInfo->block_info_bytes = *kernelInfo->block_amt * sizeof(bool);
 
     kernelInfo->quantum_expired = quantum_expired;
-    *kernelInfo->quantum_expired = true;
+    *kernelInfo->quantum_expired = false;
 
     bool all_protected_kernels_complete = all_kernels_complete();
+    //Write a function to check the all done array of every protected kernel
+
+    //if(kernelId == 42){
+    //  fprintf(stdout, "all complete: %s\n", all_protected_kernels_complete ? "True" : "False");
+    //  fflush(stdout);
+    //}
 
     if(all_protected_kernels_complete){
       fprintf(stdout, "All other kernels complete kernel %d executing again\n", kernelId);
@@ -303,10 +311,10 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
       *kernelInfo->quantum = seconds_to_microseconds(quantum);
 
       /* Reset array indicating that this kernel has been completed by all processes */
-      memset(kernelInfo->all_done, 0, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
+      memset(kernelInfo->all_done, 0, FTI_Topo->nbApprocs * FTI_Topo->nbNodes * sizeof(bool));
 
       /* Reset array keeping track of executed blocks */
-      memset(kernelInfo->h_is_block_executed, 0, *kernelInfo->block_amt);
+      memset(kernelInfo->h_is_block_executed, 0, *kernelInfo->block_amt * sizeof(bool));
     }
   }
 
@@ -314,6 +322,9 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
   kernelInfo->lastExecutedBlockCnt = 0;
 
   update_executed_block_count(kernelInfo); //Update the count of executed blocks
+
+  //fprintf(stdout,"kernelId,executedBlocks,lastExecutedBlocks,complete,allComplete\n%d,%zu,%zu,%s,%s\n", kernelId,kernelInfo->executedBlockCnt, kernelInfo->lastExecutedBlockCnt, *kernelInfo->complete ? "True" : "False", FTI_all_procs_complete(kernelInfo) ? "True" : "False");
+  //fflush(stdout);
 
   snprintf(str, FTI_BUFS, "Kernel Id %d allocating memory on GPU", kernelId);
   FTI_Print(str, FTI_DBUG);
@@ -480,16 +491,16 @@ static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
     was to occur only the tail end of the kernel would be re-executed instead of the
     entire kernel.
   */
-  int res = FTI_Snapshot();
+  //int res = FTI_Snapshot();
 
-  if(res == FTI_DONE)
-  {
-    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
-  }
-  else
-  {
-    FTI_Print("No snapshot was taken", FTI_DBUG);
-  }
+  //if(res == FTI_DONE)
+  //{
+  //  FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
+  //}
+  //else
+  //{
+  //  FTI_Print("No snapshot was taken", FTI_DBUG);
+  //}
 
   snprintf(str, FTI_BUFS, "Kernel id %d copying block information from GPU.", *FTI_KernelInfo->id);
   FTI_Print(str, FTI_DBUG);
@@ -500,6 +511,17 @@ static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
   *FTI_KernelInfo->complete = *FTI_KernelInfo->block_amt == FTI_KernelInfo->executedBlockCnt;
   sprintf(str, "Kernel id %d complete: %s", *FTI_KernelInfo->id, *FTI_KernelInfo->complete ? "True" : "False");
   FTI_Print(str, FTI_DBUG);
+
+  int res = FTI_Snapshot();
+
+  if(res == FTI_DONE)
+  {
+    FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
+  }
+  else
+  {
+    FTI_Print("No snapshot was taken", FTI_DBUG);
+  }
 
   return FTI_SCES;
 }

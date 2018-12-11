@@ -288,18 +288,23 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
   char kernelInfoSection[FTI_BUFS];
   char gpuInfoSection[FTI_BUFS];
 
+  int *nbKernel = talloc(int, 1);
+  if(nbKernel == NULL){return FTI_NSCS;}
+
   snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
   snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
-  FTI_Exec->nbKernels = iniparser_getint(ini, str, -1);
+  *nbKernel = iniparser_getint(ini, str, -1);
+  FTI_Exec->meta[level].nbKernel = nbKernel;
 
   /* Load metadata for each protected kernel */
   int i = 0;
-  for(i = 0; i < FTI_Exec->nbKernels; i++){
+  for(i = 0; i < *FTI_Exec->meta[level].nbKernel; i++){
 
     /* Allocations */
     int *id                                       = talloc(int, 1);
     size_t *block_amt                             = talloc(size_t, 1);
     bool *complete                                = talloc(bool, 1);
+    int *tmpComplete                              = talloc(int, 1); //Needed because iniparser_getboolean returns an int.
     unsigned int *quantum                         = talloc(unsigned int, 1);
     FTI_Exec->meta[level].kernelInfo[i].all_done  = talloc(bool, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
 
@@ -307,11 +312,15 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     if(id                                            == NULL){return FTI_NSCS;}
     if(block_amt                                     == NULL){return FTI_NSCS;}
     if(complete                                      == NULL){return FTI_NSCS;}
+    if(tmpComplete                                   == NULL){return FTI_NSCS;}
     if(quantum                                       == NULL){return FTI_NSCS;}
     if(FTI_Exec->meta[level].kernelInfo[i].all_done  == NULL){return FTI_NSCS;}
 
-    snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
+    //snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
+    //*nbKernel = iniparser_getint(ini, str, -1);
+    //FTI_Exec->meta[level].nbKernel = nbKernel;
 
+    snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
     *id = iniparser_getint(ini, str, -1);
     FTI_Exec->meta[level].kernelInfo[i].id = id;
 
@@ -323,11 +332,12 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     FTI_Exec->meta[level].kernelInfo[i].block_amt = block_amt;
 
     snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-    *complete = iniparser_getboolean(ini, str, -1);
+    *tmpComplete = iniparser_getboolean(ini, str, -1);
+    *complete = *tmpComplete == 1 ? true : false;
+    free(tmpComplete);
     FTI_Exec->meta[level].kernelInfo[i].complete = complete;
 
     snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-
     char *str_quantum = iniparser_getstring(ini, str, NULL);
     sscanf(str_quantum, "%u", quantum);
     FTI_Exec->meta[level].kernelInfo[i].quantum = quantum;
@@ -382,6 +392,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             } else {
                 snprintf(metaFileName, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Ckpt[i].metaDir, FTI_Topo->sectorID, FTI_Topo->groupID);
             }
+
             snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
             if (access(metaFileName, R_OK) == 0) {

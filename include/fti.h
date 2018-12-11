@@ -417,6 +417,7 @@ int FTI_FreeDeviceAlloc(FTIT_kernelInfo* FTI_KernelInfo);
         int*             nbVar;       /**< Number of variables. [FTI_BUFS]           */
         int*             varID;       /**< Variable id for size.[FTI_BUFS]           */
         long*            varSize;     /**< Variable size. [FTI_BUFS]                 */
+        int*             nbKernel;    /**< Number of kernels. [FTI_BUFS]             */
         FTIT_kernelInfo* kernelInfo;  /**< Metadata for protected kernel. [FTI_BUFS] */
     } FTIT_metadata;
 

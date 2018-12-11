@@ -379,6 +379,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+            FTI_Exec->meta[i].nbKernel = calloc(1, sizeof(int));
             FTI_Exec->meta[i].kernelInfo = calloc(FTI_BUFS, sizeof(FTIT_kernelInfo));
         }
     }
@@ -407,6 +408,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].nbVar);
             free(FTI_Exec->meta[i].varID);
             free(FTI_Exec->meta[i].varSize);
+            free(FTI_Exec->meta[i].nbKernel);
             free(FTI_Exec->meta[i].kernelInfo);
         }
         FTI_Exec->metaAlloc = 0;
