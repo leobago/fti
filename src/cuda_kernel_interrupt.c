@@ -176,15 +176,11 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
 */
 static inline bool all_kernels_complete(){
   int i = 0;
-
-  //fprintf(stdout, "No of registered kernels: %d\n", FTI_Exec->nbKernels);
-  //fflush(stdout);
   for(i = 0; i < FTI_Exec->nbKernels; i++){
      if(!FTI_all_procs_complete(FTI_Exec->kernelInfo[i])){
         return false;
      }
   }
-
   return true;
 }
 
@@ -204,7 +200,6 @@ static inline bool all_kernels_complete(){
  * FTI_Exec->kernelInfo.
  */
 int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quantum, dim3 num_blocks){
-  //size_t i = 0;
   unsigned int kernel_index = 0;
   char str[FTI_BUFS];
   volatile bool *quantum_expired = NULL;
@@ -276,8 +271,6 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     protectedInitCount = protectedInitCount + 1;
   }
   else{
-    //fprintf(stdout, "Restoring kernel %d\n", kernelId);
-    //fflush(stdout);
     /* Restore after restart */
     snprintf(str, FTI_BUFS, "Restoring kernel execution data for kernelId %d", kernelId);
     FTI_Print(str, FTI_DBUG);
@@ -291,16 +284,8 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
     *kernelInfo->quantum_expired = false;
 
     bool all_protected_kernels_complete = all_kernels_complete();
-    //Write a function to check the all done array of every protected kernel
-
-    //if(kernelId == 42){
-    //  fprintf(stdout, "all complete: %s\n", all_protected_kernels_complete ? "True" : "False");
-    //  fflush(stdout);
-    //}
 
     if(all_protected_kernels_complete){
-      fprintf(stdout, "All other kernels complete kernel %d executing again\n", kernelId);
-      fflush(stdout);
       /* Kernel needs to be executed again */
       snprintf(str, FTI_BUFS, "All other kernels complete. kernel Id %d will be re-executed", kernelId);
       FTI_Print(str, FTI_DBUG);
@@ -322,9 +307,6 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
   kernelInfo->lastExecutedBlockCnt = 0;
 
   update_executed_block_count(kernelInfo); //Update the count of executed blocks
-
-  //fprintf(stdout,"kernelId,executedBlocks,lastExecutedBlocks,complete,allComplete\n%d,%zu,%zu,%s,%s\n", kernelId,kernelInfo->executedBlockCnt, kernelInfo->lastExecutedBlockCnt, *kernelInfo->complete ? "True" : "False", FTI_all_procs_complete(kernelInfo) ? "True" : "False");
-  //fflush(stdout);
 
   snprintf(str, FTI_BUFS, "Kernel Id %d allocating memory on GPU", kernelId);
   FTI_Print(str, FTI_DBUG);
@@ -473,35 +455,6 @@ static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
   CUDA_ERROR_CHECK(cudaDeviceSynchronize());
   FTI_Print("Kernel came back...", FTI_DBUG);
 
-  /*
-    NOTE 1:
-    FTI_Snapshot *MUST* be called by every process. It cannot be conditionally
-    executed. This is because FTI_Snapshot performs an MPI collective operation
-    which will cause the application to hang if some processes execute it and
-    others don't.
-
-    NOTE 2:
-    FTI_Snapshot was specifically placed here to perform a snapshot *BEFORE* the
-    block execution metadata is transferred from the device. This handles the case
-    of sequentially executing kernels where a fault can occur exactly between
-    kernel executions after the snapshot has been taken. If the snapshot included
-    the kernel's block execution metadata, the complete status of the kernel would
-    be captured here. Therefore, at restart, the entire kernel would once again be executed.
-    By capturing the block execution data of the kernel after the snapshot, if a failure
-    was to occur only the tail end of the kernel would be re-executed instead of the
-    entire kernel.
-  */
-  //int res = FTI_Snapshot();
-
-  //if(res == FTI_DONE)
-  //{
-  //  FTI_Print("Successfully wrote snapshot at kernel interrupt", FTI_DBUG);
-  //}
-  //else
-  //{
-  //  FTI_Print("No snapshot was taken", FTI_DBUG);
-  //}
-
   snprintf(str, FTI_BUFS, "Kernel id %d copying block information from GPU.", *FTI_KernelInfo->id);
   FTI_Print(str, FTI_DBUG);
   CUDA_ERROR_CHECK(cudaMemcpy(FTI_KernelInfo->h_is_block_executed, FTI_KernelInfo->d_is_block_executed, FTI_KernelInfo->block_info_bytes, cudaMemcpyDeviceToHost));
@@ -512,6 +465,12 @@ static inline int signal_kernel(FTIT_kernelInfo* FTI_KernelInfo)
   sprintf(str, "Kernel id %d complete: %s", *FTI_KernelInfo->id, *FTI_KernelInfo->complete ? "True" : "False");
   FTI_Print(str, FTI_DBUG);
 
+  /*
+    FTI_Snapshot *MUST* be called by every process. It cannot be conditionally
+    executed. This is because FTI_Snapshot performs an MPI collective operation
+    which will cause the application to hang if some processes execute it and
+    others don't.
+  */
   int res = FTI_Snapshot();
 
   if(res == FTI_DONE)
