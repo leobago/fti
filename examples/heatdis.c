@@ -48,14 +48,14 @@ void Snapshot_distance( int iter, double wtime, int rank ) {
         }
     } else {
         if ( iter == FIRST_CHECKPOINT ) {
-            FTI_Checkpoint( iter, 2 );
+            FTI_Checkpoint( iter, 3 );
             ckpt1_t = MPI_Wtime();
         }
         if ( iter == SECOND_CHECKPOINT ) {
             if (rank == 0) {
                 printf("Second checkpoint after %lf seconds.\n", MPI_Wtime() - ckpt1_t);
             }
-            FTI_Checkpoint( iter, 2 );
+            FTI_Checkpoint( iter, 3 );
             isCheckpointed = true;
         }
         if ( toFinalize ) {

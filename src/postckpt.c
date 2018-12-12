@@ -158,11 +158,11 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         int err;
-        FI_FWRITE( err, buffer, sizeof(char), recvSize, pfd, pfn );
+        FTI_FI_FWRITE( err, buffer, sizeof(char), recvSize, pfd, pfn );
         //fwrite(buffer, sizeof(char), recvSize, pfd);
 
         if (ferror(pfd)) {
-            FTI_Print("Error writing data to L2 ptner file", FTI_DBUG);
+            FTI_Print("Error writing data to L2 ptner file", FTI_EROR);
 
             free(buffer);
             fclose(pfd);
@@ -408,7 +408,21 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             // Writting encoded checkpoints
-            fwrite(coding, sizeof(char), remBsize, efd);
+            //fwrite(coding, sizeof(char), remBsize, efd);
+            int returnVal;
+            FTI_FI_FWRITE( returnVal, coding, sizeof(char), remBsize, efd, efn );
+            if ( ferror( efd ) ) {
+                FTI_Print("FTI failed to write to the encoded L3 ckpt. file.", FTI_EROR);
+
+                free(data);
+                free(matrix);
+                free(coding);
+                free(myData);
+                fclose(lfd);
+                fclose(efd);
+
+                return FTI_NSCS;
+            }
             MD5_Update (&mdContext, coding, remBsize);
 
             // Next block
@@ -761,7 +775,9 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
 
-            fwrite(readData, sizeof(char), bytes, gfd);
+            int returnVal;
+            FTI_FI_FWRITE( returnVal, readData, sizeof(char), bytes, gfd, gfn );
+            //fwrite(readData, sizeof(char), bytes, gfd);
             if (ferror(gfd)) {
                 FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
                 free(readData);

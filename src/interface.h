@@ -39,7 +39,6 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
-#define ENABLE_FI
 
 #include "failure-injection.h"
 
