@@ -272,7 +272,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     double t1 = MPI_Wtime(); //Start time
 
-    int res; // = FTI_NSCS; //Response from post-processing functions
+    int res; //Response from post-processing functions
     switch (FTI_Exec->ckptLvel) {
         case 4:
             res = FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 0);
