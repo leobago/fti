@@ -17,24 +17,21 @@ static inline uint64_t get_ruint() {
     return buffer%INT_MAX;
 }
 
-void init_fi();
+void FTI_InitFIIO();
 float PROBABILITY();
 unsigned int FUNCTION( const char *testFunction );
 
-#ifdef ENABLE_FI
+#ifdef ENABLE_FTI_FI_IO
 #define FTI_FI_WRITE( ERR, FD, BUF, COUNT, FN ) \
     do { \
         if( FUNCTION(__FUNCTION__) ) { \
             if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
                 close(FD); \
                 FD = open(FN, O_RDONLY); \
-                ERR = write( FD, BUF, COUNT ); \
-            } else  { \
-                ERR = write( FD, BUF, COUNT ); \
-            } \
-        } else  { \
-            ERR = write( FD, BUF, COUNT ); \
+            }  \
         } \
+        ERR = write( FD, BUF, COUNT ); \
+        (void)(ERR); \
     } while(0)
 #define FTI_FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) \
     do { \
@@ -42,13 +39,10 @@ unsigned int FUNCTION( const char *testFunction );
             if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
                 fclose(FSTREAM); \
                 FSTREAM = fopen(FN, "rb"); \
-                ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
-            } else  { \
-                ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
             } \
-        } else  { \
-            ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
         } \
+        ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
+        (void)(ERR); \
     } while(0)
 #else
 #define FTI_FI_WRITE( ERR, FD, BUF, COUNT, FN ) ( ERR = write( FD, BUF, COUNT ) )

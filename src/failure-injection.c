@@ -17,7 +17,7 @@ unsigned int FUNCTION( const char *testFunction ) {
     return !res;
 }
 
-void init_fi() {
+void FTI_InitFIIO() {
 
     char *env;
     if ( (env = getenv("FTI_FI_PROBABILITY")) != NULL ) {

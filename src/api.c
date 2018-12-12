@@ -100,7 +100,9 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(char* configFile, MPI_Comm globalComm)
 {
-    init_fi();
+#ifdef ENABLE_FTI_FI_IO
+    FTI_InitFIIO();
+#endif
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);

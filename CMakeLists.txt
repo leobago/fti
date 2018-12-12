@@ -77,6 +77,7 @@ option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 
@@ -228,6 +229,10 @@ if(ENABLE_HDF5)
 		*  -DHDF5_ROOT as the path to the HDF5 installation to use.
 		**")
 	endif()
+endif()
+
+if(ENABLE_FI_IO)
+    add_definitions(-DENABLE_FTI_FI_IO)
 endif()
 
 set(FTI_TARGETS fti.static fti.shared)

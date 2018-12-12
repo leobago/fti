@@ -159,8 +159,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         int err;
         FTI_FI_FWRITE( err, buffer, sizeof(char), recvSize, pfd, pfn );
-        //fwrite(buffer, sizeof(char), recvSize, pfd);
-
+        
         if (ferror(pfd)) {
             FTI_Print("Error writing data to L2 ptner file", FTI_EROR);
 
@@ -408,7 +407,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             // Writting encoded checkpoints
-            //fwrite(coding, sizeof(char), remBsize, efd);
             int returnVal;
             FTI_FI_FWRITE( returnVal, coding, sizeof(char), remBsize, efd, efn );
             if ( ferror( efd ) ) {
@@ -777,7 +775,6 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             int returnVal;
             FTI_FI_FWRITE( returnVal, readData, sizeof(char), bytes, gfd, gfn );
-            //fwrite(readData, sizeof(char), bytes, gfd);
             if (ferror(gfd)) {
                 FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
                 free(readData);
