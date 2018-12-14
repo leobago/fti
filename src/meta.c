@@ -278,6 +278,7 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      level           Which metadada level to load from.
   @param      ini             The ini dictionary from which to load kernel metadata.
   @return     integer         FTI_SCES if successful.
+
   This function reads the metadata file created during checkpointing to recover
   the metadata necessary to re-initialize the KernelInfo member of FTI_Exec.
  **/
@@ -291,6 +292,7 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
   int *nbKernel = talloc(int, 1);
   if(nbKernel == NULL){return FTI_NSCS;}
 
+  /* Get number of kernels protected at this level */
   snprintf(kernelInfoSection, FTI_BUFS, "Kernel Info");
   snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
   *nbKernel = iniparser_getint(ini, str, -1);
@@ -315,10 +317,6 @@ static int FTI_LoadKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     if(tmpComplete                                   == NULL){return FTI_NSCS;}
     if(quantum                                       == NULL){return FTI_NSCS;}
     if(FTI_Exec->meta[level].kernelInfo[i].all_done  == NULL){return FTI_NSCS;}
-
-    //snprintf(str, FTI_BUFS, "%s:nbkernels", kernelInfoSection);
-    //*nbKernel = iniparser_getint(ini, str, -1);
-    //FTI_Exec->meta[level].nbKernel = nbKernel;
 
     snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
     *id = iniparser_getint(ini, str, -1);
@@ -772,7 +770,7 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
     }
   }
   else{
-    /* Gather data from head of group (i.e FTI_Topo->groupRank = 0) */
+    /* Gather data from head of group (i.e this process is FTI_Topo->groupRank = 0) */
     FTI_Print("Group head gathering its own protected kernel data.", FTI_DBUG);
 
     FTI_KernelInfoMetadata[FTI_Topo->groupRank].FTI_KernelInfo = talloc(FTIT_kernelInfo, FTI_Exec->nbKernels);
@@ -789,7 +787,7 @@ static int FTI_CreateKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI
   }
 
   if(FTI_Topo->groupRank == 0){
-    /* init loop to receive kernel info from other processes */
+    /* Allocation loop to create space to receive kernel information from other processes */
     FTI_Print("Group head allocating memory to receive protected kernel information.", FTI_DBUG);
     for(i = 1; i < FTI_Topo->groupSize; i++){
       FTI_KernelInfoMetadata[i].FTI_KernelInfo = talloc(FTIT_kernelInfo, FTI_Exec->nbKernels);

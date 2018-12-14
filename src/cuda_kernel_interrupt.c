@@ -57,7 +57,7 @@ static FTIT_execution *FTI_Exec = NULL;
 */
 static FTIT_kernelInfo *kernelMacroHandle[FTI_BUFS];
 
-/*
+/**
  * @brief Count of newly initialized kernels.
  *
  * This variable keeps track of the number of initialized kernels that
@@ -95,18 +95,20 @@ static void update_executed_block_count(FTIT_kernelInfo *FTI_KernelInfo){
 /**
  * @brief              Recovers kernel information of protected kernels at restart.
  *
- * @return             FTI_SCES on completion
+ * @return             FTI_SCES on completion.
  */
 static int recover_kernelInfo(){
   int i = 0;
   char str[FTI_BUFS];
 
+  /* Get number of protected kernels from checkpoint level */
   FTI_Exec->nbKernels = *FTI_Exec->meta[FTI_Exec->ckptLvel].nbKernel;
   sprintf(str, "Restoring kernel info from level %d", FTI_Exec->ckptLvel);
   FTI_Print(str, FTI_DBUG);
 
   /* Iterate through all protected kernels to restore their data from the checkpoint level */
   for(i = 0; i < FTI_Exec->nbKernels; i++){
+    /* Initialize with a reference to the recovered kernel information */
     FTI_Exec->kernelInfo[i] = &FTI_Exec->meta[FTI_Exec->ckptLvel].kernelInfo[i];
   }
 
@@ -139,8 +141,8 @@ int FTI_kernel_protect_init(FTIT_topology *topo, FTIT_execution *exec)
 
 /**
  * @brief              Converts seconds to microseconds.
- * @param[in]          quantum  Represents the time to convert in seconds
- * @return             The time in microseconds
+ * @param[in]          quantum  Represents the time to convert in seconds.
+ * @return             The time in microseconds.
  *
  * This function is used to convert the quantum, which is specified in seconds,
  * to microseconds. Microseconds are needed because usleep() is used to be able to
@@ -151,11 +153,16 @@ static inline unsigned int seconds_to_microseconds(double quantum)
   return fabs(quantum) * 1000000.0;
 }
 
-/*
+/**
  * @brief             Determines if a kernel has already been protected.
  * @param[in]         kernelId    The ID of the kernel to check.
  * @param[in,out]     index       The index of the protected kernel (if found).
  * @return            bool        Boolean true value if kernel has been protected.
+ *
+ * This function also serves the purpose getting the index of the protected kernel.
+ * The index of the protected kernel is its location in the protected kernel array,
+ * the pointer at this location is used to restore the data for the already protected
+ * kernel.
  */
 static inline bool is_kernel_protected(int kernelId, unsigned int *index){
   unsigned int i = 0;
@@ -170,10 +177,10 @@ static inline bool is_kernel_protected(int kernelId, unsigned int *index){
   return kernel_protected;
 }
 
-/*
+/**
  * @brief             Determines if all protected kernels have finished.
  * @return            bool    Boolean value true if all finished; false otherwise.
-*/
+ */
 static inline bool all_kernels_complete(){
   int i = 0;
   for(i = 0; i < FTI_Exec->nbKernels; i++){
@@ -184,10 +191,22 @@ static inline bool all_kernels_complete(){
   return true;
 }
 
+/**
+ * @brief            Initializes a new kernel for protection.
+ * @param            KernelInfo       The kernel information structure to initialize.
+ * @param            kernelId         The ID of the kernel to initialize.
+ * @param            quantum          The quantum to be used when executing the kernel.
+ * @param            num_blocks       The number of blocks of threads required by the kernel.
+ * @param            quantum_expired  Reference to pinned boolean value used to interrupt the kernel.
+ *
+ * This function essentially preforms all the allocations and assignments needed to
+ * protect a new kernel.
+ */
 static int init_new_kernel(FTIT_kernelInfo *KernelInfo, int kernelId, double quantum, dim3 num_blocks, volatile bool *quantum_expired){
   char str[FTI_BUFS];
   snprintf(str, FTI_BUFS, "Allocating memory for kernelId %d", kernelId);
   FTI_Print(str, FTI_DBUG);
+
   KernelInfo->id                  = (int *)malloc(sizeof(int));
   KernelInfo->block_amt           = (size_t *)malloc(sizeof(size_t));
   KernelInfo->all_done            = (bool *)calloc(FTI_Topo->nbApprocs * FTI_Topo->nbNodes, sizeof(bool));
@@ -228,10 +247,21 @@ static int init_new_kernel(FTIT_kernelInfo *KernelInfo, int kernelId, double qua
   kernelMacroHandle[FTI_Exec->nbKernels] = KernelInfo;
   /* Increase count of initialized kernels */
   protectedInitCount = protectedInitCount + 1;
+
   return FTI_SCES;
 }
 
-static int restore_protected_kernel(FTIT_kernelInfo *KernelInfo, int kernelId, double quantum, volatile bool *quantum_expired, unsigned int kernel_index){
+/**
+ * @brief             Restores the data for an already protected kernel.
+ * @param             KernelInfo        A reference to the kernel information object to restore.
+ * @param             kernelId          The ID of the kernel.
+ * @param             quantum           The quantum to be used for interrupting the kernel.
+ * @param             quantum_expired   A reference to the pinned boolean value used to interrupt kernel.
+ *
+ * This function restores the data necessary to restart the kernel and also resets the kernel
+ * to handle the case of the kernel already completed its execution, but needs to be relaunched.
+ */
+static int restore_protected_kernel(FTIT_kernelInfo *KernelInfo, int kernelId, double quantum, volatile bool *quantum_expired){
   char str[FTI_BUFS];
 
   /* Not checkpointed, so block_info_bytes needs to be recalculated */
@@ -242,6 +272,12 @@ static int restore_protected_kernel(FTIT_kernelInfo *KernelInfo, int kernelId, d
 
   bool all_protected_kernels_complete = all_kernels_complete();
 
+  /*
+     Only if all other protected kernels are complete will the execution information
+     of this kernel be reset. If all other protected kernels are not complete, it means
+     that the kernels are being launched in a loop, and the incomplete kernel should be
+     the kernel that execution resumes from.
+  */
   if(all_protected_kernels_complete){
     /* Kernel needs to be executed again */
     snprintf(str, FTI_BUFS, "All other kernels complete. kernel Id %d will be re-executed", kernelId);
@@ -285,14 +321,13 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
   volatile bool *quantum_expired = NULL;
   FTIT_kernelInfo *kernelInfo = NULL;
 
-  snprintf(str, FTI_BUFS, "Entered function %s", __func__);
-  FTI_Print(str, FTI_DBUG);
-
+  /* First, check if kernel has already been protected */
   bool kernel_protected = is_kernel_protected(kernelId, &kernel_index);
 
   CUDA_ERROR_CHECK(cudaHostAlloc((void **)&quantum_expired, sizeof(volatile bool), cudaHostAllocMapped));
 
   if(!kernel_protected){
+    /* Initialize new kernel */
     snprintf(str, FTI_BUFS, "kernelId %d not protected.", kernelId);
     FTI_Print(str, FTI_DBUG);
 
@@ -322,35 +357,38 @@ int FTI_kernel_init(FTIT_kernelInfo** KernelMacroInfo, int kernelId, double quan
 
     kernelInfo = FTI_Exec->kernelInfo[kernel_index];
 
-    restore_protected_kernel(kernelInfo, kernelId, quantum, quantum_expired, kernel_index);
+    restore_protected_kernel(kernelInfo, kernelId, quantum, quantum_expired);
   }
 
   kernelInfo->executedBlockCnt = 0;
   kernelInfo->lastExecutedBlockCnt = 0;
 
-  update_executed_block_count(kernelInfo); //Update the count of executed blocks
+  /* Update the count of executed blocks */
+  update_executed_block_count(kernelInfo);
 
   snprintf(str, FTI_BUFS, "Kernel Id %d allocating memory on GPU", kernelId);
   FTI_Print(str, FTI_DBUG);
+
   CUDA_ERROR_CHECK(cudaMalloc((void **)&kernelInfo->d_is_block_executed, kernelInfo->block_info_bytes));
   CUDA_ERROR_CHECK(cudaMemcpy(kernelInfo->d_is_block_executed, kernelInfo->h_is_block_executed, kernelInfo->block_info_bytes, cudaMemcpyHostToDevice));
 
   /* Every kernel being initialized has its initial quantum reset */
   kernelInfo->initial_quantum  = seconds_to_microseconds(quantum);
 
+  /* Finally, point the KernelMacroInfo the kernel information it requires */
   *KernelMacroInfo = kernelInfo;
 
   return FTI_SCES;
 }
 
-/*
+/**
  * @brief              Frees allocations made on the GPU to protect kernel.
  * @param[in]          FTI_KernelInfo  kernel metadata.
  * @return             integer FTI_SCES if successful.
  */
 int FTI_FreeDeviceAlloc(FTIT_kernelInfo* FTI_KernelInfo){
   char str[FTI_BUFS];
-  snprintf(str, FTI_BUFS, "Freeing device allocations made for kernel %d", *FTI_KernelInfo->id);
+  snprintf(str, FTI_BUFS, "Freeing GPU allocations made for kernel %d", *FTI_KernelInfo->id);
   FTI_Print(str, FTI_DBUG);
 
   CUDA_ERROR_CHECK(cudaFree(FTI_KernelInfo->d_is_block_executed));
@@ -398,7 +436,6 @@ bool FTI_all_procs_complete(FTIT_kernelInfo* FTI_KernelInfo)
   int i = 0;
 
   /* Iterate over all application processes at each node */
-
   for(i = 0; i < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; i++){
     /* Check if each process is finished with the current kernel */
     if(!FTI_KernelInfo->all_done[i]){
