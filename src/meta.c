@@ -521,14 +521,13 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Topo                 Topology metadata.
   @param      FTI_KernelInfoMetadata   kernel metadata.
   @param      ini                      The metadata ini dictionary to write to.
-  @param      groupIdx                 The process's group index to which the kernel information belongs.
   @return     integer                  FTI_SCES if successful.
 
   This function should only be called in FTI_Writemetadata. It writes the
   metadata to recover partially executed GPU kernels.
  **/
 /*-------------------------------------------------------------------------*/
-static int FTI_AddKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_kernelInfoMetadata* FTI_KernelInfoMetadata, dictionary *ini, int groupIdx){
+static int FTI_AddKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_kernelInfoMetadata* FTI_KernelInfoMetadata, dictionary *ini){
 	char str[FTI_BUFS];
   char buf[FTI_BUFS];
   char kernelInfoSection[FTI_BUFS];
@@ -546,35 +545,35 @@ static int FTI_AddKernelMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_To
     iniparser_set(ini, str, buf);
 
     snprintf(str, FTI_BUFS, "%s:id%d", kernelInfoSection, i);
-    snprintf(buf, FTI_BUFS, "%d", *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].id);
+    snprintf(buf, FTI_BUFS, "%d", *FTI_KernelInfoMetadata->FTI_KernelInfo[i].id);
     iniparser_set(ini, str, buf);
 
-    snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_KernelInfoMetadata[groupIdx].groupRank, *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].id);
+    snprintf(gpuInfoSection, FTI_BUFS, "%dGPU Info%d", FTI_KernelInfoMetadata->groupRank, *FTI_KernelInfoMetadata->FTI_KernelInfo[i].id);
     iniparser_set(ini, gpuInfoSection, NULL);
 
     snprintf(str, FTI_BUFS, "%s:block_amt", gpuInfoSection);
-    snprintf(buf, FTI_BUFS, "%zu", *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].block_amt);
+    snprintf(buf, FTI_BUFS, "%zu", *FTI_KernelInfoMetadata->FTI_KernelInfo[i].block_amt);
     iniparser_set(ini, str, buf);
 
     snprintf(str, FTI_BUFS, "%s:complete", gpuInfoSection);
-    snprintf(buf, FTI_BUFS, "%s", *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].complete ? "T" : "F");
+    snprintf(buf, FTI_BUFS, "%s", *FTI_KernelInfoMetadata->FTI_KernelInfo[i].complete ? "T" : "F");
     iniparser_set(ini, str, buf);
 
     snprintf(str, FTI_BUFS, "%s:quantum", gpuInfoSection);
-    snprintf(buf, FTI_BUFS, "%u", *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].quantum);
+    snprintf(buf, FTI_BUFS, "%u", *FTI_KernelInfoMetadata->FTI_KernelInfo[i].quantum);
     iniparser_set(ini, str, buf);
 
     int j = 0;
     for(j = 0; j < FTI_Topo->nbApprocs * FTI_Topo->nbNodes; j++){
       snprintf(str, FTI_BUFS, "%s:all_done%d", gpuInfoSection, j);
-      snprintf(buf, FTI_BUFS, "%s", FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].all_done[j] ? "T" : "F");
+      snprintf(buf, FTI_BUFS, "%s", FTI_KernelInfoMetadata->FTI_KernelInfo[i].all_done[j] ? "T" : "F");
       iniparser_set(ini, str, buf);
     }
 
     size_t k = 0;
-    for(k = 0; k < *FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].block_amt; k++){
+    for(k = 0; k < *FTI_KernelInfoMetadata->FTI_KernelInfo[i].block_amt; k++){
       snprintf(str, FTI_BUFS, "%s:block%zu", gpuInfoSection, k);
-      snprintf(buf, FTI_BUFS, "%s", FTI_KernelInfoMetadata[groupIdx].FTI_KernelInfo[i].h_is_block_executed[k] ? "T" : "F");
+      snprintf(buf, FTI_BUFS, "%s", FTI_KernelInfoMetadata->FTI_KernelInfo[i].h_is_block_executed[k] ? "T" : "F");
       iniparser_set(ini, str, buf);
     }
   }
@@ -650,7 +649,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         if(FTI_KernelInfoMetadata != NULL){
-          FTI_AddKernelMetadata(FTI_Exec, FTI_Topo, FTI_KernelInfoMetadata, ini, i);
+          FTI_AddKernelMetadata(FTI_Exec, FTI_Topo, &FTI_KernelInfoMetadata[i], ini);
         }
     }
 
