@@ -1,7 +1,29 @@
-add_executable(check.exe check.c)
+if (ENABLE_GPU)
+  message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
+#  add_executable(check.exe checkAll.c cudaTest.cu)
+  add_executable(check.exe check.c)
+  add_executable(check-gpu.exe check.cu)
+  add_executable(checkAll.exe checkAll.c cudaTest.cu)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGPUSUPPORT")
+else ()
+  add_executable(check.exe check.c)
+endif()
+set(CMAKE_VERBOSE_MAKEFILE on)
+
 target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET check.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
+
+if (ENABLE_GPU)
+  target_link_libraries(check-gpu.exe fti.static ${MPI_C_LIBRARIES} m)
+  target_link_libraries(checkAll.exe fti.static ${MPI_C_LIBRARIES} m)
+  set_property(TARGET check-gpu.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+  set_property(TARGET checkAll.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
+endif()
+
+ 
 
 if(ENABLE_FORTRAN)
     add_executable(fcheck.exe check.f90)
@@ -14,8 +36,11 @@ if(ENABLE_FORTRAN)
 	target_compile_options(fcheck.exe PRIVATE -cpp)
 endif()
 
-set(IO 3)
-set(IO_NAMES "POSIX MPIIO FTIFF")
+set(IO 1)
+set(IO_NAMES "POSIX MPIO FTIFF")
+set(MEMORYTYPES "CPU")
+set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
+
 
 if(ENABLE_SIONLIB)
     MATH(EXPR IO "${IO}+1")
@@ -30,6 +55,14 @@ endif()
 set(DIR ${CMAKE_BINARY_DIR}/)
 
 configure_file(run-checks.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks.sh @ONLY)
+
+if (ENABLE_GPU)
+  set(MEMORYTYPES "${MEMORYTYPES} GPU")
+  set(MEMORYTYPES "${MEMORYTYPES} UNIFIED")
+  configure_file(run-cuda-checks.in ${CMAKE_CURRENT_SOURCE_DIR}/run-cuda-checks.sh @ONLY)
+  configure_file(run-checks-all.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks-all.sh @ONLY)
+endif()  
+
 configure_file(diffckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/diffckpt/Makefile @ONLY)
 configure_file(diffckpt/checkDCP.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkDCP.sh @ONLY)
 configure_file(keepL4Ckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/keepL4Ckpt/Makefile @ONLY)
@@ -51,6 +84,14 @@ file(INSTALL run-checks-f90.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIO
 file(INSTALL run-travis-locally.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_WRITE)
 
 file(REMOVE run-checks.sh)
+  
+if (ENABLE_GPU)
+  file(INSTALL run-cuda-checks.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_WRITE)
+  file(INSTALL run-checks-all.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_WRITE)
+  file(REMOVE run-cuda-checks.sh)
+  file(REMOVE run-checks-all.sh)
+endif()  
+
 file(REMOVE run-checks-f90.sh)
 file(REMOVE run-travis-locally.sh)
 file(REMOVE check_functions.mod)

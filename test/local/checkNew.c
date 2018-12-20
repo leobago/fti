@@ -43,7 +43,12 @@
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
 
-#define N 100000
+#define CPU 0
+#define GPU 1
+#define UNIFIED 2
+
+#define BLOCK_SIZE 1024
+
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
@@ -131,8 +136,12 @@ int main(int argc, char* argv[]) {
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;
+  double *hA, *hB;
+  int N;
+  int memoryType;
+  int blocks_per_grid, threads_per_block;
 
-  size_t asize, asize_chk;
+  size_t asize, asize_chk, asize_with_dt;
 
   srand(time(NULL));
 
@@ -145,6 +154,18 @@ int main(int argc, char* argv[]) {
   crash = atoi(argv[2]);
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
+  memoryType = atoi (argv[5]);
+
+
+  if (memoryType == CPU){
+    N = 100000;
+  }
+  else{
+    N = ((size_t)1 << 25);
+  }
+
+
+
 
 
   char *env = getenv("ENABLE_ICP");
@@ -215,9 +236,25 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  A = (double*) malloc(asize*sizeof(double));
-  B = (double*) malloc(asize*sizeof(double));
+  asize_with_dt = asize * sizeof(double);
 
+  if (memoryType == CPU){
+    A = (double*) malloc(asize_with_dt);
+    B = (double*) malloc(asize_with_dt);
+  }
+#ifdef GPUSUPPORT
+  else if (memoryTypememoryType == GPU){
+    asize_with_dt = asize * sizeof(double);
+    threads_per_block = BLOCK_SIZE;
+    blocks_per_grid = (asize + threads_per_block - 1) / threads_per_block;
+    hA = (double*) malloc(asize_with_dt);
+    hB = (double*) malloc(asize_with_dt);
+    CUDA_CALL_SAFE(cudaMalloc(&A, asize_with_dt));
+    CUDA_CALL_SAFE(cudaMalloc(&B, asize_with_dt));
+  }
+  else if (memoryType == UNIFIED){
+  }
+#endif
   FTI_Protect(0, A, asize, FTI_DBLE);
   FTI_Protect(1, B, asize, FTI_DBLE);
   FTI_Protect(2, &asize, 1, FTI_INTG);
@@ -225,21 +262,31 @@ int main(int argc, char* argv[]) {
   state = FTI_Status();
 
   if (state == INIT) {
-    init_arrays(A, B, asize);
-    write_data(B, &asize, FTI_APP_RANK);
+    // Initialize memory 
+    if ( memoryType == CPU ){
+      init_arrays(A, B, asize);
+      write_data(B, &asize, FTI_APP_RANK);
+    }
+#ifdef GPUSUPPORT
+    else if ( memoryType == GPU ){
+      init_arrays(hA,hB, asize);
+      write_data(hB, &asize, FTI_APP_RANK);
+      CUDA_CALL_SAFE(cudaMemcpy(A, hA, asize_with_dt, cudaMemcpyHostToDevice));
+      CUDA_CALL_SAFE(cudaMemcpy(B, hB, asize_with_dt, cudaMemcpyHostToDevice));
+    }
+#endif        
+    //Checkpoint data          
     if ( enable_icp == 1 ) {
       FTI_InitICP( 1, level, 1 );
       FTI_AddVarICP( 2 );  
       FTI_AddVarICP( 0 );  
       FTI_AddVarICP( 1 );  
       FTI_FinalizeICP();
-    } 
-    else if ( enable_icp == 0 ) {
-        FTI_Checkpoint(1,level);
-    }
-    else
+    } else if ( enable_icp == 0 ) {
+      FTI_Checkpoint(1,level);
+    } else
     {
-        exit(WRONG_ENVIRONMENT);
+      exit(WRONG_ENVIRONMENT);
     }
     MPI_Barrier(FTI_COMM_WORLD);
 
@@ -260,7 +307,9 @@ int main(int argc, char* argv[]) {
       exit(RECOVERY_FAILED);
     }
     B_chk = (double*) malloc(asize*sizeof(double));
+    printf("I am reading Data\n");
     result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize);
+    printf("Finished reading Data\n");
     MPI_Barrier(FTI_COMM_WORLD);
     if (result != 0) {
       exit(DATA_CORRUPT);
@@ -271,19 +320,35 @@ int main(int argc, char* argv[]) {
    * on INIT, B is initialized randomly
    * on RESTART or KEEP, B is recovered and must be equal to B_chk
    */
-
-  vecmult(A, B, asize);
+  if ( memoryType == CPU ){
+    vecmult(A, B, asize);
+  }
+#ifdef GPUSUPPORT
+  else ( memoryType == GPU ){
+    vecmultGPU<<< blocks_per_grid, threads_per_block >>>(A, B, asize);
+    CUDA_CALL_SAFE(cudaDeviceSynchronize());
+    CUDA_CALL_SAFE(cudaMemcpy(hA, A, asize_with_dt, cudaMemcpyDeviceToHost));
+  }
+#endif
 
   if (state == RESTART || state == KEEP) {
-    result = validify(A, B_chk, asize);
+    result = validify(hA, B_chk, asize);
     result += (asize_chk == asize) ? 0 : -1;
     MPI_Allreduce(&result, &tmp, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     result = tmp;
     free(B_chk);
   }
 
-  free(A);
-  free(B);
+  if (memoryType == CPU ){
+    free(A);
+    free(B);
+  }
+#ifdef GPUSUPPORT
+  else if (memoryType == GPU ){
+    CUDA_CALL_SAFE(cudaFree(A));
+    CUDA_CALL_SAFE(cudaFree(B));
+  }
+#endif
 
   if (FTI_APP_RANK == 0 && (state == RESTART || state == KEEP)) {
     if (result == 0) {
@@ -317,6 +382,17 @@ void init_arrays(double* A, double* B, size_t asize) {
     B[i] = ((double)rand()/RAND_MAX)*5.0;
   }
 }
+
+#ifdef GPUSUPPORT
+__global__
+void vecmultGPU(double* A, double* B, size_t asize) {
+    size_t i = (size_t)blockIdx.x * (size_t)blockDim.x + (size_t)threadIdx.x;
+    if (i < asize) {
+        A[i] = A[i] * B[i];
+    }
+}
+#endif
+
 
 void vecmult(double* A, double* B, size_t asize) {
   int i;

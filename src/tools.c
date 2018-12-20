@@ -215,27 +215,22 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
   MD5_CTX mdContext;
   MD5_Init (&mdContext);
   int i;
+  char str[FTI_BUFS];
 
   //iterate all variables
   for (i = 0; i < FTI_Exec->nbVar; i++) {
-    FTIT_ptrinfo ptrInfo;
-    int res = FTI_Try(FTI_get_pointer_info((const void*)FTI_Data[i].ptr, &ptrInfo), "determine pointer type");
-
-    if(res == FTI_NSCS){
-      return FTI_NSCS;
-    }
+   
 #ifdef GPUSUPPORT
-    void *dev_ptr = NULL;
-    if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
-      dev_ptr = FTI_Data[i].ptr;
-      FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
+    if (FTI_Data[i].isDevicePtr) {
+        if (FTI_Conf->ioMode != FTI_IO_FTIFF)
+          FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
 
       if(FTI_Data[i].ptr == NULL){
         FTI_Print("Failed to allocate FTI scratch buffer", FTI_EROR);
         return FTI_NSCS;
       }
       // TODO: Reuse GPU data on the host memory
-      int result = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, dev_ptr, FTI_Data[i].size, &ptrInfo, FTI_Exec), "copying data from GPU");
+      int result = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, FTI_Data[i].devicePtr, FTI_Data[i].size,  FTI_Exec), "copying data from GPU");
 
       if(result == FTI_NSCS) {
         return FTI_NSCS;
@@ -245,9 +240,11 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
 
 #ifdef GPUSUPPORT    
-    if (ptrInfo.type == FTIT_PTRTYPE_GPU) {
-      free(FTI_Data[i].ptr);
-      FTI_Data[i].ptr = dev_ptr;
+    if (FTI_Data[i].isDevicePtr) {
+        if (FTI_Conf->ioMode != FTI_IO_FTIFF){
+          free(FTI_Data[i].ptr);
+          FTI_Data[i].ptr = NULL;
+        }
     }
 #endif
   }
@@ -308,7 +305,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 
   if (strcmp(checksum, checksumToCmp) != 0) {
     char str[FTI_BUFS];
-    sprintf(str, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+    sprintf(str, "TOOLS: Checksum do not match. \"%s\" file is corrupted. %s != %s",
         fileName, checksum, checksumToCmp);
     FTI_Print(str, FTI_WARN);
 
@@ -750,6 +747,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
       while ((ep = readdir(dp)) != NULL) {
         char fil[FTI_BUFS];
         sprintf(fil, "%s", ep->d_name);
+        FTI_Print(fil, FTI_DBUG);
         if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
           char fn[FTI_BUFS];
           sprintf(fn, "%s/%s", path, fil);

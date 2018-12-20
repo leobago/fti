@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif
@@ -46,6 +47,7 @@
 #define FTI_NREC -2
 /** Token that indicates a head process in user space                      */
 #define FTI_HEAD 2
+
 
 /** Verbosity level to print only errors.                                  */
 #define FTI_EROR 4
@@ -354,16 +356,19 @@ extern "C" {
    *  This type stores the metadata related with a dataset.
    */
   typedef struct FTIT_dataset {
-    int             id;                 /**< ID to search/update dataset.   */
-    void            *ptr;               /**< Pointer to the dataset.        */
-    long            count;              /**< Number of elements in dataset. */
-    FTIT_type*      type;               /**< Data type for the dataset.     */
-    int             eleSize;            /**< Element size for the dataset.  */
-    long            size;               /**< Total size of the dataset.     */
-    int             rank;               /**< Rank of dataset (for HDF5).    */
-    int             dimLength[32];      /**< Lenght of each dimention.      */
-    char            name[FTI_BUFS];     /**< Name of the dataset.           */
-    FTIT_H5Group*   h5group;            /**< Group of this dataset          */
+    int             id;                 /**< ID to search/update dataset.                   */
+    void            *ptr;               /**< Pointer to the dataset.                        */
+    long            count;              /**< Number of elements in dataset.                 */
+    FTIT_type*      type;               /**< Data type for the dataset.                     */
+    int             eleSize;            /**< Element size for the dataset.                  */
+    long            size;               /**< Total size of the dataset.                     */
+    int             rank;               /**< Rank of dataset (for HDF5).                    */
+    int             dimLength[32];      /**< Lenght of each dimention.                      */
+    char            name[FTI_BUFS];     /**< Name of the dataset.                           */
+    FTIT_H5Group*   h5group;            /**< Group of this dataset                          */
+    bool            isDevicePtr;        /**<True if this data are stored in a device memory */
+    void            *devicePtr;         /**<Pointer to data in the device                   */
+
   } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
@@ -441,7 +446,6 @@ extern "C" {
    *  This type stores the general configuration metadata.
    */
   typedef struct FTIT_configuration {
-    bool            deviceCpEnabled;    /**< TRUE if ckpts accelator (GPU) */
     bool            stagingEnabled;
     bool            dcpEnabled;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        

@@ -38,6 +38,7 @@
 
 #ifdef ENABLE_HDF5
 #include "interface.h"
+#include "utility.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -82,6 +83,11 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // write data into ckpt file
+    
+#ifdef GPUSUPPORT    
+    copyDataFromDevive( FTI_Exec, FTI_Data );
+#endif
+
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         int toCommit = 0;
         if (FTI_Data[i].type->h5datatype < 0) {

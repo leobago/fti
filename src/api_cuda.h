@@ -49,8 +49,8 @@ typedef struct FTIT_ptrinfo {
 typedef int (*FTIT_fwritefunc)(void *src, size_t size, void *opaque);
 
 int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo);
-int FTI_copy_from_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
-int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec);
-int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque);
+int FTI_copy_from_device(void *dst, const void *src, size_t count,  FTIT_execution *exec);
+int FTI_copy_to_device(void *dst, const void *src, size_t count,  FTIT_execution *exec);
+int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data,  FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque);
 
 #endif

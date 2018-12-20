@@ -4,16 +4,16 @@ if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
 endif()
 
-if (DEFINED GPUSUPPORT)
+if (ENABLE_GPU)
   message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	  project(FTI C Fortran CUDA)
+	  project(FTI C Fortran CUDA CXX)
   endif()
   FIND_PACKAGE(CUDA)
 else ()
   message(AUTHOR_WARNING "  ** Project is going to be build WITH NO GPU Support")
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	  project(FTI C Fortran )
+	  project(FTI C Fortran CXX)
   endif()
 endif()  
 
@@ -131,12 +131,13 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-  src/api_cuda.c
+  src/api_cuda.c src/utility.c
   )
 
-if (DEFINED GPUSUPPORT)
+if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
   set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
 endif()
 
 # add compiler flags
@@ -177,7 +178,7 @@ endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
 append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}" )
 
 
 append_property(TARGET fti.static fti.shared

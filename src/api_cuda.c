@@ -21,34 +21,32 @@
 /*-------------------------------------------------------------------------*/
 int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
 {
-  char message[FTI_BUFS];
 #ifdef GPUSUPPORT
-  struct cudaPointerAttributes attributes;
-  cudaError_t err = cudaPointerGetAttributes(&attributes, ptr);
+    char message[FTI_BUFS];
+    struct cudaPointerAttributes attributes;
 
-  if (err != cudaSuccess && err != cudaErrorInvalidValue) {
-    sprintf(message, "Cuda error %d %s:: %s", __LINE__, __func__, cudaGetErrorString(err));
-    FTI_Print(message, FTI_EROR);
-    return FTI_NSCS;
-  }
+    cudaError_t err = cudaPointerGetAttributes(&attributes, ptr);
 
-  if (err == cudaErrorInvalidValue || attributes.memoryType == cudaMemoryTypeHost || attributes.isManaged) {
-    ptrInfo->type = FTIT_PTRTYPE_CPU;
-    sprintf(message, "Ptr %p is a CPU pointer", ptr);
-  }
-  else {
-    ptrInfo->type = FTIT_PTRTYPE_GPU;
-    ptrInfo->deviceID = attributes.device;
-    sprintf(message, "Ptr %p is a GPU pointer", ptr);
-  }
-
-  FTI_Print(message, FTI_DBUG);
-#else
-    ptrInfo->type = FTIT_PTRTYPE_CPU;
-    sprintf(message, "Ptr %p is a CPU pointer", ptr);
+    if (err != cudaSuccess && err != cudaErrorInvalidValue) {
+        sprintf(message, "Cuda error %d %s:: %s", __LINE__, __func__, cudaGetErrorString(err));
+        FTI_Print(message, FTI_EROR);
+        return FTI_NSCS;
+    }
+  
+    if (err == cudaErrorInvalidValue || attributes.memoryType == cudaMemoryTypeHost || attributes.isManaged) {
+        ptrInfo->type = FTIT_PTRTYPE_CPU;
+        sprintf(message, "Ptr %p is a CPU pointer", ptr);
+    }
+    else {
+        ptrInfo->type = FTIT_PTRTYPE_GPU;
+        ptrInfo->deviceID = attributes.device;
+        sprintf(message, "Ptr %p is a GPU pointer", ptr);
+    }
+  
     FTI_Print(message, FTI_DBUG);
-#endif
-  return FTI_SCES;
+ 
+#endif    
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -65,19 +63,16 @@ int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
   to the CPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_from_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec)
+int FTI_copy_from_device(void *dst, const void *src, size_t count,  FTIT_execution *exec)
 {
 #ifdef GPUSUPPORT
-  cudaStream_t stream = exec->cStream;
-  CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyDeviceToHost, stream));
-  CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
-  CUDA_ERROR_CHECK(cudaStreamSynchronize(stream));
-  FTI_Print("Copied data from GPU", FTI_DBUG);
-  return FTI_SCES;
-#else
-  FTI_Print( "Compiled with no GPU support, yet FTI got request to copy data from gpu device", FTI_EROR );
-  return FTI_NSCS;
+    cudaStream_t stream = exec->cStream;
+    CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyDeviceToHost, stream));
+    CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
+    CUDA_ERROR_CHECK(cudaStreamSynchronize(stream));
+    FTI_Print("Copied data from GPU", FTI_DBUG);
 #endif
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -94,19 +89,16 @@ int FTI_copy_from_device(void *dst, const void *src, size_t count, FTIT_ptrinfo 
   to the GPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *ptrInfo, FTIT_execution *exec)
+int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_execution *exec)
 {
 #ifdef GPUSUPPORT
-  cudaStream_t stream = exec->cStream;
-  CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice, stream));
-  CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
-  CUDA_ERROR_CHECK(cudaStreamSynchronize(stream));
-  FTI_Print("Copied data to GPU", FTI_DBUG);
-  return FTI_SCES;
-#else
-  FTI_Print( "Compiled with no GPU support, yet FTI got request to copy data to gpu device", FTI_EROR );
-  return FTI_NSCS;
+    cudaStream_t stream = exec->cStream;
+    CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice, stream));
+    CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
+    CUDA_ERROR_CHECK(cudaStreamSynchronize(stream));
+    FTI_Print("Copied data to GPU", FTI_DBUG);
 #endif
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -124,76 +116,75 @@ int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_ptrinfo *p
   The actual writes to the storage are performed by fwritefunc.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data, FTIT_ptrinfo *ptrInfo, FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque)
+int FTI_pipeline_gpu_to_storage(FTIT_dataset *FTI_Data,  FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_fwritefunc fwritefunc, void *opaque)
 {
 #ifdef GPUSUPPORT
-  FTI_Print("Piplining GPU -> Storage", FTI_DBUG);
+    FTI_Print("Piplining GPU -> Storage", FTI_DBUG);
 
-  if (FTI_Data->size == 0)
-    return FTI_SCES;
+    if (FTI_Data->size == 0)
+        return FTI_SCES;
 
-  int res;
+    int res;
 
-  char *ptr = (char *)FTI_Data->ptr;
-  size_t remaining_size = FTI_Data->size;
-  size_t copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
+    char *ptr = (char *)FTI_Data->devicePtr;
+    size_t remaining_size = FTI_Data->size;
+    size_t copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
 
-  size_t valid_data_sizes[2];
+    char str[FTI_BUFS];
+    size_t valid_data_sizes[2];
 
-  CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[0], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
-
-  if (FTI_Data->size <= FTI_Conf->cHostBufSize) {
-    CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec->cStream));
-    res = fwritefunc(FTI_Exec->cHostBufs[0], FTI_Data->size, opaque);
-    return res;
-  }
-
-  CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[0], FTI_Exec->cStream));
-
-  valid_data_sizes[0] = copy_size;
-
-  ptr += copy_size;
-  remaining_size -= copy_size;
-  copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
-
-  CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[1], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
-  CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[1], FTI_Exec->cStream));
-
-  valid_data_sizes[1] = copy_size;
-
-  ptr += copy_size;
-  remaining_size -= copy_size;
-  copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
-
-  bool is_event_active[2] = { true, true };
-  int id = 0;
-
-  while (is_event_active[0] || is_event_active[1]) {
-    CUDA_ERROR_CHECK(cudaEventSynchronize(FTI_Exec->cEvents[id]));
-    if ((res = fwritefunc(FTI_Exec->cHostBufs[id], valid_data_sizes[id], opaque)) != FTI_SCES)
-      return res;
+    CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[0], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
 
 
-    if (remaining_size > 0) {
-      CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[id], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
-      CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[id], FTI_Exec->cStream));
-
-      valid_data_sizes[id] = copy_size;
-
-      ptr += copy_size;
-      remaining_size -= copy_size;
-      copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
+    if (FTI_Data->size <= FTI_Conf->cHostBufSize) {
+        CUDA_ERROR_CHECK(cudaStreamSynchronize(FTI_Exec->cStream));
+        res = fwritefunc(FTI_Exec->cHostBufs[0], FTI_Data->size, opaque);
+        return res;
     }
-    else
-      is_event_active[id] = false;
 
-    id = (id == 0) ? 1 : 0;
-  }
+    CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[0], FTI_Exec->cStream));
 
-  return FTI_SCES;
-#else
-  FTI_Print( "Compiled with no GPU support, yet FTI got request to stream data from gpu device", FTI_EROR );
-  return FTI_NSCS;
+    valid_data_sizes[0] = copy_size;
+
+    ptr += copy_size;
+    remaining_size -= copy_size;
+    copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
+
+    CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[1], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
+    
+    CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[1], FTI_Exec->cStream));
+
+    valid_data_sizes[1] = copy_size;
+
+    ptr += copy_size;
+    remaining_size -= copy_size;
+    copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
+
+    bool is_event_active[2] = { true, true };
+    int id = 0;
+
+    while (is_event_active[0] || is_event_active[1]) {
+        CUDA_ERROR_CHECK(cudaEventSynchronize(FTI_Exec->cEvents[id]));
+        if ((res = fwritefunc(FTI_Exec->cHostBufs[id], valid_data_sizes[id], opaque)) != FTI_SCES)
+            return res;
+
+
+        if (remaining_size > 0) {
+            CUDA_ERROR_CHECK(cudaMemcpyAsync(FTI_Exec->cHostBufs[id], ptr, copy_size, cudaMemcpyDeviceToHost, FTI_Exec->cStream));
+            CUDA_ERROR_CHECK(cudaEventRecord(FTI_Exec->cEvents[id], FTI_Exec->cStream));
+
+            valid_data_sizes[id] = copy_size;
+
+            ptr += copy_size;
+            remaining_size -= copy_size;
+            copy_size = MIN(remaining_size, FTI_Conf->cHostBufSize);
+        }
+        else
+            is_event_active[id] = false;
+
+        id = (id == 0) ? 1 : 0;
+    }
 #endif
+    return FTI_SCES;
 }
 

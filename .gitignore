@@ -4,3 +4,8 @@ doc/latex
 *.private
 *.exe
 *.swp
+*.swo
+*.swn
+*.o
+*.swl
+*.swm
