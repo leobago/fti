@@ -39,6 +39,9 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
+
+#include "failure-injection.h"
+
 #include "fti.h"
 #include "ftiff.h"
 

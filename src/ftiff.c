@@ -1187,14 +1187,16 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     
                     int try = 0; 
                     do {
-                        WRITTEN += write( fd, (FTI_ADDRPTR) (chunk_addr+cpycnt), cpynow );
-                        if ( fd == -1 ) {
+                        int returnVal;
+                        FTI_FI_WRITE( returnVal, fd, (FTI_ADDRPTR) (chunk_addr+cpycnt), cpynow, fn );
+                        if ( returnVal == -1 ) {
                             snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - Dataset #%d could not be written to file: %s", currentdbvar->id, fn);
                             FTI_Print(str, FTI_EROR);
                             close(fd);
                             errno = 0;
                             return FTI_NSCS;
                         }
+                        WRITTEN += returnVal;
                         try++;
                     } while ((WRITTEN < cpynow) && (try < 10));
                     

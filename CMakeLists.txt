@@ -87,6 +87,7 @@ option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
 option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 
@@ -124,15 +125,12 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
-
-
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-  src/api_cuda.c src/utility.c
-  )
+	src/failure-injection.c src/api_cuda.c src/utility.c)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
@@ -178,7 +176,7 @@ endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
 append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}" )
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
 
 append_property(TARGET fti.static fti.shared
@@ -248,6 +246,10 @@ if(ENABLE_HDF5)
 		*  -DHDF5_ROOT as the path to the HDF5 installation to use.
 		**")
 	endif()
+endif()
+
+if(ENABLE_FI_IO)
+    add_definitions(-DENABLE_FTI_FI_IO)
 endif()
 
 set(FTI_TARGETS fti.static fti.shared)

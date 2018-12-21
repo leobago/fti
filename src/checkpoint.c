@@ -138,14 +138,14 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
         snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
-
+    
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-
+        
         if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
@@ -210,6 +210,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         switch (FTI_Conf->ioMode) {
             case FTI_IO_FTIFF:
+        
                 res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
@@ -242,7 +243,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
-
+    
     if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
@@ -391,7 +392,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
 
-        //    FTI_Print("Head waits for message...", FTI_DBUG);
+        FTI_Print("Head waits for message...", FTI_DBUG);
 
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
         if ( FTI_Conf->stagingEnabled ) {
@@ -409,7 +410,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } 
 
         if ( stage_flag ) {
-
+            
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
@@ -422,10 +423,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.
         if ( finalize_flag ) {
-
+            
             char str[FTI_BUFS];
-            //      FTI_Print("Head waits for message...", FTI_DBUG);
-
+            FTI_Print("Head waits for message...", FTI_DBUG);
+            
             int val = 0, i;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
@@ -440,7 +441,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( val != FTI_ENDW) { // If we were asked to finalize
                 FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
             }
-
+            
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
@@ -477,7 +478,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < 7; i++) { // Initialize flags
         flags[i] = 0;
     }
-    //  FTI_Print("Head waits for message...", FTI_DBUG);
+    FTI_Print("Head waits for message...", FTI_DBUG);
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
@@ -558,9 +559,6 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     return FTI_SCES;
 }
 
-
-
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes ckpt to PFS using POSIX.
@@ -587,8 +585,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
-    sprintf(str, "Local Ckpt is saved in %s",fn);
-    FTI_Print(str,FTI_INFO);
 
     // open task local ckpt file
     FILE* fd = fopen(fn, "wb");
@@ -650,9 +646,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 
 }
-
-
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -718,7 +711,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 #endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &write_info.pfh);
+    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(write_info.pfh));
 
     // check if successful
     if (res != 0) {
@@ -738,11 +731,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         write_info.offset += chunkSizes[i];
     }
     free(chunkSizes);
-
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
-        FTI_Print(str,FTI_INFO);
-    }
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         // determine the type of data pointer
@@ -798,7 +786,6 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
 {
@@ -818,8 +805,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
-    sprintf(str,"Open Parralel File to write : %s",fn);
-    FTI_Print(str,FTI_INFO);
+
     // check if successful
     if (sid == -1) {
         errno = 0;
