@@ -1170,8 +1170,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
-  sprintf(str,"SION LIB RECOVER %s %s",lfn,gfn);
-  FTI_Print(str,FTI_WARN);
 
   // this is done, since sionlib aborts if the file is not readable.
   if (access(gfn, F_OK) != 0) {
