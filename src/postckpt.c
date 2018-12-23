@@ -157,11 +157,10 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        int returnVal;
-        FTI_FI_FWRITE( returnVal, buffer, sizeof(char), recvSize, pfd, pfn );
-        
+        fwrite(buffer, sizeof(char), recvSize, pfd);
+
         if (ferror(pfd)) {
-            FTI_Print("Error writing data to L2 ptner file", FTI_EROR);
+            FTI_Print("Error writing data to L2 ptner file", FTI_DBUG);
 
             free(buffer);
             fclose(pfd);
@@ -407,20 +406,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             // Writting encoded checkpoints
-            int returnVal;
-            FTI_FI_FWRITE( returnVal, coding, sizeof(char), remBsize, efd, efn );
-            if ( ferror( efd ) ) {
-                FTI_Print("FTI failed to write to the encoded L3 ckpt. file.", FTI_EROR);
-
-                free(data);
-                free(matrix);
-                free(coding);
-                free(myData);
-                fclose(lfd);
-                fclose(efd);
-
-                return FTI_NSCS;
-            }
+            fwrite(coding, sizeof(char), remBsize, efd);
             MD5_Update (&mdContext, coding, remBsize);
 
             // Next block
@@ -773,8 +759,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
 
-            int returnVal;
-            FTI_FI_FWRITE( returnVal, readData, sizeof(char), bytes, gfd, gfn );
+            fwrite(readData, sizeof(char), bytes, gfd);
             if (ferror(gfd)) {
                 FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
                 free(readData);
@@ -990,10 +975,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         // Open local file case 0:
         if (level == 0) {
-            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
         }
         else {
-            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc - startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //[proc - startProc] to get index from 0
@@ -1004,11 +989,12 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
     }
 
-    int rank, ckptID;
-    char fn[FTI_BUFS], str[FTI_BUFS];
-    sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+  int rank, ckptID;
+//  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+//  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
+  snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+
 
     int numFiles = 1;
     int nlocaltasks = nbProc;

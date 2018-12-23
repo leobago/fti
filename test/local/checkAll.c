@@ -42,8 +42,14 @@
 #include <unistd.h>
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
+#include "wrapperFunc.h"
 
-#define N 100000
+#define CPU 0
+#define GPU 1
+#define UNIFIED 2
+
+#define BLOCK_SIZE 1024
+
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
@@ -127,24 +133,42 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
  */
 
 int main(int argc, char* argv[]) {
-
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;
+  double *hA, *hB;
+  hA=hB=NULL;
+  int N;
+  int memoryType;
+  int blocks_per_grid, threads_per_block;
 
-  size_t asize, asize_chk;
+  size_t asize, asize_chk, asize_with_dt;
 
   srand(time(NULL));
-
   MPI_Init(&argc, &argv);
   result = FTI_Init(argv[1], MPI_COMM_WORLD);
   if (result == FTI_NREC) {
     exit(RECOVERY_FAILED);
   }
 
+   
+
   crash = atoi(argv[2]);
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
+  memoryType = atoi (argv[5]);
+
+  if ( memoryType != CPU && memoryType != GPU && memoryType != UNIFIED ){
+    fprintf(stderr, " Specify a correct device to execute the test\n"); 
+    exit(WRONG_ENVIRONMENT);
+  }
+
+  if (memoryType == CPU){
+    N = 100000;
+  }
+  else{
+    N = ((size_t)1 << 22);
+  }
 
 
   char *env = getenv("ENABLE_ICP");
@@ -162,7 +186,11 @@ int main(int argc, char* argv[]) {
     exit(WRONG_ENVIRONMENT);
   }
 
+
+  int numGpus = getProperties();
   MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
+
+  setDevice(FTI_APP_RANK%numGpus);
 
   dictionary *ini = iniparser_load( argv[1] );
   int grank;    
@@ -173,7 +201,7 @@ int main(int argc, char* argv[]) {
   int headRank = grank - grank%nodeSize;
 
   if ( (nbHeads<0) || (nodeSize<0) ) {
-    printf("wrong configuration (for head or node-size settings)!\n");
+    printf("wrong configuration (for head or node-size settings)! %d %d\n",nbHeads, nodeSize);
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
@@ -215,9 +243,29 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  A = (double*) malloc(asize*sizeof(double));
-  B = (double*) malloc(asize*sizeof(double));
+  asize_with_dt = asize * sizeof(double);
 
+  if (memoryType == CPU){
+    A = (double*) malloc(asize_with_dt);
+    B = (double*) malloc(asize_with_dt);
+  }
+#ifdef GPUSUPPORT
+  else if (memoryType== GPU){
+    asize_with_dt = asize * sizeof(double);
+    threads_per_block = BLOCK_SIZE;
+    blocks_per_grid = (asize + threads_per_block - 1) / threads_per_block;
+    hA = (double*) malloc(asize_with_dt);
+    hB = (double*) malloc(asize_with_dt);
+    allocateMemory((void**) &A,asize_with_dt);
+    allocateMemory((void**) &B,asize_with_dt);
+  }
+  else if (memoryType == UNIFIED){
+    threads_per_block = BLOCK_SIZE;
+    blocks_per_grid = (asize + threads_per_block - 1) / threads_per_block;
+    allocateManaged( (void **) &A, asize_with_dt);
+    allocateManaged( (void **) &B, asize_with_dt);
+  }
+#endif
   FTI_Protect(0, A, asize, FTI_DBLE);
   FTI_Protect(1, B, asize, FTI_DBLE);
   FTI_Protect(2, &asize, 1, FTI_INTG);
@@ -225,21 +273,31 @@ int main(int argc, char* argv[]) {
   state = FTI_Status();
 
   if (state == INIT) {
-    init_arrays(A, B, asize);
-    write_data(B, &asize, FTI_APP_RANK);
+    // Initialize memory 
+    if ( memoryType == CPU || memoryType == UNIFIED ){
+      init_arrays(A, B, asize);
+      write_data(B, &asize, FTI_APP_RANK);
+    }
+#ifdef GPUSUPPORT
+    else if ( memoryType == GPU ){
+      init_arrays(hA,hB, asize);
+      write_data(hB, &asize, FTI_APP_RANK);
+      cudaCopy(hA,A,asize_with_dt);
+      cudaCopy(hB,B,asize_with_dt);
+    }
+#endif        
+    //Checkpoint data          
     if ( enable_icp == 1 ) {
       FTI_InitICP( 1, level, 1 );
       FTI_AddVarICP( 2 );  
       FTI_AddVarICP( 0 );  
       FTI_AddVarICP( 1 );  
       FTI_FinalizeICP();
-    } 
-    else if ( enable_icp == 0 ) {
-        FTI_Checkpoint(1,level);
-    }
-    else
+    } else if ( enable_icp == 0 ) {
+      FTI_Checkpoint(1,level);
+    } else
     {
-        exit(WRONG_ENVIRONMENT);
+      exit(WRONG_ENVIRONMENT);
     }
     MPI_Barrier(FTI_COMM_WORLD);
 
@@ -271,19 +329,39 @@ int main(int argc, char* argv[]) {
    * on INIT, B is initialized randomly
    * on RESTART or KEEP, B is recovered and must be equal to B_chk
    */
-
-  vecmult(A, B, asize);
+  if ( memoryType == CPU ){
+    vecmult(A, B, asize);
+  }
+#ifdef GPUSUPPORT
+  else if( memoryType == GPU  ){
+    executeVecMult(blocks_per_grid,threads_per_block,A,B,asize,hA);
+  }
+  else if ( memoryType == UNIFIED ){
+    executeVecMultUnified(blocks_per_grid,threads_per_block,A,B,asize,hA);
+  }
+#endif
 
   if (state == RESTART || state == KEEP) {
-    result = validify(A, B_chk, asize);
+    if ( memoryType == CPU || memoryType == UNIFIED )
+      result = validify(A, B_chk, asize);
+    else if( memoryType == GPU )
+      result = validify(hA, B_chk, asize);
     result += (asize_chk == asize) ? 0 : -1;
     MPI_Allreduce(&result, &tmp, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     result = tmp;
     free(B_chk);
   }
 
-  free(A);
-  free(B);
+  if (memoryType == CPU ){
+    free(A);
+    free(B);
+  }
+#ifdef GPUSUPPORT
+  else if (memoryType == GPU ){
+    freeCuda(A);
+    freeCuda(B);
+  }
+#endif
 
   if (FTI_APP_RANK == 0 && (state == RESTART || state == KEEP)) {
     if (result == 0) {
@@ -329,6 +407,7 @@ int validify(double* A, double* B_chk, size_t asize) {
   int i;
   for (i=0; i<asize; i++) {
     if (A[i] != B_chk[i]){
+      printf(" %d %lf %lf\n", i,A[i],B_chk[i]);
       return -1;
     }
   }

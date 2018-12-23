@@ -39,6 +39,9 @@
 #define _GNU_SOURCE
 
 #include "interface.h"
+#include "api_cuda.h"
+
+#include "utility.h"
 
 /*  
 
@@ -848,6 +851,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
 }
 
+
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes ckpt to local/PFS using FTIFF.
@@ -970,6 +976,11 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long dcpSize = 0, dataSize = 0;
 
     // write FTI-FF meta data
+    // 
+#ifdef GPUSUPPORT
+    copyDataFromDevive( FTI_Exec, FTI_Data );
+#endif    
+
     do {    
 
         isnextdb = 0;
@@ -1752,7 +1763,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         DIR *L1CkptDir = opendir( FTI_Ckpt[1].dir );
 
         if (L1CkptDir == NULL) {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - checkpoint directory (%s) could not be accessed.", FTI_Ckpt[1].dir);
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L1RecoveryInit - checkpoint directory (%s) (%s) could not be accessed.",FTI_Ckpt[1].dir, FTI_Ckpt[1].dir);
             FTI_Print(strerr, FTI_EROR);
             errno = 0;
             free(FTIFFMeta);
@@ -1762,7 +1773,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         while((entry = readdir(L1CkptDir)) != NULL) {
             
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                snprintf(str, FTI_BUFS, "FTI-FF: L1RecoveryInit - found file with name: %s", entry->d_name);
+                snprintf(str, FTI_BUFS, "FTI-FF: L1RecoveryInit - found file with name: %s %s",FTI_Ckpt[1].dir, entry->d_name);
                 FTI_Print(str, FTI_DBUG);
                 sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
                 

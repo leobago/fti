@@ -11,7 +11,7 @@
 #
 #  Hit ./run-checks.sh -h for info
 #
-TIMEOUT=30
+TIMEOUT=120
 DFLAG=1
 CFLAG=1
 PROCS=16
@@ -24,6 +24,10 @@ SUCCEED=0
 FAULTY=0
 testFailed=0
 io_mode=0
+filepath=/gpfs/scratch/bsc93/bsc93780/ftiTest
+mkdir -p $filepath/Global
+mkdir -p $filepath/Meta
+mkdir -p $filepath/Local
 display_usage() {
 cat <<EOF
 Usage: ./run-checks.sh [options]
@@ -143,9 +147,9 @@ cat <<EOF >TMPLT
 [basic]
 head                           = 0
 node_size                      = 4
-ckpt_dir                       = Local
-glbl_dir                       = Global
-meta_dir                       = Meta
+ckpt_dir                       = $filepath/Local
+glbl_dir                       = $filepath/Global
+meta_dir                       = $filepath/Meta
 ckpt_io                        = 1
 ckpt_l1                        = 0
 ckpt_l2                        = 0
@@ -202,30 +206,37 @@ should_not_fail() {
         echo -e "\033[0;31mfailed\033[m (FTI Abort)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 30 ]; then
 		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 20 ]; then
         echo -e "\033[0;31mfailed\033[m (Recovery Failed)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 143 ]; then
         echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 40 ]; then
         echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	elif [ $1 = 50 ]; then
         echo -e "\033[0;31mfailed\033[m (Wrong Environment!)"
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	else
 		echo "Unknown exit status: "$1
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	fi
 }
 
@@ -233,17 +244,21 @@ should_fail() {
 	if [ $1 = 255 ]; then
 	    echo -e "\033[0;32mpassed\033[m (FTI Abort)"
 		let SUCCEED=SUCCEED+1
+    exit
 	elif [ $1 = 0 ]; then
         echo -e "\033[0;31mfailed\033[m (Finalized Without Error!)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 30 ]; then
 		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
 		let FAILED=FAILED+1
 		testFailed=1
+    exit
 	elif [ $1 = 143 ]; then
         echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
 		let FAILED=FAILED+1
+    exit
 		testFailed=1
 	elif [ $1 = 20 ]; then
         echo -e "\033[0;32mpassed\033[m (Recovery failed)"
@@ -252,14 +267,17 @@ should_fail() {
         echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	elif [ $1 = 50 ]; then
         echo -e "\033[0;31mfailed\033[m (Wrong Environment!)"
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	else
 		echo "Unknown exit status: "$1
 		let FAULTY=FAULTY+1
 		testFailed=1
+    exit
 	fi
 }
 
@@ -270,10 +288,12 @@ check_return_val() {
 	elif [ $1 = 255 ]; then
         echo -e "\033[0;31mfailed\033[m"
 		let FAILED=FAILED+1
+    exit
 		testFailed=1
 	else
 		echo "Unknown exit status: "$1
 		let FAULTY=FAULTY+1
+    exit
 		testFailed=1
 	fi
 }
@@ -311,7 +331,7 @@ INLINE_L3=(0 1)
 INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
-MEM_NAMES=(CPU GPU)  
+MEM_NAMES=(@MEMORYTYPES@)  
 #                     #
 # ---- Check dCP ---- #
 #                     #
@@ -320,6 +340,7 @@ echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
+    exit
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
@@ -327,6 +348,7 @@ echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
+    exit
     testFailed=0
 fi
 
@@ -338,6 +360,7 @@ echo -e "[ \033[1m*** Testing iCP: head=0 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
+    exit
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
@@ -345,6 +368,7 @@ echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
+    exit
     testFailed=0
 fi
 #                     #
@@ -355,6 +379,7 @@ echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "GIO check (head=1) failed" >> failed.log
+    exit
     testFailed=0
 fi
 echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
@@ -362,6 +387,7 @@ echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "GIO check (head=0) failed" >> failed.log
+    exit
     testFailed=0
 fi
 
@@ -374,6 +400,7 @@ check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "KL4 check (head=0) failed" >> failed.log
     testFailed=0
+    exit
 fi
 echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
 ( set -x; bash checkKL4.sh 1 &>> check.log )
@@ -381,10 +408,10 @@ check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "KL4 check (head=1) failed" >> failed.log
     testFailed=0
+    exit
 fi
 
-for m in $(seq 1 3); do
-  let MEM=m-1
+for MEM in "${!MEM_NAMES[@]}"; do
   for io in $(seq 1 3); do
       for enable_icp in OFF ON; do
           let io_id=io-1
@@ -402,11 +429,11 @@ for m in $(seq 1 3); do
                       #                  #
                       # --- KEEP = 1 --- #
                       #                  #
-                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                       ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                       awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                       should_not_fail $?
                       if [ $testFailed = 1 ]; then
                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
@@ -415,16 +442,16 @@ for m in $(seq 1 3); do
                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                       if [ $eraseFiles = "1" ] && [ $DFLAG = "1" ]; then
                           awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                          ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                           check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                           ### DELETE CHECKPOINT FILE
                           echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                          folder="Global/"$check_id"/l4"
+                          folder="$filepath/Global/"$check_id"/l4"
                           filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                          ( set -x; rm -rf $folder"/"$filename )
+                          ( set -x; rm -r $folder"/"$filename )
                           ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                           awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                          ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                           should_fail $?
                           if [ $testFailed = 1 ]; then
                               echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
@@ -435,16 +462,16 @@ for m in $(seq 1 3); do
                       fi
                       #                if [ $corruptFiles = "1" ] && [ $CFLAG = "1" ]; then
                       #                    awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                      #                    ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                      #                    ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                       #                    check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                       #                    ### CORRUPT CHECKPOINT FILE
                       #                    echo -e "[ \033[1mCorrupting Checkpoint File...\033[m ]"
-                      #                    folder="Global/"$check_id"/l4"
+                      #                    folder="$filepath/Global/"$check_id"/l4"
                       #                    filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
                       #                    ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
                       #                    ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                       #                    awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                      #                    ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                      #                    ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                       #                    should_fail $?
                       #                    if [ $testFailed = 1 ]; then
                       #                        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
@@ -458,9 +485,9 @@ for m in $(seq 1 3); do
                       #                  #
                       # --- KEEP = 0 --- #
                       #                  #
-                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                       should_not_fail $?
                       if [ $testFailed = 1 ]; then
                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
@@ -469,14 +496,14 @@ for m in $(seq 1 3); do
                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                       if [ $corruptFiles = "1" ]; then
                           if [ $level = 1 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### CORRUPT Checkpoint FILES
                               echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l1"
+                              folder="$filepath/Local/node0/"$check_id"/l1"
                               filename=$(ls $folder | grep Rank | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L1 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -485,34 +512,34 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
                           if [ $level = 2 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### CORRUPT Checkpoint FILES
                               echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l2"
+                              folder="$filepath/Local/node0/"$check_id"/l2"
                               filename=$(ls $folder | grep Rank | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              folder="Local/node2/"$check_id"/l2"
+                              folder="$filepath/Local/node2/"$check_id"/l2"
                               filename=$(ls $folder | grep Rank | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 ckpt files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### CORRUPT PARTNER FILES
                               echo -e "[ \033[1mCorrupting Partner Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l2"
+                              folder="$filepath/Local/node0/"$check_id"/l2"
                               filename=$(ls $folder | grep Pcof | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              folder="Local/node2/"$check_id"/l2"
+                              folder="$filepath/Local/node2/"$check_id"/l2"
                               filename=$(ls $folder | grep Pcof | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L2 partner files, should recover, ID: "$check_id >> failed.log
@@ -521,34 +548,34 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
                           if [ $level = 3 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### CORRUPT Checkpoint FILES
                               echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l3"
+                              folder="$filepath/Local/node0/"$check_id"/l3"
                               filename=$(ls $folder | grep Rank | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              folder="Local/node2/"$check_id"/l3"
+                              folder="$filepath/Local/node2/"$check_id"/l3"
                               filename=$(ls $folder | grep Rank | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L3 ckpt files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### CORRUPT PARTNER FILES
                               echo -e "[ \033[1mCorrupting Encoded Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l3"
+                              folder="$filepath/Local/node0/"$check_id"/l3"
                               filename=$(ls $folder | grep Rsed | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              folder="Local/node2/"$check_id"/l3"
+                              folder="$filepath/Local/node2/"$check_id"/l3"
                               filename=$(ls $folder | grep Rsed | head -n 1)
                               ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L3 encoded files, should recover, ID: "$check_id >> failed.log
@@ -557,14 +584,14 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
                           #                    if [ $level = 4 ]; then
-                          #                        ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                          #                        ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                           #                        check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                           #                        ### CORRUPT Checkpoint FILES
                           #                        echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                          #                        folder="Global/"$check_id"/l4"
+                          #                        folder="$filepath/Global/"$check_id"/l4"
                           #                        filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
                           #                        ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                          #                        ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                          #                        ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                           #                        should_fail $?
                           #                        if [ $testFailed = 1 ]; then
                           #                            echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), corrupted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -575,14 +602,14 @@ for m in $(seq 1 3); do
                       fi
                       if [ $eraseFiles = "1" ]; then
                           if [ $level = 1 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE CHECKPOINT FILE
                               echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                              folder="Local/node0/"$check_id"/l1"
+                              folder="$filepath/Local/node0/"$check_id"/l1"
                               filename=$(ls $folder | grep Rank | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $folder"/"$filename )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L1 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -591,60 +618,60 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
                           if [ $level = 2 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE Checkpoint FILES
                               echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l2"
+                              folder="$filepath/Local/node0/"$check_id"/l2"
                               filename=$(ls $folder | grep Rank | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              folder="Local/node2/"$check_id"/l2"
+                              ( set -x; rm -r $folder"/"$filename )
+                              folder="$filepath/Local/node2/"$check_id"/l2"
                               filename=$(ls $folder | grep Rank | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $folder"/"$filename )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L2 ckpt files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE PARTNER FILES
                               echo -e "[ \033[1mDeleting Partner Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l2"
+                              folder="$filepath/Local/node0/"$check_id"/l2"
                               filename=$(ls $folder | grep Pcof | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              folder="Local/node2/"$check_id"/l2"
+                              ( set -x; rm -r $folder"/"$filename )
+                              folder="$filepath/Local/node2/"$check_id"/l2"
                               filename=$(ls $folder | grep Pcof | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $folder"/"$filename )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L2 partner files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE NODES
                               echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                              ( set -x; rm -rf Local/node0 )
-                              ( set -x; rm -rf Local/node1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $filepath/Local/node0 )
+                              ( set -x; rm -r $filepath/Local/node1 )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted two consecutive nodes, should not recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE NODES
                               echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                              ( set -x; rm -rf Local/node0 )
-                              ( set -x; rm -rf Local/node2 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $filepath/Local/node0 )
+                              ( set -x; rm -r $filepath/Local/node2 )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted two non-consecutive nodes, should recover, ID: "$check_id >> failed.log
@@ -653,60 +680,60 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
                           if [ $level = 3 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE Checkpoint FILES
                               echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l3"
+                              folder="$filepath/Local/node0/"$check_id"/l3"
                               filename=$(ls $folder | grep Rank | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              folder="Local/node2/"$check_id"/l3"
+                              ( set -x; rm -r $folder"/"$filename )
+                              folder="$filepath/Local/node2/"$check_id"/l3"
                               filename=$(ls $folder | grep Rank | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $folder"/"$filename )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L3 ckpt files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE ENCODED FILES
                               echo -e "[ \033[1mDeleting Encoded Files...\033[m ]"
-                              folder="Local/node0/"$check_id"/l3"
+                              folder="$filepath/Local/node0/"$check_id"/l3"
                               filename=$(ls $folder | grep Rsed | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              folder="Local/node2/"$check_id"/l3"
+                              ( set -x; rm -r $folder"/"$filename )
+                              folder="$filepath/Local/node2/"$check_id"/l3"
                               filename=$(ls $folder | grep Rsed | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $folder"/"$filename )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L3 encoded files, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE NODES
                               echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                              ( set -x; rm -rf Local/node0 )
-                              ( set -x; rm -rf Local/node1 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $filepath/Local/node0 )
+                              ( set -x; rm -r $filepath/Local/node1 )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted two consecutive nodes, should recover, ID: "$check_id >> failed.log
                                   testFailed=0
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### DELETE NODES
                               echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                              ( set -x; rm -rf Local/node0 )
-                              ( set -x; rm -rf Local/node2 )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; rm -r $filepath/Local/node0 )
+                              ( set -x; rm -r $filepath/Local/node2 )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted two non-consecutive nodes, should recover, ID: "$check_id >> failed.log
@@ -714,22 +741,22 @@ for m in $(seq 1 3); do
                               fi
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                           fi
-                          if [ $level = 4 ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
-                              check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                              ### DELETE CHECKPOINT FILE
-                              echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                              folder="Global/"$check_id"/l4"
-                              filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                              ( set -x; rm -rf $folder"/"$filename )
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                              should_fail $?
-                              if [ $testFailed = 1 ]; then
-                                  echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
-                                  testFailed=0
-                              fi
-                              awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          fi
+#                          if [ $level = 4 ]; then
+#                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+#                              check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
+#                              ### DELETE CHECKPOINT FILE
+#                              echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+#                              folder="$filepath/Global/"$check_id"/l4"
+#                              filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
+#                              ( set -x; rm -r $folder"/"$filename )
+#                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+#                              should_fail $?
+#                              if [ $testFailed = 1 ]; then
+#                                  echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
+#                                  testFailed=0
+#                              fi
+#                              awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+#                          fi
                       fi
                   fi
               done
@@ -751,11 +778,11 @@ for m in $(seq 1 3); do
                           awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT > $NAME; rm tmp
                           echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4") "${MEM_NAMES[$MEM]}" ... ***\033[m ]"
                           if [ $keep -eq "1" ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                               awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover, ID: "$check_id >> failed.log
@@ -764,16 +791,16 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                               if [ $eraseFiles = "1" ] && [ $DFLAG = "2" ]; then
                                   awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                  ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                   check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                   ### DELETE CHECKPOINT FILE
                                   echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                                  folder="Global/"$check_id"/l4"
+                                  folder="$filepath/Global/"$check_id"/l4"
                                   filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                                  ( set -x; rm -rf $folder"/"$filename )
+                                  ( set -x; rm -r $folder"/"$filename )
                                   ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                                   awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                  ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                   should_fail $?
                                   if [ $testFailed = 1 ]; then
                                       echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
@@ -784,16 +811,16 @@ for m in $(seq 1 3); do
                               fi
                               #                        if [ $corruptFiles = "1" ] && [ $CFLAG = "2" ]; then
                               #                            awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              #                            ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              #                            ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               #                            check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                               #                            ### CORRUPT CHECKPOINT FILE
                               #                            echo -e "[ \033[1mCorrupting Checkpoint File...\033[m ]"
-                              #                            folder="Global/"$check_id"/l4"
+                              #                            folder="$filepath/Global/"$check_id"/l4"
                               #                            filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
                               #                            ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
                               #                            ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
                               #                            awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              #                            ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              #                            ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               #                            should_fail $?
                               #                            if [ $testFailed = 1 ]; then
                               #                                echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
@@ -804,9 +831,9 @@ for m in $(seq 1 3); do
                               #                        fi
                           fi
                           if [ $keep -eq "0" ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                              ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                               check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                               should_not_fail $?
                               if [ $testFailed = 1 ]; then
                                   echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover, ID: "$check_id >> failed.log
@@ -815,14 +842,14 @@ for m in $(seq 1 3); do
                               awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                               if [ $corruptFiles = "1" ]; then
                                   if [ $level = 1 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### CORRUPT Checkpoint FILES
                                       echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l1"
+                                      folder="$filepath/Local/node0/"$check_id"/l1"
                                       filename=$(ls $folder | grep Rank | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L1 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -831,34 +858,34 @@ for m in $(seq 1 3); do
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
                                   if [ $level = 2 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### CORRUPT Checkpoint FILES
                                       echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l2"
+                                      folder="$filepath/Local/node0/"$check_id"/l2"
                                       filename=$(ls $folder | grep Rank | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      folder="Local/node2/"$check_id"/l2"
+                                      folder="$filepath/Local/node2/"$check_id"/l2"
                                       filename=$(ls $folder | grep Rank | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 ckpt files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### CORRUPT PARTNER FILES
                                       echo -e "[ \033[1mCorrupting Partner Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l2"
+                                      folder="$filepath/Local/node0/"$check_id"/l2"
                                       filename=$(ls $folder | grep Pcof | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      folder="Local/node2/"$check_id"/l2"
+                                      folder="$filepath/Local/node2/"$check_id"/l2"
                                       filename=$(ls $folder | grep Pcof | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L2 partner files, should recover, ID: "$check_id >> failed.log
@@ -867,34 +894,34 @@ for m in $(seq 1 3); do
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
                                   if [ $level = 3 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### CORRUPT Checkpoint FILES
                                       echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l3"
+                                      folder="$filepath/Local/node0/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rank | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      folder="Local/node2/"$check_id"/l3"
+                                      folder="$filepath/Local/node2/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rank | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L3 ckpt files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### CORRUPT PARTNER FILES
                                       echo -e "[ \033[1mCorrupting Encoded Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l3"
+                                      folder="$filepath/Local/node0/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rsed | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      folder="Local/node2/"$check_id"/l3"
+                                      folder="$filepath/Local/node2/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rsed | head -n 1)
                                       ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L3 encoded files, should recover, ID: "$check_id >> failed.log
@@ -903,14 +930,14 @@ for m in $(seq 1 3); do
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
                                   #                            if [ $level = 4 ]; then
-                                  #                                ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                  #                                ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                   #                                check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                   #                                ### CORRUPT Checkpoint FILES
                                   #                                echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-                                  #                                folder="Global/"$check_id"/l4"
+                                  #                                folder="$filepath/Global/"$check_id"/l4"
                                   #                                filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
                                   #                                ( set -x; printf "corruption" | dd conv=notrunc of=$folder"/"$filename bs=1 > /dev/null 2>&1 )
-                                  #                                ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                  #                                ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                   #                                should_fail $?
                                   #                                if [ $testFailed = 1 ]; then
                                   #                                    echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), corrupted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -921,14 +948,14 @@ for m in $(seq 1 3); do
                               fi
                               if [ $eraseFiles = "1" ]; then
                                   if [ $level = 1 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE CHECKPOINT FILE
                                       echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l1"
+                                      folder="$filepath/Local/node0/"$check_id"/l1"
                                       filename=$(ls $folder | grep Rank | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L1 ckpt file, should not recover, ID: "$check_id >> failed.log
@@ -937,60 +964,60 @@ for m in $(seq 1 3); do
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
                                   if [ $level = 2 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE Checkpoint FILES
                                       echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l2"
+                                      folder="$filepath/Local/node0/"$check_id"/l2"
                                       filename=$(ls $folder | grep Rank | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      folder="Local/node2/"$check_id"/l2"
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      folder="$filepath/Local/node2/"$check_id"/l2"
                                       filename=$(ls $folder | grep Rank | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 ckpt files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE PARTNER FILES
                                       echo -e "[ \033[1mDeleting Partner Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l2"
+                                      folder="$filepath/Local/node0/"$check_id"/l2"
                                       filename=$(ls $folder | grep Pcof | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      folder="Local/node2/"$check_id"/l2"
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      folder="$filepath/Local/node2/"$check_id"/l2"
                                       filename=$(ls $folder | grep Pcof | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L2 partner files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE NODES
                                       echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                                      ( set -x; rm -rf Local/node0 )
-                                      ( set -x; rm -rf Local/node1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $filepath/Local/node0 )
+                                      ( set -x; rm -r $filepath/Local/node1 )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted two consecutive nodes, should not recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE NODES
                                       echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                                      ( set -x; rm -rf Local/node0 )
-                                      ( set -x; rm -rf Local/node2 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $filepath/Local/node0 )
+                                      ( set -x; rm -r $filepath/Local/node2 )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted two non-consecutive nodes, should recover, ID: "$check_id >> failed.log
@@ -999,60 +1026,60 @@ for m in $(seq 1 3); do
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
                                   if [ $level = 3 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE Checkpoint FILES
                                       echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l3"
+                                      folder="$filepath/Local/node0/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rank | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      folder="Local/node2/"$check_id"/l3"
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      folder="$filepath/Local/node2/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rank | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 ckpt files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE ENCODED FILES
                                       echo -e "[ \033[1mDeleting Encoded Files...\033[m ]"
-                                      folder="Local/node0/"$check_id"/l3"
+                                      folder="$filepath/Local/node0/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rsed | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      folder="Local/node2/"$check_id"/l3"
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      folder="$filepath/Local/node2/"$check_id"/l3"
                                       filename=$(ls $folder | grep Rsed | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $folder"/"$filename )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L3 encoded files, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE NODES
                                       echo -e "[ \033[1mDeleting Consecutive Nodes...\033[m ]"
-                                      ( set -x; rm -rf Local/node0 )
-                                      ( set -x; rm -rf Local/node1 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $filepath/Local/node0 )
+                                      ( set -x; rm -r $filepath/Local/node1 )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted two consecutive nodes, should recover, ID: "$check_id >> failed.log
                                           testFailed=0
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
                                       check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
                                       ### DELETE NODES
                                       echo -e "[ \033[1mDeleting Non-Consecutive Nodes...\033[m ]"
-                                      ( set -x; rm -rf Local/node0 )
-                                      ( set -x; rm -rf Local/node2 )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+                                      ( set -x; rm -r $filepath/Local/node0 )
+                                      ( set -x; rm -r $filepath/Local/node2 )
+                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
                                       should_not_fail $?
                                       if [ $testFailed = 1 ]; then
                                           echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted two non-consecutive nodes, should recover, ID: "$check_id >> failed.log
@@ -1060,22 +1087,22 @@ for m in $(seq 1 3); do
                                       fi
                                       awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
                                   fi
-                                  if [ $level = 4 ]; then
-                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
-                                      check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                                      ### DELETE CHECKPOINT FILE
-                                      echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                                      folder="Global/"$check_id"/l4"
-                                      filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                                      ( set -x; rm -rf $folder"/"$filename )
-                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                                      should_fail $?
-                                      if [ $testFailed = 1 ]; then
-                                          echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
-                                          testFailed=0
-                                      fi
-                                      awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  fi
+#                                  if [ $level = 4 ]; then
+#                                      ( set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 1 $level $diffSize $MEM &>> check.log )
+#                                      check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
+#                                      ### DELETE CHECKPOINT FILE
+#                                      echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+#                                      folder="$filepath/Global/"$check_id"/l4"
+#                                      filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
+#                                      ( set -x; rm -r $folder"/"$filename )
+#                                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp mpirun -n $PROCS ./checkAll.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+#                                      should_fail $?
+#                                      if [ $testFailed = 1 ]; then
+#                                          echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted L4 ckpt file, should not recover, ID: "$check_id >> failed.log
+#                                          testFailed=0
+#                                      fi
+#                                      awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+#                                  fi
                               fi
                           fi
                       fi
@@ -1088,8 +1115,8 @@ for m in $(seq 1 3); do
       done
   done
 done  
-rm -rf TMPLT Global/* Local/* Meta/* chk/*
-pkill -f check.exe
+rm -r TMPLT $filepath/Global/* $filepath/Local/* $filepath/Meta/* chk/*
+pkill -f checkAll.exe
 echo "---SUMMARY---"
 echo "PASSED: "$SUCCEED
 echo "FAILED: "$FAILED

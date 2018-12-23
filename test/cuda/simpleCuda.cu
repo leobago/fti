@@ -34,8 +34,6 @@
  *
  */
 
-#include "mpi.h"
-#include "fti.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -43,11 +41,22 @@
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
 
-#define N 100000
+#define CUDA_CALL_SAFE(f)                                                                       \
+  do {                                                                                            \
+    cudaError_t _e = f;                                                                          \
+    if(_e != cudaSuccess) {                                                                    \
+      fprintf(stderr, "Cuda error %d %s:: %s\n", __LINE__, __func__, cudaGetErrorString(_e));  \
+      exit(EXIT_FAILURE);                                                                       \
+    }                                                                                           \
+  } while(0)
+
+#define BLOCK_SIZE 1024
+
+//#define N 100000
+#define N ((size_t)1 << 25)
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20
 #define DATA_CORRUPT 30
-#define WRONG_ENVIRONMENT 50
 #define KEEP 2
 #define RESTART 1
 #define INIT 0
@@ -71,7 +80,7 @@ void init_arrays(double* A, double* B, size_t asize);
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Multiplies components of A and B and stores result into A
+  @brief      [CUDA] Multiplies components of A and B and stores result into A
   @param      [in/out] A			Unit vector (1, 1, ....., 1)
   @param      [in] B				Random vector
   @param      [in] asize			Dimension
@@ -79,6 +88,7 @@ void init_arrays(double* A, double* B, size_t asize);
   After function call, A equals B.
  **/
 /*-------------------------------------------------------------------------*/
+__global__
 void vecmult(double* A, double* B, size_t asize);
 
 /*-------------------------------------------------------------------------*/
@@ -128,175 +138,58 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
 
 int main(int argc, char* argv[]) {
 
-  unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
-  int FTI_APP_RANK, result, tmp, success = 1;
-  double *A, *B, *B_chk;
+  int  result,  success = 1;
+  double *h_A, *h_B, *B_chk;
+  double *d_A, *d_B;
 
   size_t asize, asize_chk;
+  size_t asize_with_dt;
+
+  int blocks_per_grid, threads_per_block;
 
   srand(time(NULL));
 
-  MPI_Init(&argc, &argv);
-  result = FTI_Init(argv[1], MPI_COMM_WORLD);
-  if (result == FTI_NREC) {
-    exit(RECOVERY_FAILED);
-  }
 
-  crash = atoi(argv[2]);
-  level = atoi(argv[3]);
-  diff_sizes = atoi(argv[4]);
-
-
-  char *env = getenv("ENABLE_ICP");
-  if( env ) {
-    if( !strcmp(env, "ON") ) {
-      enable_icp = 1;
-    }
-    else if( !strcmp(env, "OFF") ) {
-      enable_icp = 0;
-    }
-    else {
-      exit(WRONG_ENVIRONMENT);
-    }
-  } else {
-    exit(WRONG_ENVIRONMENT);
-  }
-
-  MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
-
-  dictionary *ini = iniparser_load( argv[1] );
-  int grank;    
-  MPI_Comm_rank(MPI_COMM_WORLD,&grank);
-  int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
-  int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
-  int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-  int headRank = grank - grank%nodeSize;
-
-  if ( (nbHeads<0) || (nodeSize<0) ) {
-    printf("wrong configuration (for head or node-size settings)!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
 
   asize = N;
+  asize_with_dt = asize * sizeof(double);
 
-  if (diff_sizes) {
-    parity = FTI_APP_RANK%7;
+  threads_per_block = BLOCK_SIZE;
+  blocks_per_grid = (asize + threads_per_block - 1) / threads_per_block;
 
-    switch (parity) {
+  h_A = (double*) malloc(asize_with_dt);
+  h_B = (double*) malloc(asize_with_dt);
+  B_chk= (double*) malloc(asize_with_dt);
 
-      case 0:
-        asize = N;
-        break;
+  CUDA_CALL_SAFE(cudaMalloc(&d_A, asize_with_dt));
+  CUDA_CALL_SAFE(cudaMalloc(&d_B, asize_with_dt));
 
-      case 1:
-        asize = 2*N;
-        break;
+  init_arrays(h_A, h_B, asize);
+  write_data(h_B, &asize, 0);
+  CUDA_CALL_SAFE(cudaMemcpy(d_A, h_A, asize_with_dt, cudaMemcpyHostToDevice));
+  CUDA_CALL_SAFE(cudaMemcpy(d_B, h_B, asize_with_dt, cudaMemcpyHostToDevice));
+  result = read_data(B_chk, &asize_chk, 0, asize);
 
-      case 2:
-        asize = 3*N;
-        break;
+  vecmult<<< blocks_per_grid, threads_per_block >>>(d_A, d_B, asize);
+  CUDA_CALL_SAFE(cudaDeviceSynchronize());
+  CUDA_CALL_SAFE(cudaMemcpy(h_A, d_A, asize_with_dt, cudaMemcpyDeviceToHost));
 
-      case 3:
-        asize = 4*N;
-        break;
-
-      case 4:
-        asize = 5*N;
-        break;
-
-      case 5:
-        asize = 6*N;
-        break;
-
-      case 6:
-        asize = 7*N;
-        break;
-
-    }
-  }
-
-  A = (double*) malloc(asize*sizeof(double));
-  B = (double*) malloc(asize*sizeof(double));
-
-  FTI_Protect(0, A, asize, FTI_DBLE);
-  FTI_Protect(1, B, asize, FTI_DBLE);
-  FTI_Protect(2, &asize, 1, FTI_INTG);
-
-  state = FTI_Status();
-
-  if (state == INIT) {
-    init_arrays(A, B, asize);
-    write_data(B, &asize, FTI_APP_RANK);
-    if ( enable_icp == 1 ) {
-      FTI_InitICP( 1, level, 1 );
-      FTI_AddVarICP( 2 );  
-      FTI_AddVarICP( 0 );  
-      FTI_AddVarICP( 1 );  
-      FTI_FinalizeICP();
-    } 
-    else if ( enable_icp == 0 ) {
-        FTI_Checkpoint(1,level);
-    }
-    else
-    {
-        exit(WRONG_ENVIRONMENT);
-    }
-    MPI_Barrier(FTI_COMM_WORLD);
-
-    if ( crash ) {
-      if( nbHeads > 0 ) { 
-        int value = FTI_ENDW;
-        MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
-      MPI_Finalize();
-      exit(0);
-    }
-  }
-
-  if ( state == RESTART || state == KEEP ) {
-    result = FTI_Recover();
-    if (result != FTI_SCES) {
-      exit(RECOVERY_FAILED);
-    }
-    B_chk = (double*) malloc(asize*sizeof(double));
-    result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize);
-    MPI_Barrier(FTI_COMM_WORLD);
-    if (result != 0) {
-      exit(DATA_CORRUPT);
-    }
-  }
-
-  /*
-   * on INIT, B is initialized randomly
-   * on RESTART or KEEP, B is recovered and must be equal to B_chk
-   */
-
-  vecmult(A, B, asize);
-
-  if (state == RESTART || state == KEEP) {
-    result = validify(A, B_chk, asize);
+    result = validify(h_A, B_chk, asize);
     result += (asize_chk == asize) ? 0 : -1;
-    MPI_Allreduce(&result, &tmp, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    result = tmp;
+
+
     free(B_chk);
-  }
 
-  free(A);
-  free(B);
+  CUDA_CALL_SAFE(cudaFree(d_A));
+  CUDA_CALL_SAFE(cudaFree(d_B));
 
-  if (FTI_APP_RANK == 0 && (state == RESTART || state == KEEP)) {
     if (result == 0) {
       printf("[SUCCESSFUL]\n");
     } else {
       printf("[NOT SUCCESSFUL]\n");
       success=0;
     }
-  }
 
-  MPI_Barrier(FTI_COMM_WORLD);
-  FTI_Finalize();
-  MPI_Finalize();
 
   if (success == 1)
     return 0;
@@ -311,17 +204,17 @@ int main(int argc, char* argv[]) {
 
 void init_arrays(double* A, double* B, size_t asize) {
   int i;
-  double r;
   for (i = 0; i< asize; i++) {
     A[i] = 1.0;
     B[i] = ((double)rand()/RAND_MAX)*5.0;
   }
 }
 
+__global__
 void vecmult(double* A, double* B, size_t asize) {
-  int i;
-  for (i=0; i<asize; i++) {
-    A[i] = A[i]*B[i];
+  size_t i = (size_t)blockIdx.x * (size_t)blockDim.x + (size_t)threadIdx.x;
+  if (i < asize) {
+    A[i] = A[i] * B[i];
   }
 }
 

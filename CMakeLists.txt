@@ -4,9 +4,19 @@ if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
 endif()
 
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	project(FTI C Fortran)
-endif()
+if (ENABLE_GPU)
+  message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
+  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+	  project(FTI C Fortran CUDA CXX)
+  endif()
+  FIND_PACKAGE(CUDA)
+else ()
+  message(AUTHOR_WARNING "  ** Project is going to be build WITH NO GPU Support")
+  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+	  project(FTI C Fortran CXX)
+  endif()
+endif()  
+
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
@@ -119,7 +129,14 @@ set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
-	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c src/failure-injection.c)
+	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
+	src/failure-injection.c src/api_cuda.c src/utility.c)
+
+if (ENABLE_GPU)
+  include_directories(${CUDA_INCLUDE_DIRS})
+  set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
+endif()
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -174,11 +191,11 @@ if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 endif()
 
 if(ZLIB_FOUND)
-    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
-    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}")
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
 else()
-    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
-    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}")
+    target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" ${CUDA_LIBRARIES})
+    target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" ${CUDA_LIBRARIES})
 endif()
 
 if(ENABLE_LUSTRE)
