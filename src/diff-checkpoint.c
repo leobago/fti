@@ -509,9 +509,18 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
         unsigned char md5hashNow[MD5_DIGEST_LENGTH];
         uint32_t bit32hashNow;
         FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
+#ifndef HAVE_OPENSSL
+        MD5_CTX mdContext;
+        MD5_Init ( &mdContext);
+#endif
         switch ( DCP_MODE ) {
             case FTI_DCP_MODE_MD5:
+#ifndef HAVE_OPENSSL
+                MD5_Update( &mdContext, ptr, hashInfo->blockSize);
+                MD5_Final( md5hashNow , &mdContext);
+#else
                 MD5( ptr, hashInfo->blockSize, md5hashNow);
+#endif
                 clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
                 break;
             case FTI_DCP_MODE_CRC32:
@@ -568,9 +577,18 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
             for(hashIdx=0; hashIdx<dbvar->nbHashes; ++hashIdx) {
                 if (hashInfo[hashIdx].dirty || !hashInfo[hashIdx].isValid) {
                     unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
+#ifndef HAVE_OPENSSL
+                    MD5_CTX roundContext;
+#endif
                     switch ( DCP_MODE ) {
                         case FTI_DCP_MODE_MD5:
+#ifndef HAVE_OPENSSL
+                            MD5_Init( &roundContext);
+                            MD5_Update( &roundContext, ptr, hashInfo[hashIdx].blockSize);
+                            MD5_Final( hashInfo[hashIdx].md5hash, &roundContext);
+#else
                             MD5( ptr, hashInfo[hashIdx].blockSize, hashInfo[hashIdx].md5hash);
+#endif
                             break;
                         case FTI_DCP_MODE_CRC32:
 #ifdef FTI_NOZLIB

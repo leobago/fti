@@ -1037,11 +1037,21 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             unsigned char hashchk[MD5_DIGEST_LENGTH];
             // create datachunk hash
             if(hascontent) {
+#ifndef HAVE_OPENSSL
+                MD5_CTX roundContext;
+                MD5_Init( &roundContext);
+#endif
+
                 dataSize += currentdbvar->chunksize;
                 MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
+
+#ifndef HAVE_OPENSSL
+                MD5_Update( &roundContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
+                MD5_Final( hashchk, &roundContext);
+#else
+                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );
+#endif
             }
-            
             bool contentUpdate = 
                 (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
            
