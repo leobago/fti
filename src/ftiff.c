@@ -1104,13 +1104,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       bool hascontent = currentdbvar->hascontent;
       FTI_ADDRVAL cbasePtr = (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
       errno = 0;
-
       unsigned char hashchk[MD5_DIGEST_LENGTH];
       // create datachunk hash
       if(hascontent) {
         dataSize += currentdbvar->chunksize;
         MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
         MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
+        FTI_WriteFTIFFDataChunk(FTI_Exec, FTI_Data, currentdb, dbvar_idx, &dcpSize, fd, fn, dbcounter);
       }
 
       bool contentUpdate = 
@@ -1220,22 +1220,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // reset db pointer
   currentdb = FTI_Exec->firstdb;
 
-  do {    
 
-    isnextdb = 0;
-
-    for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-      FTI_WriteFTIFFDataChunk(FTI_Exec, FTI_Data, currentdb, dbvar_idx, &dcpSize, fd, fn, dbcounter);
-    }
-
-    if (currentdb->next) {
-      currentdb = currentdb->next;
-      isnextdb = 1;
-    }
-
-    dbcounter++;
-
-  } while( isnextdb );
 
   // only for printout of dCP share in FTI_Checkpoint
   FTI_Exec->FTIFFMeta.dcpSize = dcpSize;
