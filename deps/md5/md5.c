@@ -288,4 +288,36 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
+unsigned char *  MD5( void *pointer, size_t pointeeLength , char *md5HashPointer  ) {
+
+        MD5_CTX mdContext;
+        static char staticArray[64];
+
+        memset(staticArray, 0, 64);
+        MD5_Init  ( &mdContext);
+
+        /* TODO */
+        /* Should we need to perform all checks for other variables ?*/
+
+        MD5_Update( &mdContext, pointer, pointeeLength);
+
+        /* TODO */
+        /* Should we need to perform all checks for other variables ?*/
+
+        if (md5HashPointer == NULL ) {
+                
+            MD5_Final ( staticArray, &mdContext);
+
+            return &staticArray;
+
+        }  else {
+
+            MD5_Final ( md5HashPointer, &mdContext);
+
+            return *md5HashPointer;
+
+        }
+
+}
+
 #endif
