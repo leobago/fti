@@ -510,7 +510,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
   }
 
   char strerr[FTI_BUFS];
-  char debug[FTI_BUFS];
 
   int dbvar_idx, pvar_idx, num_edit_pvars = 0;
   int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); 
@@ -656,10 +655,10 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 dbvar->hascontent = false;
                 // [FOR DCP] free hash array and hash structure in block
                 if ( ( dbvar->dataDiffHash != NULL ) && FTI_Conf->dcpEnabled ) {
-                 FTI_Print("Freeing DataDiffHash",FTI_INFO);
-                 FTI_FreeDataDiff(dbvar->dataDiffHash);
-                 free(dbvar->dataDiffHash);
-                 dbvar->dataDiffHash = NULL;
+                  FTI_Print("Freeing DataDiffHash",FTI_INFO);
+                  FTI_FreeDataDiff(dbvar->dataDiffHash);
+                  free(dbvar->dataDiffHash);
+                  dbvar->dataDiffHash = NULL;
                 }
               }
               dbvar->chunksize = 0;
@@ -683,8 +682,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
                 if ( FTI_Conf->dcpEnabled ) {
                   if (  dbvar->chunksize > chunksizeOld ) {
-                    sprintf(debug,"Expand DataDiffHash %d",dbvar->chunksize);
-                    FTI_Print(debug,FTI_INFO);
                     FTI_ExpandBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize );
                   }
                 }
@@ -712,12 +709,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
                 if ( FTI_Conf->dcpEnabled ) {
                   if ( dbvar->chunksize < chunksizeOld ) {
-                    sprintf(debug,"Collapse DataDiffHash %d",dbvar->chunksize);
-                    FTI_Print(debug,FTI_INFO);
                     FTI_CollapseBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize );
                   }
                   if ( dbvar->chunksize > chunksizeOld ) {
-                    FTI_Print("2 Expanding DataDiffHash",FTI_INFO);
                     FTI_ExpandBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize  );
                   }
                 }
@@ -856,54 +850,42 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
 
 }
 
-int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIFF_db *currentdb, int dbvar_idx,  long *dcpSize, int fd, char *fn, int dbcounter){
+int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIFF_dbvar *currentdbvar, 
+      unsigned char *dptr, size_t currentOffset, size_t fetchedBytes, size_t *dcpSize, int fd, char *fn){
 
   char str[FTI_BUFS], strerr[FTI_BUFS];
-  char *dptr;
-  uintptr_t chunk_addr, chunk_size, chunk_offset;
-  chunk_addr = 0;
+  unsigned char *chunk_addr = NULL;
+  size_t chunk_size,chunk_offset;
+  size_t remainingBytes = fetchedBytes;
+
   chunk_size = 0;
   chunk_offset = 0;
 
-  FTIFF_dbvar *currentdbvar = currentdbvar = &(currentdb->dbvars[dbvar_idx]);
   long membs = 1024*1024*16; // 16 MB
   long cpybuf, cpynow, cpycnt;//, fptr;
-  uintptr_t fptr;
 
-  // get source and destination pointer
-  dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-  fptr = currentdbvar->fptr;
+  uintptr_t fptr = currentdbvar-> fptr + currentOffset;
+  uintptr_t fptrTemp = fptr;
 
-  int chunkid = 0;
-
-  // Now I allocate the New hash tables
-  FTI_InitNextHashData(currentdbvar->dataDiffHash);
-
-  while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data) ) {
-    chunk_offset = chunk_addr - ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdbvar->dptr);
-
-    dptr += chunk_offset;
-    fptr = currentdbvar->fptr + chunk_offset;
-
+  while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data, dptr, &remainingBytes) ) {
+    chunk_offset = chunk_addr - dptr;
+    fptr = fptrTemp + chunk_offset;
     if ( lseek( fd, fptr, SEEK_SET ) == -1 ) {
-      snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s", fn);
+      snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file: %s %ld %p %p", fn,chunk_offset, chunk_addr, dptr);
       FTI_Print(strerr, FTI_EROR);
       errno=0;
       close(fd);
       return FTI_NSCS;
     }
-
     cpycnt = 0;
     while ( cpycnt < chunk_size ) {
       cpybuf = chunk_size - cpycnt;
       cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-
       long WRITTEN = 0;
-
       int try = 0; 
       do {
         int returnVal;
-        FTI_FI_WRITE( returnVal, fd, (FTI_ADDRPTR) (chunk_addr+cpycnt), cpynow, fn );
+        FTI_FI_WRITE( returnVal, fd,  &chunk_addr[cpycnt], cpynow, fn );
         if ( returnVal == -1 ) {
           snprintf(str, FTI_BUFS, "%d FTI-FF: WriteFTIFF - Dataset #%d could not be written to file: %s ",__LINE__, currentdbvar->id, fn);
           FTI_Print(str, FTI_WARN);
@@ -915,29 +897,103 @@ int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FT
         WRITTEN += returnVal;
         try++;
       } while ((WRITTEN < cpynow) && (try < 10));
-
       assert( WRITTEN == cpynow );
-
       cpycnt += WRITTEN;
       (*dcpSize) += WRITTEN;
     }
     assert(cpycnt == chunk_size);
-
-    chunkid++;
-
+    dptr += chunk_offset + chunk_size;
+    fptrTemp += chunk_offset + chunk_size;
   }
+  assert(remainingBytes == 0); 
+  return FTI_SCES;
 
-  // debug information
-//  snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-//      ", dptr: %ld, fptr: %ld, chunksize: %ld, "
-//      "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
-//      FTI_Exec->ckptID, dbcounter, dbvar_idx,  
-//      currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-//      currentdbvar->fptr, currentdbvar->chunksize,
-//      (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr);
-//  FTI_Print(str, FTI_DBUG);
+}
 
+int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, FTIT_dataset *FTI_Data, MD5_CTX  *mdContext, unsigned char *hashchk, int fd, char *fn){
+  bool hascontent = currentdbvar->hascontent;
+  unsigned char *cbasePtr = NULL; //(FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
+  errno = 0;
+  // create datachunk hash
+  size_t totalBytes;
+  char str[FTI_BUFS];
+  MD5_CTX dbContext;
+  if (hascontent){
+    // Now I allocate the New hash tables
+    FTI_InitNextHashData(currentdbvar->dataDiffHash);
+    size_t offset=0;
+    size_t dcpSize = 0;
+    totalBytes = 0;
+    FTIT_data_prefetch prefetcher;
+    MD5_Init(&dbContext);
+    //print "Remove After Debug"
+    unsigned char debugMD5[MD5_DIGEST_LENGTH];
 
+    MD5_Init(&dbContext);
+
+    // DCP_BLOCK_SIZE is 1 if dcp is disabled.
+    size_t DCP_BLOCK_SIZE = FTI_GetDiffBlockSize();
+    //Initialize prefetcher to get data from device
+    
+#ifdef GPUSUPPORT    
+    prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / DCP_BLOCK_SIZE ) * DCP_BLOCK_SIZE;
+#else
+    prefetcher.fetchSize =  (1024*1024*16 / DCP_BLOCK_SIZE) * DCP_BLOCK_SIZE ;
+#endif
+
+    prefetcher.totalBytesToFetch = currentdbvar->chunksize;
+    prefetcher.isDevice = FTI_Data[currentdbvar->idx].isDevicePtr;
+    prefetcher.FTI_Exec=FTI_Exec;
+
+    if ( prefetcher.isDevice ) 
+      prefetcher.dptr = (unsigned char *) ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].devicePtr) + currentdbvar->dptr);
+    else
+      prefetcher.dptr = (unsigned char *) ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdbvar->dptr);
+
+    MD5( prefetcher.dptr, currentdbvar->chunksize, &debugMD5);
+    
+
+    FTI_InitPrefetcher(&prefetcher);
+
+    if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &cbasePtr), " Fetching Next Memory block from memory") != FTI_SCES ){
+      return FTI_NSCS;
+    }
+    while (cbasePtr){
+      MD5_Update( mdContext, cbasePtr, totalBytes );
+      MD5_Update( &dbContext, cbasePtr, totalBytes );  
+      FTI_WriteMemFTIFFChunk(FTI_Exec, FTI_Data, currentdbvar, cbasePtr, offset, totalBytes,  &dcpSize, fd, fn);
+      offset+=totalBytes;
+      FTI_Exec->FTIFFMeta.dcpSize += dcpSize;
+      FTI_Exec->FTIFFMeta.dataSize += totalBytes;
+
+      if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &cbasePtr), " Fetching Next Memory block from memory") != FTI_SCES ){
+        return FTI_NSCS;
+      }
+    }
+    MD5_Final( hashchk, &dbContext );
+    char checksum[MD5_DIGEST_STRING_LENGTH];
+    char checksum1[MD5_DIGEST_STRING_LENGTH];
+    int ii = 0;
+    int i;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hashchk[i]);
+        ii+=2;
+    }
+
+    ii=0;       
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum1[ii], "%02x", debugMD5[i]);
+        ii+=2;
+    }
+
+    sprintf(str,"%s %s",checksum,checksum1);
+
+    FTI_Print(str,FTI_INFO);
+
+    assert(memcmp(hashchk,debugMD5 ,MD5_DIGEST_LENGTH)==0);
+    
+  }
+  return FTI_SCES;
 }
 
 
@@ -986,10 +1042,14 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
   FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
 
+  FTI_Exec->FTIFFMeta.dcpSize = 0;
+  FTI_Exec->FTIFFMeta.dataSize = 0;
+
+
   //FOR DEVELOPING 
   //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
-  char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
+  char  fn[FTI_BUFS], strerr[FTI_BUFS];
 
   FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
@@ -1044,11 +1104,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   assert(FTI_Exec->firstdb);
   FTIFF_db *currentdb = FTI_Exec->firstdb;
   FTIFF_dbvar *currentdbvar = NULL;
-  char *dptr;
   int dbvar_idx, dbcounter=0;
   long mdoffset;
   long endoffile = FTI_filemetastructsize;
-
   // MD5 context for file (only data) checksum
   MD5_CTX mdContext;
   MD5_Init(&mdContext);
@@ -1056,18 +1114,10 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // block size for fwrite buffer in file.
   int isnextdb;
 
-  long dcpSize = 0, dataSize = 0;
-
   // write FTI-FF meta data
-  // 
-#ifdef GPUSUPPORT
-  copyDataFromDevive( FTI_Exec, FTI_Data );
-#endif    
 
   do {    
-
     isnextdb = 0;
-
     mdoffset = endoffile;
 
     endoffile += currentdb->dbsize;
@@ -1111,24 +1161,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     mdoffset += FTI_dbstructsize;
 
     for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
       currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-      bool hascontent = currentdbvar->hascontent;
-      FTI_ADDRVAL cbasePtr = (FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-      errno = 0;
       unsigned char hashchk[MD5_DIGEST_LENGTH];
-      // create datachunk hash
       bool contentUpdate = false;
-      if(hascontent) {
-        dataSize += currentdbvar->chunksize;
-        MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-        MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
-        FTI_WriteFTIFFDataChunk(FTI_Exec, FTI_Data, currentdb, dbvar_idx, &dcpSize, fd, fn, dbcounter);
-        contentUpdate = (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
-        memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
-      }
 
-
+      FTI_ProcessDBVar(FTI_Exec, FTI_Conf, currentdbvar,FTI_Data, &mdContext, hashchk, fd,  fn);
+      contentUpdate = (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
+      memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
 
       if ( currentdbvar->update || contentUpdate ) {
         // serialize data block variable meta data and write to file
@@ -1234,8 +1273,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
   // only for printout of dCP share in FTI_Checkpoint
-  FTI_Exec->FTIFFMeta.dcpSize = dcpSize;
-  FTI_Exec->FTIFFMeta.dataSize = dataSize;
 
   fdatasync( fd );
   close( fd );

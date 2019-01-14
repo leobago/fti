@@ -614,6 +614,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
     FTIT_dataset* FTI_Data)
 {
+  /*
   char str[FTI_BUFS], strerr[FTI_BUFS];
 
   FTIFF_db *currentdb = FTI_Exec->firstdb;
@@ -725,7 +726,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   FTI_Exec->iCPInfo.result = FTI_SCES;
 
   return FTI_SCES;
-
+*/
 }
 
 /*-------------------------------------------------------------------------*/
