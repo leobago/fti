@@ -510,6 +510,7 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
   }
 
   char strerr[FTI_BUFS];
+  char debug[FTI_BUFS];
 
   int dbvar_idx, pvar_idx, num_edit_pvars = 0;
   int *editflags = (int*) calloc( FTI_Exec->nbVar, sizeof(int) ); 
@@ -569,7 +570,6 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
       if  ( FTI_Conf->dcpEnabled ) {
         FTI_InitBlockHashArray( &(dbvars[dbvar_idx]) );
       } else {
-        dbvars[dbvar_idx].nbHashes = -1;
         dbvars[dbvar_idx].dataDiffHash = NULL;
       }
       dbsize += dbvars[dbvar_idx].containersize; 
@@ -656,10 +656,10 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 dbvar->hascontent = false;
                 // [FOR DCP] free hash array and hash structure in block
                 if ( ( dbvar->dataDiffHash != NULL ) && FTI_Conf->dcpEnabled ) {
-                  free(dbvar->dataDiffHash[0].md5hash);
-                  free(dbvar->dataDiffHash);
-                  dbvar->dataDiffHash = NULL;
-                  dbvar->nbHashes = 0;
+                 FTI_Print("Freeing DataDiffHash",FTI_INFO);
+                 FTI_FreeDataDiff(dbvar->dataDiffHash);
+                 free(dbvar->dataDiffHash);
+                 dbvar->dataDiffHash = NULL;
                 }
               }
               dbvar->chunksize = 0;
@@ -683,7 +683,9 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 // [FOR DCP] adjust hash array to new chunksize if chunk size increased
                 if ( FTI_Conf->dcpEnabled ) {
                   if (  dbvar->chunksize > chunksizeOld ) {
-                    FTI_ExpandBlockHashArray( dbvar );
+                    sprintf(debug,"Expand DataDiffHash %d",dbvar->chunksize);
+                    FTI_Print(debug,FTI_INFO);
+                    FTI_ExpandBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize );
                   }
                 }
               }
@@ -710,10 +712,13 @@ int FTIFF_UpdateDatastructFTIFF( FTIT_execution* FTI_Exec,
                 // [FOR DCP] adjust hash array to new chunksize if chunk size decreased
                 if ( FTI_Conf->dcpEnabled ) {
                   if ( dbvar->chunksize < chunksizeOld ) {
-                    FTI_CollapseBlockHashArray( dbvar );
+                    sprintf(debug,"Collapse DataDiffHash %d",dbvar->chunksize);
+                    FTI_Print(debug,FTI_INFO);
+                    FTI_CollapseBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize );
                   }
                   if ( dbvar->chunksize > chunksizeOld ) {
-                    FTI_ExpandBlockHashArray( dbvar );
+                    FTI_Print("2 Expanding DataDiffHash",FTI_INFO);
+                    FTI_ExpandBlockHashArray( dbvar->dataDiffHash,dbvar->chunksize  );
                   }
                 }
               }
@@ -856,6 +861,9 @@ int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FT
   char str[FTI_BUFS], strerr[FTI_BUFS];
   char *dptr;
   uintptr_t chunk_addr, chunk_size, chunk_offset;
+  chunk_addr = 0;
+  chunk_size = 0;
+  chunk_offset = 0;
 
   FTIFF_dbvar *currentdbvar = currentdbvar = &(currentdb->dbvars[dbvar_idx]);
   long membs = 1024*1024*16; // 16 MB
@@ -867,6 +875,9 @@ int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FT
   fptr = currentdbvar->fptr;
 
   int chunkid = 0;
+
+  // Now I allocate the New hash tables
+  FTI_InitNextHashData(currentdbvar->dataDiffHash);
 
   while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data) ) {
     chunk_offset = chunk_addr - ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdbvar->dptr);
@@ -894,10 +905,11 @@ int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FT
         int returnVal;
         FTI_FI_WRITE( returnVal, fd, (FTI_ADDRPTR) (chunk_addr+cpycnt), cpynow, fn );
         if ( returnVal == -1 ) {
-          snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - Dataset #%d could not be written to file: %s", currentdbvar->id, fn);
-          FTI_Print(str, FTI_EROR);
+          snprintf(str, FTI_BUFS, "%d FTI-FF: WriteFTIFF - Dataset #%d could not be written to file: %s ",__LINE__, currentdbvar->id, fn);
+          FTI_Print(str, FTI_WARN);
           close(fd);
           errno = 0;
+          exit(-1);
           return FTI_NSCS;
         }
         WRITTEN += returnVal;
@@ -916,14 +928,14 @@ int FTI_WriteFTIFFDataChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FT
   }
 
   // debug information
-  snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
-      ", dptr: %ld, fptr: %ld, chunksize: %ld, "
-      "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
-      FTI_Exec->ckptID, dbcounter, dbvar_idx,  
-      currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-      currentdbvar->fptr, currentdbvar->chunksize,
-      (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr);
-  FTI_Print(str, FTI_DBUG);
+//  snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
+//      ", dptr: %ld, fptr: %ld, chunksize: %ld, "
+//      "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
+//      FTI_Exec->ckptID, dbcounter, dbvar_idx,  
+//      currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
+//      currentdbvar->fptr, currentdbvar->chunksize,
+//      (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr);
+//  FTI_Print(str, FTI_DBUG);
 
 
 }
@@ -1106,20 +1118,19 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       errno = 0;
       unsigned char hashchk[MD5_DIGEST_LENGTH];
       // create datachunk hash
+      bool contentUpdate = false;
       if(hascontent) {
         dataSize += currentdbvar->chunksize;
         MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
         MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
         FTI_WriteFTIFFDataChunk(FTI_Exec, FTI_Data, currentdb, dbvar_idx, &dcpSize, fd, fn, dbcounter);
+        contentUpdate = (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
+        memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
       }
 
-      bool contentUpdate = 
-        (memcmp(currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH) == 0) ? 0 : 1;
 
-      memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
 
       if ( currentdbvar->update || contentUpdate ) {
-
         // serialize data block variable meta data and write to file
         buffer_ser = (char*) malloc ( FTI_dbvarstructsize );
         if( buffer_ser == NULL ) {

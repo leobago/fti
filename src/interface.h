@@ -291,12 +291,17 @@ int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dat
 int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_offset, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data);
 long FTI_CalcNumHashes( long chunkSize );
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar );
-int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar );
-int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar );
+int FTI_ExpandBlockHashArray( FTIT_DataDiffHash* dataHash, long chunkSize ); 
+int FTI_CollapseBlockHashArray( FTIT_DataDiffHash* hashes, long chunkSize); 
 int FTI_GetDcpMode();
 dcpBLK_t FTI_GetDiffBlockSize();
 int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar );
 int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
+void PrintDataHashInfo( FTIT_DataDiffHash* dataHash, long chunkSize,int id);
+
+
+int FTI_FreeDataDiff( FTIT_DataDiffHash *dhash);
+int FTI_ReallocateDataDiff( FTIT_DataDiffHash *dhash, long nbHashes);
 
 // INCREMENTAL CHECKPOINTING
 

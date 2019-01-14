@@ -197,12 +197,14 @@ extern "C" {
    */
   typedef struct              FTIT_DataDiffHash
   {
-    unsigned char*          md5hash;    /**< MD5 digest                       */
-    unsigned short          blockSize;  /**< data block size                  */
-    uint32_t                bit32hash;  /**< CRC32 digest                     */
-    bool                    dirty;      /**< indicates if data block is dirty */
-    bool                    isValid;    /**< indicates if data block is valid */
-
+    unsigned char*          md5hash[2];    /**< MD5 digest                       */
+    uint32_t*               bit32hash[2];  /**< CRC32 digest                     */
+    unsigned short*         blockSize;  /**< data block size                  */
+    bool*                   isValid;    /**< indicates if data block is valid */
+    long                    nbHashes;     /**< holds the number of hashes for the data chunk                    */ 
+    int                     currentId;
+    int                     creationType;
+    int                     lifetime;
   }FTIT_DataDiffHash;
 
   /** @typedef    FTIFF_dbvar
@@ -227,7 +229,6 @@ extern "C" {
     unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk       */
     unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of this structure     */
     bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
-    long nbHashes;      /**< holds the number of hashes for data chunk        */
     FTIT_DataDiffHash* dataDiffHash; /**< dCP meta data for data chunk        */
     char *cptr;         /**< pointer to memory address of container origin    */
   } FTIFF_dbvar;
