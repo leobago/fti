@@ -292,7 +292,7 @@ unsigned char *MD5(void *pointer, size_t pointeeLength , unsigned char *md5HashP
 {
 
    MD5_CTX mdContext;
-   static char staticArray[64];
+   static unsigned char staticArray[64];
 
    memset(staticArray, 0, 64);
    MD5_Init  ( &mdContext);
@@ -310,7 +310,7 @@ unsigned char *MD5(void *pointer, size_t pointeeLength , unsigned char *md5HashP
       return &staticArray[0];
    } else {
       MD5_Final ( md5HashPointer, &mdContext);
-      return *md5HashPointer;
+      return md5HashPointer;
    }
 }
 
