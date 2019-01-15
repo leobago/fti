@@ -1039,12 +1039,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if(hascontent) {
                 dataSize += currentdbvar->chunksize;
                 MD5_Update( &mdContext, (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize );
-<<<<<<< HEAD
                 MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );  
-=======
-                MD5( (FTI_ADDRPTR) cbasePtr, currentdbvar->chunksize, hashchk );
-
->>>>>>> ad4f18c... From discussion on https://github.com/leobago/fti/pull/227 ,
             }
             
             bool contentUpdate = 
