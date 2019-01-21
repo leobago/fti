@@ -701,6 +701,7 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
                 dblock->finalized = false;
+                FTI_Exec->lastdb->next = dblock;
                 dblock->previous = FTI_Exec->lastdb;
                 dblock->next = NULL;
                 dblock->numvars = 0;
@@ -745,8 +746,8 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
                 case 2:
 
                     // create data chunk info
-                    dbvars = (FTIFF_dbvar*) realloc( dbvars, (evar_idx+1) * sizeof(FTIFF_dbvar) );
-                    dbvars[evar_idx].fptr = offset + dbsize;
+                    dbvars = (FTIFF_dbvar*) realloc( dblock->dbvars, (evar_idx+1) * sizeof(FTIFF_dbvar) );
+                    dbvars[evar_idx].fptr = offset;
                     dbvars[evar_idx].dptr = containerSizesAccu;
                     dbvars[evar_idx].id = FTI_Data[pvar_idx].id;
                     dbvars[evar_idx].idx = pvar_idx;
@@ -771,12 +772,12 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
 
             }
 
-            dblock->previous = FTI_Exec->lastdb;
-            dblock->next = NULL;
+            //dblock->previous = FTI_Exec->lastdb;
+            //dblock->next = NULL;
             dblock->numvars++;
             dblock->dbsize = dbsize;
             dblock->dbvars = dbvars;
-            FTI_Exec->lastdb = dblock;
+            //FTI_Exec->lastdb = dblock;
             
             dblock->update = true;
             // TODO this has to come later
@@ -892,7 +893,6 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, int fd )
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
     
-    DBG_MSG("metaSize: %lu, dataSize: %lu",0,FTI_Exec->FTIFFMeta.metaSize, FTI_Exec->FTIFFMeta.dataSize );
     FTI_ADDRPTR mbuf = malloc( FTI_Exec->FTIFFMeta.metaSize );
     FTI_ADDRVAL mbuf_pos = (FTI_ADDRVAL) mbuf;
 
@@ -925,7 +925,6 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, int fd )
             isnextdb = 1;
         }
 
-        DBG_MSG("pos: %lu",0,mbuf_pos - (FTI_ADDRVAL)mbuf);
 
     } while( isnextdb );
 
@@ -1380,7 +1379,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
     //FOR DEVELOPING 
-    //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
+    FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
     
@@ -1462,6 +1461,8 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
             dataSize += currentdbvar->chunksize;
+                
+            DBG_MSG("id: %d, datasize: %lu, chunksize: %lu",0, currentdbvar->id, FTI_Data[currentdbvar->idx].size, currentdbvar->chunksize );
 
             // get source and destination pointer
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
@@ -1485,8 +1486,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     close(fd);
                     return FTI_NSCS;
                 }
-                
-                DBG_MSG("id: %d, size: %lu, fpos: %lu",0, currentdbvar->id, currentdbvar->chunksize, DBG_fpos);
+               
 
                 cpycnt = 0;
                 while ( cpycnt < chunk_size ) {
@@ -1589,7 +1589,6 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     long fs = FTI_Exec->ckptSize;
     FTI_Exec->FTIFFMeta.ckptSize = fs;
     FTI_Exec->FTIFFMeta.fs = fs;
-    DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu",-1,FTI_Exec->FTIFFMeta.ckptSize,FTI_Exec->FTIFFMeta.dataSize,FTI_Exec->FTIFFMeta.metaSize);
 
     // allgather not needed for L1 checkpoint
     if( (FTI_Exec->ckptLvel == 2) || (FTI_Exec->ckptLvel == 3) ) { 
