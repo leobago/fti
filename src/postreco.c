@@ -645,7 +645,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int exists[4];
 
-    if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, exists ) != FTI_SCES ) {
+    if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf, exists ) != FTI_SCES ) {
       FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
       return FTI_NSCS;
     }
