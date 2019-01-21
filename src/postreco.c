@@ -457,7 +457,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
   if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-    if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
+    if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf ) != FTI_SCES ) {
       FTI_Print("No restart possible from L1. Ckpt files missing.", FTI_DBUG);
       return FTI_NSCS;
     }

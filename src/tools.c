@@ -62,7 +62,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   FTI_filemetastructsize
     = MD5_DIGEST_STRING_LENGTH
     + MD5_DIGEST_LENGTH
-    + 5*sizeof(long);
+    + 7*sizeof(long);
   // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
   // This is to fix.
   FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
@@ -105,7 +105,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* unsigned int  */ FTI_Exec->ckptLast              =0;
   /* long          */ FTI_Exec->ckptSize              =0;
   /* unsigned int  */ FTI_Exec->nbVar                 =0;
-  /* unsigned int  */ FTI_Exec->nbVarStored           =0;
+  /* unsigned int  */ FTI_Exec->nbVarStored_DBG           =0;
   /* unsigned int  */ FTI_Exec->nbType                =0;
   /* int           */ FTI_Exec->metaAlloc             =0;
   /* int           */ FTI_Exec->initSCES              =0;
@@ -113,8 +113,11 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
   /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
   /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+  /* FTIFF_db      */ FTI_Exec->firstdb_DBG               =NULL;
+  /* FTIFF_db      */ FTI_Exec->lastdb_DBG                =NULL;
   FTI_Exec->stageInfo             =NULL;
   /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
+  FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
   /* MPI_Comm      */ FTI_Exec->globalComm            =0;
   /* MPI_Comm      */ FTI_Exec->groupComm             =0;
 

@@ -178,13 +178,14 @@ extern "C" {
   typedef struct FTIFF_metaInfo {
     char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
     unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
-    long ckptSize;  /**< size of ckpt data                                  */
+    long metaSize;  /**< size of ckpt data                                  */
+    long ckptSize;  /**< also file size TODO remove                         */
+    long dataSize;  /**< total size of protected data (excluding meta data) */
     long fs;        /**< file size                                          */
     long maxFs;     /**< maximum file size in group                         */
     long ptFs;      /**< partner copy file size                             */
     long timestamp; /**< time when ckpt was created in ns (CLOCK_REALTIME)  */
     long dcpSize;   /**< how much actually written by rank                  */
-    long dataSize;  /**< total size of protected data (excluding meta data) */
   } FTIFF_metaInfo;
 
   /** @typedef    FTIT_DataDiffHash
@@ -244,6 +245,7 @@ extern "C" {
     long dbsize;            /**< size of metadata + data for block in bytes   */
     unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk     */
     bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
+    bool finalized;        /**< TRUE if block is stored in cp file            */
     FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array               */
     struct FTIFF_db *previous;  /**< link to previous datablock               */
     struct FTIFF_db *next;      /**< link to next datablock                   */
@@ -418,13 +420,16 @@ extern "C" {
     long            ckptSize;           /**< Checkpoint size.               */
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
+    unsigned int    nbVarStored_DBG;        /**< Nr. prot. var. stored in file  */
     unsigned int    nbType;             /**< Number of data types.          */
     int             nbGroup;            /**< Number of protected groups.    */
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
+    FTIFF_db         *firstdb_DBG;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
+    FTIFF_db         *lastdb_DBG;           /**< Pointer to first datablock     */
     FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
     FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
     FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
