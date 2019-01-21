@@ -333,6 +333,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       close(ifd);
       return FTI_NSCS;
     }
+    lseek( ifd, -FTI_filemetastructsize, SEEK_END );
     if ( read( ifd, buffer_ser, FTI_filemetastructsize ) == -1 ) {
       snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
       FTI_Print( str, FTI_EROR);
@@ -347,6 +348,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
     fs = metaInfo->fs;
+    DBG_MSG("metaInfo->fs: %lu", 0, metaInfo->fs);            
     FTI_Exec->meta[3].fs[0] = fs;
     free( metaInfo );
     close( ifd );

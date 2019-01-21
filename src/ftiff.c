@@ -112,6 +112,8 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
         return FTI_NSCS;
     }
 
+    DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu, fs: %lu",-1,
+            FTI_Exec->FTIFFMeta.ckptSize,FTI_Exec->FTIFFMeta.dataSize,FTI_Exec->FTIFFMeta.metaSize,fs);
     // map file into memory
     unsigned char* fmmap = (unsigned char*) mmap(0, fs, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
@@ -341,7 +343,7 @@ int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFFMeta, FTIT_checkpoint* FTI_Ckpt,
     // map file into memory
     unsigned char* fmmap = (unsigned char*) mmap(0, FTIFFMeta->ckptSize, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
-        snprintf( strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - could not map file to memory.");
+        snprintf( strerr, FTI_BUFS, "FTI-FF: GetFileChecksum - could not map file to memory.");
         FTI_Print(strerr, FTI_EROR);
         errno = 0;
         return FTI_NSCS;
@@ -2333,8 +2335,6 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             goto GATHER_L2INFO;
                         }
 
-                        DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu, fs: %lu",0,FTIFFMeta->ckptSize,FTIFFMeta->dataSize,FTIFFMeta->metaSize,ckptFS.st_size);
-                        
                         unsigned char hash[MD5_DIGEST_LENGTH];
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
@@ -2635,7 +2635,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             goto GATHER_L3INFO;
                         }
  
-                        if ( lseek(fd, 0, SEEK_SET) == -1 ) {
+                        if ( lseek(fd, -FTI_filemetastructsize, SEEK_END) == -1 ) {
                             snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - could not seek in file: %s", tmpfn);
                             FTI_Print(strerr, FTI_EROR);
                             errno = 0;
@@ -2648,6 +2648,8 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 ( read( fd, FTIFFMeta->checksum, MD5_DIGEST_STRING_LENGTH ) == -1 )     ||
                                 ( read( fd, FTIFFMeta->myHash, MD5_DIGEST_LENGTH ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->ckptSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->metaSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->dataSize), sizeof(long) ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->fs), sizeof(long) ) == -1 )                    ||
                                 ( read( fd, &(FTIFFMeta->maxFs), sizeof(long) ) == -1 )                 ||
                                 ( read( fd, &(FTIFFMeta->ptFs), sizeof(long) ) == -1 )                  ||
@@ -2666,16 +2668,9 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
                         
                         if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            unsigned char hash[MD5_DIGEST_LENGTH];
-                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
                             
                             char checksum[MD5_DIGEST_STRING_LENGTH];
-                            int i;
-                            int ii = 0;
-                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                                sprintf(&checksum[ii], "%02x", hash[i]);
-                                ii += 2;
-                            }
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
                             
                             if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
                                 myInfo->fs = FTIFFMeta->fs;    
@@ -2689,6 +2684,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 close(fd);
                                 goto GATHER_L3INFO;
                             }
+
                         } else {
                             char str[FTI_BUFS];
                             snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
@@ -2755,6 +2751,8 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 ( read( fd, FTIFFMeta->checksum, MD5_DIGEST_STRING_LENGTH ) == -1 )     ||
                                 ( read( fd, FTIFFMeta->myHash, MD5_DIGEST_LENGTH ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->ckptSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->metaSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->dataSize), sizeof(long) ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->fs), sizeof(long) ) == -1 )                    ||
                                 ( read( fd, &(FTIFFMeta->maxFs), sizeof(long) ) == -1 )                 ||
                                 ( read( fd, &(FTIFFMeta->ptFs), sizeof(long) ) == -1 )                  ||
