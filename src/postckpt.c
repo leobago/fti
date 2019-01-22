@@ -294,12 +294,23 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
+        // write file meta data at the end of elongated file for recovery original size
+        // during restart
+        if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+            int lftmp_ = open( lfn, O_WRONLY );
+            lseek( lftmp_, -FTI_filemetastructsize, SEEK_END );
+            char* mbufser_ = (char*) malloc( FTI_filemetastructsize );
+            FTIFF_SerializeFileMeta( &FTI_Exec->FTIFFMeta,  mbufser_);
+            write( lftmp_, mbufser_, FTI_filemetastructsize );
+            close( lftmp_ );
+        }
+
         FILE* lfd = fopen(lfn, "rb");
         if (lfd == NULL) {
             FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
             return FTI_NSCS;
         }
-
+        
         FILE* efd = fopen(efn, "wb");
         if (efd == NULL) {
             FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
@@ -500,6 +511,17 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
+
+        FILE* ftmp = fopen( lfn, "rb" ); 
+        fseek( ftmp, -FTI_filemetastructsize+MD5_DIGEST_STRING_LENGTH+MD5_DIGEST_LENGTH, SEEK_END );
+        long ckptSize_;
+        long metaSize_;
+        long dataSize_;
+        fread( &ckptSize_, sizeof(long), 1, ftmp ); 
+        fread( &metaSize_, sizeof(long), 1, ftmp ); 
+        fread( &dataSize_, sizeof(long), 1, ftmp ); 
+        fclose(ftmp);
+        DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu",-1,ckptSize_, dataSize_, metaSize_ );
 
         int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {

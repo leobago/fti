@@ -112,8 +112,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
         return FTI_NSCS;
     }
 
-    DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu, fs: %lu",-1,
-            FTI_Exec->FTIFFMeta.ckptSize,FTI_Exec->FTIFFMeta.dataSize,FTI_Exec->FTIFFMeta.metaSize,fs);
     // map file into memory
     unsigned char* fmmap = (unsigned char*) mmap(0, fs, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
@@ -1331,7 +1329,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //FTIFF_UpdateDatastructFTIFF( FTI_Exec, FTI_Data, FTI_Conf );
     
     //FOR DEVELOPING 
-    FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
+    // FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
     char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
     
@@ -1565,6 +1563,10 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                         mfs = fileSizes[i]; // Search max. size
                     }
                 }
+
+                // append additionally file meta data at the end to recover 
+                // original filesize if Rank file gets lost
+                mfs += FTI_filemetastructsize;
 
                 FTI_Exec->FTIFFMeta.maxFs = mfs;
                 FTI_Exec->FTIFFMeta.ptFs = -1;

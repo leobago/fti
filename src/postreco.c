@@ -348,7 +348,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
     fs = metaInfo->fs;
-    DBG_MSG("metaInfo->fs: %lu", 0, metaInfo->fs);            
+    DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu",-1,metaInfo->ckptSize, metaInfo->dataSize, metaInfo->metaSize );
     FTI_Exec->meta[3].fs[0] = fs;
     free( metaInfo );
     close( ifd );
