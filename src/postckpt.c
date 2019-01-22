@@ -294,14 +294,28 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        // write file meta data at the end of elongated file for recovery original size
-        // during restart
+        // write file meta data at the end of elongated file to recover original size
+        // during restart. The appended meta data will be included in the encoded data
+        // and will be available at recovery before the re truncation to the original
+        // file size. [Depends on the correct value assigned to maxFs inside
+        // 'FTIFF_CreateMetadata'. The value has to be the maximum file size of the 
+        // group PLUS 'FTI_filemetastructsize']
         if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
             int lftmp_ = open( lfn, O_WRONLY );
-            lseek( lftmp_, -FTI_filemetastructsize, SEEK_END );
+            if( lftmp_ == -1 ) {
+                FTI_Print("FTI_RSenc: (FTIFF) Unable to open file!", FTI_EROR);
+                return FTI_NSCS;
+            } 
+            if( lseek( lftmp_, -FTI_filemetastructsize, SEEK_END ) == -1 ) {
+                FTI_Print("FTI_RSenc: (FTIFF) Unable to seek in file!", FTI_EROR);
+                return FTI_NSCS;
+            }
             char* mbufser_ = (char*) malloc( FTI_filemetastructsize );
             FTIFF_SerializeFileMeta( &FTI_Exec->FTIFFMeta,  mbufser_);
-            write( lftmp_, mbufser_, FTI_filemetastructsize );
+            if( write( lftmp_, mbufser_, FTI_filemetastructsize ) == -1 ) {
+                FTI_Print("FTI_RSenc: (FTIFF) Unable to write meta data in file!", FTI_EROR);
+                return FTI_NSCS;
+            }
             close( lftmp_ );
         }
 

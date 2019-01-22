@@ -1564,8 +1564,9 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                     }
                 }
 
-                // append additionally file meta data at the end to recover 
-                // original filesize if Rank file gets lost
+                // increase maxFs in order to append additionally file 
+                // meta data at the end to recover original filesize if Rank file gets lost
+                // [Important for FTI_RSenc after file truncation to maxFs]
                 mfs += FTI_filemetastructsize;
 
                 FTI_Exec->FTIFFMeta.maxFs = mfs;
@@ -2998,7 +2999,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             goto GATHER_L4INFO;
                         }
 
-                        if ( lseek(fd, 0, SEEK_SET) == -1 ) {
+                        if ( lseek(fd, -FTI_filemetastructsize, SEEK_END) == -1 ) {
                             snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - could not seek in file: %s", tmpfn);
                             FTI_Print(strerr, FTI_EROR);
                             errno = 0;
@@ -3012,6 +3013,8 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 ( read( fd, FTIFFMeta->checksum, MD5_DIGEST_STRING_LENGTH ) == -1 )     ||
                                 ( read( fd, FTIFFMeta->myHash, MD5_DIGEST_LENGTH ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->ckptSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->metaSize), sizeof(long) ) == -1 )              ||
+                                ( read( fd, &(FTIFFMeta->dataSize), sizeof(long) ) == -1 )              ||
                                 ( read( fd, &(FTIFFMeta->fs), sizeof(long) ) == -1 )                    ||
                                 ( read( fd, &(FTIFFMeta->maxFs), sizeof(long) ) == -1 )                 ||
                                 ( read( fd, &(FTIFFMeta->ptFs), sizeof(long) ) == -1 )                  ||
@@ -3035,16 +3038,8 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                                 FTI_Exec->ckptID = ckptID;
                             }
                             
-                            unsigned char hash[MD5_DIGEST_LENGTH];
-                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, hash ); 
-                            
-                            int i;
                             char checksum[MD5_DIGEST_STRING_LENGTH];
-                            int ii = 0;
-                            for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                                sprintf(&checksum[ii], "%02x", hash[i]);
-                                ii += 2;
-                            }
+                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
                             
                             if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
                                 if ( !FTI_Ckpt[4].isDcp ) {
