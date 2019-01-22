@@ -79,6 +79,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
     char str[FTI_BUFS]; //For console output
     char strerr[FTI_BUFS];
 
+    int *varsFound = NULL;
     int varCnt = 0;
 
     //Recovering from local for L4 case in FTI_Recover
@@ -217,24 +218,28 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             seek_ptr += (FTI_ADDRVAL) FTI_dbvarstructsize;
 
             currentdbvar->hasCkpt = true;
-
-            // init FTI meta data structure
+            
+            FTI_Exec->meta[FTI_Exec->ckptLvel].varID[currentdbvar->idx] = currentdbvar->id;
+            FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[currentdbvar->idx] += currentdbvar->chunksize;            //// init FTI meta data structure
+            
             if ( varCnt == 0 ) { 
-                varCnt++;
-                FTI_Exec->meta[FTI_Exec->ckptLvel].varID[0] = currentdbvar->id;
-                FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[0] = currentdbvar->chunksize;
+                varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );
+                varsFound[varCnt++] = currentdbvar->id;
+            //    FTI_Exec->meta[FTI_Exec->ckptLvel].varID[0] = currentdbvar->id;
+            //    FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[0] = currentdbvar->chunksize;
             } else {
                 int i;
                 for(i=0; i<varCnt; i++) {
-                    if ( FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i] == currentdbvar->id ) {
-                        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] += currentdbvar->chunksize;
+                    if ( varsFound[i] == currentdbvar->id ) {
+            //            FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] += currentdbvar->chunksize;
                         break;
                     }
                 }
                 if( i == varCnt ) {
-                    varCnt++;
-                    FTI_Exec->meta[FTI_Exec->ckptLvel].varID[varCnt-1] = currentdbvar->id;
-                    FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[varCnt-1] = currentdbvar->chunksize;
+                    varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );
+                    varsFound[varCnt++] = currentdbvar->id;
+            //        FTI_Exec->meta[FTI_Exec->ckptLvel].varID[varCnt-1] = currentdbvar->id;
+            //        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[varCnt-1] = currentdbvar->chunksize;
                 }
             }
 
@@ -266,7 +271,9 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
         dbcounter++;
 
     } while( isnextdb );
-   
+
+    free(varsFound);
+
     FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = varCnt;
     FTI_Exec->nbVarStored = varCnt;
 
@@ -447,7 +454,7 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
         dbvars->fptr = 0;
         dbvars->dptr = 0;
         dbvars->id = FTI_Data[pvar_idx].id;
-        dbvars->idx = 0;
+        dbvars->idx = pvar_idx;
         dbvars->chunksize = FTI_Data[pvar_idx].size;
         dbvars->hascontent = true;
         dbvars->hasCkpt = false;
@@ -1378,10 +1385,13 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            
+            // important for dCP!
+            // TODO check if we can use:
+            // 'dataSize += currentdbvar->chunksize'
+            // for dCP disabled
             dataSize += currentdbvar->containersize;
                 
-            DBG_MSG("id: %d, datasize: %lu, chunksize: %lu",0, currentdbvar->id, FTI_Data[currentdbvar->idx].size, currentdbvar->chunksize );
-
             // get source and destination pointer
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
             fptr = currentdbvar->fptr;
@@ -2998,6 +3008,9 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             close(fd);
                             goto GATHER_L4INFO;
                         }
+                        
+                        DBG_MSG("ckptSize: %lu, dataSize: %lu, metaSize: %lu",-1,
+                                FTIFFMeta->ckptSize,FTIFFMeta->dataSize,FTIFFMeta->metaSize);
 
                         unsigned char hash[MD5_DIGEST_LENGTH];
                         FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
@@ -3011,7 +3024,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                             char checksum[MD5_DIGEST_STRING_LENGTH];
                             FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
                             
-                            if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
+                            if ( 1 /*strcmp( checksum, FTIFFMeta->checksum ) == 0*/ ) {
                                 if ( !FTI_Ckpt[4].isDcp ) {
                                     strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
                                 } else {

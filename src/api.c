@@ -1528,7 +1528,7 @@ int FTI_AddVarICP( int varID )
 #endif
 #endif
         case FTI_IO_FTIFF:
-            res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+            res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write Var ICP (FTI-FF).");
             break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
         case FTI_IO_HDF5:

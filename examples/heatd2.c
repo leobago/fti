@@ -152,7 +152,14 @@ int main(int argc, char *argv[])
         }
         else {
             if ( (i%ITER_CKPT) == 0 ) { // Checkpoint every ITER_OUT steps
-                res = FTI_Checkpoint(1, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
+                res = FTI_SCES; 
+                    //FTI_Checkpoint(1, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
+                FTI_InitICP(1, 1, 1);
+                FTI_AddVarICP( 2 );
+                FTI_AddVarICP( 0 );
+                FTI_AddVarICP( 3 );
+                FTI_AddVarICP( 1 );
+                FTI_FinalizeICP();
             }
         }
         globalerror = doWork(nbProcs, rank, M, nbLines, g, h);
