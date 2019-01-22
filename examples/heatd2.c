@@ -14,7 +14,7 @@
 
 #define ITER_TIMES  5000
 #define ITER_OUT    1
-#define ITER_CKPT   1
+#define ITER_CKPT   2
 #define PRECISION   0.001
 #define WORKTAG     26
 #define GRIDSIZE    4096
@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
             }
         }
         else {
-            if (i == ITER_CKPT ) { // Checkpoint every ITER_OUT steps
-                res = FTI_Checkpoint(1, 4); // Ckpt ID 5 is ignored because level = 0
+            if ( (i%ITER_CKPT) == 0 ) { // Checkpoint every ITER_OUT steps
+                res = FTI_Checkpoint(1, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
             }
         }
         globalerror = doWork(nbProcs, rank, M, nbLines, g, h);

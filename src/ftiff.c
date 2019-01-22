@@ -78,9 +78,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
     char strerr[FTI_BUFS];
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_CTX ctx;
-    MD5_Init( &ctx );
 
     int varCnt = 0;
 
@@ -221,14 +218,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
             currentdbvar->hasCkpt = true;
 
-            // compute hash of chunk and file hash
-            // (Note: we create the file hash from the chunk hashes due to ICP)
-            if( currentdbvar->hascontent ) {
-                unsigned char chash[MD5_DIGEST_LENGTH]; 
-                MD5( fmmap + currentdbvar->fptr, currentdbvar->chunksize, chash );
-                MD5_Update( &ctx, chash, MD5_DIGEST_LENGTH );
-            }
-            
             // init FTI meta data structure
             if ( varCnt == 0 ) { 
                 varCnt++;
@@ -278,27 +267,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
     } while( isnextdb );
    
-    MD5_Final( hash, &ctx );
-
-    int i;
-    char checksum[MD5_DIGEST_STRING_LENGTH];
-    int ii = 0;
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
-        ii += 2;
-    }
-    
-    if ( strcmp( checksum, FTI_Exec->FTIFFMeta.checksum ) != 0 ) {
-        char str[FTI_BUFS];
-        snprintf(str, FTI_BUFS, "Checksum do not match. file is corrupted. %s != %s",
-                checksum, FTI_Exec->FTIFFMeta.checksum);
-        FTI_Print(str, FTI_WARN);
-        // reset meta data
-        FTIFF_FreeDbFTIFF( FTI_Exec->lastdb );
-        memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
-        return FTI_NSCS;
-    } 
-
     FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = varCnt;
     FTI_Exec->nbVarStored = varCnt;
 
@@ -1410,7 +1378,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            dataSize += currentdbvar->chunksize;
+            dataSize += currentdbvar->containersize;
                 
             DBG_MSG("id: %d, datasize: %lu, chunksize: %lu",0, currentdbvar->id, FTI_Data[currentdbvar->idx].size, currentdbvar->chunksize );
 
@@ -1471,7 +1439,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             }
             
-            // create hash for datachunk
+            // create hash for datachunk and assign to member 'hash'
             FTIFF_SetHashChunk( currentdbvar, FTI_Data );
 
             // debug information
@@ -1497,6 +1465,8 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  
     // only for printout of dCP share in FTI_Checkpoint
     FTI_Exec->FTIFFMeta.dcpSize = dcpSize;
+
+    // important for reading and writing operations
     FTI_Exec->FTIFFMeta.dataSize = dataSize;
      
     FTIFF_finalizeDatastructFTIFF( FTI_Exec, FTI_Data );
