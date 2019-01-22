@@ -181,6 +181,7 @@ extern "C" {
     long metaSize;  /**< size of ckpt data                                  */
     long ckptSize;  /**< also file size TODO remove                         */
     long dataSize;  /**< total size of protected data (excluding meta data) */
+    long pureDataSize;  /**< total size of protected data (excluding meta data) */
     long fs;        /**< file size                                          */
     long maxFs;     /**< maximum file size in group                         */
     long ptFs;      /**< partner copy file size                             */

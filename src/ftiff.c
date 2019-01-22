@@ -1368,7 +1368,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     uintptr_t fptr;
     int isnextdb;
     
-    long dcpSize = 0, dataSize = 0;
+    long dcpSize = 0, dataSize = 0, pureDataSize = 0;
 
     // write FTI-FF meta data
     // 
@@ -1391,6 +1391,9 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // 'dataSize += currentdbvar->chunksize'
             // for dCP disabled
             dataSize += currentdbvar->containersize;
+            if( currentdbvar->hascontent ) {
+                pureDataSize += currentdbvar->chunksize;
+            }
                 
             // get source and destination pointer
             dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
@@ -1479,6 +1482,8 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // important for reading and writing operations
     FTI_Exec->FTIFFMeta.dataSize = dataSize;
      
+    FTI_Exec->FTIFFMeta.pureDataSize = pureDataSize;
+    
     FTIFF_finalizeDatastructFTIFF( FTI_Exec, FTI_Data );
     
     if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {

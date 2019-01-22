@@ -362,6 +362,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   // important for reading and writing operations
   FTI_Exec->FTIFFMeta.dataSize = 0;
+  FTI_Exec->FTIFFMeta.pureDataSize = 0;
   
 
   // buffer for de-/serialization of meta data
@@ -439,6 +440,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   long cpybuf, cpynow, cpycnt;//, fptr;
   long dcpSize = 0;
   long dataSize = 0;
+  long pureDataSize = 0;
     
   int pvar_idx = -1, pvar_idx_;
   for( pvar_idx_=0; pvar_idx_<FTI_Exec->nbVar; pvar_idx_++ ) {
@@ -478,6 +480,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
               // 'dataSize += currentdbvar->chunksize'
               // for dCP disabled
               dataSize += currentdbvar->containersize;
+              pureDataSize += currentdbvar->chunksize;
 
               // get source and destination pointer
               dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
@@ -565,6 +568,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 
   // important for reading and writing operations
   FTI_Exec->FTIFFMeta.dataSize += dataSize;
+  FTI_Exec->FTIFFMeta.pureDataSize += pureDataSize;
   
   FTI_Exec->iCPInfo.result = FTI_SCES;
 
