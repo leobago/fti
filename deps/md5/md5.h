@@ -31,15 +31,24 @@
 /* Any 32-bit or wider unsigned integer data type will do */
 typedef unsigned int MD5_u32plus;
 
+#define     MD5_CBLOCK   64
+#define     MD5_LBLOCK   (MD5_CBLOCK/4)
+#define     MD5_DIGEST_LENGTH   16
+
 typedef struct {
 	MD5_u32plus lo, hi;
 	MD5_u32plus a, b, c, d;
-	unsigned char buffer[64];
-	MD5_u32plus block[16];
+	unsigned char buffer[MD5_CBLOCK];
+	MD5_u32plus block[MD5_DIGEST_LENGTH];
 } MD5_CTX;
 
 extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
+
+#ifndef HAVE_OPENSSL
+// openssl provide a function MD5(), we just wrap it out if the library is not used
+extern unsigned char * MD5( void *pointer, size_t pointerLength, unsigned char *md5HashPointer);
+#endif
 
 #endif

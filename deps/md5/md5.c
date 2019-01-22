@@ -288,4 +288,32 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
+unsigned char *MD5(void *pointer, size_t pointerLength , unsigned char *md5HashPointer)
+{
+
+    MD5_CTX mdContext;
+    static unsigned char staticArray[MD5_CBLOCK];
+
+    memset( staticArray, 0, MD5_CBLOCK );
+    MD5_Init( &mdContext);
+
+    /*
+     * This means the string is freed or non-allocated, if the user still wont
+     * verify the return value, we still return the MD5 of an empy string.
+     */
+    if ( pointer == NULL || pointerLength == 0 ) {
+        MD5_Update( &mdContext, staticArray, MD5_CBLOCK );
+    } else {
+        MD5_Update( &mdContext, pointer, pointeeLength );
+    }
+
+    if ( md5HashPointer == NULL ) {
+        MD5_Final ( staticArray, &mdContext );
+        return &staticArray[0];
+    } else {
+        MD5_Final ( md5HashPointer, &mdContext );
+        return md5HashPointer;
+    }
+}
+
 #endif
