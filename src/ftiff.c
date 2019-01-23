@@ -110,6 +110,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
         return FTI_NSCS;
     }
 
+    DBG_MSG("fs: %lu, fd: %d", -1, fs, fd);
     // map file into memory
     unsigned char* fmmap = (unsigned char*) mmap(0, fs, PROT_READ, MAP_SHARED, fd, 0);
     if (fmmap == MAP_FAILED) {
@@ -1552,7 +1553,7 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 // increase maxFs in order to append additionally file 
                 // meta data at the end to recover original filesize if Rank file gets lost
                 // [Important for FTI_RSenc after file truncation to maxFs]
-                mfs += FTI_filemetastructsize;
+                mfs += sizeof(off_t);
 
                 FTI_Exec->FTIFFMeta.maxFs = mfs;
                 FTI_Exec->FTIFFMeta.ptFs = -1;
