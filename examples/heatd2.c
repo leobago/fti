@@ -13,8 +13,7 @@
 
 
 #define ITER_TIMES  5000
-#define ITER_OUT    1
-#define ITER_CKPT   2
+#define ITER_OUT    500
 #define PRECISION   0.001
 #define WORKTAG     26
 #define GRIDSIZE    4096
@@ -151,15 +150,11 @@ int main(int argc, char *argv[])
             }
         }
         else {
-            if ( (i%ITER_CKPT) == 0 ) { // Checkpoint every ITER_OUT steps
-                res = FTI_SCES; 
-                    //FTI_Checkpoint(1, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
-                FTI_InitICP(1, 1, 1);
-                FTI_AddVarICP( 2 );
-                FTI_AddVarICP( 0 );
-                FTI_AddVarICP( 3 );
-                FTI_AddVarICP( 1 );
-                FTI_FinalizeICP();
+            if (((i+1)%ITER_OUT) == 0) { // Checkpoint every ITER_OUT steps
+                res = FTI_Checkpoint(myCkpt.id, myCkpt.level); // Ckpt ID 5 is ignored because level = 0
+                if (res == 0) {
+                    myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
+                } // Update ckpt. id & level
             }
         }
         globalerror = doWork(nbProcs, rank, M, nbLines, g, h);
