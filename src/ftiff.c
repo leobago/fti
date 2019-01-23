@@ -300,7 +300,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFFMeta, FTIT_checkpoint* FTI_Ckpt, int fd, char *checksum ) 
 {
-    char str[FTI_BUFS]; //For console output
     char strerr[FTI_BUFS];
     unsigned char hash[MD5_DIGEST_LENGTH];
     MD5_CTX ctx;
@@ -764,6 +763,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    // update pre-checkpoint meta data
     int pvar_idx;
     for(pvar_idx=0; pvar_idx<FTI_Exec->nbVar; pvar_idx++) {
         FTIFF_UpdateDatastructVarFTIFF( FTI_Exec, FTI_Data, FTI_Conf, pvar_idx );
@@ -834,7 +834,6 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     long dcpSize = 0, dataSize = 0, pureDataSize = 0;
 
-    // write FTI-FF meta data
 #ifdef GPUSUPPORT
     copyDataFromDevive( FTI_Exec, FTI_Data );
 #endif    
@@ -976,17 +975,28 @@ int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Da
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
 
+    if( db == NULL ) {
+        FTI_Print("FTIFF_createHashesDbVarFTIFF: no meta data available (FTI_Exec->firstdb == NULL)", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     do {
     
         dbvar = db->dbvars;
+
+        if( dbvar == NULL ) {
+            FTI_Print("FTIFF_createHashesDbVarFTIFF: no variable chunk meta data available (db->dbvars == NULL)", FTI_WARN );
+            return FTI_NSCS;
+        }
 
         int dbvar_idx;
         for( dbvar_idx=0; dbvar_idx<db->numvars; dbvar_idx++ ) {
             FTIFF_GetHashdbvar( dbvar[dbvar_idx].myhash, &(dbvar[dbvar_idx]) );
         }
 
-    } while( db = db->next );
+    } while( (db = db->next) );
 
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1008,6 +1018,11 @@ int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_D
 {
     FTIFF_db *db = FTI_Exec->firstdb;
     
+    if( db == NULL ) {
+        FTI_Print("FTIFF_finalizeDatastructFTIFF: no meta data available (FTI_Exec->firstdb == NULL)", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     unsigned long metaSize = FTI_filemetastructsize;
 
     do {
@@ -1019,9 +1034,11 @@ int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_D
 
         metaSize += FTI_dbstructsize + db->numvars * FTI_dbvarstructsize;
 
-    } while( db = db->next );
+    } while( (db = db->next) );
 
     FTI_Exec->FTIFFMeta.metaSize = metaSize;
+
+    return FTI_SCES;
 
 }
 
@@ -1044,11 +1061,12 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, int fd )
     FTIFF_dbvar *dbvar;
     
     FTI_ADDRPTR mbuf = malloc( FTI_Exec->FTIFFMeta.metaSize );
-    FTI_ADDRVAL mbuf_pos = (FTI_ADDRVAL) mbuf;
-
     if( mbuf == NULL ) {
+        FTI_Print("FTIFF_writeMetaDataFTIFF: failed to allocate memory for 'mbuf'!", FTI_EROR );
         return FTI_NSCS;
     }
+
+    FTI_ADDRVAL mbuf_pos = (FTI_ADDRVAL) mbuf;
 
     MD5_CTX ctx;
     MD5_Init( &ctx );
@@ -1068,7 +1086,7 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, int fd )
             mbuf_pos += FTI_dbvarstructsize;
         }
 
-    } while( db = db->next );
+    } while( (db = db->next) );
 
     unsigned char fhash[MD5_DIGEST_LENGTH];
     MD5_Final( fhash, &ctx );
@@ -1101,6 +1119,8 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, int fd )
     }
     
     free( mbuf );
+
+    return FTI_SCES;
 
 }
 

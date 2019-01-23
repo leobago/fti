@@ -421,16 +421,13 @@ extern "C" {
     long            ckptSize;           /**< Checkpoint size.               */
     unsigned int    nbVar;              /**< Number of protected variables. */
     unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
-    unsigned int    nbVarStored_DBG;        /**< Nr. prot. var. stored in file  */
     unsigned int    nbType;             /**< Number of data types.          */
     int             nbGroup;            /**< Number of protected groups.    */
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
-    FTIFF_db         *firstdb_DBG;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
-    FTIFF_db         *lastdb_DBG;           /**< Pointer to first datablock     */
     FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
     FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
     FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */

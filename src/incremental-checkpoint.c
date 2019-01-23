@@ -364,10 +364,6 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   FTI_Exec->FTIFFMeta.dataSize = 0;
   FTI_Exec->FTIFFMeta.pureDataSize = 0;
   
-
-  // buffer for de-/serialization of meta data
-  char* buffer_ser;
-
   //If inline L4 save directly to global directory
   int level = FTI_Exec->ckptLvel;
   if (level == 4 && FTI_Ckpt[4].isInline) { 
