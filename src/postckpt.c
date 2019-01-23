@@ -288,21 +288,25 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
-        
+       
+        // determine file size in order to write at the end of the elongated file
+        // (i.e. write at the end of file after 'truncate(..., maxFs)'.
         struct stat st_;
-        stat( lfn, &st_ );
+        if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+            stat( lfn, &st_ );
+        }
 
         if (truncate(lfn, maxFs) == -1) {
             FTI_Print("Error with truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
 
-        // write file meta data at the end of elongated file to recover original size
-        // during restart. The appended meta data will be included in the encoded data
+        // write file size at the end of elongated file to recover original size
+        // during restart. The file size, thus,  will be included in the encoded data
         // and will be available at recovery before the re truncation to the original
         // file size. [Depends on the correct value assigned to maxFs inside
         // 'FTIFF_CreateMetadata'. The value has to be the maximum file size of the 
-        // group PLUS 'FTI_filemetastructsize']
+        // group PLUS 'sizeof(off_t)']
         if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
             int lftmp_ = open( lfn, O_WRONLY );
             if( lftmp_ == -1 ) {
@@ -313,8 +317,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("FTI_RSenc: (FTIFF) Unable to seek in file!", FTI_EROR);
                 return FTI_NSCS;
             }
-            //char* mbufser_ = (char*) malloc( FTI_filemetastructsize );
-            //FTIFF_SerializeFileMeta( &FTI_Exec->FTIFFMeta,  mbufser_);
             if( write( lftmp_, &st_.st_size, sizeof(off_t) ) == -1 ) {
                 FTI_Print("FTI_RSenc: (FTIFF) Unable to write meta data in file!", FTI_EROR);
                 return FTI_NSCS;
@@ -527,27 +529,10 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
        
-        //struct stat st_;
-        //stat(lfn,&st_);
-        //struct stat st_;
-        //long fs_ = st_.st_size;
-        //FILE* ftmp = fopen( lfn, "rb" ); 
-        //long fend = fseek( ftmp, -FTI_filemetastructsize+MD5_DIGEST_STRING_LENGTH+MD5_DIGEST_LENGTH, SEEK_END );
-        //long ckptSize_;
-        //long metaSize_;
-        //long dataSize_;
-        //fend = FTI_filemetastructsize;
-        //fread( &ckptSize_, sizeof(long), 1, ftmp ); 
-        //fread( &metaSize_, sizeof(long), 1, ftmp ); 
-        //fread( &dataSize_, sizeof(long), 1, ftmp ); 
-        //fclose(ftmp);
-        //DBG_MSG("maxFs: %ld, fs_act: %ld, fend: %ld, ckptSize: %lu, dataSize: %lu, metaSize: %lu",-1, maxFs, fs_, fend, ckptSize_, dataSize_, metaSize_ );
-
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
         }
-
 
         int res = FTI_WriteRSedChecksum(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, rank, checksum);
         if (res != FTI_SCES) {

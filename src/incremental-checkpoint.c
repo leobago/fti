@@ -429,8 +429,8 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 {
   char str[FTI_BUFS], strerr[FTI_BUFS];
 
-  FTIFF_db *currentdb = FTI_Exec->firstdb;
-  FTIFF_dbvar *currentdbvar = NULL;
+  FTIFF_db *db = FTI_Exec->firstdb;
+  FTIFF_dbvar *dbvar = NULL;
   char *dptr;
   uintptr_t fptr;
   int dbvar_idx, dbcounter=0;
@@ -464,40 +464,36 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   int fd;
   memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
 
-  currentdb = FTI_Exec->firstdb;
+  db = FTI_Exec->firstdb;
 
   do {    
 
       isnextdb = 0;
 
-      for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+      for(dbvar_idx=0;dbvar_idx<db->numvars;dbvar_idx++) {
 
-          currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+          dbvar = &(db->dbvars[dbvar_idx]);
 
-          if( currentdbvar->id == varID ) {
+          if( dbvar->id == varID ) {
               // important for dCP!
               // TODO check if we can use:
-              // 'dataSize += currentdbvar->chunksize'
+              // 'dataSize += dbvar->chunksize'
               // for dCP disabled
-              dataSize += currentdbvar->containersize;
-              pureDataSize += currentdbvar->chunksize;
+              dataSize += dbvar->containersize;
+              pureDataSize += dbvar->chunksize;
 
               // get source and destination pointer
-              dptr = (char*)(FTI_Data[currentdbvar->idx].ptr) + currentdb->dbvars[dbvar_idx].dptr;
-              fptr = currentdbvar->fptr;
+              dptr = (char*)(FTI_Data[dbvar->idx].ptr) + db->dbvars[dbvar_idx].dptr;
+              fptr = dbvar->fptr;
               uintptr_t chunk_addr, chunk_size, chunk_offset;
 
               int chunkid = 0;
 
-              while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, currentdbvar, FTI_Data) ) {
-                  chunk_offset = chunk_addr - ((FTI_ADDRVAL)(FTI_Data[currentdbvar->idx].ptr) + currentdbvar->dptr);
+              while( FTI_ReceiveDataChunk(&chunk_addr, &chunk_size, dbvar, FTI_Data) ) {
+                  chunk_offset = chunk_addr - ((FTI_ADDRVAL)(FTI_Data[dbvar->idx].ptr) + dbvar->dptr);
                     
-                  //DBG_MSG("chunk_addr: %p, data.ptr: %p, chunk_size: %lu, data.size: %lu", 0, chunk_addr, FTI_Data[currentdbvar->idx].ptr, currentdbvar->chunksize, FTI_Data[currentdbvar->idx].size );
-                  //MPI_Barrier(MPI_COMM_WORLD);  
-                  //MPI_Abort(MPI_COMM_WORLD, -1);
-
                   dptr += chunk_offset;
-                  fptr = currentdbvar->fptr + chunk_offset;
+                  fptr = dbvar->fptr + chunk_offset;
 
                   if ( lseek( fd, fptr, SEEK_SET ) == -1 ) {
                       snprintf(strerr, FTI_BUFS, "FTI-FF: WriteFTIFF - could not seek in file");
@@ -506,7 +502,6 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                       close(fd);
                       return FTI_NSCS;
                   }
-
 
                   cpycnt = 0;
                   while ( cpycnt < chunk_size ) {
@@ -519,7 +514,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                       do {
                           int returnVal = write( fd, (FTI_ADDRPTR) (chunk_addr+cpycnt), cpynow );
                           if ( returnVal == -1 ) {
-                              snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - Dataset #%d could not be written to file", currentdbvar->id);
+                              snprintf(str, FTI_BUFS, "FTI-FF: WriteFTIFF - Dataset #%d could not be written to file", dbvar->id);
                               FTI_Print(str, FTI_EROR);
                               close(fd);
                               errno = 0;
@@ -538,24 +533,24 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
               }
 
               // create hash for datachunk and assign to member 'hash'
-              FTIFF_SetHashChunk( currentdbvar, FTI_Data );
+              FTIFF_SetHashChunk( dbvar, FTI_Data );
 
               // debug information
               snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                       ", dptr: %ld, fptr: %ld, chunksize: %ld, "
                       "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
                       FTI_Exec->ckptID, dbcounter, dbvar_idx,  
-                      currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
-                      currentdbvar->fptr, currentdbvar->chunksize,
-                      (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)dptr);
+                      dbvar->id, dbvar->idx, dbvar->dptr,
+                      dbvar->fptr, dbvar->chunksize,
+                      (uintptr_t)FTI_Data[dbvar->idx].ptr, (uintptr_t)dptr);
               FTI_Print(str, FTI_DBUG);
 
           }
 
       }
 
-      if (currentdb->next) {
-          currentdb = currentdb->next;
+      if (db->next) {
+          db = db->next;
           isnextdb = 1;
       }
 
@@ -565,10 +560,10 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 
   // only for printout of dCP share in FTI_Checkpoint
   FTI_Exec->FTIFFMeta.dcpSize += dcpSize;
+  FTI_Exec->FTIFFMeta.pureDataSize += pureDataSize;
 
   // important for reading and writing operations
   FTI_Exec->FTIFFMeta.dataSize += dataSize;
-  FTI_Exec->FTIFFMeta.pureDataSize += pureDataSize;
   
   FTI_Exec->iCPInfo.result = FTI_SCES;
 
@@ -600,14 +595,11 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   int fd; 
   memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
-  
-  FTIFF_finalizeDatastructFTIFF( FTI_Exec, FTI_Data );
 
   if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
       return FTI_NSCS;
   }
 
-  FTIFF_createHashesDbVarFTIFF( FTI_Exec, FTI_Data );
   FTIFF_writeMetaDataFTIFF( FTI_Exec, fd );
 
 
