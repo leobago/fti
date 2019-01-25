@@ -164,13 +164,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         return FTI_HEAD;
     }
     else { // If I am an application process
-#ifdef GPUSUPPORT   
-    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
-#endif
+        if ( FTI_Try( FTI_InitDevices(FTI_Conf.cHostBufSize), "Allocating resources for communication with the devices") != FTI_SCES){
+          FTI_Print("Cannot Allocate defice memory\n", FTI_EROR);
+        } 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpEnabled ) {
             FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
@@ -712,7 +708,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Data[i].isDevicePtr = true;
         FTI_Data[i].devicePtr= ptr;
         FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
-        if (FTI_Conf.ioMode == FTI_IO_FTIFF || FTI_Conf.ioMode == FTI_IO_HDF5){
+        if (FTI_Conf.ioMode == FTI_IO_FTIFF ){
           FTI_Data[i].ptr = (void *) malloc (type.size *count);
           if (FTI_Data[i].ptr == NULL){
             FTI_Print("Could Not Allocate Extra Buffer for GPU data\n",FTI_EROR);
@@ -763,7 +759,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].isDevicePtr = true;
     FTI_Data[FTI_Exec.nbVar].devicePtr= ptr;
     FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF || FTI_Conf.ioMode == FTI_IO_HDF5){
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF){
       FTI_Data[FTI_Exec.nbVar].ptr =  (void *) malloc (type.size *count);
       if (FTI_Data[FTI_Exec.nbVar].ptr == NULL){
         FTI_Print("Could Not Allocate Extra Buffer for GPU data\n",FTI_EROR);
@@ -1402,7 +1398,6 @@ int FTI_InitICP(int id, int level, bool activate)
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
-		copyDataFromDevive( &FTI_Exec, FTI_Data );
                 res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
                 break;
 #endif
@@ -1788,7 +1783,6 @@ int FTI_FinalizeICP()
 
 static int copyDataToDevice(){
   int i;
-  char str[FTI_BUFS]; //For console output
   for (i = 0; i < FTI_Exec.nbVar; i++) {
     if ( FTI_Data[i].isDevicePtr ){
       FTI_copy_to_device( FTI_Data[i].devicePtr, FTI_Data[i].ptr,FTI_Data[i].size, &FTI_Exec);
@@ -1839,7 +1833,6 @@ int FTI_Recover()
 #ifdef ENABLE_HDF5 //If HDF5 is installed
   if (FTI_Conf.ioMode == FTI_IO_HDF5) {
     int ret = FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
-    copyDataToDevice();
     return ret; 
   }
 #endif
@@ -1869,32 +1862,17 @@ int FTI_Recover()
 
 #ifdef GPUSUPPORT
   for (i = 0; i < FTI_Exec.nbVar; i++) {
-    if (FTI_Data[i].isDevicePtr){
-      FTI_Data[i].ptr = (void *) malloc(FTI_Data[i].size);
-      if (!(FTI_Data[i].ptr)){
-        FTI_Print("RECOVER:: Could not Allocate memory on host",FTI_EROR );
-        return FTI_NREC;
-      }
-    }
-
-
-    fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+    if (FTI_Data[i].isDevicePtr)
+        FTI_TransferFileToDeviceAsync(fd,FTI_Data[i].devicePtr, FTI_Data[i].size); 
+    else
+        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
     if (ferror(fd)) {
       FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
       fclose(fd);
       return FTI_NREC;
     }
+  }   
 
-    if (FTI_Data[i].isDevicePtr){
-      int res;
-      res = FTI_Try(FTI_copy_to_device(FTI_Data[i].devicePtr, FTI_Data[i].ptr, FTI_Data[i].size, &FTI_Exec), "copying data to GPU");
-      if (res == FTI_NSCS) {
-        return FTI_NSCS;
-      }
-      free(FTI_Data[i].ptr);
-      FTI_Data[i].ptr = NULL;
-    }
-  }      
 #else
   for (i = 0; i < FTI_Exec.nbVar; i++) {
     fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
@@ -2016,36 +1994,8 @@ int FTI_Finalize()
     }
 
     // Notice: The following code is only executed by the application procs
-#ifdef GPUSUPPORT
-  cudaError_t err;
-  char err_str[FTI_BUFS];
-
-  if ((err = cudaStreamSynchronize(FTI_Exec.cStream)) != cudaSuccess) {
-    sprintf(err_str, "Cannot synchronize the internal cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaEventDestroy(FTI_Exec.cEvents[0])) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cEvents[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaEventDestroy(FTI_Exec.cEvents[1])) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cEvents[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaStreamDestroy(FTI_Exec.cStream)) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-
-  if ((err = cudaFreeHost(FTI_Exec.cHostBufs[0])) != cudaSuccess) {
-    sprintf(err_str, "Cannot free cHostBufs[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaFreeHost(FTI_Exec.cHostBufs[1])) != cudaSuccess) {
-    sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-#endif
+    
+    FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
 
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {

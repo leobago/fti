@@ -614,7 +614,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             else {
                 FTI_Print(str,FTI_INFO);
                 if ((res = FTI_Try(
-                                FTI_pipeline_gpu_to_storage(&FTI_Data[i],  FTI_Exec, FTI_Conf, write_posix, fd),
+                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_posix, fd),
                                 "moving data from GPU to storage")) != FTI_SCES) {
                     snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                     FTI_Print(str, FTI_EROR);
@@ -747,7 +747,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print(str,FTI_INFO);
 
             if ((res = FTI_Try(
-                            FTI_pipeline_gpu_to_storage(&FTI_Data[i],  FTI_Exec, FTI_Conf, write_mpi, &write_info),
+                            FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_mpi, &write_info),
                             "moving data from GPU to storage")) != FTI_SCES) {
                 snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                 FTI_Print(str, FTI_EROR);
@@ -848,7 +848,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             FTI_Print(str,FTI_INFO);
             if ((res = FTI_Try(
-                            FTI_pipeline_gpu_to_storage(&FTI_Data[i],  FTI_Exec, FTI_Conf, write_sion, &sid),
+                            TransferDeviceMemToFileAsync(&FTI_Data[i], write_sion, &sid),
                             "moving data from GPU to storage")) != FTI_SCES) {
                 snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                 FTI_Print(str, FTI_EROR);

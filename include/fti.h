@@ -433,12 +433,7 @@ extern "C" {
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
     MPI_Comm        nodeComm;
-#ifdef GPUSUPPORT    
-    cudaStream_t    cStream;            /**< CUDA stream.                   */
-    cudaEvent_t     cEvents[2];         /**< CUDA event.                    */
-    void*           cHostBufs[2];       /**< CUDA host buffer.              */
-#endif
-  } FTIT_execution;
+} FTIT_execution;
 
   /** @typedef    FTIT_configuration
    *  @brief      Configuration metadata.
@@ -476,9 +471,7 @@ extern "C" {
     char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.     */
     char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.    */
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.  */
-#ifdef GPUSUPPORT    
     size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
-#endif
 
   } FTIT_configuration;
 
