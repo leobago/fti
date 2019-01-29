@@ -612,7 +612,6 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // if data are stored to the GPU move them from device
             // memory to cpu memory and store them.
             else {
-                FTI_Print(str,FTI_INFO);
                 if ((res = FTI_Try(
                                 FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_posix, fd),
                                 "moving data from GPU to storage")) != FTI_SCES) {
@@ -736,16 +735,12 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // determine the type of data pointer
         // Data are stored in the CPU side. 
         if ( !(FTI_Data[i].isDevicePtr) ){
-            FTI_Print(str,FTI_INFO);
             res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
         }
 #ifdef GPUSUPPORT
         // dowload data from the GPU if necessary
         // Data are stored in the GPU side.
         else {
-            snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_Data[i].id);
-            FTI_Print(str,FTI_INFO);
-
             if ((res = FTI_Try(
                             FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_mpi, &write_info),
                             "moving data from GPU to storage")) != FTI_SCES) {
@@ -839,14 +834,12 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // SIONlib write call
 
         if ( !(FTI_Data[i].isDevicePtr) ){
-            FTI_Print(str,FTI_INFO);
             res = write_sion(FTI_Data[i].ptr, FTI_Data[i].size, &sid);
         }
 #ifdef GPUSUPPORT            
         // if data are stored to the GPU move them from device
         // memory to cpu memory and store them.
         else {
-            FTI_Print(str,FTI_INFO);
             if ((res = FTI_Try(
                             TransferDeviceMemToFileAsync(&FTI_Data[i], write_sion, &sid),
                             "moving data from GPU to storage")) != FTI_SCES) {
