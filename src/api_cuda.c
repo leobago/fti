@@ -7,6 +7,12 @@
 #include <cuda_runtime_api.h>
 #endif
 
+
+
+void *hostBuffers[2];
+size_t bufferSize;
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It gets the information of this pointer (CPU or GPU, which device, etc.).
@@ -19,11 +25,6 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-
-
-void *hostBuffers[2];
-size_t bufferSize;
-
 int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
 {
 #ifdef GPUSUPPORT
@@ -147,7 +148,17 @@ int FTI_TransferDeviceMemToFileAsync(FTIT_dataset *FTI_Data,  FTIT_fwritefunc fw
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Initializes a Prefetcher 
+  @param     A pointer to the Prefetcher struct 
+  @return     integer         FTI_SCES if successful.
 
+  This function initializes the streaming procedure for data in the GPU.
+  If the data re in the GPU side it also performs the first request to the GPU
+  to copy data.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitPrefetcher(FTIT_data_prefetch *dfls){
     dfls->Id = 0;
     dfls->end = false;
@@ -177,6 +188,18 @@ int FTI_InitPrefetcher(FTIT_data_prefetch *dfls){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Gets gpu-fetched data. 
+  @param     dfls A pointer to the Prefetcher struct 
+  @param     size  the amount of data in bytes copied from the gpu to the cpu 
+  @param     fetchData pointer pointing to the data fetched. 
+  @return     integer         FTI_SCES if successful.
+
+    This data returns a pointer to data copied from the GPU side. It also
+    requests more data from the GPU side.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_getPrefetchedData( FTIT_data_prefetch *dfls, size_t *size, unsigned  char **fetchedData ){
     if (dfls->end ){
         *fetchedData = NULL;
@@ -221,6 +244,17 @@ int FTI_destroyPrefetcher(FTIT_data_prefetch *dfls){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Allocates Host buffers which will be used for asynchronous communication with the GPU
+  @param     HostBuffSize Size in bytes of each buffer. 
+  @return     integer         FTI_SCES if successful.
+    
+ Allocates 2 host buffers which are going to be used for asynchronous communication
+ with the GPU.
+ **/
+/*-------------------------------------------------------------------------*/
+
 int FTI_InitDevices ( int HostBuffSize ){
 #ifdef GPUSUPPORT
     char str[FTI_BUFS];
@@ -233,6 +267,15 @@ int FTI_InitDevices ( int HostBuffSize ){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     De-allocates Host buffers which will be used for asynchronous communication with the GPU
+  @return     integer         FTI_SCES if successful.
+    
+ De-Allocates 2 host buffers which are going to be used for asynchronous communication
+ with the GPU.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_DestroyDevices(){
 #ifndef GPUSUPPORT
     return FTI_SCES;
@@ -243,6 +286,19 @@ int FTI_DestroyDevices(){
 #endif
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Copies data from a file to the GPU asynchronously 
+  @param    fd Pointer to the file
+  @param    dptr    Pointer to the data
+  @param    numBytes number of bytes to be written 
+  @return     integer         FTI_SCES if successful.
+    
+ Uses 2 streams to copy data from a file to the GPU device memory.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes){
 #ifdef GPUSUPPORT
     int id = 0 ;
@@ -281,11 +337,30 @@ int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Returns the size of each host buffer in bytes 
+  @return     integer        The size of the buffer.
 
+  Returns the size of each host buffer in bytes 
+
+ **/
+/*-------------------------------------------------------------------------*/
 size_t FTI_getHostBuffSize(){
     return bufferSize;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Returns the pointer of a specific host buffer 
+  @param     id The id of the host buffer
+  @return    pointer To the location of the data buffer.
+
+  Returns the pointer of a specific host buffer in bytes 
+
+ **/
+/*-------------------------------------------------------------------------*/
 BYTE *FTI_getHostBuffer( int id ){
     return hostBuffers[id];
 }

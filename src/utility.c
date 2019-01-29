@@ -5,6 +5,19 @@
 #include "api_cuda.h"
 #include "utility.h"
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Writes data to a file using the posix library
+  @param     src    The location of the data to be written 
+  @param     size   The number of bytes that I need to write 
+  @param     opaque A pointer to the File descriptor  
+  @return    integer         FTI_SCES if successful.
+
+  Writes the data to a file using the posix library. 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int write_posix(void *src, size_t size, void *opaque)
 {
   FILE *fd = (FILE *)opaque;
@@ -31,6 +44,18 @@ int write_posix(void *src, size_t size, void *opaque)
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Writes data to a file using the MPI-IO library
+  @param     src    The location of the data to be written 
+  @param     size   The number of bytes that I need to write 
+  @param     opaque A pointer to the struct that describes the MPI-IO file 
+  @return    integer FTI_SCES if successful.
+
+  Writes the data to a file using the MPI library. 
+
+ **/
+/*-------------------------------------------------------------------------*/
 
 int write_mpi(void *src, size_t size, void *opaque)
 {
@@ -63,6 +88,18 @@ int write_mpi(void *src, size_t size, void *opaque)
 
 
 #ifdef ENABLE_SIONLIB 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Writes data to a file using the SION library
+  @param     src    The location of the data to be written 
+  @param     size   The number of bytes that I need to write 
+  @param     opaque A pointer to the file descriptor  
+  @return    integer FTI_SCES if successful.
+
+  Writes the data to a file using the SION library. 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int write_sion(void *src, size_t size, void *opaque)
 {
   int *sid= (int *)opaque;
@@ -74,6 +111,17 @@ int write_sion(void *src, size_t size, void *opaque)
 }
 #endif
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     copies all data of GPU variables to a CPU memory location 
+  @param     FTI_Exec Execution Meta data. 
+  @param     FTI_Data        Dataset metadata.
+  @return    integer FTI_SCES if successful.
+
+  Copis data from the GPU side to the CPU memory  
+
+ **/
+/*-------------------------------------------------------------------------*/
 
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
 #ifdef GPUSUPPORT

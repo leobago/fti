@@ -61,6 +61,52 @@
 /*-------------------------------------------------------------------------*/
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It checks if an hdf5 file exist and the contents are  'correct'.
+  @param      fn              The ckpt. file name to check.
+  @param      fs              The ckpt. file size to check.
+  @param      checksum        The file checksum to check In this case is should be NULL.
+  @return     integer         0 if file seems correct, 1 if not .
+
+  This function checks whether a file exist or not and if its size is
+  the expected one.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CheckHDF5File(char* fn, long fs, char* checksum){
+    char str[FTI_BUFS];
+    if (access(fn, F_OK) == 0) {
+        struct stat fileStatus;
+        if (stat(fn, &fileStatus) == 0) {
+            if (fileStatus.st_size == fs) {
+                hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+                if (file_id < 0) {
+                    sprintf(str, "Corrupted Checkpoint File: \"%s\"", fn);
+                    FTI_Print(str,FTI_WARN);
+                    return 1;
+                }            
+                else{
+                    H5Fclose(file_id);
+                    return 0;
+                }
+            }
+            else {
+                return 1;
+            }
+        }
+        else {
+            return 1;
+        }
+    }
+    else {
+        char str[FTI_BUFS];
+        sprintf(str, "Missing file: \"%s\"", fn);
+        FTI_Print(str, FTI_WARN);
+        return 1;
+    }
+}
+
 hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *count, int numOfDimensions, hsize_t *dimensions, hsize_t *sep){
     int i;
     memset(count, 0, sizeof(hsize_t)*numOfDimensions);
@@ -200,15 +246,15 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *cou
 /**
   @brief      Advances the offset of an n-dimensional protected variable.
   @param      sep             The dimension index which is sliced. Dimension on the right side
-                              are transfered as a whole. Dimensions on the left side of sep
-                              are incrementally transfered.
+  are transfered as a whole. Dimensions on the left side of sep
+  are incrementally transfered.
   @param      start           coordinates of the n-dimensional space descirbing what I have processed up to 
-                              now.
+  now.
   @param      add             How many elements I have processed.
   @param      dims            The entire n-dimensional space 
   @param      ranks           number of dimensions of this dataset 
   @return     integer         Return 1 only when the entire data set is computed (This is not used in the 
-                              current implementation). 
+  current implementation). 
   This function performs acutally a simle addition on a n-dimensional spase
   start = start+ offset. I am processing only dimensions lower than "sep" as the higher
   ones are ALWAYS completely tranfered from/to the host.
@@ -263,13 +309,18 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar){
     hsize_t dimLength[32];
     char str[FTI_BUFS];
     int res;
+    hid_t dcpl;
 
     for (j = 0; j < FTI_DataVar->rank; j++) {
         dimLength[j] = FTI_DataVar->dimLength[j];
     }
-  
+
+    dcpl = H5Pcreate (H5P_DATASET_CREATE);
+    res = H5Pset_fletcher32 (dcpl);
+    res = H5Pset_chunk (dcpl, FTI_DataVar->rank, dimLength);
+
     hid_t dataspace = H5Screate_simple( FTI_DataVar->rank, dimLength, NULL);
-    hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
 
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
@@ -277,6 +328,13 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar){
     if ( !FTI_DataVar->isDevicePtr ){
 #endif
         res = H5Dwrite(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
+        if (res < 0) {
+            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            FTI_Print(str, FTI_EROR);
+            return FTI_NSCS;
+        }
+
+        res = H5Pclose (dcpl);
         if (res < 0) {
             sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
@@ -314,6 +372,8 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar){
     hsize_t seperator;
     hsize_t fetchBytes = FTI_getHostBuffSize();
     fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, fetchBytes ,count, FTI_DataVar->rank, dimLength, &seperator);
+    sprintf(str,"GPU-Device Message: I Will Fetch %lld Bytes Per Stream Request", fetchBytes);
+    FTI_Print(str,FTI_DBUG);
 
 
     FTIT_data_prefetch prefetcher;
@@ -342,7 +402,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar){
         FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
 
         if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), 
-              "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
+                    "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
             return FTI_NSCS;
         }
 
@@ -425,7 +485,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar){
     }
 
     // This code is only executed in the GPU case.
-    
+
 
     hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
     hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
@@ -651,6 +711,7 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
 
     hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     if (file_id < 0) {
+        FTI_Print(str,FTI_WARN);
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
