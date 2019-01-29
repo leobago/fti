@@ -606,7 +606,12 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( !(FTI_Data[i].isDevicePtr) ){
                 snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
                 FTI_Print(str,FTI_DBUG);
-                res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
+                if (( res = FTI_Try( write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd), "Storing Data to Checkpoint File"))!=FTI_SCES){
+                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+                    FTI_Print(str, FTI_EROR);
+                    fclose(fd);
+                    return res;
+                }
             }
 #ifdef GPUSUPPORT            
             // if data are stored to the GPU move them from device

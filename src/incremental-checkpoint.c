@@ -84,7 +84,12 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
       }
       if ( !(FTI_Data[i].isDevicePtr) ){
         FTI_Print(str,FTI_INFO);
-        res = write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd);
+        if (( res = FTI_Try(write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd),"Storing Data to Checkpoint file")) != FTI_SCES){
+          snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+          FTI_Print(str, FTI_EROR);
+          fclose(fd);
+          return FTI_NSCS;
+        }
       }
 #ifdef GPUSUPPORT            
       // if data are stored to the GPU move them from device
@@ -272,7 +277,12 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
     if ( FTI_Data[i].id == varID ) {
       if ( !(FTI_Data[i].isDevicePtr) ){
         FTI_Print(str,FTI_INFO);
-        res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
+        if (( res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info), "Storing Data to checkpoint file")!=FTI_SCES){
+          snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+          FTI_Print(str, FTI_EROR);
+          MPI_File_close(&write_info.pfh);
+          return res;
+        }
       }
 #ifdef GPUSUPPORT
       // dowload data from the GPU if necessary

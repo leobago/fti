@@ -47,11 +47,13 @@ if(ENABLE_SIONLIB)
     set(IO_NAMES "${IO_NAMES} SIONLIB")
 endif()
 
-if(ENABLE_HDF5)
-    add_subdirectory(hdf5GPU)
-    MATH(EXPR IO "${IO}+1")
-    set(IO_NAMES "${IO_NAMES} HDF5")
-endif()
+if (ENABLE_GPU)
+        if(ENABLE_HDF5)
+            add_subdirectory(hdf5GPU)
+            MATH(EXPR IO "${IO}+1")
+            set(IO_NAMES "${IO_NAMES} HDF5")
+        endif()
+endif()        
 
 set(DIR ${CMAKE_BINARY_DIR}/)
 
