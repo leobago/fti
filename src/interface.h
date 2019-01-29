@@ -155,6 +155,7 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_dataset* FTI_Data, int id);
+int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
 #endif
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

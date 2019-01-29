@@ -48,6 +48,7 @@ if(ENABLE_SIONLIB)
 endif()
 
 if(ENABLE_HDF5)
+    add_subdirectory(hdf5GPU)
     MATH(EXPR IO "${IO}+1")
     set(IO_NAMES "${IO_NAMES} HDF5")
 endif()

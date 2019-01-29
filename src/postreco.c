@@ -876,7 +876,9 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
   char lfback[FTI_BUFS], gfback[FTI_BUFS];
+#endif
 
   switch(FTI_Conf->ioMode) {
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed

@@ -92,7 +92,7 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
       else {
         FTI_Print(str,FTI_INFO);
         if ((res = FTI_Try(
-                FTI_pipeline_gpu_to_storage(&FTI_Data[i],  FTI_Exec, FTI_Conf, write_posix, fd),
+               FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],  write_posix, fd),
                 "moving data from GPU to storage")) != FTI_SCES) {
           snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
           FTI_Print(str, FTI_EROR);
@@ -281,7 +281,7 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_Data[i].id);
         FTI_Print(str,FTI_INFO);
         if ((res = FTI_Try(
-                FTI_pipeline_gpu_to_storage(&FTI_Data[i],  FTI_Exec, FTI_Conf, write_mpi, &write_info),
+                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i], write_mpi, &write_info),
                 "moving data from GPU to storage")) != FTI_SCES) {
           snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
           FTI_Print(str, FTI_EROR);
@@ -721,14 +721,8 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
           return FTI_NSCS;
         }
       }
-      //convert dimLength array to hsize_t
-      int j;
-      hsize_t dimLength[32];
-      for (j = 0; j < FTI_Data[i].rank; j++) {
-        dimLength[j] = FTI_Data[i].dimLength[j];
-      }
-      herr_t res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
-      if (res < 0) {
+    //convert dimLength array to hsize_t
+    if ( FTI_Try(FTI_WriteHDF5Var(&FTI_Data[i]) , "Writing data to HDF5 filesystem") != FTI_SCES){
         sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
         FTI_Print(str, FTI_EROR);
         int j;
