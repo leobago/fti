@@ -1215,10 +1215,10 @@ int FTI_Checkpoint(int id, int level)
         long DCP_TB = (1024L*1024L*1024L*1024L);
         long DCP_GB = (1024L*1024L*1024L);
         long DCP_MB = (1024L*1024L);
-        if ( FTI_Exec.FTIFFMeta.dataSize > DCP_TB ) {
+        if ( FTI_Exec.FTIFFMeta.pureDataSize > DCP_TB ) {
             norder_data = DCP_TB;
             snprintf( corder_data, 3, "TB" );
-        } else if ( FTI_Exec.FTIFFMeta.dataSize > DCP_GB ) {
+        } else if ( FTI_Exec.FTIFFMeta.pureDataSize > DCP_GB ) {
             norder_data = DCP_GB;
             snprintf( corder_data, 3, "GB" );
         } else {
@@ -1238,15 +1238,15 @@ int FTI_Checkpoint(int id, int level)
 
         if ( FTI_Topo.splitRank != 0 ) {
             snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                    (double)FTI_Exec.FTIFFMeta.pureDataSize/norder_data, corder_data,
                     (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.pureDataSize)*100 );
             FTI_Print( str, FTI_DBUG );
         } else {
             snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                    (double)FTI_Exec.FTIFFMeta.pureDataSize/norder_data, corder_data,
                     (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+                    ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.pureDataSize)*100 );
         }
         
         FTI_Print(str, FTI_IDCP);
@@ -1528,7 +1528,7 @@ int FTI_AddVarICP( int varID )
 #endif
 #endif
         case FTI_IO_FTIFF:
-            res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
+            res = FTI_Try(FTI_WriteFtiffVar(varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Write Var ICP (FTI-FF).");
             break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
         case FTI_IO_HDF5:
@@ -1631,11 +1631,11 @@ int FTI_FinalizeICP()
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
         long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
-        long sendBuf[] = { FTI_Exec.FTIFFMeta.dcpSize, FTI_Exec.FTIFFMeta.dataSize };
+        long sendBuf[] = { FTI_Exec.FTIFFMeta.dcpSize, FTI_Exec.FTIFFMeta.pureDataSize };
         MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
         if ( FTI_Topo.splitRank ==  0 ) {
             FTI_Exec.FTIFFMeta.dcpSize = dcpStats[0]; 
-            FTI_Exec.FTIFFMeta.dataSize = dcpStats[1];
+            FTI_Exec.FTIFFMeta.pureDataSize = dcpStats[1];
         }
     }
 
@@ -1721,10 +1721,10 @@ int FTI_FinalizeICP()
             long DCP_TB = (1024L*1024L*1024L*1024L);
             long DCP_GB = (1024L*1024L*1024L);
             long DCP_MB = (1024L*1024L);
-            if ( FTI_Exec.FTIFFMeta.dataSize > DCP_TB ) {
+            if ( FTI_Exec.FTIFFMeta.pureDataSize > DCP_TB ) {
                 norder_data = DCP_TB;
                 snprintf( corder_data, 3, "TB" );
-            } else if ( FTI_Exec.FTIFFMeta.dataSize > DCP_GB ) {
+            } else if ( FTI_Exec.FTIFFMeta.pureDataSize > DCP_GB ) {
                 norder_data = DCP_GB;
                 snprintf( corder_data, 3, "GB" );
             } else {
@@ -1744,15 +1744,15 @@ int FTI_FinalizeICP()
 
             if ( FTI_Topo.splitRank != 0 ) {
                 snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
-                        (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                        (double)FTI_Exec.FTIFFMeta.pureDataSize/norder_data, corder_data,
                         (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.pureDataSize)*100 );
                 FTI_Print( str, FTI_DBUG );
             } else {
                 snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
-                        (double)FTI_Exec.FTIFFMeta.dataSize/norder_data, corder_data,
+                        (double)FTI_Exec.FTIFFMeta.pureDataSize/norder_data, corder_data,
                         (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
-                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.dataSize)*100 );
+                        ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.pureDataSize)*100 );
             }
 
             FTI_Print(str, FTI_IDCP);

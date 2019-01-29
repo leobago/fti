@@ -133,6 +133,15 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     ps = ps + FTI_Conf->blockSize; // Calculating padding size
   }
   if (erased[FTI_Topo->groupRank] == 0) { // Resize and open files
+    
+    // determine file size in order to write at the end of the 
+    // elongated and padded file (i.e. write at the end of file
+    // after 'truncate(.., maxFs)'
+    struct stat st_;
+    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        stat( fn, &st_ );
+    }
+    
     if (truncate(fn, maxFs) == -1) {
       FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
 
@@ -150,6 +159,27 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       free(coding);
 
       return FTI_NSCS;
+    }
+
+    // after truncation we need to write the filesize into the file
+    // in order to have the same file as at the state we performed
+    // the encoding. In order to do so, we need to determine the
+    // file size with stat, before the truncation!
+    if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        int lftmp_ = open( fn, O_RDWR );
+        if( lftmp_ == -1 ) {
+            FTI_Print("FTI_RSenc: (FTIFF) Unable to open file!", FTI_EROR);
+            return FTI_NSCS;
+        } 
+        if( lseek( lftmp_, -sizeof(off_t), SEEK_END ) == -1 ) {
+            FTI_Print("FTI_RSenc: (FTIFF) Unable to seek in file!", FTI_EROR);
+            return FTI_NSCS;
+        }
+        if( write( lftmp_, &st_.st_size, sizeof(off_t) ) == -1 ) {
+            FTI_Print("FTI_RSenc: (FTIFF) Unable to write meta data in file!", FTI_EROR);
+            return FTI_NSCS;
+        }
+        close( lftmp_ );
     }
     fd = fopen(fn, "rb");
   }
@@ -218,10 +248,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Reading the data
     if (erased[FTI_Topo->groupRank] == 0) {
+      bzero(data[FTI_Topo->groupRank], bs);
       fread(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
-      if ( remBsize < bs ) {
-        memset( data[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
-      }
 
       if (ferror(fd)) {
         FTI_Print("R3 cannot from the ckpt. file.", FTI_DBUG);
@@ -244,15 +272,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
       }
     }
-    else {
-      bzero(data[FTI_Topo->groupRank], bs);
-    } // Erasure found
 
     if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
+      bzero(coding[FTI_Topo->groupRank], bs);
       fread(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
-      if ( remBsize < bs ) {
-        memset( coding[FTI_Topo->groupRank] + remBsize, 0x0, bs-remBsize );
-      }
 
       if (ferror(efd)) {
         FTI_Print("R3 cannot from the encoded ckpt. file.", FTI_DBUG);
@@ -274,9 +297,6 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         return FTI_NSCS;
       }
-    }
-    else {
-      bzero(coding[FTI_Topo->groupRank], bs);
     }
 
     MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
@@ -324,33 +344,36 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // FTI-FF: if file ckpt file deleted, determine fs from recovered file
   if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
     char str[FTI_BUFS];
+    
     int ifd = open(fn, O_RDONLY);
-    FTIFF_metaInfo *metaInfo = malloc( sizeof( FTIFF_metaInfo ) );
-    char* buffer_ser = (char*) malloc( FTI_filemetastructsize );
-    if ( buffer_ser == NULL ) {
-      FTI_Print("failed to allocate memory for FTI-FF file meta data.", FTI_EROR);
+    if( ifd == -1 ) {
+      snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
+      FTI_Print( str, FTI_EROR);
       errno=0;
-      close(ifd);
       return FTI_NSCS;
     }
-    if ( read( ifd, buffer_ser, FTI_filemetastructsize ) == -1 ) {
+
+    if( lseek( ifd, -sizeof(off_t), SEEK_END ) == -1 ) {
       snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
       FTI_Print( str, FTI_EROR);
       errno=0;
       close(ifd);
       return FTI_NSCS;
     }
-    if ( FTIFF_DeserializeFileMeta( metaInfo, buffer_ser ) != FTI_SCES ) {
-      FTI_Print("failed to deserialize FTI-FF file meta data.", FTI_EROR);
+
+    off_t fs_;
+    if ( read( ifd, &fs_, sizeof(off_t) ) == -1 ) {
+      snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
+      FTI_Print( str, FTI_EROR);
       errno=0;
       close(ifd);
       return FTI_NSCS;
     }
-    fs = metaInfo->fs;
+    
+    fs = (long) fs_;
     FTI_Exec->meta[3].fs[0] = fs;
-    free( metaInfo );
+    
     close( ifd );
-    free(buffer_ser);
   }
 
   // FTI-FF: if encoded file deleted, append meta data to encoded file
@@ -457,7 +480,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
   if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-    if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
+    if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf ) != FTI_SCES ) {
       FTI_Print("No restart possible from L1. Ckpt files missing.", FTI_DBUG);
       return FTI_NSCS;
     }
@@ -645,7 +668,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int exists[4];
 
-    if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, exists ) != FTI_SCES ) {
+    if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf, exists ) != FTI_SCES ) {
       FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
       return FTI_NSCS;
     }

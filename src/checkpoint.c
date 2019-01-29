@@ -234,11 +234,11 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
         long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
-        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.dataSize };
+        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.pureDataSize };
         MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
         if ( FTI_Topo->splitRank ==  0 ) {
             FTI_Exec->FTIFFMeta.dcpSize = dcpStats[0]; 
-            FTI_Exec->FTIFFMeta.dataSize = dcpStats[1];
+            FTI_Exec->FTIFFMeta.pureDataSize = dcpStats[1];
         }
     }
 
