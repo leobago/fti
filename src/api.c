@@ -798,6 +798,93 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
   return FTI_SCES;
 }
 
+int FTI_DefineGlobalDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type)
+{
+    FTIT_globalDataset* last = FTI_Exec.globalDatasets;
+    
+    if ( last ) {
+        FTIT_globalDataset* curr = last;
+        while( curr ) {
+            if( id == last->id ) {
+                char str[FTI_BUFS];
+                snprintf( str, FTI_BUFS, "FTI_DefineGlobalDataset :: id '%d' is already taken.", id );
+                FTI_Print(str, FTI_EROR);
+                return FTI_NSCS;
+            }
+            last = curr;
+            curr = last->next;
+        }
+    }
+
+    last->next = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
+    last = last->next;
+
+    last->id = id;
+    last->initialized = false;
+    last->rank = rank;
+    int i;
+    for( i=0; i<rank; i++ ) {
+        last->dimension[i] = dimLength[i];
+    }
+    strncpy( last->name, name, FTI_BUFS );
+    last->name[FTI_BUFS-1] = '\0';
+    last->numSubSets = 0;
+    last->varIds = NULL;
+    last->type = type;
+
+    last->next = NULL;
+
+    return FTI_SCES;
+}
+
+#ifdef ENABLE_HDF5
+int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+{
+    int i, found=0, pvar_idx;
+    
+    for(i=0; i<FTI_Exec.nbVar; i++) {
+        if( FTI_Data[i].id == id ) {
+            found = 1;
+            pvar_idx = i;
+            break;
+        }
+    }
+    
+    if( !found ) {
+        FTI_Print( "variable id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+    found = 0;
+
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
+    while( dataset ) {
+        if( dataset->id == did ) {
+            found = 1;
+            break;
+        }
+        dataset = dataset->next;
+    }
+    
+    if( !found ) {
+        FTI_Print( "dataset id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+    if( dataset->rank != rank ) {
+        FTI_Print("rank missmatch!",FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    FTI_Data[pvar_idx].sharedData.dataset = dataset;
+    FTI_Data[pvar_idx].sharedData.offset = offset;
+    FTI_Data[pvar_idx].sharedData.count = count;
+
+    return FTI_SCES;
+
+}
+#endif
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Defines the dataset

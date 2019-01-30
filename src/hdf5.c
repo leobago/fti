@@ -35,7 +35,7 @@
  *  @date   November, 2017
  *  @brief  Funtions to support HDF5 checkpointing.
  */
-
+#define ENABLE_HDF5
 #ifdef ENABLE_HDF5
 #include "interface.h"
 #include "utility.h"
@@ -66,8 +66,17 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
+    hid_t file_id;
+    
     //Creating new hdf5 file
-    hid_t file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if( FTI_Conf->hdf5SharedFile ) {
+        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
+        file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
+        H5Pclose( plid );
+    } else {
+        file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    }
     if (file_id < 0) {
         sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
         FTI_Print(str, FTI_EROR);
@@ -122,7 +131,12 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         for (j = 0; j < FTI_Data[i].rank; j++) {
             dimLength[j] = FTI_Data[i].dimLength[j];
         }
-        herr_t res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+        herr_t res;
+        if( FTI_Conf->hdf5SharedFile ) {
+            res = FTI_WriteSharedFileData( FTI_Data[i] );
+        } else {
+            res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+        }
         if (res < 0) {
             sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
             FTI_Print(str, FTI_EROR);

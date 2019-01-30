@@ -113,6 +113,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
   /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
   /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
+  /* FTIT_globalDataset */ FTI_Exec->globalDatasets   =NULL;
   FTI_Exec->stageInfo             =NULL;
   /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
   FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
@@ -124,6 +125,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // +--------- +
 
   /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);
+  /* bool          */ FTI_Conf->hdf5SharedFile        =true;
   /* int           */ FTI_Conf->saveLastCkpt          =0;
   /* int           */ FTI_Conf->verbosity             =0;
   /* int           */ FTI_Conf->blockSize             =0;
@@ -691,6 +693,48 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
 }
 #endif
 
+#ifdef ENABLE_HDF5
+herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
+{
+
+    // hdf5 datatype
+    hid_t tid = FTI_Data.sharedData.dataset->type->h5datatype;
+    
+    // dataset hdf5-id
+    hid_t did = FTI_Data.sharedData.dataset->hid;
+
+    // shared dataset file space
+    hid_t fsid = FTI_Data.sharedData.dataset->fileSpace;
+    
+    // shared dataset rank
+    int ndim = FTI_Data.sharedData.dataset->rank;
+
+    // shared dataset array of nummber of elements in each dimension
+    hsize_t *count = FTI_Data.sharedData.count;
+
+    // shared dataset array of the offsets for each dimension
+    hsize_t *offset = FTI_Data.sharedData.offset;
+
+    // create dataspace for subset of shared dataset
+    hid_t msid = H5Screate_simple( ndim, count, NULL );
+
+    // select range in shared dataset in file
+    H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
+
+    // enable collective buffering
+    hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+    H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+
+    // write data in file
+    herr_t status = H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr);
+
+    H5Sclose( msid );
+    H5Sclose( plid );
+
+    return status;
+
+}
+#endif
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates the basic datatypes and the dataset array.

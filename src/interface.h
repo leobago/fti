@@ -229,6 +229,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
+herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data );
 void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
 void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
