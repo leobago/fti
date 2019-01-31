@@ -97,6 +97,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     copyDataFromDevive( FTI_Exec, FTI_Data );
 #endif
 
+    // create datatypes
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         int toCommit = 0;
         if (FTI_Data[i].type->h5datatype < 0) {
@@ -125,6 +126,14 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
+    }
+
+    if( FTI_Conf->hdf5SharedFile ) {
+        FTI_CreateGlobalDatasets( FTI_Exec, file_id );
+    }
+
+    // write data
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
         //convert dimLength array to hsize_t
         int j;
         hsize_t dimLength[32];
@@ -156,6 +165,10 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int j;
     for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
         FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+    }
+    
+    if( FTI_Conf->hdf5SharedFile ) {
+        FTI_CloseGlobalDatasets( FTI_Exec, file_id );
     }
 
     // close file

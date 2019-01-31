@@ -336,6 +336,7 @@ extern "C" {
     int                         id;
     int                         numSubSets;
     int*                        varIds;
+    FTIT_H5Group*               location;
 #ifdef ENABLE_HDF5
     hid_t                       hid;
     hid_t                       fileSpace;
@@ -624,7 +625,7 @@ extern "C" {
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
-  int FTI_DefineGlobalDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type);
+  int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type);
   long FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);

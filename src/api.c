@@ -798,7 +798,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
   return FTI_SCES;
 }
 
-int FTI_DefineGlobalDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type)
+int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type)
 {
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;
     
@@ -814,14 +814,17 @@ int FTI_DefineGlobalDataset(int id, int rank, int* dimLength, char* name, FTIT_H
             last = curr;
             curr = last->next;
         }
+        last->next = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
+        last = last->next;
+    } else {
+        last = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
+        FTI_Exec.globalDatasets = last;
     }
-
-    last->next = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
-    last = last->next;
 
     last->id = id;
     last->initialized = false;
     last->rank = rank;
+    last->dimension = (hsize_t*) malloc( sizeof(hsize_t) * rank );
     int i;
     for( i=0; i<rank; i++ ) {
         last->dimension[i] = dimLength[i];
@@ -831,6 +834,7 @@ int FTI_DefineGlobalDataset(int id, int rank, int* dimLength, char* name, FTIT_H
     last->numSubSets = 0;
     last->varIds = NULL;
     last->type = type;
+    last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
 
     last->next = NULL;
 
@@ -877,8 +881,12 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
     }
     
     FTI_Data[pvar_idx].sharedData.dataset = dataset;
-    FTI_Data[pvar_idx].sharedData.offset = offset;
-    FTI_Data[pvar_idx].sharedData.count = count;
+    FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    FTI_Data[pvar_idx].sharedData.count = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    for(i=0; i<rank; i++) {
+        FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
+        FTI_Data[pvar_idx].sharedData.count[i] = count[i];
+    }
 
     return FTI_SCES;
 

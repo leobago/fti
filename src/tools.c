@@ -694,6 +694,63 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
 #endif
 
 #ifdef ENABLE_HDF5
+int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
+{
+    
+    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+
+        // create file space
+        dataset->fileSpace = H5Screate_simple( dataset->rank, dataset->dimension, NULL );
+
+        if(dataset->fileSpace < 0) {
+            FTI_Print("ERROR ON FILESPACE",FTI_EROR);
+            exit(0);
+        }
+        DBG_MSG("FILESPACE hid: %lu",-1, dataset->fileSpace);
+        // create dataset
+        hid_t loc = dataset->location->h5groupID;
+        hid_t tid = dataset->type->h5datatype;
+        hid_t fsid = dataset->fileSpace;
+
+        dataset->hid = H5Dcreate( loc, dataset->name, tid, fsid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+        if(dataset->hid < 0) {
+            FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
+            exit(0);
+        }
+        DBG_MSG("DATASET hid: %lu",-1, dataset->hid);
+
+        dataset->initialized = true;
+
+        dataset = dataset->next;
+
+    }
+
+    return FTI_SCES;
+
+}
+#endif
+
+#ifdef ENABLE_HDF5
+int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
+{
+    
+    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+
+        H5Sclose(dataset->fileSpace);
+
+        H5Dclose(dataset->hid);
+
+        dataset = dataset->next;
+
+    }
+
+    return FTI_SCES;
+
+}
+#endif
+#ifdef ENABLE_HDF5
 herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 {
 
@@ -717,7 +774,15 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
     // create dataspace for subset of shared dataset
     hid_t msid = H5Screate_simple( ndim, count, NULL );
+    if(msid < 0) {
+        FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
+        exit(0);
+    }
+    DBG_MSG("MEMSPACE hid: %lu",-1, msid);
 
+    DBG_MSG("OFFSET[0]: %lu, OFFSET[1]: %lu, COUNT[0]: %lu, COUNT[1]: %lu, Rank: %d Dimension[0]: %lu, Dimension[1]: %lu",0,
+            offset[0], offset[1], count[0], count[1], ndim, FTI_Data.sharedData.dataset->dimension[0], FTI_Data.sharedData.dataset->dimension[1]);
+    MPI_Barrier(FTI_COMM_WORLD);
     // select range in shared dataset in file
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
@@ -727,9 +792,13 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
     // write data in file
     herr_t status = H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr);
+    if(status < 0) {
+        FTI_Print("ERROR ON LOCAL DATASET WRITE",FTI_EROR);
+        exit(0);
+    }
 
     H5Sclose( msid );
-    H5Sclose( plid );
+    H5Pclose( plid );
 
     return status;
 

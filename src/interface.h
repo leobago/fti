@@ -235,6 +235,8 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
 void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
+int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId );
+int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId );
 #endif
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
