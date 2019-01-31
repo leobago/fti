@@ -192,16 +192,29 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                    FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
 
+    DBG_MSG("level: %d, fn: %s",0, FTI_Exec->ckptLvel, fn);
+    MPI_Barrier(FTI_COMM_WORLD);
+
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
-
-    hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+    
+    hid_t file_id;
+    
+    //Open hdf5 file
+    if( FTI_Conf->hdf5SharedFile ) {
+        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+        H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
+        file_id = H5Fopen( fn, H5F_ACC_RDWR, plid );
+        H5Pclose( plid );
+    } else {
+        file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+    }
     if (file_id < 0) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
@@ -216,7 +229,19 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-        herr_t res = H5LTread_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+    }
+    
+    if( FTI_Conf->hdf5SharedFile ) {
+        FTI_OpenGlobalDatasets( FTI_Exec, file_id );
+    }
+
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        herr_t res;
+        if( FTI_Conf->hdf5SharedFile ) {
+            res = FTI_ReadSharedFileData( FTI_Data[i] );
+        } else {
+            res = H5LTread_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
+        }
         if (res < 0) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             int j;
@@ -226,12 +251,18 @@ int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
             H5Fclose(file_id);
             return FTI_NREC;
         }
+    }
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
     }
 
     int j;
     for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
         FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+    }
+    
+    if( FTI_Conf->hdf5SharedFile ) {
+        FTI_CloseGlobalDatasets( FTI_Exec, file_id );
     }
 
     FTI_Exec->H5groups[0]->h5groupID = -1;

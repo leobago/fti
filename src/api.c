@@ -798,7 +798,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
   return FTI_SCES;
 }
 
-int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type* type)
+int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;
     
@@ -1933,7 +1933,7 @@ int FTI_Recover()
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
   if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-    int ret = FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
+    int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
     copyDataToDevice();
     return ret; 
   }

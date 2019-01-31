@@ -276,7 +276,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
-    if (FTI_Topo->groupSize <= 2 && (L2req || RSreq)) {
+    if (FTI_Topo->groupSize < 2 && (L2req || RSreq)) {
         FTI_Print("The group size must be bigger than 2", FTI_WARN);
         return FTI_NSCS;
     }

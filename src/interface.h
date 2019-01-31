@@ -151,10 +151,12 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
                   FTIT_dataset* FTI_Data);
-int FTI_RecoverHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_dataset* FTI_Data, int id);
+int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId );
+herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data );
 #endif
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
