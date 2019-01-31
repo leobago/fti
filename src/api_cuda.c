@@ -5,13 +5,13 @@
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
+cudaStream_t Gstream; 
 #endif
 
 
 
 void *hostBuffers[2];
 size_t bufferSize;
-cudaStream_t Gstream; 
 
 
 /*-------------------------------------------------------------------------*/
