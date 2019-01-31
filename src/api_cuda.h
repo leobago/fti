@@ -76,5 +76,6 @@ int FTI_InitDevices ( int HostBuffSize );
 int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes);
 BYTE *FTI_getHostBuffer( int id );
 size_t FTI_getHostBuffSize();
-
+int FTI_copy_to_device_async(void *dst, const void *src, size_t count);
+int FTI_device_sync();
 #endif

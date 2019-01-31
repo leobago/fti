@@ -48,6 +48,7 @@ if(ENABLE_SIONLIB)
 endif()
 
 if (ENABLE_GPU)
+        add_subdirectory(dCPGPU)
         if(ENABLE_HDF5)
             add_subdirectory(hdf5GPU)
         endif()

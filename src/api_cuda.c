@@ -11,6 +11,7 @@
 
 void *hostBuffers[2];
 size_t bufferSize;
+cudaStream_t Gstream; 
 
 
 /*-------------------------------------------------------------------------*/
@@ -50,6 +51,7 @@ int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
     }
 
     FTI_Print(message, FTI_DBUG);
+    cudaGetLastError();
 
 #endif    
     return FTI_SCES;
@@ -263,6 +265,7 @@ int FTI_InitDevices ( int HostBuffSize ){
     bufferSize = HostBuffSize;
     CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[0], HostBuffSize, cudaHostAllocDefault));
     CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[1], HostBuffSize, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaStreamCreate(&Gstream));
 #endif
     return FTI_SCES;
 }
@@ -282,6 +285,7 @@ int FTI_DestroyDevices(){
 #else
     CUDA_ERROR_CHECK(cudaFreeHost(hostBuffers[0]));
     CUDA_ERROR_CHECK(cudaFreeHost(hostBuffers[1]));
+    CUDA_ERROR_CHECK(cudaStreamDestroy(Gstream));
     return FTI_SCES;
 #endif
 }
@@ -364,4 +368,41 @@ size_t FTI_getHostBuffSize(){
 BYTE *FTI_getHostBuffer( int id ){
     return hostBuffers[id];
 }
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Copies asynchronously memory from host to device 
+  @param    dst   Memory location to copy data to. 
+  @param    src   Memory location to copy data from.
+  @param    count Number of bytes to copy
+  @return     integer        FTI_SCES on success.
 
+  Copies data from a CPU memory Location to a GPU
+  memory location. Attention neither src or dest can
+  be de allocated until the transaction is finished. 
+
+ **/
+/*-------------------------------------------------------------------------*/
+
+int FTI_copy_to_device_async(void *dst, const void *src, size_t count)
+{
+#ifdef GPUSUPPORT
+  CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice,Gstream));
+#endif
+  return FTI_SCES;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Synchronizes the devices 
+  @return     integer        FTI_SCES on success.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_device_sync()
+{
+#ifdef GPUSUPPORT
+  CUDA_ERROR_CHECK(cudaStreamSynchronize(Gstream));
+#endif
+  return FTI_SCES;
+}
