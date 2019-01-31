@@ -13,6 +13,7 @@ if(ENABLE_HDF5)
 
     add_executable(hdf5CreateBasePattern hdf5CreateBasePattern.c)
     target_link_libraries(hdf5CreateBasePattern ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+    file(COPY hdf5Test.sh DESTINATION .)
 endif()
 
 add_executable(heatdis heatdis.c)
@@ -35,9 +36,6 @@ add_subdirectory(ckptHierarchy)
 if (ENABLE_GPU)
   message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
   add_subdirectory(cuda)
-    if(ENABLE_HDF5)
-        file(COPY hdf5Test.sh DESTINATION .)
-    endif()
 endif()
 
 file(COPY configs DESTINATION .)
