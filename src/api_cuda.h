@@ -69,7 +69,7 @@ int FTI_copy_from_device(void *dst, const void *src, size_t count,  FTIT_executi
 int FTI_copy_to_device(void *dst, const void *src, size_t count,  FTIT_execution *exec);
 int FTI_TransferDeviceMemToFileAsync(FTIT_dataset *FTI_Data,  FTIT_fwritefunc fwritefunc, void *opaque);
 int FTI_InitPrefetcher(FTIT_data_prefetch *dfls);
-int FTI_getPrefetchedData( FTIT_data_prefetch *dfls, size_t *size, unsigned  char **fetchedData; );
+int FTI_getPrefetchedData( FTIT_data_prefetch *dfls, size_t *size, unsigned  char **fetchedData );
 int FTI_destroyPrefetcher(FTIT_data_prefetch *dfls);
 int FTI_DestroyDevices();
 int FTI_InitDevices ( int HostBuffSize );
