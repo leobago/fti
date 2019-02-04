@@ -184,8 +184,17 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
     FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
 #endif
+    char *h5SingleFile = iniparser_getstring(ini, "basic:h5_single_file_path", NULL);
+    if( h5SingleFile ) {
+        if( strncmp( h5SingleFile, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFilePath, FTI_BUFS, "%s", h5SingleFile);
+        }
+    } else {
+        FTI_Conf->h5SingleFilePath[0] = '\0';
+    }
 
-    // Reading/setting execution metadata
+
+    // Reading/setting execution metadaFa
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
     FTI_Exec->ckpt = 0;
@@ -205,7 +214,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meanIterTime = 0;
     FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
-    if (FTI_Exec->reco == 0) {
+    if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
@@ -403,6 +412,25 @@ CHECK_DCP_SETTING_END:
             break;
 
     }
+    
+    // check variate processor restart settings
+    if( FTI_Exec->reco == 3 ) {
+        FTI_Print("VPR requested. Checking configuration requirements...", FTI_INFO);
+        if( strncmp( FTI_Conf->h5SingleFilePath, "", 1 ) == 0 ) {
+            FTI_Print("'h5_single_file_path' not provided. VPR failed!", FTI_WARN);
+            FTI_Exec->reco = 0;
+        } else if( FTI_Conf->ioMode != FTI_IO_HDF5 ) {
+            char tmpstr[FTI_BUFS];
+            snprintf( tmpstr, FTI_BUFS, "I/O mode has to be hdf5 ('ckpt_io = %d'). VPR failed!", FTI_IO_HDF5 - 1000 ); 
+            FTI_Print(tmpstr, FTI_WARN);
+            FTI_Exec->reco = 0;
+        } else {
+            char tmpstr[FTI_BUFS];
+            snprintf( tmpstr, FTI_BUFS, "VPR configuration test passed, attempting recovery from file '%s'", FTI_Conf->h5SingleFilePath );
+            FTI_Print(tmpstr, FTI_INFO);
+        }
+    }    
+   
         return FTI_SCES;
 }
 

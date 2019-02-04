@@ -39,6 +39,7 @@
 #include "interface.h"
 #include <dirent.h>
 #include "api_cuda.h"
+#include <hdf5.h>
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
@@ -125,7 +126,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // +--------- +
 
   /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);
-  /* bool          */ FTI_Conf->hdf5SharedFile        =true;
   /* int           */ FTI_Conf->saveLastCkpt          =0;
   /* int           */ FTI_Conf->verbosity             =0;
   /* int           */ FTI_Conf->blockSize             =0;
@@ -707,7 +707,6 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
             FTI_Print("ERROR ON FILESPACE",FTI_EROR);
             exit(0);
         }
-        DBG_MSG("FILESPACE hid: %lu",-1, dataset->fileSpace);
         // create dataset
         hid_t loc = dataset->location->h5groupID;
         hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
@@ -811,11 +810,6 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
         exit(0);
     }
-    DBG_MSG("MEMSPACE hid: %lu",-1, msid);
-
-    DBG_MSG("OFFSET[0]: %lu, OFFSET[1]: %lu, COUNT[0]: %lu, COUNT[1]: %lu, Rank: %d Dimension[0]: %lu, Dimension[1]: %lu",0,
-            offset[0], offset[1], count[0], count[1], ndim, FTI_Data.sharedData.dataset->dimension[0], FTI_Data.sharedData.dataset->dimension[1]);
-    MPI_Barrier(FTI_COMM_WORLD);
     // select range in shared dataset in file
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
@@ -837,6 +831,56 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
 }
 #endif
+
+int FTI_ScanGroup( hid_t gid, char* fn ) {
+    int res = FTI_SCES;
+    char errstr[FTI_BUFS];
+    hsize_t nobj;
+    if( H5Gget_num_objs( gid, &nobj ) >= 0 ) {
+        int i;
+        for(i=0; i<nobj; i++) {
+            int objtype;
+            char dname[FTI_BUFS];
+            char gname[FTI_BUFS];
+            objtype = H5Gget_objtype_by_idx(gid, (size_t)i );
+            if( objtype == H5G_DATASET ) {
+                H5Gget_objname_by_idx(gid, (hsize_t)i, dname, (size_t) FTI_BUFS); 
+                DBG_MSG("exporing dataset '%s'", 0, dname);
+                hid_t did = H5Dopen1( gid, dname );
+                if( did > 0 ) {
+                    hid_t sid = H5Dget_space(did);
+                    hid_t tid = H5Dget_type(did);
+                    int drank = H5Sget_simple_extent_ndims( sid );
+                    size_t typeSize = H5Tget_size( tid );
+                    hsize_t *count = (hsize_t*) malloc( drank );
+                    hid_t msid = H5Screate_simple( drank, count, NULL );
+                } else {
+                    snprintf( errstr, FTI_BUFS, "failed to open dataset '%s' in file '%s'", dname, fn );
+                    FTI_Print( errstr, FTI_WARN );
+                    res += FTI_NSCS;
+                }
+            }
+            if( objtype == H5G_GROUP ) {
+                H5Gget_objname_by_idx(gid, (hsize_t)i, gname, (size_t) FTI_BUFS); 
+                DBG_MSG("exporing group '%s'", 0, gname);
+                hid_t sgid = H5Gopen1( gid, gname );
+                if( sgid > 0 ) {
+                    res += FTI_ScanGroup( sgid, fn );
+                    H5Gclose(sgid);
+                } else {
+                    snprintf( errstr, FTI_BUFS, "failed to open group '%s' in file '%s'", gname, fn );
+                    FTI_Print( errstr, FTI_WARN );
+                    res += FTI_NSCS;
+                }
+            }
+        }
+    } else {
+        snprintf( errstr, FTI_BUFS, "failed to get number of elements in file '%s'", fn );
+        FTI_Print( errstr, FTI_WARN );
+        res += FTI_NSCS;
+    }
+    return FTI_SCES;
+}
 
 #ifdef ENABLE_HDF5
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
@@ -866,11 +910,7 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
         FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
         exit(0);
     }
-    DBG_MSG("MEMSPACE hid: %lu",-1, msid);
 
-    DBG_MSG("OFFSET[0]: %lu, OFFSET[1]: %lu, COUNT[0]: %lu, COUNT[1]: %lu, Rank: %d Dimension[0]: %lu, Dimension[1]: %lu",0,
-            offset[0], offset[1], count[0], count[1], ndim, FTI_Data.sharedData.dataset->dimension[0], FTI_Data.sharedData.dataset->dimension[1]);
-    MPI_Barrier(FTI_COMM_WORLD);
     // select range in shared dataset in file
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
 

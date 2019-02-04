@@ -7,8 +7,6 @@
 #ifndef _FTI_H
 #define _FTI_H
 
-#define ENABLE_HDF5
-
 #include <mpi.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -113,7 +111,11 @@
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
 #endif
-
+// need this parameter in one fti api function
+#ifndef _HDF5_H
+typedef unsigned long long 	hsize_t;
+typedef signed long long	hssize_t;
+#endif
 #include <fti-int/incremental_checkpoint.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
@@ -140,8 +142,9 @@ extern "C" {
     FTI_L2_DCP,
     FTI_L3_DCP,
     FTI_L4_DCP,
+    FTI_L4_H5_SINGLE,
     FTI_MIN_LEVEL_ID = FTI_L1,
-    FTI_MAX_LEVEL_ID = FTI_L4_DCP
+    FTI_MAX_LEVEL_ID = FTI_L4_H5_SINGLE
   } FTIT_level;
 
   typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
@@ -333,6 +336,7 @@ extern "C" {
   typedef struct FTIT_globalDataset {
     bool                        initialized;
     int                         rank;
+    int                         rankRestored;
     int                         id;
     int                         numSubSets;
     int*                        varIds;
@@ -342,6 +346,7 @@ extern "C" {
     hid_t                       fileSpace;
     hid_t                       hdf5TypeId;
     hsize_t*                    dimension;
+    hsize_t*                    dimensionRestored;
     struct FTIT_globalDataset*  next;
 #endif
     FTIT_type                   type;
@@ -440,6 +445,7 @@ extern "C" {
     int                     syncIterMax;        /**< Maximal synch. intervall.      */
     unsigned int            minuteCnt;          /**< Checkpoint minute counter.     */
     bool                    hasCkpt;            /**< Indicator that ckpt exists     */
+    bool                    h5SingleFile;       /**< Indicator if HDF5 single file  */
     unsigned int            ckptCnt;            /**< Checkpoint number counter.     */
     unsigned int            ckptIcnt;           /**< Iteration loop counter.        */
     unsigned int            ckptID;             /**< Checkpoint ID.                 */
@@ -481,7 +487,6 @@ extern "C" {
     bool            dcpEnabled;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
     bool            keepHeadsAlive;     /**< TRUE if heads return           */
-    bool            hdf5SharedFile;
     int             dcpMode;            /**< dCP mode.                      */
     int             dcpBlockSize;       /**< Block size for dCP hash        */
     char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
@@ -501,6 +506,7 @@ extern "C" {
     int             test;               /**< TRUE if local test.            */
     int             l3WordSize;         /**< RS encoding word size.         */
     int             ioMode;             /**< IO mode for L4 ckpt.           */
+    char            h5SingleFilePath[FTI_BUFS]; /**< HDF5 single file path  */
     char            stageDir[FTI_BUFS]; /**< Staging directory.             */
     char            localDir[FTI_BUFS]; /**< Local directory.               */
     char            glbalDir[FTI_BUFS]; /**< Global directory.              */

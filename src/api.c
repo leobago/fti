@@ -1210,6 +1210,18 @@ int FTI_Checkpoint(int id, int level)
         }
         level = 4;
     }
+    
+    // reset hdf5 single file requests.
+    FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
+            FTI_Exec.h5SingleFile = true;
+        } else {
+            FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
+        }
+        level = 4;
+    }
+
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -1913,23 +1925,23 @@ int FTI_Recover()
     char str[FTI_BUFS]; //For console output
 
     //Check if nubmer of protected variables matches
-    if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
-        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-                FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
+    //if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
+    //    sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+    //            FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+    //    FTI_Print(str, FTI_WARN);
+    //    return FTI_NREC;
+    //}
     //Check if sizes of protected variables matches
     int i;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                    FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                    FTI_Data[i].size);
-            FTI_Print(str, FTI_WARN);
-            return FTI_NREC;
-        }
-    }
+    //for (i = 0; i < FTI_Exec.nbVar; i++) {
+    //    if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+    //        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+    //                FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+    //                FTI_Data[i].size);
+    //        FTI_Print(str, FTI_WARN);
+    //        return FTI_NREC;
+    //    }
+    //}
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
   if (FTI_Conf.ioMode == FTI_IO_HDF5) {

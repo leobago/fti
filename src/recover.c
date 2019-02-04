@@ -176,6 +176,17 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if (!FTI_Topo->amIaHead) {
+        if( FTI_Exec->reco == 3 ) {
+            int res = FTI_SCES, allRes;
+            if( FTI_Topo->splitRank == 0 ) {
+                res = FTI_H5CheckSingleFile( FTI_Conf );
+            }
+            MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+            if( allRes == FTI_SCES ) {
+                FTI_Exec->h5SingleFile = true;
+            }
+            return allRes;
+        }
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;
         for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
@@ -197,6 +208,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
                 FTI_Print(str, FTI_DBUG);
+                
 
                 int res;
                 switch (level) {

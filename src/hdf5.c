@@ -65,11 +65,14 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
+    if( FTI_Exec->h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s", FTI_Conf->h5SingleFilePath );
+    }
 
     hid_t file_id;
     
     //Creating new hdf5 file
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
         file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
@@ -128,7 +131,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         FTI_CreateGlobalDatasets( FTI_Exec, file_id );
     }
 
@@ -141,7 +144,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             dimLength[j] = FTI_Data[i].dimLength[j];
         }
         herr_t res;
-        if( FTI_Conf->hdf5SharedFile ) {
+        if( FTI_Exec->h5SingleFile ) { 
             res = FTI_WriteSharedFileData( FTI_Data[i] );
         } else {
             res = H5LTmake_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].rank, dimLength, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
@@ -167,7 +170,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
     }
     
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         FTI_CloseGlobalDatasets( FTI_Exec, file_id );
     }
 
@@ -197,9 +200,9 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
-
-    DBG_MSG("level: %d, fn: %s",0, FTI_Exec->ckptLvel, fn);
-    MPI_Barrier(FTI_COMM_WORLD);
+    if( FTI_Exec->h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s", FTI_Conf->h5SingleFilePath );
+    }
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
@@ -207,7 +210,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     hid_t file_id;
     
     //Open hdf5 file
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
         file_id = H5Fopen( fn, H5F_ACC_RDWR, plid );
@@ -231,13 +234,13 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
     }
     
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         FTI_OpenGlobalDatasets( FTI_Exec, file_id );
     }
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         herr_t res;
-        if( FTI_Conf->hdf5SharedFile ) {
+        if( FTI_Exec->h5SingleFile ) { 
             res = FTI_ReadSharedFileData( FTI_Data[i] );
         } else {
             res = H5LTread_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, FTI_Data[i].type->h5datatype, FTI_Data[i].ptr);
@@ -261,7 +264,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
     }
     
-    if( FTI_Conf->hdf5SharedFile ) {
+    if( FTI_Exec->h5SingleFile ) { 
         FTI_CloseGlobalDatasets( FTI_Exec, file_id );
     }
 
@@ -339,6 +342,38 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         return FTI_NREC;
     }
     return FTI_SCES;
+}
+            
+int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf ) {
+    // FIXME DUMMY IMPLEMENTATION
+    int drank_tmp;
+    char errstr[FTI_BUFS];
+    int res = FTI_SCES;
+    herr_t err;
+    struct stat st;
+    stat( FTI_Conf->h5SingleFilePath, &st );
+    if( S_ISREG( st.st_mode ) ) {
+        hid_t fid = H5Fopen( FTI_Conf->h5SingleFilePath, H5F_ACC_RDONLY, H5P_DEFAULT );
+        if( fid > 0 ) {
+            hid_t gid = H5Gopen1( fid, "/" );
+            if( gid > 0 ) {
+                res += FTI_ScanGroup( gid, FTI_Conf->h5SingleFilePath );
+            } else {
+                snprintf( errstr, FTI_BUFS, "failed to access root group in file '%s'", FTI_Conf->h5SingleFilePath );
+                FTI_Print( errstr, FTI_WARN );
+                res = FTI_NSCS;
+            }
+        } else {
+            snprintf( errstr, FTI_BUFS, "failed to open file '%s'", FTI_Conf->h5SingleFilePath );
+            FTI_Print( errstr, FTI_WARN );
+            res = FTI_NSCS;
+        }
+    } else {
+        snprintf( errstr, FTI_BUFS, "'%s', is not a regular file!", FTI_Conf->h5SingleFilePath );
+        FTI_Print( errstr, FTI_WARN );
+        res = FTI_NSCS;
+    }
+    return res;
 }
 
 #endif
