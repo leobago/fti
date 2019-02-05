@@ -712,6 +712,14 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
         hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
+        
+        // NOT SUPPORTED FOR PARALLEL I/O IN HDF5
+        //hid_t dcpl = H5Pcreate (H5P_DATASET_CREATE);
+        //H5Pset_fletcher32 (dcpl);
+        //
+        //hsize_t *chunk = malloc( sizeof(hsize_t) * dataset->rank );
+        //chunk[0] = chunk[1] = 4096;
+        //H5Pset_chunk (dcpl, 2, chunk);
 
         dataset->hid = H5Dcreate( loc, dataset->name, tid, fsid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
         if(dataset->hid < 0) {
@@ -734,12 +742,10 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 {
     
+    char errstr[FTI_BUFS];
     FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
     while( dataset ) {
 
-        // create file space
-        dataset->fileSpace = H5Screate_simple( dataset->rank, dataset->dimension, NULL );
-        
         // open dataset
         hid_t loc = dataset->location->h5groupID;
         hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
@@ -747,10 +753,36 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 
         dataset->hid = H5Dopen( loc, dataset->name, H5P_DEFAULT );
         if(dataset->hid < 0) {
-            FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
-            exit(0);
+            snprintf( errstr, FTI_BUFS, "failed to open dataset '%s'", dataset->name );
+            FTI_Print( errstr, FTI_WARN );
+            return FTI_NSCS;
         }
-
+        
+        // get file space and check if rank and dimension coincide for file and execution
+        hid_t fsid = H5Dget_space( dataset->hid );
+        if( fsid > 0 ) {
+            int rank = H5Sget_simple_extent_ndims( fsid );
+            if( rank == dataset->rank ) {
+                hsize_t *dims = (hsize_t*) malloc( sizeof(hsize_t)*rank ); 
+                hsize_t *maxDims = (hsize_t*) malloc( sizeof(hsize_t)*rank );
+                H5Sget_simple_extent_dims( fsid, dims, maxDims );
+                if( memcmp( dims, dataset->dimension, sizeof(hsize_t)*rank ) ) {
+                    snprintf( errstr, FTI_BUFS, "stored and requested dimensions of dataset '%s' differ!", dataset->name );
+                    FTI_Print( errstr, FTI_WARN );
+                    return FTI_NSCS;
+                }
+            } else {
+                snprintf( errstr, FTI_BUFS, "stored and requested rank of dataset '%s' differ (stored:%d != requested:%d)!", dataset->name, rank, dataset->rank );
+                FTI_Print( errstr, FTI_WARN );
+                return FTI_NSCS;
+            }
+        } else {
+            snprintf( errstr, FTI_BUFS, "failed to acquire data space information of dataset '%s'", dataset->name );
+            FTI_Print( errstr, FTI_WARN );
+            return FTI_NSCS;
+        }    
+        dataset->fileSpace = fsid;
+        
         dataset->initialized = true;
 
         dataset = dataset->next;
@@ -832,6 +864,43 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 }
 #endif
 
+#ifdef ENABLE_HDF5
+int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf ) 
+{
+    int drank_tmp;
+    char errstr[FTI_BUFS];
+    int res = FTI_SCES;
+    herr_t err;
+    struct stat st;
+    stat( FTI_Conf->h5SingleFilePath, &st );
+    if( S_ISREG( st.st_mode ) ) {
+        hid_t fid = H5Fopen( FTI_Conf->h5SingleFilePath, H5F_ACC_RDONLY, H5P_DEFAULT );
+        if( fid > 0 ) {
+            hid_t gid = H5Gopen1( fid, "/" );
+            if( gid > 0 ) {
+                res += FTI_ScanGroup( gid, FTI_Conf->h5SingleFilePath );
+                H5Gclose(gid);
+            } else {
+                snprintf( errstr, FTI_BUFS, "failed to access root group in file '%s'", FTI_Conf->h5SingleFilePath );
+                FTI_Print( errstr, FTI_WARN );
+                res = FTI_NSCS;
+            }
+            H5Fclose(fid);
+        } else {
+            snprintf( errstr, FTI_BUFS, "failed to open file '%s'", FTI_Conf->h5SingleFilePath );
+            FTI_Print( errstr, FTI_WARN );
+            res = FTI_NSCS;
+        }
+    } else {
+        snprintf( errstr, FTI_BUFS, "'%s', is not a regular file!", FTI_Conf->h5SingleFilePath );
+        FTI_Print( errstr, FTI_WARN );
+        res = FTI_NSCS;
+    }
+    return res;
+}
+#endif
+
+#ifdef ENABLE_HDF5
 int FTI_ScanGroup( hid_t gid, char* fn ) {
     int res = FTI_SCES;
     char errstr[FTI_BUFS];
@@ -842,27 +911,43 @@ int FTI_ScanGroup( hid_t gid, char* fn ) {
             int objtype;
             char dname[FTI_BUFS];
             char gname[FTI_BUFS];
+            // determine if element is group or dataset
             objtype = H5Gget_objtype_by_idx(gid, (size_t)i );
             if( objtype == H5G_DATASET ) {
                 H5Gget_objname_by_idx(gid, (hsize_t)i, dname, (size_t) FTI_BUFS); 
-                DBG_MSG("exporing dataset '%s'", 0, dname);
+                // open dataset
                 hid_t did = H5Dopen1( gid, dname );
                 if( did > 0 ) {
                     hid_t sid = H5Dget_space(did);
                     hid_t tid = H5Dget_type(did);
                     int drank = H5Sget_simple_extent_ndims( sid );
                     size_t typeSize = H5Tget_size( tid );
-                    hsize_t *count = (hsize_t*) malloc( drank );
+                    hsize_t *count = (hsize_t*) calloc( drank, sizeof(hsize_t) );
+                    hsize_t *offset = (hsize_t*) calloc( drank, sizeof(hsize_t) );
+                    count[0] = 1;
+                    char* buffer = (char*) malloc( typeSize );
                     hid_t msid = H5Screate_simple( drank, count, NULL );
+                    H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+                    // read element to trigger checksum comparison
+                    herr_t status = H5Dread(did, tid, msid, sid, H5P_DEFAULT, buffer);
+                    if( status < 0 ) {
+                        snprintf( errstr, FTI_BUFS, "unable to read from dataset '%s' in file '%s'!", dname, fn );
+                        FTI_Print( errstr, FTI_WARN );
+                        res += FTI_NSCS;
+                    }
+                    H5Dclose(did);
+                    H5Sclose(msid);
+                    H5Sclose(sid);
+                    H5Tclose(tid);
                 } else {
                     snprintf( errstr, FTI_BUFS, "failed to open dataset '%s' in file '%s'", dname, fn );
                     FTI_Print( errstr, FTI_WARN );
                     res += FTI_NSCS;
                 }
             }
+            // step down other group
             if( objtype == H5G_GROUP ) {
                 H5Gget_objname_by_idx(gid, (hsize_t)i, gname, (size_t) FTI_BUFS); 
-                DBG_MSG("exporing group '%s'", 0, gname);
                 hid_t sgid = H5Gopen1( gid, gname );
                 if( sgid > 0 ) {
                     res += FTI_ScanGroup( sgid, fn );
@@ -881,6 +966,7 @@ int FTI_ScanGroup( hid_t gid, char* fn ) {
     }
     return FTI_SCES;
 }
+#endif
 
 #ifdef ENABLE_HDF5
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )

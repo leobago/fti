@@ -824,11 +824,15 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->id = id;
     last->initialized = false;
     last->rank = rank;
+#ifdef ENABLE_HDF5
+    last->hid = -1;
+    last->fileSpace = -1;
     last->dimension = (hsize_t*) malloc( sizeof(hsize_t) * rank );
     int i;
     for( i=0; i<rank; i++ ) {
         last->dimension[i] = dimLength[i];
     }
+#endif
     strncpy( last->name, name, FTI_BUFS );
     last->name[FTI_BUFS-1] = '\0';
     last->numSubSets = 0;

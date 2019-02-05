@@ -183,6 +183,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
             MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
             if( allRes == FTI_SCES ) {
+                char str[FTI_BUFS];
+                snprintf(str, FTI_BUFS, "VPR recovery successfull from file '%s'", FTI_Conf->h5SingleFilePath );
+                FTI_Print(str, FTI_INFO);
                 FTI_Exec->h5SingleFile = true;
             }
             return allRes;

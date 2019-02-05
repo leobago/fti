@@ -112,7 +112,7 @@
 #include "hdf5.h"
 #endif
 // need this parameter in one fti api function
-#ifndef _HDF5_H
+#ifndef ENABLE_HDF5
 typedef unsigned long long 	hsize_t;
 typedef signed long long	hssize_t;
 #endif
@@ -336,7 +336,6 @@ extern "C" {
   typedef struct FTIT_globalDataset {
     bool                        initialized;
     int                         rank;
-    int                         rankRestored;
     int                         id;
     int                         numSubSets;
     int*                        varIds;
@@ -346,9 +345,8 @@ extern "C" {
     hid_t                       fileSpace;
     hid_t                       hdf5TypeId;
     hsize_t*                    dimension;
-    hsize_t*                    dimensionRestored;
-    struct FTIT_globalDataset*  next;
 #endif
+    struct FTIT_globalDataset*  next;
     FTIT_type                   type;
     char                        name[FTI_BUFS];
   } FTIT_globalDataset;

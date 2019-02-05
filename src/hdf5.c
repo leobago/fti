@@ -213,7 +213,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     if( FTI_Exec->h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
-        file_id = H5Fopen( fn, H5F_ACC_RDWR, plid );
+        file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
         H5Pclose( plid );
     } else {
         file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -344,36 +344,4 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     return FTI_SCES;
 }
             
-int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf ) {
-    // FIXME DUMMY IMPLEMENTATION
-    int drank_tmp;
-    char errstr[FTI_BUFS];
-    int res = FTI_SCES;
-    herr_t err;
-    struct stat st;
-    stat( FTI_Conf->h5SingleFilePath, &st );
-    if( S_ISREG( st.st_mode ) ) {
-        hid_t fid = H5Fopen( FTI_Conf->h5SingleFilePath, H5F_ACC_RDONLY, H5P_DEFAULT );
-        if( fid > 0 ) {
-            hid_t gid = H5Gopen1( fid, "/" );
-            if( gid > 0 ) {
-                res += FTI_ScanGroup( gid, FTI_Conf->h5SingleFilePath );
-            } else {
-                snprintf( errstr, FTI_BUFS, "failed to access root group in file '%s'", FTI_Conf->h5SingleFilePath );
-                FTI_Print( errstr, FTI_WARN );
-                res = FTI_NSCS;
-            }
-        } else {
-            snprintf( errstr, FTI_BUFS, "failed to open file '%s'", FTI_Conf->h5SingleFilePath );
-            FTI_Print( errstr, FTI_WARN );
-            res = FTI_NSCS;
-        }
-    } else {
-        snprintf( errstr, FTI_BUFS, "'%s', is not a regular file!", FTI_Conf->h5SingleFilePath );
-        FTI_Print( errstr, FTI_WARN );
-        res = FTI_NSCS;
-    }
-    return res;
-}
-
 #endif
