@@ -184,13 +184,26 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
     FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
 #endif
-    char *h5SingleFile = iniparser_getstring(ini, "basic:h5_single_file_path", NULL);
-    if( h5SingleFile ) {
-        if( strncmp( h5SingleFile, "", 1 ) != 0 ) {
-            snprintf(FTI_Conf->h5SingleFilePath, FTI_BUFS, "%s", h5SingleFile);
+    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
+    if( h5SingleFileDir ) {
+        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
+        } else {
+            strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
         }
     } else {
-        FTI_Conf->h5SingleFilePath[0] = '\0';
+        strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
+    }
+    
+    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
+    if( h5SingleFilePrefix ) {
+        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
+        } else {
+            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
     }
 
 
@@ -415,19 +428,11 @@ CHECK_DCP_SETTING_END:
     
     // check variate processor restart settings
     if( FTI_Exec->reco == 3 ) {
-        FTI_Print("VPR requested. Checking configuration requirements...", FTI_INFO);
-        if( strncmp( FTI_Conf->h5SingleFilePath, "", 1 ) == 0 ) {
-            FTI_Print("'h5_single_file_path' not provided. VPR failed!", FTI_WARN);
-            FTI_Exec->reco = 0;
-        } else if( FTI_Conf->ioMode != FTI_IO_HDF5 ) {
+        if( FTI_Conf->ioMode != FTI_IO_HDF5 ) {
             char tmpstr[FTI_BUFS];
             snprintf( tmpstr, FTI_BUFS, "I/O mode has to be hdf5 ('ckpt_io = %d'). VPR failed!", FTI_IO_HDF5 - 1000 ); 
             FTI_Print(tmpstr, FTI_WARN);
             FTI_Exec->reco = 0;
-        } else {
-            char tmpstr[FTI_BUFS];
-            snprintf( tmpstr, FTI_BUFS, "VPR configuration test passed, attempting recovery from file '%s'", FTI_Conf->h5SingleFilePath );
-            FTI_Print(tmpstr, FTI_INFO);
         }
     }    
    

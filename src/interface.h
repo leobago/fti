@@ -157,7 +157,7 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_dataset* FTI_Data, int id);
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId );
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data );
-int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf );
+int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int * ckptID );
 int FTI_ScanGroup( hid_t gid, char* fn );
 #endif
 

@@ -865,34 +865,73 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf ) 
+int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID ) 
 {
     int drank_tmp;
     char errstr[FTI_BUFS];
+    char str[FTI_BUFS];
+    char fn[FTI_BUFS];
     int res = FTI_SCES;
     herr_t err;
     struct stat st;
-    stat( FTI_Conf->h5SingleFilePath, &st );
+   
+    struct dirent *entry;
+    DIR *dir = opendir( FTI_Conf->h5SingleFileDir );
+
+    if ( dir == NULL ) {
+        snprintf( errstr, FTI_BUFS, "VPR directory '%s' could not be accessed.", FTI_Conf->h5SingleFileDir );
+        FTI_Print(errstr, FTI_EROR);
+        errno = 0;
+        return FTI_NSCS;
+    }
+
+    bool found = false;
+    while((entry = readdir(dir)) != NULL) {   
+        if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) {
+            int len = strlen( entry->d_name ); 
+            if( len > 14 ) {
+                char fileRoot[FTI_BUFS];
+                bzero( fileRoot, FTI_BUFS );
+                memcpy( fileRoot, entry->d_name, len - 14 );
+                char fileRootExpected[FTI_BUFS];
+                snprintf( fileRootExpected, FTI_BUFS, "%s", FTI_Conf->h5SingleFilePrefix );
+                if( strncmp( fileRootExpected, fileRoot, FTI_BUFS ) == 0 ) {
+                    sscanf( entry->d_name + len - 14 + 3, "%08d.h5", ckptID );
+                    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!found) {
+        snprintf( errstr, FTI_BUFS, "unable to find matching VPR file (filename pattern: '%s-ID########.h5')!", FTI_Conf->h5SingleFilePrefix );
+        FTI_Print( errstr, FTI_WARN );
+        return FTI_NSCS;
+    }
+    
+    stat( fn, &st );
     if( S_ISREG( st.st_mode ) ) {
-        hid_t fid = H5Fopen( FTI_Conf->h5SingleFilePath, H5F_ACC_RDONLY, H5P_DEFAULT );
+        hid_t fid = H5Fopen( fn, H5F_ACC_RDONLY, H5P_DEFAULT );
         if( fid > 0 ) {
             hid_t gid = H5Gopen1( fid, "/" );
             if( gid > 0 ) {
-                res += FTI_ScanGroup( gid, FTI_Conf->h5SingleFilePath );
+                res += FTI_ScanGroup( gid, fn );
                 H5Gclose(gid);
             } else {
-                snprintf( errstr, FTI_BUFS, "failed to access root group in file '%s'", FTI_Conf->h5SingleFilePath );
+                snprintf( errstr, FTI_BUFS, "failed to access root group in file '%s'", fn );
                 FTI_Print( errstr, FTI_WARN );
                 res = FTI_NSCS;
             }
             H5Fclose(fid);
         } else {
-            snprintf( errstr, FTI_BUFS, "failed to open file '%s'", FTI_Conf->h5SingleFilePath );
+            snprintf( errstr, FTI_BUFS, "failed to open file '%s'", fn );
             FTI_Print( errstr, FTI_WARN );
             res = FTI_NSCS;
         }
     } else {
-        snprintf( errstr, FTI_BUFS, "'%s', is not a regular file!", FTI_Conf->h5SingleFilePath );
+        snprintf( errstr, FTI_BUFS, "'%s', is not a regular file!", fn );
         FTI_Print( errstr, FTI_WARN );
         res = FTI_NSCS;
     }

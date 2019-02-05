@@ -482,38 +482,39 @@ extern "C" {
    */
   typedef struct FTIT_configuration {
     bool            stagingEnabled;
-    bool            dcpEnabled;         /**< Enable differential ckpt.      */
-    bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
-    bool            keepHeadsAlive;     /**< TRUE if heads return           */
-    int             dcpMode;            /**< dCP mode.                      */
-    int             dcpBlockSize;       /**< Block size for dCP hash        */
-    char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
-    int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
-    int             verbosity;          /**< Verbosity level.               */
-    int             blockSize;          /**< Communication block size.      */
-    int             transferSize;       /**< Transfer size local to PFS     */
+    bool            dcpEnabled;         /**< Enable differential ckpt.          */
+    bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep           */        
+    bool            keepHeadsAlive;     /**< TRUE if heads return               */
+    int             dcpMode;            /**< dCP mode.                          */
+    int             dcpBlockSize;       /**< Block size for dCP hash            */
+    char            cfgFile[FTI_BUFS];  /**< Configuration file name.           */
+    int             saveLastCkpt;       /**< TRUE to save last checkpoint.      */
+    int             verbosity;          /**< Verbosity level.                   */
+    int             blockSize;          /**< Communication block size.          */
+    int             transferSize;       /**< Transfer size local to PFS         */
 #ifdef LUSTRE
-    int             stripeUnit;         /**< Striping Unit for Lustre FS    */
-    int             stripeOffset;       /**< Striping Offset for Lustre FS  */
-    int             stripeFactor;       /**< Striping Factor for Lustre FS  */
+    int             stripeUnit;         /**< Striping Unit for Lustre FS        */
+    int             stripeOffset;       /**< Striping Offset for Lustre FS      */
+    int             stripeFactor;       /**< Striping Factor for Lustre FS      */
 #endif
-    int             ckptTag;            /**< MPI tag for ckpt requests.     */
-    int             stageTag;           /**< MPI tag for staging comm.      */
-    int             finalTag;           /**< MPI tag for finalize comm.     */
-    int             generalTag;         /**< MPI tag for general comm.      */
-    int             test;               /**< TRUE if local test.            */
-    int             l3WordSize;         /**< RS encoding word size.         */
-    int             ioMode;             /**< IO mode for L4 ckpt.           */
-    char            h5SingleFilePath[FTI_BUFS]; /**< HDF5 single file path  */
-    char            stageDir[FTI_BUFS]; /**< Staging directory.             */
-    char            localDir[FTI_BUFS]; /**< Local directory.               */
-    char            glbalDir[FTI_BUFS]; /**< Global directory.              */
-    char            metadDir[FTI_BUFS]; /**< Metadata directory.            */
-    char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.     */
-    char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.    */
-    char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.  */
+    int             ckptTag;            /**< MPI tag for ckpt requests.         */
+    int             stageTag;           /**< MPI tag for staging comm.          */
+    int             finalTag;           /**< MPI tag for finalize comm.         */
+    int             generalTag;         /**< MPI tag for general comm.          */
+    int             test;               /**< TRUE if local test.                */
+    int             l3WordSize;         /**< RS encoding word size.             */
+    int             ioMode;             /**< IO mode for L4 ckpt.               */
+    char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir        */
+    char            h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix  */
+    char            stageDir[FTI_BUFS]; /**< Staging directory.                 */
+    char            localDir[FTI_BUFS]; /**< Local directory.                   */
+    char            glbalDir[FTI_BUFS]; /**< Global directory.                  */
+    char            metadDir[FTI_BUFS]; /**< Metadata directory.                */
+    char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.         */
+    char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.        */
+    char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
 #ifdef GPUSUPPORT    
-    size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
+    size_t          cHostBufSize;       /**< Host buffer size for GPU data.     */
 #endif
 
   } FTIT_configuration;
