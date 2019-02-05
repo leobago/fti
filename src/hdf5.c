@@ -35,7 +35,6 @@
  *  @date   November, 2017
  *  @brief  Funtions to support HDF5 checkpointing.
  */
-#define ENABLE_HDF5
 #ifdef ENABLE_HDF5
 #include "interface.h"
 #include "utility.h"

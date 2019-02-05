@@ -179,7 +179,11 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if( FTI_Exec->reco == 3 ) {
             int res = FTI_SCES, allRes;
             if( FTI_Topo->splitRank == 0 ) {
+#ifdef ENABLE_HDF5
                 res = FTI_H5CheckSingleFile( FTI_Conf );
+#else       
+                res = FTI_NSCS;
+#endif
             }
             MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
             if( allRes == FTI_SCES ) {
@@ -187,6 +191,11 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 snprintf(str, FTI_BUFS, "VPR recovery successfull from file '%s'", FTI_Conf->h5SingleFilePath );
                 FTI_Print(str, FTI_INFO);
                 FTI_Exec->h5SingleFile = true;
+            } else {
+                char str[FTI_BUFS];
+                snprintf(str, FTI_BUFS, "VPR recovery from file '%s' failed!", FTI_Conf->h5SingleFilePath );
+                FTI_Print(str, FTI_WARN);
+                FTI_Exec->h5SingleFile = false;
             }
             return allRes;
         }

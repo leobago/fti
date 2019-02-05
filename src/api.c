@@ -188,6 +188,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
             }
+            FTI_Exec.hasCkpt = true;
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -800,6 +801,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
 int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
+#ifdef ENABLE_HDF5
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;
     
     if ( last ) {
@@ -824,7 +826,6 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->id = id;
     last->initialized = false;
     last->rank = rank;
-#ifdef ENABLE_HDF5
     last->hid = -1;
     last->fileSpace = -1;
     last->dimension = (hsize_t*) malloc( sizeof(hsize_t) * rank );
@@ -832,7 +833,6 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     for( i=0; i<rank; i++ ) {
         last->dimension[i] = dimLength[i];
     }
-#endif
     strncpy( last->name, name, FTI_BUFS );
     last->name[FTI_BUFS-1] = '\0';
     last->numSubSets = 0;
@@ -843,11 +843,15 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->next = NULL;
 
     return FTI_SCES;
+#else
+    FTI_Print("'FTI_DefineGlobalDataset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
 }
 
-#ifdef ENABLE_HDF5
 int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
 {
+#ifdef ENABLE_HDF5
     int i, found=0, pvar_idx;
     
     for(i=0; i<FTI_Exec.nbVar; i++) {
@@ -893,9 +897,11 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
     }
 
     return FTI_SCES;
-
-}
+#else
+    FTI_Print("'FTI_AddSubset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
 #endif
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1197,7 +1203,6 @@ int FTI_Checkpoint(int id, int level)
         level -= 4; 
     }
 
-    int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
     FTI_Exec.ckptID = id;
 
     // reset dcp requests.
@@ -1225,7 +1230,8 @@ int FTI_Checkpoint(int id, int level)
         }
         level = 4;
     }
-
+    
+    bool ckptFirst = !FTI_Exec.h5SingleFile && !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -1245,7 +1251,10 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     double t2 = MPI_Wtime(); //Time after writing checkpoint
-   
+    
+    if( FTI_Exec.h5SingleFile ) {
+        goto H5_SINGLE_FILE_NO_POST_PROCESSING;
+    }
 
     // set hasCkpt flags true
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
@@ -1308,7 +1317,21 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
-    double t3 = MPI_Wtime(); //Time after post-processing
+    double t3;
+   
+    if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+    
+H5_SINGLE_FILE_NO_POST_PROCESSING:
+    
+    t3 = MPI_Wtime(); //Time after post-processing
+    
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
@@ -1361,11 +1384,6 @@ int FTI_Checkpoint(int id, int level)
         }
         
         FTI_Print(str, FTI_IDCP);
-    }
-    if (ckptFirst && FTI_Topo.splitRank == 0) {
-        //Setting recover flag to 1 (to recover from current ckpt level)
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
-        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
     }
     
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
