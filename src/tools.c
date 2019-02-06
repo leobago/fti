@@ -110,6 +110,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* unsigned int  */ FTI_Exec->nbType                =0;
   /* int           */ FTI_Exec->metaAlloc             =0;
   /* int           */ FTI_Exec->initSCES              =0;
+  /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
   /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
   /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
   /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
@@ -136,6 +137,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* int           */ FTI_Conf->stripeFactor          =0;
 #endif
   /* bool          */ FTI_Conf->keepL4Ckpt            =0;
+  /* bool          */ FTI_Conf->h5SingleFileEnable    =0;
   /* int           */ FTI_Conf->ckptTag               =0;
   /* int           */ FTI_Conf->stageTag              =0;
   /* int           */ FTI_Conf->finalTag              =0;
@@ -885,6 +887,8 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
         return FTI_NSCS;
     }
 
+    *ckptID = -1;
+
     bool found = false;
     while((entry = readdir(dir)) != NULL) {   
         if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) {
@@ -896,10 +900,13 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
                 char fileRootExpected[FTI_BUFS];
                 snprintf( fileRootExpected, FTI_BUFS, "%s", FTI_Conf->h5SingleFilePrefix );
                 if( strncmp( fileRootExpected, fileRoot, FTI_BUFS ) == 0 ) {
-                    sscanf( entry->d_name + len - 14 + 3, "%08d.h5", ckptID );
-                    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                    int id_tmp;
+                    sscanf( entry->d_name + len - 14 + 3, "%08d.h5", &id_tmp );
+                    if( id_tmp > *ckptID ) {
+                        *ckptID = id_tmp;
+                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                    }
                     found = true;
-                    break;
                 }
             }
         }

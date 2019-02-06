@@ -179,27 +179,33 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if( FTI_Exec->reco == 3 ) {
             int res = FTI_SCES, allRes;
             int ckptID;
-            if( FTI_Topo->splitRank == 0 ) {
+            if( FTI_Conf->h5SingleFileEnable ) {
+                if( FTI_Topo->splitRank == 0 ) {
 #ifdef ENABLE_HDF5
-                res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
+                    res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
 #else       
-                res = FTI_NSCS;
+                    FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+                    res = FTI_NSCS;
 #endif
-            }
-            MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-            if( allRes == FTI_SCES ) {
-                char str[FTI_BUFS];
-                snprintf(str, FTI_BUFS, "VPR recovery successfull from file '%s/%s-ID%08d.h5'", 
-                        FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, ckptID );
-                FTI_Print(str, FTI_INFO);
-                FTI_Exec->h5SingleFile = true;
-                MPI_Bcast( &ckptID, 1, MPI_INT, 0, FTI_COMM_WORLD );
-                FTI_Exec->ckptID = ckptID;
+                }
+                MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
+                if( allRes == FTI_SCES ) {
+                    char str[FTI_BUFS];
+                    snprintf(str, FTI_BUFS, "VPR recovery successfull from file '%s/%s-ID%08d.h5'", 
+                            FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, ckptID );
+                    FTI_Print(str, FTI_INFO);
+                    FTI_Exec->h5SingleFile = true;
+                    MPI_Bcast( &ckptID, 1, MPI_INT, 0, FTI_COMM_WORLD );
+                    FTI_Exec->ckptID = ckptID;
+                } else {
+                    FTI_Print("VPR recovery failed!", FTI_WARN);
+                    FTI_Exec->h5SingleFile = false;
+                }
+                return allRes;
             } else {
-                FTI_Print("VPR recovery failed!", FTI_WARN);
-                FTI_Exec->h5SingleFile = false;
+                FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_EROR);
+                res = FTI_NSCS;
             }
-            return allRes;
         }
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;

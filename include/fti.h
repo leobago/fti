@@ -456,6 +456,7 @@ extern "C" {
     int                     nbGroup;            /**< Number of protected groups.    */
     int                     metaAlloc;          /**< TRUE if meta allocated.        */
     int                     initSCES;           /**< TRUE if FTI initialized.       */
+    char            h5SingleFileLast[FTI_BUFS]; /**< HDF5 single file prefix  */
     FTIT_metadata           meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db                 *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db                 *lastdb;           /**< Pointer to first datablock     */
@@ -504,6 +505,8 @@ extern "C" {
     int             test;               /**< TRUE if local test.                */
     int             l3WordSize;         /**< RS encoding word size.             */
     int             ioMode;             /**< IO mode for L4 ckpt.               */
+    bool            h5SingleFileEnable;
+    bool            h5SingleFileKeep;
     char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir        */
     char            h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix  */
     char            stageDir[FTI_BUFS]; /**< Staging directory.                 */

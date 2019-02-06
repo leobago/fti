@@ -205,6 +205,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } else {
         snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
     }
+    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
+    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
 
     // Reading/setting execution metadaFa
@@ -454,6 +456,7 @@ CHECK_DCP_SETTING_END:
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 {
     char str[FTI_BUFS]; //For console output
+    int h5DirFailed = 0;
 
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
@@ -485,7 +488,27 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
                 return FTI_NSCS;
             }
         }
+        
+        // Checking metadata directory
+        if( FTI_Conf->h5SingleFileEnable ) {
+            snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
+            FTI_Print(str, FTI_DBUG);
+            if (mkdir(FTI_Conf->h5SingleFileDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    h5DirFailed = 1;
+                }
+            }
+        }
     }
+    
+    if( FTI_Conf->h5SingleFileEnable ) {
+        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        if( h5DirFailed ) { 
+            FTI_Conf->h5SingleFileEnable = false; 
+            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
+        }
+    }
+
     //Waiting for metadDir being created
     MPI_Barrier(FTI_COMM_WORLD);
 

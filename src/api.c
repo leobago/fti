@@ -135,7 +135,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
+        int restart = (FTI_Exec.reco != 3) ? FTI_Exec.reco : 0;
+        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
@@ -188,7 +189,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
             }
-            FTI_Exec.hasCkpt = true;
+            FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -1203,7 +1204,52 @@ int FTI_Checkpoint(int id, int level)
         level -= 4; 
     }
 
+    double t1, t2;
+
     FTI_Exec.ckptID = id;
+    
+    // reset hdf5 single file requests.
+    FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
+            if( FTI_Conf.h5SingleFileEnable ) {
+                FTI_Exec.h5SingleFile = true;
+            } else {
+                FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
+                return FTI_DONE;
+            }
+        } else {
+            FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
+            return FTI_DONE;
+        }
+        level = 4;
+        t1 = MPI_Wtime();
+        int lastCkptLvelBackup = FTI_Exec.ckptLvel;
+        FTI_Exec.ckptLvel = level; // undo in any case afterwards. H5 VPR is not for resiliency!
+        int status = FTI_Try(FTI_WriteHDF5(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write VPR checkpoint.");
+        t2 = MPI_Wtime();
+        FTI_Exec.ckptLvel = lastCkptLvelBackup;
+        bool removeLastFile = (status == FTI_SCES) && !FTI_Conf.h5SingleFileKeep;
+        removeLastFile &=  (FTI_Exec.h5SingleFileLast) ? (bool)strcmp( FTI_Exec.h5SingleFileLast, "" ) : false;
+        if( removeLastFile && !FTI_Topo.splitRank ) {
+            status = remove( FTI_Exec.h5SingleFileLast );
+            DBG_MSG( "status: %d", 0, status );
+            if ( (status != ENOENT) && (status != 0) ) {
+                char errstr[FTI_BUFS];
+                snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", FTI_Exec.h5SingleFileLast );
+                FTI_Print( errstr, FTI_EROR );
+            }
+        }
+        if( status == FTI_SCES ) {
+            snprintf( FTI_Exec.h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, 
+                    FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
+            char str[FTI_BUFS];
+            sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+                    FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
+            FTI_Print(str, FTI_INFO);
+        }
+        return FTI_DONE;
+    }
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1220,18 +1266,7 @@ int FTI_Checkpoint(int id, int level)
         level = 4;
     }
     
-    // reset hdf5 single file requests.
-    FTI_Exec.h5SingleFile = false;
-    if ( level == FTI_L4_H5_SINGLE ) {
-        if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
-            FTI_Exec.h5SingleFile = true;
-        } else {
-            FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
-        }
-        level = 4;
-    }
-    
-    bool ckptFirst = !FTI_Exec.h5SingleFile && !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
+    bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -1246,16 +1281,12 @@ int FTI_Checkpoint(int id, int level)
         }
     }
     
-    double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
+    t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
-    double t2 = MPI_Wtime(); //Time after writing checkpoint
+    t2 = MPI_Wtime(); //Time after writing checkpoint
     
-    if( FTI_Exec.h5SingleFile ) {
-        goto H5_SINGLE_FILE_NO_POST_PROCESSING;
-    }
-
     // set hasCkpt flags true
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
@@ -1327,8 +1358,6 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.hasCkpt = true;
         }
     }
-    
-H5_SINGLE_FILE_NO_POST_PROCESSING:
     
     t3 = MPI_Wtime(); //Time after post-processing
     
