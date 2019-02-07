@@ -1187,8 +1187,6 @@ int FTI_BitFlip(int datasetID)
 int FTI_Checkpoint(int id, int level)
 {
     
-    DBG_MSG("foo",-1);
-
     char str[FTI_BUFS]; //For console output
     
     if (FTI_Exec.initSCES == 0) {
@@ -1235,7 +1233,6 @@ int FTI_Checkpoint(int id, int level)
         removeLastFile &=  (FTI_Exec.h5SingleFileLast) ? (bool)strcmp( FTI_Exec.h5SingleFileLast, "" ) : false;
         if( removeLastFile && !FTI_Topo.splitRank ) {
             status = remove( FTI_Exec.h5SingleFileLast );
-            DBG_MSG( "status: %d", 0, status );
             if ( (status != ENOENT) && (status != 0) ) {
                 char errstr[FTI_BUFS];
                 snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", FTI_Exec.h5SingleFileLast );
@@ -1253,7 +1250,6 @@ int FTI_Checkpoint(int id, int level)
         return FTI_DONE;
     }
 
-    DBG_MSG("foo",-1);
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
@@ -1271,7 +1267,6 @@ int FTI_Checkpoint(int id, int level)
     
     bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
 
-    DBG_MSG("foo",-1);
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
@@ -1285,7 +1280,6 @@ int FTI_Checkpoint(int id, int level)
         }
     }
     
-    DBG_MSG("foo",-1);
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
