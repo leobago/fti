@@ -1211,6 +1211,7 @@ int FTI_Checkpoint(int id, int level)
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
     if ( level == FTI_L4_H5_SINGLE ) {
+#ifdef ENABLE_HDF5
         if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
             if( FTI_Conf.h5SingleFileEnable ) {
                 FTI_Exec.h5SingleFile = true;
@@ -1248,6 +1249,10 @@ int FTI_Checkpoint(int id, int level)
             FTI_Print(str, FTI_INFO);
         }
         return FTI_DONE;
+#else
+        FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+        return FTI_NSCS;
+#endif
     }
 
     // reset dcp requests.

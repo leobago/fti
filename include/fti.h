@@ -4,6 +4,7 @@
  *  @date   July, 2013
  *  @brief  Header file for the FTI library.
  */
+
 #ifndef _FTI_H
 #define _FTI_H
 
@@ -635,6 +636,7 @@ extern "C" {
   int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type);
+  int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
   long FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
