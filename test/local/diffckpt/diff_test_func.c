@@ -3,6 +3,7 @@
 int numHeads;
 int finalTag;
 int headRank;
+int grank;
 
 int A[1]  = {100};
 int B[2]  = {30,70};
@@ -50,7 +51,7 @@ double get_share_ratio() {
 
 void init( dcp_info_t * info, unsigned long alloc_size ) {
 
-    int wsize;
+    int wsize, lrank;
     MPI_Comm_size(MPI_COMM_WORLD, &wsize);
     MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     
