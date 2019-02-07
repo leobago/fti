@@ -93,11 +93,125 @@ const uint32_t crc32_tab[] = {
 
 /** File Local Variables                                                                */
 
-static bool* dcpEnabled;
-static int                  DCP_MODE;
-static dcpBLK_t             DCP_BLOCK_SIZE;
+static bool* dcpEnabled = NULL;
+static int                  DCP_MODE = 0;
+static dcpBLK_t             DCP_BLOCK_SIZE = 1;
+
+const char* hashType[] = {
+    "NEW HASH",
+    "REALLOCED DECREASED SIZE",
+    "REALLOC INCREASED SIZE",
+    "DELETED HASH"
+};
+
+
+#define CURRENT(var) (var->currentId)
+#define NEXT(var)    ((var->currentId + 1)%2)
+
+#define NEWHASH 0
+#define HASHREALLOC_DEC 1
+#define HASHREALLOC_INC 2
+#define HASHREALLOC_DEL 3
+
+
 
 /** Function Definitions                                                                */
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Allocates and initializes the next data of a new hash table.
+  @param      FTIT_DataDiffHash hashes data which need to be initialized.
+  @return     integer         FTI_SCES if successful.
+
+  This function allocates the structures for the next hash which will be created
+  during this checkpoint round
+ **/
+/*-------------------------------------------------------------------------*/
+
+
+int FTI_InitNextHashData(FTIT_DataDiffHash *hashes){
+    if ( !dcpEnabled )
+        return FTI_SCES;
+
+    if ( !dcpEnabled )
+        return FTI_SCES;
+
+    if (hashes->nbHashes == 0){
+        FTI_Print("THIS SHOULD NEVER HAPPEN",FTI_EROR);
+    }
+
+
+    if (FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ){
+        if ( hashes->md5hash[NEXT(hashes)] != NULL){
+            FTI_Print("The next hash table should be always NULL before initializing it",FTI_EROR);
+        }
+
+        hashes->md5hash[NEXT(hashes)] = (unsigned char *) malloc (sizeof(unsigned char) * MD5_DIGEST_LENGTH * hashes->nbHashes);
+
+        if (!hashes->md5hash[NEXT(hashes)]){
+            FTI_Print("Could Not Allocate memory for hashes",FTI_EROR);
+            return FTI_NSCS;
+        }
+        return FTI_SCES;
+    }
+    else{
+        if ( hashes->bit32hash[NEXT(hashes)] != NULL){
+            FTI_Print("The next hash table should be always NULL before initializing it",FTI_EROR);
+        }
+
+        hashes->bit32hash[NEXT(hashes)] = (uint32_t*) malloc (sizeof(uint32_t)* hashes->nbHashes);
+        if (!hashes->bit32hash[NEXT(hashes)]){
+            FTI_Print("Could Not Allocate memory for hashes",FTI_EROR);
+            return FTI_NSCS;
+        }
+
+        return FTI_SCES;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Deallocates all data regarding the hash codes .
+  @param      FTIT_DataDiffHash hashes data which need to freed.
+  @return     integer         FTI_SCES if successful.
+
+  This function allocates the structures for the next hash which will be created
+  during this checkpoint round
+ **/
+/*-------------------------------------------------------------------------*/
+
+int FTI_FreeDataDiff( FTIT_DataDiffHash *dhash){
+    dhash->currentId = 0;
+    dhash->creationType = HASHREALLOC_DEL;
+
+    if (FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ){
+        if ( dhash->md5hash[0]){
+            free ( dhash->md5hash[0] );
+            dhash->md5hash[0] = NULL;
+        }
+        if ( dhash->md5hash[1]){
+            free ( dhash->md5hash[1] );
+            dhash->md5hash[1] = NULL;
+        }
+    }
+    else{
+        if ( dhash->bit32hash[0] ){
+            free ( dhash->bit32hash[0] );
+            dhash->bit32hash[0]= NULL;
+        }
+        if ( dhash->bit32hash[1] ){
+            free ( dhash->bit32hash[1] );
+            dhash->bit32hash[1]= NULL;
+        }
+    }
+
+    free(dhash->blockSize);
+    dhash->blockSize= NULL;
+    free(dhash->isValid);
+    dhash->isValid= NULL;
+    return FTI_SCES;
+}
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -126,10 +240,9 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
         for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
             FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
             if( currentdbVar->dataDiffHash != NULL ) {
-                if( DCP_MODE == FTI_DCP_MODE_MD5 ) {
-                    free( currentdbVar->dataDiffHash[0].md5hash );
-                }
+                FTI_FreeDataDiff( currentdbVar->dataDiffHash);
                 free( currentdbVar->dataDiffHash );
+                currentdbVar->dataDiffHash = NULL;
             }
         }
     }
@@ -226,6 +339,57 @@ int FTI_GetDcpMode()
     return DCP_MODE;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Reallocate  meta data related to dCP 
+  @param      FTIT_DataDiffHash   metadata to be reallocated.
+  @param      long                number of hashes that i need to reallocate
+  @return     integer             FTI_SCES if successful.
+  This function reallocates all the the metadata related to the dCP ( isValid & blockSize );
+ **/
+/*-------------------------------------------------------------------------*/
+
+int FTI_ReallocateDataDiff( FTIT_DataDiffHash *dhash, long nbHashes){
+    if ( !dcpEnabled )
+        return FTI_SCES;
+
+    if (!(*dcpEnabled))
+        return FTI_SCES;
+
+    void *check = NULL ;
+    assert( dhash != NULL );
+    assert ( dhash->isValid!= NULL);
+    assert ( dhash->blockSize != NULL);
+
+    if (nbHashes == 0 ){
+        FTI_Print("I AM GOING TO REDUSE SIZE TO 0",FTI_EROR);
+    }
+
+    //Re Allocate isValid | blockSize arrays 
+    check =  realloc (dhash->isValid, sizeof(bool) * nbHashes);
+    if ( check == NULL ){
+        //PrintDataHashInfo(dhash, -1, nbHashes);
+        FTI_Print ("FTI_ReallocateDataDiff :: Unable to reallocate memory for dcp meta info",FTI_EROR);
+        return FTI_NSCS;
+    }else{
+        dhash->isValid = (bool*) check;
+    }
+    check =  realloc(dhash->blockSize, sizeof(short) * nbHashes);
+
+    if( ! check ) {
+        //PrintDataHashInfo(dhash, -1, -1);
+        FTI_Print( "FTI_ReallocateDataDiff blockSize- Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
+        return FTI_NSCS;
+    }
+    else{
+        dhash->blockSize = (unsigned short*) check;
+    }
+    return FTI_SCES;
+}
+
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Initializes a new hash meta data structure for data chunk
@@ -241,40 +405,69 @@ int FTI_GetDcpMode()
 /*-------------------------------------------------------------------------*/
 int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar ) 
 {   
-    dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
-    dbvar->dataDiffHash = (FTIT_DataDiffHash*) malloc ( sizeof(FTIT_DataDiffHash) * dbvar->nbHashes );
+    if ( !dcpEnabled )
+        return FTI_SCES;
+
+    if (!(*dcpEnabled))
+        return FTI_SCES;
+
+
+    dbvar->dataDiffHash = (FTIT_DataDiffHash*) malloc ( sizeof(FTIT_DataDiffHash));
     if( dbvar->dataDiffHash == NULL ) {
         FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
         return FTI_NSCS;
     }
+
     FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
-    long pos = 0; 
-    long end = dbvar->chunksize;
+    hashes->creationType = NEWHASH;
+    hashes->lifetime = 0;
+    int nbHashes = FTI_CalcNumHashes(dbvar->chunksize);
+    hashes->currentId = 0;
+    hashes->nbHashes =  nbHashes; 
     int hashIdx;
-    if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-        // we want the hash array to be dense
-        hashes[0].md5hash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * dbvar->nbHashes );
-        if( hashes[0].md5hash == NULL ) {
-            FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
-            free(dbvar->dataDiffHash);
-            dbvar->dataDiffHash = NULL;
-            return FTI_NSCS;
-        }
+
+    // I dont need to allocate memory for the hash codes.
+    // This will be done when I compute the hashvalues
+    hashes->md5hash[0] = NULL;
+    hashes->md5hash[1] = NULL;
+    hashes->bit32hash[0] = NULL;
+    hashes->bit32hash[1] = NULL;
+
+    // This will be done when start calculate the hash codes themselfes.
+    // I only allocate memory for the data regarding the status of the dataset. 
+    hashes->isValid= (bool*) malloc( nbHashes * sizeof(bool) );
+
+
+    if( ! hashes->isValid  ) {
+        FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
+        free(dbvar->dataDiffHash);
+        dbvar->dataDiffHash = NULL;
+        return FTI_NSCS;
     }
+
+    hashes->blockSize= (unsigned short*) malloc( nbHashes * sizeof(unsigned short) );
+
+    if( ! hashes->blockSize) {
+        FTI_Print( "FTI_InitBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
+        free(dbvar->dataDiffHash);
+        dbvar->dataDiffHash = NULL;
+        return FTI_NSCS;
+    }
+
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
-    for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : (dcpBLK_t) end-pos;
-        
-        if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-            hashes[hashIdx].md5hash = (unsigned char*) hashes[0].md5hash + hashIdx * MD5_DIGEST_LENGTH;
-        } else {
-            hashes[hashIdx].md5hash = NULL;
-        }
-        hashes[hashIdx].isValid = false;
-        hashes[hashIdx].dirty = false;
-        hashes[hashIdx].blockSize = hashBlockSize;
-        pos += hashBlockSize;
+    for(hashIdx = 0; hashIdx<nbHashes - 1; ++hashIdx) {
+        hashes->isValid[hashIdx] = false;
+        hashes->blockSize[hashIdx] = diffBlockSize ;
     }
+
+    hashes->isValid[hashIdx] = false;
+    hashes->blockSize[hashIdx] = dbvar->chunksize - (nbHashes - 1) * diffBlockSize;
+
+    if ( hashes->blockSize[hashIdx] > diffBlockSize ){
+        FTI_Print("FTI_InitBlockHashArray :: The blockSize computed is larger than the supported one",FTI_EROR);
+        return FTI_NSCS; 
+    }
+
 
     return FTI_SCES;
 }
@@ -282,90 +475,61 @@ int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar )
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Shrinks an existing hash meta data structure for data chunk
-  @param      dbvar           Datchunk metadata.
+  @param      dataHash        The hash meta that need to be expanded.
+  @param      chunkSize       The new Size of the data.
   @return     integer         FTI_SCES if successful.
 
-  This function re-allocates memory for the 'dataDiffHash' member of the 
-  'FTIFF_dbvar' structure and if dCP mode is MD5 also for the MD5 digest
-  array placed in the member 'md5hash' of the 'dataDiffHash' structure.
-
-  It also updates the other members of the 'dataDiffHash' structure.
+  This function re-allocates memory for the 'dataDiffHash' inValid and blockSize member
+  of the  data hash structure and if dCP 
+CAUTION: This function does not reallocate the actual hashes of the data struct.
+When the checkpoint will terminate the current hash will be freed, whereas the next 
+will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar ) 
+int FTI_CollapseBlockHashArray( FTIT_DataDiffHash* hashes, long chunkSize) 
 {
+    if ( !dcpEnabled )
+        return FTI_SCES;
+
+    if (!(*dcpEnabled))
+        return FTI_SCES;
+
     bool changeSize = true;
 
-    long nbHashesOld = dbvar->nbHashes;
+    long nbHashesOld = hashes->nbHashes;
+    long newNumber = FTI_CalcNumHashes( chunkSize );
 
     // update to new number of hashes (which might be actually unchanged)
-    dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
- 
-    assert( nbHashesOld >= dbvar->nbHashes );
-    if ( dbvar->nbHashes == nbHashesOld ) {
+    hashes->nbHashes = newNumber;
+
+    assert( nbHashesOld >= newNumber );
+
+    if ( newNumber == nbHashesOld ) {
         changeSize = false;
     }
 
+    hashes->creationType = HASHREALLOC_DEC;
+
     // reallocate hash array to new size if changed
-    if ( changeSize ) {
-        unsigned char* hashPtr;
-        if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-            // we want the hash array to be dense
-            assert( dbvar->dataDiffHash[0].md5hash != NULL );
-            hashPtr = (unsigned char*) realloc( dbvar->dataDiffHash[0].md5hash, MD5_DIGEST_LENGTH * dbvar->nbHashes );
-            if( hashPtr == NULL ) {
-                FTI_Print( "FTI_CollapseBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
-                free(dbvar->dataDiffHash);
-                dbvar->dataDiffHash = NULL;
-                return FTI_NSCS;
-            }
-        }
-        assert( dbvar->dataDiffHash != NULL );
-        dbvar->dataDiffHash = (FTIT_DataDiffHash*) realloc ( dbvar->dataDiffHash, sizeof(FTIT_DataDiffHash) * dbvar->nbHashes );
-        if( dbvar->dataDiffHash == NULL ) {
-            FTI_Print( "FTI_CollapseBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
-            free( hashPtr );
-            return FTI_NSCS;
-        }
-        dbvar->dataDiffHash[0].md5hash = hashPtr;
+    // CAUTION: 
+    if ( changeSize ){ 
+        FTI_ReallocateDataDiff(hashes, newNumber);
     }
 
-    
-    FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
-    
-    // we need this pointer since data was most likely re allocated 
-    // and thus might have a new memory location
-    long pos = 0;
-    long end = dbvar->chunksize;
-    int hashIdx;
-    int lastIdx = dbvar->nbHashes-1;
+    int lastIdx = newNumber -1 ;
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
-    for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : end-pos;
-        // keep track of new memory locations for dense hash array
-        if ( changeSize ) {
-            if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-                hashes[hashIdx].md5hash = (unsigned char*) hashes[0].md5hash + hashIdx * MD5_DIGEST_LENGTH;
-            } else {
-                hashes[hashIdx].md5hash = NULL;
-            }
-        }
-    
-        // invalidate last hash in (almost) any case. If number of hashes remain the same, 
-        // the last block changed size and with that data changed content.
-        // if number decreased and the blocksize of new last block is less the DCP_BLOCK_SIZE
-        // the hash is invalid too.
-        if ( hashIdx == lastIdx ) {
-            hashes[hashIdx].blockSize = hashBlockSize;
-            if ( ( hashes[lastIdx].blockSize < DCP_BLOCK_SIZE ) && changeSize ) {
-                hashes[lastIdx].isValid = false;
-                hashes[lastIdx].dirty = false;
-            } else if ( !changeSize ) {
-                hashes[lastIdx].isValid = false;
-                hashes[lastIdx].dirty = false;
-            }
-        }
-        pos += hashBlockSize;
+    unsigned short lastBlockSize = (unsigned short) (chunkSize-  ((chunkSize)/DCP_BLOCK_SIZE)*DCP_BLOCK_SIZE); 
+
+    hashes->blockSize[lastIdx] = lastBlockSize;
+    if (( hashes->blockSize[lastIdx] < DCP_BLOCK_SIZE ) && changeSize ) {
+        hashes->isValid[lastIdx] = false;
+    } else if ( !changeSize ) {
+        hashes->isValid[lastIdx] = false;
+    }
+
+    if ( hashes->blockSize[lastIdx] > diffBlockSize ){
+        FTI_Print("FTI_CollapseBlockHashArray:: The blockSize computed is larger than the supported one",FTI_EROR);
+        return FTI_NSCS; 
     }
 
     return FTI_SCES;    
@@ -374,87 +538,65 @@ int FTI_CollapseBlockHashArray( FTIFF_dbvar* dbvar )
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Expands an existing hash meta data structure for data chunk
-  @param      dbvar           Datchunk metadata.
+  @param      dataHash        The hash meta that need to be expanded.
+  @param      chunkSize       The new Size of the data.
   @return     integer         FTI_SCES if successful.
 
-  This function re-allocates memory for the 'dataDiffHash' member of the 
-  'FTIFF_dbvar' structure and if dCP mode is MD5 also for the MD5 digest
-  array placed in the member 'md5hash' of the 'dataDiffHash' structure.
+  This function re-allocates memory for the 'dataDiffHash' inValid and blockSize member
+  of the  data hash structure and if dCP 
 
-  It also updates the other members of the 'dataDiffHash' structure.
+CAUTION: This function does not reallocate the actual hashes of the data struct.
+When the checkpoint will terminate the current hash will be freed, whereas the next 
+will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ExpandBlockHashArray( FTIFF_dbvar* dbvar ) 
+int FTI_ExpandBlockHashArray( FTIT_DataDiffHash* dataHash, long chunkSize ) 
 {
-    bool changeSize = true;
+    if ( !dcpEnabled )
+        return FTI_SCES;
 
-    long nbHashesOld = dbvar->nbHashes;
-    // current last hash is invalid in any case. 
-    // If number of blocks remain the same, the size of the last block changed to 'new_size - old_size', 
-    // thus also the data that is contained in it. 
-    // If the nuber of blocks increased, the blocksize is changed for the current 
-    // last block as well, in fact to DCP_BLOCK_SIZE. 
-    // This is taken care of in the for loop (after comment 'invalidate new hashes...').
-    
-    // update to new number of hashes (which might be actually unchanged)
-    dbvar->nbHashes = FTI_CalcNumHashes( dbvar->chunksize );
- 
-    assert( nbHashesOld <= dbvar->nbHashes );
-    if ( dbvar->nbHashes == nbHashesOld ) {
+    if (!(*dcpEnabled))
+        return FTI_SCES;
+
+    bool changeSize = true;
+    long nbHashesOld = dataHash->nbHashes;    
+
+    //
+    long newNumber =  FTI_CalcNumHashes( chunkSize );
+
+    assert( nbHashesOld <= newNumber  );
+    if ( newNumber == nbHashesOld ) {
         changeSize = false;
     }
 
+    dataHash->creationType = HASHREALLOC_INC;
+
     // reallocate hash array to new size if changed
-    if ( changeSize ) {
-        unsigned char* hashPtr;
-        if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-            // we want the hash array to be dense
-            assert( dbvar->dataDiffHash[0].md5hash != NULL );
-            hashPtr = (unsigned char*) realloc( dbvar->dataDiffHash[0].md5hash, MD5_DIGEST_LENGTH * dbvar->nbHashes );
-            if( hashPtr == NULL ) {
-                FTI_Print( "FTI_ExpandBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
-                free(dbvar->dataDiffHash);
-                dbvar->dataDiffHash = NULL;
-                return FTI_NSCS;
-            }
-        }
-        assert( dbvar->dataDiffHash != NULL );
-        dbvar->dataDiffHash = (FTIT_DataDiffHash*) realloc ( dbvar->dataDiffHash, sizeof(FTIT_DataDiffHash) * dbvar->nbHashes );
-        if( dbvar->dataDiffHash == NULL ) {
-            FTI_Print( "FTI_ExpandBlockHashArray - Unable to allocate memory for dcp meta info, disable dCP...", FTI_WARN );
-            free( hashPtr );
-            return FTI_NSCS;
-        }
-        dbvar->dataDiffHash[0].md5hash = hashPtr;
+    if ( changeSize ){
+        FTI_ReallocateDataDiff(dataHash, newNumber);
     }
-    
-    FTIT_DataDiffHash* hashes = dbvar->dataDiffHash;
-    
-    // we need this pointer since data was most likely re allocated 
-    // and thus might have a new memory location
-    long pos = 0;
-    long end = dbvar->chunksize;
+
     int hashIdx;
     dcpBLK_t diffBlockSize = FTI_GetDiffBlockSize();
-    for(hashIdx = 0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-        dcpBLK_t hashBlockSize = ( (end - pos) > diffBlockSize ) ? diffBlockSize : end-pos;
-        // keep track of new memory locations for dense hash array
-        if ( changeSize ) {
-            if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ) {
-                hashes[hashIdx].md5hash = (unsigned char*) hashes[0].md5hash + hashIdx * MD5_DIGEST_LENGTH;
-            } else {
-                if ( hashIdx >= nbHashesOld ) {
-                    hashes[hashIdx].md5hash = NULL;
-                }
-            }
-        }
-        // invalidate new hashes and former last hash and set block to new size
-        if ( hashIdx >= (nbHashesOld-1) ) {
-            hashes[hashIdx].isValid = false;
-            hashes[hashIdx].dirty = false;
-            hashes[hashIdx].blockSize = hashBlockSize;
-        }
-        pos += hashBlockSize;
+    dataHash->nbHashes = newNumber;
+
+    /* current last hash is invalid in any case. 
+       If number of blocks remain the same, the size of the last block changed to 'new_size - old_size', 
+       thus also the data that is contained in it. 
+       If the nuber of blocks increased, the blocksize is changed for the current 
+       last block as well, in fact to DCP_BLOCK_SIZE. */
+
+    for(hashIdx = (nbHashesOld-1); hashIdx<newNumber-1; hashIdx++) {
+        dataHash->isValid[hashIdx] = false;
+        dataHash->blockSize[hashIdx] = diffBlockSize;
+    }
+
+    dataHash->blockSize[hashIdx] = chunkSize - (newNumber-1) * diffBlockSize;
+    dataHash->isValid[hashIdx] = false;
+
+    if ( dataHash->blockSize[hashIdx] > diffBlockSize ){
+        FTI_Print("FTI_ExpandBlockHashArray:: The blockSize computed is larger than the supported one",FTI_EROR);
+        return FTI_NSCS; 
     }
     return FTI_SCES;    
 }
@@ -478,11 +620,44 @@ long FTI_CalcNumHashes( long chunkSize )
     }
 }
 
+void PrintDataHashInfo( FTIT_DataDiffHash* dataHash, long chunkSize, int id){
+    char str[FTI_BUFS];
+    FTI_Print("+++++++++++++++ INFO IS  +++++++++++++++",FTI_INFO);
+    sprintf(str,"I want to access index of the following id %d",id);
+    FTI_Print(str,FTI_INFO);
+    FTI_Print("+++++++++++++++ Data Hash INFO +++++++++++++++",FTI_INFO);
+    sprintf(str,"Num Hashes are %ld",dataHash->nbHashes);
+    FTI_Print(str,FTI_INFO);
+    sprintf(str,"Type of hash is %d",dataHash->creationType);
+    FTI_Print(str,FTI_INFO);
+    sprintf(str,"Pointer of Hash is [%d] Lifetime %d",dataHash->currentId,dataHash->lifetime);
+    FTI_Print(str,FTI_INFO);
+
+    sprintf(str,"Pointer of CURRENT Hash Table %p",dataHash->md5hash[CURRENT(dataHash)]);
+    FTI_Print(str,FTI_INFO);
+
+    sprintf(str,"Pointer of NEXT Hash Table %p",dataHash->md5hash[NEXT(dataHash)]);
+    FTI_Print(str,FTI_INFO);
+
+    sprintf(str,"Pointer of BLOCK SIZE Table %p",dataHash->blockSize);
+    FTI_Print(str,FTI_INFO);
+
+    sprintf(str,"Pointer of ISVALIDE  Table %p",dataHash->isValid);
+    FTI_Print(str,FTI_INFO);
+
+    sprintf(str,"Last Block Size is  %d",dataHash->blockSize[dataHash->nbHashes-1]);
+    FTI_Print(str,FTI_INFO);
+    sprintf(str,"Total Block size is %ld, Computed Block Size is %ld",chunkSize,(dataHash->nbHashes-1)*FTI_GetDiffBlockSize() + dataHash->blockSize[dataHash->nbHashes-1] );
+    FTI_Print(str,FTI_INFO);
+
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Checks if data block is dirty, clean or invalid.
   @param      hashIdx         index for hash meta data in data chunk 
-                              meta data.
+  meta data.
   @param      dbvar           Data chunk meta data.
   @return     integer         0 if data block is clean.
   @return     integer         1 if data block is dirty or invalid.
@@ -494,46 +669,63 @@ long FTI_CalcNumHashes( long chunkSize )
   It returns -1 if hashIdx is out of range.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar )
+int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
 {
-    
-    // if out of range return -1
+
     bool clean = true;
-    assert( !(hashIdx > dbvar->nbHashes) );
-    if ( hashIdx == dbvar->nbHashes ) {
+    uint32_t bit32hashNow;
+    unsigned char *prevHash;
+    unsigned char *nextHash;
+
+    FTIT_DataDiffHash* hashes = dbvar->dataDiffHash; 
+    //  unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
+
+    assert( !(hashIdx > hashes->nbHashes) );
+
+
+    if ( hashIdx == hashes->nbHashes ) {
         return -1;
-    } else if ( !(dbvar->dataDiffHash[hashIdx].isValid) ){
+    }
+
+    // I Compute the hash code for the upcoming checkpoint On the Next status
+    if ( FTI_GetDcpMode() == FTI_DCP_MODE_MD5 ){
+        MD5( ptr, hashes->blockSize[hashIdx] , &(hashes->md5hash[NEXT(hashes)][MD5_DIGEST_LENGTH * hashIdx]));
+    }
+    else{
+#ifdef FTI_NOZLIB
+        bit32hashNow = crc32( ptr, hashes->blockSize[hashIdx] );
+#else
+        bit32hashNow = crc32( 0L, Z_NULL, 0 );
+        bit32hashNow = crc32( bit32hashNow, ptr, hashes->blockSize[hashIdx] );
+#endif
+        hashes->bit32hash[NEXT(hashes)][hashIdx] = bit32hashNow;
+    }
+
+    clean = 0;
+    if ( !(hashes->isValid[hashIdx]) ){
         return 1;
     } else {
-        unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
-        unsigned char md5hashNow[MD5_DIGEST_LENGTH];
-        uint32_t bit32hashNow;
-        FTIT_DataDiffHash* hashInfo = &(dbvar->dataDiffHash[hashIdx]);
         switch ( DCP_MODE ) {
             case FTI_DCP_MODE_MD5:
-                MD5( ptr, hashInfo->blockSize, md5hashNow);
-                clean = memcmp(md5hashNow, hashInfo->md5hash, MD5_DIGEST_LENGTH) == 0;
+                prevHash = &(hashes->md5hash[CURRENT(hashes)][MD5_DIGEST_LENGTH * hashIdx]);
+                nextHash = &(hashes->md5hash[NEXT(hashes)][MD5_DIGEST_LENGTH * hashIdx]);
+                clean = memcmp(nextHash , prevHash , MD5_DIGEST_LENGTH) == 0;
                 break;
             case FTI_DCP_MODE_CRC32:
-#ifdef FTI_NOZLIB
-                bit32hashNow = crc32( ptr, hashInfo->blockSize );
-#else
-                bit32hashNow = crc32( 0L, Z_NULL, 0 );
-                bit32hashNow = crc32( bit32hashNow, ptr, hashInfo->blockSize );
-#endif
-                clean = bit32hashNow == hashInfo->bit32hash;
+                clean = (bit32hashNow == hashes->bit32hash[CURRENT(hashes)][hashIdx]);
                 break;
         }
+        //isValid is false, in the case in which I dont manage to update 
+        //the checkpoint, this memory region will be marked as invalid and therefore
+        //it will be checkpointed on the next checkpoint.
         // set clean if unchanged
         if ( clean ) {
-            hashInfo->dirty = false;
             return 0;
-        // set dirty if changed
         } else {
-            hashInfo->dirty = true;
             return 1;
         }
     } 
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -552,54 +744,42 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
     int dbvar_idx, dbcounter=0;
-
     int isnextdb;
-
     do {
-
         isnextdb = 0;
-
         for(dbvar_idx=0;dbvar_idx<db->numvars;dbvar_idx++) {
-
             dbvar = &(db->dbvars[dbvar_idx]);
             FTIT_DataDiffHash* hashInfo = dbvar->dataDiffHash;
-        
-            int hashIdx;
-            for(hashIdx=0; hashIdx<dbvar->nbHashes; ++hashIdx) {
-                if (hashInfo[hashIdx].dirty || !hashInfo[hashIdx].isValid) {
-                    unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
-                    switch ( DCP_MODE ) {
-                        case FTI_DCP_MODE_MD5:
-                            MD5( ptr, hashInfo[hashIdx].blockSize, hashInfo[hashIdx].md5hash);
-                            break;
-                        case FTI_DCP_MODE_CRC32:
-#ifdef FTI_NOZLIB
-                            hashInfo[hashIdx].bit32hash = crc32( ptr, hashInfo[hashIdx].blockSize );
-#else
-                            hashInfo[hashIdx].bit32hash = crc32( 0L, Z_NULL, 0 ); 
-                            hashInfo[hashIdx].bit32hash = crc32( hashInfo[hashIdx].bit32hash, ptr, hashInfo[hashIdx].blockSize );
-#endif                            
-                            break;
-                    }
-                    if(dbvar->hascontent) {
-                        hashInfo[hashIdx].isValid = true;
+            if(dbvar->hascontent) {
+                memset(hashInfo->isValid, true, hashInfo->nbHashes); 
+                // I need to free current hash table
+                if (FTI_GetDcpMode() == FTI_DCP_MODE_MD5){
+                    if ( hashInfo->md5hash[CURRENT(hashInfo)] != NULL ){
+                        free (hashInfo->md5hash[CURRENT(hashInfo)]);
+                        hashInfo->md5hash[CURRENT(hashInfo)] = NULL;
                     }
                 }
+                else{
+                    if ( hashInfo->bit32hash[CURRENT(hashInfo)] != NULL ){
+                        free (hashInfo->bit32hash[CURRENT(hashInfo)]);
+                        hashInfo->bit32hash[CURRENT(hashInfo)] = NULL;
+                    }
+                }
+                hashInfo->currentId = (hashInfo->currentId +1)%2;
+                hashInfo->lifetime++;
             }
-
         }
-
         if (db->next) {
             db = db->next;
             isnextdb = 1;
         }
-
         dbcounter++;
-
     } while( isnextdb );
-
     return FTI_SCES;
 }
+
+
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -619,60 +799,77 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
   dirty regions are found in which case 0 is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReceiveDataChunk(FTI_ADDRVAL* buffer_addr, FTI_ADDRVAL* buffer_size, FTIFF_dbvar* dbvar, FTIT_dataset* FTI_Data) 
+int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  FTIT_dataset* FTI_Data, unsigned char *startAddr, size_t *totalBytes ) 
 {
-
     static bool init = true;
     static bool reset;
     static long hashIdx;
-    
+    unsigned char *ptr = startAddr;
+    static int called = 0;
+
     if ( init ) {
+        called = 0;
         hashIdx = 0;
         reset = false;
         init = false;
     }
-    
+
     // reset function and return not found
     if ( reset ) {
         init = true;
         return 0;
     }
-   
+    
+    called++;
+
     // if differential ckpt is disabled, return whole chunk and finalize call
     if ( !dcpEnabled ) {
         reset = true;
-        *buffer_addr = (FTI_ADDRVAL) FTI_Data[dbvar->idx].ptr + dbvar->dptr;
-        *buffer_size = dbvar->chunksize;
+        *buffer_addr = ptr;
+        *buffer_size = *totalBytes;
+        *totalBytes = 0;
         return 1;
     }
 
+    int maxNumHashes = hashIdx + ( (*totalBytes)/DCP_BLOCK_SIZE) + (( (*totalBytes) % DCP_BLOCK_SIZE) != 0); 
     // advance *buffer_offset for clean regions
-    bool clean = FTI_HashCmp( hashIdx, dbvar ) == 0;
-    while( clean ) {
-        hashIdx++;
-        clean = FTI_HashCmp( hashIdx, dbvar ) == 0;
+    unsigned char clean = 1;
+    int cleanIdx = hashIdx;
+    while( hashIdx < maxNumHashes && clean ){
+        clean = FTI_HashCmp( hashIdx, dbvar, ptr ) == 0;
+        ptr += (clean) * (dbvar->dataDiffHash->blockSize[hashIdx]);
+        (*totalBytes) -= (clean) * (dbvar->dataDiffHash->blockSize[hashIdx]);
+        hashIdx += (clean) *1;
     }
+    memset(&(dbvar->dataDiffHash->isValid[cleanIdx]), false , (hashIdx-cleanIdx)); 
 
     // check if region clean until end
-    if ( hashIdx == dbvar->nbHashes ) {
+    if ( hashIdx == dbvar->dataDiffHash->nbHashes ) {
         init = true;
         return 0;
     }
-
-    /* if at call pointer to dirty region then data_ptr unchanged */
-    *buffer_addr = (FTI_ADDRVAL) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;
-    *buffer_size = 0;
-
-    // advance *buffer_size for dirty regions
-    bool dirty = FTI_HashCmp( hashIdx, dbvar ) == 1;
-    while( dirty ) {
-        *buffer_size += dbvar->dataDiffHash[hashIdx].blockSize;
-        hashIdx++;
-        dirty = FTI_HashCmp( hashIdx, dbvar ) == 1;
+    //check if I have processed all fetched memory up to current byte;
+    if ( hashIdx == maxNumHashes ){
+        return 0;
     }
 
+    *buffer_addr = ptr;
+    *buffer_size = 0;
+    unsigned dirty = 1;
+    int dirtyIdx = hashIdx;
+
+    while ( hashIdx < maxNumHashes && dirty){
+        dirty = FTI_HashCmp(hashIdx, dbvar, ptr);
+        ptr += (dirty) * (dbvar->dataDiffHash->blockSize[hashIdx]);
+        *buffer_size += (dirty) * (dbvar->dataDiffHash->blockSize[hashIdx]);
+        (*totalBytes) -= (dirty) * (dbvar->dataDiffHash->blockSize[hashIdx]);
+        hashIdx += (dirty) *  1;
+    }
+
+    memset(&(dbvar->dataDiffHash->isValid[dirtyIdx]), false , (hashIdx-dirtyIdx)); 
+
     // check if we are at the end of the data region
-    if ( hashIdx == dbvar->nbHashes ) {
+    if ( hashIdx == dbvar->dataDiffHash->nbHashes ) {
         if ( *buffer_size != 0 ) {
             reset = true;
             return 1;

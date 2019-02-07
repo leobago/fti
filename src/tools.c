@@ -216,7 +216,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
   MD5_CTX mdContext;
   MD5_Init (&mdContext);
   int i;
-  char str[FTI_BUFS];
 
   //iterate all variables
   for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -615,7 +614,6 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-  char str[FTI_BUFS];
   ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   if (ftiGroup->h5groupID < 0) {
     FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
@@ -643,7 +641,6 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 /*-------------------------------------------------------------------------*/
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-  char str[FTI_BUFS];
   ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
   if (ftiGroup->h5groupID < 0) {
     FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);

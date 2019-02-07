@@ -311,7 +311,7 @@ INLINE_L3=(0 1)
 INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
-MEM_NAMES=(CPU GPU)  
+MEM_NAMES=(@MEMORYTYPES@)  
 #                     #
 # ---- Check dCP ---- #
 #                     #
@@ -383,9 +383,8 @@ if [ $testFailed = 1 ]; then
     testFailed=0
 fi
 
-for m in $(seq 1 3); do
-  let MEM=m-1
-  for io in $(seq 1 3); do
+for MEM in "${!MEM_NAMES[@]}"; do
+  for io in ${!IO_NAMES[@]}; do
       for enable_icp in OFF ON; do
           let io_id=io-1
           get_io ${IO_NAMES[$io_id]}

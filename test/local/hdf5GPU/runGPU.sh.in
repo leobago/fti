@@ -1,0 +1,48 @@
+#!/bin/bash
+
+config=$1
+cp configs/$config .
+# the first case creates an 8 gpu buffer
+# second a 1000 bytes gpu buffer
+# third a 32Mbyts GPU buffer
+
+should_not_fail() {
+	if [ $1 = 0 ]; then
+	    echo -e "\033[0;32mpassed\033[m"
+		let SUCCEED=SUCCEED+1
+	elif [ $1 = 255 ]; then
+        echo -e "\033[0;31mfailed\033[m (FTI Abort)"
+		let FAILED=FAILED+1
+		testFailed=1
+    exit
+	elif [ $1 = 30 ]; then
+		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
+		let FAILED=FAILED+1
+		testFailed=1
+    exit
+	elif [ $1 = 20 ]; then
+        echo -e "\033[0;31mfailed\033[m (Recovery Failed)"
+    exit
+	elif [ $1 = 143 ]; then
+        echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
+	elif [ $1 = 40 ]; then
+        echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
+	elif [ $1 = 50 ]; then
+        echo -e "\033[0;31mfailed\033[m (Wrong Environment!)"
+	else
+		echo -e "Unknown exit status: "$1
+	fi
+}
+
+GPU_BUFFER=(8 1000 33554432)
+rm -rf check.log
+for i in ${GPU_BUFFER[@]}; do
+  sed -i "s/gpu_host_bufsize.*=.*/gpu_host_bufsize=$i/g" $config 
+  echo -en "Checking HDF5 with GPU buffer equal to $i bytes .... "
+  mpirun -n 8 ./hd5GPU.exe $config 1 1 >> check.log 2>&1
+  mpirun -n 8 ./hd5GPU.exe $config 0 1 >> check.log 2>&1
+  should_not_fail $?
+  rm -rf Local/* Meta/* Global/*
+done
+rm -f $config
+
