@@ -51,7 +51,7 @@ double get_share_ratio() {
 
 void init( dcp_info_t * info, unsigned long alloc_size ) {
 
-    int wsize, lrank;
+    int wsize;
     MPI_Comm_size(MPI_COMM_WORLD, &wsize);
     MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     

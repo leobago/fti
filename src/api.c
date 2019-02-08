@@ -870,7 +870,7 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Defines a global dataset (shared among application processes)
+    @brief      Assigns a FTI protected variable to a global dataset
     @param      id              Corresponding variable ID.
     @param      rank            Rank of the dataset.
     @param      offset          Starting coordinates in global dataset.
