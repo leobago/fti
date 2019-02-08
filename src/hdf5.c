@@ -35,6 +35,7 @@
  *  @date   November, 2017
  *  @brief  Funtions to support HDF5 checkpointing.
  */
+
 #ifdef ENABLE_HDF5
 #include "interface.h"
 #include "utility.h"
@@ -342,5 +343,5 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     }
     return FTI_SCES;
 }
-            
+
 #endif

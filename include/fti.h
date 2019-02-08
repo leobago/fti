@@ -339,7 +339,7 @@ extern "C" {
     int                         rank;
     int                         id;
     int                         numSubSets;
-    int*                        varIds;
+    int*                        varIdx;
     FTIT_H5Group*               location;
 #ifdef ENABLE_HDF5
     hid_t                       hid;

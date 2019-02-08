@@ -837,7 +837,7 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     strncpy( last->name, name, FTI_BUFS );
     last->name[FTI_BUFS-1] = '\0';
     last->numSubSets = 0;
-    last->varIds = NULL;
+    last->varIdx = NULL;
     last->type = type;
     last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
 
@@ -888,6 +888,10 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
         FTI_Print("rank missmatch!",FTI_EROR);
         return FTI_NSCS;
     }
+
+    dataset->numSubSets++;
+    dataset->varIdx = (int*) realloc( dataset->varIdx, dataset->numSubSets*sizeof(int) );
+    dataset->varIdx[dataset->numSubSets-1] = pvar_idx;
     
     FTI_Data[pvar_idx].sharedData.dataset = dataset;
     FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
@@ -1186,7 +1190,7 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
-    
+     
     char str[FTI_BUFS]; //For console output
     
     if (FTI_Exec.initSCES == 0) {
@@ -1223,6 +1227,10 @@ int FTI_Checkpoint(int id, int level)
             FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
             return FTI_DONE;
         }
+        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+            FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
+            return FTI_NREC;
+        }
         level = 4;
         t1 = MPI_Wtime();
         int lastCkptLvelBackup = FTI_Exec.ckptLvel;
@@ -1248,7 +1256,7 @@ int FTI_Checkpoint(int id, int level)
                     FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
             FTI_Print(str, FTI_INFO);
         }
-        return FTI_DONE;
+        return status;
 #else
         FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
         return FTI_NSCS;
@@ -1976,27 +1984,34 @@ int FTI_Recover()
         return FTI_NSCS;
     }
 
+    int i;
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 
-    //Check if nubmer of protected variables matches
-    //if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
-    //    sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-    //            FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
-    //    FTI_Print(str, FTI_WARN);
-    //    return FTI_NREC;
-    //}
-    //Check if sizes of protected variables matches
-    int i;
-    //for (i = 0; i < FTI_Exec.nbVar; i++) {
-    //    if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-    //        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-    //                FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-    //                FTI_Data[i].size);
-    //        FTI_Print(str, FTI_WARN);
-    //        return FTI_NREC;
-    //    }
-    //}
+    //Check if number of protected variables matches
+    if( FTI_Exec.h5SingleFile ) {
+        if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
+            FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
+            return FTI_NREC;
+        }
+    } else {
+        if( FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0] ) {
+            sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                    FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+        //Check if sizes of protected variables matches
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
+        }
+    }
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
   if (FTI_Conf.ioMode == FTI_IO_HDF5) {

@@ -138,7 +138,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
         snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
     

@@ -706,9 +706,12 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
         dataset->fileSpace = H5Screate_simple( dataset->rank, dataset->dimension, NULL );
 
         if(dataset->fileSpace < 0) {
-            FTI_Print("ERROR ON FILESPACE",FTI_EROR);
-            exit(0);
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to create space for dataset #%d", dataset->id );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
         }
+
         // create dataset
         hid_t loc = dataset->location->h5groupID;
         hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
@@ -725,8 +728,10 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 
         dataset->hid = H5Dcreate( loc, dataset->name, tid, fsid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
         if(dataset->hid < 0) {
-            FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
-            exit(0);
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to create dataset #%d", dataset->id );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
         }
 
         dataset->initialized = true;
@@ -841,8 +846,10 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
     // create dataspace for subset of shared dataset
     hid_t msid = H5Screate_simple( ndim, count, NULL );
     if(msid < 0) {
-        FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
-        exit(0);
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
     }
     // select range in shared dataset in file
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
@@ -854,8 +861,10 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
     // write data in file
     herr_t status = H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr);
     if(status < 0) {
-        FTI_Print("ERROR ON LOCAL DATASET WRITE",FTI_EROR);
-        exit(0);
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
     }
 
     H5Sclose( msid );
@@ -863,6 +872,42 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
     return status;
 
+}
+#endif
+
+#ifdef ENABLE_HDF5 
+int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec ) 
+{   
+
+    // NOTE checking for overlap is complicated and likely expensive
+    // since it requires sorting within all contributing processes.
+    // Thus, we check currently only the number of elements.
+    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+        int i,j;
+        // sum of local elements
+        hsize_t numElemLocal = 0, numElemGlobal;
+        for( i=0; i<dataset->numSubSets; ++i ) {
+            hsize_t numElemSubSet = 1;
+            for( j=0; j<dataset->rank; j++ ) {
+                numElemSubSet *= FTI_Data[dataset->varIdx[i]].sharedData.count[j];
+            }
+            numElemLocal += numElemSubSet;
+        }
+        // number of elements in global dataset
+        hsize_t numElem = 1;
+        for( i=0; i<dataset->rank; ++i ) {
+            numElem *= dataset->dimension[i];
+        }
+        MPI_Allreduce( &numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, FTI_COMM_WORLD );
+        if( numElem != numElemGlobal ) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
+            FTI_Print( errstr, FTI_WARN);
+            return FTI_NSCS;
+        }
+        dataset = dataset->next;
+    }
 }
 #endif
 
@@ -947,7 +992,8 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_ScanGroup( hid_t gid, char* fn ) {
+int FTI_ScanGroup( hid_t gid, char* fn ) 
+{
     int res = FTI_SCES;
     char errstr[FTI_BUFS];
     hsize_t nobj;
@@ -1039,8 +1085,10 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     // create dataspace for subset of shared dataset
     hid_t msid = H5Screate_simple( ndim, count, NULL );
     if(msid < 0) {
-        FTI_Print("ERROR ON ABSTRACT DATASET",FTI_EROR);
-        exit(0);
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
     }
 
     // select range in shared dataset in file
@@ -1053,8 +1101,10 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     // write data in file
     herr_t status = H5Dread(did, tid, msid, fsid, plid, FTI_Data.ptr);
     if(status < 0) {
-        FTI_Print("ERROR ON LOCAL DATASET READ",FTI_EROR);
-        exit(0);
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
     }
 
     H5Sclose( msid );

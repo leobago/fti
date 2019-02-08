@@ -503,6 +503,7 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
     
     if( FTI_Conf->h5SingleFileEnable ) {
         MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
+	MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
         if( h5DirFailed ) { 
             FTI_Conf->h5SingleFileEnable = false; 
             FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);

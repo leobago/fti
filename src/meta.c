@@ -772,8 +772,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
-    // no metadata is created for the H5 single file
-    if ( FTI_Exec->h5SingleFile ) { return FTI_SCES; }
 
     FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
     FTI_Exec->meta[0].nbVar[0] = FTI_Exec->nbVar;
