@@ -576,7 +576,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    int res;
+    int res = FTI_SCES;
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
     char str[FTI_BUFS], fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
@@ -644,7 +644,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    return FTI_SCES;
+    return res;
 
 }
 

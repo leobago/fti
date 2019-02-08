@@ -66,7 +66,7 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     FTIT_dataset* FTI_Data)
 {
   FILE *fd;
-  int res;
+  int res = FTI_SCES;
   memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
 
   char str[FTI_BUFS];
@@ -110,7 +110,7 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 
   FTI_Exec->iCPInfo.result = FTI_SCES;
 
-  return FTI_SCES;
+  return res;
 
 }
 
@@ -261,7 +261,7 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 {
   char str[FTI_BUFS];
   WriteMPIInfo_t write_info;
-  int res;
+  int res = FTI_SCES;
   memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
   write_info.offset = FTI_Exec->iCPInfo.offset; 
@@ -296,7 +296,7 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 
   FTI_Exec->iCPInfo.result = FTI_SCES;
 
-  return FTI_SCES;
+  return res;
 
 }
 
@@ -698,7 +698,7 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
       if (FTI_Data[i].type->h5datatype < 0) {
         toCommit = 1;
       }
-      sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_Data[i].type->id, FTI_Data[i].type->h5datatype);
+      sprintf(str, "Calling CreateComplexType [%d] with hid_t %d", FTI_Data[i].type->id, FTI_Data[i].type->h5datatype);
       FTI_Print(str, FTI_DBUG);
       FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
       if (toCommit == 1) {

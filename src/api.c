@@ -1253,7 +1253,7 @@ int FTI_Checkpoint(int id, int level)
                     FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
             char str[FTI_BUFS];
             sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                    FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
+                    FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
             FTI_Print(str, FTI_INFO);
         }
         return status;
@@ -1958,7 +1958,6 @@ int FTI_FinalizeICP()
 
 static int copyDataToDevice(){
   int i;
-  char str[FTI_BUFS]; //For console output
   for (i = 0; i < FTI_Exec.nbVar; i++) {
     if ( FTI_Data[i].isDevicePtr ){
       FTI_copy_to_device( FTI_Data[i].devicePtr, FTI_Data[i].ptr,FTI_Data[i].size, &FTI_Exec);
@@ -1991,7 +1990,7 @@ int FTI_Recover()
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
 #ifdef ENABLE_HDF5
-        if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
+        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
             FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
             return FTI_NREC;
         }

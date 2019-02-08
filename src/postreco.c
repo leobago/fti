@@ -876,11 +876,11 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-  char lfback[FTI_BUFS], gfback[FTI_BUFS];
 
   switch(FTI_Conf->ioMode) {
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     case FTI_IO_SIONLIB:
+      char lfback[FTI_BUFS], gfback[FTI_BUFS];
       strncpy(lfback,FTI_Exec->meta[1].ckptFile,FTI_BUFS);
       strncpy(gfback,FTI_Exec->meta[4].ckptFile,FTI_BUFS);
       if (FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt) == FTI_SCES ){

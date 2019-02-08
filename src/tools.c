@@ -39,7 +39,6 @@
 #include "interface.h"
 #include <dirent.h>
 #include "api_cuda.h"
-#include <hdf5.h>
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
@@ -220,7 +219,6 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
   MD5_CTX mdContext;
   MD5_Init (&mdContext);
   int i;
-  char str[FTI_BUFS];
 
   //iterate all variables
   for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -543,7 +541,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
   sprintf(str, "Creating type [%d].", ftiType->id);
   FTI_Print(str, FTI_DBUG);
   ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
-  sprintf(str, "Type [%d] has hid_t %ld.", ftiType->id, ftiType->h5datatype);
+  sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
   FTI_Print(str, FTI_DBUG);
   if (ftiType->h5datatype < 0) {
     FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -619,7 +617,6 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-  char str[FTI_BUFS];
   ftiGroup->h5groupID = H5Gcreate2(parentGroup, ftiGroup->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   if (ftiGroup->h5groupID < 0) {
     FTI_Print("FTI failed to create HDF5 group.", FTI_WARN);
@@ -647,7 +644,6 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 /*-------------------------------------------------------------------------*/
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group)
 {
-  char str[FTI_BUFS];
   ftiGroup->h5groupID = H5Gopen2(parentGroup, ftiGroup->name, H5P_DEFAULT);
   if (ftiGroup->h5groupID < 0) {
     FTI_Print("FTI failed to open HDF5 group.", FTI_WARN);
@@ -908,18 +904,16 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
         }
         dataset = dataset->next;
     }
+    return FTI_SCES;
 }
 #endif
 
 #ifdef ENABLE_HDF5
 int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID ) 
 {
-    int drank_tmp;
     char errstr[FTI_BUFS];
-    char str[FTI_BUFS];
     char fn[FTI_BUFS];
     int res = FTI_SCES;
-    herr_t err;
     struct stat st;
    
     struct dirent *entry;
