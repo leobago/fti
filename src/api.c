@@ -1990,10 +1990,15 @@ int FTI_Recover()
 
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
+#ifdef ENABLE_HDF5
         if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
             FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
             return FTI_NREC;
         }
+#else
+        FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+        return FTI_NSCS;
+#endif
     } else {
         if( FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0] ) {
             sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
@@ -2326,6 +2331,10 @@ int FTI_Finalize()
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVar(int id)
 {
+    if( FTI_Exec.h5SingleFile ) {
+        FTI_Print("FTI_RecoverVar is not supported yet by VPR! Please consider using FTI_Recover.", FTI_WARN);
+        return FTI_NSCS;
+    }
     if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
         return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
     }
