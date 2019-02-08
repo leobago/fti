@@ -117,25 +117,35 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char fn[FTI_BUFS]; //Path to the checkpoint/partner file name
     int buf;
     int ckptID, rank; //Variables for proper partner file name
+    int (*consistency)(char *, long , char*);
+#ifdef ENABLE_HDF5
+    if (FTI_Conf->ioMode == FTI_IO_HDF5)
+        consistency = &FTI_CheckHDF5File;
+    else
+        consistency = &FTI_CheckFile;
+#else
+    consistency = &FTI_CheckFile;
+#endif
+    
     switch (level) {
         case 1:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
-            buf = FTI_CheckFile(fn, fs, checksum);
+            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 2:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, ckptFile);
-            buf = FTI_CheckFile(fn, fs, checksum);
+            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
             snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
-            buf = FTI_CheckFile(fn, pfs, ptnerChecksum);
+            buf = consistency(fn, pfs, ptnerChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 3:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, ckptFile);
-            buf = FTI_CheckFile(fn, fs, checksum);
+            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
             sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
@@ -145,7 +155,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             break;
         case 4:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
-            buf = FTI_CheckFile(fn, fs, checksum);
+            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }

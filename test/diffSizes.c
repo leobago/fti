@@ -227,8 +227,8 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
     exec_id = iniparser_getstring(ini, "Restart:exec_id", NULL);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int nodes = nodeSize ? global_world_size / nodeSize : 0;
-    char str[256];
-    char path[256];
+    char str[300];
+    char path[300];
 
     DIR *dir;
     struct dirent *ent;

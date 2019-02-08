@@ -169,6 +169,7 @@ extern "C" {
     double t0;                  /**< timing for CP statistics               */
     double t1;                  /**< timing for CP statistics               */
     char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
+    char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
     unsigned long long offset;  /**< file offset (for MPI-IO only)          */
   } FTIT_iCPInfo;
 
@@ -204,12 +205,14 @@ extern "C" {
    */
   typedef struct              FTIT_DataDiffHash
   {
-    unsigned char*          md5hash;    /**< MD5 digest                       */
-    unsigned short          blockSize;  /**< data block size                  */
-    uint32_t                bit32hash;  /**< CRC32 digest                     */
-    bool                    dirty;      /**< indicates if data block is dirty */
-    bool                    isValid;    /**< indicates if data block is valid */
-
+    unsigned char*          md5hash[2];    /**< MD5 digest                       */
+    uint32_t*               bit32hash[2];  /**< CRC32 digest                     */
+    unsigned short*         blockSize;  /**< data block size                  */
+    bool*                   isValid;    /**< indicates if data block is valid */
+    long                    nbHashes;     /**< holds the number of hashes for the data chunk                    */ 
+    int                     currentId;
+    int                     creationType;
+    int                     lifetime;
   }FTIT_DataDiffHash;
 
   /** @typedef    FTIFF_dbvar
@@ -428,54 +431,49 @@ extern "C" {
    *  This type stores all the dynamic metadata related to the current execution
    */
   typedef struct FTIT_execution {
-    char                    id[FTI_BUFS];       /**< Execution ID.                  */
-    int                     ckpt;               /**< Checkpoint flag.               */
-    int                     reco;               /**< Recovery flag.                 */
-    int                     ckptLvel;           /**< Checkpoint level.              */
-    int                     ckptIntv;           /**< Ckpt. interval in minutes.     */
-    int                     lastCkptLvel;       /**< Last checkpoint level.         */
-    int                     wasLastOffline;     /**< TRUE if last ckpt. offline.    */
-    double                  iterTime;           /**< Current wall time.             */
-    double                  lastIterTime;       /**< Time spent in the last iter.   */
-    double                  meanIterTime;       /**< Mean iteration time.           */
-    double                  globMeanIter;       /**< Global mean iteration time.    */
-    double                  totalIterTime;      /**< Total main loop time spent.    */
-    unsigned int            syncIter;           /**< To check mean iter. time.      */
-    int                     syncIterMax;        /**< Maximal synch. intervall.      */
-    unsigned int            minuteCnt;          /**< Checkpoint minute counter.     */
-    bool                    hasCkpt;            /**< Indicator that ckpt exists     */
+    char            id[FTI_BUFS];       /**< Execution ID.                  */
+    int             ckpt;               /**< Checkpoint flag.               */
+    int             reco;               /**< Recovery flag.                 */
+    int             ckptLvel;           /**< Checkpoint level.              */
+    int             ckptIntv;           /**< Ckpt. interval in minutes.     */
+    int             lastCkptLvel;       /**< Last checkpoint level.         */
+    int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
+    double          iterTime;           /**< Current wall time.             */
+    double          lastIterTime;       /**< Time spent in the last iter.   */
+    double          meanIterTime;       /**< Mean iteration time.           */
+    double          globMeanIter;       /**< Global mean iteration time.    */
+    double          totalIterTime;      /**< Total main loop time spent.    */
+    unsigned int    syncIter;           /**< To check mean iter. time.      */
+    int             syncIterMax;        /**< Maximal synch. intervall.      */
+    unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
+    bool            hasCkpt;            /**< Indicator that ckpt exists     */
     bool                    h5SingleFile;       /**< Indicator if HDF5 single file  */
-    unsigned int            ckptCnt;            /**< Checkpoint number counter.     */
-    unsigned int            ckptIcnt;           /**< Iteration loop counter.        */
-    unsigned int            ckptID;             /**< Checkpoint ID.                 */
-    unsigned int            ckptNext;           /**< Iteration for next checkpoint. */
-    unsigned int            ckptLast;           /**< Iteration for last checkpoint. */
-    long                    ckptSize;           /**< Checkpoint size.               */
-    unsigned int            nbVar;              /**< Number of protected variables. */
-    unsigned int            nbVarStored;        /**< Nr. prot. var. stored in file  */
-    unsigned int            nbType;             /**< Number of data types.          */
-    int                     nbGroup;            /**< Number of protected groups.    */
-    int                     metaAlloc;          /**< TRUE if meta allocated.        */
-    int                     initSCES;           /**< TRUE if FTI initialized.       */
+    unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
+    unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
+    unsigned int    ckptID;             /**< Checkpoint ID.                 */
+    unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
+    unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
+    long            ckptSize;           /**< Checkpoint size.               */
+    unsigned int    nbVar;              /**< Number of protected variables. */
+    unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
+    unsigned int    nbType;             /**< Number of data types.          */
+    int             nbGroup;            /**< Number of protected groups.    */
+    int             metaAlloc;          /**< TRUE if meta allocated.        */
+    int             initSCES;           /**< TRUE if FTI initialized.       */
     char            h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
-    FTIT_metadata           meta[5];            /**< Metadata for each ckpt level   */
-    FTIFF_db                 *firstdb;          /**< Pointer to first datablock     */
-    FTIFF_db                 *lastdb;           /**< Pointer to first datablock     */
-    FTIFF_metaInfo          FTIFFMeta;          /**< File meta data for FTI-FF      */
-    FTIT_type**             FTI_Type;           /**< Pointer to FTI_Types           */
-    FTIT_H5Group**          H5groups;           /**< HDF5 root group.               */
+    FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
+    FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
+    FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
+    FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
+    FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
+    FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
     FTIT_globalDataset*     globalDatasets;     /**< Pointer to first global dataset*/
-    FTIT_StageInfo*         stageInfo;          /**< root of staging requests       */
-    FTIT_iCPInfo            iCPInfo;            /**< meta info iCP                  */
-    MPI_Comm                globalComm;         /**< Global communicator.           */
-    MPI_Comm                groupComm;          /**< Group communicator.            */
-    MPI_Comm                nodeComm;           /**< Node communicator.             */
-#ifdef GPUSUPPORT            
-    cudaStream_t            cStream;            /**< CUDA stream.                   */
-    cudaEvent_t             cEvents[2];         /**< CUDA event.                    */
-    void*                   cHostBufs[2];       /**< CUDA host buffer.              */
-#endif
-  } FTIT_execution;
+    FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
+    FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
+    MPI_Comm        globalComm;         /**< Global communicator.           */
+    MPI_Comm        groupComm;          /**< Group communicator.            */
+    MPI_Comm        nodeComm;
+} FTIT_execution;
 
   /** @typedef    FTIT_configuration
    *  @brief      Configuration metadata.
@@ -483,21 +481,21 @@ extern "C" {
    *  This type stores the general configuration metadata.
    */
   typedef struct FTIT_configuration {
-    bool            stagingEnabled;     /**< TRUE if staging enabled            */
-    bool            dcpEnabled;         /**< Enable differential ckpt.          */
-    bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep           */        
-    bool            keepHeadsAlive;     /**< TRUE if heads return               */
-    int             dcpMode;            /**< dCP mode.                          */
-    int             dcpBlockSize;       /**< Block size for dCP hash            */
-    char            cfgFile[FTI_BUFS];  /**< Configuration file name.           */
-    int             saveLastCkpt;       /**< TRUE to save last checkpoint.      */
-    int             verbosity;          /**< Verbosity level.                   */
-    int             blockSize;          /**< Communication block size.          */
-    int             transferSize;       /**< Transfer size local to PFS         */
+    bool            stagingEnabled;
+    bool            dcpEnabled;         /**< Enable differential ckpt.      */
+    bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
+    bool            keepHeadsAlive;     /**< TRUE if heads return           */
+    int             dcpMode;            /**< dCP mode.                      */
+    int             dcpBlockSize;       /**< Block size for dCP hash        */
+    char            cfgFile[FTI_BUFS];  /**< Configuration file name.       */
+    int             saveLastCkpt;       /**< TRUE to save last checkpoint.  */
+    int             verbosity;          /**< Verbosity level.               */
+    int             blockSize;          /**< Communication block size.      */
+    int             transferSize;       /**< Transfer size local to PFS     */
 #ifdef LUSTRE
-    int             stripeUnit;         /**< Striping Unit for Lustre FS        */
-    int             stripeOffset;       /**< Striping Offset for Lustre FS      */
-    int             stripeFactor;       /**< Striping Factor for Lustre FS      */
+    int             stripeUnit;         /**< Striping Unit for Lustre FS    */
+    int             stripeOffset;       /**< Striping Offset for Lustre FS  */
+    int             stripeFactor;       /**< Striping Factor for Lustre FS  */
 #endif
     int             ckptTag;            /**< MPI tag for ckpt requests.         */
     int             stageTag;           /**< MPI tag for staging comm.          */
@@ -517,9 +515,7 @@ extern "C" {
     char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.         */
     char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.        */
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
-#ifdef GPUSUPPORT    
-    size_t          cHostBufSize;       /**< Host buffer size for GPU data.     */
-#endif
+    size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
 
   } FTIT_configuration;
 

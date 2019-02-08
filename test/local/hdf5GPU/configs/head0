@@ -1,0 +1,40 @@
+[basic]
+head                           = 0
+node_size                      = 2
+ckpt_dir                       = Local
+glbl_dir                       = Global
+meta_dir                       = Meta
+ckpt_l1                        = 2
+ckpt_l2                        = 0
+ckpt_l3                        = 0
+ckpt_l4                        = 0
+inline_l2                      = 1
+inline_l3                      = 1
+inline_l4                      = 1
+keep_last_ckpt                 = 0
+group_size                     = 4
+max_sync_intv                  = 0
+ckpt_io                        = 5
+verbosity                      = 2
+
+
+[restart]
+failure                        = 0
+exec_id                        = 2018-04-12_09-01-46
+
+
+[injection]
+rank                           = 0
+number                         = 0
+position                       = 0
+frequency                      = 0
+
+
+[advanced]
+block_size                     = 1024
+transfer_size                  = 16
+mpi_tag                        = 2612
+local_test                     = 1
+gpu_host_bufsize               = 100 
+
+

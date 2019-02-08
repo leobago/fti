@@ -114,6 +114,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
 #endif
+#ifdef ENABLE_HDF5
+    H5Eset_auto2(0,0, NULL);
+#endif
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
@@ -165,13 +168,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         return FTI_HEAD;
     }
     else { // If I am an application process
-#ifdef GPUSUPPORT   
-    CUDA_ERROR_CHECK(cudaStreamCreate(&FTI_Exec.cStream));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[0], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaEventCreateWithFlags(&FTI_Exec.cEvents[1], cudaEventBlockingSync | cudaEventDisableTiming));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&FTI_Exec.cHostBufs[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
-#endif
+        if ( FTI_Try( FTI_InitDevices(FTI_Conf.cHostBufSize), "Allocating resources for communication with the devices") != FTI_SCES){
+            FTI_Print("Cannot Allocate defice memory\n", FTI_EROR);
+        } 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpEnabled ) {
             FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
@@ -687,117 +686,107 @@ int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
 /*-------------------------------------------------------------------------*/
 int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 {
-  if (FTI_Exec.initSCES == 0) {
-    FTI_Print("FTI is not initialized.", FTI_WARN);
-    return FTI_NSCS;
-  }
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-  char str[FTI_BUFS]; //For console output
+    char str[FTI_BUFS]; //For console output
 #ifdef GPUSUPPORT 
-  FTIT_ptrinfo ptrInfo;
-  int res;
-  if (( res = FTI_Try( FTI_get_pointer_info((const void*) ptr, &ptrInfo),"FTI_Protect: determine pointer type")) != FTI_SCES )  
-    return res;
+    FTIT_ptrinfo ptrInfo;
+    int res;
+    if (( res = FTI_Try( FTI_get_pointer_info((const void*) ptr, &ptrInfo),"FTI_Protect: determine pointer type")) != FTI_SCES )  
+        return res;
 #endif
 
-  int i;
-  for (i = 0; i < FTI_BUFS; i++) {
-    if (id == FTI_Data[i].id) { //Search for dataset with given id
-      long prevSize = FTI_Data[i].size;
+    int i;
+    char memLocation[4];
+    for (i = 0; i < FTI_BUFS; i++) {
+        if (id == FTI_Data[i].id) { //Search for dataset with given id
+            long prevSize = FTI_Data[i].size;
 #ifdef GPUSUPPORT
-      if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
-        FTI_Data[i].isDevicePtr = false;
-        FTI_Data[i].devicePtr= NULL;
-        FTI_Data[i].ptr = ptr;
-      }
-      else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
-        FTI_Data[i].isDevicePtr = true;
-        FTI_Data[i].devicePtr= ptr;
-        FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
-        if (FTI_Conf.ioMode == FTI_IO_FTIFF || FTI_Conf.ioMode == FTI_IO_HDF5){
-          FTI_Data[i].ptr = (void *) malloc (type.size *count);
-          if (FTI_Data[i].ptr == NULL){
-            FTI_Print("Could Not Allocate Extra Buffer for GPU data\n",FTI_EROR);
-            return FTI_NSCS;
-          }
-        } 
-      }
-      else{
-          FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
-          FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
-          return FTI_NSCS;
-      }
+            if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
+                strcpy(memLocation,"CPU");
+                FTI_Data[i].isDevicePtr = false;
+                FTI_Data[i].devicePtr= NULL;
+                FTI_Data[i].ptr = ptr;
+            }
+            else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
+                strcpy(memLocation,"GPU");
+                FTI_Data[i].isDevicePtr = true;
+                FTI_Data[i].devicePtr= ptr;
+                FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
+            }
+            else{
+                FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
+                FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
+                return FTI_NSCS;
+            }
 #else            
-      FTI_Data[i].isDevicePtr = false;
-      FTI_Data[i].devicePtr= NULL;
-      FTI_Data[i].ptr = ptr;
+            strcpy(memLocation,"CPU");
+            FTI_Data[i].isDevicePtr = false;
+            FTI_Data[i].devicePtr= NULL;
+            FTI_Data[i].ptr = ptr;
 #endif  
-      FTI_Data[i].count = count;
-      FTI_Data[i].type = FTI_Exec.FTI_Type[type.id];
-      FTI_Data[i].eleSize = type.size;
-      FTI_Data[i].size = type.size * count;
-      FTI_Data[i].dimLength[0] = count;
-      FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-      sprintf(str, "Variable ID %d reseted. Current ckpt. size per rank is %.2fMB.", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
-      FTI_Print(str, FTI_DBUG);
-      return FTI_SCES;
+            FTI_Data[i].count = count;
+            FTI_Data[i].type = FTI_Exec.FTI_Type[type.id];
+            FTI_Data[i].eleSize = type.size;
+            FTI_Data[i].size = type.size * count;
+            FTI_Data[i].dimLength[0] = count;
+            FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
+            sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            FTI_Print(str, FTI_DBUG);
+            return FTI_SCES;
+        }
     }
-  }
-  //Id could not be found in datasets
+    //Id could not be found in datasets
 
-  //If too many variables exit FTI.
-  if (FTI_Exec.nbVar >= FTI_BUFS) {
-    FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
-    return FTI_NSCS;
-  }
+    //If too many variables exit FTI.
+    if (FTI_Exec.nbVar >= FTI_BUFS) {
+        FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-  //Adding new variable to protect
-  FTI_Data[FTI_Exec.nbVar].id = id;
+    //Adding new variable to protect
+    FTI_Data[FTI_Exec.nbVar].id = id;
 #ifdef GPUSUPPORT
-  if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
+    if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
+        strcpy(memLocation,"CPU");
+        FTI_Data[FTI_Exec.nbVar].isDevicePtr = false;
+        FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
+        FTI_Data[FTI_Exec.nbVar].ptr = ptr;
+    }
+    else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
+        strcpy(memLocation,"GPU");
+        FTI_Data[FTI_Exec.nbVar].isDevicePtr = true;
+        FTI_Data[FTI_Exec.nbVar].devicePtr= ptr;
+        FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
+    }
+    else{
+        FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
+        FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
+        return FTI_NSCS;
+    }
+#else            
+    strcpy(memLocation,"CPU");
     FTI_Data[FTI_Exec.nbVar].isDevicePtr = false;
     FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
-    sprintf(str, "Variable ID %d to protect.  isDevice %d %p %p", id,  FTI_Data[FTI_Exec.nbVar].isDevicePtr, FTI_Data[FTI_Exec.nbVar].ptr,FTI_Data[FTI_Exec.nbVar].devicePtr);
-    FTI_Print(str, FTI_INFO);
-  }
-  else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
-    FTI_Data[FTI_Exec.nbVar].isDevicePtr = true;
-    FTI_Data[FTI_Exec.nbVar].devicePtr= ptr;
-    FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF || FTI_Conf.ioMode == FTI_IO_HDF5){
-      FTI_Data[FTI_Exec.nbVar].ptr =  (void *) malloc (type.size *count);
-      if (FTI_Data[FTI_Exec.nbVar].ptr == NULL){
-        FTI_Print("Could Not Allocate Extra Buffer for GPU data\n",FTI_EROR);
-        return FTI_NSCS;
-      }
-      sprintf(str, "Variable ID %d to protect.  isDevice %d %p %p", id,  FTI_Data[FTI_Exec.nbVar].isDevicePtr, FTI_Data[FTI_Exec.nbVar].ptr,FTI_Data[FTI_Exec.nbVar].devicePtr);
-      FTI_Print(str, FTI_INFO);
-    } 
-  }
-   else{
-      FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
-      FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
-      return FTI_NSCS;
-    }
-#else            
-  FTI_Data[FTI_Exec.nbVar].isDevicePtr = false;
-  FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
-  FTI_Data[FTI_Exec.nbVar].ptr = ptr;
 #endif  
-  FTI_Data[FTI_Exec.nbVar].count = count;
-  FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
-  FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
-  FTI_Data[FTI_Exec.nbVar].size = type.size * count;
-  FTI_Data[FTI_Exec.nbVar].rank = 1;
-  FTI_Data[FTI_Exec.nbVar].dimLength[0] = FTI_Data[FTI_Exec.nbVar].count;
-  FTI_Data[FTI_Exec.nbVar].h5group = FTI_Exec.H5groups[0];
-  sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
-  FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
-  sprintf(str, "Variable ID %d to protect. Current ckpt. size per rank is %.2fMB. isDevice %d Device: %p CPU: %p", id, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0), FTI_Data[FTI_Exec.nbVar].isDevicePtr, FTI_Data[FTI_Exec.nbVar].devicePtr,FTI_Data[FTI_Exec.nbVar].ptr);
-  FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
-  FTI_Print(str, FTI_INFO);
-  return FTI_SCES;
+    FTI_Data[FTI_Exec.nbVar].sharedData.dataset = NULL;
+    FTI_Data[FTI_Exec.nbVar].count = count;
+    FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
+    FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
+    FTI_Data[FTI_Exec.nbVar].size = type.size * count;
+    FTI_Data[FTI_Exec.nbVar].rank = 1;
+    FTI_Data[FTI_Exec.nbVar].dimLength[0] = FTI_Data[FTI_Exec.nbVar].count;
+    FTI_Data[FTI_Exec.nbVar].h5group = FTI_Exec.H5groups[0];
+    sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
+    FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
+    sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+    FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
+    FTI_Print(str, FTI_INFO);
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -904,6 +893,10 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
         return FTI_NSCS;
     }
 
+#ifdef GPUSUPPORT    
+    if ( !FTI_Data[pvar_idx].isDevicePtr ){
+#endif
+
     found = 0;
 
     FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
@@ -938,6 +931,12 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
     }
 
     return FTI_SCES;
+#ifdef GPUSUPPORT    
+    } else {
+        FTI_Print("Dataset is on GPU memory. VPR does not have GPU support yet!", FTI_WARN);
+        return FTI_NSCS;
+    }
+#endif
 #else
     FTI_Print("'FTI_AddSubset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
     return FTI_NSCS;
@@ -1603,12 +1602,10 @@ int FTI_InitICP(int id, int level, bool activate)
                 res = FTI_Try(FTI_InitMpiICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (MPI-IO).");
                 break;
             case FTI_IO_FTIFF:
-		copyDataFromDevive( &FTI_Exec, FTI_Data );
                 res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
             case FTI_IO_HDF5:
-		copyDataFromDevive( &FTI_Exec, FTI_Data );
                 res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
                 break;
 #endif
@@ -1635,12 +1632,10 @@ int FTI_InitICP(int id, int level, bool activate)
         }
         switch (FTI_Conf.ioMode) {
             case FTI_IO_FTIFF:
-		copyDataFromDevive( &FTI_Exec, FTI_Data );
                 res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
       case FTI_IO_HDF5:
-        copyDataFromDevive( &FTI_Exec, FTI_Data );
         res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
         break;
 #endif
@@ -1991,22 +1986,10 @@ int FTI_FinalizeICP()
 
  **/
 /*-------------------------------------------------------------------------*/
-static int copyDataToDevice()
-{
-  int i;
-  for (i = 0; i < FTI_Exec.nbVar; i++) {
-    if ( FTI_Data[i].isDevicePtr ){
-      FTI_copy_to_device( FTI_Data[i].devicePtr, FTI_Data[i].ptr,FTI_Data[i].size, &FTI_Exec);
-    }
-  }
-  return 1;
-}
-
 int FTI_Recover()
 {
   if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
     int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
-    copyDataToDevice();
     return ret;
   }
 
@@ -2056,7 +2039,6 @@ int FTI_Recover()
 #ifdef ENABLE_HDF5 //If HDF5 is installed
   if (FTI_Conf.ioMode == FTI_IO_HDF5) {
     int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
-    copyDataToDevice();
     return ret; 
   }
 #endif
@@ -2085,33 +2067,18 @@ int FTI_Recover()
     }
 
 #ifdef GPUSUPPORT
-  for (i = 0; i < FTI_Exec.nbVar; i++) {
-    if (FTI_Data[i].isDevicePtr){
-      FTI_Data[i].ptr = (void *) malloc(FTI_Data[i].size);
-      if (!(FTI_Data[i].ptr)){
-        FTI_Print("RECOVER:: Could not Allocate memory on host",FTI_EROR );
-        return FTI_NREC;
-      }
-    }
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (FTI_Data[i].isDevicePtr)
+            FTI_TransferFileToDeviceAsync(fd,FTI_Data[i].devicePtr, FTI_Data[i].size); 
+        else
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return FTI_NREC;
+        }
+    }   
 
-
-    fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-    if (ferror(fd)) {
-      FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-      fclose(fd);
-      return FTI_NREC;
-    }
-
-    if (FTI_Data[i].isDevicePtr){
-      int res;
-      res = FTI_Try(FTI_copy_to_device(FTI_Data[i].devicePtr, FTI_Data[i].ptr, FTI_Data[i].size, &FTI_Exec), "copying data to GPU");
-      if (res == FTI_NSCS) {
-        return FTI_NSCS;
-      }
-      free(FTI_Data[i].ptr);
-      FTI_Data[i].ptr = NULL;
-    }
-  }      
 #else
   for (i = 0; i < FTI_Exec.nbVar; i++) {
     fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
@@ -2233,36 +2200,8 @@ int FTI_Finalize()
     }
 
     // Notice: The following code is only executed by the application procs
-#ifdef GPUSUPPORT
-  cudaError_t err;
-  char err_str[FTI_BUFS];
 
-  if ((err = cudaStreamSynchronize(FTI_Exec.cStream)) != cudaSuccess) {
-    sprintf(err_str, "Cannot synchronize the internal cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaEventDestroy(FTI_Exec.cEvents[0])) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cEvents[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaEventDestroy(FTI_Exec.cEvents[1])) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cEvents[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaStreamDestroy(FTI_Exec.cStream)) != cudaSuccess) {
-    sprintf(err_str, "Cannot destroy cStream: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-
-  if ((err = cudaFreeHost(FTI_Exec.cHostBufs[0])) != cudaSuccess) {
-    sprintf(err_str, "Cannot free cHostBufs[0]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-  if ((err = cudaFreeHost(FTI_Exec.cHostBufs[1])) != cudaSuccess) {
-    sprintf(err_str, "Cannot free cHostBufs[1]: %s %s\n", cudaGetErrorName(err), cudaGetErrorString(err));
-    FTI_Print(err_str, FTI_DBUG);
-  }
-#endif
+    FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
 
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {

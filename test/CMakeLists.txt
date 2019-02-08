@@ -13,6 +13,7 @@ if(ENABLE_HDF5)
 
     add_executable(hdf5CreateBasePattern hdf5CreateBasePattern.c)
     target_link_libraries(hdf5CreateBasePattern ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+    file(COPY hdf5Test.sh DESTINATION .)
 endif()
 
 add_executable(heatdis heatdis.c)
@@ -43,6 +44,4 @@ file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY heartbeat.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
-if(ENABLE_HDF5)
-	file(COPY hdf5Test.sh DESTINATION .)
-endif()
+
