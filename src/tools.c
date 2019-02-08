@@ -765,10 +765,16 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
 {
     
+    hsize_t *dims = NULL; 
+    hsize_t *maxDims = NULL;
+
     char errstr[FTI_BUFS];
     FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
     while( dataset ) {
 
+        dims = (hsize_t*) realloc( dims, sizeof(hsize_t)*dataset->rank ); 
+        maxDims = (hsize_t*) realloc( maxDims, sizeof(hsize_t)*dataset->rank );
+        
         // open dataset
         hid_t loc = dataset->location->h5groupID;
         hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
@@ -786,8 +792,6 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
         if( fsid > 0 ) {
             int rank = H5Sget_simple_extent_ndims( fsid );
             if( rank == dataset->rank ) {
-                hsize_t *dims = (hsize_t*) malloc( sizeof(hsize_t)*rank ); 
-                hsize_t *maxDims = (hsize_t*) malloc( sizeof(hsize_t)*rank );
                 H5Sget_simple_extent_dims( fsid, dims, maxDims );
                 if( memcmp( dims, dataset->dimension, sizeof(hsize_t)*rank ) ) {
                     snprintf( errstr, FTI_BUFS, "stored and requested dimensions of dataset '%s' differ!", dataset->name );
@@ -811,6 +815,9 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
         dataset = dataset->next;
 
     }
+
+    if( dims ) { free( dims ); }
+    if( maxDims ) { free( maxDims ); }
 
     return FTI_SCES;
 
@@ -1116,6 +1123,9 @@ int FTI_ScanGroup( hid_t gid, char* fn )
                     H5Sclose(msid);
                     H5Sclose(sid);
                     H5Tclose(tid);
+                    free( count );
+                    free( offset );
+                    free( buffer );
                 } else {
                     snprintf( errstr, FTI_BUFS, "failed to open dataset '%s' in file '%s'", dname, fn );
                     FTI_Print( errstr, FTI_WARN );
@@ -1204,6 +1214,30 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
 
     return status;
 
+}
+#endif
+
+#ifdef ENABLE_HDF5 
+void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data ) 
+{
+    FTIT_globalDataset * dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+        if( dataset->dimension ) { free( dataset->dimension ); }
+        if( dataset->varIdx ) { free( dataset->varIdx ); }
+        FTIT_globalDataset * curr = dataset;
+        dataset = dataset->next;
+        free( curr );
+    }
+
+    int i=0;
+    for( ; i<FTI_Exec->nbVar; i++ ) {
+        if( FTI_Data[i].sharedData.offset ) {
+            free( FTI_Data[i].sharedData.offset );
+        }
+        if( FTI_Data[i].sharedData.count ) {
+            free( FTI_Data[i].sharedData.count );
+        }
+    }
 }
 #endif
 

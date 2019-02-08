@@ -237,7 +237,6 @@ extern "C" {
     unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk       */
     unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of this structure     */
     bool update;        /**< TRUE if struct needs to be updated in ckpt file  */
-    long nbHashes;      /**< holds the number of hashes for data chunk        */
     FTIT_DataDiffHash* dataDiffHash; /**< dCP meta data for data chunk        */
     char *cptr;         /**< pointer to memory address of container origin    */
   } FTIFF_dbvar;

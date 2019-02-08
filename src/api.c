@@ -2282,6 +2282,11 @@ int FTI_Finalize()
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
+#ifdef ENABLE_HDF5
+    if( FTI_Conf.h5SingleFileEnable ) {
+       FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
+    }
+#endif
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;

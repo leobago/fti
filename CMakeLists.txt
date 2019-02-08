@@ -155,7 +155,7 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
-  set(ADD_CFLAGS "${ADD_CFLAGS} -Werror")
+set(ADD_CFLAGS "${ADD_CFLAGS} -Werror")
 
 if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
