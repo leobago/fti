@@ -335,28 +335,28 @@ extern "C" {
   } FTIT_type;
 
   typedef struct FTIT_globalDataset {
-    bool                        initialized;
-    int                         rank;
-    int                         id;
-    int                         numSubSets;
-    int*                        varIdx;
-    FTIT_H5Group*               location;
+    bool                        initialized;    /**< Dataset is initialized         */
+    int                         rank;           /**< Rank of dataset                */
+    int                         id;             /**< ID of dataset.                 */
+    int                         numSubSets;     /**< Number of assigned sub-sets    */
+    int*                        varIdx;         /**< FTI_Data index of subset var   */
+    FTIT_H5Group*               location;       /**< Dataset location in file.      */
 #ifdef ENABLE_HDF5
-    hid_t                       hid;
-    hid_t                       fileSpace;
-    hid_t                       hdf5TypeId;
-    hsize_t*                    dimension;
+    hid_t                       hid;            /**< HDF5 id datset.                */
+    hid_t                       fileSpace;      /**< HDF5 id dataset filespace      */
+    hid_t                       hdf5TypeId;     /**< HDF5 id of assigned FTI type   */
+    hsize_t*                    dimension;      /**< num of elements for each dim.  */
 #endif
-    struct FTIT_globalDataset*  next;
-    FTIT_type                   type;
-    char                        name[FTI_BUFS];
+    struct FTIT_globalDataset*  next;           /**< Pointer to next dataset        */
+    FTIT_type                   type;           /**< corresponding FTI type.        */
+    char                        name[FTI_BUFS]; /**< Dataset name.                  */
   } FTIT_globalDataset;
 
   typedef struct FTIT_sharedData {
-    FTIT_globalDataset* dataset;
+    FTIT_globalDataset* dataset;                /**< Pointer to global dataset.     */
 #ifdef ENABLE_HDF5
-    hsize_t*            count;
-    hsize_t*            offset;
+    hsize_t*            count;                  /**< num of elem in each dim.       */
+    hsize_t*            offset;                 /**< coord origin of sub-set.       */
 #endif
   } FTIT_sharedData;
   
@@ -400,9 +400,9 @@ extern "C" {
     int                 dimLength[32];      /**< Lenght of each dimention.                      */
     char                name[FTI_BUFS];     /**< Name of the dataset.                           */
     FTIT_H5Group*       h5group;            /**< Group of this dataset                          */
-    bool                isDevicePtr;        /**<True if this data are stored in a device memory */
-    void                *devicePtr;         /**<Pointer to data in the device                   */
-    FTIT_sharedData     sharedData;
+    bool                isDevicePtr;        /**< True if this data are stored in a device memory*/
+    void                *devicePtr;         /**< Pointer to data in the device                  */
+    FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
   } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
@@ -457,19 +457,19 @@ extern "C" {
     int                     nbGroup;            /**< Number of protected groups.    */
     int                     metaAlloc;          /**< TRUE if meta allocated.        */
     int                     initSCES;           /**< TRUE if FTI initialized.       */
-    char            h5SingleFileLast[FTI_BUFS]; /**< HDF5 single file prefix  */
+    char            h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
     FTIT_metadata           meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db                 *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db                 *lastdb;           /**< Pointer to first datablock     */
     FTIFF_metaInfo          FTIFFMeta;          /**< File meta data for FTI-FF      */
     FTIT_type**             FTI_Type;           /**< Pointer to FTI_Types           */
     FTIT_H5Group**          H5groups;           /**< HDF5 root group.               */
-    FTIT_globalDataset*     globalDatasets;
+    FTIT_globalDataset*     globalDatasets;     /**< Pointer to first global dataset*/
     FTIT_StageInfo*         stageInfo;          /**< root of staging requests       */
     FTIT_iCPInfo            iCPInfo;            /**< meta info iCP                  */
     MPI_Comm                globalComm;         /**< Global communicator.           */
     MPI_Comm                groupComm;          /**< Group communicator.            */
-    MPI_Comm                nodeComm;
+    MPI_Comm                nodeComm;           /**< Node communicator.             */
 #ifdef GPUSUPPORT            
     cudaStream_t            cStream;            /**< CUDA stream.                   */
     cudaEvent_t             cEvents[2];         /**< CUDA event.                    */
@@ -483,7 +483,7 @@ extern "C" {
    *  This type stores the general configuration metadata.
    */
   typedef struct FTIT_configuration {
-    bool            stagingEnabled;
+    bool            stagingEnabled;     /**< TRUE if staging enabled            */
     bool            dcpEnabled;         /**< Enable differential ckpt.          */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep           */        
     bool            keepHeadsAlive;     /**< TRUE if heads return               */
@@ -506,8 +506,8 @@ extern "C" {
     int             test;               /**< TRUE if local test.                */
     int             l3WordSize;         /**< RS encoding word size.             */
     int             ioMode;             /**< IO mode for L4 ckpt.               */
-    bool            h5SingleFileEnable;
-    bool            h5SingleFileKeep;
+    bool            h5SingleFileEnable; /**< TRUE if VPR enabled                */
+    bool            h5SingleFileKeep;   /**< TRUE if VPR files to keep          */
     char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir        */
     char            h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix  */
     char            stageDir[FTI_BUFS]; /**< Staging directory.                 */

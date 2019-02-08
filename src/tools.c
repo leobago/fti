@@ -692,7 +692,18 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group)
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It creates the global dataset in the VPR file.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+
+  Creates global dataset (shared among all ranks) in VPR file. The dataset
+  position will be the group assigned to it by calling the FTI API function 
+  'FTI_DefineGlobalDataset'.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 {
     
     FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
@@ -714,7 +725,7 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
         
-        // NOT SUPPORTED FOR PARALLEL I/O IN HDF5
+        // FLETCHER CHECKSUM NOT SUPPORTED FOR PARALLEL I/O IN HDF5
         //hid_t dcpl = H5Pcreate (H5P_DATASET_CREATE);
         //H5Pset_fletcher32 (dcpl);
         //
@@ -742,7 +753,16 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Opens global dataset in VPR file.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function is the analog to 'FTI_CreateGlobalDatasets' on recovery.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
 {
     
     char errstr[FTI_BUFS];
@@ -798,7 +818,14 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Closes global datasets in VPR file 
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec )
 {
     
     FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
@@ -818,6 +845,13 @@ int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec, hid_t fileId )
 #endif
 
 #ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes global dataset subsets into VPR file.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 {
 
@@ -848,15 +882,19 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         return FTI_NSCS;
     }
     // select range in shared dataset in file
-    H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
+    if( H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL) < 0 ) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to select sub-space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
 
     // enable collective buffering
     hid_t plid = H5Pcreate( H5P_DATASET_XFER );
     H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     // write data in file
-    herr_t status = H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr);
-    if(status < 0) {
+    if( H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr) < 0 ) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
         FTI_Print(errstr,FTI_EROR);
@@ -866,12 +904,29 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
     H5Sclose( msid );
     H5Pclose( plid );
 
-    return status;
+    return FTI_SCES;
 
 }
 #endif
 
 #ifdef ENABLE_HDF5 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Checks for matching dimension sizes of sub-sets
+  @param      FTI_Data        Dataset metadata.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function counts the number of elements of all sub-sets contained in a 
+  particular global dataset and accumulates to a total value. If the accu-
+  mulated value matches the number of elements defined for the global data-
+  set, FTI_SCES is returned. This function is called before the checkpoint
+  and before the recovery.
+
+  @todo it would be great to check for region overlapping too.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec ) 
 {   
 
@@ -909,6 +964,23 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
 #endif
 
 #ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Checks if VPR file on restart
+  @param      FTI_Conf        Configuration metadata.
+  @param      ckptID          Checkpoint ID.
+  @return     integer         FTI_SCES if successful.
+
+  Checks if restart is possible for VPR file. 
+  1) Checks if file exist for prefix and directory, defined in config file.
+  2) Checks if is regular file.
+  3) Checks if groups and datasets can be accessed and if datasets can be 
+  read
+
+  If file found and sane, ckptID is set and FTI_SCES is returned.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID ) 
 {
     char errstr[FTI_BUFS];
@@ -986,6 +1058,21 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
 #endif
 
 #ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Checks groups and datasets (callable recursively) 
+  @param      gid             Parent group ID.
+  @param      fn              File name.
+  @return     integer         FTI_SCES if successful.
+
+  This function analyses the group structure recursivley starting at group
+  'gid'. It steps down in sub groups and checks datasets of consistency.
+  The consistency check is performed if the dataset was created with the 
+  fletcher32 filter activated. A dataset read will return a negative value 
+  in that case if dataset corrupted.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ScanGroup( hid_t gid, char* fn ) 
 {
     int res = FTI_SCES;
@@ -1055,6 +1142,13 @@ int FTI_ScanGroup( hid_t gid, char* fn )
 #endif
 
 #ifdef ENABLE_HDF5
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Reads a sub-set of a global dataset on recovery.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
 {
 

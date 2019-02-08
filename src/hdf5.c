@@ -132,7 +132,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if( FTI_Exec->h5SingleFile ) { 
-        FTI_CreateGlobalDatasets( FTI_Exec, file_id );
+        FTI_CreateGlobalDatasets( FTI_Exec );
     }
 
     // write data
@@ -171,7 +171,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     
     if( FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec, file_id );
+        FTI_CloseGlobalDatasets( FTI_Exec );
     }
 
     // close file
@@ -235,7 +235,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     }
     
     if( FTI_Exec->h5SingleFile ) { 
-        FTI_OpenGlobalDatasets( FTI_Exec, file_id );
+        FTI_OpenGlobalDatasets( FTI_Exec );
     }
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -265,7 +265,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     }
     
     if( FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec, file_id );
+        FTI_CloseGlobalDatasets( FTI_Exec );
     }
 
     FTI_Exec->H5groups[0]->h5groupID = -1;

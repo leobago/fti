@@ -800,6 +800,24 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
   return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Defines a global dataset (shared among application processes)
+    @param      id              ID of the dataset.
+    @param      rank            Rank of the dataset.
+    @param      dimLength       Dimention length for each rank.
+    @param      name            Name of the dataset in HDF5 file.
+    @param      h5group         Group of the dataset. If Null then "/".
+    @param      type            FTI type of the dataset.
+    @return     integer         FTI_SCES if successful.
+
+    This function defines a global dataset which is shared among all ranks.
+    In order to assign sub sets to the dataset the user has to call the
+    function 'FTI_AddSubset'. The parameter 'did' of that function, corres-
+    ponds to the global dataset id define here.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
 #ifdef ENABLE_HDF5
@@ -850,6 +868,24 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
 #endif
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Defines a global dataset (shared among application processes)
+    @param      id              Corresponding variable ID.
+    @param      rank            Rank of the dataset.
+    @param      offset          Starting coordinates in global dataset.
+    @param      count           number of elements for each coordinate.
+    @param      did             Corresponding global dataset ID.
+    @return     integer         FTI_SCES if successful.
+
+    This function assigns the protected dataset with ID 'id' to a global data-
+    set with ID 'did'. The parameters 'offset' and 'count' specify the selec-
+    tion of the sub-set inside the global dataset ('offset' and 'count' cor-
+    respond to 'start' and 'count' in the HDF5 function 'H5Sselect_hyperslab'
+    For questions on what they define, please consult the HDF5 documentation.)
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
@@ -1955,8 +1991,8 @@ int FTI_FinalizeICP()
 
  **/
 /*-------------------------------------------------------------------------*/
-
-static int copyDataToDevice(){
+static int copyDataToDevice()
+{
   int i;
   for (i = 0; i < FTI_Exec.nbVar; i++) {
     if ( FTI_Data[i].isDevicePtr ){
