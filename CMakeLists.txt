@@ -155,7 +155,6 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 endif()
 
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
-set(ADD_CFLAGS "${ADD_CFLAGS} -Werror")
 
 if(${OPENSSL_FOUND})
 	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
@@ -240,8 +239,6 @@ if(ENABLE_HDF5)
 		target_link_libraries(fti.shared ${HDF5_LIBRARIES})
 		target_link_libraries(fti.static ${HDF5_HL_LIBRARIES})
 		target_link_libraries(fti.shared ${HDF5_HL_LIBRARIES})
-		target_link_libraries(fti.static ${HDF5_C_LIBRARIES})
-		target_link_libraries(fti.shared ${HDF5_C_LIBRARIES})
 	else()
 		message(WARNING "
 		** HDF5 could not be found!

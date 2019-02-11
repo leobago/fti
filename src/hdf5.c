@@ -43,26 +43,6 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Calculates the  number of bytes I need to fetch from the GPU.
-  @param      sizeOfElement   Element size for the dataset
-  @param      maxBytes        The maximum amount of bytes I can fetch from GPU.
-  @param      count           Array storing the number of dimensions I can fetch each time
-  @param      numOfDimensions Number of dimensions of this dataset 
-  @param      dimensions      maximum index of each dimension.
-  @param      *sep            Stores the maximum dimension I can fetch from the GPU 
-  @return     integer         number of bytes to fetch each time from the GPU.
-
-  This function has a dual functionality. It computes the number of bytes I need to fetch
-  from the GPU side. It also computes the "count" parameter. In other words it computes
-  how many elements from each dimension I can compute from the total Bytes I fetched 
-  from the GPU
-
- **/
-/*-------------------------------------------------------------------------*/
-
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      It checks if an hdf5 file exist and the contents are  'correct'.
   @param      fn              The ckpt. file name to check.
   @param      fs              The ckpt. file size to check.
@@ -108,6 +88,24 @@ int FTI_CheckHDF5File(char* fn, long fs, char* checksum)
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Calculates the  number of bytes I need to fetch from the GPU.
+  @param      sizeOfElement   Element size for the dataset
+  @param      maxBytes        The maximum amount of bytes I can fetch from GPU.
+  @param      count           Array storing the number of dimensions I can fetch each time
+  @param      numOfDimensions Number of dimensions of this dataset 
+  @param      dimensions      maximum index of each dimension.
+  @param      *sep            Stores the maximum dimension I can fetch from the GPU 
+  @return     integer         number of bytes to fetch each time from the GPU.
+
+  This function has a dual functionality. It computes the number of bytes I need to fetch
+  from the GPU side. It also computes the "count" parameter. In other words it computes
+  how many elements from each dimension I can compute from the total Bytes I fetched 
+  from the GPU
+
+ **/
+/*-------------------------------------------------------------------------*/
 hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *count, int numOfDimensions, hsize_t *dimensions, hsize_t *sep)
 {
     int i;
@@ -819,12 +817,12 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      During the restart, recovers the given variable
-    @param      id              Variable to recover
-    @return     int             FTI_SCES if successful.
+  @brief      During the restart, recovers the given variable
+  @param      id              Variable to recover
+  @return     int             FTI_SCES if successful.
 
-    During a restart process, this function recovers the variable specified
-    by the given id.
+  During a restart process, this function recovers the variable specified
+  by the given id.
 
  **/
 /*-------------------------------------------------------------------------*/

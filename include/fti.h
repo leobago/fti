@@ -114,8 +114,8 @@
 #endif
 // need this parameter in one fti api function
 #ifndef ENABLE_HDF5
-typedef unsigned long long 	hsize_t;
-typedef signed long long	hssize_t;
+typedef size_t 	hsize_t;
+typedef ssize_t	hssize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
 
@@ -446,7 +446,7 @@ extern "C" {
     int             syncIterMax;        /**< Maximal synch. intervall.      */
     unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
     bool            hasCkpt;            /**< Indicator that ckpt exists     */
-    bool                    h5SingleFile;       /**< Indicator if HDF5 single file  */
+    bool            h5SingleFile;       /**< Indicator if HDF5 single file  */
     unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
     unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
     unsigned int    ckptID;             /**< Checkpoint ID.                 */
@@ -459,14 +459,14 @@ extern "C" {
     int             nbGroup;            /**< Number of protected groups.    */
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
-    char            h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
+    char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
     FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
     FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
     FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
-    FTIT_globalDataset*     globalDatasets;     /**< Pointer to first global dataset*/
+    FTIT_globalDataset* globalDatasets; /**< Pointer to first global dataset*/
     FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
     FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
     MPI_Comm        globalComm;         /**< Global communicator.           */

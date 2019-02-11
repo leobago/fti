@@ -224,7 +224,6 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
     }
-        
 
     //Check if all processes have written correctly (every process must succeed)
     int allRes;

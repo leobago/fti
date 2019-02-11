@@ -190,13 +190,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             int res = FTI_SCES, allRes;
             int ckptID;
             if( FTI_Conf->h5SingleFileEnable ) {
-                if( FTI_Topo->splitRank == 0 ) {
 #ifdef ENABLE_HDF5
+                if( FTI_Topo->splitRank == 0 ) {
                     res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
-#else       
-                    FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
-                    res = FTI_NSCS;
-#endif
                 }
                 MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
                 if( allRes == FTI_SCES ) {
@@ -211,6 +207,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print("VPR recovery failed!", FTI_WARN);
                     FTI_Exec->h5SingleFile = false;
                 }
+#else       
+                FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+                res = FTI_NSCS;
+#endif
                 return allRes;
             } else {
                 FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_EROR);
@@ -238,8 +238,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
                 FTI_Print(str, FTI_DBUG);
-                
-
+     
                 int res;
                 switch (level) {
                     case 4:

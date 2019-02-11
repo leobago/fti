@@ -206,8 +206,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
     FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
-
-    // Reading/setting execution metadaFa
+    // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
     FTI_Exec->ckpt = 0;
@@ -299,7 +298,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
     if (FTI_Topo->groupSize < 2 && (L2req || RSreq)) {
-        FTI_Print("The group size must be bigger than 2", FTI_WARN);
+        FTI_Print("The group size must be at least 2", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Topo->groupSize >= 32 && RSreq) {

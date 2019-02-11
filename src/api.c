@@ -271,22 +271,22 @@ int FTI_InitType(FTIT_type* type, int size)
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It initializes a complex data type.
-    @param      newType         The data type to be intialized.
-    @param      typeDefinition  Structure definition of the new type.
-    @param      length          Number of fields in structure
-    @param      size            Size of the structure.
-    @param      name            Name of the structure.
-    @param      h5group         Group of the type.
-    @return     integer         FTI_SCES if successful.
+  @brief      It initializes a complex data type.
+  @param      newType         The data type to be intialized.
+  @param      typeDefinition  Structure definition of the new type.
+  @param      length          Number of fields in structure
+  @param      size            Size of the structure.
+  @param      name            Name of the structure.
+  @param      h5group         Group of the type.
+  @return     integer         FTI_SCES if successful.
 
-    This function initalizes a simple data type. New type can only consists
-    fields of flat FTI types (no arrays). Type definition must include:
-        - length                => number of fields in the new type
-        - field[].type          => types of the field in the new type
-        - field[].name          => name of the field in the new type
-        - field[].rank          => number of dimentions of the field
-        - field[].dimLength[]   => length of each dimention of the field
+  This function initalizes a simple data type. New type can only consists
+  fields of flat FTI types (no arrays). Type definition must include:
+  - length                => number of fields in the new type
+  - field[].type          => types of the field in the new type
+  - field[].name          => name of the field in the new type
+  - field[].rank          => number of dimentions of the field
+  - field[].dimLength[]   => length of each dimention of the field
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -334,10 +334,10 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
         strncpy(typeDefinition->name, name, FTI_BUFS);
     }
 
-    #ifdef ENABLE_HDF5
-        newType->h5datatype = -1; //to mark as closed
-        newType->h5group = FTI_Exec.H5groups[h5group->id];
-    #endif
+#ifdef ENABLE_HDF5
+    newType->h5datatype = -1; //to mark as closed
+    newType->h5group = FTI_Exec.H5groups[h5group->id];
+#endif
 
     //make a clone of the type definition in case the user won't store pointer
     newType->structure = malloc(sizeof(FTIT_complexType));
@@ -357,17 +357,17 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It adds a simple field in complex data type.
-    @param      typeDefinition  Structure definition of the complex data type.
-    @param      ftiType         Type of the field
-    @param      offset          Offset of the field (use offsetof)
-    @param      id              Id of the field (start with 0)
-    @param      name            Name of the field (put NULL if want default)
-    @return     integer         FTI_SCES if successful.
+  @brief      It adds a simple field in complex data type.
+  @param      typeDefinition  Structure definition of the complex data type.
+  @param      ftiType         Type of the field
+  @param      offset          Offset of the field (use offsetof)
+  @param      id              Id of the field (start with 0)
+  @param      name            Name of the field (put NULL if want default)
+  @return     integer         FTI_SCES if successful.
 
-    This function adds a field to the complex datatype. Use offsetof macro to
-    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
-    will set "T${id}" name. Sets rank and dimLength to 1.
+  This function adds a field to the complex datatype. Use offsetof macro to
+  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+  will set "T${id}" name. Sets rank and dimLength to 1.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -386,19 +386,19 @@ void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, si
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      It adds a simple field in complex data type.
-    @param      typeDefinition  Structure definition of the complex data type.
-    @param      ftiType         Type of the field
-    @param      offset          Offset of the field (use offsetof)
-    @param      rank            Rank of the array
-    @param      dimLength       Dimention length for each rank
-    @param      id              Id of the field (start with 0)
-    @param      name            Name of the field (put NULL if want default)
-    @return     integer         FTI_SCES if successful.
+  @brief      It adds a simple field in complex data type.
+  @param      typeDefinition  Structure definition of the complex data type.
+  @param      ftiType         Type of the field
+  @param      offset          Offset of the field (use offsetof)
+  @param      rank            Rank of the array
+  @param      dimLength       Dimention length for each rank
+  @param      id              Id of the field (start with 0)
+  @param      name            Name of the field (put NULL if want default)
+  @return     integer         FTI_SCES if successful.
 
-    This function adds a field to the complex datatype. Use offsetof macro to
-    set offset. First ID must be 0, next one must be +1. If name is NULL FTI
-    will set "T${id}" name.
+  This function adds a field to the complex datatype. Use offsetof macro to
+  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
+  will set "T${id}" name.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -432,7 +432,7 @@ void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType, s
 /*-------------------------------------------------------------------------*/
 int FTI_GetStageDir( char* stageDir, int maxLen) 
 {
-    
+
     if ( !FTI_Conf.stagingEnabled ) {
         FTI_Print( "'FTI_GetStageDir' -> Staging disabled, no action performed.", FTI_WARN );
         return FTI_NSCS;
@@ -609,8 +609,8 @@ int FTI_SendFile( char* lpath, char *rpath )
   @param      parent          Parent H5 group
   @return     integer         FTI_SCES if successful.
 
-    Initialize group defined by user. If parent is NULL this mean parent will
-    be set to root group.
+  Initialize group defined by user. If parent is NULL this mean parent will
+  be set to root group.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -657,7 +657,7 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
   @param      name            New name of the H5 group
   @return     integer         FTI_SCES if successful.
 
-    This function renames HDF5 group defined by user.
+  This function renames HDF5 group defined by user.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -773,6 +773,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
 #endif  
+    // Important assignment, we use realloc!
     FTI_Data[FTI_Exec.nbVar].sharedData.dataset = NULL;
     FTI_Data[FTI_Exec.nbVar].count = count;
     FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
@@ -1988,10 +1989,10 @@ int FTI_FinalizeICP()
 /*-------------------------------------------------------------------------*/
 int FTI_Recover()
 {
-  if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-    int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
-    return ret;
-  }
+    if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+        int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
+        return ret;
+    }
 
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -2037,10 +2038,10 @@ int FTI_Recover()
     }
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
-  if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-    int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
-    return ret; 
-  }
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+        return ret; 
+    }
 #endif
 
     //Recovering from local for L4 case in FTI_Recover
