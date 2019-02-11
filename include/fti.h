@@ -115,7 +115,6 @@
 // need this parameter in one fti api function
 #ifndef ENABLE_HDF5
 typedef size_t 	hsize_t;
-typedef ssize_t	hssize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
 
