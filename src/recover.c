@@ -326,7 +326,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             //Recover not successful
             return FTI_NSCS;
         }
-        if ( FTI_Conf->keepL4Ckpt ) {
+        if ( FTI_Conf->keepL4Ckpt && (!FTI_Exec->reco == 3) ) {
             // receive level and ckpt ID from first application process in node
             int recvBuf[2];
             MPI_Recv( recvBuf, 2, MPI_INT, FTI_Topo->body[0], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE ); 
