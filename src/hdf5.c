@@ -650,7 +650,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (FTI_Data[i].type->h5datatype < 0) {
             toCommit = 1;
         }
-        sprintf(str, "Calling CreateComplexType [%d] with hid_t %d", FTI_Data[i].type->id, FTI_Data[i].type->h5datatype);
+        sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_Data[i].type->id, (long)FTI_Data[i].type->h5datatype);
         FTI_Print(str, FTI_DBUG);
         FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
         if (toCommit == 1) {

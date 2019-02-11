@@ -1275,7 +1275,7 @@ int FTI_Checkpoint(int id, int level)
         t2 = MPI_Wtime();
         FTI_Exec.ckptLvel = lastCkptLvelBackup;
         bool removeLastFile = (status == FTI_SCES) && !FTI_Conf.h5SingleFileKeep;
-        removeLastFile &=  (FTI_Exec.h5SingleFileLast) ? (bool)strcmp( FTI_Exec.h5SingleFileLast, "" ) : false;
+        removeLastFile &=  (bool)strcmp( FTI_Exec.h5SingleFileLast, "" );
         if( removeLastFile && !FTI_Topo.splitRank ) {
             status = remove( FTI_Exec.h5SingleFileLast );
             if ( (status != ENOENT) && (status != 0) ) {

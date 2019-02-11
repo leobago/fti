@@ -313,6 +313,24 @@ KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
 MEM_NAMES=(@MEMORYTYPES@)  
 #                     #
+# ---- Check VPR ---- #
+#                     #
+echo -e "[ \033[1m*** Testing VPR: head=0 ***\033[m ]"
+( set -x; bash checkVPR.sh 0 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=1 ***\033[m ]"
+( set -x; bash checkVPR.sh 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+
+#                     #
 # ---- Check dCP ---- #
 #                     #
 echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"

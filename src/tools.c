@@ -541,7 +541,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
   sprintf(str, "Creating type [%d].", ftiType->id);
   FTI_Print(str, FTI_DBUG);
   ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
-  sprintf(str, "Type [%d] has hid_t %d.", ftiType->id, ftiType->h5datatype);
+  sprintf(str, "Type [%d] has hid_t %ld.", ftiType->id, (long)ftiType->h5datatype);
   FTI_Print(str, FTI_DBUG);
   if (ftiType->h5datatype < 0) {
     FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
