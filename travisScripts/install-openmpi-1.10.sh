@@ -9,5 +9,5 @@ echo "MAKE OPENMPI (VER: $MPIVER)"
 make -j 4 > /dev/null 2>&1
 echo "INSTALL OPENMPI (VER: $MPIVER)"
 sudo make install > /dev/null 2>&1
-export PATH=$PATH:$HOME/openmpi-$MPIVER/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/openmpi-$MPIVER/lib/
+export PATH=$HOME/openmpi-$MPIVER/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/openmpi-$MPIVER/lib/:$LD_LIBRARY_PATH
