@@ -1166,7 +1166,7 @@ pipeline {
             echo $PATH
             ls /opt/pgi/
             mkdir build; cd build
-            CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DHDF5_ROOT=/opt/HDF5/1.10.4 -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
           executeSteps_one( '/opt/pgi/linux86-64/18.4/bin/', '/opt/pgi/linux86-64/2018/mpi/openmpi-2.1.2/bin/' )
@@ -1190,7 +1190,7 @@ pipeline {
             echo $PATH
             ls /opt/pgi/
             mkdir build; cd build
-            CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DHDF5_ROOT=/opt/HDF5/1.10.4 -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
           executeSteps_two( '/opt/pgi/linux86-64/18.4/bin/', '/opt/pgi/linux86-64/2018/mpi/openmpi-2.1.2/bin/' )
