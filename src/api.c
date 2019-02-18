@@ -138,7 +138,8 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, FTI_Exec.reco), "update configuration file.");
+        int restart = (FTI_Exec.reco != 3) ? FTI_Exec.reco : 0;
+        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
     FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
@@ -187,6 +188,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
                 FTI_Print("FTI has been initialized.", FTI_INFO);
                 return FTI_NREC;
             }
+            FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -466,19 +468,19 @@ int FTI_GetStageDir( char* stageDir, int maxLen)
   @brief      Returns status of staging request.
   @param      ID            ID of staging request.
   @return     integer       Status of staging request on success, 
-  FTI_NSCS else.
+                            FTI_NSCS else.
 
   This function returns the status of the staging request corresponding
   to ID. The ID is returned by the function 'FTI_SendFile'. The status
   may be one of the five possible statuses:
-
+  
   @par
   FTI_SI_FAIL - Stage request failed
   FTI_SI_SCES - Stage request succeed
   FTI_SI_ACTV - Stage request is currently processed
   FTI_SI_PEND - Stage request is pending
   FTI_SI_NINI - There is no stage request with this ID
-
+  
   @note If the status is FTI_SI_NINI, the ID is either invalid or the
   request was finished (succeeded or failed). In the latter case,
   'FTI_GetStageStatus' returns FTI_SI_FAIL or FTI_SI_SCES and frees the
@@ -517,14 +519,14 @@ int FTI_GetStageStatus( int ID )
     if ( free_req ) {
         FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
     }
-
+   
     if ( (status==FTI_SI_FAIL) || (status==FTI_SI_SCES) ) {
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
         FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
     }
 
     return status;
-
+        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -539,7 +541,7 @@ int FTI_GetStageStatus( int ID )
   removed after successful transfer, however, if stored in the directory
   returned by 'FTI_GetStageDir' it will be removed during
   'FTI_Finalize'.
-
+  
   @par
   If staging is enabled but no head process, the staging will be
   performed synchronously (i.e. by the calling rank).
@@ -554,7 +556,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     }
 
     int ID = FTI_NSCS;
-
+    
     // discard if path is NULL
     if ( lpath == NULL ){
         FTI_Print( "local path field is NULL!", FTI_WARN );
@@ -576,7 +578,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     ID = reqID;
 
     FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, ID );
-
+    
     if ( FTI_Topo.nbHeads == 0 ) {
 
         if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Topo, &FTI_Conf, ID ) != FTI_SCES ) {
@@ -585,16 +587,16 @@ int FTI_SendFile( char* lpath, char *rpath )
         }
 
     }
-
+    
     if ( FTI_Topo.nbHeads > 0 ) {
-
+        
         if ( FTI_AsyncStage( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, ID ) != FTI_SCES ) {
             FTI_Print("asynchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
-
+    
     }
-
+    
     return ID;
 
 }
@@ -771,6 +773,8 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
     FTI_Data[FTI_Exec.nbVar].ptr = ptr;
 #endif  
+    // Important assignment, we use realloc!
+    FTI_Data[FTI_Exec.nbVar].sharedData.dataset = NULL;
     FTI_Data[FTI_Exec.nbVar].count = count;
     FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
     FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
@@ -788,16 +792,170 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Defines the dataset
-  @param      id              ID for searches and update.
-  @param      rank            Rank of the array
-  @param      dimLength       Dimention length for each rank
-  @param      name            Name of the dataset in HDF5 file.
-  @param      h5group         Group of the dataset. If Null then "/"
-  @return     integer         FTI_SCES if successful.
+    @brief      Defines a global dataset (shared among application processes)
+    @param      id              ID of the dataset.
+    @param      rank            Rank of the dataset.
+    @param      dimLength       Dimention length for each rank.
+    @param      name            Name of the dataset in HDF5 file.
+    @param      h5group         Group of the dataset. If Null then "/".
+    @param      type            FTI type of the dataset.
+    @return     integer         FTI_SCES if successful.
 
-  This function gives FTI all information needed by HDF5 to correctly save
-  the dataset in the checkpoint file.
+    This function defines a global dataset which is shared among all ranks.
+    In order to assign sub sets to the dataset the user has to call the
+    function 'FTI_AddSubset'. The parameter 'did' of that function, corres-
+    ponds to the global dataset id define here.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
+{
+#ifdef ENABLE_HDF5
+    FTIT_globalDataset* last = FTI_Exec.globalDatasets;
+    
+    if ( last ) {
+        FTIT_globalDataset* curr = last;
+        while( curr ) {
+            if( id == last->id ) {
+                char str[FTI_BUFS];
+                snprintf( str, FTI_BUFS, "FTI_DefineGlobalDataset :: id '%d' is already taken.", id );
+                FTI_Print(str, FTI_EROR);
+                return FTI_NSCS;
+            }
+            last = curr;
+            curr = last->next;
+        }
+        last->next = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
+        last = last->next;
+    } else {
+        last = (FTIT_globalDataset*) malloc( sizeof(FTIT_globalDataset) );
+        FTI_Exec.globalDatasets = last;
+    }
+
+    last->id = id;
+    last->initialized = false;
+    last->rank = rank;
+    last->hid = -1;
+    last->fileSpace = -1;
+    last->dimension = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    int i;
+    for( i=0; i<rank; i++ ) {
+        last->dimension[i] = dimLength[i];
+    }
+    strncpy( last->name, name, FTI_BUFS );
+    last->name[FTI_BUFS-1] = '\0';
+    last->numSubSets = 0;
+    last->varIdx = NULL;
+    last->type = type;
+    last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
+
+    last->next = NULL;
+
+    return FTI_SCES;
+#else
+    FTI_Print("'FTI_DefineGlobalDataset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Assigns a FTI protected variable to a global dataset
+    @param      id              Corresponding variable ID.
+    @param      rank            Rank of the dataset.
+    @param      offset          Starting coordinates in global dataset.
+    @param      count           number of elements for each coordinate.
+    @param      did             Corresponding global dataset ID.
+    @return     integer         FTI_SCES if successful.
+
+    This function assigns the protected dataset with ID 'id' to a global data-
+    set with ID 'did'. The parameters 'offset' and 'count' specify the selec-
+    tion of the sub-set inside the global dataset ('offset' and 'count' cor-
+    respond to 'start' and 'count' in the HDF5 function 'H5Sselect_hyperslab'
+    For questions on what they define, please consult the HDF5 documentation.)
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+{
+#ifdef ENABLE_HDF5
+    int i, found=0, pvar_idx;
+    
+    for(i=0; i<FTI_Exec.nbVar; i++) {
+        if( FTI_Data[i].id == id ) {
+            found = 1;
+            pvar_idx = i;
+            break;
+        }
+    }
+    
+    if( !found ) {
+        FTI_Print( "variable id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+#ifdef GPUSUPPORT    
+    if ( !FTI_Data[pvar_idx].isDevicePtr ){
+#endif
+
+    found = 0;
+
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
+    while( dataset ) {
+        if( dataset->id == did ) {
+            found = 1;
+            break;
+        }
+        dataset = dataset->next;
+    }
+    
+    if( !found ) {
+        FTI_Print( "dataset id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+    if( dataset->rank != rank ) {
+        FTI_Print("rank missmatch!",FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    dataset->numSubSets++;
+    dataset->varIdx = (int*) realloc( dataset->varIdx, dataset->numSubSets*sizeof(int) );
+    dataset->varIdx[dataset->numSubSets-1] = pvar_idx;
+    
+    FTI_Data[pvar_idx].sharedData.dataset = dataset;
+    FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    FTI_Data[pvar_idx].sharedData.count = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    for(i=0; i<rank; i++) {
+        FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
+        FTI_Data[pvar_idx].sharedData.count[i] = count[i];
+    }
+
+    return FTI_SCES;
+#ifdef GPUSUPPORT    
+    } else {
+        FTI_Print("Dataset is on GPU memory. VPR does not have GPU support yet!", FTI_WARN);
+        return FTI_NSCS;
+    }
+#endif
+#else
+    FTI_Print("'FTI_AddSubset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Defines the dataset
+    @param      id              ID for searches and update.
+    @param      rank            Rank of the array
+    @param      dimLength       Dimention length for each rank
+    @param      name            Name of the dataset in HDF5 file.
+    @param      h5group         Group of the dataset. If Null then "/"
+    @return     integer         FTI_SCES if successful.
+
+    This function gives FTI all information needed by HDF5 to correctly save
+    the dataset in the checkpoint file.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -807,7 +965,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     if (rank > 0 && dimLength == NULL) {
         FTI_Print("If rank > 0, the dimLength cannot be NULL.", FTI_WARN);
         return FTI_NSCS;
@@ -848,7 +1006,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
             if (name != NULL) {
                 strncpy(FTI_Data[i].name, name, FTI_BUFS);
             }
-
+            
             return FTI_SCES;
         }
     }
@@ -1068,9 +1226,9 @@ int FTI_BitFlip(int datasetID)
 /*-------------------------------------------------------------------------*/
 int FTI_Checkpoint(int id, int level)
 {
-
+     
     char str[FTI_BUFS]; //For console output
-
+    
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -1086,8 +1244,60 @@ int FTI_Checkpoint(int id, int level)
         level -= 4; 
     }
 
-    int ckptFirst = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
+    double t1, t2;
+
     FTI_Exec.ckptID = id;
+    
+    // reset hdf5 single file requests.
+    FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+#ifdef ENABLE_HDF5
+        if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
+            if( FTI_Conf.h5SingleFileEnable ) {
+                FTI_Exec.h5SingleFile = true;
+            } else {
+                FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
+                return FTI_DONE;
+            }
+        } else {
+            FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
+            return FTI_DONE;
+        }
+        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+            FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
+            return FTI_NREC;
+        }
+        level = 4;
+        t1 = MPI_Wtime();
+        int lastCkptLvelBackup = FTI_Exec.ckptLvel;
+        FTI_Exec.ckptLvel = level; // undo in any case afterwards. H5 VPR is not for resiliency!
+        int status = FTI_Try(FTI_WriteHDF5(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write VPR checkpoint.");
+        t2 = MPI_Wtime();
+        FTI_Exec.ckptLvel = lastCkptLvelBackup;
+        bool removeLastFile = (status == FTI_SCES) && !FTI_Conf.h5SingleFileKeep;
+        removeLastFile &=  (bool)strcmp( FTI_Exec.h5SingleFileLast, "" );
+        if( removeLastFile && !FTI_Topo.splitRank ) {
+            status = remove( FTI_Exec.h5SingleFileLast );
+            if ( (status != ENOENT) && (status != 0) ) {
+                char errstr[FTI_BUFS];
+                snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", FTI_Exec.h5SingleFileLast );
+                FTI_Print( errstr, FTI_EROR );
+            }
+        }
+        if( status == FTI_SCES ) {
+            snprintf( FTI_Exec.h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, 
+                    FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
+            char str[FTI_BUFS];
+            sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+                    FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
+            FTI_Print(str, FTI_INFO);
+        }
+        return status;
+#else
+        FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+        return FTI_NSCS;
+#endif
+    }
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1103,6 +1313,8 @@ int FTI_Checkpoint(int id, int level)
         }
         level = 4;
     }
+    
+    bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
 
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
@@ -1116,14 +1328,13 @@ int FTI_Checkpoint(int id, int level)
             FTI_Print("Head failed to do post-processing after previous checkpoint.", FTI_WARN);
         }
     }
-
-    double t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
+    
+    t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
-    double t2 = MPI_Wtime(); //Time after writing checkpoint
-
-
+    t2 = MPI_Wtime(); //Time after writing checkpoint
+    
     // set hasCkpt flags true
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
@@ -1137,8 +1348,8 @@ int FTI_Checkpoint(int id, int level)
             }
         }
         while ( (currentDB = currentDB->next) != NULL );    
-
-
+        
+    
         FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
         FTI_Ckpt[4].hasDcp = true;
     }
@@ -1168,7 +1379,7 @@ int FTI_Checkpoint(int id, int level)
             } else {
                 strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
             }            
-            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
+	    MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
             MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
             free(headInfo);
@@ -1185,7 +1396,19 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
-    double t3 = MPI_Wtime(); //Time after post-processing
+    double t3;
+   
+    if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+    
+    t3 = MPI_Wtime(); //Time after post-processing
+    
     if (res != FTI_SCES) {
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
@@ -1195,9 +1418,9 @@ int FTI_Checkpoint(int id, int level)
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
             FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
-
+    
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
-
+        
         long norder_data, norder_dcp;
         char corder_data[3], corder_dcp[3];
         long DCP_TB = (1024L*1024L*1024L*1024L);
@@ -1236,19 +1459,14 @@ int FTI_Checkpoint(int id, int level)
                     (double)FTI_Exec.FTIFFMeta.dcpSize/norder_dcp, corder_dcp,
                     ((double)FTI_Exec.FTIFFMeta.dcpSize/FTI_Exec.FTIFFMeta.pureDataSize)*100 );
         }
-
+        
         FTI_Print(str, FTI_IDCP);
     }
-    if (ckptFirst && FTI_Topo.splitRank == 0) {
-        //Setting recover flag to 1 (to recover from current ckpt level)
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
-        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
-    }
-
+    
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
         FTI_Ckpt[4].isDcp = false;
     }
-
+ 
     return FTI_DONE;
 }
 
@@ -1277,12 +1495,12 @@ int FTI_InitICP(int id, int level, bool activate)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+     
     // only step in if activate TRUE.
     if ( !activate ) {
         return FTI_SCES;
     }
-
+   
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
 
@@ -1291,7 +1509,7 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Exec.iCPInfo.result = FTI_NSCS;
 
     int res = FTI_NSCS;
-
+    
     char str[FTI_BUFS]; //For console output
 
     if (FTI_Exec.initSCES == 0) {
@@ -1418,9 +1636,9 @@ int FTI_InitICP(int id, int level, bool activate)
                 res = FTI_Try(FTI_InitFtiffICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (FTI-FF).");
                 break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
-            case FTI_IO_HDF5:
-                res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
-                break;
+      case FTI_IO_HDF5:
+        res = FTI_Try(FTI_InitHdf5ICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (HDF5).");
+        break;
 #endif
             default:
                 res = FTI_Try(FTI_InitPosixICP(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "Initialize iCP (POSIX I/O).");
@@ -1441,7 +1659,7 @@ int FTI_InitICP(int id, int level, bool activate)
   @brief      Write variable into the CP file.
   @param      id              Protected variable ID.
   @return     integer         FTI_SCES if successful.
-
+    
   With this function, the user may write the protected datasets in any
   order into the checkpoint file. However, before the call to
   FTI_FinalizeICP, all protected variables must have been written into
@@ -1466,7 +1684,7 @@ int FTI_AddVarICP( int varID )
     char str[FTI_BUFS];
 
     bool validID = false;
-
+    
     int i;
     // check if dataset with 'varID' exists.
     for(i=0; i<FTI_Exec.nbVar; ++i) {
@@ -1477,7 +1695,7 @@ int FTI_AddVarICP( int varID )
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     // check if dataset was not already written.
     for(i=0; i<FTI_Exec.iCPInfo.countVar; ++i) {
         validID &= !(FTI_Exec.iCPInfo.isWritten[i] == varID);
@@ -1487,7 +1705,7 @@ int FTI_AddVarICP( int varID )
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     int res;
 
     switch (FTI_Conf.ioMode) {
@@ -1533,7 +1751,7 @@ int FTI_AddVarICP( int varID )
 /**
   @brief      Finalize an incremental checkpoint.
   @return     integer         FTI_SCES if successful.
-
+    
   This function finalizes an incremental checkpoint. In contrast to
   InitICP, this function is collective on the communicator
   FTI_COMM_WORLD and blocking.
@@ -1567,7 +1785,7 @@ int FTI_FinalizeICP()
     char str[FTI_BUFS];
     int resCP;
     int resPP;
-
+    
     // Close files for each I/O
     switch (FTI_Conf.ioMode) {
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
@@ -1599,7 +1817,7 @@ int FTI_FinalizeICP()
             break;
 #endif
     }
-
+    
     if( resCP == FTI_SCES ) {
         resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     }
@@ -1609,7 +1827,7 @@ int FTI_FinalizeICP()
         sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_WARN);
     }
-
+    
     double t2 = MPI_Wtime(); //Time after writing checkpoint
 
     if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
@@ -1769,7 +1987,6 @@ int FTI_FinalizeICP()
 
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_Recover()
 {
     if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
@@ -1786,31 +2003,43 @@ int FTI_Recover()
         return FTI_NSCS;
     }
 
+    int i;
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
 
-    //Check if nubmer of protected variables matches
-    if (FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0]) {
-        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-                FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
-    //Check if sizes of protected variables matches
-    int i;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                    FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                    FTI_Data[i].size);
+    //Check if number of protected variables matches
+    if( FTI_Exec.h5SingleFile ) {
+#ifdef ENABLE_HDF5
+        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+            FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
+            return FTI_NREC;
+        }
+#else
+        FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
+        return FTI_NSCS;
+#endif
+    } else {
+        if( FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0] ) {
+            sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                    FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
+        }
+        //Check if sizes of protected variables matches
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
         }
     }
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        int ret = FTI_RecoverHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data);
+        int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
         return ret; 
     }
 #endif
@@ -1852,23 +2081,23 @@ int FTI_Recover()
     }   
 
 #else
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-        if (ferror(fd)) {
-            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
-    }      
-#endif    
-    if (fclose(fd) != 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
+  for (i = 0; i < FTI_Exec.nbVar; i++) {
+    fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+    if (ferror(fd)) {
+      FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+      fclose(fd);
+      return FTI_NREC;
     }
+  }      
+#endif    
+  if (fclose(fd) != 0) {
+    FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+    return FTI_NREC;
+  }
 
-    FTI_Exec.reco = 0;
+  FTI_Exec.reco = 0;
 
-    return FTI_SCES;
+  return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1989,7 +2218,7 @@ int FTI_Finalize()
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.finalTag, FTI_Exec.globalComm);
     }
-
+    
     // for staging, we have to ensure, that the call to FTI_Clean 
     // comes after the heads have written all the staging files.
     // Thus FTI_FinalizeStage is blocking on global communicator.
@@ -1999,7 +2228,7 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if ( FTI_Conf.saveLastCkpt && ( FTI_Exec.ckptID > 0 ) ) {
-        //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
+    //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
@@ -2044,7 +2273,7 @@ int FTI_Finalize()
         //Cleaning everything
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
-
+    
     if (FTI_Conf.dcpEnabled) {
         FTI_FinalizeDcp( &FTI_Conf, &FTI_Exec );
     }
@@ -2054,159 +2283,168 @@ int FTI_Finalize()
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
+#ifdef ENABLE_HDF5
+    if( FTI_Conf.h5SingleFileEnable ) {
+       FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
+    }
+#endif
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      During the restart, recovers the given variable
+  @param      id              Variable to recover
+  @return     int             FTI_SCES if successful.
+
+  During a restart process, this function recovers the variable specified
+  by the given id. No effect during a regular execution.
+  The variable must have already been protected, otherwise, FTI_NSCS is returned.
+  Improvements to be done:
+  - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
+  - Maintain a variable accumulating the offset as variable are protected during
+  the restart to avoid doing the loop to calculate the offset in the
+  checkpoint file.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVar(int id)
+{
+    if( FTI_Exec.h5SingleFile ) {
+        FTI_Print("FTI_RecoverVar is not supported yet by VPR! Please consider using FTI_Recover.", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
     }
 
-    /*-------------------------------------------------------------------------*/
-    /**
-      @brief      During the restart, recovers the given variable
-      @param      id              Variable to recover
-      @return     int             FTI_SCES if successful.
-
-      During a restart process, this function recovers the variable specified
-      by the given id. No effect during a regular execution.
-      The variable must have already been protected, otherwise, FTI_NSCS is returned.
-      Improvements to be done:
-      - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
-      - Maintain a variable accumulating the offset as variable are protected during
-      the restart to avoid doing the loop to calculate the offset in the
-      checkpoint file.
-     **/
-    /*-------------------------------------------------------------------------*/
-    int FTI_RecoverVar(int id)
-    {
-        if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-            return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
-        }
-        if (FTI_Exec.initSCES == 0) {
-            FTI_Print("FTI is not initialized.", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        if(FTI_Exec.reco==0){
-            /* This is not a restart: no actions performed */
-            return FTI_SCES;
-        }
-
-        if (FTI_Exec.initSCES == 2) {
-            FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        //Check if sizes of protected variables matches
-        int i;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
-                if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-                    char str[FTI_BUFS];
-                    sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                            FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                            FTI_Data[i].size);
-                    FTI_Print(str, FTI_WARN);
-                    return FTI_NREC;
-                }
-            }
-        }
-
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-        if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-            return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
-        }
-#endif
-
-        char fn[FTI_BUFS]; //Path to the checkpoint file
-
-        //Recovering from local for L4 case in FTI_Recover
-        if (FTI_Exec.ckptLvel == 4) {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
-        }
-        else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
-        }
-
-        char str[FTI_BUFS];
-
-        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-
-        FILE* fd = fopen(fn, "rb");
-        if (fd == NULL) {
-            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
-        long offset = 0;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
-            if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
-                sprintf(str, "Recovering var %d ", id);
-                FTI_Print(str, FTI_DBUG);
-                fseek(fd, offset, SEEK_SET);
-                fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-                if (ferror(fd)) {
-                    FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                    fclose(fd);
-                    return FTI_NREC;
-                }
-                break;
-            }
-            offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
-        }
-
-        if (i == FTI_Exec.nbVar) {
-            FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
-        if (fclose(fd) != 0) {
-            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
+    if(FTI_Exec.reco==0){
+        /* This is not a restart: no actions performed */
         return FTI_SCES;
     }
 
-    /*-------------------------------------------------------------------------*/
-    /**
-      @brief      Prints FTI messages.
-      @param      msg             Message to print.
-      @param      priority        Priority of the message to be printed.
-      @return     void
+    if (FTI_Exec.initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-      This function prints messages depending on their priority and the
-      verbosity level set by the user. DEBUG messages are printed by all
-      processes with their rank. INFO messages are printed by one process.
-      ERROR messages are printed with errno.
-
-     **/
-    /*-------------------------------------------------------------------------*/
-    void FTI_Print(char* msg, int priority)
-    {
-        if (priority >= FTI_Conf.verbosity) {
-            if (msg != NULL) {
-                switch (priority) {
-                    case FTI_EROR:
-                        fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
-                        break;
-                    case FTI_WARN:
-                        fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                    case FTI_INFO:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_IDCP:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_DBUG:
-                        fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                }
+    //Check if sizes of protected variables matches
+    int i;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+                char str[FTI_BUFS];
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        FTI_Data[i].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
             }
         }
-        fflush(stdout);
     }
+
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
+    }
+#endif
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+    }
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    }
+
+    char str[FTI_BUFS];
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    long offset = 0;
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
+            sprintf(str, "Recovering var %d ", id);
+            FTI_Print(str, FTI_DBUG);
+            fseek(fd, offset, SEEK_SET);
+            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+            if (ferror(fd)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+                fclose(fd);
+                return FTI_NREC;
+            }
+            break;
+        }
+        offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+    }
+
+    if (i == FTI_Exec.nbVar) {
+        FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
+        fclose(fd);
+        return FTI_NREC;
+    }
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Prints FTI messages.
+  @param      msg             Message to print.
+  @param      priority        Priority of the message to be printed.
+  @return     void
+
+  This function prints messages depending on their priority and the
+  verbosity level set by the user. DEBUG messages are printed by all
+  processes with their rank. INFO messages are printed by one process.
+  ERROR messages are printed with errno.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Print(char* msg, int priority)
+{
+    if (priority >= FTI_Conf.verbosity) {
+        if (msg != NULL) {
+            switch (priority) {
+                case FTI_EROR:
+                    fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    break;
+                case FTI_WARN:
+                    fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+                case FTI_INFO:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_IDCP:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_DBUG:
+                    fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+            }
+        }
+    }
+    fflush(stdout);
+}

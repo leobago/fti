@@ -3,6 +3,7 @@
 int numHeads;
 int finalTag;
 int headRank;
+int grank;
 
 int A[1]  = {100};
 int B[2]  = {30,70};

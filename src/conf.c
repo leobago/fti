@@ -182,6 +182,29 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
     FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
 #endif
+    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
+    if( h5SingleFileDir ) {
+        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
+        } else {
+            strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
+        }
+    } else {
+        strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
+    }
+    
+    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
+    if( h5SingleFilePrefix ) {
+        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
+        } else {
+            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+    }
+    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
+    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -203,7 +226,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meanIterTime = 0;
     FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
-    if (FTI_Exec->reco == 0) {
+    if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
@@ -274,8 +297,8 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
-    if (FTI_Topo->groupSize <= 2 && (L2req || RSreq)) {
-        FTI_Print("The group size must be bigger than 2", FTI_WARN);
+    if (FTI_Topo->groupSize < 2 && (L2req || RSreq)) {
+        FTI_Print("The group size must be at least 2", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Topo->groupSize >= 32 && RSreq) {
@@ -401,6 +424,17 @@ CHECK_DCP_SETTING_END:
             break;
 
     }
+    
+    // check variate processor restart settings
+    if( FTI_Exec->reco == 3 ) {
+        if( FTI_Conf->ioMode != FTI_IO_HDF5 ) {
+            char tmpstr[FTI_BUFS];
+            snprintf( tmpstr, FTI_BUFS, "I/O mode has to be hdf5 ('ckpt_io = %d'). VPR failed!", FTI_IO_HDF5 - 1000 ); 
+            FTI_Print(tmpstr, FTI_WARN);
+            FTI_Exec->reco = 0;
+        }
+    }    
+   
         return FTI_SCES;
 }
 
@@ -419,6 +453,7 @@ CHECK_DCP_SETTING_END:
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 {
     char str[FTI_BUFS]; //For console output
+    int h5DirFailed = 0;
 
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
@@ -450,7 +485,28 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
                 return FTI_NSCS;
             }
         }
+        
+        // Checking metadata directory
+        if( FTI_Conf->h5SingleFileEnable ) {
+            snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
+            FTI_Print(str, FTI_DBUG);
+            if (mkdir(FTI_Conf->h5SingleFileDir, 0777) == -1) {
+                if (errno != EEXIST) {
+                    h5DirFailed = 1;
+                }
+            }
+        }
     }
+    
+    if( FTI_Conf->h5SingleFileEnable ) {
+        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
+	MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        if( h5DirFailed ) { 
+            FTI_Conf->h5SingleFileEnable = false; 
+            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
+        }
+    }
+
     //Waiting for metadDir being created
     MPI_Barrier(FTI_COMM_WORLD);
 

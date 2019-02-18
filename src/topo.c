@@ -392,7 +392,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    if (FTI_Exec->reco > 0) {
+    if ( (FTI_Exec->reco == 1) || (FTI_Exec->reco==2) ) {
         res = FTI_Try(FTI_ReorderNodes(FTI_Conf, FTI_Topo, nodeList, nameList), "reorder nodes.");
         if (res == FTI_NSCS) {
             free(nameList);
@@ -404,7 +404,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Need to synchronize before editing topology file
     MPI_Barrier(FTI_Exec->globalComm);
-    if (FTI_Topo->myRank == 0 && FTI_Exec->reco == 0) {
+    if ( FTI_Topo->myRank == 0 && ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) ) {
         res = FTI_Try(FTI_SaveTopo(FTI_Conf, FTI_Topo, nameList), "save topology.");
         if (res == FTI_NSCS) {
             free(nameList);

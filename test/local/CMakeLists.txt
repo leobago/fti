@@ -40,6 +40,11 @@ set(IO 1)
 set(IO_NAMES "POSIX MPIO FTIFF")
 set(MEMORYTYPES "CPU")
 set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
+if(ENABLE_HDF5)
+    SET(DO_VPR_CHECK true)
+else()
+    SET(DO_VPR_CHECK false)
+endif()
 
 
 if(ENABLE_SIONLIB)
@@ -77,6 +82,10 @@ configure_file(keepL4Ckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/keepL4Ckpt/Mak
 configure_file(keepL4Ckpt/checkKL4.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkKL4.sh @ONLY)
 configure_file(staging/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/staging/Makefile @ONLY)
 configure_file(staging/checkGIO.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkGIO.sh @ONLY)
+if(ENABLE_HDF5)
+configure_file(variateProcessorRestart/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/variateProcessorRestart/Makefile @ONLY)
+configure_file(variateProcessorRestart/checkVPR.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkVPR.sh @ONLY)
+endif()
 configure_file(run-checks-f90.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks-f90.sh @ONLY)
 configure_file(run-travis-locally.in ${CMAKE_CURRENT_SOURCE_DIR}/run-travis-locally.sh @ONLY)
 

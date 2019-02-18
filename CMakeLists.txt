@@ -239,8 +239,6 @@ if(ENABLE_HDF5)
 		target_link_libraries(fti.shared ${HDF5_LIBRARIES})
 		target_link_libraries(fti.static ${HDF5_HL_LIBRARIES})
 		target_link_libraries(fti.shared ${HDF5_HL_LIBRARIES})
-		target_link_libraries(fti.static ${HDF5_C_LIBRARIES})
-		target_link_libraries(fti.shared ${HDF5_C_LIBRARIES})
 	else()
 		message(WARNING "
 		** HDF5 could not be found!
