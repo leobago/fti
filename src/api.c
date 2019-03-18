@@ -740,12 +740,15 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         }
     }
     //Id could not be found in datasets
-
+    
     //If too many variables exit FTI.
     if (FTI_Exec.nbVar >= FTI_BUFS) {
         FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
         return FTI_NSCS;
     }
+
+    FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
+    FTI_Data[i].dcpInfoPosix.hashArray = NULL;
 
     //Adding new variable to protect
     FTI_Data[FTI_Exec.nbVar].id = id;

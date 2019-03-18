@@ -120,6 +120,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
   /* MPI_Comm      */ FTI_Exec->globalComm            =0;
   /* MPI_Comm      */ FTI_Exec->groupComm             =0;
+  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
+  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
 
   // +--------- +
   // | FTI_Conf |

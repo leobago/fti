@@ -176,6 +176,23 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
+    // TODO think about something better here to make a diifference between dcpEnabled with Posix and FTI-FF
+    if( FTI_Conf->ioMode == FTI_IO_POSIX ) {
+        FTI_Conf->dcpPosixEnabled = FTI_Conf->dcpEnabled;
+        FTI_Conf->dcpEnabled = false;
+        FTI_Conf->dcpInfoPosix.BlockSize = FTI_Conf->dcpBlockSize;
+        FTI_Conf->dcpInfoPosix.StackSize = 5;
+        switch( FTI_Conf->dcpMode ) {
+            case FTI_DCP_MODE_MD5:
+                FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
+                break;
+            case FTI_DCP_MODE_CRC32:
+                FTI_Conf->dcpInfoPosix.hashFunc = CRC32;
+                FTI_Conf->dcpInfoPosix.digestWidth = CRC32_DIGEST_LENGTH;
+                break;
+        }
+    }
     FTI_Conf->cHostBufSize = (size_t)iniparser_getlint(ini, "Advanced:gpu_host_bufsize", FTI_DEFAULT_CHOSTBUF_SIZE_MB * ((size_t)1 << 20) );
 #ifdef LUSTRE
     FTI_Conf->stripeUnit = (int)iniparser_getint(ini, "Advanced:lustre_stiping_unit", 4194304);
@@ -566,6 +583,15 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 snprintf(strerr, FTI_BUFS, "failed to create directory '%s', cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
                 FTI_Print(strerr, FTI_EROR);
                 FTI_Conf->keepL4Ckpt = false;
+            }
+        }
+    }
+    if ( FTI_Conf->dcpPosixEnabled ) {
+        if (mkdir(FTI_Ckpt[4].dcpDir, (mode_t) 0777) == -1) {
+            if (errno != EEXIST) {
+                snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].archDir);
+                FTI_Print(strerr, FTI_EROR);
+                FTI_Conf->dcpPosixEnabled = false;
             }
         }
     }

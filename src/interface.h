@@ -294,6 +294,12 @@ static inline uint32_t crc32(const void *buf, size_t size)
 }
 #endif
 
+// DIFFERENTIAL CHECKPOINTING POSIX
+int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+
+
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 

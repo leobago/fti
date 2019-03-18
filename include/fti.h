@@ -117,6 +117,7 @@
 typedef size_t 	hsize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
+#include <fti-int/differential_checkpoint_posix.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -404,6 +405,7 @@ extern "C" {
     bool                isDevicePtr;        /**< True if this data are stored in a device memory*/
     void                *devicePtr;         /**< Pointer to data in the device                  */
     FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
+    FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
   } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
@@ -471,6 +473,7 @@ extern "C" {
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
     MPI_Comm        nodeComm;
+    FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
 } FTIT_execution;
 
   /** @typedef    FTIT_configuration
@@ -481,6 +484,7 @@ extern "C" {
   typedef struct FTIT_configuration {
     bool            stagingEnabled;
     bool            dcpEnabled;         /**< Enable differential ckpt.      */
+    bool            dcpPosixEnabled;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
     bool            keepHeadsAlive;     /**< TRUE if heads return           */
     int             dcpMode;            /**< dCP mode.                      */
@@ -514,6 +518,7 @@ extern "C" {
     char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.        */
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
     size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
+    FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
 
   } FTIT_configuration;
 

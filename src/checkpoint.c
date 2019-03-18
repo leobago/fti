@@ -141,7 +141,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
-    
+
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
@@ -157,7 +157,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
             }
         } else {
-            if ( !FTI_Ckpt[4].hasDcp ) {
+            if ( !FTI_Ckpt[4].hasDcp && FTI_Conf->dcpEnabled ) {
                 if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
                     if (errno != EEXIST) {
                         FTI_Print("Cannot create global dCP directory", FTI_EROR);
@@ -575,6 +575,9 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    if( FTI_Conf->dcpPosixEnabled && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
+        return FTI_WritePosixDcp( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data );
+    }
     int res = FTI_SCES;
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
     char str[FTI_BUFS], fn[FTI_BUFS];

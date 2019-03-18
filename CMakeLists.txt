@@ -130,7 +130,8 @@ set(SRC_FTI
 	src/postckpt.c src/postreco.c src/recover.c
 	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-	src/failure-injection.c src/api_cuda.c src/utility.c)
+	src/failure-injection.c src/api_cuda.c src/utility.c
+    src/diff-checkpoint-posix.c)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
@@ -257,6 +258,8 @@ install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
 install(FILES "include/fti-int/incremental_checkpoint.h"
+	DESTINATION "include/fti-int" )
+install(FILES "include/fti-int/differential_checkpoint_posix.h"
 	DESTINATION "include/fti-int" )
 
 if(ENABLE_FORTRAN)
