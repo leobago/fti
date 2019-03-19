@@ -12,21 +12,20 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // dcpLayer corresponds to the additional layers towards the base layer.
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
     
-    char fn[FTI_BUFS];
     snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId, FTI_Topo->myRank );
 
     FILE *fd;
     if( dcpLayer == 0 ) {
-        fd = fopen( fn, "wb" );
+        fd = fopen( FTI_Exec->meta[0].ckptFile, "wb" );
         if( fd == NULL ) {
-            snprintf( errstr, FTI_BUFS, "Cannot create file '%s'!", fn ); 
+            snprintf( errstr, FTI_BUFS, "Cannot create file '%s'!", FTI_Exec->meta[0].ckptFile ); 
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
     } else {
-        fd = fopen( fn, "ab" );
+        fd = fopen( FTI_Exec->meta[0].ckptFile, "ab" );
         if( fd == NULL ) {
-            snprintf( errstr, FTI_BUFS, "Cannot open file '%s' in append mode!", fn );
+            snprintf( errstr, FTI_BUFS, "Cannot open file '%s' in append mode!", FTI_Exec->meta[0].ckptFile );
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
@@ -69,14 +68,14 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if( dcpLayer == 0 ) {
             while( !fwrite( &FTI_Data[i].id, sizeof(int), 1, fd ) ) {
                 if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to write in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->meta[0].ckptFile );
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }
             }
             while( !fwrite( &dataSize, sizeof(unsigned long), 1, fd ) ) {
                 if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to write in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->meta[0].ckptFile );
                     FTI_Print( errstr, FTI_EROR );
                 }
             }

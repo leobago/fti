@@ -1305,8 +1305,8 @@ int FTI_Checkpoint(int id, int level)
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
-        if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-            if ( FTI_Conf.dcpEnabled ) {
+        if ( (FTI_Conf.ioMode == FTI_IO_FTIFF) || (FTI_Conf.ioMode == FTI_IO_POSIX)  ) {
+            if ( FTI_Conf.dcpEnabled || FTI_Conf.dcpPosixEnabled ) {
                 FTI_Ckpt[4].isDcp = true;
             } else {
                 FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);

@@ -181,6 +181,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Conf->dcpPosixEnabled = FTI_Conf->dcpEnabled;
         FTI_Conf->dcpEnabled = false;
         FTI_Conf->dcpInfoPosix.BlockSize = FTI_Conf->dcpBlockSize;
+        // TODO create setting in configuration file
         FTI_Conf->dcpInfoPosix.StackSize = 5;
         switch( FTI_Conf->dcpMode ) {
             case FTI_DCP_MODE_MD5:
