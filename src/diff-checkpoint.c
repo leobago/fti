@@ -229,7 +229,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
 {
     // nothing to do, no ckpt was taken.
     if ( FTI_Exec->firstdb == NULL ) {
-        FTI_Conf->dcpEnabled = false;
+        FTI_Conf->dcpFtiff = false;
         return FTI_SCES;
     }
 
@@ -249,7 +249,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
     while ( (currentDB = currentDB->next) != NULL );
 
     // disable dCP
-    FTI_Conf->dcpEnabled = false;
+    FTI_Conf->dcpFtiff = false;
 
     return FTI_SCES;
 }
@@ -277,7 +277,7 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         DCP_MODE = atoi(getenv("FTI_DCP_HASH_MODE")) + FTI_DCP_MODE_OFFSET;
         if ( (DCP_MODE < FTI_DCP_MODE_MD5) || (DCP_MODE > FTI_DCP_MODE_CRC32) ) {
             FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             return FTI_NSCS;
         }
     } else {
@@ -291,7 +291,7 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         } else {
             snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
             FTI_Print( str, FTI_WARN );
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             return FTI_NSCS;
         }
     } else {
@@ -308,13 +308,13 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
             break;
         default:
             FTI_Print("Hash mode not recognized, dCP disabled!", FTI_WARN);
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             return FTI_NSCS;
     }
     snprintf( str, FTI_BUFS, "dCP hash block size is %d bytes.", DCP_BLOCK_SIZE);
     FTI_Print( str, FTI_IDCP ); 
 
-    dcpEnabled = &(FTI_Conf->dcpEnabled);
+    dcpEnabled = &(FTI_Conf->dcpFtiff);
 
     return FTI_SCES;
 }

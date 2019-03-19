@@ -146,7 +146,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
             //Create global temp directory
@@ -156,17 +156,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     return FTI_NSCS;
                 }
             }
-        } else {
-            if ( !FTI_Ckpt[4].hasDcp && FTI_Conf->dcpEnabled ) {
-                if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
-                    if (errno != EEXIST) {
-                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
-                        return FTI_NSCS;
-                    }
-                }
-            }
-        }
-
+        } 
         switch (FTI_Conf->ioMode) {
             case FTI_IO_POSIX:
                 res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
@@ -190,7 +180,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else {
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        if ( !(FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary local directory", FTI_DBUG);
             //Create local temp directory
             if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
@@ -231,7 +221,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
         long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
         long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.pureDataSize };
@@ -244,7 +234,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
-    if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
+    if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
@@ -520,8 +510,8 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         }
         strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
 
-        if ( FTI_Conf->dcpEnabled ) {
-            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpEnabled ) {
+        if ( FTI_Conf->dcpFtiff ) {
+            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
                 FTI_Ckpt[4].isDcp = true;
             }
         } else {
@@ -575,7 +565,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
-    if( FTI_Conf->dcpPosixEnabled && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
+    if( FTI_Conf->dcpPosix && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
         return FTI_WritePosixDcp( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data );
     }
     int res = FTI_SCES;

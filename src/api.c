@@ -172,7 +172,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
             FTI_Print("Cannot Allocate defice memory\n", FTI_EROR);
         } 
         // call in any case. treatment for diffCkpt disabled inside initializer.
-        if( FTI_Conf.dcpEnabled ) {
+        if( FTI_Conf.dcpFtiff ) {
             FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
         }
         if (FTI_Exec.reco) {
@@ -1306,7 +1306,7 @@ int FTI_Checkpoint(int id, int level)
     FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
         if ( (FTI_Conf.ioMode == FTI_IO_FTIFF) || (FTI_Conf.ioMode == FTI_IO_POSIX)  ) {
-            if ( FTI_Conf.dcpEnabled || FTI_Conf.dcpPosixEnabled ) {
+            if ( FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix ) {
                 FTI_Ckpt[4].isDcp = true;
             } else {
                 FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
@@ -1339,7 +1339,7 @@ int FTI_Checkpoint(int id, int level)
     t2 = MPI_Wtime(); //Time after writing checkpoint
     
     // set hasCkpt flags true
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
         currentDB->update = false;
         do {    
@@ -1377,7 +1377,7 @@ int FTI_Checkpoint(int id, int level)
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
             headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-            if( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+            if( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
                 strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
             } else {
                 strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
@@ -1422,7 +1422,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
     
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         
         long norder_data, norder_dcp;
         char corder_data[3], corder_dcp[3];
@@ -1466,7 +1466,7 @@ int FTI_Checkpoint(int id, int level)
         FTI_Print(str, FTI_IDCP);
     }
     
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         FTI_Ckpt[4].isDcp = false;
     }
  
@@ -1538,7 +1538,7 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
         if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-            if ( FTI_Conf.dcpEnabled ) {
+            if ( FTI_Conf.dcpFtiff ) {
                 FTI_Ckpt[4].isDcp = true;
             } else {
                 FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
@@ -1569,7 +1569,7 @@ int FTI_InitICP(int id, int level, bool activate)
     //If checkpoint is inlin and level 4 save directly to PFS
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
 
-        if ( !(FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        if ( !(FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
             //Create global temp directory
@@ -1616,7 +1616,7 @@ int FTI_InitICP(int id, int level, bool activate)
         }
     }
     else {
-        if ( !(FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        if ( !(FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary local directory", FTI_DBUG);
             //Create local temp directory
             if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
@@ -1833,7 +1833,7 @@ int FTI_FinalizeICP()
     
     double t2 = MPI_Wtime(); //Time after writing checkpoint
 
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
         long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
         long sendBuf[] = { FTI_Exec.FTIFFMeta.dcpSize, FTI_Exec.FTIFFMeta.pureDataSize };
@@ -1845,13 +1845,13 @@ int FTI_FinalizeICP()
     }
 
     // TODO this has to come inside postckpt on success! 
-    if ( (FTI_Conf.dcpEnabled || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
+    if ( (FTI_Conf.dcpFtiff || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
         FTI_WriteCkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
     }
 
     // TODO this also has to come inside postckpt upon successful call!
     // set hasCkpt flags true
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = FTI_Exec.firstdb;
         currentDB->update = false;
         do {    
@@ -1889,7 +1889,7 @@ int FTI_FinalizeICP()
             headInfo->fs = FTI_Exec.meta[0].fs[0];
             headInfo->pfs = FTI_Exec.meta[0].pfs[0];
             headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-            if( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+            if( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
                 strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
             } else {
                 strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
@@ -1919,7 +1919,7 @@ int FTI_FinalizeICP()
                 FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
 
-        if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
 
             long norder_data, norder_dcp;
             char corder_data[3], corder_dcp[3];
@@ -1971,7 +1971,7 @@ int FTI_FinalizeICP()
         FTI_Exec.ckptLvel = FTI_Exec.iCPInfo.lastCkptLvel;
         FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
     }
-    if ( FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
         FTI_Ckpt[4].isDcp = false;
     }
 
@@ -2277,7 +2277,7 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
     }
     
-    if (FTI_Conf.dcpEnabled) {
+    if (FTI_Conf.dcpFtiff) {
         FTI_FinalizeDcp( &FTI_Conf, &FTI_Exec );
     }
 

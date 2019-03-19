@@ -1389,7 +1389,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
     rmdir(FTI_Conf->gTmpDir);
   }
-  if ( FTI_Conf->dcpEnabled && level == 5 ) {
+  if ( (FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5 ) {
     FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
   }
 

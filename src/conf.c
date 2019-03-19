@@ -161,7 +161,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Reading/setting configuration metadata
     FTI_Conf->keepHeadsAlive = (bool)iniparser_getboolean(ini, "Basic:keep_heads_alive", 0);
-    FTI_Conf->dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
+    bool dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
     FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
@@ -176,10 +176,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
     FTI_Conf->ioMode = (int)iniparser_getint(ini, "Basic:ckpt_io", 0) + 1000;
-    // TODO think about something better here to make a diifference between dcpEnabled with Posix and FTI-FF
+    // Enable either dcp for posix of ftiff depending on the selected io
     if( FTI_Conf->ioMode == FTI_IO_POSIX ) {
-        FTI_Conf->dcpPosixEnabled = FTI_Conf->dcpEnabled;
-        FTI_Conf->dcpEnabled = false;
+        FTI_Conf->dcpPosix = dcpEnabled;
         FTI_Conf->dcpInfoPosix.BlockSize = FTI_Conf->dcpBlockSize;
         // TODO create setting in configuration file
         FTI_Conf->dcpInfoPosix.StackSize = 5;
@@ -193,6 +192,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Conf->dcpInfoPosix.digestWidth = CRC32_DIGEST_LENGTH;
                 break;
         }
+    } else if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        FTI_Conf->dcpFtiff = dcpEnabled;
     }
     FTI_Conf->cHostBufSize = (size_t)iniparser_getlint(ini, "Advanced:gpu_host_bufsize", FTI_DEFAULT_CHOSTBUF_SIZE_MB * ((size_t)1 << 20) );
 #ifdef LUSTRE
@@ -338,28 +339,23 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // check dCP settings only if dCP is enabled
-    if ( FTI_Conf->dcpEnabled ) {
-        if ( !(FTI_Conf->ioMode == FTI_IO_FTIFF) ) {
-            FTI_Print("dCP may only be used with FTI-FF enabled, dCP disabled.", FTI_WARN);
-            FTI_Conf->dcpEnabled = false;
-            goto CHECK_DCP_SETTING_END;
-        }
+    if ( FTI_Conf->dcpFtiff ) {
         if ( (FTI_Conf->dcpMode < FTI_DCP_MODE_MD5) || (FTI_Conf->dcpMode > FTI_DCP_MODE_CRC32) ) {
             FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             goto CHECK_DCP_SETTING_END;
         }
         if ( (FTI_Conf->dcpBlockSize < 512) || (FTI_Conf->dcpBlockSize > USHRT_MAX) ) {
             char str[FTI_BUFS];
             snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
             FTI_Print( str, FTI_WARN );
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             goto CHECK_DCP_SETTING_END;
         }
-        if (FTI_Ckpt[4].ckptDcpIntv > 0 && !(FTI_Conf->dcpEnabled)) {
+        if (FTI_Ckpt[4].ckptDcpIntv > 0 && !(FTI_Conf->dcpFtiff)) {
             FTI_Print( "L4 dCP interval set, but, dCP is disabled! Setting will be ignored.", FTI_WARN );
             FTI_Ckpt[4].ckptDcpIntv = 0;
-            FTI_Conf->dcpEnabled = false;
+            FTI_Conf->dcpFtiff = false;
             goto CHECK_DCP_SETTING_END;
         }
     }
@@ -587,12 +583,13 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
     }
-    if ( FTI_Conf->dcpPosixEnabled ) {
+    if ( FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff ) {
         if (mkdir(FTI_Ckpt[4].dcpDir, (mode_t) 0777) == -1) {
             if (errno != EEXIST) {
                 snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].archDir);
                 FTI_Print(strerr, FTI_EROR);
-                FTI_Conf->dcpPosixEnabled = false;
+                FTI_Conf->dcpPosix = false;
+                FTI_Conf->dcpFtiff = false;
             }
         }
     }

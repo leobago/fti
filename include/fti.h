@@ -483,8 +483,8 @@ extern "C" {
    */
   typedef struct FTIT_configuration {
     bool            stagingEnabled;
-    bool            dcpEnabled;         /**< Enable differential ckpt.      */
-    bool            dcpPosixEnabled;         /**< Enable differential ckpt.      */
+    bool            dcpFtiff;         /**< Enable differential ckpt.      */
+    bool            dcpPosix;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
     bool            keepHeadsAlive;     /**< TRUE if heads return           */
     int             dcpMode;            /**< dCP mode.                      */

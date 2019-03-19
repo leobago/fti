@@ -377,13 +377,13 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
-        if( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
         }
     } else if ( level == 4 && !FTI_Ckpt[4].isInline )
-        if( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
@@ -395,7 +395,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int fd;
 
     // for dCP: create if not exists, open if exists
-    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
         if (access(fn,R_OK) != 0) {
             fd = open( fn, O_WRONLY|O_CREAT, (mode_t) 0600 ); 
         } 
