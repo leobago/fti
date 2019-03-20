@@ -31,12 +31,28 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
+    // for file hash create hash only from data block hashes
+    MD5_CTX ctx;
+    MD5_Init( &ctx );
+
+    unsigned long layerSize = 0;
+
     unsigned char * block = (unsigned char*) malloc( FTI_Conf->dcpInfoPosix.BlockSize );
     int i = 0;
-    
-    size_t dcpSize = 0;
-    unsigned long glbDataSize = 0;
     if( dcpLayer == 0 ) FTI_Exec->dcpInfoPosix.FileSize = 0;
+    // write constant meta data in the beginning of file
+    // - blocksize
+    if( dcpLayer == 0 ) {
+        while( !fwrite( &FTI_Conf->dcpInfoPosix.BlockSize, sizeof(unsigned long), 1, fd ) ) {
+            if(ferror(fd)) {
+                snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->meta[0].ckptFile );
+                FTI_Print( errstr, FTI_EROR );
+                return FTI_NSCS;
+            }
+        }
+        FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long);
+        layerSize += sizeof(unsigned long);
+    }
     
     for(; i<FTI_Exec->nbVar; i++) {
          
@@ -44,8 +60,6 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         unsigned long dataSize = FTI_Data[i].size;
         unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
         
-        glbDataSize += dataSize;
-
         if( dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize) ) {
             snprintf( errstr, FTI_BUFS, "overflow in size of dataset with id: %d (datasize: %lu > MAX_DATA_SIZE: %lu)", 
                     FTI_Data[i].id, dataSize, ((unsigned long)MAX_BLOCK_IDX)*((unsigned long)FTI_Conf->dcpInfoPosix.BlockSize) );
@@ -79,7 +93,8 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print( errstr, FTI_EROR );
                 }
             }
-            FTI_Exec->dcpInfoPosix.FileSize += (sizeof(int) + sizeof(long));
+            FTI_Exec->dcpInfoPosix.FileSize += (sizeof(int) + sizeof(unsigned long));
+            layerSize += sizeof(int) + sizeof(unsigned long);
         }
         unsigned long pos = 0;
         unsigned char * ptr = FTI_Data[i].ptr;
@@ -125,8 +140,11 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     success = (bool)fwrite( ptr, chunkSize, 1, fd );
                     if( success ) fileUpdate += chunkSize;
                 }
-                dcpSize += success*chunkSize;
                 FTI_Exec->dcpInfoPosix.FileSize += success*fileUpdate;
+                layerSize += success*fileUpdate;
+                if(success) {
+                    MD5_Update( &ctx, &FTI_Data[i].dcpInfoPosix.hashArrayTmp[hashIdx], MD5_DIGEST_LENGTH ); 
+                }
             }
             
             pos += chunkSize*success;
@@ -145,6 +163,13 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fsync(fileno(fd));
     fclose( fd );
+    
+    // create final dcp layer hash
+    MD5_Final( &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_LENGTH], &ctx );
+
+    // layer size is needed in order to create layer hash during recovery
+    FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = layerSize;
+
     FTI_Exec->dcpInfoPosix.Counter++;
     if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
         int i = 0;
@@ -167,9 +192,7 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf( mfn, FTI_BUFS, "%s/dcp-rank%d.meta", FTI_Ckpt[4].dcpDir, FTI_Topo->splitRank );
     FILE* mfd = fopen( mfn, "wb" );
     fwrite( &FTI_Exec->dcpInfoPosix.FileSize, sizeof(unsigned long), 1, mfd );
-    fwrite( &glbDataSize, sizeof(unsigned long), 1, mfd );
     fwrite( &dcpFileId, sizeof(int), 1, mfd );
-    fwrite( &FTI_Conf->dcpInfoPosix.BlockSize, sizeof(unsigned long), 1, mfd );
     fwrite( &FTI_Exec->nbVar, sizeof(int), 1, mfd);
     for(i=0; i<FTI_Exec->nbVar; i++) {
         unsigned long dataSize = FTI_Data[i].size;

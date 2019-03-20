@@ -1422,3 +1422,18 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
   return FTI_SCES;
 }
+
+char* hashHex( const unsigned char* hash, int digestWidth, char* hashHexStr )
+{       
+    if( hashHexStr == NULL ) {
+        FTI_Print( "'hashHexStr == NULL'", FTI_EROR );
+        return NULL;
+    }
+
+    int i;
+    for(i = 0; i < digestWidth; i++) {
+        sprintf(&hashHexStr[2*i], "%02x", hash[i]);
+    }
+
+    return hashHexStr;
+}

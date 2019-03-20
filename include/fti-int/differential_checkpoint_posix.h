@@ -32,6 +32,8 @@ typedef struct FTIT_dcpExecutionPosix
 {
     unsigned int Counter;
     unsigned long FileSize;
+    unsigned long *LayerSize;
+    unsigned char *LayerHash;
 
 } FTIT_dcpExecutionPosix;
 
