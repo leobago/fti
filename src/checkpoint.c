@@ -329,9 +329,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
-    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
+    globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-        if (FTI_Exec->ckptLvel == 4) {
+        if ((FTI_Exec->ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
             if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {
                 FTI_Print("Cannot rename global directory", FTI_EROR);
             }
