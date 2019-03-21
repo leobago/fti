@@ -42,6 +42,7 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if( dcpLayer == 0 ) FTI_Exec->dcpInfoPosix.FileSize = 0;
     // write constant meta data in the beginning of file
     // - blocksize
+    // - stacksize
     if( dcpLayer == 0 ) {
         while( !fwrite( &FTI_Conf->dcpInfoPosix.BlockSize, sizeof(unsigned long), 1, fd ) ) {
             if(ferror(fd)) {
@@ -50,8 +51,15 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
-        FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long);
-        layerSize += sizeof(unsigned long);
+        while( !fwrite( &FTI_Conf->dcpInfoPosix.StackSize, sizeof(unsigned int), 1, fd ) ) {
+            if(ferror(fd)) {
+                snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->meta[0].ckptFile );
+                FTI_Print( errstr, FTI_EROR );
+                return FTI_NSCS;
+            }
+        }
+        FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long) + sizeof(unsigned int);
+        layerSize += sizeof(unsigned long) + sizeof(unsigned int);
     }
     
     for(; i<FTI_Exec->nbVar; i++) {
@@ -163,9 +171,14 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     fsync(fileno(fd));
     fclose( fd );
-    
+   
+    // copy dcpFileSize for metadatacreation
+    FTI_Exec->ckptSize = FTI_Exec->dcpInfoPosix.FileSize;
+
     // create final dcp layer hash
-    MD5_Final( &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_LENGTH], &ctx );
+    unsigned char LayerHash[MD5_DIGEST_LENGTH];
+    MD5_Final( LayerHash, &ctx );
+    hashHex( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
 
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = layerSize;

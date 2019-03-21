@@ -181,8 +181,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if( FTI_Conf->ioMode == FTI_IO_POSIX ) {
         FTI_Conf->dcpPosix = dcpEnabled;
         FTI_Conf->dcpInfoPosix.BlockSize = FTI_Conf->dcpBlockSize;
-        FTI_Exec->dcpInfoPosix.LayerSize = (unsigned long*) malloc( sizeof(unsigned long) * FTI_Conf->dcpInfoPosix.StackSize );
-        FTI_Exec->dcpInfoPosix.LayerHash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * FTI_Conf->dcpInfoPosix.StackSize );
+        //FTI_Exec->dcpInfoPosix.LayerSize = (unsigned long*) malloc( sizeof(unsigned long) * FTI_Conf->dcpInfoPosix.StackSize );
+        //FTI_Exec->dcpInfoPosix.LayerHash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * FTI_Conf->dcpInfoPosix.StackSize );
         switch( FTI_Conf->dcpMode ) {
             case FTI_DCP_MODE_MD5:
                 FTI_Conf->dcpInfoPosix.hashFunc = MD5;
@@ -340,6 +340,12 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // check dCP settings only if dCP is enabled
+    if( FTI_Conf->dcpPosix ) {
+        if ( FTI_Conf->dcpInfoPosix.StackSize > MAX_STACK_SIZE ) {
+            FTI_Print("dCP stack size ('Basic:dcp_stack_size') must be < 10. set to default (stack_size = 5).", FTI_WARN);
+            FTI_Conf->dcpInfoPosix.StackSize = 5;
+        }
+    }
     if ( FTI_Conf->dcpFtiff ) {
         if ( (FTI_Conf->dcpMode < FTI_DCP_MODE_MD5) || (FTI_Conf->dcpMode > FTI_DCP_MODE_CRC32) ) {
             FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);

@@ -12,6 +12,7 @@
 #   define CRC32_DIGEST_LENGTH 4  // 32 bits
 #endif
 
+#define MAX_STACK_SIZE 10
 #define MAX_BLOCK_IDX 0x3fffffff
 #define MAX_VAR_ID 0x3ffff
 
@@ -32,8 +33,8 @@ typedef struct FTIT_dcpExecutionPosix
 {
     unsigned int Counter;
     unsigned long FileSize;
-    unsigned long *LayerSize;
-    unsigned char *LayerHash;
+    unsigned long LayerSize[MAX_STACK_SIZE];
+    char LayerHash[MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH];
 
 } FTIT_dcpExecutionPosix;
 

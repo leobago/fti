@@ -289,6 +289,7 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
+    // TODO headcase for posix dcp
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (!FTI_Topo->amIaHead) {
@@ -312,6 +313,13 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     snprintf(str, FTI_BUFS, "Meta for level %d exists.", i);
                     FTI_Print(str, FTI_DBUG);
                     FTI_Exec->meta[i].exists[0] = 1;
+
+                    // check for dcp
+                    char* ckpt_type = iniparser_getstring( ini, "ckpt_info:ckpt_type", NULL );
+                    FTI_Ckpt[i].isDcp = !strcmp(ckpt_type, "dcp");
+                    
+                    // get ckptID
+                    FTI_Exec->ckptID = iniparser_getint( ini, "ckpt_info:ckpt_id", -1 );
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_name", FTI_Topo->groupRank);
                     char* ckptFileName = iniparser_getstring(ini, str, NULL);
@@ -341,6 +349,21 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     }
                     //Save number of variables in metadata
                     FTI_Exec->meta[i].nbVar[0] = k;
+                    
+                    for (k = 0; k < MAX_STACK_SIZE; k++) {
+                        snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
+                        unsigned long LayerSize = iniparser_getlint(ini, str, -1);
+                        if (LayerSize == -1) {
+                            //No more variables
+                            break;
+                        }
+                        FTI_Exec->dcpInfoPosix.LayerSize[k] = LayerSize;
+
+                        snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
+                        char* LayerHash = iniparser_getstring(ini, str, NULL);
+                        snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", ckptFileName );
+                        DBG_MSG( "[%d] LayerSize:%lu, LayerHash: %s", 0, k, FTI_Exec->dcpInfoPosix.LayerSize[k], LayerHash );
+                    }
 
                     iniparser_freedict(ini);
                 }
@@ -660,7 +683,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, long* fs, long mfs, char* fnl,
         char* checksums, int* allVarIDs, long* allVarSizes, unsigned long* allLayerSizes,
-        unsigned char* allLayerHashes )
+        char* allLayerHashes )
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
@@ -687,6 +710,10 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               iniparser_set( ini, "ckpt_info:ckpt_type", "dcp" );
               break;
     } 
+
+    // add checkpoint id
+    snprintf( buf, FTI_BUFS, "%d", FTI_Exec->ckptID );
+    iniparser_set( ini, "ckpt_info:ckpt_id", buf ); 
 
     // Add metadata to dictionary
     int i;
@@ -725,8 +752,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 iniparser_set(ini, str, buf);
                 
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
-                hashHex( &allLayerHashes[i*nbLayer*MD5_DIGEST_LENGTH + j*MD5_DIGEST_LENGTH], MD5_DIGEST_LENGTH, buf );
-                iniparser_set(ini, str, buf);
+                iniparser_set(ini, str, &allLayerHashes[i*nbLayer*MD5_DIGEST_STRING_LENGTH + j*MD5_DIGEST_STRING_LENGTH]);
             }
         }
     }
@@ -879,7 +905,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long* allVarSizes;
     // for posix dcp
     unsigned long* allLayerSizes;
-    unsigned char* allLayerHashes;
+    char* allLayerHashes;
     
     // TODO counter is incremented so its minus 1 but need to change this!
     int nbLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
@@ -889,7 +915,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
         if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
             allLayerSizes = talloc( unsigned long, FTI_Topo->groupSize * nbLayer );
-            allLayerHashes = talloc( unsigned char, FTI_Topo->groupSize * nbLayer * MD5_DIGEST_LENGTH );
+            allLayerHashes = talloc( char, FTI_Topo->groupSize * nbLayer * MD5_DIGEST_STRING_LENGTH );
         }
     }
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
@@ -908,8 +934,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MPI_Gather(FTI_Exec->dcpInfoPosix.LayerSize, nbLayer, MPI_UNSIGNED_LONG, 
                 allLayerSizes, nbLayer, MPI_UNSIGNED_LONG, 0, FTI_Exec->groupComm);
         // Gather dcp layer hashes
-        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerHash, nbLayer * MD5_DIGEST_LENGTH, MPI_UNSIGNED_CHAR, 
-                allLayerHashes, nbLayer * MD5_DIGEST_LENGTH, MPI_UNSIGNED_CHAR, 0, FTI_Exec->groupComm);
+        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerHash, nbLayer * MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 
+                allLayerHashes, nbLayer * MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
     }
 
     free(myVarIDs);
