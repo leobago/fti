@@ -124,7 +124,12 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else
         consistency = &FTI_CheckFile;
 #else
-    consistency = &FTI_CheckFile;
+    if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp && FTI_Conf->dcpPosix ) {
+        FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
+        consistency = &FTI_CheckFileDcpPosix;
+    } else {
+        consistency = &FTI_CheckFile;
+    }
 #endif
     
     switch (level) {

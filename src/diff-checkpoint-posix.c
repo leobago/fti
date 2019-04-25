@@ -41,6 +41,7 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i = 0;
     if( dcpLayer == 0 ) FTI_Exec->dcpInfoPosix.FileSize = 0;
     // write constant meta data in the beginning of file
+    // - number of variables in basis
     // - blocksize
     // - stacksize
     if( dcpLayer == 0 ) {
@@ -61,6 +62,17 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long) + sizeof(unsigned int);
         layerSize += sizeof(unsigned long) + sizeof(unsigned int);
     }
+    
+    // write actual amount of variables at the beginning of each layer
+    while( !fwrite( &FTI_Exec->nbVar, sizeof(int), 1, fd ) ) {
+        if(ferror(fd)) {
+            snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->meta[0].ckptFile );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    FTI_Exec->dcpInfoPosix.FileSize += sizeof(int);
+    layerSize += sizeof(int);
     
     for(; i<FTI_Exec->nbVar; i++) {
          
@@ -218,7 +230,153 @@ int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It checks if a file exist and that its size is 'correct'.
+  @param      fn              The ckpt. file name to check.
+  @param      fs              The ckpt. file size to check.
+  @param      checksum        The file checksum to check.
+  @return     integer         0 if file exists, 1 if not or wrong size.
+
+  This function checks whether a file exist or not and if its size is
+  the expected one.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum)
+{
+    if (access(fn, F_OK) == 0) {
+        struct stat fileStatus;
+        if (stat(fn, &fileStatus) == 0) {
+            if (fileStatus.st_size == fs) {
+                if (strlen(checksum)) {
+                    int res = FTI_VerifyChecksumDcpPosix(fn);
+                    if (res != FTI_SCES) {
+                        return 1;
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+            else {
+                return 1;
+            }
+        }
+        else {
+            return 1;
+        }
+    }
+    else {
+        char str[FTI_BUFS];
+        sprintf(str, "Missing file: \"%s\"", fn);
+        FTI_Print(str, FTI_WARN);
+        return 1;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It compares checksum of the checkpoint file.
+  @param      fileName        Filename of the checkpoint.
+  @param      checksumToCmp   Checksum to compare.
+  @return     integer         FTI_SCES if successful.
+
+  This function calculates checksum of the checkpoint file based on
+  MD5 algorithm. It compares calculated hash value with the one saved
+  in the file.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_VerifyChecksumDcpPosix(char* fileName)
+{
+
+    FTIT_execution* exec = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_EXEC_TAG, NULL, NULL );
+    FTIT_configuration* conf = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_CONF_TAG, NULL, NULL ); 
+
+    char dummyBuffer[FTI_BUFS];
+    char checksumToCmp[MD5_DIGEST_LENGTH];
+    unsigned long blockSize;
+    int nbVarBasis;
+
+    FILE *fd = fopen(fileName, "rb");
+    if (fd == NULL) {
+        char str[FTI_BUFS];
+        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    unsigned char md5_tmp[MD5_DIGEST_LENGTH];
+    unsigned char md5_final[MD5_DIGEST_LENGTH];
+
+    MD5_CTX mdContext;
+
+    size_t pos = 0;
+    pos += fread( &blockSize, sizeof(unsigned long), 1, fd );
+    pos += fread( &dummyBuffer, sizeof(unsigned int), 1, fd );
+
+    int i;
+    int layer = 0;
+    int nbVarLayer;
+
+    void* buffer = malloc( blockSize );
+    while( pos < exec->meta[i].fs[0] ) {
+        size_t pos_layer = 0;
+        pos_layer += fread( &nbVarLayer, sizeof(int), 1, fd ); 
+        while( pos_layer < exec->dcpInfoPosix.LayerSize[layer] ) { 
+            if( layer == 0 ) {
+                for( i=0; i<nbVarLayer; i++) {
+                    // advance after id
+                    pos_layer += fread( dummyBuffer, sizeof(int), 1, fd );
+                    size_t dataSize;
+                    pos_layer += fread( &dataSize, sizeof(unsigned long), 1, fd );
+                    size_t pos_data = 0;
+                    while( pos_data < dataSize ) {
+                        pos_data += fread( buffer, blockSize, 1, fd );
+                        MD5( buffer, blockSize, md5_tmp );
+                        MD5_Update( &mdContext, md5_tmp, MD5_DIGEST_LENGTH );
+                    }
+                    pos_layer += pos_data;
+                }
+            }
+            if( layer > 0 ) {
+                
+            }
+        }
+        layer++;
+        pos += pos_layer;
+    }
+
+    fclose (fd);
+
+    return FTI_SCES;
+}
+
 // HELPER FUNCTIONS
+
+void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ ) {
+    
+    static void* exec = NULL;
+    static void* conf = NULL;
+    
+    void* ret;
+
+    switch( tag ) {
+        case DCP_POSIX_EXEC_TAG:
+            ret = exec;
+            break;
+        case DCP_POSIX_CONF_TAG:
+            ret = conf;
+            break;
+        case DCP_POSIX_INIT_TAG:
+            ret = NULL;
+            exec = exec_;
+            conf = conf_;
+            break;
+    }
+
+    return ret;
+}
 
 // have the same for for MD5 and CRC32
 unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned char *hash )

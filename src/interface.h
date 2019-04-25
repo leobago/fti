@@ -300,6 +300,9 @@ static inline uint32_t crc32(const void *buf, size_t size)
 int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
+int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
+int FTI_VerifyChecksumDcpPosix(char* fileName);
+void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
 
 
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */

@@ -16,6 +16,10 @@
 #define MAX_BLOCK_IDX 0x3fffffff
 #define MAX_VAR_ID 0x3ffff
 
+#define DCP_POSIX_EXEC_TAG 0
+#define DCP_POSIX_CONF_TAG 1
+#define DCP_POSIX_INIT_TAG -1
+
 /*---------------------------------------------------------------------------
   Types
   ---------------------------------------------------------------------------*/
