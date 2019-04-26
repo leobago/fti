@@ -245,6 +245,84 @@ int FTI_WritePosixDcp
    
 }
 
+int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data )
+{
+    unsigned long blockSize;
+    unsigned int stackSize;
+    int nbVarLayer;
+    int ckptID;
+
+    char fn[FTI_BUFS];
+    
+    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
+   
+    // read base part of file
+    FILE* fd = fopen( fn, "rb" );
+    fread( &blockSize, sizeof(unsigned long), 1, fd );
+    fread( &stackSize, sizeof(unsigned int), 1, fd );
+    
+    int i;
+
+    // treat Layer 0 first
+    fread( &ckptID, 1, sizeof(int), fd );
+    fread( &nbVarLayer, 1, sizeof(int), fd );
+    for(i=0; i<nbVarLayer; i++) {
+        unsigned int varId;
+        unsigned long locDataSize;
+        fread( &varId, sizeof(int), 1, fd );
+        fread( &locDataSize, sizeof(unsigned long), 1, fd );
+        int idx = getIdx(varId, FTI_Exec, FTI_Data);
+        if( idx < 0 ) {
+            DBG_MSG( "id '%d' does not exist!", 0, varId );
+            return FTI_NSCS;
+        }
+        fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
+        int overflow;
+        if( (overflow=locDataSize%blockSize) != 0 ) {
+            void *buffer = (void*) malloc( blockSize - overflow ); 
+            fread( buffer, blockSize - overflow, 1, fd );
+            free(buffer);
+        }
+    }
+    
+    
+    unsigned long offset;
+
+    blockMetaInfo_t blockMeta;
+    unsigned char *block = (unsigned char*) malloc( blockSize );
+
+    int nbLayer = FTI_Exec->dcpInfoPosix.nbLayerReco;
+    DBG_MSG("nbLayer: %d", 0, nbLayer);
+    for( i=1; i<nbLayer; i++) {
+        
+        unsigned long pos = 0;
+        pos += fread( &ckptID, 1, sizeof(int), fd );
+        pos += fread( &nbVarLayer, 1, sizeof(int), fd );
+        
+        while( pos < FTI_Exec->dcpInfoPosix.LayerSize[i] ) {
+            
+            fread( &blockMeta, 1, 6, fd );
+            int idx = getIdx(blockMeta.varId, FTI_Exec, FTI_Data);
+            if( idx < 0 ) {
+                DBG_MSG( "id '%d' does not exist!", blockMeta.varId );
+                return FTI_NSCS;
+            }
+
+
+            offset = blockMeta.blockId * blockSize;
+            void* ptr = FTI_Data[idx].ptr + offset;
+            unsigned int chunkSize = ( (FTI_Data[idx].size-offset) < blockSize ) ? FTI_Data[idx].size-offset : blockSize; 
+            
+            fread( ptr, 1, chunkSize, fd );
+            
+            pos += (blockSize+6);
+        }
+        DBG_MSG("layerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[i]);
+    }
+
+    fclose(fd);
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It checks if a file exist and that its size is 'correct'.
@@ -390,7 +468,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
         if( strcmp( hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
             break;
         }
-        exec->dcpInfoPosix.nbLayerReco = layer;
+        exec->dcpInfoPosix.nbLayerReco = layer+1;
         exec->ckptID = ckptID;
     }
 
@@ -440,4 +518,17 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
 
     return hash;
 }
+
+int getIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
+{
+    int i=0;
+    for(; i<FTI_Exec->nbVar; i++) {
+        if(FTI_Data[i].id == varId) break;
+    }
+    if( i==FTI_Exec->nbVar ) {
+        return -1;
+    }
+    return i;
+}
+
 
