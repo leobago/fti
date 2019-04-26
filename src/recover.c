@@ -159,7 +159,11 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 4:
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp && FTI_Conf->dcpPosix ) {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile); 
+            } else {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            }
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -251,7 +255,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         MPI_Barrier(FTI_COMM_WORLD);
                         if ( FTI_Ckpt[4].isDcp ) {
                             res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                            FTI_Ckpt[4].isDcp = false;
+                            if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].isDcp = false;
                             
                             if (res == FTI_SCES ) {
                                 break;
@@ -279,7 +283,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
                      
                     // FTI-FF: ckptID is already set properly
-                    if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                    if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].isDcp && FTI_Conf->dcpPosix) ) {
                         ckptID = FTI_Exec->ckptID;
                     }
 

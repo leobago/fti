@@ -122,6 +122,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* MPI_Comm      */ FTI_Exec->groupComm             =0;
   /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
   /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
+                      memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
+                      memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
 
   // +--------- +
   // | FTI_Conf |
@@ -1425,9 +1427,9 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
 char* hashHex( const unsigned char* hash, int digestWidth, char* hashHexStr )
 {       
+    static unsigned char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
     if( hashHexStr == NULL ) {
-        FTI_Print( "'hashHexStr == NULL'", FTI_EROR );
-        return NULL;
+        hashHexStr = hashHexStatic;
     }
 
     int i;

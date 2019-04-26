@@ -35,6 +35,7 @@ typedef struct FTIT_dcpConfigurationPosix
 
 typedef struct FTIT_dcpExecutionPosix
 {
+    int nbLayerReco;
     unsigned int Counter;
     unsigned long FileSize;
     unsigned long LayerSize[MAX_STACK_SIZE];

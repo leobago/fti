@@ -361,7 +361,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
                         char* LayerHash = iniparser_getstring(ini, str, NULL);
-                        snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", ckptFileName );
+                        snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", LayerHash );
                         DBG_MSG( "[%d] LayerSize:%lu, LayerHash: %s", 0, k, FTI_Exec->dcpInfoPosix.LayerSize[k], LayerHash );
                     }
 
@@ -746,6 +746,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
             int nbLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+            DBG_MSG("NUMBER OF LAYERS: %d", 0, nbLayer);
             for( j=0; j<nbLayer; j++ ) {
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
                 snprintf(buf, FTI_BUFS, "%lu", allLayerSizes[i * nbLayer + j]);

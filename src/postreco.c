@@ -957,6 +957,10 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
 
+    if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp && FTI_Conf->dcpPosix ) {
+        return FTI_SCES;
+    }
+
     snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
     snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
