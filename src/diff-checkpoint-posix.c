@@ -209,6 +209,7 @@ int FTI_WritePosixDcp
 
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = layerSize;
+    DBG_MSG("LayerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer]);
 
     FTI_Exec->dcpInfoPosix.Counter++;
     if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
@@ -260,6 +261,7 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FILE* fd = fopen( fn, "rb" );
     fread( &blockSize, sizeof(unsigned long), 1, fd );
     fread( &stackSize, sizeof(unsigned int), 1, fd );
+    void *buffer = (void*) malloc( blockSize ); 
     
     int i;
 
@@ -276,12 +278,14 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             DBG_MSG( "id '%d' does not exist!", 0, varId );
             return FTI_NSCS;
         }
+        DBG_MSG("size: %lu, locDataSize: %lu",0,FTI_Data[idx].size, locDataSize);
         fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
+        
+        DBG_MSG("nelems: %lu, ptr: %p", 0, *((unsigned long*)FTI_Data[0].ptr), FTI_Data[0].ptr);
+        
         int overflow;
         if( (overflow=locDataSize%blockSize) != 0 ) {
-            void *buffer = (void*) malloc( blockSize - overflow ); 
             fread( buffer, blockSize - overflow, 1, fd );
-            free(buffer);
         }
     }
     
@@ -298,13 +302,15 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         unsigned long pos = 0;
         pos += fread( &ckptID, 1, sizeof(int), fd );
         pos += fread( &nbVarLayer, 1, sizeof(int), fd );
+
+        DBG_MSG("LayerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[i]); 
         
         while( pos < FTI_Exec->dcpInfoPosix.LayerSize[i] ) {
             
             fread( &blockMeta, 1, 6, fd );
             int idx = getIdx(blockMeta.varId, FTI_Exec, FTI_Data);
             if( idx < 0 ) {
-                DBG_MSG( "id '%d' does not exist!", blockMeta.varId );
+                DBG_MSG( "[i:%d] id '%d' does not exist!", i, blockMeta.varId );
                 return FTI_NSCS;
             }
 
@@ -314,12 +320,15 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             unsigned int chunkSize = ( (FTI_Data[idx].size-offset) < blockSize ) ? FTI_Data[idx].size-offset : blockSize; 
             
             fread( ptr, 1, chunkSize, fd );
+            fread( buffer, 1, blockSize - chunkSize, fd ); 
             
             pos += (blockSize+6);
         }
-        DBG_MSG("layerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[i]);
+        
+        DBG_MSG("nelems: %lu, ptr: %p", 0, *((unsigned long*)FTI_Data[0].ptr), FTI_Data[0].ptr);
     }
 
+    free(buffer);
     fclose(fd);
 }
 
