@@ -327,6 +327,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[i].fs[0] = iniparser_getlint(ini, str, -1);
+                    FTI_Exec->dcpInfoPosix.FileSize = FTI_Exec->meta[i].fs[0];
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                     FTI_Exec->meta[i].pfs[0] = iniparser_getlint(ini, str, -1);
@@ -745,7 +746,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             iniparser_set(ini, str, buf);
         }
         if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
-            int nbLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+            int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
             DBG_MSG("NUMBER OF LAYERS: %d", 0, nbLayer);
             for( j=0; j<nbLayer; j++ ) {
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
@@ -909,7 +910,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* allLayerHashes;
     
     // TODO counter is incremented so its minus 1 but need to change this!
-    int nbLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+    int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
     
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);

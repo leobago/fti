@@ -19,6 +19,8 @@ int FTI_WritePosixDcp
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
    
     char fn[FTI_BUFS];
+    
+    DBG_MSG("dcpFileId: %d Counter: %d", 0, dcpFileId, FTI_Exec->dcpInfoPosix.Counter);
 
     snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
     snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
@@ -79,6 +81,13 @@ int FTI_WritePosixDcp
             return FTI_NSCS;
         }
     }
+    //while( !fwrite( &FTI_Exec->dcpInfoPosix.Counter, sizeof(unsigned int), 1, fd ) ) {
+    //    if(ferror(fd)) {
+    //        snprintf( errstr, FTI_BUFS, "unable to write in file %s", fn );
+    //        FTI_Print( errstr, FTI_EROR );
+    //        return FTI_NSCS;
+    //    }
+    //}
     while( !fwrite( &FTI_Exec->nbVar, sizeof(int), 1, fd ) ) {
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to write in file %s", fn );
@@ -86,8 +95,8 @@ int FTI_WritePosixDcp
             return FTI_NSCS;
         }
     }
-    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);
-    layerSize += 2*sizeof(int);
+    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);// + sizeof(unsigned int);
+    layerSize += 2*sizeof(int);// + sizeof(unsigned int);
     
     for(; i<FTI_Exec->nbVar; i++) {
          
@@ -209,7 +218,6 @@ int FTI_WritePosixDcp
 
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = layerSize;
-    DBG_MSG("LayerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer]);
 
     FTI_Exec->dcpInfoPosix.Counter++;
     if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
@@ -228,20 +236,6 @@ int FTI_WritePosixDcp
         }
     }
 
-    // TEMPORARY TO CHECK FUNCTIONALITY
-    char mfn[FTI_BUFS];
-    snprintf( mfn, FTI_BUFS, "%s/dcp-rank%d.meta", FTI_Ckpt[4].dcpDir, FTI_Topo->splitRank );
-    FILE* mfd = fopen( mfn, "wb" );
-    fwrite( &FTI_Exec->dcpInfoPosix.FileSize, sizeof(unsigned long), 1, mfd );
-    fwrite( &dcpFileId, sizeof(int), 1, mfd );
-    fwrite( &FTI_Exec->nbVar, sizeof(int), 1, mfd);
-    for(i=0; i<FTI_Exec->nbVar; i++) {
-        unsigned long dataSize = FTI_Data[i].size;
-        fwrite( &FTI_Data[i].id, sizeof(int), 1, mfd );
-        fwrite( &dataSize, sizeof(unsigned long), 1, mfd );
-    }
-    fclose(mfd);
-
     return FTI_SCES;
    
 }
@@ -250,6 +244,7 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     unsigned long blockSize;
     unsigned int stackSize;
+    unsigned int counter;
     int nbVarLayer;
     int ckptID;
 
@@ -261,12 +256,33 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FILE* fd = fopen( fn, "rb" );
     fread( &blockSize, sizeof(unsigned long), 1, fd );
     fread( &stackSize, sizeof(unsigned int), 1, fd );
+    
+    // check if settings are correckt. If not correct them
+    if( blockSize != FTI_Conf->dcpInfoPosix.BlockSize )
+    {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "dCP blocksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", FTI_Conf->dcpInfoPosix.BlockSize, blockSize );
+        FTI_Print( str, FTI_WARN );
+        return FTI_NREC;
+    }
+    if( stackSize != FTI_Conf->dcpInfoPosix.StackSize )
+    {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", FTI_Conf->dcpInfoPosix.StackSize, blockSize );
+        FTI_Print( str, FTI_WARN );
+        return FTI_NREC;
+    }
+
+    
     void *buffer = (void*) malloc( blockSize ); 
+   
+    // TODO compare stack- and blocksize and expose warning if differ.
     
     int i;
 
     // treat Layer 0 first
     fread( &ckptID, 1, sizeof(int), fd );
+    //fread( &counter, 1, sizeof(unsigned int), fd );
     fread( &nbVarLayer, 1, sizeof(int), fd );
     for(i=0; i<nbVarLayer; i++) {
         unsigned int varId;
@@ -278,10 +294,7 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             DBG_MSG( "id '%d' does not exist!", 0, varId );
             return FTI_NSCS;
         }
-        DBG_MSG("size: %lu, locDataSize: %lu",0,FTI_Data[idx].size, locDataSize);
         fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
-        
-        DBG_MSG("nelems: %lu, ptr: %p", 0, *((unsigned long*)FTI_Data[0].ptr), FTI_Data[0].ptr);
         
         int overflow;
         if( (overflow=locDataSize%blockSize) != 0 ) {
@@ -296,14 +309,12 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned char *block = (unsigned char*) malloc( blockSize );
 
     int nbLayer = FTI_Exec->dcpInfoPosix.nbLayerReco;
-    DBG_MSG("nbLayer: %d", 0, nbLayer);
     for( i=1; i<nbLayer; i++) {
         
         unsigned long pos = 0;
         pos += fread( &ckptID, 1, sizeof(int), fd );
+        //pos += fread( &counter, 1, sizeof(unsigned int), fd );
         pos += fread( &nbVarLayer, 1, sizeof(int), fd );
-
-        DBG_MSG("LayerSize: %lu", 0, FTI_Exec->dcpInfoPosix.LayerSize[i]); 
         
         while( pos < FTI_Exec->dcpInfoPosix.LayerSize[i] ) {
             
@@ -325,9 +336,10 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             pos += (blockSize+6);
         }
         
-        DBG_MSG("nelems: %lu, ptr: %p", 0, *((unsigned long*)FTI_Data[0].ptr), FTI_Data[0].ptr);
     }
 
+    FTI_Exec->reco = 0;
+    
     free(buffer);
     fclose(fd);
 }
@@ -347,7 +359,6 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum)
 {
-    DBG_MSG("FILENAME: %s",-1, fn);
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
@@ -400,6 +411,8 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
     char checksumToCmp[MD5_DIGEST_LENGTH];
     unsigned long blockSize;
     unsigned int stackSize;
+    unsigned int counter;
+    unsigned int dcpFileId;
     int nbVarBasis;
 
     FILE *fd = fopen(fileName, "rb");
@@ -420,9 +433,31 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
     size_t fs = 0;
 
     // get blocksize
-    fs += fread( &blockSize, sizeof(unsigned long), 1, fd );
-    fs += fread( &stackSize, sizeof(unsigned int), 1, fd );
+    fs += fread( &blockSize, 1, sizeof(unsigned long), fd );
+    fs += fread( &stackSize, 1, sizeof(unsigned int), fd );
 
+    // check if settings are correckt. If not correct them
+    if( blockSize != conf->dcpInfoPosix.BlockSize )
+    {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "dCP blocksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", conf->dcpInfoPosix.BlockSize, blockSize );
+        FTI_Print( str, FTI_WARN );
+        conf->dcpInfoPosix.BlockSize = blockSize;
+    }
+    if( stackSize != conf->dcpInfoPosix.StackSize )
+    {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", conf->dcpInfoPosix.StackSize, blockSize );
+        FTI_Print( str, FTI_WARN );
+        conf->dcpInfoPosix.StackSize = stackSize;
+    }
+
+    // get dcpFileId from filename
+    int dummy;
+    sscanf( exec->meta[4].ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
+    counter = dcpFileId * stackSize;
+
+    DBG_MSG("dcpFileId: %d ckptFile: %s", 0, dcpFileId, exec->meta[4].ckptFile );
     int i;
     int layer = 0;
     int nbVarLayer;
@@ -437,13 +472,14 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
     // check layer 0 first
     // get number of variables stored in layer
     MD5_Init( &mdContext );
-    fs += fread( &ckptID, sizeof(int), 1, fd );
-    fs += fread( &nbVarLayer, sizeof(int), 1, fd );
+    fs += fread( &ckptID, 1, sizeof(int), fd );
+    //fs += fread( &counter, 1, sizeof(unsigned int), fd );
+    fs += fread( &nbVarLayer, 1, sizeof(int), fd );
     for(i=0; i<nbVarLayer; i++) {
         unsigned long dataSize;
         unsigned long pos = 0;
-        fs += fread( dummyBuffer, sizeof(int), 1, fd );
-        fs += fread( &dataSize, sizeof(unsigned long), 1, fd );
+        fs += fread( dummyBuffer, 1, sizeof(int), fd );
+        fs += fread( &dataSize, 1, sizeof(unsigned long), fd );
         while( pos < dataSize ) {
             pos += fread( buffer, 1, blockSize, fd );
             MD5( buffer, blockSize, md5_tmp );
@@ -454,16 +490,20 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
     MD5_Final( md5_final, &mdContext );
     // compare hashes
     if( strcmp( hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
+        FTI_Print("hashes differ in base", FTI_WARN);
         return FTI_NSCS;
     }
     layer++;
     exec->dcpInfoPosix.nbLayerReco = layer;
     exec->ckptID = ckptID;
+    counter++;
+    //exec->dcpInfoPosix.Counter = counter;
     
     // now treat other layers
     for(; layer<stackSize; layer++) {
         MD5_Init( &mdContext );
         unsigned long layerSize = fread( &ckptID, 1, sizeof(int), fd );
+        //layerSize += fread( &counter, 1, sizeof(unsigned int), fd );
         layerSize += fread( &nbVarLayer, 1, sizeof(int), fd );
         while( layerSize < exec->dcpInfoPosix.LayerSize[layer] ) {
             layerSize += fread( dummyBuffer, 1, 6, fd );
@@ -472,15 +512,21 @@ int FTI_VerifyChecksumDcpPosix(char* fileName)
             MD5_Update( &mdContext, md5_tmp, MD5_DIGEST_LENGTH ); 
         }
         MD5_Final( md5_final, &mdContext );
-        DBG_MSG("%s, %s", 0, hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] );  
         // compare hashes
         if( strcmp( hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
+            FTI_Print("hashes differ in layer", FTI_WARN);
             break;
         }
+
+        fs += layerSize;
         exec->dcpInfoPosix.nbLayerReco = layer+1;
         exec->ckptID = ckptID;
+        counter++;
     }
-
+    
+    exec->dcpInfoPosix.Counter = counter;
+    
+    DBG_MSG("counter: %d, stackSize: %d, fs: %lu, FileSize: %lu",0, counter, stackSize, fs, exec->dcpInfoPosix.FileSize);
     fclose (fd);
 
     return FTI_SCES;
