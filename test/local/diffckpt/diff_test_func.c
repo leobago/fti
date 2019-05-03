@@ -109,11 +109,11 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     // determine number of buffers
     usleep(5000*grank);
     srand(get_seed());
-    if ( FTI_Status() == 0 ) {
+    //if ( FTI_Status() == 0 ) {
         info->nbuffer = 5;//rand()%10+1;
-    } else {
-        FTI_RecoverVar( NBUFFER_ID );
-    }
+    //} else {
+    //    FTI_RecoverVar( NBUFFER_ID );
+    //}
 
     // initialize structure
     info->buffer = (void**) malloc(info->nbuffer*sizeof(void*));

@@ -180,7 +180,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     else {
-        if ( !(FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary local directory", FTI_DBUG);
             //Create local temp directory
             if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
@@ -472,6 +472,9 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        int isDCP;
+        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        FTI_Ckpt[4].isDcp = isDCP;
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;

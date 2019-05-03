@@ -23,7 +23,11 @@ int FTI_WritePosixDcp
     DBG_MSG("dcpFileId: %d Counter: %d", 0, dcpFileId, FTI_Exec->dcpInfoPosix.Counter);
 
     snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
+    if (FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
+    } else {
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->meta[0].ckptFile );
+    }
 
     FILE *fd;
     if( dcpLayer == 0 ) {

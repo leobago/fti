@@ -1368,6 +1368,8 @@ int FTI_Checkpoint(int id, int level)
             value = FTI_REJW; //Send reject checkpoint token to head
         }
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
+        int isDCP = (int)FTI_Ckpt[4].isDcp;
+        MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
         // FTIFF: send meta info to the heads
         if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
             headInfo = malloc(sizeof(FTIFF_headInfo));
@@ -2064,6 +2066,7 @@ int FTI_Recover()
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
     
+    DBG_MSG("I SHOULD NOT BE PRINTED",-1);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -2373,6 +2376,7 @@ int FTI_RecoverVar(int id)
 
     char str[FTI_BUFS];
 
+    DBG_MSG("THIS SHOULD NOT BE PRINTED", -1);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 

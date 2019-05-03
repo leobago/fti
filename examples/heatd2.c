@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
         }
         else {
             if (((i+1)%CKPT_OUT) == 0) { // Checkpoint every ITER_OUT steps
-                res = FTI_Checkpoint(myCkpt.id, FTI_L4); // Ckpt ID 5 is ignored because level = 0
+                res = FTI_Checkpoint(myCkpt.id, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
                 if (res == 0) {
                     myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
                 } // Update ckpt. id & level
