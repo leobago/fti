@@ -755,6 +755,18 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
                 iniparser_set(ini, str, &allLayerHashes[i*nbLayer*MD5_DIGEST_STRING_LENGTH + j*MD5_DIGEST_STRING_LENGTH]);
+                int k;
+                for (k = 0; k < FTI_Exec->nbVar; k++) {
+                    //Save id of variable
+                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", i, j, k);
+                    snprintf(buf, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + k]);
+                    iniparser_set(ini, str, buf);
+
+                    //Save size of variable
+                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size", i, j, k);
+                    snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + k]);
+                    iniparser_set(ini, str, buf);
+                }
             }
         }
     }
@@ -948,8 +960,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     ckptFileNames, checksums, allVarIDs, allVarSizes, allLayerSizes, allLayerHashes), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
-        free(allLayerSizes);
-        free(allLayerHashes);
+        if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+            free(allLayerSizes);
+            free(allLayerHashes);
+        }
         free(ckptFileNames);
         free(checksums);
         if (res == FTI_NSCS) {

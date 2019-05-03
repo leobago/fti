@@ -240,7 +240,14 @@ int FTI_WritePosixDcp
    
 }
 
-int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data )
+int FTI_RecoverDcpPosix
+( 
+        FTIT_configuration* FTI_Conf, 
+        FTIT_execution* FTI_Exec, 
+        FTIT_checkpoint* FTI_Ckpt, 
+        FTIT_dataset* FTI_Data 
+)
+
 {
     unsigned long blockSize;
     unsigned int stackSize;
@@ -257,7 +264,7 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fread( &blockSize, sizeof(unsigned long), 1, fd );
     fread( &stackSize, sizeof(unsigned int), 1, fd );
     
-    // check if settings are correckt. If not correct them
+    // check if settings are correct. If not correct them
     if( blockSize != FTI_Conf->dcpInfoPosix.BlockSize )
     {
         char str[FTI_BUFS];
@@ -275,8 +282,6 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     
     void *buffer = (void*) malloc( blockSize ); 
-   
-    // TODO compare stack- and blocksize and expose warning if differ.
     
     int i;
 
@@ -357,7 +362,13 @@ int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum)
+int FTI_CheckFileDcpPosix
+(
+        char* fn, 
+        long fs, 
+        char* checksum
+)
+
 {
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
@@ -401,8 +412,19 @@ int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_VerifyChecksumDcpPosix(char* fileName)
+int FTI_VerifyChecksumDcpPosix
+(
+        char* fileName
+)
+
 {
+    /*
+     * TODO
+     * If the restart is only possible up to a layer < layer available in cp file,
+     * we need to update the protected variable sizes. The sizes are already 
+     * kept in the meta data file. We need to access them here for the
+     * most recent layer.
+     */
     
     FTIT_execution* exec = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_EXEC_TAG, NULL, NULL );
     FTIT_configuration* conf = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_CONF_TAG, NULL, NULL ); 

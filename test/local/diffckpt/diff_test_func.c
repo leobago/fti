@@ -110,7 +110,7 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     usleep(5000*grank);
     srand(get_seed());
     if ( FTI_Status() == 0 ) {
-        info->nbuffer = rand()%10+1;
+        info->nbuffer = 5;//rand()%10+1;
     } else {
         FTI_RecoverVar( NBUFFER_ID );
     }
