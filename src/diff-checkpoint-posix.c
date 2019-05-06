@@ -213,7 +213,7 @@ int FTI_WritePosixDcp
     fclose( fd );
    
     // copy dcpFileSize for metadatacreation
-    FTI_Exec->ckptSize = FTI_Exec->dcpInfoPosix.FileSize;
+    //FTI_Exec->ckptSize = FTI_Exec->dcpInfoPosix.FileSize;
 
     // create final dcp layer hash
     unsigned char LayerHash[MD5_DIGEST_LENGTH];
@@ -521,6 +521,7 @@ int FTI_VerifyChecksumDcpPosix
     }
     layer++;
     exec->dcpInfoPosix.nbLayerReco = layer;
+    exec->dcpInfoPosix.nbVarReco = nbVarLayer;
     exec->ckptID = ckptID;
     counter++;
     //exec->dcpInfoPosix.Counter = counter;
@@ -546,6 +547,7 @@ int FTI_VerifyChecksumDcpPosix
 
         fs += layerSize;
         exec->dcpInfoPosix.nbLayerReco = layer+1;
+        exec->dcpInfoPosix.nbVarReco = nbVarLayer;
         exec->ckptID = ckptID;
         counter++;
     }

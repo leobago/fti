@@ -957,7 +957,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
 
-    if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp && FTI_Conf->dcpPosix ) {
+    if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
         return FTI_SCES;
     }
 
@@ -975,7 +975,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
 
-  if ( FTI_Ckpt[4].isDcp ) {
+  if ( FTI_Ckpt[4].recoIsDcp ) {
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[4].ckptFile);
   } else {
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);

@@ -2023,7 +2023,7 @@ int FTI_Recover()
         FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
         return FTI_NSCS;
 #endif
-    } else {
+    } else if( !(FTI_Ckpt[FTI_Exec.ckptLvel].recoIsDcp && FTI_Conf.dcpPosix) ) {
         if( FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0] ) {
             sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
                     FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
@@ -2040,6 +2040,26 @@ int FTI_Recover()
                 return FTI_NREC;
             }
         }
+    } else {
+        if( FTI_Exec.nbVar != FTI_Exec.dcpInfoPosix.nbVarReco ) {
+            sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                    FTI_Exec.dcpInfoPosix.nbVarReco, FTI_Exec.nbVar);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+        //Check if sizes of protected variables matches
+        int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            int vidx = getIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
+            if (FTI_Data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
+                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                        FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
+                        FTI_Data[vidx].size);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NREC;
+            }
+        }
+
     }
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
@@ -2051,7 +2071,7 @@ int FTI_Recover()
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
-        if( FTI_Ckpt[4].isDcp && FTI_Conf.dcpPosix ) {
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
             return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
         } else {
         //Try from L1

@@ -137,6 +137,9 @@ int main(int argc, char *argv[])
     FTI_Protect(1, &myCkpt, 1, ckptInfo);
     FTI_Protect(2, h, M*nbLines, FTI_DBLE);
     FTI_Protect(3, g, M*nbLines, FTI_DBLE);
+    
+    int counter = 0;
+    int level;
 
     MPI_Barrier(FTI_COMM_WORLD);
     wtime = MPI_Wtime();
@@ -152,8 +155,17 @@ int main(int argc, char *argv[])
         }
         else {
             if (((i+1)%CKPT_OUT) == 0) { // Checkpoint every ITER_OUT steps
-                res = FTI_Checkpoint(myCkpt.id, FTI_L4_DCP); // Ckpt ID 5 is ignored because level = 0
-                if (res == 0) {
+                switch( counter%5 ) {
+                    case 0: level=1; break;
+                    case 1: level=2; break;
+                    case 2: level=3; break;
+                    case 3: level=4; break;
+                    case 4: level=FTI_L4_DCP; break;
+                }
+                res = FTI_Checkpoint(myCkpt.id, level); // Ckpt ID 5 is ignored because level = 0
+                if (res == FTI_DONE) {
+                    counter++;
+                    printf("why\n");
                     myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
                 } // Update ckpt. id & level
             }

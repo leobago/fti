@@ -815,6 +815,11 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTI
   
   if (hascontent){
     // Now I allocate the New hash tables
+    /* 
+     * FIXME need to wrap dcp content in if clauses (problem manifests in
+     * printing an error message here: 
+     *  -> diff-checkpoint.c:146 (FTI_InitNextHashData)
+     */
     FTI_InitNextHashData(currentdbvar->dataDiffHash);
     size_t offset=0;
     totalBytes = 0;
@@ -2661,7 +2666,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
   char L4DirName[FTI_BUFS];
 
-  if ( FTI_Ckpt[4].isDcp ) {
+  if ( FTI_Ckpt[4].recoIsDcp ) {
     strcpy( L4DirName, FTI_Ckpt[4].dcpDir );
   } else {
     strcpy( L4DirName, FTI_Ckpt[4].dir );
@@ -2692,7 +2697,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     while((entry = readdir(L4CkptDir)) != NULL) {
 
       if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-        if ( FTI_Ckpt[4].isDcp ) {
+        if ( FTI_Ckpt[4].recoIsDcp ) {
           sscanf(entry->d_name, "dCPFile-Rank%d.fti", &fileTarget );
         } else {
           sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
@@ -2764,7 +2769,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
             if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
               FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
-              if ( !FTI_Ckpt[4].isDcp ) {
+              if ( !FTI_Ckpt[4].recoIsDcp ) {
                 FTI_Exec->ckptID = ckptID;
               }
 
@@ -2772,7 +2777,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
               FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
 
               if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
-                if ( !FTI_Ckpt[4].isDcp ) {
+                if ( !FTI_Ckpt[4].recoIsDcp ) {
                   strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
                 } else {
                   snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, fileTarget );

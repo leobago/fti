@@ -562,6 +562,7 @@ extern "C" {
     char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
     char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
     bool            isDcp;              /**< TRUE if dCP requested                  */
+    bool            recoIsDcp;              /**< TRUE if dCP requested                  */
     bool            hasDcp;             /**< TRUE if execution has already a dCP    */
     bool            hasCkpt;            /**< TRUE if level has ckpt                 */        
     int             isInline;           /**< TRUE if work is inline.                */
