@@ -145,7 +145,13 @@ int main(int argc, char *argv[])
     wtime = MPI_Wtime();
     for(i = 0; i < ITER_TIMES; i++) { // Check execution status
         if (FTI_Status() != 0) {
-            res = FTI_Recover();
+            //res = FTI_Recover();
+            res = 0;
+            res += FTI_RecoverVar(0);
+            res += FTI_RecoverVar(1);
+            res += FTI_RecoverVar(2);
+            res += FTI_RecoverVar(3);
+            FTI_SetRecoveryComplete();
             if (res != 0) {
                 exit(1);
             }

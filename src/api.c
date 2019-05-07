@@ -2086,7 +2086,6 @@ int FTI_Recover()
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
     
-    DBG_MSG("I SHOULD NOT BE PRINTED",-1);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -2388,7 +2387,11 @@ int FTI_RecoverVar(int id)
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
+            return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        }
     }
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
@@ -2396,7 +2399,6 @@ int FTI_RecoverVar(int id)
 
     char str[FTI_BUFS];
 
-    DBG_MSG("THIS SHOULD NOT BE PRINTED", -1);
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -2436,6 +2438,10 @@ int FTI_RecoverVar(int id)
     return FTI_SCES;
 }
 
+int FTI_SetRecoveryComplete()
+{
+    FTI_Exec.reco = 0;
+}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Prints FTI messages.
