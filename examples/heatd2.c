@@ -168,10 +168,15 @@ int main(int argc, char *argv[])
                     case 3: level=4; break;
                     case 4: level=FTI_L4_DCP; break;
                 }
-                res = FTI_Checkpoint(myCkpt.id, level); // Ckpt ID 5 is ignored because level = 0
-                if (res == FTI_DONE) {
+                //res = FTI_Checkpoint(myCkpt.id, level); // Ckpt ID 5 is ignored because level = 0
+                FTI_InitICP( myCkpt.id, level, 1);
+                FTI_AddVarICP(0);
+                FTI_AddVarICP(1);
+                FTI_AddVarICP(2);
+                FTI_AddVarICP(3);
+                res = FTI_FinalizeICP();
+                if (res == FTI_SCES) {
                     counter++;
-                    printf("why\n");
                     myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
                 } // Update ckpt. id & level
             }

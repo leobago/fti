@@ -19,6 +19,11 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+
+    if( FTI_Conf->dcpPosix && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
+        return FTI_InitPosixIcpDcp( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data );
+    }
+
     char str[FTI_BUFS]; //For console output
     snprintf(str, FTI_BUFS, "Initialize incremental checkpoint (ID: %d, Lvl: %d, I/O: POSIX)",
             FTI_Exec->ckptID, FTI_Exec->ckptLvel);
@@ -50,6 +55,100 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+int FTI_InitPosixIcpDcp
+
+(
+        FTIT_configuration* FTI_Conf, 
+        FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, 
+        FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data
+)
+
+{
+    char errstr[FTI_BUFS];
+    
+    // dcpFileId increments every dcpStackSize checkpoints.
+    int dcpFileId = FTI_Exec->dcpInfoPosix.Counter / FTI_Conf->dcpInfoPosix.StackSize;
+
+    // dcpLayer corresponds to the additional layers towards the base layer.
+    int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+    
+    // for file hash create hash only from data block hashes
+    MD5_Init(&FTI_Exec->iCPInfo.ctx[dcpLayer]); 
+   
+    char fn[FTI_BUFS];
+
+    snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
+    if (FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
+    } else {
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->meta[0].ckptFile );
+    }
+
+    FILE *fd;
+    if( dcpLayer == 0 ) {
+        fd = fopen( fn, "wb" );
+        if( fd == NULL ) {
+            snprintf( errstr, FTI_BUFS, "Cannot create file '%s'!", fn ); 
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    } else {
+        fd = fopen( fn, "ab" );
+        if( fd == NULL ) {
+            snprintf( errstr, FTI_BUFS, "Cannot open file '%s' in append mode!", fn );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    
+    if( dcpLayer == 0 ) FTI_Exec->dcpInfoPosix.FileSize = 0;
+    
+    // write constant meta data in the beginning of file
+    // - blocksize
+    // - stacksize
+    if( dcpLayer == 0 ) {
+        while( !fwrite( &FTI_Conf->dcpInfoPosix.BlockSize, sizeof(unsigned long), 1, fd ) ) {
+            if(ferror(fd)) {
+                snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
+                FTI_Print( errstr, FTI_EROR );
+                return FTI_NSCS;
+            }
+        }
+        while( !fwrite( &FTI_Conf->dcpInfoPosix.StackSize, sizeof(unsigned int), 1, fd ) ) {
+            if(ferror(fd)) {
+                snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
+                FTI_Print( errstr, FTI_EROR );
+                return FTI_NSCS;
+            }
+        }
+        FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long) + sizeof(unsigned int);
+        FTI_Exec->iCPInfo.layerSize += sizeof(unsigned long) + sizeof(unsigned int);
+    }
+    
+    // write actual amount of variables at the beginning of each layer
+    while( !fwrite( &FTI_Exec->ckptID, sizeof(int), 1, fd ) ) {
+        if(ferror(fd)) {
+            snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    while( !fwrite( &FTI_Exec->nbVar, sizeof(int), 1, fd ) ) {
+        if(ferror(fd)) {
+            snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
+            FTI_Print( errstr, FTI_EROR );
+            return FTI_NSCS;
+        }
+    }
+    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);// + sizeof(unsigned int);
+    FTI_Exec->iCPInfo.layerSize += 2*sizeof(int);// + sizeof(unsigned int);
+    
+    memcpy( FTI_Exec->iCPInfo.fh, &fd, sizeof(FTI_PO_FH) );
+
+    return FTI_SCES;
+}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes dataset into ckpt file using POSIX.
@@ -65,6 +164,11 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)
 {
+    
+    if( FTI_Conf->dcpPosix && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
+        return FTI_WritePosixDcpVar( varID, FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data );
+    }
+
     FILE *fd;
     int res;
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
@@ -83,7 +187,6 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                 return FTI_NSCS;
             }
             if ( !(FTI_Data[i].isDevicePtr) ){
-                FTI_Print(str,FTI_INFO);
                 if (( res = FTI_Try(write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd),"Storing Data to Checkpoint file")) != FTI_SCES){
                     snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                     FTI_Print(str, FTI_EROR);
@@ -140,6 +243,11 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
+    
+    if( FTI_Conf->dcpPosix && FTI_Ckpt[4].isDcp && (FTI_Exec->ckptLvel == 4) ) {
+        return FTI_FinalizePosixDcpICP( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data );
+    }
+
 
     FILE *fd;
     memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
@@ -151,6 +259,55 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    return FTI_SCES;
+}
+int FTI_FinalizePosixDcpICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
+{
+    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
+    
+    char errstr[FTI_BUFS];
+    
+    int dcpFileId = FTI_Exec->dcpInfoPosix.Counter / FTI_Conf->dcpInfoPosix.StackSize;
+
+    // dcpLayer corresponds to the additional layers towards the base layer.
+    int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+    
+
+    FILE *fd;
+    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
+    
+    fsync(fileno(fd));
+    fclose( fd );
+
+    // create final dcp layer hash
+    unsigned char LayerHash[MD5_DIGEST_LENGTH];
+    MD5_Final( LayerHash, &FTI_Exec->iCPInfo.ctx[dcpLayer] );
+    hashHex( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
+
+    // layer size is needed in order to create layer hash during recovery
+    FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = FTI_Exec->iCPInfo.layerSize;
+
+    FTI_Exec->dcpInfoPosix.Counter++;
+    if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
+        int i = 0;
+        for(; i<FTI_Exec->nbVar; i++) {
+            //free(FTI_Data[i].dcpInfoPosix.hashArray);
+            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
+        }
+    }
+    if( (dcpLayer == 0) ) {
+        char ofn[512];
+        snprintf( ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId-1, FTI_Topo->splitRank );
+        if( (remove(ofn) < 0) && (errno != ENOENT) ) {
+            snprintf(errstr, FTI_BUFS, "cannot delete file '%s'", ofn );
+            FTI_Print( errstr, FTI_WARN ); 
+        }
+    }
+    
     return FTI_SCES;
 }
 

@@ -1539,8 +1539,8 @@ int FTI_InitICP(int id, int level, bool activate)
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
     if ( level == FTI_L4_DCP ) {
-        if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-            if ( FTI_Conf.dcpFtiff ) {
+        if ( (FTI_Conf.ioMode == FTI_IO_FTIFF) || (FTI_Conf.ioMode == FTI_IO_POSIX)  ) {
+            if ( FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix ) {
                 FTI_Ckpt[4].isDcp = true;
             } else {
                 FTI_Print("L4 dCP requested, but dCP is disabled!", FTI_WARN);
@@ -1571,7 +1571,7 @@ int FTI_InitICP(int id, int level, bool activate)
     //If checkpoint is inlin and level 4 save directly to PFS
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
 
-        if ( !(FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
             //Create global temp directory
@@ -1618,7 +1618,7 @@ int FTI_InitICP(int id, int level, bool activate)
         }
     }
     else {
-        if ( !(FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             FTI_Print("Saving to temporary local directory", FTI_DBUG);
             //Create local temp directory
             if (mkdir(FTI_Conf.lTmpDir, 0777) == -1) {
@@ -2456,7 +2456,7 @@ int FTI_SetRecoveryComplete()
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_Print(char* msg, int priority)
+void FTI_Print_(char* msg, int priority, char* file, int line)
 {
     if (priority >= FTI_Conf.verbosity) {
         if (msg != NULL) {
@@ -2469,7 +2469,7 @@ void FTI_Print(char* msg, int priority)
                     break;
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "%s:%d - [ " GRN "FTI  Information" RESET " ] : %s \n", file, line, msg);
                     }
                     break;
                 case FTI_IDCP:
