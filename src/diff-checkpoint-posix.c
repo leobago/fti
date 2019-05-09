@@ -1,4 +1,18 @@
 #include "interface.h"
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes dCP ckpt to PFS using POSIX.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+  dCP POSIX implementation of FTI_WritePosix().
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WritePosixDcp
 
 (
@@ -55,6 +69,7 @@ int FTI_WritePosixDcp
     unsigned char * block = (unsigned char*) malloc( FTI_Conf->dcpInfoPosix.BlockSize );
     int i = 0;
     if( dcpLayer == 0 ) FTI_Exec->dcpInfoPosix.FileSize = 0;
+    
     // write constant meta data in the beginning of file
     // - blocksize
     // - stacksize
@@ -242,6 +257,14 @@ int FTI_WritePosixDcp
    
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It loads the checkpoint data for dcpPosix.
+  @return     integer         FTI_SCES if successful.
+
+  dCP POSIX implementation of FTI_Recover().
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverDcpPosix
 ( 
         FTIT_configuration* FTI_Conf, 
@@ -372,6 +395,15 @@ int FTI_RecoverDcpPosix
     fclose(fd);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers the given variable for dcpPosix
+  @param      id              Variable to recover
+  @return     int             FTI_SCES if successful.
+
+  dCP POSIX implementation of FTI_RecoverVar().
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverVarDcpPosix
 ( 
         FTIT_configuration* FTI_Conf, 
@@ -517,9 +549,7 @@ int FTI_RecoverVarDcpPosix
   @param      checksum        The file checksum to check.
   @return     integer         0 if file exists, 1 if not or wrong size.
 
-  This function checks whether a file exist or not and if its size is
-  the expected one.
-
+  dCP POSIX implementation of FTI_CheckFile().
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CheckFileDcpPosix
@@ -566,10 +596,7 @@ int FTI_CheckFileDcpPosix
   @param      checksumToCmp   Checksum to compare.
   @return     integer         FTI_SCES if successful.
 
-  This function calculates checksum of the checkpoint file based on
-  MD5 algorithm. It compares calculated hash value with the one saved
-  in the file.
-
+  dCP POSIX implementation of FTI_VerifyChecksum().
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_VerifyChecksumDcpPosix
@@ -717,151 +744,6 @@ int FTI_VerifyChecksumDcpPosix
     return FTI_SCES;
 }
 
-int FTI_WritePosixDcpVar
-
-(
-        int id,
-        FTIT_configuration* FTI_Conf, 
-        FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, 
-        FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data
-)
-
-{
-    // dcpFileId increments every dcpStackSize checkpoints.
-    int dcpFileId = FTI_Exec->dcpInfoPosix.Counter / FTI_Conf->dcpInfoPosix.StackSize;
-
-    // dcpLayer corresponds to the additional layers towards the base layer.
-    int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
-   
-    FILE *fd;
-    int res;
-    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
-
-    char errstr[FTI_BUFS];
-    
-
-    unsigned char * block = (unsigned char*) malloc( FTI_Conf->dcpInfoPosix.BlockSize );
-    int i = 0;
-    
-    for(; i<FTI_Exec->nbVar; i++) {
-        
-        unsigned int varId = FTI_Data[i].id;
-        
-        if( varId == id ) {
-            FTI_Exec->dcpInfoPosix.dataSize += FTI_Data[i].size;
-            unsigned long dataSize = FTI_Data[i].size;
-            unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
-
-            if( dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize) ) {
-                snprintf( errstr, FTI_BUFS, "overflow in size of dataset with id: %d (datasize: %lu > MAX_DATA_SIZE: %lu)", 
-                        FTI_Data[i].id, dataSize, ((unsigned long)MAX_BLOCK_IDX)*((unsigned long)FTI_Conf->dcpInfoPosix.BlockSize) );
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-            if( varId > MAX_VAR_ID ) {
-                snprintf( errstr, FTI_BUFS, "overflow in ID (id: %d > MAX_ID: %d)!", FTI_Data[i].id, (int)MAX_VAR_ID );
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-
-            // allocate tmp hash array
-            FTI_Data[i].dcpInfoPosix.hashArrayTmp = (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf->dcpInfoPosix.digestWidth );
-
-            // create meta data buffer
-            blockMetaInfo_t blockMeta;
-            blockMeta.varId = FTI_Data[i].id;
-
-            if( dcpLayer == 0 ) {
-                while( !fwrite( &FTI_Data[i].id, sizeof(int), 1, fd ) ) {
-                    if(ferror(fd)) {
-                        snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
-                        FTI_Print( errstr, FTI_EROR );
-                        return FTI_NSCS;
-                    }
-                }
-                while( !fwrite( &dataSize, sizeof(unsigned long), 1, fd ) ) {
-                    if(ferror(fd)) {
-                        snprintf( errstr, FTI_BUFS, "unable to write in file %s", FTI_Exec->iCPInfo.fn );
-                        FTI_Print( errstr, FTI_EROR );
-                    }
-                }
-                FTI_Exec->dcpInfoPosix.FileSize += (sizeof(int) + sizeof(unsigned long));
-                FTI_Exec->iCPInfo.layerSize += sizeof(int) + sizeof(unsigned long);
-            }
-            unsigned long pos = 0;
-            unsigned char * ptr = FTI_Data[i].ptr;
-
-            while( pos < dataSize ) {
-
-                // hash index
-                unsigned int blockId = pos/FTI_Conf->dcpInfoPosix.BlockSize;
-                unsigned int hashIdx = blockId*FTI_Conf->dcpInfoPosix.digestWidth;
-
-                blockMeta.blockId = blockId;
-
-                unsigned int chunkSize = ( (dataSize-pos) < FTI_Conf->dcpInfoPosix.BlockSize ) ? dataSize-pos : FTI_Conf->dcpInfoPosix.BlockSize;
-                unsigned int dcpChunkSize = chunkSize;
-
-                // compute hashes
-                if( chunkSize < FTI_Conf->dcpInfoPosix.BlockSize ) {
-                    // if block smaller pad with zeros
-                    memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
-                    memcpy( block, ptr, chunkSize );
-                    FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_Data[i].dcpInfoPosix.hashArrayTmp[hashIdx] );
-                    ptr = block;
-                    chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
-                } else {
-                    FTI_Conf->dcpInfoPosix.hashFunc( ptr, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_Data[i].dcpInfoPosix.hashArrayTmp[hashIdx] );
-                }
-
-                bool commitBlock;
-                // if old hash exists, compare. If datasize increased, there wont be an old hash to compare with.
-                if( pos < FTI_Data[i].dcpInfoPosix.hashDataSize ) {
-                    commitBlock = memcmp( &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx], &FTI_Data[i].dcpInfoPosix.hashArrayTmp[hashIdx], FTI_Conf->dcpInfoPosix.digestWidth );
-                } else {
-                    commitBlock = true;
-                }
-
-                bool success = true;
-                int fileUpdate = 0;
-                if( commitBlock ) {
-                    if( dcpLayer > 0 ) {
-                        success = (bool)fwrite( &blockMeta, 6, 1, fd );
-                        if( success) fileUpdate += 6;
-                    }
-                    if( success ) {
-                        success = (bool)fwrite( ptr, chunkSize, 1, fd );
-                        if( success ) fileUpdate += chunkSize;
-                    }
-                    FTI_Exec->dcpInfoPosix.FileSize += success*fileUpdate;
-                    FTI_Exec->iCPInfo.layerSize += success*fileUpdate;
-                    FTI_Exec->dcpInfoPosix.dcpSize += success*dcpChunkSize;
-                    if(success) {
-                        MD5_Update( &FTI_Exec->iCPInfo.ctx[dcpLayer], &FTI_Data[i].dcpInfoPosix.hashArrayTmp[hashIdx], MD5_DIGEST_LENGTH ); 
-                    }
-                }
-
-                pos += chunkSize*success;
-                ptr = FTI_Data[i].ptr + pos; //chunkSize*success;
-
-            }
-
-            // swap hash arrays and free old one
-            free(FTI_Data[i].dcpInfoPosix.hashArray);
-            FTI_Data[i].dcpInfoPosix.hashDataSize = dataSize;
-            FTI_Data[i].dcpInfoPosix.hashArray = FTI_Data[i].dcpInfoPosix.hashArrayTmp;
-        }
-    }
-
-    free(block);
-    
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-
-    return FTI_SCES;
-   
-}
 // HELPER FUNCTIONS
 
 void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ ) {
