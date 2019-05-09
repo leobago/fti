@@ -327,7 +327,6 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[i].fs[0] = iniparser_getlint(ini, str, -1);
-                    DBG_MSG("metaFileName: %s, fs: %lu",0, metaFileName, FTI_Exec->meta[i].fs[0]);
                     FTI_Exec->dcpInfoPosix.FileSize = FTI_Exec->meta[i].fs[0];
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
@@ -364,7 +363,6 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
                         char* LayerHash = iniparser_getstring(ini, str, NULL);
                         snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", LayerHash );
-                        DBG_MSG( "[%d] LayerSize:%lu, LayerHash: %s", 0, k, FTI_Exec->dcpInfoPosix.LayerSize[k], LayerHash );
                         for( j=0; j<FTI_Exec->meta[i].nbVar[0]; j++ )
                         {
                             snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", FTI_Topo->groupRank, k, j );
@@ -883,7 +881,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
 
     long fs = FTI_Exec->meta[0].fs[0]; // Gather all the file sizes
-    DBG_MSG("fs: %lu", 0, fs);
     long fileSizes[FTI_BUFS];
     MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
 

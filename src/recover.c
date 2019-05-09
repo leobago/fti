@@ -56,10 +56,8 @@ int FTI_CheckFile(char* fn, long fs, char* checksum)
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
-            DBG_MSG("st_size: %lu, fs: %lu",0, fileStatus.st_size, fs);
             if (fileStatus.st_size == fs) {
                 if (strlen(checksum)) {
-                    DBG_MSG("strlen checksum good",0);
                     int res = FTI_VerifyChecksum(fn, checksum);
                     if (res != FTI_SCES) {
                         return 1;
@@ -105,7 +103,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int *erased)
 {
     int level = FTI_Exec->ckptLvel;
-    DBG_MSG("level: %d", 0, level);
     long fs = FTI_Exec->meta[level].fs[0];
     long pfs = FTI_Exec->meta[level].pfs[0];
     long maxFs = FTI_Exec->meta[level].maxFs[0];
@@ -168,7 +165,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
             }
             buf = consistency(fn, fs, checksum);
-            DBG_MSG("buf: %d", -1, buf);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }
@@ -259,7 +255,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         MPI_Barrier(FTI_COMM_WORLD);
                         if ( FTI_Ckpt[4].recoIsDcp ) {
                             res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                            DBG_MSG("res: %d",-1,res);
                             if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
                             if (res == FTI_SCES ) {
                                 break;

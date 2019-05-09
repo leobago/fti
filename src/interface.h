@@ -63,7 +63,7 @@
 #include "stage.h"
 
 #include <stdint.h>
-#include "../deps/md5/md5.h"
+//#include "../deps/md5/md5.h"
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -107,7 +107,7 @@ extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
 void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
-void FTI_Print_(char *msg, int priority, char* file, int line);
+void FTI_Print(char *msg, int priority);
 
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec);
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

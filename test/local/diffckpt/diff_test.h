@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
-#include <openssl/md5.h>
 #include <fti.h>
+#include <openssl/md5.h>
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>

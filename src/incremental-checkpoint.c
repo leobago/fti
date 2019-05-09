@@ -68,6 +68,9 @@ int FTI_InitPosixIcpDcp
 {
     char errstr[FTI_BUFS];
     
+    FTI_Exec->dcpInfoPosix.dcpSize = 0;
+    FTI_Exec->dcpInfoPosix.dataSize = 0;
+    
     // dcpFileId increments every dcpStackSize checkpoints.
     int dcpFileId = FTI_Exec->dcpInfoPosix.Counter / FTI_Conf->dcpInfoPosix.StackSize;
 
@@ -261,6 +264,7 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     return FTI_SCES;
 }
+
 int FTI_FinalizePosixDcpICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data)

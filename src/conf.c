@@ -164,7 +164,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     bool dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
     FTI_Conf->dcpMode = (int)iniparser_getint(ini, "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
-    FTI_Conf->dcpInfoPosix.StackSize = (int)iniparser_getint(ini, "Basic:dcp_stack_size", 5);
+    FTI_Conf->dcpInfoPosix.StackSize = (int)iniparser_getint(ini, "Basic:dcp_stack_size", 10);
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
     FTI_Conf->saveLastCkpt = (int)iniparser_getint(ini, "Basic:keep_last_ckpt", 0);
     FTI_Conf->keepL4Ckpt = (bool)iniparser_getboolean(ini, "Basic:keep_l4_ckpt", 0);

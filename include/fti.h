@@ -8,8 +8,6 @@
 #ifndef _FTI_H
 #define _FTI_H
 
-#define FTI_Print( MSG, TYPE ) FTI_Print_( MSG, TYPE, __FILE__, __LINE__ )
-
 #include <mpi.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -120,7 +118,7 @@ typedef size_t 	hsize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
 #include <fti-int/differential_checkpoint_posix.h>
-#include "../deps/md5/md5.h"
+#include <fti-int/deps/md5.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001

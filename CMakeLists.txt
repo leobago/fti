@@ -162,7 +162,8 @@ if(${OPENSSL_FOUND})
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
+    set(HAVE_OPENSSL 1)
+    #set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
 else()
 	add_library(fti.static STATIC ${SRC_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
@@ -173,6 +174,7 @@ else()
 	append_property(TARGET fti.static fti.shared
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
+    set(HAVE_OPENSSL 0)
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
@@ -261,6 +263,10 @@ install(FILES "include/fti-int/incremental_checkpoint.h"
 	DESTINATION "include/fti-int" )
 install(FILES "include/fti-int/differential_checkpoint_posix.h"
 	DESTINATION "include/fti-int" )
+configure_file(include/fti-int/deps/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/include/fti-int/deps/md5.h" @ONLY)
+message("${CMAKE_CURRENT_SOURCE_DIR}")
+install(FILES "include/fti-int/deps/md5.h"
+	DESTINATION "include/fti-int/deps" )
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)

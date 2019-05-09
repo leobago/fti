@@ -170,10 +170,10 @@ int main(int argc, char *argv[])
                 }
                 //res = FTI_Checkpoint(myCkpt.id, level); // Ckpt ID 5 is ignored because level = 0
                 FTI_InitICP( myCkpt.id, level, 1);
-                FTI_AddVarICP(0);
                 FTI_AddVarICP(1);
-                FTI_AddVarICP(2);
                 FTI_AddVarICP(3);
+                FTI_AddVarICP(2);
+                FTI_AddVarICP(0);
                 res = FTI_FinalizeICP();
                 if (res == FTI_SCES) {
                     counter++;

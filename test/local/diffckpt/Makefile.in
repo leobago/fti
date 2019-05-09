@@ -39,6 +39,16 @@ run-test-head: diff_test Makefile
 	mpirun -n 8 ./$<
 	mpirun -n 8 ./$<
 
+run-test-nohead-posix: diff_test Makefile
+	cp cfg/H0POSIX ./config.fti
+	mpirun -n 8 ./$<
+	mpirun -n 8 ./$<
+
+run-test-head-posix: diff_test Makefile
+	cp cfg/H1POSIX ./config.fti
+	mpirun -n 8 ./$<
+	mpirun -n 8 ./$<
+
 clean:
 	rm -rf *.o diff_test Global Local Meta config.fti
 

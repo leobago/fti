@@ -44,6 +44,8 @@ typedef struct FTIT_dcpExecutionPosix
     int nbVarReco;
     unsigned int Counter;
     unsigned long FileSize;
+    unsigned long dataSize;
+    unsigned long dcpSize;
     unsigned long LayerSize[MAX_STACK_SIZE];
     FTIT_datasetInfo datasetInfo[MAX_STACK_SIZE][FTI_BUFS];
     char LayerHash[MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH];

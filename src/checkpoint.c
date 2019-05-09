@@ -221,14 +221,16 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
+    if ( (FTI_Conf->dcpFtiff||FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
-        long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
-        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.pureDataSize };
-        MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+        unsigned long *dataSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.pureDataSize:&FTI_Exec->dcpInfoPosix.dataSize;
+        unsigned long *dcpSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.dcpSize:&FTI_Exec->dcpInfoPosix.dcpSize;
+        unsigned long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
+        unsigned long sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce( sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
         if ( FTI_Topo->splitRank ==  0 ) {
-            FTI_Exec->FTIFFMeta.dcpSize = dcpStats[0]; 
-            FTI_Exec->FTIFFMeta.pureDataSize = dcpStats[1];
+            *dcpSize = dcpStats[0]; 
+            *dataSize = dcpStats[1];
         }
     }
 
