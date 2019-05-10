@@ -910,7 +910,6 @@ int FTI_VerifyChecksumDcpPosix
             return FTI_NSCS;
         }
         while( pos < dataSize ) {
-    //DBG_MSG("pos: %lu, dataSize: %lu",-1, pos, dataSize);
             pos += fread( buffer, 1, blockSize, fd );
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
