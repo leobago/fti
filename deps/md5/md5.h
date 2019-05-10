@@ -22,10 +22,8 @@
  *
  * See md5.c for more information.
  */
-#ifndef _MD5_H_WRAPPER
-#define _MD5_H_WRAPPER
 
-#if 1
+#ifdef HAVE_OPENSSL
 #include <openssl/md5.h>
 #elif !defined(_MD5_H)
 #define _MD5_H
@@ -50,9 +48,7 @@ extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 
 #ifndef HAVE_OPENSSL
 // openssl provide a function MD5(), we just wrap it out if the library is not used
-extern unsigned char * MD5( void *pointer, unsigned long pointerLength, unsigned char *md5HashPointer);
-#endif
-
+extern unsigned char * MD5( void *pointer, size_t pointerLength, unsigned char *md5HashPointer);
 #endif
 
 #endif
