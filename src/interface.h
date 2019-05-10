@@ -63,7 +63,6 @@
 #include "stage.h"
 
 #include <stdint.h>
-//#include "../deps/md5/md5.h"
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -188,7 +187,6 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt );
 int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt );
-char* hashHex( const unsigned char* hash, int digestWidth, char* hashHexStr );
 
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
@@ -300,18 +298,13 @@ static inline uint32_t crc32(const void *buf, size_t size)
 int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
-int FTI_InitPosixIcpDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
-int FTI_WritePosixDcpVar(int id, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
 int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
 void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
 int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data );
 int FTI_RecoverVarDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, int id );
-int getIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
+int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
+char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr );
 
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
@@ -347,6 +340,14 @@ int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data);
 
 int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+
+int FTI_InitPosixIcpDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+
+int FTI_WritePosixDcpVar(int id, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
 

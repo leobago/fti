@@ -749,6 +749,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
     FTI_Data[i].dcpInfoPosix.hashArray = NULL;
+    FTI_Data[i].dcpInfoPosix.hashArrayTmp = NULL;
 
     //Adding new variable to protect
     FTI_Data[FTI_Exec.nbVar].id = id;
@@ -2058,7 +2059,7 @@ int FTI_Recover()
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
         for (i = 0; i < FTI_Exec.nbVar; i++) {
-            int vidx = getIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
+            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
             if (FTI_Data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
@@ -2238,6 +2239,14 @@ int FTI_Finalize()
     }
 
     // Notice: The following code is only executed by the application procs
+
+    // free hashArray memory
+    if( FTI_Conf.dcpPosix ) {
+        int i = 0;
+        for(; i<FTI_Exec.nbVar; i++) {
+            free(FTI_Data[i].dcpInfoPosix.hashArray);
+        }
+    }
 
     FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
 
@@ -2446,10 +2455,6 @@ int FTI_RecoverVar(int id)
     return FTI_SCES;
 }
 
-int FTI_SetRecoveryComplete()
-{
-    FTI_Exec.reco = 0;
-}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Prints FTI messages.

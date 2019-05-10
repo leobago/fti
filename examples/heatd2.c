@@ -13,11 +13,10 @@
 
 
 #define ITER_TIMES  5000
-#define ITER_OUT    1
-#define CKPT_OUT    10
+#define ITER_OUT    500
 #define PRECISION   0.001
 #define WORKTAG     26
-#define GRIDSIZE    512
+#define GRIDSIZE    4096
 
 
 void initData(int nbLines, int M, int rank, double *h)
@@ -137,21 +136,12 @@ int main(int argc, char *argv[])
     FTI_Protect(1, &myCkpt, 1, ckptInfo);
     FTI_Protect(2, h, M*nbLines, FTI_DBLE);
     FTI_Protect(3, g, M*nbLines, FTI_DBLE);
-    
-    int counter = 0;
-    int level;
 
     MPI_Barrier(FTI_COMM_WORLD);
     wtime = MPI_Wtime();
     for(i = 0; i < ITER_TIMES; i++) { // Check execution status
         if (FTI_Status() != 0) {
-            //res = FTI_Recover();
-            res = 0;
-            res += FTI_RecoverVar(0);
-            res += FTI_RecoverVar(1);
-            res += FTI_RecoverVar(2);
-            res += FTI_RecoverVar(3);
-            FTI_SetRecoveryComplete();
+            res = FTI_Recover();
             if (res != 0) {
                 exit(1);
             }
@@ -160,23 +150,9 @@ int main(int argc, char *argv[])
             }
         }
         else {
-            if (((i+1)%CKPT_OUT) == 0) { // Checkpoint every ITER_OUT steps
-                switch( counter%5 ) {
-                    case 0: level=1; break;
-                    case 1: level=2; break;
-                    case 2: level=3; break;
-                    case 3: level=4; break;
-                    case 4: level=FTI_L4_DCP; break;
-                }
-                //res = FTI_Checkpoint(myCkpt.id, level); // Ckpt ID 5 is ignored because level = 0
-                FTI_InitICP( myCkpt.id, level, 1);
-                FTI_AddVarICP(1);
-                FTI_AddVarICP(3);
-                FTI_AddVarICP(2);
-                FTI_AddVarICP(0);
-                res = FTI_FinalizeICP();
-                if (res == FTI_SCES) {
-                    counter++;
+            if (((i+1)%ITER_OUT) == 0) { // Checkpoint every ITER_OUT steps
+                res = FTI_Checkpoint(myCkpt.id, myCkpt.level); // Ckpt ID 5 is ignored because level = 0
+                if (res == 0) {
                     myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
                 } // Update ckpt. id & level
             }

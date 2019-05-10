@@ -1425,9 +1425,17 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   return FTI_SCES;
 }
 
-char* hashHex( const unsigned char* hash, int digestWidth, char* hashHexStr )
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      generates hex string representation of hash digest.
+  @param      char*             hash digest 
+  @param      int               digest width 
+  @return     char*             hex string of hash
+ **/
+/*-------------------------------------------------------------------------*/
+char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr )
 {       
-    static unsigned char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
+    static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
     if( hashHexStr == NULL ) {
         hashHexStr = hashHexStatic;
     }

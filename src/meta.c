@@ -289,7 +289,6 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-    // TODO headcase for posix dcp
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     if (!FTI_Topo->amIaHead) {
@@ -934,7 +933,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned long* allLayerSizes;
     char* allLayerHashes;
     
-    // TODO counter is incremented so its minus 1 but need to change this!
     int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
     
     if (FTI_Topo->groupRank == 0) {

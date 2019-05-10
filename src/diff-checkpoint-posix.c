@@ -66,6 +66,16 @@ int FTI_WritePosixDcp
         }
     }
 
+    // if first layer, make sure that we write all data by setting hashdatasize = 0
+    if( dcpLayer == 0 ) {
+        int i = 0;
+        for(; i<FTI_Exec->nbVar; i++) {
+            free(FTI_Data[i].dcpInfoPosix.hashArray);
+            FTI_Data[i].dcpInfoPosix.hashArray = NULL;
+            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
+        }
+    }
+
     // for file hash create hash only from data block hashes
     MD5_CTX ctx;
     MD5_Init( &ctx );
@@ -117,8 +127,8 @@ int FTI_WritePosixDcp
             return FTI_NSCS;
         }
     }
-    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);// + sizeof(unsigned int);
-    layerSize += 2*sizeof(int);// + sizeof(unsigned int);
+    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);
+    layerSize += 2*sizeof(int);
     
     for(; i<FTI_Exec->nbVar; i++) {
          
@@ -231,7 +241,7 @@ int FTI_WritePosixDcp
             }
             
             pos += chunkSize*success;
-            ptr = FTI_Data[i].ptr + pos; //chunkSize*success;
+            ptr = FTI_Data[i].ptr + pos;
            
         }
 
@@ -239,6 +249,7 @@ int FTI_WritePosixDcp
         free(FTI_Data[i].dcpInfoPosix.hashArray);
         FTI_Data[i].dcpInfoPosix.hashDataSize = dataSize;
         FTI_Data[i].dcpInfoPosix.hashArray = FTI_Data[i].dcpInfoPosix.hashArrayTmp;
+        FTI_Data[i].dcpInfoPosix.hashArrayTmp = NULL;
 
     }
 
@@ -250,24 +261,17 @@ int FTI_WritePosixDcp
     // create final dcp layer hash
     unsigned char LayerHash[MD5_DIGEST_LENGTH];
     MD5_Final( LayerHash, &ctx );
-    hashHex( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
+    FTI_GetHashHexStr( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
 
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = layerSize;
 
     FTI_Exec->dcpInfoPosix.Counter++;
-    if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
-        int i = 0;
-        for(; i<FTI_Exec->nbVar; i++) {
-            //free(FTI_Data[i].dcpInfoPosix.hashArray);
-            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
-        }
-    }
     
-    // delete old ckpt file if new dcp file is created (number of layers reached stack sized)
+    // delete old ckpt file if new dcp file is created (number of layers reached stack size)
     if( (dcpLayer == 0) ) {
         char ofn[512];
-        snprintf( ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId-1, FTI_Topo->splitRank );
+        snprintf( ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId-1, FTI_Topo->myRank );
         if( (remove(ofn) < 0) && (errno != ENOENT) ) {
             snprintf(errstr, FTI_BUFS, "cannot delete file '%s'", ofn );
             FTI_Print( errstr, FTI_WARN ); 
@@ -332,7 +336,7 @@ int FTI_RecoverDcpPosix
     if( stackSize != FTI_Conf->dcpInfoPosix.StackSize )
     {
         char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", FTI_Conf->dcpInfoPosix.StackSize, blockSize );
+        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%u') and checkpoint file ('%u')", FTI_Conf->dcpInfoPosix.StackSize, stackSize );
         FTI_Print( str, FTI_WARN );
         return FTI_NREC;
     }
@@ -373,7 +377,7 @@ int FTI_RecoverDcpPosix
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
-        int idx = getIdx(varId, FTI_Exec, FTI_Data);
+        int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
         if( idx < 0 ) {
             snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
             FTI_Print( errstr, FTI_EROR );
@@ -432,7 +436,7 @@ int FTI_RecoverDcpPosix
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            int idx = getIdx(blockMeta.varId, FTI_Exec, FTI_Data);
+            int idx = FTI_DataGetIdx(blockMeta.varId, FTI_Exec, FTI_Data);
             if( idx < 0 ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -474,7 +478,7 @@ int FTI_RecoverDcpPosix
             MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
         }
         if( FTI_Data[i].size%blockSize ) {
-            char* buffer = calloc( 1, blockSize );
+            unsigned char* buffer = calloc( 1, blockSize );
             if( !buffer ) {
                 FTI_Print("unable to allocate memory!", FTI_EROR);
                 return FTI_NSCS;
@@ -491,6 +495,9 @@ int FTI_RecoverDcpPosix
 
     free(buffer);
     fclose(fd);
+
+    return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -549,7 +556,7 @@ int FTI_RecoverVarDcpPosix
     if( stackSize != FTI_Conf->dcpInfoPosix.StackSize )
     {
         char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", FTI_Conf->dcpInfoPosix.StackSize, blockSize );
+        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%u') and checkpoint file ('%u')", FTI_Conf->dcpInfoPosix.StackSize, stackSize );
         FTI_Print( str, FTI_WARN );
         return FTI_NREC;
     }
@@ -593,7 +600,7 @@ int FTI_RecoverVarDcpPosix
         }
         // if requested id load else skip dataSize
         if( varId == id ) {
-            int idx = getIdx(varId, FTI_Exec, FTI_Data);
+            int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
             if( idx < 0 ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -661,7 +668,7 @@ int FTI_RecoverVarDcpPosix
                 return FTI_NSCS;
             }
             if( blockMeta.varId == id ) {
-                int idx = getIdx(blockMeta.varId, FTI_Exec, FTI_Data);
+                int idx = FTI_DataGetIdx(blockMeta.varId, FTI_Exec, FTI_Data);
                 if( idx < 0 ) {
                     snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                     FTI_Print( errstr, FTI_EROR );
@@ -699,7 +706,7 @@ int FTI_RecoverVarDcpPosix
     }
 
     // create hasharray for id
-    i = getIdx( id, FTI_Exec, FTI_Data );
+    i = FTI_DataGetIdx( id, FTI_Exec, FTI_Data );
     unsigned long nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
     FTI_Data[i].dcpInfoPosix.hashDataSize = FTI_Data[i].size;
     FTI_Data[i].dcpInfoPosix.hashArray = realloc(FTI_Data[i].dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
@@ -710,7 +717,7 @@ int FTI_RecoverVarDcpPosix
         MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
     }
     if( FTI_Data[i].size%blockSize ) {
-        char* buffer = calloc( 1, blockSize );
+        unsigned char* buffer = calloc( 1, blockSize );
         if( !buffer ) {
             FTI_Print("unable to allocate memory!", FTI_EROR);
             return FTI_NSCS;
@@ -723,6 +730,9 @@ int FTI_RecoverVarDcpPosix
 
     free(buffer);
     fclose(fd);
+
+    return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -844,7 +854,7 @@ int FTI_VerifyChecksumDcpPosix
     if( stackSize != conf->dcpInfoPosix.StackSize )
     {
         char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", conf->dcpInfoPosix.StackSize, blockSize );
+        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%u') and checkpoint file ('%u')", conf->dcpInfoPosix.StackSize, stackSize );
         FTI_Print( str, FTI_WARN );
         conf->dcpInfoPosix.StackSize = stackSize;
     }
@@ -900,6 +910,7 @@ int FTI_VerifyChecksumDcpPosix
             return FTI_NSCS;
         }
         while( pos < dataSize ) {
+    //DBG_MSG("pos: %lu, dataSize: %lu",-1, pos, dataSize);
             pos += fread( buffer, 1, blockSize, fd );
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
@@ -913,7 +924,7 @@ int FTI_VerifyChecksumDcpPosix
     }
     MD5_Final( md5_final, &mdContext );
     // compare hashes
-    if( strcmp( hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
+    if( strcmp( FTI_GetHashHexStr( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
         FTI_Print("hashes differ in base", FTI_WARN);
         return FTI_NSCS;
     }
@@ -958,7 +969,7 @@ int FTI_VerifyChecksumDcpPosix
         }
         MD5_Final( md5_final, &mdContext );
         // compare hashes
-        if( strcmp( hashHex( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
+        if( strcmp( FTI_GetHashHexStr( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
             FTI_Print("hashes differ in layer", FTI_WARN);
             break;
         }
@@ -1021,7 +1032,7 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
     return hash;
 }
 
-int getIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
+int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
     int i=0;
     for(; i<FTI_Exec->nbVar; i++) {

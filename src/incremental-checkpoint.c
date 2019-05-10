@@ -197,6 +197,16 @@ int FTI_InitPosixIcpDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // dcpLayer corresponds to the additional layers towards the base layer.
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
     
+    // if first layer, make sure that we write all data by setting hashdatasize = 0
+    if( dcpLayer == 0 ) {
+        int i = 0;
+        for(; i<FTI_Exec->nbVar; i++) {
+            free(FTI_Data[i].dcpInfoPosix.hashArray);
+            FTI_Data[i].dcpInfoPosix.hashArray = NULL;
+            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
+        }
+    }
+    
     // for file hash create hash only from data block hashes
     MD5_Init(&FTI_Exec->iCPInfo.ctx[dcpLayer]); 
    
@@ -460,22 +470,16 @@ int FTI_FinalizePosixDcpICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
     // create final dcp layer hash
     unsigned char LayerHash[MD5_DIGEST_LENGTH];
     MD5_Final( LayerHash, &FTI_Exec->iCPInfo.ctx[dcpLayer] );
-    hashHex( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
+    FTI_GetHashHexStr( LayerHash, MD5_DIGEST_LENGTH, &FTI_Exec->dcpInfoPosix.LayerHash[dcpLayer*MD5_DIGEST_STRING_LENGTH] );
 
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = FTI_Exec->iCPInfo.layerSize;
 
     FTI_Exec->dcpInfoPosix.Counter++;
-    if( (dcpLayer == (FTI_Conf->dcpInfoPosix.StackSize-1)) ) {
-        int i = 0;
-        for(; i<FTI_Exec->nbVar; i++) {
-            //free(FTI_Data[i].dcpInfoPosix.hashArray);
-            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
-        }
-    }
+    
     if( (dcpLayer == 0) ) {
         char ofn[512];
-        snprintf( ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId-1, FTI_Topo->splitRank );
+        snprintf( ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir, dcpFileId-1, FTI_Topo->myRank );
         if( (remove(ofn) < 0) && (errno != ENOENT) ) {
             snprintf(errstr, FTI_BUFS, "cannot delete file '%s'", ofn );
             FTI_Print( errstr, FTI_WARN ); 
