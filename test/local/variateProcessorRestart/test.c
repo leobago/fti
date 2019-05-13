@@ -161,9 +161,10 @@ int main() {
         offset[0]++;
     }
     MPI_Barrier(FTI_COMM_WORLD);
-
-    printf("foo");
     
+    // reset offset 0 to original value
+    offset[0] = ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0;
+
     MPI_Barrier(FTI_COMM_WORLD);
     // simulate dynamic size
     ldim1 = fdimY2/((int)sqrt(size));
