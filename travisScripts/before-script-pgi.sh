@@ -20,3 +20,5 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PGI_DIR}/linux86-64/*/mpi/openmpi*/lib
 export PATH=${PGI_DIR}/linux86-64/${PGI_VERSION}/bin:$PATH
 #export PATH=${PGI_DIR}/linux86-64/${PGI_VERSION}/mpi/openmpi/bin:$PATH
 export PATH=${PGI_DIR}/linux86-64/*/mpi/openmpi*/bin:$PATH
+echo $PATH
+echo "${PGI_DIR}/linux86-64/*/mpi/openmpi*/bin"
