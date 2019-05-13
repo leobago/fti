@@ -860,6 +860,66 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
 
 /*-------------------------------------------------------------------------*/
 /**
+    @brief      Defines a global dataset (shared among application processes)
+    @param      id              ID of the dataset.
+    @param      rank            Rank of the dataset.
+    @param      dimLength       Dimention length for each rank.
+    @param      name            Name of the dataset in HDF5 file.
+    @param      h5group         Group of the dataset. If Null then "/".
+    @param      type            FTI type of the dataset.
+    @return     integer         FTI_SCES if successful.
+
+    This function defines a global dataset which is shared among all ranks.
+    In order to assign sub sets to the dataset the user has to call the
+    function 'FTI_AddSubset'. The parameter 'did' of that function, corres-
+    ponds to the global dataset id define here.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
+{
+#ifdef ENABLE_HDF5
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
+    
+    if ( !dataset ) {
+        FTI_Print("there are no global datasets defined!", FTI_WARN);
+        return FTI_NSCS;
+    }
+   
+    bool found = false;
+    while( dataset ) {
+        if( id == dataset->id ) {
+            found = true;
+            break;
+        }
+        dataset = dataset->next;
+    }
+
+    if( !found ) {
+        FTI_Print( "invalid dataset id!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    dataset->rank = rank;
+    dataset->dimension = (hsize_t*) realloc( dataset->dimension, sizeof(hsize_t) * rank );
+    int i;
+    for( i=0; i<rank; i++ ) {
+        dataset->dimension[i] = dimLength[i];
+    }
+    memset( dataset->name, 0x0, FTI_BUFS);
+    strncpy( dataset->name, name, FTI_BUFS );
+    dataset->type = type;
+    dataset->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
+
+    return FTI_SCES;
+#else
+    FTI_Print("'FTI_UpdateGlobalDataset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
     @brief      Assigns a FTI protected variable to a global dataset
     @param      id              Corresponding variable ID.
     @param      rank            Rank of the dataset.
@@ -926,6 +986,101 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
     FTI_Data[pvar_idx].sharedData.dataset = dataset;
     FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
     FTI_Data[pvar_idx].sharedData.count = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+    for(i=0; i<rank; i++) {
+        FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
+        FTI_Data[pvar_idx].sharedData.count[i] = count[i];
+    }
+
+    return FTI_SCES;
+#ifdef GPUSUPPORT    
+    } else {
+        FTI_Print("Dataset is on GPU memory. VPR does not have GPU support yet!", FTI_WARN);
+        return FTI_NSCS;
+    }
+#endif
+#else
+    FTI_Print("'FTI_AddSubset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Assigns a FTI protected variable to a global dataset
+    @param      id              Corresponding variable ID.
+    @param      rank            Rank of the dataset.
+    @param      offset          Starting coordinates in global dataset.
+    @param      count           number of elements for each coordinate.
+    @param      did             Corresponding global dataset ID.
+    @return     integer         FTI_SCES if successful.
+
+    This function assigns the protected dataset with ID 'id' to a global data-
+    set with ID 'did'. The parameters 'offset' and 'count' specify the selec-
+    tion of the sub-set inside the global dataset ('offset' and 'count' cor-
+    respond to 'start' and 'count' in the HDF5 function 'H5Sselect_hyperslab'
+    For questions on what they define, please consult the HDF5 documentation.)
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+{
+#ifdef ENABLE_HDF5
+    int i, found=0, pvar_idx;
+    
+    for(i=0; i<FTI_Exec.nbVar; i++) {
+        if( FTI_Data[i].id == id ) {
+            found = 1;
+            pvar_idx = i;
+            break;
+        }
+    }
+    
+    if( !found ) {
+        FTI_Print( "variable id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+#ifdef GPUSUPPORT    
+    if ( !FTI_Data[pvar_idx].isDevicePtr ){
+#endif
+
+    found = 0;
+
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
+    while( dataset ) {
+        if( dataset->id == did ) {
+            found = 1;
+            break;
+        }
+        dataset = dataset->next;
+    }
+    
+    if( !found ) {
+        FTI_Print( "dataset id could not be found!", FTI_EROR );
+        return FTI_NSCS;
+    }
+
+    if( dataset->rank != rank ) {
+        FTI_Print("rank missmatch!",FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    found = false;
+    for( i=0; i<dataset->numSubSets; i++ ) {
+        if( dataset->varIdx[i] == pvar_idx ) {
+            found = true;
+            break;
+        }
+    }
+
+    if( !found ) {
+        FTI_Print("variable is not subset of dataset!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTI_Data[pvar_idx].sharedData.dataset = dataset;
+    FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.offset, sizeof(hsize_t) * rank );
+    FTI_Data[pvar_idx].sharedData.count = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.count, sizeof(hsize_t) * rank );
     for(i=0; i<rank; i++) {
         FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
         FTI_Data[pvar_idx].sharedData.count[i] = count[i];
