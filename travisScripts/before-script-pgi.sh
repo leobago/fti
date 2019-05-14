@@ -19,3 +19,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PGI_DIR}/linux86-64/${PGI_VERSION}/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PGI_DIR}/linux86-64/${PGI_VERSION}/mpi/${PGI_MPI_SUBDIR}/lib
 export PATH=${PGI_DIR}/linux86-64/${PGI_VERSION}/bin:$PATH
 export PATH=${PGI_DIR}/linux86-64/${PGI_VERSION}/mpi/${PGI_MPI_SUBDIR}/bin:$PATH
+export MPI_ARGS="--oversubsribe"
