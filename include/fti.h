@@ -459,6 +459,7 @@ extern "C" {
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
     char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
+    char    h5SingleFileReco[FTI_BUFS]; /**< Last HDF5 single file name     */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
@@ -628,6 +629,7 @@ extern "C" {
   int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
+  int FTI_RecoverDatasetDimension( int did ); 
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type);
   int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );

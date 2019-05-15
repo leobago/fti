@@ -1099,6 +1099,70 @@ int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did
 #endif
 }
 
+int FTI_RecoverDatasetDimension( int did ) 
+{
+#ifdef ENABLE_HDF5 
+    
+    if( FTI_Exec.reco != 3 ) {
+        FTI_Print("this is no VPR recovery!", FTI_WARN);
+        return FTI_NSCS;
+    }
+    FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
+    if( !dataset ) {
+        FTI_Print("No datasets defined!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    while( dataset ) {
+        if( dataset->id == did ) break;
+        dataset = dataset->next;
+    }
+
+    if( !dataset ) {
+        FTI_Print( "Failed to find dataset in list!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    // open HDF5 file
+    hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+    H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
+    hid_t file_id = H5Fopen( FTI_Exec.h5SingleFileReco, H5F_ACC_RDONLY, plid );
+    H5Pclose( plid );
+    
+    hid_t gid = H5Gopen1( file_id, dataset->location->name );
+
+    hid_t dataset_id = H5Dopen( gid, dataset->name, H5P_DEFAULT);
+
+    int drank = FTI_GetDatasetRank( dataset_id );
+    //DBG_MSG("filename: %s, gid: %ld, fid: %ld, did: %ld,  dname: %s,  drank: %d", -1, FTI_Exec.h5SingleFileReco, gid, file_id, dataset_id, dataset->name, drank);
+    if( drank != dataset->rank ) {
+        FTI_Print( "Rank missmatch!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    hsize_t *span = (hsize_t*) malloc( drank * sizeof(hsize_t) );
+    
+    int status = FTI_GetDatasetSpan( dataset_id, span );
+    if( status != FTI_SCES ) {
+        FTI_Print("Failed to retrieve span!",FTI_WARN);
+    }
+
+    dataset->rank = drank;
+    free( dataset->dimension );
+    dataset->dimension = span;
+
+    H5Dclose( did );
+    H5Fclose( file_id );
+
+    return FTI_SCES;
+
+#else
+    FTI_Print("'FTI_RecoverDatasetDimension' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
     @brief      Defines the dataset

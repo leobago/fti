@@ -110,6 +110,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   /* int           */ FTI_Exec->metaAlloc             =0;
   /* int           */ FTI_Exec->initSCES              =0;
   /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Exec->h5SingleFileReco */   memset(FTI_Exec->h5SingleFileReco,0x0,FTI_BUFS);
   /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
   /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
   /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
@@ -1152,6 +1153,40 @@ int FTI_ScanGroup( hid_t gid, char* fn )
         res += FTI_NSCS;
     }
     return FTI_SCES;
+}
+#endif
+
+#ifdef ENABLE_HDF5
+int FTI_GetDatasetRank( hid_t did ) 
+{
+
+    hid_t sid;
+
+    sid = H5Dget_space( did );
+
+    int drank = H5Sget_simple_extent_ndims( sid );
+
+    H5Sclose(sid);
+
+    return drank;
+
+}
+#endif
+
+#ifdef ENABLE_HDF5
+int FTI_GetDatasetSpan( hid_t did, hsize_t * span )
+{
+
+    hid_t sid;
+
+    sid = H5Dget_space( did );
+
+    H5Sget_simple_extent_dims( sid, span, NULL );
+
+    H5Sclose(sid);
+
+    return FTI_SCES;
+
 }
 #endif
 

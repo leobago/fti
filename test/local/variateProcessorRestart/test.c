@@ -206,6 +206,12 @@ int main() {
                 data[i][j] = -1;
             }
         }
+        
+        hsize_t nulldim[2] = { 0, 0 }; 
+        FTI_UpdateGlobalDataset( 0, 2, nulldim, dn, NULL, FTI_INTG );
+        FTI_UpdateGlobalDataset( 1, 2, nulldim, "struct", &gr, FTI_NEW_STRUCT );
+        FTI_RecoverDatasetDimension( 0 );
+        FTI_RecoverDatasetDimension( 1 );
         FTI_Recover();
         int out[3];
         bzero( out, 3*sizeof(int) );
