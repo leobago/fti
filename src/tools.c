@@ -449,6 +449,7 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
   FTI_Exec->H5groups[0]->id = 0;
   FTI_Exec->H5groups[0]->childrenNo = 0;
   sprintf(FTI_Exec->H5groups[0]->name, "/");
+  sprintf(FTI_Exec->H5groups[0]->fullName, "");
   FTI_Exec->nbGroup = 1;
   return FTI_SCES;
 }

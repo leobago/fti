@@ -638,6 +638,7 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 #endif
 
     //make a clone of the group in case the user won't store pointer
+    snprintf(h5group->fullName, FTI_BUFS, "%s/%s", parent->fullName, h5group->name);
     FTI_Exec.H5groups[FTI_Exec.nbGroup] = malloc(sizeof(FTIT_H5Group));
     *FTI_Exec.H5groups[FTI_Exec.nbGroup] = *h5group;
 
@@ -646,6 +647,10 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     parentInArray->childrenNo++;
 
     FTI_Exec.nbGroup = FTI_Exec.nbGroup + 1;
+       
+    // TODO
+
+    DBG_MSG("GROUP NAME: %s", 0, h5group->fullName);
 
     return FTI_SCES;
 }
@@ -848,6 +853,8 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->varIdx = NULL;
     last->type = type;
     last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
+    
+    snprintf( last->fullName, FTI_BUFS, "%s/%s", last->location->fullName, last->name ); 
 
     last->next = NULL;
 
@@ -1129,12 +1136,10 @@ int FTI_RecoverDatasetDimension( int did )
     hid_t file_id = H5Fopen( FTI_Exec.h5SingleFileReco, H5F_ACC_RDONLY, plid );
     H5Pclose( plid );
     
-    hid_t gid = H5Gopen1( file_id, dataset->location->name );
-
-    hid_t dataset_id = H5Dopen( gid, dataset->name, H5P_DEFAULT);
+    //hid_t gid = H5Gopen1( file_id, dataset->location->name );
+    hid_t dataset_id = H5Dopen( file_id, dataset->fullName, H5P_DEFAULT);
 
     int drank = FTI_GetDatasetRank( dataset_id );
-    //DBG_MSG("filename: %s, gid: %ld, fid: %ld, did: %ld,  dname: %s,  drank: %d", -1, FTI_Exec.h5SingleFileReco, gid, file_id, dataset_id, dataset->name, drank);
     if( drank != dataset->rank ) {
         FTI_Print( "Rank missmatch!", FTI_WARN );
         return FTI_NSCS;
