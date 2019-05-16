@@ -163,8 +163,8 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int * ckptID );
 int FTI_ScanGroup( hid_t gid, char* fn );
 int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec );
 void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data ); 
-int FTI_GetDatasetRank( hid_t did );
-int FTI_GetDatasetSpan( hid_t did, hsize_t * span );
+int FTI_GetDatasetRankReco( hid_t did );
+int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span );
 #endif
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

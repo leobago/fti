@@ -462,7 +462,6 @@ int FTI_GetStageDir( char* stageDir, int maxLen)
 
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Returns status of staging request.
@@ -647,10 +646,6 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     parentInArray->childrenNo++;
 
     FTI_Exec.nbGroup = FTI_Exec.nbGroup + 1;
-       
-    // TODO
-
-    DBG_MSG("GROUP NAME: %s", 0, h5group->fullName);
 
     return FTI_SCES;
 }
@@ -666,7 +661,8 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
+int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) 
+{
     strncpy(FTI_Exec.H5groups[h5group->id]->name, name, FTI_BUFS);
     return FTI_SCES;
 }
@@ -867,66 +863,6 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Defines a global dataset (shared among application processes)
-    @param      id              ID of the dataset.
-    @param      rank            Rank of the dataset.
-    @param      dimLength       Dimention length for each rank.
-    @param      name            Name of the dataset in HDF5 file.
-    @param      h5group         Group of the dataset. If Null then "/".
-    @param      type            FTI type of the dataset.
-    @return     integer         FTI_SCES if successful.
-
-    This function defines a global dataset which is shared among all ranks.
-    In order to assign sub sets to the dataset the user has to call the
-    function 'FTI_AddSubset'. The parameter 'did' of that function, corres-
-    ponds to the global dataset id define here.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
-{
-#ifdef ENABLE_HDF5
-    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
-    
-    if ( !dataset ) {
-        FTI_Print("there are no global datasets defined!", FTI_WARN);
-        return FTI_NSCS;
-    }
-   
-    bool found = false;
-    while( dataset ) {
-        if( id == dataset->id ) {
-            found = true;
-            break;
-        }
-        dataset = dataset->next;
-    }
-
-    if( !found ) {
-        FTI_Print( "invalid dataset id!", FTI_WARN );
-        return FTI_NSCS;
-    }
-
-    dataset->rank = rank;
-    dataset->dimension = (hsize_t*) realloc( dataset->dimension, sizeof(hsize_t) * rank );
-    int i;
-    for( i=0; i<rank; i++ ) {
-        dataset->dimension[i] = dimLength[i];
-    }
-    memset( dataset->name, 0x0, FTI_BUFS);
-    strncpy( dataset->name, name, FTI_BUFS );
-    dataset->type = type;
-    dataset->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
-
-    return FTI_SCES;
-#else
-    FTI_Print("'FTI_UpdateGlobalDataset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
-    return FTI_NSCS;
-#endif
-}
-
-/*-------------------------------------------------------------------------*/
-/**
     @brief      Assigns a FTI protected variable to a global dataset
     @param      id              Corresponding variable ID.
     @param      rank            Rank of the dataset.
@@ -1013,19 +949,62 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
 
 /*-------------------------------------------------------------------------*/
 /**
-    @brief      Assigns a FTI protected variable to a global dataset
+    @brief      Updates global dataset (shared among application processes)
+    @param      id              ID of the dataset.
+    @param      rank            Rank of the dataset.
+    @param      dimLength       Dimention length for each rank.
+    
+    updates only the rank and number of elements for each coordinate 
+    direction. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength )
+{
+#ifdef ENABLE_HDF5
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
+    
+    if ( !dataset ) {
+        FTI_Print("there are no global datasets defined!", FTI_WARN);
+        return FTI_NSCS;
+    }
+   
+    bool found = false;
+    while( dataset ) {
+        if( id == dataset->id ) {
+            found = true;
+            break;
+        }
+        dataset = dataset->next;
+    }
+
+    if( !found ) {
+        FTI_Print( "invalid dataset id!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    dataset->rank = rank;
+    dataset->dimension = (hsize_t*) realloc( dataset->dimension, sizeof(hsize_t) * rank );
+    int i;
+    for( i=0; i<rank; i++ ) {
+        dataset->dimension[i] = dimLength[i];
+    }
+
+    return FTI_SCES;
+#else
+    FTI_Print("'FTI_UpdateGlobalDataset' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      Updates a FTI protected variable of a global dataset
     @param      id              Corresponding variable ID.
     @param      rank            Rank of the dataset.
     @param      offset          Starting coordinates in global dataset.
     @param      count           number of elements for each coordinate.
     @param      did             Corresponding global dataset ID.
     @return     integer         FTI_SCES if successful.
-
-    This function assigns the protected dataset with ID 'id' to a global data-
-    set with ID 'did'. The parameters 'offset' and 'count' specify the selec-
-    tion of the sub-set inside the global dataset ('offset' and 'count' cor-
-    respond to 'start' and 'count' in the HDF5 function 'H5Sselect_hyperslab'
-    For questions on what they define, please consult the HDF5 documentation.)
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -1051,18 +1030,15 @@ int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did
     if ( !FTI_Data[pvar_idx].isDevicePtr ){
 #endif
 
-    found = 0;
-
     FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
         if( dataset->id == did ) {
-            found = 1;
             break;
         }
         dataset = dataset->next;
     }
     
-    if( !found ) {
+    if( !dataset ) {
         FTI_Print( "dataset id could not be found!", FTI_EROR );
         return FTI_NSCS;
     }
@@ -1072,20 +1048,17 @@ int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did
         return FTI_NSCS;
     }
 
-    found = false;
     for( i=0; i<dataset->numSubSets; i++ ) {
         if( dataset->varIdx[i] == pvar_idx ) {
-            found = true;
             break;
         }
     }
 
-    if( !found ) {
+    if( i == dataset->numSubSets ) {
         FTI_Print("variable is not subset of dataset!", FTI_WARN);
         return FTI_NSCS;
     }
 
-    FTI_Data[pvar_idx].sharedData.dataset = dataset;
     FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.offset, sizeof(hsize_t) * rank );
     FTI_Data[pvar_idx].sharedData.count = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.count, sizeof(hsize_t) * rank );
     for(i=0; i<rank; i++) {
@@ -1106,6 +1079,94 @@ int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did
 #endif
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      returns rank of shared dataset
+    @param      id              ID of the dataset.
+    @return     integer         rank of dataset.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetDatasetRank( int did ) 
+{
+#ifdef ENABLE_HDF5 
+    
+    static hsize_t dims_[FTI_HDF5_MAX_DIM];
+    
+    FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
+    if( !dataset ) {
+        FTI_Print("No datasets defined!", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    while( dataset ) {
+        if( dataset->id == did ) break;
+        dataset = dataset->next;
+    }
+
+    if( !dataset ) {
+        FTI_Print( "Failed to find dataset in list!", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    return dataset->rank;
+    
+#else
+    FTI_Print("'FTI_GetDatasetRank' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return FTI_NSCS;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      returns static array of dataset dimensions 
+    @param      id              ID of the dataset.
+    @param      rank            Rank of the dataset.
+    
+ **/
+/*-------------------------------------------------------------------------*/
+hsize_t* FTI_GetDatasetSpan( int did, int rank ) 
+{
+#ifdef ENABLE_HDF5 
+    
+    static hsize_t span[FTI_HDF5_MAX_DIM];
+    
+    FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
+    if( !dataset ) {
+        FTI_Print("No datasets defined!", FTI_WARN);
+        return NULL;
+    }
+
+    while( dataset ) {
+        if( dataset->id == did ) break;
+        dataset = dataset->next;
+    }
+
+    if( !dataset ) {
+        FTI_Print( "Failed to find dataset in list!", FTI_WARN );
+        return NULL;
+    }
+
+    if( rank != dataset->rank ) {
+        FTI_Print("Dataset rank missmatch!", FTI_WARN);
+        return NULL;
+    }
+
+    memcpy( span, dataset->dimension, rank*sizeof(hsize_t) );
+
+    return span;
+#else
+    FTI_Print("'FTI_GetDatasetSpan' is an HDF5 feature. Please enable HDF5 and recompile.", FTI_WARN);
+    return NULL;
+#endif
+    
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+    @brief      loads dataset dimension from ckpt file to dataset 'did'
+    @param      id              ID of the dataset.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverDatasetDimension( int did ) 
 {
 #ifdef ENABLE_HDF5 
@@ -1139,7 +1200,7 @@ int FTI_RecoverDatasetDimension( int did )
     //hid_t gid = H5Gopen1( file_id, dataset->location->name );
     hid_t dataset_id = H5Dopen( file_id, dataset->fullName, H5P_DEFAULT);
 
-    int drank = FTI_GetDatasetRank( dataset_id );
+    int drank = FTI_GetDatasetRankReco( dataset_id );
     if( drank != dataset->rank ) {
         FTI_Print( "Rank missmatch!", FTI_WARN );
         return FTI_NSCS;
@@ -1147,7 +1208,7 @@ int FTI_RecoverDatasetDimension( int did )
 
     hsize_t *span = (hsize_t*) malloc( drank * sizeof(hsize_t) );
     
-    int status = FTI_GetDatasetSpan( dataset_id, span );
+    int status = FTI_GetDatasetSpanReco( dataset_id, span );
     if( status != FTI_SCES ) {
         FTI_Print("Failed to retrieve span!",FTI_WARN);
     }
@@ -1166,7 +1227,6 @@ int FTI_RecoverDatasetDimension( int did )
     return FTI_NSCS;
 #endif
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1239,7 +1299,6 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
     FTI_Print(str, FTI_WARN);
     return FTI_NSCS;
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**

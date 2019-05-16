@@ -1158,7 +1158,7 @@ int FTI_ScanGroup( hid_t gid, char* fn )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_GetDatasetRank( hid_t did ) 
+int FTI_GetDatasetRankReco( hid_t did ) 
 {
 
     hid_t sid;
@@ -1175,7 +1175,7 @@ int FTI_GetDatasetRank( hid_t did )
 #endif
 
 #ifdef ENABLE_HDF5
-int FTI_GetDatasetSpan( hid_t did, hsize_t * span )
+int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span )
 {
 
     hid_t sid;

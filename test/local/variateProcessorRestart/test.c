@@ -176,8 +176,8 @@ int main() {
     // set dataset properties
     fdim[1] = fdimY2; 
     
-    FTI_UpdateGlobalDataset( 0, 2, fdim, dn, NULL, FTI_INTG );
-    FTI_UpdateGlobalDataset( 1, 2, fdim, "struct", &gr, FTI_NEW_STRUCT );
+    FTI_UpdateGlobalDataset( 0, 2, fdim );
+    FTI_UpdateGlobalDataset( 1, 2, fdim );
     
     // create row contiguous array and add rows to dataset
     for(i=0; i<ldim0; ++i) {
@@ -208,10 +208,24 @@ int main() {
         }
         
         hsize_t nulldim[2] = { 0, 0 }; 
-        FTI_UpdateGlobalDataset( 0, 2, nulldim, dn, NULL, FTI_INTG );
-        FTI_UpdateGlobalDataset( 1, 2, nulldim, "struct", &gr, FTI_NEW_STRUCT );
-        FTI_RecoverDatasetDimension( 0 );
-        FTI_RecoverDatasetDimension( 1 );
+        FTI_UpdateGlobalDataset( 0, 2, nulldim );
+        FTI_UpdateGlobalDataset( 1, 2, nulldim );
+        if( FTI_Status() == 3 ) {
+            FTI_RecoverDatasetDimension( 0 );
+            FTI_RecoverDatasetDimension( 1 );
+            int rankReco = FTI_GetDatasetRank( 0 );
+            if( rankReco != 2 ) {
+                printf("[FAILURE-%d] Rank Missmatch!\n", rank);
+                MPI_Abort(MPI_COMM_WORLD, -1);
+            }
+            hsize_t* spanReco = FTI_GetDatasetSpan( 0, rankReco ); 
+            for(i=0; i<rankReco; i++) {
+                if( (spanReco[i] != fdim[i]) ) {
+                    printf("[FAILURE-%d] Dimension Missmatch!\n", rank);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                }
+            }
+        }
         FTI_Recover();
         int out[3];
         bzero( out, 3*sizeof(int) );

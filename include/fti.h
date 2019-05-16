@@ -111,6 +111,7 @@
 #define FTI_IO_HDF5 1005
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
+#define FTI_HDF5_MAX_DIM 32
 #endif
 // need this parameter in one fti api function
 #ifndef ENABLE_HDF5
@@ -313,7 +314,7 @@ extern "C" {
   typedef struct FTIT_H5Group {
     int                 id;                     /**< ID of the group.               */
     char                name[FTI_BUFS];         /**< Name of the group.             */
-    char                fullName[FTI_BUFS];
+    char                fullName[FTI_BUFS];     /**< Holds full 'path' of group     */
     int                 childrenNo;             /**< Number of children             */
     int                 childrenID[FTI_BUFS];   /**< IDs of the children groups     */
 #ifdef ENABLE_HDF5
@@ -352,7 +353,7 @@ extern "C" {
     struct FTIT_globalDataset*  next;           /**< Pointer to next dataset        */
     FTIT_type                   type;           /**< corresponding FTI type.        */
     char                        name[FTI_BUFS]; /**< Dataset name.                  */
-    char                        fullName[FTI_BUFS]; /**< Dataset name.                  */
+    char                        fullName[FTI_BUFS]; /**< full 'path' of dataset     */
   } FTIT_globalDataset;
 
   typedef struct FTIT_sharedData {
@@ -634,8 +635,10 @@ extern "C" {
   int FTI_RecoverDatasetDimension( int did ); 
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type);
+  hsize_t* FTI_GetDatasetSpan( int did, int rank );
+  int FTI_GetDatasetRank( int did );
   int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
-  int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type);
+  int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength );
   int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
   long FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
