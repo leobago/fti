@@ -462,7 +462,7 @@ extern "C" {
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
     char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
-    char    h5SingleFileReco[FTI_BUFS]; /**< Last HDF5 single file name     */
+    char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */

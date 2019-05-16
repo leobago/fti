@@ -635,9 +635,11 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 #ifdef ENABLE_HDF5
     h5group->h5groupID = -1; //to mark as closed
 #endif
+    
+    // set full path to group
+    snprintf(h5group->fullName, FTI_BUFS, "%s/%s", parent->fullName, h5group->name);
 
     //make a clone of the group in case the user won't store pointer
-    snprintf(h5group->fullName, FTI_BUFS, "%s/%s", parent->fullName, h5group->name);
     FTI_Exec.H5groups[FTI_Exec.nbGroup] = malloc(sizeof(FTIT_H5Group));
     *FTI_Exec.H5groups[FTI_Exec.nbGroup] = *h5group;
 
@@ -850,6 +852,7 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->type = type;
     last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
     
+    // safe path to dataset
     snprintf( last->fullName, FTI_BUFS, "%s/%s", last->location->fullName, last->name ); 
 
     last->next = NULL;
