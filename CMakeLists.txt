@@ -13,7 +13,11 @@ if (ENABLE_GPU)
 else ()
   message(AUTHOR_WARNING "  ** Project is going to be build WITH NO GPU Support")
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-	  project(FTI C Fortran CXX)
+	  if( ${ENABLE_FORTRAN} )
+        project(FTI C Fortran)
+      else()
+        project(FTI C)
+      endif()
   endif()
 endif()  
 
@@ -23,66 +27,68 @@ string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VE
 set(FORTRAN_VER_UNKNOWN 0)
 set(ADD_CFLAGS "")
 
-if (NOT CMAKE_Fortran_COMPILER_VERSION)
+if( ${ENABLE_FORTRAN} )
+    if (NOT CMAKE_Fortran_COMPILER_VERSION)
 
-  message(AUTHOR_WARNING "
-  ** Cmake variable 'CMAKE_Fortran_COMPILER_VERSION' is unset
-  *  attempt to determine it manually...")
+        message(AUTHOR_WARNING "
+        ** Cmake variable 'CMAKE_Fortran_COMPILER_VERSION' is unset
+        *  attempt to determine it manually...")
 
-  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "Intel" COMPILER_IDENT_INTEL)
-  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" COMPILER_IDENT_GNU)
-  string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" COMPILER_IDENT_PGI)
-  if(${COMPILER_IDENT_INTEL})
-    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/intel_major_ver.f90")
-  elseif(${COMPILER_IDENT_GNU})
-    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/gnu_major_ver.f90")
-  elseif(${COMPILER_IDENT_PGI})
-    set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/pgi_major_ver.f90")
-  endif()
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "Intel" COMPILER_IDENT_INTEL)
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" COMPILER_IDENT_GNU)
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" COMPILER_IDENT_PGI)
+        if(${COMPILER_IDENT_INTEL})
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/intel_major_ver.f90")
+        elseif(${COMPILER_IDENT_GNU})
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/gnu_major_ver.f90")
+        elseif(${COMPILER_IDENT_PGI})
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/pgi_major_ver.f90")
+        endif()
 
-  set(CMAKE_Fortran_FLAGS "-cpp")
-  try_run( PROG_RAN COMPILE_SUCCESS
-      "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
-    RUN_OUTPUT_VARIABLE VER_STRING
-  )
-  if ( COMPILE_SUCCESS )
-    string( REGEX MATCH "[0-9]+"
-      DETECTED_VER "${VER_STRING}"
-    )
+        set(CMAKE_Fortran_FLAGS "-cpp")
+        try_run( PROG_RAN COMPILE_SUCCESS
+            "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
+            RUN_OUTPUT_VARIABLE VER_STRING
+            )
+        if ( COMPILE_SUCCESS )
+            string( REGEX MATCH "[0-9]+"
+                DETECTED_VER "${VER_STRING}"
+                )
 
-  set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
+            set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
 
-  message(AUTHOR_WARNING "
-  ** The major version was determined as: ${VER_STRING}")
-  else()
+            message(AUTHOR_WARNING "
+            ** The major version was determined as: ${VER_STRING}")
+        else()
 
-  set(FORTRAN_VER_UNKNOWN 1)
-  set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
-  message(AUTHOR_WARNING "
-  ** The Fortran version could not be determined!")
+            set(FORTRAN_VER_UNKNOWN 1)
+            set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
+            message(AUTHOR_WARNING "
+            ** The Fortran version could not be determined!")
 
-  endif()
-else()
+        endif()
+    else()
 
-  string(REGEX MATCH "[0-9]+" CMAKE_Fortran_COMPILER_VERSION_MAJOR ${CMAKE_Fortran_COMPILER_VERSION} )
+        string(REGEX MATCH "[0-9]+" CMAKE_Fortran_COMPILER_VERSION_MAJOR ${CMAKE_Fortran_COMPILER_VERSION} )
 
-endif()
+    endif()
 
-if(NOT ${FORTRAN_VER_UNKNOWN})
+    if(NOT ${FORTRAN_VER_UNKNOWN})
 
-  set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION_MAJOR}")
-  set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION_MAJOR}")
-  string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
-  if(${COMPILER_VER_DIFFER})
-      message(WARNING "
-  ** You are using different compiler idetifications for Fortran and C!
-  *  This might lead to undefined behavior!")
-  endif()
+        set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION_MAJOR}")
+        set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION_MAJOR}")
+        string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
+        if(${COMPILER_VER_DIFFER})
+            message(WARNING "
+            ** You are using different compiler idetifications for Fortran and C!
+            *  This might lead to undefined behavior!")
+        endif()
 
+    endif()
 endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
-option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" ON)
+option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
 option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
@@ -95,8 +101,11 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
-include(FortranCInterface)
-include(CheckFortranCompilerFlag)
+if(${ENABLE_FORTRAN})
+    include(FortranCInterface)
+    include(CheckFortranCompilerFlag)
+endif()
+
 include(CheckCCompilerFlag)
 
 #check for ZLIB (crc32)
