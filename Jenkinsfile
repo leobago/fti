@@ -1077,7 +1077,7 @@ pipeline {
       stage('Cmake Versions Test') {
         agent {
           docker {
-            image 'kellekai/archlinuxopenmpi1.10'
+            image 'kellekai/archlinuxopenmpi1.10:stable'
           }
         }
         steps {
