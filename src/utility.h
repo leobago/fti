@@ -1,10 +1,9 @@
 #ifndef __UTILITY__
+#define __UTILITY__
 #include <string.h>
 
-#include "interface.h"
 #include "IO/ftiff.h"
 
-#include "api_cuda.h"
 
 
 typedef struct
@@ -18,13 +17,28 @@ typedef struct
 	char flag;
 } WriteMPIInfo_t;
 
+typedef struct{
+	FILE *f;
+	size_t offset;
+	char flag;
+}WritePosixInfo_t;
 
+
+// Wrappers around MPIO
 int FTI_MPIOOpen(char *fn, void *fileDesc);
 int FTI_MPIOClose(void *fileDesc);
 int FTI_MPIOWrite(void *src, size_t size, void *fileDesc);
 int FTI_MPIORead(void *src, size_t size, void *fileDesc);
 
-int write_posix(void *src, size_t size, void *opaque);
+//Wrappers around POSIX IO
+int FTI_PosixOpen(char *fn, void *fileDesc);
+int FTI_PosixClose(void *fileDesc);
+int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
+int FTI_PosixRead(void *src, size_t size, void *fileDesc);
+int FTI_PosixSync(void *fileDesc);
+int FTI_PosixSeek(size_t pos, void *fileDesc);
+
+
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 
 #ifdef ENABLE_SIONLIB 

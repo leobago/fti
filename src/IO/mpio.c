@@ -80,8 +80,8 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
 }
 
 
-int FTI_MPIORead(void *src, size_t size, void *fileDesc){
+int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 	WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
-	return MPI_File_read_at(fd->pfh, fd->offset, src, size, MPI_BYTE, MPI_STATUS_IGNORE);
+	return MPI_File_read_at(fd->pfh, fd->offset, dest, size, MPI_BYTE, MPI_STATUS_IGNORE);
 }
 

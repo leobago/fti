@@ -508,6 +508,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
+	WritePosixInfo_t fd;
 	int res = FTI_SCES;
 	FTI_Print("I/O mode: Posix.", FTI_DBUG);
 	char str[FTI_BUFS], fn[FTI_BUFS];
@@ -520,65 +521,52 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	}
 
 	// open task local ckpt file
-	FILE* fd = fopen(fn, "wb");
-	if (fd == NULL) {
-		snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-		FTI_Print(str, FTI_EROR);
-
-		return FTI_NSCS;
-	}
+	fd.offset = 0;
+	fd.flag = 'w';
+	FTI_PosixOpen(fn,&fd);
+	//	if (fd == NULL) {
+	//		snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
+	//		FTI_Print(str, FTI_EROR);
+	//		return FTI_NSCS;
+	//	}
 
 	// write data into ckpt file
 	int i;
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		clearerr(fd);
-		if (!ferror(fd)) {
-			errno = 0;
-			// if data are stored to CPU just write them
-			if ( !(FTI_Data[i].isDevicePtr) ){
-				snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
-				FTI_Print(str,FTI_DBUG);
-				if (( res = FTI_Try( write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd), "Storing Data to Checkpoint File"))!=FTI_SCES){
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					fclose(fd);
-					return res;
-				}
+		// if data are stored to CPU just write them
+		if ( !(FTI_Data[i].isDevicePtr) ){
+			snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
+			FTI_Print(str,FTI_DBUG);
+			if (( res = FTI_Try( FTI_PosixWrite(FTI_Data[i].ptr, FTI_Data[i].size, &fd), "Storing Data to Checkpoint File"))!=FTI_SCES){
+				snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+				FTI_Print(str, FTI_EROR);
+				FTI_PosixClose(&fd);
+				return res;
 			}
 #ifdef GPUSUPPORT            
 			// if data are stored to the GPU move them from device
 			// memory to cpu memory and store them.
 			else {
 				if ((res = FTI_Try(
-								FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_posix, fd),
+								FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   FTI_PosixWrite, &fd),
 								"moving data from GPU to storage")) != FTI_SCES) {
 					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
 					FTI_Print(str, FTI_EROR);
-					fclose(fd);
+					FTI_PosixClose(&fd);
 					return res;
 				}
 			}
 #endif            
 		}
-
-		if (ferror(fd)) {
-			char error_msg[FTI_BUFS];
-			error_msg[0] = 0;
-			strerror_r(errno, error_msg, FTI_BUFS);
-			snprintf(str, FTI_BUFS, "%d Dataset #%d could not be written: %s.",__LINE__, FTI_Data[i].id, error_msg);
-			FTI_Print(str, FTI_EROR);
-			fclose(fd);
-			return FTI_NSCS;
-		}
 	}
 
 	// close file
-	if (fclose(fd) != 0) {
-		FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-
-		return FTI_NSCS;
-	}
+	FTI_PosixClose(&fd);
+	//	if (fclose(fd) != 0) {
+	//		FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
+	//		return FTI_NSCS;
+	//	}
 
 	return res;
 

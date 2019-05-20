@@ -6,47 +6,6 @@
 #include "utility.h"
 
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief     Writes data to a file using the posix library
-  @param     src    The location of the data to be written 
-  @param     size   The number of bytes that I need to write 
-  @param     opaque A pointer to the File descriptor  
-  @return    integer         FTI_SCES if successful.
-
-  Writes the data to a file using the posix library. 
-
- **/
-/*-------------------------------------------------------------------------*/
-int write_posix(void *src, size_t size, void *opaque)
-{
-  FILE *fd = (FILE *)opaque;
-  size_t written = 0;
-  int fwrite_errno;
-  char str[FTI_BUFS];
-
-  while (written < size && !ferror(fd)) {
-    errno = 0;
-    written += fwrite(((char *)src) + written, 1, size - written, fd);
-    fwrite_errno = errno;
-  }
-
-  if (ferror(fd)){
-    char error_msg[FTI_BUFS];
-    error_msg[0] = 0;
-    strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-    snprintf(str, FTI_BUFS, "utility:c: (write_posix) Dataset could not be written: %s.", error_msg);
-    FTI_Print(str, FTI_EROR);
-    fclose(fd);
-    return FTI_NSCS;
-  }
-  else
-    return FTI_SCES;
-}
-
-
-
-
 
 #ifdef ENABLE_SIONLIB 
 /*-------------------------------------------------------------------------*/

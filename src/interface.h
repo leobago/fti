@@ -44,6 +44,7 @@
 
 #include "fti.h"
 #include "IO/ftiff.h"
+#include "utility.h"
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
@@ -299,7 +300,7 @@ typedef void*               FTI_ADDRPTR;        /**< void ptr type              
 
 //INCREMENTAL CHECKPOINTING FOR FTIFF
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
-                     FTIT_dataset *FTI_Data, unsigned char *hashchk, int fd, char *fn, long *dcpSize, unsigned char **dptr);
+                     FTIT_dataset *FTI_Data, unsigned char *hashchk, WritePosixInfo_t *fd, char *fn, long *dcpSize, unsigned char **dptr);
 
 int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
