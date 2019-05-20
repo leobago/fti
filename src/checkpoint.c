@@ -43,7 +43,7 @@
 #include <string.h>
 
 #include "interface.h"
-#include "ftiff.h"
+#include "IO/ftiff.h"
 #include "api_cuda.h"
 #include "utility.h"
 #include "macros.h"
@@ -608,58 +608,20 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	int res;
 	FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
 	char str[FTI_BUFS], mpi_err[FTI_BUFS];
-
 	write_info.FTI_Conf = FTI_Conf;
+	write_info.FTI_Topo= FTI_Topo;
+	write_info.flag = 'w';
+	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
+	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 
-	// enable collective buffer optimization
-	MPI_Info info;
-	MPI_Info_create(&info);
-	MPI_Info_set(info, "romio_cb_write", "enable");
-
-	// TODO enable to set stripping unit in the config file (Maybe also other hints)
-	// set stripping unit to 4MB
-	MPI_Info_set(info, "stripping_unit", "4194304");
+	FTI_MPIOOpen(gfn,&write_info);
 
 	MPI_Offset chunkSize = FTI_Exec->ckptSize;
-
 	// collect chunksizes of other ranks
 	MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
 	MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
-	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-	// open parallel file (collective call)
-	//    MPI_File pfh;
-
-#ifdef LUSTRE
-	if (FTI_Topo->splitRank == 0) {
-		res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-		if (res) {
-			char error_msg[FTI_BUFS];
-			error_msg[0] = 0;
-			strerror_r(-res, error_msg, FTI_BUFS);
-			snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-			FTI_Print(str, FTI_WARN);
-		} else {
-			snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-					ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-			FTI_Print(str, FTI_DBUG);
-		}
-	}
-#endif
-	res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(write_info.pfh));
-
-	// check if successful
-	if (res != 0) {
-		errno = 0;
-		int reslen;
-		MPI_Error_string(res, mpi_err, &reslen);
-		snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
-		FTI_Print(str, FTI_EROR);
-		free(chunkSizes);
-		return FTI_NSCS;
-	}
 
 	// set file offset
 	write_info.offset = 0;
@@ -673,18 +635,18 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		// determine the type of data pointer
 		// Data are stored in the CPU side. 
 		if ( !(FTI_Data[i].isDevicePtr) ){
-			res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
+			res = FTI_MPIOWrite(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
 		}
 #ifdef GPUSUPPORT
 		// dowload data from the GPU if necessary
 		// Data are stored in the GPU side.
 		else {
 			if ((res = FTI_Try(
-							FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_mpi, &write_info),
+							FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   FTI_MPIOWrite, &write_info),
 							"moving data from GPU to storage")) != FTI_SCES) {
 				snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
 				FTI_Print(str, FTI_EROR);
-				MPI_File_close(&write_info.pfh);
+				mpiClose(&write_info);
 				return res;
 			}
 		}
@@ -698,12 +660,11 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			MPI_Error_string(write_info.err, mpi_err, &reslen);
 			snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, write_info.err, mpi_err);
 			FTI_Print(str, FTI_EROR);
-			MPI_File_close(&write_info.pfh);
+			FTI_MPIOClose(&write_info);
 			return FTI_NSCS;
 		}
 	}
-	MPI_File_close(&write_info.pfh);
-	MPI_Info_free(&info);
+	FTI_MPIOClose(&write_info);
 	return FTI_SCES;
 }
 

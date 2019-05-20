@@ -128,9 +128,10 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
+	src/tools.c src/topo.c src/IO/ftiff.c src/IO/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-	src/failure-injection.c src/api_cuda.c src/utility.c)
+	src/failure-injection.c src/api_cuda.c src/utility.c 
+	src/macros.c src/IO/mpio.c)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})

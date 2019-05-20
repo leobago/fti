@@ -170,6 +170,7 @@ extern "C" {
     char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
     char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
     unsigned long long offset;  /**< file offset (for MPI-IO only)          */
+	void *fd;
   } FTIT_iCPInfo;
 
   /** @typedef    FTIFF_metaInfo

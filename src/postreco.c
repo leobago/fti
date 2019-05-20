@@ -37,6 +37,7 @@
  */
 #include "interface.h"
 #include "macros.h"
+#include "utility.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -986,19 +987,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 	FTI_Print("Starting recovery L4 using MPI-IO.", FTI_DBUG);
 	// create local directories
-	if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-		if (errno != EEXIST) {
-			FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-		}
-	}
-
-	// enable collective buffer optimization
-	MPI_Info info;
-	MPI_Info_create(&info);
-	MPI_Info_set(info, "romio_cb_read", "enable");
-
-	// set stripping unit to 4MB
-	MPI_Info_set(info, "stripping_unit", "4194304");
+	MKDIR(FTI_Ckpt[1].dir,0777);
 
 	snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 	snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
@@ -1006,39 +995,28 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
 	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
-	// open parallel file
-	MPI_File pfh;
-	int buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
-	// check if successful
-	if (buf != 0) {
-		errno = 0;
-		char mpi_err[FTI_BUFS];
-		int reslen;
-		MPI_Error_string(buf, mpi_err, &reslen);
-		if (buf != MPI_ERR_NO_SUCH_FILE) {
-			char str[FTI_BUFS];
-			snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
-			FTI_Print(str, FTI_EROR);
-		}
-		return FTI_NSCS;
-	}
+
+
+	WriteMPIInfo_t readInfo;
+	readInfo.FTI_Conf = FTI_Conf;
+	readInfo.FTI_Topo= FTI_Topo;
+	readInfo.flag = 'r';
+	FTI_MPIOOpen(gfn,&readInfo);
 
 	// collect chunksizes of other ranks
 	MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
 	MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
-	MPI_Offset offset = 0;
-	// set file offset
 	int i;
 	for (i = 0; i < FTI_Topo->splitRank; i++) {
-		offset += chunkSizes[i];
+		readInfo.offset += chunkSizes[i];
 	}
 	free(chunkSizes);
 
 	FILE *lfd = fopen(lfn, "wb");
 	if (lfd == NULL) {
 		FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
-		MPI_File_close(&pfh);
+		FTI_MPIOClose(&readInfo);
 		return FTI_NSCS;
 	}
 
@@ -1046,13 +1024,14 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	char *readData = talloc(char, FTI_Conf->transferSize);
 	long bSize = FTI_Conf->transferSize;
 	long pos = 0;
+	int buf;
 	// Checkpoint files transfer from PFS
 	while (pos < fs) {
 		if ((fs - pos) < FTI_Conf->transferSize) {
 			bSize = fs - pos;
 		}
 		// read block in parallel file
-		buf = MPI_File_read_at(pfh, offset, readData, bSize, MPI_BYTE, MPI_STATUS_IGNORE);
+		buf = FTI_MPIORead( readData, bSize, &readInfo);
 		// check if successful
 		if (buf != 0) {
 			errno = 0;
@@ -1063,25 +1042,20 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
 			FTI_Print(str, FTI_EROR);
 			free(readData);
-			MPI_File_close(&pfh);
+			FTI_MPIOClose(&readInfo);
 			fclose(lfd);
 			return FTI_NSCS;
 		}
 		size_t wBytes;
 #warning I NEED ALSO TO CLOSE MPI_FILE_close(&pfh)
 		FWRITE(wBytes,readData, sizeof(char), bSize, lfd,"p","readData");
-		offset += bSize;
+		readInfo.offset += bSize;
 		pos = pos + bSize;
 	}
 
 	free(readData);
 	fclose(lfd);
-
-	if (MPI_File_close(&pfh) != 0) {
-		FTI_Print("Cannot close MPI file.", FTI_WARN);
-		return FTI_NSCS;
-	}
-
+	FTI_MPIOClose(&readInfo);
 	return FTI_SCES;
 }
 

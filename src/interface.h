@@ -43,7 +43,7 @@
 #include "failure-injection.h"
 
 #include "fti.h"
-#include "ftiff.h"
+#include "IO/ftiff.h"
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"

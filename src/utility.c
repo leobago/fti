@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include "interface.h"
-#include "ftiff.h"
+#include "IO/ftiff.h"
 #include "api_cuda.h"
 #include "utility.h"
 
@@ -44,46 +44,7 @@ int write_posix(void *src, size_t size, void *opaque)
     return FTI_SCES;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief     Writes data to a file using the MPI-IO library
-  @param     src    The location of the data to be written 
-  @param     size   The number of bytes that I need to write 
-  @param     opaque A pointer to the struct that describes the MPI-IO file 
-  @return    integer FTI_SCES if successful.
 
-  Writes the data to a file using the MPI library. 
-
- **/
-/*-------------------------------------------------------------------------*/
-
-int write_mpi(void *src, size_t size, void *opaque)
-{
-  WriteMPIInfo_t *write_info = (WriteMPIInfo_t *)opaque;
-  size_t pos = 0;
-  size_t bSize = write_info->FTI_Conf->transferSize;
-  while (pos < size) {
-    if ((size - pos) < write_info->FTI_Conf->transferSize) {
-      bSize = size - pos;
-    }
-
-    MPI_Datatype dType;
-    MPI_Type_contiguous(bSize, MPI_BYTE, &dType);
-    MPI_Type_commit(&dType);
-
-    write_info->err = MPI_File_write_at(write_info->pfh, write_info->offset, src, 1, dType, MPI_STATUS_IGNORE);
-    // check if successful
-    if (write_info->err != 0) {
-      errno = 0;
-      return FTI_NSCS;
-    }
-    MPI_Type_free(&dType);
-    src += bSize;
-    write_info->offset += bSize;
-    pos = pos + bSize;
-  }
-  return FTI_SCES;
-}
 
 
 

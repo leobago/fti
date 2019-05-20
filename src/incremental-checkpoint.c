@@ -173,58 +173,21 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     int res;
+	WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) malloc (sizeof(WriteMPIInfo_t));
+	write_info->FTI_Conf = FTI_Conf;
+	write_info->FTI_Topo= FTI_Topo;
+	write_info->flag = 'w';
+
+
     FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
     char str[FTI_BUFS], mpi_err[FTI_BUFS];
-
-    // enable collective buffer optimization
-    MPI_Info info;
-    MPI_Info_create(&info);
-    MPI_Info_set(info, "romio_cb_write", "enable");
-
-    /* 
-     * update ckpt file name (neccessary for the restart!)
-     * not very nice TODO we should think about another mechanism
-     */
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
             "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-
-    // TODO enable to set stripping unit in the config file (Maybe also other hints)
-    // set stripping unit to 4MB
-    MPI_Info_set(info, "stripping_unit", "4194304");
-
+    // enable collective buffer optimization
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-    // open parallel file (collective call)
-    MPI_File pfh;
-
-#ifdef LUSTRE
-    if (FTI_Topo->splitRank == 0) {
-        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-        if (res) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(-res, error_msg, FTI_BUFS);
-            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-            FTI_Print(str, FTI_WARN);
-        } else {
-            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-            FTI_Print(str, FTI_DBUG);
-        }
-    }
-#endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
-
-    // check if successful
-    if (res != 0) {
-        errno = 0;
-        int reslen;
-        MPI_Error_string(res, mpi_err, &reslen);
-        snprintf(str, FTI_BUFS, "unable to create file %s [MPI ERROR - %i] %s", gfn, res, mpi_err);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
+	FTI_MPIOOpen(gfn, write_info);
 
     MPI_Offset chunkSize = FTI_Exec->ckptSize;
 
@@ -241,9 +204,7 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(chunkSizes);
 
     FTI_Exec->iCPInfo.offset = offset;
-
-    memcpy( FTI_Exec->iCPInfo.fh, &pfh, sizeof(FTI_MI_FH) );
-    MPI_Info_free(&info);
+    FTI_Exec->iCPInfo.fd = write_info;
 
     return FTI_SCES;
 
@@ -265,22 +226,22 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS];
-    WriteMPIInfo_t write_info;
+    WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) FTI_Exec->iCPInfo.fd;
     int res;
-    memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
+//    memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
-    write_info.offset = FTI_Exec->iCPInfo.offset; 
-    write_info.FTI_Conf = FTI_Conf;
+    write_info->offset = FTI_Exec->iCPInfo.offset; 
+//    write_info.FTI_Conf = FTI_Conf;
 
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         if ( FTI_Data[i].id == varID ) {
             if ( !(FTI_Data[i].isDevicePtr) ){
                 FTI_Print(str,FTI_INFO);
-                if (( res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info), "Storing Data to checkpoint file")!=FTI_SCES){
+                if (( res = FTI_MPIOWrite(FTI_Data[i].ptr, FTI_Data[i].size, write_info), "Storing Data to checkpoint file")!=FTI_SCES){
                     snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                     FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&write_info.pfh);
+					FTI_MPIOClose(write_info);
                     return res;
                 }
             }
@@ -291,17 +252,17 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
                 snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_Data[i].id);
                 FTI_Print(str,FTI_INFO);
                 if ((res = FTI_Try(
-                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i], write_mpi, &write_info),
+                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i], FTI_MPIOWrite, write_info),
                                 "moving data from GPU to storage")) != FTI_SCES) {
                     snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
                     FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&write_info.pfh);
+					FTI_MPIOClose(write_info);
                     return res;
                 }
             }
 #endif
         }
-        write_info.offset += FTI_Data[i].size;
+        write_info->offset += FTI_Data[i].size;
     }
 
     FTI_Exec->iCPInfo.result = FTI_SCES;
@@ -332,10 +293,9 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    MPI_File pfh;
-    memcpy( &pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
-
-    MPI_File_close(&pfh);
+	FTI_MPIOClose((WriteMPIInfo_t*) FTI_Exec->iCPInfo.fd);
+	free(FTI_Exec->iCPInfo.fd);
+	FTI_Exec->iCPInfo.fd = NULL;
     return FTI_SCES;
 
 }

@@ -38,6 +38,7 @@
 
 #include "interface.h"
 #include "macros.h"
+#include "utility.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -777,46 +778,16 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 	int res;
 	FTI_Print("Starting checkpoint post-processing L4 using MPI-IO.", FTI_DBUG);
+	WriteMPIInfo_t write_info;
 	// enable collective buffer optimization
-	MPI_Info info;
-	MPI_Info_create(&info);
-	MPI_Info_set(info, "romio_cb_write", "enable");
-	// TODO enable to set stripping unit in the config file (Maybe also other hints)
-	// set stripping unit to 4MB
-	MPI_Info_set(info, "stripping_unit", "4194304");
-
-	// open parallel file (collective call)
-	MPI_File pfh; // MPI-IO file handle
 	char gfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
 	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
 	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-#ifdef LUSTRE
-	if (FTI_Topo->splitRank == 0) {
-		res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-		if (res) {
-			char error_msg[FTI_BUFS];
-			error_msg[0] = 0;
-			strerror_r(-res, error_msg, FTI_BUFS);
-			snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-			FTI_Print(str, FTI_WARN);
-		} else {
-			snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-					ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-			FTI_Print(str, FTI_DBUG);
-		}
-	}
-#endif
-	res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
-	if (res != 0) {
-		errno = 0;
-		char mpi_err[FTI_BUFS];
-		MPI_Error_string(res, mpi_err, NULL);
-		snprintf(str, FTI_BUFS, "Unable to create file during MPI-IO flush [MPI ERROR - %i] %s", res, mpi_err);
-		FTI_Print(str, FTI_EROR);
-		MPI_Info_free(&info);
-		return FTI_NSCS;
-	}
-	MPI_Info_free(&info);
+
+	write_info.FTI_Conf = FTI_Conf;
+	write_info.FTI_Topo= FTI_Topo;
+	write_info.flag = 'w';
+	FTI_MPIOOpen(gfn,&write_info);
 
 	int proc, startProc, endProc;
 	if (FTI_Topo->amIaHead) {
@@ -884,28 +855,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			//                MPI_File_close(&pfh);
 			FREAD(bytes,readData, sizeof(char), bSize, lfd,"pppp",localFileNames,allFileSizes,splitRanks,readData);
 
-			MPI_Datatype dType;
-			MPI_Type_contiguous(bytes, MPI_BYTE, &dType);
-			MPI_Type_commit(&dType);
-
-
-			res = MPI_File_write_at(pfh, offset, readData, 1, dType, MPI_STATUS_IGNORE);
-			// check if successful
-			if (res != 0) {
-				errno = 0;
-				char mpi_err[FTI_BUFS];
-				MPI_Error_string(res, mpi_err, NULL);
-				snprintf(str, FTI_BUFS, "Failed to write data to PFS during MPIIO Flush [MPI ERROR - %i] %s", res, mpi_err);
-				FTI_Print(str, FTI_EROR);
-				free(localFileNames);
-				free(splitRanks);
-				free(allFileSizes);
-				fclose(lfd);
-				MPI_File_close(&pfh);
-				return FTI_NSCS;
-			}
-			MPI_Type_free(&dType);
-			offset += bytes;
+			FTI_MPIOWrite(readData, bytes,&write_info);
 			pos = pos + bytes;
 		}
 		free(readData);
@@ -914,7 +864,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	free(localFileNames);
 	free(allFileSizes);
 	free(splitRanks);
-	MPI_File_close(&pfh);
+	FTI_MPIOClose(&write_info);
 	return FTI_SCES;
 }
 

@@ -40,7 +40,7 @@
 #include "interface.h"
 
 
-#include "ftiff.h"
+#include "IO/ftiff.h"
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
