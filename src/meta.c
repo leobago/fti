@@ -37,6 +37,7 @@
  */
 
 #include "interface.h"
+#include "macros.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -709,11 +710,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Remove topology section
     iniparser_unset(ini, "topology");
-    if (mkdir(FTI_Conf->mTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create directory", FTI_EROR);
-        }
-    }
+	MKDIR(FTI_Conf->mTmpDir,0777);
 
     snprintf(buf, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
     if (remove(buf) == -1) {

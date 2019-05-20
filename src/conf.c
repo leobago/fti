@@ -38,6 +38,7 @@
 
 #include "interface.h"
 #include "api_cuda.h"
+#include "macros.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -458,43 +459,24 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
     FTI_Print(str, FTI_DBUG);
-    if (mkdir(FTI_Conf->localDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("The local directory could NOT be created.", FTI_WARN);
-            return FTI_NSCS;
-        }
-    }
+	MKDIR(FTI_Conf->localDir,0777);
 
     if (FTI_Topo->myRank == 0) {
         // Checking metadata directory
         snprintf(str, FTI_BUFS, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
         FTI_Print(str, FTI_DBUG);
-        if (mkdir(FTI_Conf->metadDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("The metadata directory could NOT be created.", FTI_WARN);
-                return FTI_NSCS;
-            }
-        }
+		MKDIR(FTI_Conf->metadDir,0777);
 
         // Checking global directory
         snprintf(str,FTI_BUFS,  "Checking the global directory (%s)...", FTI_Conf->glbalDir);
         FTI_Print(str, FTI_DBUG);
-        if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("The global directory could NOT be created.", FTI_WARN);
-                return FTI_NSCS;
-            }
-        }
+		MKDIR(FTI_Conf->glbalDir, 0777);
         
         // Checking metadata directory
         if( FTI_Conf->h5SingleFileEnable ) {
             snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
             FTI_Print(str, FTI_DBUG);
-            if (mkdir(FTI_Conf->h5SingleFileDir, 0777) == -1) {
-                if (errno != EEXIST) {
-                    h5DirFailed = 1;
-                }
-            }
+			MKDIR(FTI_Conf->h5SingleFileDir,0777);
         }
     }
     
@@ -535,11 +517,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
-    if (mkdir(fn, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create metadata timestamp directory", FTI_EROR);
-        }
-    }
+	MKDIR(fn,0777);
     snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", fn);
     snprintf(FTI_Conf->mTmpDir, FTI_BUFS, "%s/tmp", fn);
     snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
@@ -550,44 +528,27 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Create global checkpoint timestamp directory
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-    if (mkdir(FTI_Conf->glbalDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create global checkpoint timestamp directory", FTI_EROR);
-        }
-    }
+	MKDIR(FTI_Conf->glbalDir,0777);
     snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].archDir, FTI_BUFS, "%s/l4_archive", FTI_Conf->glbalDir);
     if ( FTI_Conf->keepL4Ckpt ) {
-        if (mkdir(FTI_Ckpt[4].archDir, (mode_t) 0777) == -1) {
-            if (errno != EEXIST) {
-                snprintf(strerr, FTI_BUFS, "failed to create directory '%s', cannot keep L4 checkpoint.", FTI_Ckpt[4].archDir);
-                FTI_Print(strerr, FTI_EROR);
-                FTI_Conf->keepL4Ckpt = false;
-            }
-        }
+		MKDIR(FTI_Ckpt[4].archDir,0777);
     }
 
     // Create local checkpoint timestamp directory
     if (FTI_Conf->test) { // If local test generate name by topology
         snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf->localDir, FTI_Topo->myRank / FTI_Topo->nodeSize);
-        if (mkdir(fn, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
-            }
-        }
+		MKDIR(fn, 0777);
     }
     else {
         snprintf(fn, FTI_BUFS, "%s", FTI_Conf->localDir);
     }
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-    if (mkdir(FTI_Conf->localDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create local checkpoint timestamp directory", FTI_EROR);
-        }
-    }
+	MKDIR(FTI_Conf->localDir, 0777);
+
     snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);

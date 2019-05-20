@@ -597,11 +597,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-	if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
-		if (errno != EEXIST) {
-			FTI_Print("Cannot create directory", FTI_EROR);
-		}
-	}
+	MKDIR(FTI_Ckpt[2].dir, 0777);
 
 	int erased[FTI_BUFS];
 	int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
@@ -752,11 +748,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-	if (mkdir(FTI_Ckpt[3].dir, 0777) == -1) {
-		if (errno != EEXIST) {
-			FTI_Print("Cannot create directory", FTI_EROR);
-		}
-	}
+	MKDIR(FTI_Ckpt[3].dir , 0777);
 
 	int erased[FTI_BUFS];
 
@@ -875,11 +867,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 	FTI_Print("Starting recovery L4 using Posix I/O.", FTI_DBUG);
-	if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-		if (errno != EEXIST) {
-			FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-		}
-	}
+	MKDIR(FTI_Ckpt[1].dir, 0777);
 
 	// Checking erasures
 	if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
@@ -1080,11 +1068,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 	FTI_Print("Starting recovery L4 using Sionlib.", FTI_DBUG);
 	//Create local directories
-	if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
-		if (errno != EEXIST) {
-			FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
-		}
-	}
+	MKDIR(FTI_Ckpt[1].dir, 0777);
 
 	snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 	snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);

@@ -541,20 +541,10 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
 		//Create global temp directory
-		if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-			if (errno != EEXIST) {
-				FTI_Print("Cannot create global directory", FTI_EROR);
-				return FTI_NSCS;
-			}
-		}
+		MKDIR(FTI_Conf->gTmpDir,0777);
 	} else {
 		if ( !FTI_Ckpt[4].hasDcp ) {
-			if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
-				if (errno != EEXIST) {
-					FTI_Print("Cannot create global dCP directory", FTI_EROR);
-					return FTI_NSCS;
-				}
-			}
+			MKDIR(FTI_Ckpt[4].dcpDir,0777);
 		}
 	}
 	int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
