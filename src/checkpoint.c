@@ -261,29 +261,18 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
 			//checkpoint was not saved in global temporary directory
 			int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
-			if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
-				char dbg_str[FTI_BUFS];
-				snprintf(dbg_str, FTI_BUFS, "Cannot rename local directory (%s)", FTI_Conf->lTmpDir);
-				FTI_Print(dbg_str, FTI_EROR);
-			}
-			else {
-				FTI_Print("Local directory renamed", FTI_DBUG);
-			}
+			RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
 		}
 	}
 	int globalFlag = !FTI_Topo->splitRank;
 	globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
 	if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
 		if (FTI_Exec->ckptLvel == 4) {
-			if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {
-				FTI_Print("Cannot rename global directory", FTI_EROR);
-			}
+			RENAME(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir);
 		}
 		// there is no temp meta data folder for FTI-FF
 		if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-			if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
-				FTI_Print("Cannot rename meta directory", FTI_EROR);
-			}
+			RENAME(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir);
 		}
 	}
 	MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)

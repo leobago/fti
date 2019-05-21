@@ -41,6 +41,114 @@
 #include "utility.h"
 #include "api_cuda.h"
 
+
+int FTI_HDF5Open(char *fn, void *fileDesc){
+	WriteHDF5_t *fd = (WriteHDF5_t*) fileDesc;
+	int i;
+	char str[FTI_BUFS];
+
+	if( fd->FTI_Exec->h5SingleFile ) { 
+		hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+		H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
+		fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
+		H5Pclose( plid );
+	} else {
+		fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	}
+
+	if (fd->file_id < 0) {
+		sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	fd->FTI_Exec->H5groups[0]->h5groupID = fd->file_id;
+	FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+
+	for (i = 0; i < rootGroup->childrenNo; i++) {
+		FTI_CreateGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[i]], fd->file_id, fd->FTI_Exec->H5groups);
+	}
+
+	if( fd->FTI_Exec->h5SingleFile ) { 
+		FTI_CreateGlobalDatasets( fd->FTI_Exec );
+	}
+
+	return FTI_SCES;
+}
+
+int FTI_HDF5Write(void *data, size_t size, void *fileDesc){
+	WriteHDF5_t *fd = (WriteHDF5_t *) fileDesc;
+	int id = *(int*) data;
+	FTIT_dataset *src =  &(fd->FTI_Data[id]);
+	int toCommit = 0;
+	char str[FTI_BUFS];
+	int j;
+	FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+
+	if (src->type->h5datatype < 0) {
+		toCommit = 1;
+	}
+	sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", src->type->id, (long)src->type->h5datatype);
+	FTI_Print(str, FTI_DBUG);
+	FTI_CreateComplexType(src->type, fd->FTI_Exec->FTI_Type);
+	if (toCommit == 1) {
+		char name[FTI_BUFS];
+		herr_t res;
+		if (src->type->structure == NULL) {
+			sprintf(name, "Type%d", src->type->id);
+		} else {
+			strncpy(name, src->type->structure->name, FTI_BUFS);
+		}
+		res = H5Tcommit(src->type->h5group->h5groupID, name, src->type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		if (res < 0) {
+			sprintf(str, "Datatype #%d could not be commited", src->id);
+			FTI_Print(str, FTI_EROR);
+			for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
+				FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);
+			}
+			H5Fclose(fd->file_id);
+			return FTI_NSCS;
+		}
+	}
+	//convert dimLength array to hsize_t
+	if ( FTI_Try(FTI_WriteHDF5Var(src) , "Writing data to HDF5 filesystem") != FTI_SCES){
+		sprintf(str, "Dataset #%d could not be written", src->id);
+		FTI_Print(str, FTI_EROR);
+		for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
+			FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);
+		}
+		H5Fclose(fd->file_id);
+		return FTI_NSCS;
+	}
+	return FTI_SCES;
+}
+
+int  FTI_HDF5Close(void *fileDesc){
+	int i,j;
+	WriteHDF5_t *fd = (WriteHDF5_t *)fileDesc;
+	FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+
+	for (i = 0; i < fd->FTI_Exec->nbVar; i++) {
+		FTI_CloseComplexType(fd->FTI_Data[i].type, fd->FTI_Exec->FTI_Type);
+	}
+
+	for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
+		FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);
+	}
+
+	if( fd->FTI_Exec->h5SingleFile ) { 
+		FTI_CloseGlobalDatasets( fd->FTI_Exec );
+	}
+
+	// close file
+	fd->FTI_Exec->H5groups[0]->h5groupID = -1;
+	if (H5Fclose(fd->file_id) < 0) {
+		FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
+		return FTI_NSCS;
+	}
+
+	return FTI_SCES;
+
+}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It checks if an hdf5 file exist and the contents are  'correct'.
@@ -56,36 +164,36 @@
 /*-------------------------------------------------------------------------*/
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum)
 {
-    char str[FTI_BUFS];
-    if (access(fn, F_OK) == 0) {
-        struct stat fileStatus;
-        if (stat(fn, &fileStatus) == 0) {
-            if (fileStatus.st_size == fs) {
-                hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
-                if (file_id < 0) {
-                    sprintf(str, "Corrupted Checkpoint File: \"%s\"", fn);
-                    FTI_Print(str,FTI_WARN);
-                    return 1;
-                }            
-                else{
-                    H5Fclose(file_id);
-                    return 0;
-                }
-            }
-            else {
-                return 1;
-            }
-        }
-        else {
-            return 1;
-        }
-    }
-    else {
-        char str[FTI_BUFS];
-        sprintf(str, "Missing file: \"%s\"", fn);
-        FTI_Print(str, FTI_WARN);
-        return 1;
-    }
+	char str[FTI_BUFS];
+	if (access(fn, F_OK) == 0) {
+		struct stat fileStatus;
+		if (stat(fn, &fileStatus) == 0) {
+			if (fileStatus.st_size == fs) {
+				hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+				if (file_id < 0) {
+					sprintf(str, "Corrupted Checkpoint File: \"%s\"", fn);
+					FTI_Print(str,FTI_WARN);
+					return 1;
+				}            
+				else{
+					H5Fclose(file_id);
+					return 0;
+				}
+			}
+			else {
+				return 1;
+			}
+		}
+		else {
+			return 1;
+		}
+	}
+	else {
+		char str[FTI_BUFS];
+		sprintf(str, "Missing file: \"%s\"", fn);
+		FTI_Print(str, FTI_WARN);
+		return 1;
+	}
 }
 
 /*-------------------------------------------------------------------------*/
@@ -108,61 +216,61 @@ int FTI_CheckHDF5File(char* fn, long fs, char* checksum)
 /*-------------------------------------------------------------------------*/
 hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *count, int numOfDimensions, hsize_t *dimensions, hsize_t *sep)
 {
-    int i;
-    memset(count, 0, sizeof(hsize_t)*numOfDimensions);
-    size_t maxElements = maxBytes/sizeOfElement;
-    hsize_t bytesToFetch;
+	int i;
+	memset(count, 0, sizeof(hsize_t)*numOfDimensions);
+	size_t maxElements = maxBytes/sizeOfElement;
+	hsize_t bytesToFetch;
 
-    if (maxElements == 0 )
-        maxElements = 1;
+	if (maxElements == 0 )
+		maxElements = 1;
 
-    hsize_t *dimensionSize = (hsize_t *) malloc (sizeof(hsize_t)*(numOfDimensions+1));
-    dimensionSize[numOfDimensions] =1;
+	hsize_t *dimensionSize = (hsize_t *) malloc (sizeof(hsize_t)*(numOfDimensions+1));
+	dimensionSize[numOfDimensions] =1;
 
-    //Calculate how many elements does each whole dimension holds
-    for ( i = numOfDimensions - 1; i >=0 ; i--){
-        dimensionSize[i] = dimensionSize[i+1] * dimensions[i];
-    }
+	//Calculate how many elements does each whole dimension holds
+	for ( i = numOfDimensions - 1; i >=0 ; i--){
+		dimensionSize[i] = dimensionSize[i+1] * dimensions[i];
+	}
 
-    //Find which is the maximum dimension that I can fetch continuously.
-    for ( i = numOfDimensions ; i >= 0; i--){
-        if ( maxElements < dimensionSize[i]){
-            break;
-        }
-    }
+	//Find which is the maximum dimension that I can fetch continuously.
+	for ( i = numOfDimensions ; i >= 0; i--){
+		if ( maxElements < dimensionSize[i]){
+			break;
+		}
+	}
 
-    // I is =-1 when I can fetch the whole buffer
-    if ( i == -1  ){
-        *sep = 0;
-        bytesToFetch = dimensionSize[*sep+1] * dimensions[*sep] * sizeOfElement; 
-        memcpy(count, dimensions, sizeof(hsize_t)*numOfDimensions);
-        return bytesToFetch;
-    }
+	// I is =-1 when I can fetch the whole buffer
+	if ( i == -1  ){
+		*sep = 0;
+		bytesToFetch = dimensionSize[*sep+1] * dimensions[*sep] * sizeOfElement; 
+		memcpy(count, dimensions, sizeof(hsize_t)*numOfDimensions);
+		return bytesToFetch;
+	}
 
 
-    // Calculate the maxium elements of this dimension that I can get
-    // This number should be a multiple of the total dimension lenght
-    // of this dimension.
-    *sep= i;
-    int fetchElements = 0;
-    for ( i = maxElements/(dimensionSize[*sep+1]) ; i >= 1; i--){
-        if ( dimensions[*sep]%i  == 0){
-            fetchElements = i;
-            break;
-        }
-    }
+	// Calculate the maxium elements of this dimension that I can get
+	// This number should be a multiple of the total dimension lenght
+	// of this dimension.
+	*sep= i;
+	int fetchElements = 0;
+	for ( i = maxElements/(dimensionSize[*sep+1]) ; i >= 1; i--){
+		if ( dimensions[*sep]%i  == 0){
+			fetchElements = i;
+			break;
+		}
+	}
 
-    //Fill in the count array and return.
-    for ( i = 0 ; i < *sep ; i++ )
-        count[i] = 1;
+	//Fill in the count array and return.
+	for ( i = 0 ; i < *sep ; i++ )
+		count[i] = 1;
 
-    count[*sep] = fetchElements;
-    for ( i = *sep+1; i < numOfDimensions ; i++)
-        count[i] = dimensions[i];
+	count[*sep] = fetchElements;
+	for ( i = *sep+1; i < numOfDimensions ; i++)
+		count[i] = dimensions[i];
 
-    bytesToFetch = dimensionSize[*sep+1] * count[*sep] * sizeOfElement; 
+	bytesToFetch = dimensionSize[*sep+1] * count[*sep] * sizeOfElement; 
 
-    return bytesToFetch;
+	return bytesToFetch;
 }
 
 
@@ -184,24 +292,24 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *c
 
 int FTI_WriteElements(hid_t dataspace, hid_t dataType, hid_t dataset, hsize_t *count, hsize_t *offset, hsize_t ranks, void *ptr)
 {
-    char str[FTI_BUFS];
-    hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL,count, NULL);
-    hsize_t *dims_in= (hsize_t*) malloc (sizeof(hsize_t)*ranks);
-    memcpy(dims_in,count,ranks*sizeof(hsize_t));
-    hid_t memspace = H5Screate_simple(ranks,dims_in, NULL); 
-    hsize_t *offset_in = (hsize_t*) calloc (ranks,sizeof(ranks));
-    status = H5Sselect_hyperslab( memspace, H5S_SELECT_SET, offset_in, NULL, count, NULL);
-    status = H5Dwrite(dataset, dataType, memspace, dataspace, H5P_DEFAULT, ptr);  
-    if (status < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset could not be written");
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    free(offset_in);
-    free(dims_in);
-    return FTI_SCES;
+	char str[FTI_BUFS];
+	hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL,count, NULL);
+	hsize_t *dims_in= (hsize_t*) malloc (sizeof(hsize_t)*ranks);
+	memcpy(dims_in,count,ranks*sizeof(hsize_t));
+	hid_t memspace = H5Screate_simple(ranks,dims_in, NULL); 
+	hsize_t *offset_in = (hsize_t*) calloc (ranks,sizeof(ranks));
+	status = H5Sselect_hyperslab( memspace, H5S_SELECT_SET, offset_in, NULL, count, NULL);
+	status = H5Dwrite(dataset, dataType, memspace, dataspace, H5P_DEFAULT, ptr);  
+	if (status < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset could not be written");
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	free(offset_in);
+	free(dims_in);
+	return FTI_SCES;
 
 }
 
@@ -223,24 +331,24 @@ int FTI_WriteElements(hid_t dataspace, hid_t dataType, hid_t dataset, hsize_t *c
 
 int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *count, hsize_t *offset, hsize_t ranks, void *ptr)
 {
-    char str[FTI_BUFS];
-    hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL,count, NULL);
-    hsize_t *dims_out= (hsize_t*) malloc (sizeof(hsize_t)*ranks);
-    memcpy(dims_out,count,ranks*sizeof(hsize_t));
-    hid_t memspace = H5Screate_simple(ranks,dims_out, NULL); 
-    hsize_t *offset_out = (hsize_t*) calloc (ranks,sizeof(ranks));
-    status = H5Sselect_hyperslab( memspace, H5S_SELECT_SET, offset_out, NULL, count, NULL);
-    status = H5Dread(dataset,dimType, memspace, dataspace, H5P_DEFAULT, ptr);  
-    if (status < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset could not be written");
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    free(offset_out);
-    free(dims_out);
-    return FTI_SCES;
+	char str[FTI_BUFS];
+	hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL,count, NULL);
+	hsize_t *dims_out= (hsize_t*) malloc (sizeof(hsize_t)*ranks);
+	memcpy(dims_out,count,ranks*sizeof(hsize_t));
+	hid_t memspace = H5Screate_simple(ranks,dims_out, NULL); 
+	hsize_t *offset_out = (hsize_t*) calloc (ranks,sizeof(ranks));
+	status = H5Sselect_hyperslab( memspace, H5S_SELECT_SET, offset_out, NULL, count, NULL);
+	status = H5Dread(dataset,dimType, memspace, dataspace, H5P_DEFAULT, ptr);  
+	if (status < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset could not be written");
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	free(offset_out);
+	free(dims_out);
+	return FTI_SCES;
 
 }
 
@@ -265,32 +373,32 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *cou
 
 int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims, hsize_t rank)
 {
-    int i;
-    hsize_t carryOut=0;
-    hsize_t temp;
-    temp = start[sep] + add[sep];
+	int i;
+	hsize_t carryOut=0;
+	hsize_t temp;
+	temp = start[sep] + add[sep];
 
-    if ( temp >= dims[sep] ){
-        start[sep] = temp % dims[sep]; 
-        carryOut=1;
-    }
-    else{
-        start[sep] = temp;
-        carryOut=0;
-    }
+	if ( temp >= dims[sep] ){
+		start[sep] = temp % dims[sep]; 
+		carryOut=1;
+	}
+	else{
+		start[sep] = temp;
+		carryOut=0;
+	}
 
-    for ( i = sep-1; i >= 0 &&carryOut ; i--){
-        temp = start[i] + carryOut;
-        if ( temp >= dims[i] ){
-            start[i] = temp % dims[i]; 
-            carryOut=1;
-        }
-        else{
-            start[i] = temp;
-            carryOut=0;
-        }
-    }
-    return carryOut;
+	for ( i = sep-1; i >= 0 &&carryOut ; i--){
+		temp = start[i] + carryOut;
+		if ( temp >= dims[i] ){
+			start[i] = temp % dims[i]; 
+			carryOut=1;
+		}
+		else{
+			start[i] = temp;
+			carryOut=0;
+		}
+	}
+	return carryOut;
 }
 
 
@@ -309,129 +417,129 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
 
 int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
 {
-    int j;
-    hsize_t dimLength[32];
-    char str[FTI_BUFS];
-    int res;
-    hid_t dcpl;
+	int j;
+	hsize_t dimLength[32];
+	char str[FTI_BUFS];
+	int res;
+	hid_t dcpl;
 
-    for (j = 0; j < FTI_DataVar->rank; j++) {
-        dimLength[j] = FTI_DataVar->dimLength[j];
-    }
+	for (j = 0; j < FTI_DataVar->rank; j++) {
+		dimLength[j] = FTI_DataVar->dimLength[j];
+	}
 
-    dcpl = H5Pcreate (H5P_DATASET_CREATE);
-    res = H5Pset_fletcher32 (dcpl);
-    res = H5Pset_chunk (dcpl, FTI_DataVar->rank, dimLength);
+	dcpl = H5Pcreate (H5P_DATASET_CREATE);
+	res = H5Pset_fletcher32 (dcpl);
+	res = H5Pset_chunk (dcpl, FTI_DataVar->rank, dimLength);
 
-    hid_t dataspace = H5Screate_simple( FTI_DataVar->rank, dimLength, NULL);
-    hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+	hid_t dataspace = H5Screate_simple( FTI_DataVar->rank, dimLength, NULL);
+	hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
 
-    // If my data are stored in the CPU side
-    // Just store the data to the file and return;
+	// If my data are stored in the CPU side
+	// Just store the data to the file and return;
 #ifdef GPUSUPPORT    
-    if ( !FTI_DataVar->isDevicePtr ){
+	if ( !FTI_DataVar->isDevicePtr ){
 #endif
-        res = H5Dwrite(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
+		res = H5Dwrite(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
 
-        res = H5Pclose (dcpl);
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
+		res = H5Pclose (dcpl);
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
 
-        res = H5Dclose(dataset);
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        res = H5Sclose(dataspace);
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        return FTI_SCES;
+		res = H5Dclose(dataset);
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		res = H5Sclose(dataspace);
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		return FTI_SCES;
 #ifdef GPUSUPPORT        
-    }
+	}
 
-    // This code is only executed in the GPU case.
+	// This code is only executed in the GPU case.
 
-    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
-    hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
+	hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
+	hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
 
-    if ( !count|| !offset){
-        sprintf(str, "Could Not allocate count and offset regions");
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-
-
-    hsize_t seperator;
-    hsize_t fetchBytes = FTI_getHostBuffSize();
-    fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, fetchBytes ,count, FTI_DataVar->rank, dimLength, &seperator);
-    sprintf(str,"GPU-Device Message: I Will Fetch %lld Bytes Per Stream Request", fetchBytes);
-    FTI_Print(str,FTI_DBUG);
+	if ( !count|| !offset){
+		sprintf(str, "Could Not allocate count and offset regions");
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
 
 
-    FTIT_data_prefetch prefetcher;
-    prefetcher.fetchSize = fetchBytes;
-    prefetcher.totalBytesToFetch = FTI_DataVar->size;
-    prefetcher.isDevice = FTI_DataVar->isDevicePtr;
-    prefetcher.dptr = FTI_DataVar->devicePtr;
-    size_t bytesToWrite;
-    FTI_InitPrefetcher(&prefetcher);
-    unsigned char *basePtr = NULL;
+	hsize_t seperator;
+	hsize_t fetchBytes = FTI_getHostBuffSize();
+	fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, fetchBytes ,count, FTI_DataVar->rank, dimLength, &seperator);
+	sprintf(str,"GPU-Device Message: I Will Fetch %lld Bytes Per Stream Request", fetchBytes);
+	FTI_Print(str,FTI_DBUG);
 
 
-    if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
-        return FTI_NSCS;
-    }
-
-    while( basePtr  ){
-        res = FTI_WriteElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
-        if (res != FTI_SCES ) {
-            free(offset);
-            free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
-
-        if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), 
-                    "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
-            return FTI_NSCS;
-        }
-
-    }
+	FTIT_data_prefetch prefetcher;
+	prefetcher.fetchSize = fetchBytes;
+	prefetcher.totalBytesToFetch = FTI_DataVar->size;
+	prefetcher.isDevice = FTI_DataVar->isDevicePtr;
+	prefetcher.dptr = FTI_DataVar->devicePtr;
+	size_t bytesToWrite;
+	FTI_InitPrefetcher(&prefetcher);
+	unsigned char *basePtr = NULL;
 
 
-    res = H5Dclose(dataset);
-    if (res < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    res = H5Sclose(dataspace);
-    if (res < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    free(offset);
-    free(count);
-    return FTI_SCES;
+	if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
+		return FTI_NSCS;
+	}
+
+	while( basePtr  ){
+		res = FTI_WriteElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
+		if (res != FTI_SCES ) {
+			free(offset);
+			free(count);
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
+
+		if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), 
+					"Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
+			return FTI_NSCS;
+		}
+
+	}
+
+
+	res = H5Dclose(dataset);
+	if (res < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	res = H5Sclose(dataspace);
+	if (res < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	free(offset);
+	free(count);
+	return FTI_SCES;
 #endif
 }
 
@@ -449,142 +557,142 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
 /*-------------------------------------------------------------------------*/
 int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
 {
-    char str[FTI_BUFS];
-    int res;
+	char str[FTI_BUFS];
+	int res;
 
-    hid_t dataset = H5Dopen(FTI_DataVar->h5group->h5groupID, FTI_DataVar->name, H5P_DEFAULT);
-    hid_t dataspace = H5Dget_space(dataset);
+	hid_t dataset = H5Dopen(FTI_DataVar->h5group->h5groupID, FTI_DataVar->name, H5P_DEFAULT);
+	hid_t dataspace = H5Dget_space(dataset);
 
-    // If my data are stored in the CPU side
-    // Just store the data to the file and return;
+	// If my data are stored in the CPU side
+	// Just store the data to the file and return;
 #ifdef GPUSUPPORT    
-    if ( !FTI_DataVar->isDevicePtr ){
+	if ( !FTI_DataVar->isDevicePtr ){
 #endif
-        res = H5Dread(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
+		res = H5Dread(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
 
-        res = H5Dclose(dataset);
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        res = H5Sclose(dataspace);
-        if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        return FTI_SCES;
+		res = H5Dclose(dataset);
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		res = H5Sclose(dataspace);
+		if (res < 0) {
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		return FTI_SCES;
 #ifdef GPUSUPPORT        
-    }
+	}
 
-    hsize_t dimLength[32];
-    int j;
-    for (j = 0; j < FTI_DataVar->rank; j++) {
-        dimLength[j] = FTI_DataVar->dimLength[j];
-    }
+	hsize_t dimLength[32];
+	int j;
+	for (j = 0; j < FTI_DataVar->rank; j++) {
+		dimLength[j] = FTI_DataVar->dimLength[j];
+	}
 
-    // This code is only executed in the GPU case.
-
-
-    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
-    hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
-
-    if ( !count|| !offset){
-        sprintf(str, "Could Not allocate count and offset regions");
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
+	// This code is only executed in the GPU case.
 
 
-    hsize_t seperator;
-    size_t fetchBytes;
-    size_t hostBufSize = FTI_getHostBuffSize();
-    //Calculate How many dimension I can compute each time 
-    //and how bug should the HOST-GPU communication buffer should be
+	hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
+	hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
 
-    fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, hostBufSize ,count, FTI_DataVar->rank, dimLength, &seperator);
+	if ( !count|| !offset){
+		sprintf(str, "Could Not allocate count and offset regions");
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
 
-    //If the buffer is smaller than the minimum amount 
-    //then I need to allocate a bigger one.
-    if (hostBufSize < fetchBytes){
-        if ( FTI_Try( FTI_DestroyDevices(), "Deleting host buffers" ) != FTI_SCES){
-            free(offset);
-            free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
 
-        if ( FTI_Try (FTI_InitDevices( fetchBytes ), "Allocating host buffers")!= FTI_SCES) {
-            free(offset);
-            free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-    }
+	hsize_t seperator;
+	size_t fetchBytes;
+	size_t hostBufSize = FTI_getHostBuffSize();
+	//Calculate How many dimension I can compute each time 
+	//and how bug should the HOST-GPU communication buffer should be
 
-    unsigned char *basePtr = NULL;
-    int id = 0;
-    int prevId = 1;
-    hsize_t totalBytes = FTI_DataVar->size;
-    cudaStream_t streams[2]; 
-    //Create the streams for the asynchronous data movement.
-    CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[0])));
-    CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[1])));
-    unsigned char *dPtr = FTI_DataVar->devicePtr;
-    // Perform the while loop until all data
-    // are processed.
-    while( totalBytes  ){
-        basePtr = FTI_getHostBuffer(id); 
-        //Read file 
-        res = FTI_ReadElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
-        CUDA_ERROR_CHECK(cudaMemcpyAsync( dPtr , basePtr, fetchBytes, cudaMemcpyHostToDevice, streams[id]));
-        if (res != FTI_SCES ) {
-            free(offset);
-            free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-            FTI_Print(str, FTI_EROR);
-            return FTI_NSCS;
-        }
-        //Increase accordingly the file offset
-        FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
-        //Syncing the cuda stream.
-        CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
-        prevId = id;
-        id = (id + 1)%2;
-        dPtr = dPtr + fetchBytes;
-        totalBytes -= fetchBytes;
-    }
-    CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
-    CUDA_ERROR_CHECK(cudaStreamDestroy(streams[0]));
-    CUDA_ERROR_CHECK(cudaStreamDestroy(streams[1]));
+	fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, hostBufSize ,count, FTI_DataVar->rank, dimLength, &seperator);
 
-    res = H5Dclose(dataset);
-    if (res < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    res = H5Sclose(dataspace);
-    if (res < 0) {
-        free(offset);
-        free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-    free(offset);
-    free(count);
-    return FTI_SCES;
+	//If the buffer is smaller than the minimum amount 
+	//then I need to allocate a bigger one.
+	if (hostBufSize < fetchBytes){
+		if ( FTI_Try( FTI_DestroyDevices(), "Deleting host buffers" ) != FTI_SCES){
+			free(offset);
+			free(count);
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+
+		if ( FTI_Try (FTI_InitDevices( fetchBytes ), "Allocating host buffers")!= FTI_SCES) {
+			free(offset);
+			free(count);
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+	}
+
+	unsigned char *basePtr = NULL;
+	int id = 0;
+	int prevId = 1;
+	hsize_t totalBytes = FTI_DataVar->size;
+	cudaStream_t streams[2]; 
+	//Create the streams for the asynchronous data movement.
+	CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[0])));
+	CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[1])));
+	unsigned char *dPtr = FTI_DataVar->devicePtr;
+	// Perform the while loop until all data
+	// are processed.
+	while( totalBytes  ){
+		basePtr = FTI_getHostBuffer(id); 
+		//Read file 
+		res = FTI_ReadElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
+		CUDA_ERROR_CHECK(cudaMemcpyAsync( dPtr , basePtr, fetchBytes, cudaMemcpyHostToDevice, streams[id]));
+		if (res != FTI_SCES ) {
+			free(offset);
+			free(count);
+			sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+			FTI_Print(str, FTI_EROR);
+			return FTI_NSCS;
+		}
+		//Increase accordingly the file offset
+		FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
+		//Syncing the cuda stream.
+		CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
+		prevId = id;
+		id = (id + 1)%2;
+		dPtr = dPtr + fetchBytes;
+		totalBytes -= fetchBytes;
+	}
+	CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
+	CUDA_ERROR_CHECK(cudaStreamDestroy(streams[0]));
+	CUDA_ERROR_CHECK(cudaStreamDestroy(streams[1]));
+
+	res = H5Dclose(dataset);
+	if (res < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	res = H5Sclose(dataspace);
+	if (res < 0) {
+		free(offset);
+		free(count);
+		sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+		FTI_Print(str, FTI_EROR);
+		return FTI_NSCS;
+	}
+	free(offset);
+	free(count);
+	return FTI_SCES;
 #endif
 }
 
@@ -601,126 +709,40 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+		FTIT_dataset* FTI_Data)
 {
-    FTI_Print("I/O mode: HDF5.", FTI_DBUG);
-    char str[FTI_BUFS], fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
-    }
+	char str[FTI_BUFS], fn[FTI_BUFS];
+	int level = FTI_Exec->ckptLvel;
+	int ret;
+	int i;
 
-    hid_t file_id;
-    
-    //Creating new hdf5 file
-    if( FTI_Exec->h5SingleFile ) { 
-        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
-        file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
-        H5Pclose( plid );
-    } else {
-        file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    }
-    if (file_id < 0) {
-        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(str, FTI_EROR);
+	FTI_Print("I/O mode: HDF5.", FTI_DBUG);
+	WriteHDF5_t *fd = (WriteHDF5_t *) malloc (sizeof(WriteHDF5_t));
 
-        return FTI_NSCS;
-    }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+	if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+	}
+	else {
+		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+	}
+	if( FTI_Exec->h5SingleFile ) {
+		snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+	}
 
-    int i;
-    for (i = 0; i < rootGroup->childrenNo; i++) {
-        FTI_CreateGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
-    }
+	fd->FTI_Exec = FTI_Exec;
+	fd->FTI_Data = FTI_Data;
+	FTI_HDF5Open(fn, fd);
+	// write data into ckpt file
 
-    // write data into ckpt file
+	// create datatypes
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		FTI_HDF5Write(&i,0,fd);
+	}
 
-    // create datatypes
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        int toCommit = 0;
-        if (FTI_Data[i].type->h5datatype < 0) {
-            toCommit = 1;
-        }
-        sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_Data[i].type->id, (long)FTI_Data[i].type->h5datatype);
-        FTI_Print(str, FTI_DBUG);
-        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-        if (toCommit == 1) {
-            char name[FTI_BUFS];
-            if (FTI_Data[i].type->structure == NULL) {
-                //this is the array of bytes with no name
-                sprintf(name, "Type%d", FTI_Data[i].type->id);
-            } else {
-                strncpy(name, FTI_Data[i].type->structure->name, FTI_BUFS);
-            }
-            herr_t res = H5Tcommit(FTI_Data[i].type->h5group->h5groupID, name, FTI_Data[i].type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-            if (res < 0) {
-                sprintf(str, "Datatype #%d could not be commited", FTI_Data[i].id);
-                FTI_Print(str, FTI_EROR);
-                int j;
-                for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                    FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-                }
-                H5Fclose(file_id);
-                return FTI_NSCS;
-            }
-        }
-    }
-
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_CreateGlobalDatasets( FTI_Exec );
-    }
-
-    // write data
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        int res;
-        if( FTI_Exec->h5SingleFile ) { 
-            res = FTI_WriteSharedFileData( FTI_Data[i] );
-        } else {
-            res = FTI_WriteHDF5Var(&FTI_Data[i]); 
-        }
-        if ( res != FTI_SCES ) {
-            sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
-            FTI_Print(str, FTI_EROR);
-            int j;
-            for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-            }
-            H5Fclose(file_id);
-            return FTI_NSCS;
-        }
-    }
-    
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-    }
-
-    int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-    }
-    
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec );
-    }
-
-    // close file
-    FTI_Exec->H5groups[0]->h5groupID = -1;
-    if (H5Fclose(file_id) < 0) {
-        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-        return FTI_NSCS;
-    }
-
-
-    return FTI_SCES;
+	ret = FTI_HDF5Close(fd);
+	free(fd);
+	return ret ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -734,85 +756,85 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                   FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data)
 {
-    char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
-    }
+	char str[FTI_BUFS], fn[FTI_BUFS];
+	snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+	if( FTI_Exec->h5SingleFile ) {
+		snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+	}
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
-    
-    hid_t file_id;
-    
-    //Open hdf5 file
-    if( FTI_Exec->h5SingleFile ) { 
-        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-        H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
-        file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
-        H5Pclose( plid );
-    } else {
-        file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
-    }
-    if (file_id < 0) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+	sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+	FTI_Print(str, FTI_DBUG);
 
-    int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
-    }
-    
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-    }
-    
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_OpenGlobalDatasets( FTI_Exec );
-    }
+	hid_t file_id;
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        herr_t res;
-        if( FTI_Exec->h5SingleFile ) { 
-            res = FTI_ReadSharedFileData( FTI_Data[i] );
-        } else {
-            res = FTI_ReadHDF5Var(&FTI_Data[i]);
-        }
-        if (res < 0) {
-            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            int j;
-            for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-            }
-            H5Fclose(file_id);
-            return FTI_NREC;
-        }
-    }
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-    }
+	//Open hdf5 file
+	if( FTI_Exec->h5SingleFile ) { 
+		hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+		H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
+		file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
+		H5Pclose( plid );
+	} else {
+		file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+	}
+	if (file_id < 0) {
+		FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+		return FTI_NREC;
+	}
+	FTI_Exec->H5groups[0]->h5groupID = file_id;
+	FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
 
-    int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-    }
-    
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec );
-    }
+	int i;
+	for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
+		FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
+	}
 
-    FTI_Exec->H5groups[0]->h5groupID = -1;
-    if (H5Fclose(file_id) < 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    FTI_Exec->reco = 0;
-    return FTI_SCES;
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+	}
+
+	if( FTI_Exec->h5SingleFile ) { 
+		FTI_OpenGlobalDatasets( FTI_Exec );
+	}
+
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		herr_t res;
+		if( FTI_Exec->h5SingleFile ) { 
+			res = FTI_ReadSharedFileData( FTI_Data[i] );
+		} else {
+			res = FTI_ReadHDF5Var(&FTI_Data[i]);
+		}
+		if (res < 0) {
+			FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+			int j;
+			for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+				FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+			}
+			H5Fclose(file_id);
+			return FTI_NREC;
+		}
+	}
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+	}
+
+	int j;
+	for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+		FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+	}
+
+	if( FTI_Exec->h5SingleFile ) { 
+		FTI_CloseGlobalDatasets( FTI_Exec );
+	}
+
+	FTI_Exec->H5groups[0]->h5groupID = -1;
+	if (H5Fclose(file_id) < 0) {
+		FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+		return FTI_NREC;
+	}
+	FTI_Exec->reco = 0;
+	return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -827,59 +849,59 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, int id)
+		FTIT_dataset* FTI_Data, int id)
 {
-    char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+	char str[FTI_BUFS], fn[FTI_BUFS];
+	snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
+	sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+	FTI_Print(str, FTI_DBUG);
 
-    hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (file_id < 0) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+	hid_t file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+	if (file_id < 0) {
+		FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+		return FTI_NREC;
+	}
+	FTI_Exec->H5groups[0]->h5groupID = file_id;
+	FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
 
-    int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
-    }
+	int i;
+	for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
+		FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
+	}
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if (FTI_Data[i].id == id) {
-            break;
-        }
-    }
+	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		if (FTI_Data[i].id == id) {
+			break;
+		}
+	}
 
-    hid_t h5Type = FTI_Data[i].type->h5datatype;
-    if (FTI_Data[i].type->id > 10 && FTI_Data[i].type->structure == NULL) {
-        //if used FTI_InitType() save as binary
-        h5Type = H5Tcopy(H5T_NATIVE_CHAR);
-        H5Tset_size(h5Type, FTI_Data[i].size);
-    }
-    herr_t res = H5LTread_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
-    if (res < 0) {
-        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-        int j;
-        for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-            FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-        }
-        H5Fclose(file_id);
-        return FTI_NREC;
-    }
+	hid_t h5Type = FTI_Data[i].type->h5datatype;
+	if (FTI_Data[i].type->id > 10 && FTI_Data[i].type->structure == NULL) {
+		//if used FTI_InitType() save as binary
+		h5Type = H5Tcopy(H5T_NATIVE_CHAR);
+		H5Tset_size(h5Type, FTI_Data[i].size);
+	}
+	herr_t res = H5LTread_dataset(FTI_Data[i].h5group->h5groupID, FTI_Data[i].name, h5Type, FTI_Data[i].ptr);
+	if (res < 0) {
+		FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+		int j;
+		for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+			FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+		}
+		H5Fclose(file_id);
+		return FTI_NREC;
+	}
 
-    int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-    }
-    if (H5Fclose(file_id) < 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    return FTI_SCES;
+	int j;
+	for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
+		FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+	}
+	if (H5Fclose(file_id) < 0) {
+		FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+		return FTI_NREC;
+	}
+	return FTI_SCES;
 }
 
 #endif

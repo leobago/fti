@@ -15,12 +15,25 @@ void cleanup(char* pattern, ...);
 		}																											\
 	}while(0)
 
+#define RENAME(a,b)\
+		do{																										\
+			errno = 0;																							\
+			if ( rename(a,b) != 0 ){																			\
+				char ErrorString[400];																			\
+				sprintf(ErrorString,"FILE %s FUNC %s:%d Cannot rename : %s",__FILE__,__FUNCTION__,__LINE__,a);	\
+				FTI_Print(ErrorString, FTI_EROR); 																	\
+				errno = 0;																							\
+				return FTI_NSCS; 																					\
+			}																										\
+		}while(0)
+
+
 #define FREAD(bytes, buff, size, number, fd, format, ...) \
 		do{																										\
 	        bytes = fread(buff, size, number, fd);																\
         	if (ferror(fd)) {																					\
 				char ErrorString[400];																			\
-				sprintf(ErrorString,"FILE %s FUNC %s:%d Error Reading File Bytes Read : %ld",__FILE__,__FUNCTION__,__LINE__,bytes);	\
+				sprintf(ErrorString,"FILE %s FUNC %s:%d Error Reading File Bytes Read : %ld",__FILE__,__FUNCTION__,__LINE__, (long)bytes);	\
 				FTI_Print(ErrorString, FTI_EROR); 																\
 				cleanup(format,__VA_ARGS__,NULL);																\
 	            fclose(fd);																						\
@@ -33,12 +46,14 @@ void cleanup(char* pattern, ...);
 	        bytes = fwrite(buff, size, number, fd);																\
         	if (ferror(fd)) {																					\
 				char ErrorString[400];																			\
-				sprintf(ErrorString,"FILE %s FUNC %s:%d Error Writing File Bytes Written : %ld",__FILE__,__FUNCTION__,__LINE__,bytes);	\
+				sprintf(ErrorString,"FILE %s FUNC %s:%d Error Writing File Bytes Written : %ld",__FILE__,__FUNCTION__,__LINE__,(long)bytes);	\
 				FTI_Print(ErrorString, FTI_EROR); 																\
 				cleanup(format,__VA_ARGS__,NULL);																\
 	            fclose(fd);																						\
             	return FTI_NSCS;																				\
 			}																									\
         }while(0)	
+
+
 
 #endif //__MACROS__

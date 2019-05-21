@@ -23,6 +23,18 @@ typedef struct{
 	char flag;
 }WritePosixInfo_t;
 
+#ifdef ENABLE_HDF5
+typedef struct{
+	FTIT_execution *FTI_Exec;
+	FTIT_dataset *FTI_Data;
+	hid_t file_id;
+}WriteHDF5_t;
+
+int FTI_HDF5Open(char *fn, void *fileDesc);
+int FTI_HDF5Close(void *fileDesc);
+int FTI_HDF5Write(void *src, size_t size, void *fileDesc);
+int FTI_HDF5Read(void *src, size_t size, void *fileDesc);
+#endif
 
 // Wrappers around MPIO
 int FTI_MPIOOpen(char *fn, void *fileDesc);

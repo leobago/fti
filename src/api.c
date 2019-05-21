@@ -2207,16 +2207,12 @@ int FTI_Finalize()
 				if (access(FTI_Ckpt[4].dir, 0) == 0) {
 					FTI_RmDir(FTI_Ckpt[4].dir, 1); //Delete previous L4 checkpoint
 				}
-				if (rename(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir) == -1) { //Move temporary checkpoint to L4 directory
-					FTI_Print("Cannot rename last ckpt. dir", FTI_EROR);
-				}
+				RENAME(FTI_Conf.gTmpDir,FTI_Ckpt[4].dir);
 				if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
 					if (access(FTI_Ckpt[4].metaDir, 0) == 0) {
 						FTI_RmDir(FTI_Ckpt[4].metaDir, 1); //Delete previous L4 metadata
 					}
-					if (rename(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir) == -1) { //Move temporary metadata to L4 metadata directory
-						FTI_Print("Cannot rename last ckpt. metaDir", FTI_EROR);
-					}
+					RENAME(FTI_Ckpt[FTI_Exec.ckptLvel].metaDir, FTI_Ckpt[4].metaDir);
 				}
 			}
 		}
