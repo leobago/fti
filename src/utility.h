@@ -41,6 +41,8 @@ int FTI_MPIOOpen(char *fn, void *fileDesc);
 int FTI_MPIOClose(void *fileDesc);
 int FTI_MPIOWrite(void *src, size_t size, void *fileDesc);
 int FTI_MPIORead(void *src, size_t size, void *fileDesc);
+WriteMPIInfo_t *FTI_InitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
+int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, WriteMPIInfo_t *write_info);
 
 //Wrappers around POSIX IO
 int FTI_PosixOpen(char *fn, void *fileDesc);
@@ -49,6 +51,8 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
 int FTI_PosixRead(void *src, size_t size, void *fileDesc);
 int FTI_PosixSync(void *fileDesc);
 int FTI_PosixSeek(size_t pos, void *fileDesc);
+WritePosixInfo_t *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt);
+int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, WritePosixInfo_t *write_info);
 
 
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);

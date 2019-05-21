@@ -15,34 +15,10 @@
   protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
 {
-	char str[FTI_BUFS]; //For console output
-	WritePosixInfo_t *write_info = (WritePosixInfo_t *) malloc (sizeof(WritePosixInfo_t));
-
-	snprintf(str, FTI_BUFS, "Initialize incremental checkpoint (ID: %d, Lvl: %d, I/O: POSIX)",
-			FTI_Exec->ckptID, FTI_Exec->ckptLvel);
-	FTI_Print(str, FTI_DBUG);
-
-	snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-			"Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-
-	char fn[FTI_BUFS];
-	int level = FTI_Exec->ckptLvel;
-	if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-	else {
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-	write_info->flag = 'w';
-	FTI_PosixOpen(fn,write_info);
-
-	FTI_Exec->iCPInfo.offset = 0;
+	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 	FTI_Exec->iCPInfo.fd= write_info;
-
 	return FTI_SCES;
 }
 
@@ -63,48 +39,24 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 {
 	int res;
 	WritePosixInfo_t *write_info = (WritePosixInfo_t*) FTI_Exec->iCPInfo.fd;
-	char str[FTI_BUFS];
 	long offset = 0;
 
 	// write data into ckpt file
 	int i;
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if( FTI_Data[i].id == varID ) {
-#warning I NEED TO WRAP THE ERROR CODES HERE
 			FTI_PosixSeek(offset,write_info);
-			if ( !(FTI_Data[i].isDevicePtr) ){
-				FTI_Print(str,FTI_INFO);
-				if (( res = FTI_Try(FTI_PosixWrite(FTI_Data[i].ptr, FTI_Data[i].size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					FTI_PosixClose(write_info);
-					return FTI_NSCS;
-				}
+			int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
+			if (ret !=FTI_NSCS ){
+				FTI_Exec->iCPInfo.result = ret;
+				return ret;
 			}
-#ifdef GPUSUPPORT            
-			// if data are stored to the GPU move them from device
-			// memory to cpu memory and store them.
-			else {
-				FTI_Print(str,FTI_INFO);
-				if ((res = FTI_Try(
-								FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],  FTI_PosixWrite, write_info),
-								"moving data from GPU to storage")) != FTI_SCES) {
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					FTI_PosixClose(write_info);
-					return FTI_NSCS;
-				}
-			}
-#endif  
+
 		}
 		offset += FTI_Data[i].count*FTI_Data[i].eleSize;
 	}
-
 	FTI_Exec->iCPInfo.result = FTI_SCES;
-
-
 	return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,42 +105,9 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	int res;
-	WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) malloc (sizeof(WriteMPIInfo_t));
-	write_info->FTI_Conf = FTI_Conf;
-	write_info->FTI_Topo= FTI_Topo;
-	write_info->flag = 'w';
-
-
-	FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-	char str[FTI_BUFS], mpi_err[FTI_BUFS];
-	snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-			"Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-	// enable collective buffer optimization
-	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-	FTI_MPIOOpen(gfn, write_info);
-
-	MPI_Offset chunkSize = FTI_Exec->ckptSize;
-
-	// collect chunksizes of other ranks
-	MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
-	MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-
-	// set file offset
-	MPI_Offset offset = 0;
-	int i;
-	for (i = 0; i < FTI_Topo->splitRank; i++) {
-		offset += chunkSizes[i];
-	}
-	free(chunkSizes);
-
-	FTI_Exec->iCPInfo.offset = offset;
-	FTI_Exec->iCPInfo.fd = write_info;
-
+	WriteMPIInfo_t *ret = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo);
+	FTI_Exec->iCPInfo.fd = ret;
 	return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -206,50 +125,18 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	char str[FTI_BUFS];
 	WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) FTI_Exec->iCPInfo.fd;
 	int res;
 	//    memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
-	write_info->offset = FTI_Exec->iCPInfo.offset; 
-	//    write_info.FTI_Conf = FTI_Conf;
-
 	int i;
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if ( FTI_Data[i].id == varID ) {
-			if ( !(FTI_Data[i].isDevicePtr) ){
-				FTI_Print(str,FTI_INFO);
-				if (( res = FTI_MPIOWrite(FTI_Data[i].ptr, FTI_Data[i].size, write_info), "Storing Data to checkpoint file")!=FTI_SCES){
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					FTI_MPIOClose(write_info);
-					return res;
-				}
-			}
-#ifdef GPUSUPPORT
-			// dowload data from the GPU if necessary
-			// Data are stored in the GPU side.
-			else {
-				snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_Data[i].id);
-				FTI_Print(str,FTI_INFO);
-				if ((res = FTI_Try(
-								FTI_TransferDeviceMemToFileAsync(&FTI_Data[i], FTI_MPIOWrite, write_info),
-								"moving data from GPU to storage")) != FTI_SCES) {
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					FTI_MPIOClose(write_info);
-					return res;
-				}
-			}
-#endif
+			res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
 		}
-		write_info->offset += FTI_Data[i].size;
 	}
-
-	FTI_Exec->iCPInfo.result = FTI_SCES;
-
-	return FTI_SCES;
-
+	FTI_Exec->iCPInfo.result = res;
+	return res;
 }
 
 /*-------------------------------------------------------------------------*/

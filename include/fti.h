@@ -167,9 +167,7 @@ extern "C" {
     int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
     double t0;                  /**< timing for CP statistics               */
     double t1;                  /**< timing for CP statistics               */
-    char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
     char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
-    unsigned long long offset;  /**< file offset (for MPI-IO only)          */
 	void *fd;
   } FTIT_iCPInfo;
 

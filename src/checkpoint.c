@@ -497,67 +497,20 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	WritePosixInfo_t fd;
-	int res = FTI_SCES;
-	FTI_Print("I/O mode: Posix.", FTI_DBUG);
-	char str[FTI_BUFS], fn[FTI_BUFS];
-	int level = FTI_Exec->ckptLvel;
-	if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-	else {
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-
-	// open task local ckpt file
-	fd.offset = 0;
-	fd.flag = 'w';
-	FTI_PosixOpen(fn,&fd);
-	//	if (fd == NULL) {
-	//		snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-	//		FTI_Print(str, FTI_EROR);
-	//		return FTI_NSCS;
-	//	}
-
-	// write data into ckpt file
 	int i;
 
+	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		// if data are stored to CPU just write them
-		if ( !(FTI_Data[i].isDevicePtr) ){
-			snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
-			FTI_Print(str,FTI_DBUG);
-			if (( res = FTI_Try( FTI_PosixWrite(FTI_Data[i].ptr, FTI_Data[i].size, &fd), "Storing Data to Checkpoint File"))!=FTI_SCES){
-				snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-				FTI_Print(str, FTI_EROR);
-				FTI_PosixClose(&fd);
-				return res;
-			}
-#ifdef GPUSUPPORT            
-			// if data are stored to the GPU move them from device
-			// memory to cpu memory and store them.
-			else {
-				if ((res = FTI_Try(
-								FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   FTI_PosixWrite, &fd),
-								"moving data from GPU to storage")) != FTI_SCES) {
-					snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-					FTI_Print(str, FTI_EROR);
-					FTI_PosixClose(&fd);
-					return res;
-				}
-			}
-#endif            
+		int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
+		if (ret !=FTI_SCES){
+			return ret;
 		}
 	}
 
-	// close file
-	FTI_PosixClose(&fd);
-	//	if (fclose(fd) != 0) {
-	//		FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-	//		return FTI_NSCS;
-	//	}
-
-	return res;
+	FTI_PosixClose(write_info);
+	free(write_info);
+	return FTI_SCES;
 
 }
 
@@ -581,68 +534,24 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
 {
-	WriteMPIInfo_t write_info;
 	int res;
-	FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-	char str[FTI_BUFS], mpi_err[FTI_BUFS];
-	write_info.FTI_Conf = FTI_Conf;
-	write_info.FTI_Topo= FTI_Topo;
-	write_info.flag = 'w';
+	int i;
 	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
+
+	FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
+
 	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
 	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 
-	FTI_MPIOOpen(gfn,&write_info);
-
-	MPI_Offset chunkSize = FTI_Exec->ckptSize;
-	// collect chunksizes of other ranks
-	MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
-	MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-
-
-	// set file offset
-	write_info.offset = 0;
-	int i;
-	for (i = 0; i < FTI_Topo->splitRank; i++) {
-		write_info.offset += chunkSizes[i];
-	}
-	free(chunkSizes);
+	WriteMPIInfo_t *write_info = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo);
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		// determine the type of data pointer
-		// Data are stored in the CPU side. 
-		if ( !(FTI_Data[i].isDevicePtr) ){
-			res = FTI_MPIOWrite(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
-		}
-#ifdef GPUSUPPORT
-		// dowload data from the GPU if necessary
-		// Data are stored in the GPU side.
-		else {
-			if ((res = FTI_Try(
-							FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   FTI_MPIOWrite, &write_info),
-							"moving data from GPU to storage")) != FTI_SCES) {
-				snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-				FTI_Print(str, FTI_EROR);
-				mpiClose(&write_info);
-				return res;
-			}
-		}
-#endif
-
-
-		// check if successful
-		if (res != 0) {
-			errno = 0;
-			int reslen;
-			MPI_Error_string(write_info.err, mpi_err, &reslen);
-			snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, write_info.err, mpi_err);
-			FTI_Print(str, FTI_EROR);
-			FTI_MPIOClose(&write_info);
-			return FTI_NSCS;
-		}
+		res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
+		if (res != FTI_SCES)
+			return res;
 	}
-	FTI_MPIOClose(&write_info);
-	return FTI_SCES;
+
+	return FTI_MPIOClose(&write_info);
 }
 
 /*-------------------------------------------------------------------------*/
