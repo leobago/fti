@@ -65,7 +65,7 @@
 #ifndef _FAILURE_INJECTION_H
 #define _FAILURE_INJECTION_H
 
-#include <fti.h>
+//#include <fti.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>

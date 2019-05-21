@@ -39,10 +39,12 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 
 #include "failure-injection.h"
 
-#include "fti.h"
+//#include "fti.h"
 #include "ftiff.h"
 
 #include "../deps/iniparser/iniparser.h"
@@ -89,6 +91,9 @@
 #ifdef LUSTRE
 #   include "lustreapi.h"
 #endif
+
+#include <fti-int/defs.h>
+#include <fti-int/types.h>
 
 /*---------------------------------------------------------------------------
   Defines

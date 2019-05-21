@@ -40,118 +40,118 @@
 #ifndef _FTIFF_H
 #define _FTIFF_H
 
-#include "fti.h"
+//#include "fti.h"
 #ifndef FTI_NOZLIB
 #   include "zlib.h"
 #endif
 #include <assert.h>
 #include <string.h>
 
-#define MBR_CNT(TYPE) int TYPE ## _mbrCnt
-#define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
-#define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
-#define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
-
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-
-#define DBG_MSG(MSG,RANK,...) do { \
-    int rank; \
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
-    if ( rank == RANK ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
-    if ( RANK == -1 ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
-} while (0)
-
-/**
-
-  +-------------------------------------------------------------------------+
-  |   FTI-FF TYPES                                                          |
-  +-------------------------------------------------------------------------+
-
- **/
-
-/** @typedef    dcpBLK_t
- *  @brief      unsigned short (0 - 65535).
- *  
- *  Type that keeps the block sizes inside the hash meta data. 
- *  unsigned short is a trade off between memory occupation and block 
- *  size range.
- */
-typedef unsigned short dcpBLK_t;
-
-/** @typedef    FTIFF_headInfo
- *  @brief      Runtime meta info for the heads.
- *
- *  keeps all necessary meta data information for the heads, in order to
- *  perform the checkpoint.
- *
- */
-typedef struct FTIFF_headInfo {
-    int exists;
-    int nbVar;
-    char ckptFile[FTI_BUFS];
-    long maxFs;
-    long fs;
-    long pfs;
-    int isDcp;
-} FTIFF_headInfo;
-
-/** @typedef    FTIFF_L2Info
- *  @brief      Meta data for L2 recovery.
- *
- *  keeps meta data information that needs to be exchanged between the ranks.
- *
- */
-typedef struct FTIFF_L2Info {
-    int FileExists;
-    int CopyExists;
-    int ckptID;
-    int rightIdx;
-    long fs;
-    long pfs;
-} FTIFF_L2Info;
-
-/** @typedef    FTIFF_L3Info
- *  @brief      Meta data for L3 recovery.
- *
- *  keeps meta data information that needs to be exchanged between the ranks.
- *
- */
-typedef struct FTIFF_L3Info {
-    int FileExists;
-    int RSFileExists;
-    int ckptID;
-    long fs;
-    long RSfs;  // maxFs
-} FTIFF_L3Info;
-
-/**
-
-  +-------------------------------------------------------------------------+
-  |   MPI DERIVED DATA TYPES                                                |
-  +-------------------------------------------------------------------------+
-
- **/
-
-// ID MPI types
-enum {
-    FTIFF_HEAD_INFO,
-    FTIFF_L2_INFO,
-    FTIFF_L3_INFO,
-    FTIFF_NUM_MPI_TYPES
-};
-
-// declare MPI datatypes
-extern MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
-
-typedef struct FTIFF_MPITypeInfo {
-    MPI_Datatype        raw;
-    int                 mbrCnt;
-    int*                mbrBlkLen;
-    MPI_Datatype*       mbrTypes;
-    MPI_Aint*           mbrDisp;
-} FTIFF_MPITypeInfo;
+//#define MBR_CNT(TYPE) int TYPE ## _mbrCnt
+//#define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
+//#define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
+//#define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
+//
+//#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+//
+//#define DBG_MSG(MSG,RANK,...) do { \
+//    int rank; \
+//    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
+//    if ( rank == RANK ) \
+//        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+//    if ( RANK == -1 ) \
+//        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+//} while (0)
+//
+///**
+//
+//  +-------------------------------------------------------------------------+
+//  |   FTI-FF TYPES                                                          |
+//  +-------------------------------------------------------------------------+
+//
+// **/
+//
+///** @typedef    dcpBLK_t
+// *  @brief      unsigned short (0 - 65535).
+// *  
+// *  Type that keeps the block sizes inside the hash meta data. 
+// *  unsigned short is a trade off between memory occupation and block 
+// *  size range.
+// */
+//typedef unsigned short dcpBLK_t;
+//
+///** @typedef    FTIFF_headInfo
+// *  @brief      Runtime meta info for the heads.
+// *
+// *  keeps all necessary meta data information for the heads, in order to
+// *  perform the checkpoint.
+// *
+// */
+//typedef struct FTIFF_headInfo {
+//    int exists;
+//    int nbVar;
+//    char ckptFile[FTI_BUFS];
+//    long maxFs;
+//    long fs;
+//    long pfs;
+//    int isDcp;
+//} FTIFF_headInfo;
+//
+///** @typedef    FTIFF_L2Info
+// *  @brief      Meta data for L2 recovery.
+// *
+// *  keeps meta data information that needs to be exchanged between the ranks.
+// *
+// */
+//typedef struct FTIFF_L2Info {
+//    int FileExists;
+//    int CopyExists;
+//    int ckptID;
+//    int rightIdx;
+//    long fs;
+//    long pfs;
+//} FTIFF_L2Info;
+//
+///** @typedef    FTIFF_L3Info
+// *  @brief      Meta data for L3 recovery.
+// *
+// *  keeps meta data information that needs to be exchanged between the ranks.
+// *
+// */
+//typedef struct FTIFF_L3Info {
+//    int FileExists;
+//    int RSFileExists;
+//    int ckptID;
+//    long fs;
+//    long RSfs;  // maxFs
+//} FTIFF_L3Info;
+//
+///**
+//
+//  +-------------------------------------------------------------------------+
+//  |   MPI DERIVED DATA TYPES                                                |
+//  +-------------------------------------------------------------------------+
+//
+// **/
+//
+//// ID MPI types
+//enum {
+//    FTIFF_HEAD_INFO,
+//    FTIFF_L2_INFO,
+//    FTIFF_L3_INFO,
+//    FTIFF_NUM_MPI_TYPES
+//};
+//
+//// declare MPI datatypes
+//extern MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
+//
+//typedef struct FTIFF_MPITypeInfo {
+//    MPI_Datatype        raw;
+//    int                 mbrCnt;
+//    int*                mbrBlkLen;
+//    MPI_Datatype*       mbrTypes;
+//    MPI_Aint*           mbrDisp;
+//} FTIFF_MPITypeInfo;
 
 /**
 

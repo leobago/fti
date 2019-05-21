@@ -36,6 +36,8 @@
  *  @brief  Post-checkpointing functions for the FTI library.
  */
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/

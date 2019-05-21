@@ -1,7 +1,9 @@
 #include <string.h>
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
-#include "ftiff.h"
+//#include "ftiff.h"
 #include "api_cuda.h"
 #include "utility.h"
 

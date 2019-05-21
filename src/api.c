@@ -37,8 +37,12 @@
  */
 
 
-#include "interface.h"
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 
+#include "stage.h"
+#include "interface.h"
+//#include "fti.h"
 
 #include "ftiff.h"
 
@@ -846,7 +850,8 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FT
     last->name[FTI_BUFS-1] = '\0';
     last->numSubSets = 0;
     last->varIdx = NULL;
-    last->type = type;
+    last->type = malloc(sizeof(struct FTIT_type));
+    *(last->type) = type;
     last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
 
     last->next = NULL;
@@ -2425,19 +2430,19 @@ void FTI_Print(char* msg, int priority)
         if (msg != NULL) {
             switch (priority) {
                 case FTI_EROR:
-                    fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
                     break;
                 case FTI_WARN:
-                    fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
                     break;
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_IDCP:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_DBUG:

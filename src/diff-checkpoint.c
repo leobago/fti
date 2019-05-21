@@ -40,6 +40,8 @@
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
 
 

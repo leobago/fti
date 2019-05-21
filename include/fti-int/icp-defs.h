@@ -39,5 +39,5 @@
         FTI_GT( sizeof(FTI_FF_FH),\
         FTI_GT( sizeof(FTI_SL_FH), sizeof(FTI_MI_FH) ) ) )
 #endif
-
+  
 #endif // _INCREMENTAL_CHECKPOINT_H

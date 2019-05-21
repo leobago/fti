@@ -36,6 +36,8 @@
  *  @brief  Utility functions for the FTI library.
  */
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
 #include <dirent.h>
 #include "api_cuda.h"
@@ -721,7 +723,7 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 
         // create dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = FTI_Exec->FTI_Type[dataset->type->id]->h5datatype;
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
         
@@ -777,7 +779,7 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
         
         // open dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = FTI_Exec->FTI_Type[dataset->type->id]->h5datatype;
         dataset->hdf5TypeId = tid;
 
         dataset->hid = H5Dopen( loc, dataset->name, H5P_DEFAULT );
@@ -1224,6 +1226,7 @@ void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
     while( dataset ) {
         if( dataset->dimension ) { free( dataset->dimension ); }
         if( dataset->varIdx ) { free( dataset->varIdx ); }
+        if( dataset->type ) { free( dataset->type ); }
         FTIT_globalDataset * curr = dataset;
         dataset = dataset->next;
         free( curr );

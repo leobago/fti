@@ -38,6 +38,8 @@
  */
 #define _GNU_SOURCE
 
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
 #include "api_cuda.h"
 

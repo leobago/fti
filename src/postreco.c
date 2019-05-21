@@ -35,6 +35,9 @@
  *  @date   October, 2017
  *  @brief  Post recovery functions for the FTI library.
  */
+
+#include <fti-int/defs.h> 
+#include <fti-int/types.h> 
 #include "interface.h"
 
 /*-------------------------------------------------------------------------*/
