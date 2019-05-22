@@ -499,7 +499,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 	int i;
 
-	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
@@ -543,7 +543,7 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
 	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 
-	WriteMPIInfo_t *write_info = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo);
+	WriteMPIInfo_t *write_info = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		res = FTI_WriteMPIOData(&FTI_Data[i],write_info);

@@ -88,7 +88,7 @@ int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 }
 
 
-WriteMPIInfo_t *FTI_InitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo){
+WriteMPIInfo_t *FTI_InitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
 	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
 	int i;
 

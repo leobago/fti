@@ -78,7 +78,7 @@ int FTI_PosixSync(void *fileDesc){
 }
 
 
-WritePosixInfo_t *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt){
+WritePosixInfo_t *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
 	char fn[FTI_BUFS];
 	int level = FTI_Exec->ckptLvel;
 

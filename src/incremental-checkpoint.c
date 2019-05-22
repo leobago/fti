@@ -17,7 +17,7 @@
 /*-------------------------------------------------------------------------*/
 int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
 {
-	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 	FTI_Exec->iCPInfo.fd= write_info;
 	return FTI_SCES;
 }
@@ -105,7 +105,7 @@ int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	WriteMPIInfo_t *ret = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo);
+	WriteMPIInfo_t *ret = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 	FTI_Exec->iCPInfo.fd = ret;
 	return FTI_SCES;
 }
@@ -186,14 +186,9 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-
 	char fn[FTI_BUFS], strerr[FTI_BUFS];
 	WritePosixInfo_t *write_info = (WritePosixInfo_t*) malloc (sizeof(WritePosixInfo_t));
-
 	FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
-
-	//update ckpt file name
-	snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 	// only for printout of dCP share in FTI_Checkpoint
 	FTI_Exec->FTIFFMeta.dcpSize = 0;
 	// important for reading and writing operations
@@ -231,13 +226,8 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		write_info->flag = 'w';
 	}
 	write_info->offset = 0;
-
 	FTI_PosixOpen(fn,write_info);
-
-
-	strcpy( FTI_Exec->iCPInfo.fn, fn );
 	FTI_Exec -> iCPInfo.fd = write_info;
-
 	return FTI_SCES;
 
 }
@@ -409,31 +399,14 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	FTI_Print("I/O mode: HDF5.", FTI_DBUG);
-	char str[FTI_BUFS], fn[FTI_BUFS];
-	WriteHDF5_t *fd = (WriteHDF5_t *) malloc (sizeof(WriteHDF5_t));
 
-	if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-		snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-				"Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-	}
+	FTI_Exec->iCPInfo.fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+	if (!(FTI_Exec->iCPInfo.fd))
+		FTI_Exec->iCPInfo.status = FTI_NSCS;
+	else 		
+		FTI_Exec->iCPInfo.status = FTI_SCES;
 
-	int level = FTI_Exec->ckptLvel;
-	if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-	else {
-		snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-	}
-
-	//Creating new hdf5 file
-	fd->FTI_Exec = FTI_Exec;
-	fd->FTI_Data = FTI_Data;
-
-	FTI_Exec->iCPInfo.status = FTI_HDF5Open(fn, fd);
-	FTI_Exec->iCPInfo.fd = fd;	
-
-	return FTI_SCES;
+	return FTI_Exec->iCPInfo.status;
 
 }
 
@@ -453,24 +426,21 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
 		FTIT_dataset* FTI_Data)
 {
 
-	char str[FTI_BUFS];
 	int i;
-	WriteHDF5_t *fd = FTI_Exec->iCPInfo.fd;
+	WriteHDF5Info_t *fd = FTI_Exec->iCPInfo.fd;
 
 	if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
 		return FTI_NSCS;
 	}
 
-	FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-
 	// write data into ckpt file
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if( FTI_Data[i].id == varID ) {
-			// At the moment second argumnet is ignored in hdf5.
-			FTI_Exec->iCPInfo.result = FTI_HDF5Write(&i,0,fd);	
-			FTI_Print(str,FTI_WARN);
+			FTI_Exec->iCPInfo.result = FTI_WriteHDF5Data(&FTI_Data[i],fd);	
+			break;
 		}
 	}
+
 	return FTI_Exec->iCPInfo.result;
 }
 
@@ -492,12 +462,11 @@ int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-	WriteHDF5_t *fd = (WriteHDF5_t*) FTI_Exec->iCPInfo.fd;
+	WriteHDF5Info_t *fd = (WriteHDF5Info_t*) FTI_Exec->iCPInfo.fd;
 	int ret =   FTI_HDF5Close(fd);
 	FTI_Exec->iCPInfo.result = ret;
 	fd->FTI_Exec = NULL;
 	fd->FTI_Data = NULL;
-
 	free(FTI_Exec->iCPInfo.fd);
 	return ret;
 

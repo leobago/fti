@@ -1655,6 +1655,9 @@ int FTI_InitICP(int id, int level, bool activate)
 	FTI_Exec.iCPInfo.t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
 	FTI_Exec.iCPInfo.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
 	FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
+	
+	// Name of the  CKPT file.
+	snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptID, FTI_Topo.myRank,FTI_Conf.suffix);
 
 	//If checkpoint is inlin and level 4 save directly to PFS
 	if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
