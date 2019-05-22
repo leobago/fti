@@ -1,6 +1,6 @@
 #include <fti-int/defs.h> 
 #include <fti-int/types.h> 
-#include <fti-int/incremental_checkpoint.h>
+//#include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
 #include "utility.h"
 /*-------------------------------------------------------------------------*/

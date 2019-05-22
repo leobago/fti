@@ -20,9 +20,6 @@
 
 #define _FTI_PUBLIC
 
-#include <fti-int/defs.h>
-#include <fti-int/types.h>
-
 /*---------------------------------------------------------------------------
   Defines
   ---------------------------------------------------------------------------*/
@@ -52,6 +49,10 @@
 #define FTI_NREC -2
 /** Token that indicates a head process in user space                      */
 #define FTI_HEAD 2
+
+#include <fti-int/defs.h>
+#include <fti-int/types.h>
+
 //
 //
 ///** Verbosity level to print only errors.                                  */
