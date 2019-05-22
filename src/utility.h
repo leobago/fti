@@ -6,7 +6,7 @@
 
 
 
-typedef struct
+typedef struct{
 	FTIT_configuration* FTI_Conf;
 	FTIT_topology *FTI_Topo;
 	MPI_Offset offset;
