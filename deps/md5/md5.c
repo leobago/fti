@@ -304,7 +304,7 @@ unsigned char *MD5(void *pointer, unsigned long pointerLength , unsigned char *m
     if ( pointer == NULL || pointerLength == 0 ) {
         MD5_Update( &mdContext, staticArray, MD5_CBLOCK );
     } else {
-        MD5_Update( &mdContext, pointer, pointeeLength );
+        MD5_Update( &mdContext, pointer, pointerLength );
     }
 
     if ( md5HashPointer == NULL ) {

@@ -6,8 +6,12 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
+#ifdef NO_OPENSSL
+#   include "../../../deps/md5/md5.h"
+#else
+#   include <openssl/md5.h>
+#endif
 #include <fti.h>
-#include <openssl/md5.h>
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
