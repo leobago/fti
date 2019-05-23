@@ -3,6 +3,10 @@
 
 #include <fti-int/types.h>
 
+#define FTI_ICP_NINI 0
+#define FTI_ICP_ACTV 1
+#define FTI_ICP_FAIL 2
+
 int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);

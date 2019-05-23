@@ -177,11 +177,6 @@ typedef size_t 	hsize_t;
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-#ifndef _FTI_PUBLIC
-int FTI_InitType(FTIT_type* type, int size);
-int FTI_Finalize();
-#endif
-
 /*---------------------------------------------------------------------------
   Defines
   ---------------------------------------------------------------------------*/
