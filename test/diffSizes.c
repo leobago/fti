@@ -32,6 +32,8 @@
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
+#define FTI_ENDW 995
+
 #define ITERATIONS 111          //iterations
 #define ITER_CHECK 10           //every ITER_CHECK iterations make checkpoint
 #define ITER_STOP 63            //stop work after ITER_STOP iterations

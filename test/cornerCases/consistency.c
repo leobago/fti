@@ -4,6 +4,7 @@
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
 
+#define FTI_ENDW 995
 
 #define ARRAY_SIZE 1024 * 1024
 #define DATASET_SIZE (ARRAY_SIZE/4)

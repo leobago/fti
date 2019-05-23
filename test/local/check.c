@@ -43,6 +43,8 @@
 #include "../../deps/iniparser/iniparser.h"
 #include "../../deps/iniparser/dictionary.h"
 
+#define FTI_ENDW 995
+
 #define N 100000
 #define CNTRLD_EXIT 10
 #define RECOVERY_FAILED 20

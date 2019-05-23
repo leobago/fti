@@ -18,6 +18,8 @@
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
+#define FTI_ENDW 995
+
 int verify(int world_size, int nbNodes)
 {
 	FILE* fp;

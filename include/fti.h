@@ -35,7 +35,7 @@
 /** Token that indicates a head process in user space                      */
 #define FTI_HEAD 2
 
-#include <fti-int/interface.h>
+#include <fti-int/types.h>
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"

@@ -27,6 +27,8 @@
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
+#define FTI_ENDW 995
+
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
 

@@ -5,6 +5,8 @@
 #include <math.h>
 #include <string.h>
 
+#define FTI_ENDW 995
+
 #include "../../../deps/iniparser/iniparser.h"
 #include "../../../deps/iniparser/dictionary.h"
 

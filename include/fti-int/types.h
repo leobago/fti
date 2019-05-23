@@ -18,6 +18,9 @@
   ICP TYPES
   ---------------------------------------------------------------------------*/
 
+#define MD5_DIGEST_LENGTH 16
+#define MD5_DIGEST_STRING_LENGTH 33
+
 #define FTI_ICP_NINI 0
 #define FTI_ICP_ACTV 1
 #define FTI_ICP_FAIL 2
