@@ -1,6 +1,20 @@
 #ifndef STAGE_DEFS_H
 #define STAGE_DEFS_H
 
+#define FTI_SI_NAVL 0x1
+#define FTI_SI_IAVL 0x0
+
+#define FTI_SI_IALL 0x1
+#define FTI_SI_NALL 0x0
+
+#define FTI_SI_APTR( ptr ) ((FTIT_StageAppInfo*)ptr)
+#define FTI_SI_HPTR( ptr ) ((FTIT_StageHeadInfo*)ptr)
+
+#define FTI_SI_MAX_ID (0x7ffff)
+
+#define FTI_DISABLE_STAGING do{*enableStagingPtr = false;} while(0)
+#define FTI_SI_ENABLED (*(bool*)enableStagingPtr)
+
 /** status 'failed' for stage requests                                     */
 #define FTI_SI_FAIL 0x4
 /** status 'succeed' for stage requests                                    */

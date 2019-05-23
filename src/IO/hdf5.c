@@ -37,8 +37,8 @@
  */
 
 #ifdef ENABLE_HDF5
-#include <fti-int/interface.h>
-
+#include "interface.h"
+#include "utility.h"
 #include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/

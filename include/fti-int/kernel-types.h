@@ -1,13 +1,9 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef KERNEL_TYPES_H
+#define KERNEL_TYPES_H
 
-#include <mpi.h>
 #include <fti-int/defs.h>
-
-#include <fti-int/icp-types.h>
-#include <fti-int/ftiff-types.h>
-#include <fti-int/stage-types.h>
 #include <fti-int/hdf5-types.h>
+#include <fti-int/ftiff-types.h>
 
 /** @typedef    FTIT_level
  *  @brief      holds the level id.
@@ -50,6 +46,30 @@ typedef union FTIT_float {
     int             intval;             /**< Integer mapped to do bit edits.*/
     char            byte[4];            /**< Byte array for coarser control.*/
 } FTIT_float;
+
+/** @typedef    FTIT_typeField
+ *  @brief      Holds info about field in complex type
+ *
+ *  This type simplify creating complex datatypes.
+ */
+typedef struct FTIT_typeField {
+    int                 typeID;                 /**< FTI type ID of the field.          */
+    int                 offset;                 /**< Offset of the field in structure.  */
+    int                 rank;                   /**< Field rank (max. 32)               */
+    int                 dimLength[32];          /**< Lenght of each dimention           */
+    char                name[FTI_BUFS];         /**< Name of the field                  */
+} FTIT_typeField;
+
+/** @typedef    FTIT_complexType
+ *  @brief      Type that consists of other FTI types
+ *
+ *  This type allows creating complex datatypes.
+ */
+typedef struct FTIT_complexType {
+    char                name[FTI_BUFS];         /**< Name of the complex type.          */
+    int                 length;                 /**< Number of types in complex type.   */
+    FTIT_typeField      field[FTI_BUFS];        /**< Fields of the complex type.        */
+} FTIT_complexType;
   
 /** @typedef    FTIT_type
  *  @brief      Type recognized by FTI.
@@ -263,31 +283,4 @@ typedef struct FTIT_injection {
     double          timer;              /**< Timer to measure frequency     */
 } FTIT_injection;
 
-extern MPI_Comm FTI_COMM_WORLD;
-
-/** FTI data type for chars.                                               */
-extern FTIT_type FTI_CHAR;
-/** FTI data type for short integers.                                      */
-extern FTIT_type FTI_SHRT;
-/** FTI data type for integers.                                            */
-extern FTIT_type FTI_INTG;
-/** FTI data type for long integers.                                       */
-extern FTIT_type FTI_LONG;
-/** FTI data type for unsigned chars.                                      */
-extern FTIT_type FTI_UCHR;
-/** FTI data type for unsigned short integers.                             */
-extern FTIT_type FTI_USHT;
-/** FTI data type for unsigned integers.                                   */
-extern FTIT_type FTI_UINT;
-/** FTI data type for unsigned long integers.                              */
-extern FTIT_type FTI_ULNG;
-/** FTI data type for single floating point.                               */
-extern FTIT_type FTI_SFLT;
-/** FTI data type for double floating point.                               */
-extern FTIT_type FTI_DBLE;
-/** FTI data type for long doble floating point.                           */
-extern FTIT_type FTI_LDBE;
-
-#include <fti-int/utility-types.h>
-
-#endif // _TYPES_H_
+#endif // KERNEL_TYPES_H

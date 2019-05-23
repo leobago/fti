@@ -36,9 +36,8 @@
  *  @brief  Configuration loading functions for the FTI library.
  */
 
-#include <fti-int/defs.h> 
-#include <fti-int/types.h> 
-#include "interface.h"
+#include <fti-int/interface.h>
+
 #include "api_cuda.h"
 
 /*-------------------------------------------------------------------------*/

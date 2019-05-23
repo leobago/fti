@@ -1,8 +1,6 @@
-#include <fti-int/defs.h> 
-#include <fti-int/types.h> 
-#include "failure-injection.h"
+#include <fti-int/interface.h>
+
 #include <stdlib.h>
-#include <fti.h>
 #include <string.h>
 #include <stdio.h>
 

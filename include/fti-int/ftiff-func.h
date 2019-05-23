@@ -1,48 +1,29 @@
-/**
- *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
- *  All rights reserved
- *
- *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
- *
- *  Revision 1.0 : Fault Tolerance Interface (FTI)
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice, this
- *  list of conditions and the following disclaimer.
- *
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *  this list of conditions and the following disclaimer in the documentation
- *  and/or other materials provided with the distribution.
- *
- *  3. Neither the name of the copyright holder nor the names of its contributors
- *  may be used to endorse or promote products derived from this software without
- *  specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  @author Kai Keller (kellekai@gmx.de)
- *  @file   ftiff.h
- *  @date   October, 2017
- *  @brief  Header file for the FTI File Format (FTI-FF).
- */
-
-#ifndef _FTIFF_H
-#define _FTIFF_H
+#ifndef FTIFF_FUNC_H
+#define FTIFF_FUNC_H
 
 #ifndef FTI_NOZLIB
 #   include "zlib.h"
+#else
+extern const uint32_t crc32_tab[];
+
+static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc)
+{
+    const uint8_t *p = (const uint8_t *)buf;
+
+    while (size--)
+        crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
+    return (crc);
+}
+
+static inline uint32_t crc32(const void *buf, size_t size)
+{
+    uint32_t crc;
+
+    crc = crc32_raw(buf, size, ~0U);
+    return (crc ^ ~0U);
+}
 #endif
+
 #include <assert.h>
 #include <string.h>
 
@@ -83,4 +64,25 @@ void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db );
 void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar );
 void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_dataset* FTI_Data ); 
 void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
-#endif
+
+// dcp
+
+int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
+                     FTIT_dataset *FTI_Data, unsigned char *hashchk, int fd, char *fn, long *dcpSize, unsigned char **dptr);
+
+int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
+int FTI_InitNextHashData(FTIT_DataDiffHash *hashes);
+int FTI_FreeDataDiff( FTIT_DataDiffHash *dhash);
+dcpBLK_t FTI_GetDiffBlockSize(); 
+int FTI_GetDcpMode(); 
+int FTI_ReallocateDataDiff( FTIT_DataDiffHash *dhash, long nbHashes);
+int FTI_InitBlockHashArray( FTIFF_dbvar* dbvar ); 
+int FTI_CollapseBlockHashArray( FTIT_DataDiffHash* hashes, long chunkSize); 
+int FTI_ExpandBlockHashArray( FTIT_DataDiffHash* dataHash, long chunkSize ); 
+long FTI_CalcNumHashes( long chunkSize ); 
+int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr );
+int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
+int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  FTIT_dataset* FTI_Data, unsigned char *startAddr, size_t *totalBytes ); 
+
+#endif // FTIFF_FUNC_H

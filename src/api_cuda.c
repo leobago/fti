@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "api_cuda.h"
-#include <fti-int/defs.h> 
-#include <fti-int/types.h> 
-#include "interface.h"
+
+#include <fti-int/interface.h>
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
