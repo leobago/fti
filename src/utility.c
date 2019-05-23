@@ -1,9 +1,7 @@
 #include <string.h>
 
 #include <fti-int/interface.h>
-//#include "ftiff.h"
 #include "api_cuda.h"
-//#include "utility.h"
 
 
 /*-------------------------------------------------------------------------*/

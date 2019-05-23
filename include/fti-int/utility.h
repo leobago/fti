@@ -1,5 +1,5 @@
-#ifndef UTILITY_FUNC_H
-#define UTILITY_FUNC_H
+#ifndef UTILITY_H
+#define UTILITY_H
 
 int write_posix(void *src, size_t size, void *opaque);
 int write_mpi(void *src, size_t size, void *opaque);
@@ -9,4 +9,4 @@ int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int write_sion(void *src, size_t size, void *opaque);
 #endif
 
-#endif // UTILITY_FUNC_H
+#endif // UTILITY_H

@@ -1,5 +1,5 @@
-#ifndef HDF5_FUNC_H
-#define HDF5_FUNC_H
+#ifndef HDF5_FTI_H
+#define HDF5_FTI_H
 
 #include <fti-int/types.h>
 
@@ -28,4 +28,4 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec );
 
-#endif // HDF5_FUNC_H
+#endif // HDF5_FTI_H

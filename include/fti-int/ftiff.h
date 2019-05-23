@@ -1,5 +1,5 @@
-#ifndef FTIFF_DEFS_H
-#define FTIFF_DEFS_H
+#ifndef FTIFF_H
+#define FTIFF_H
 
 #include <fti-int/types.h>
 
@@ -96,4 +96,4 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr );
 int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec); 
 int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  FTIT_dataset* FTI_Data, unsigned char *startAddr, size_t *totalBytes ); 
 
-#endif // FTIFF_DEFS_H
+#endif // FTIFF_H

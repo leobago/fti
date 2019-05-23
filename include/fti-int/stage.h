@@ -1,5 +1,5 @@
-#ifndef STAGE_FUNC_H
-#define STAGE_FUNC_H
+#ifndef STAGE_H
+#define STAGE_H
 
 #define FTI_SI_NAVL 0x1
 #define FTI_SI_IAVL 0x0
@@ -49,4 +49,4 @@ void FTI_PrintStageStatus( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, in
 int FTI_GetRequestIdx( int ID );
 void FTI_FinalizeStage( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf ); 
 
-#endif // STAGE_FUNC_H
+#endif // STAGE_H
