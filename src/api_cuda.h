@@ -24,7 +24,7 @@ do {                                                                            
 } while(0)
 
 #endif
-#include "interface.h"
+#include <fti-int/interface.h>
 
 #define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
 

@@ -1,5 +1,7 @@
-#ifndef ICP_FUNC_H
-#define ICP_FUNC_H
+#ifndef _INCREMENTAL_CHECKPOINT_H
+#define _INCREMENTAL_CHECKPOINT_H
+
+#include <fti-int/types.h>
 
 int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -60,5 +62,5 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
-
-#endif // ICP_FUNC_H
+  
+#endif // _INCREMENTAL_CHECKPOINT_H

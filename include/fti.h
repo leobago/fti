@@ -14,10 +14,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef GPUSUPPORT
-#include <cuda_runtime_api.h>
-#endif
-
 #define _FTI_PUBLIC
 
 /*---------------------------------------------------------------------------
