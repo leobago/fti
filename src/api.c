@@ -1097,6 +1097,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
 			}
 
 			if (name != NULL) {
+				memset(FTI_Data[i].name,'\0',FTI_BUFS);
 				strncpy(FTI_Data[i].name, name, FTI_BUFS);
 			}
 

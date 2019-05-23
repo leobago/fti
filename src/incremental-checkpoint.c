@@ -403,7 +403,6 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-
 	FTI_Exec->iCPInfo.fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 	if (!(FTI_Exec->iCPInfo.fd))
 		FTI_Exec->iCPInfo.status = FTI_NSCS;
@@ -411,7 +410,6 @@ int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTI_Exec->iCPInfo.status = FTI_SCES;
 
 	return FTI_Exec->iCPInfo.status;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -429,7 +427,6 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
 		FTIT_dataset* FTI_Data)
 {
-
 	int i;
 	WriteHDF5Info_t *fd = FTI_Exec->iCPInfo.fd;
 
@@ -444,7 +441,6 @@ int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FT
 			break;
 		}
 	}
-
 	return FTI_Exec->iCPInfo.result;
 }
 

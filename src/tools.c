@@ -823,41 +823,41 @@ int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec )
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
+herr_t FTI_WriteSharedFileData( FTIT_dataset *FTI_DataVar )
 {
 
-    if( FTI_Data.sharedData.dataset ) {
+    if( FTI_DataVar->sharedData.dataset ) {
         
         // hdf5 datatype
-        hid_t tid = FTI_Data.sharedData.dataset->hdf5TypeId;
+        hid_t tid = FTI_DataVar->sharedData.dataset->hdf5TypeId;
 
         // dataset hdf5-id
-        hid_t did = FTI_Data.sharedData.dataset->hid;
+        hid_t did = FTI_DataVar->sharedData.dataset->hid;
 
         // shared dataset file space
-        hid_t fsid = FTI_Data.sharedData.dataset->fileSpace;
+        hid_t fsid = FTI_DataVar->sharedData.dataset->fileSpace;
 
         // shared dataset rank
-        int ndim = FTI_Data.sharedData.dataset->rank;
+        int ndim = FTI_DataVar->sharedData.dataset->rank;
 
         // shared dataset array of nummber of elements in each dimension
-        hsize_t *count = FTI_Data.sharedData.count;
+        hsize_t *count = FTI_DataVar->sharedData.count;
 
         // shared dataset array of the offsets for each dimension
-        hsize_t *offset = FTI_Data.sharedData.offset;
+        hsize_t *offset = FTI_DataVar->sharedData.offset;
 
         // create dataspace for subset of shared dataset
         hid_t msid = H5Screate_simple( ndim, count, NULL );
         if(msid < 0) {
             char errstr[FTI_BUFS];
-            snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+            snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", FTI_DataVar->id, FTI_DataVar->sharedData.dataset->id );
             FTI_Print(errstr,FTI_EROR);
             return FTI_NSCS;
         }
         // select range in shared dataset in file
         if( H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL) < 0 ) {
             char errstr[FTI_BUFS];
-            snprintf( errstr, FTI_BUFS, "Unable to select sub-space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+            snprintf( errstr, FTI_BUFS, "Unable to select sub-space for var-id %d in dataset #%d", FTI_DataVar->id, FTI_DataVar->sharedData.dataset->id );
             FTI_Print(errstr,FTI_EROR);
             return FTI_NSCS;
         }
@@ -867,9 +867,9 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
         // write data in file
-        if( H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr) < 0 ) {
+        if( H5Dwrite(did, tid, msid, fsid, plid, FTI_DataVar->ptr) < 0 ) {
             char errstr[FTI_BUFS];
-            snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+            snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_DataVar->id, FTI_DataVar->sharedData.dataset->id );
             FTI_Print(errstr,FTI_EROR);
             return FTI_NSCS;
         }
