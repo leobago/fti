@@ -10,6 +10,7 @@
 #include "../../../deps/iniparser/dictionary.h"
 
 #define N 1024
+#define FTI_ENDW 995
 
 int main() {
 

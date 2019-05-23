@@ -15,16 +15,24 @@
 #define FTI_DISABLE_STAGING do{*enableStagingPtr = false;} while(0)
 #define FTI_SI_ENABLED (*(bool*)enableStagingPtr)
 
-/** status 'failed' for stage requests                                     */
-#define FTI_SI_FAIL 0x4
-/** status 'succeed' for stage requests                                    */
-#define FTI_SI_SCES 0x3
-/** status 'active' for stage requests                                     */
-#define FTI_SI_ACTV 0x2
-/** status 'pending' for stage requests                                    */
-#define FTI_SI_PEND 0x1
-/** status 'not initialized' for stage requests                            */
-#define FTI_SI_NINI 0x0
+/* include fti.h for public definitions of
+ * FTI_SI_FAIL
+ * FTI_SI_SCES
+ * FTI_SI_ACTV
+ * FTI_SI_PEND
+ * FTI_SI_NINI */
+#include <fti.h>
+
+///** status 'failed' for stage requests                                     */
+//#define FTI_SI_FAIL 0x4
+///** status 'succeed' for stage requests                                    */
+//#define FTI_SI_SCES 0x3
+///** status 'active' for stage requests                                     */
+//#define FTI_SI_ACTV 0x2
+///** status 'pending' for stage requests                                    */
+//#define FTI_SI_PEND 0x1
+///** status 'not initialized' for stage requests                            */
+//#define FTI_SI_NINI 0x0
 
 /** Maximum amount of concurrent active staging requests                   
   @note leads to 2.5MB for the application processes as minimum memory

@@ -39,16 +39,15 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
-
-#ifndef _FTI_PUBLIC
-#   define FTI_BUFS 256
-#   define FTI_WORD 16
-#   define FTI_DONE 1
-#   define FTI_SCES 0
-#   define FTI_NSCS -1
-#   define FTI_NREC -2
-#   define FTI_HEAD 2
-#endif
+/* include fti.h for public definitions of
+ * FTI_BUFS
+ * FTI_WORD
+ * FTI_DONE
+ * FTI_SCES
+ * FTI_NSCS 
+ * FTI_NREC
+ * FTI_HEAD */
+#include <fti.h>
   
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 

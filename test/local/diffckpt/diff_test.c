@@ -1,5 +1,6 @@
 #include "diff_test.h"
 
+#define FTI_ENDW 995
 #define ALLOC_SIZE (200*MB)
 
 int main() {

@@ -6,8 +6,6 @@
 #include <cuda_runtime_api.h>
 #endif
 
-//#include <fti-int/defs.h>
-
 #ifdef ENABLE_HDF5
 #include "hdf5.h"
 #include "hdf5_hl.h"

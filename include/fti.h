@@ -14,8 +14,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define _FTI_PUBLIC
-
 /*---------------------------------------------------------------------------
   Defines
   ---------------------------------------------------------------------------*/
@@ -34,6 +32,17 @@
 #define FTI_NREC -2
 /** Token that indicates a head process in user space                      */
 #define FTI_HEAD 2
+
+/** status 'failed' for stage requests                                     */
+#define FTI_SI_FAIL 0x4
+/** status 'succeed' for stage requests                                    */
+#define FTI_SI_SCES 0x3
+/** status 'active' for stage requests                                     */
+#define FTI_SI_ACTV 0x2
+/** status 'pending' for stage requests                                    */
+#define FTI_SI_PEND 0x1
+/** status 'not initialized' for stage requests                            */
+#define FTI_SI_NINI 0x0
 
 #include <fti-int/types.h>
 

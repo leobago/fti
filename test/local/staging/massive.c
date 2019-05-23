@@ -18,6 +18,7 @@
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); \
     } while(0)
 
+#define FTI_ENDW 995
 #define FILE_SIZE 1024 // 1KB
 #define NUM_ITER 100L
 #define FILES_PER_ITER 10L
