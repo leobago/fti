@@ -215,52 +215,13 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
     FTIT_configuration* FTI_Conf, char* checksum)
 {
-
-  MD5_CTX mdContext;
-  MD5_Init (&mdContext);
   int i;
-
-  //iterate all variables
-  for (i = 0; i < FTI_Exec->nbVar; i++) {
-   
-#ifdef GPUSUPPORT
-    if (FTI_Data[i].isDevicePtr) {
-        if (FTI_Conf->ioMode != FTI_IO_FTIFF)
-          FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
-
-      if(FTI_Data[i].ptr == NULL){
-        FTI_Print("Failed to allocate FTI scratch buffer", FTI_EROR);
-        return FTI_NSCS;
-      }
-      // TODO: Reuse GPU data on the host memory
-      int result = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, FTI_Data[i].devicePtr, FTI_Data[i].size,  FTI_Exec), "copying data from GPU");
-
-      if(result == FTI_NSCS) {
-        return FTI_NSCS;
-      }
-    }
-#endif
-    MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-
-#ifdef GPUSUPPORT    
-    if (FTI_Data[i].isDevicePtr) {
-        if (FTI_Conf->ioMode != FTI_IO_FTIFF){
-          free(FTI_Data[i].ptr);
-          FTI_Data[i].ptr = NULL;
-        }
-    }
-#endif
-  }
-
-  unsigned char hash[MD5_DIGEST_LENGTH];
-  MD5_Final (hash, &mdContext);
-
   int ii = 0;
+
   for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-    sprintf(&checksum[ii], "%02x", hash[i]);
+    sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
     ii += 2;
   }
-
   return FTI_SCES;
 }
 
@@ -374,6 +335,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
       FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
       FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
       FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+	  FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
     }
   } else {
     for (i = 0; i < 5; i++) {
@@ -386,6 +348,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
       FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
       FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
       FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+	  FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
     }
   }
   FTI_Exec->metaAlloc = 1;
@@ -413,6 +376,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
       free(FTI_Exec->meta[i].nbVar);
       free(FTI_Exec->meta[i].varID);
       free(FTI_Exec->meta[i].varSize);
+	  free(FTI_Exec->meta[i].filePos);
     }
     FTI_Exec->metaAlloc = 0;
   }

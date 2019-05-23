@@ -22,6 +22,7 @@ int FTI_PosixOpen(char *fn, void *fileDesc){
 		FTI_Print(str,FTI_EROR);
 		return FTI_NSCS;
 	}
+	MD5_Init(&(fd->integrity));
 	return FTI_SCES;
 }
 
@@ -43,6 +44,7 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc){
 		fwrite_errno = errno;
 	}
 
+    MD5_Update (&(fd->integrity), src, size);
 	if (ferror(fd->f)){
 		char error_msg[FTI_BUFS];
 		error_msg[0] = 0;
@@ -66,6 +68,11 @@ int FTI_PosixSeek(size_t pos, void *fileDesc){
 		return FTI_NSCS;
 	}
 	return FTI_SCES;
+}
+
+size_t FTI_GetPosixFilePos(void *fileDesc){
+	WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
+	return ftell(fd->f);
 }
 
 int FTI_PosixRead(void *dest, size_t size, void *fileDesc){

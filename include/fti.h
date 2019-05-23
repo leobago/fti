@@ -403,6 +403,7 @@ extern "C" {
     bool                isDevicePtr;        /**< True if this data are stored in a device memory*/
     void                *devicePtr;         /**< Pointer to data in the device                  */
     FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
+	size_t				filePos;			/**<Position in the file in which we stored data	*/
   } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
@@ -420,6 +421,7 @@ extern "C" {
     int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
     int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
     long*            varSize;            /**< Variable size. [FTI_BUFS]             */
+    long*            filePos;            /**< File Postion of each variable			*/
   } FTIT_metadata;
 
     /** @typedef    FTIT_configuration
@@ -569,6 +571,7 @@ extern "C" {
     int             metaAlloc;          /**< TRUE if meta allocated.        */
     int             initSCES;           /**< TRUE if FTI initialized.       */
     char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
+	unsigned char 	integrity[MD5_DIGEST_LENGTH];
     FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
     FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
     FTIFF_db         *lastdb;           /**< Pointer to first datablock     */

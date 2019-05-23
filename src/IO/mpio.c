@@ -81,6 +81,10 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
 	return FTI_SCES;
 }
 
+size_t FTI_GetMPIOFilePos(void *fileDesc){
+	WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
+	return fd->offset;
+}
 
 int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 	WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;

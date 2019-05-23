@@ -502,13 +502,14 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		FTI_Data[i].filePos = FTI_GetPosixFilePos(write_info);
 		int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
 		if (ret !=FTI_SCES){
 			return ret;
 		}
 	}
-
 	FTI_PosixClose(write_info);
+	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
 	free(write_info);
 	return FTI_SCES;
 
@@ -534,7 +535,7 @@ int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
 {
-	int res;
+	int res = FTI_SCES;
 	int i;
 	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
 
@@ -546,12 +547,16 @@ int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	WriteMPIInfo_t *write_info = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
+		FTI_Data[i].filePos = FTI_GetMPIOFilePos(write_info);
 		res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
 		if (res != FTI_SCES)
 			return res;
 	}
 
-	return FTI_MPIOClose(&write_info);
+	FTI_MPIOClose(&write_info);
+	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
+	free(write_info);
+	return res;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -45,7 +45,7 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 	int i;
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if( FTI_Data[i].id == varID ) {
-			FTI_PosixSeek(offset,write_info);
+			FTI_Data[i].filePos = FTI_GetPosixFilePos(write_info);
 			int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
 			if (ret !=FTI_NSCS ){
 				FTI_Exec->iCPInfo.result = ret;
@@ -53,7 +53,6 @@ int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 			}
 
 		}
-		offset += FTI_Data[i].count*FTI_Data[i].eleSize;
 	}
 	FTI_Exec->iCPInfo.result = FTI_SCES;
 	return FTI_SCES;
@@ -82,6 +81,8 @@ int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 	}
 	WritePosixInfo_t *write_info = FTI_Exec->iCPInfo.fd;
 	FTI_PosixClose(write_info);
+  	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
+	free(write_info);
 	free (write_info);
 	FTI_Exec->iCPInfo.fd = NULL;
 	return FTI_SCES;
@@ -132,6 +133,7 @@ int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 	int i;
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if ( FTI_Data[i].id == varID ) {
+			FTI_Data[i].filePos = FTI_GetMPIOFilePos(write_info);
 			res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
 		}
 	}
@@ -161,8 +163,10 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		return FTI_NSCS;
 	}
 
-	FTI_MPIOClose((WriteMPIInfo_t*) FTI_Exec->iCPInfo.fd);
-	free(FTI_Exec->iCPInfo.fd);
+	WriteMPIInfo_t *write_info = FTI_Exec->iCPInfo.fd;
+	FTI_MPIOClose(write_info);
+  	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
+	free(write_info);
 	FTI_Exec->iCPInfo.fd = NULL;
 	return FTI_SCES;
 
