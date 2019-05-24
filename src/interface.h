@@ -39,14 +39,6 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
-/* include fti.h for public definitions of
- * FTI_BUFS
- * FTI_WORD
- * FTI_DONE
- * FTI_SCES
- * FTI_NSCS 
- * FTI_NREC
- * FTI_HEAD */
 #include <fti.h>
   
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -121,17 +113,20 @@
 typedef size_t 	hsize_t;
 #endif
 
-// internal header
-#include <fti-int/types.h> 
-#include <fti-int/ftiff.h> 
-#include <fti-int/stage.h>
-#include <fti-int/icp.h>
-#ifdef ENABLE_HDF5
-#include <fti-int/hdf5-fti.h>
-#endif
-#include <fti-int/utility.h>
-#include <fti-int/failure-injection.h>
+// fti types
+#include "fti-types.h" 
 
+// internal header
+#include "ftiff-io.h" 
+#include "stage.h"
+#include "icp.h"
+#ifdef ENABLE_HDF5
+#include "hdf5-io.h"
+#endif
+#include "utility.h"
+#include "fi-io.h"
+
+// dependencies
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 

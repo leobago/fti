@@ -15,12 +15,6 @@
 #define FTI_DISABLE_STAGING do{*enableStagingPtr = false;} while(0)
 #define FTI_SI_ENABLED (*(bool*)enableStagingPtr)
 
-/* include fti.h for public definitions of
- * FTI_SI_FAIL
- * FTI_SI_SCES
- * FTI_SI_ACTV
- * FTI_SI_PEND
- * FTI_SI_NINI */
 #include <fti.h>
 
 /** Maximum amount of concurrent active staging requests                   

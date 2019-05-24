@@ -1,6 +1,8 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include <fti.h>
+
 int write_posix(void *src, size_t size, void *opaque);
 int write_mpi(void *src, size_t size, void *opaque);
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);

@@ -1,7 +1,7 @@
 #ifndef INCREMENTAL_CHECKPOINT_H
 #define INCREMENTAL_CHECKPOINT_H
 
-#include <fti-int/types.h>
+#include <fti.h>
 
 #define FTI_ICP_NINI 0
 #define FTI_ICP_ACTV 1

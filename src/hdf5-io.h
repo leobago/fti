@@ -1,7 +1,7 @@
 #ifndef HDF5_FTI_H
 #define HDF5_FTI_H
 
-#include <fti-int/types.h>
+#include <fti.h>
 
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                   FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,

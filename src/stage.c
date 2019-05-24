@@ -39,7 +39,7 @@
  *  @brief  helper functions for the FTI staging feature.
  */
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
 /**
  * @todo

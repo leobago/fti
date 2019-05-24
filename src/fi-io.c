@@ -1,4 +1,4 @@
-#include <fti-int/interface.h>
+#include "interface.h"
 
 #include <stdlib.h>
 #include <string.h>

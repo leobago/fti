@@ -40,7 +40,7 @@
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
 #ifdef FTI_NOZLIB
 const uint32_t crc32_tab[] = {

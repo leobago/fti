@@ -37,13 +37,13 @@
  */
 
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif 
 
-#include "api_cuda.h"
+#include "api-cuda.h"
 
 
 /** General configuration information used by FTI.                         */

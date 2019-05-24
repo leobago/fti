@@ -2,6 +2,10 @@
 #define _TYPES_H_
 
 #include <mpi.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <limits.h>
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif
@@ -11,6 +15,17 @@
 #include "hdf5_hl.h"
 #endif
 #include <stdio.h>
+
+/*---------------------------------------------------------------------------
+  FAILURE INJECTION TYPES
+  ---------------------------------------------------------------------------*/
+static inline uint64_t get_ruint() {
+    uint64_t buffer;
+    int fd = open("/dev/urandom", O_RDWR);
+    read(fd, &buffer, 8);
+    close(fd);
+    return buffer%INT_MAX;
+}
 
 /*---------------------------------------------------------------------------
   ICP TYPES
@@ -628,30 +643,9 @@ typedef struct FTIT_injection {
     double          timer;              /**< Timer to measure frequency     */
 } FTIT_injection;
 
-extern MPI_Comm FTI_COMM_WORLD;
-
-/** FTI data type for chars.                                               */
-extern FTIT_type FTI_CHAR;
-/** FTI data type for short integers.                                      */
-extern FTIT_type FTI_SHRT;
-/** FTI data type for integers.                                            */
-extern FTIT_type FTI_INTG;
-/** FTI data type for long integers.                                       */
-extern FTIT_type FTI_LONG;
-/** FTI data type for unsigned chars.                                      */
-extern FTIT_type FTI_UCHR;
-/** FTI data type for unsigned short integers.                             */
-extern FTIT_type FTI_USHT;
-/** FTI data type for unsigned integers.                                   */
-extern FTIT_type FTI_UINT;
-/** FTI data type for unsigned long integers.                              */
-extern FTIT_type FTI_ULNG;
-/** FTI data type for single floating point.                               */
-extern FTIT_type FTI_SFLT;
-/** FTI data type for double floating point.                               */
-extern FTIT_type FTI_DBLE;
-/** FTI data type for long doble floating point.                           */
-extern FTIT_type FTI_LDBE;
+/*---------------------------------------------------------------------------
+  UTILITY TYPES
+  ---------------------------------------------------------------------------*/
 
 typedef struct
 {

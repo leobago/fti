@@ -44,7 +44,7 @@
 /** status 'not initialized' for stage requests                            */
 #define FTI_SI_NINI 0x0
 
-#include <fti-int/types.h>
+#include "fti-types.h"
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"

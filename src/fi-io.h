@@ -72,13 +72,7 @@
 #include <stdint.h>
 #include <limits.h>
 
-static inline uint64_t get_ruint() {
-    uint64_t buffer;
-    int fd = open("/dev/urandom", O_RDWR);
-    read(fd, &buffer, 8);
-    close(fd);
-    return buffer%INT_MAX;
-}
+#include "fti.h"
 
 void FTI_InitFIIO();
 float PROBABILITY();

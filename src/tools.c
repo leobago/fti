@@ -36,10 +36,10 @@
  *  @brief  Utility functions for the FTI library.
  */
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
 #include <dirent.h>
-#include "api_cuda.h"
+#include "api-cuda.h"
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */

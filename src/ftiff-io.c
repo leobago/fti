@@ -38,9 +38,9 @@
  */
 #define _GNU_SOURCE
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
-#include "api_cuda.h"
+#include "api-cuda.h"
 
 /*  
 

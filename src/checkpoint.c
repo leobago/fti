@@ -42,9 +42,9 @@
 
 #include <string.h>
 
-#include <fti-int/interface.h>
+#include "interface.h"
 
-#include "api_cuda.h"
+#include "api-cuda.h"
 
 /*-------------------------------------------------------------------------*/
 /**
