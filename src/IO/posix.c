@@ -85,7 +85,7 @@ int FTI_PosixSync(void *fileDesc){
 }
 
 
-WritePosixInfo_t *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
 	char fn[FTI_BUFS];
 	int level = FTI_Exec->ckptLvel;
 
@@ -106,7 +106,8 @@ WritePosixInfo_t *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FT
 	return write_info;
 }
 
-int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, WritePosixInfo_t *write_info){
+int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
+	WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
 	char str[FTI_BUFS];
 	int res;
 
@@ -135,4 +136,10 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, WritePosixInfo_t *write_info)
 	}
 #endif  
 	return FTI_SCES;
+}
+
+
+void FTI_PosixMD5(unsigned char *dest, void *md5){
+	WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
+	MD5_Final(dest,&(write_info->integrity));
 }

@@ -41,6 +41,9 @@
 #include "utility.h"
 #include "api_cuda.h"
 
+size_t FTI_GetHDF5FilePos(void *fileDesc){
+	return 0;
+}
 
 int FTI_HDF5Open(char *fn, void *fileDesc){
 	WriteHDF5Info_t *fd = (WriteHDF5Info_t*) fileDesc;
@@ -705,7 +708,7 @@ int  FTI_HDF5Close(void *fileDesc){
 }
 
 
-WriteHDF5Info_t *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
 	FTI_Print("I/O mode: HDF5.", FTI_DBUG);
 	int ret;
 	char str[FTI_BUFS], fn[FTI_BUFS];
@@ -736,7 +739,7 @@ WriteHDF5Info_t *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_
 		}
 		FTI_CreateGlobalDatasets( FTI_Exec );
 	}
-	return fd;
+	return (void *) fd;
 }
 
 /*-------------------------------------------------------------------------*/

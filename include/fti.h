@@ -14,6 +14,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
+
+
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif
@@ -534,6 +537,24 @@ extern "C" {
     double          timer;              /**< Timer to measure frequency     */
   } FTIT_injection;
 
+typedef struct FTIT_execution FTIT_execution;
+
+typedef struct ftit_io{
+	void*  (*initCKPT) (	FTIT_configuration* , 
+							FTIT_execution*  ,
+							FTIT_topology*   ,
+							FTIT_checkpoint* , 
+							FTIT_dataset *);
+
+	int (*WriteData) (	FTIT_dataset * ,
+							void *write_info);
+	int (*finCKPT)	(void *fileDesc);
+	size_t (*getPos) (void *fileDesc);
+	void (*finIntegrity) (unsigned char *, void*);
+
+	
+}FTIT_IO;
+
 
 /** @typedef    FTIT_execution
    *  @brief      Execution metadata.
@@ -589,14 +610,16 @@ extern "C" {
 			struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 
 			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
 			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-			FTIT_dataset* );			/** And one for the remaining cases	*/
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
 
 	int (*initICPFunc[2]) 				/** A function pointer pointing to  */									
 			(FTIT_configuration* , 		/** the function which actually 	*/
 			struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
 			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
 			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-			FTIT_dataset* );			/** And one for the remaining cases	*/
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
 
 	int (*writeVarICPFunc[2]) 		    /** A function pointer pointing to  */
 			(int,						/**									*/
@@ -604,19 +627,24 @@ extern "C" {
 			struct FTIT_execution* ,	/** writes the iCP. Noticeably		*/ 
 			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
 			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-			FTIT_dataset* );			/** And one for the remaining cases	*/
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO*);					
 
 	int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
 			(FTIT_configuration* , 		/** the function which actually 	*/
 			struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
 			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
 			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-			FTIT_dataset* );			/** And one for the remaining cases	*/
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
 	
 
 } FTIT_execution;
 
 
+
+#define LOCAL 0
+#define GLOBAL 1
 
   /*---------------------------------------------------------------------------
     Global variables

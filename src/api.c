@@ -96,86 +96,6 @@ FTIT_type FTI_DBLE;
 FTIT_type FTI_LDBE;
 
 
-int FTI_InitCheckpointWriters(int ckptIO, FTIT_execution * FTI_Exec ){
-	//Initialize Local and Global writers
-	switch (ckptIO) {
-		case FTI_IO_POSIX:
-			FTI_Exec->ckptFunc[0] = FTI_WritePosix;
-			FTI_Exec->ckptFunc[1] = FTI_WritePosix;
-
-			FTI_Exec->initICPFunc[0] = FTI_InitPosixICP; 
-			FTI_Exec->initICPFunc[1] = FTI_InitPosixICP; 
-
-			FTI_Exec->writeVarICPFunc[0] = FTI_WritePosixVar; 
-			FTI_Exec->writeVarICPFunc[1] = FTI_WritePosixVar;
-
-			FTI_Exec->finalizeICPFunc[0] = FTI_FinalizePosixICP;
-			FTI_Exec->finalizeICPFunc[1] = FTI_FinalizePosixICP;
-			break;
-
-		case FTI_IO_MPI:
-			FTI_Exec->ckptFunc[0] = FTI_WritePosix;
-			FTI_Exec->ckptFunc[1] = FTI_WriteMPI;
-
-			FTI_Exec->initICPFunc[0] =	FTI_InitPosixICP; 
-			FTI_Exec->initICPFunc[1] = FTI_InitMpiICP; 
-
-			FTI_Exec->writeVarICPFunc[0] = FTI_WritePosixVar;
-			FTI_Exec->writeVarICPFunc[1] = FTI_WriteMpiVar;
-
-			FTI_Exec->finalizeICPFunc[0] = FTI_FinalizePosixICP;
-			FTI_Exec->finalizeICPFunc[1] = FTI_FinalizeMpiICP;
-			break;
-
-#ifdef ENABLE_SIONLIB //If SIONlib is installed
-		case FTI_IO_SIONLIB:
-			FTI_Exec->ckptFunc[0] = FTI_WritePosix;
-			FTI_Exec->ckptFunc[1] = FTI_WriteSionlib;
-
-			FTI_Exec->initICPFunc[0] = FTI_InitPosixICP; 
-			FTI_Exec->initICPFunc[1] = FTI_InitPosixICP; 
-
-			FTI_Exec->writeVarICPFunc[0] = FTI_WritePosixVar; 
-			FTI_Exec->writeVarICPFunc[1] = FTI_WritePosixVar;
-
-			FTI_Exec->finalizeICPFunc[0] = FTI_FinalizePosixICP;
-			FTI_Exec->finalizeICPFunc[1] = FTI_FinalizePosixICP;
-
-			break;
-#endif
-		case FTI_IO_FTIFF:
-			FTI_Exec->ckptFunc[1] = FTIFF_WriteFTIFF;
-			FTI_Exec->ckptFunc[0] = FTIFF_WriteFTIFF;
-
-			FTI_Exec->initICPFunc[0] = FTI_InitFtiffICP; 
-			FTI_Exec->initICPFunc[1] = FTI_InitFtiffICP;
-
-			FTI_Exec->writeVarICPFunc[0] = FTI_WriteFtiffVar;
-			FTI_Exec->writeVarICPFunc[1] = FTI_WriteFtiffVar;
-
-			FTI_Exec->finalizeICPFunc[0] = FTI_FinalizeFtiffICP;
-			FTI_Exec->finalizeICPFunc[1] = FTI_FinalizeFtiffICP;
-
-			break;
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-		case FTI_IO_HDF5:
-			FTI_Exec->ckptFunc[1] = FTI_WriteHDF5;
-			FTI_Exec->ckptFunc[0] = FTI_WriteHDF5;
-
-			FTI_Exec->initICPFunc[0] = FTI_InitHdf5ICP; 
-			FTI_Exec->initICPFunc[1] = FTI_InitHdf5ICP;
-
-			FTI_Exec->writeVarICPFunc[0] = FTI_WriteHdf5Var; 
-			FTI_Exec->writeVarICPFunc[1] = FTI_WriteHdf5Var; 
-
-			FTI_Exec->finalizeICPFunc[0] = FTI_FinalizeHdf5ICP; 
-			FTI_Exec->finalizeICPFunc[1] = FTI_FinalizeHdf5ICP;
-
-			break;
-#endif
-	}
-	return FTI_SCES;
-}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1667,7 +1587,7 @@ int FTI_InitICP(int id, int level, bool activate)
 		} else if ( !FTI_Ckpt[4].hasDcp ) {
 			MKDIR(FTI_Ckpt[4].dcpDir,0777);
 		}
-		res = FTI_Exec.initICPFunc[1](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+		res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL]);
 	}
 	else {
 		if ( !(FTI_Conf.dcpEnabled && FTI_Ckpt[4].isDcp) ) {
@@ -1675,7 +1595,7 @@ int FTI_InitICP(int id, int level, bool activate)
 		} else if ( !FTI_Ckpt[4].hasDcp ) {
 			MKDIR(FTI_Ckpt[1].dcpDir,0777);
 		}
-		res = FTI_Exec.initICPFunc[0](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+		res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL]);
 	}
 
 	if ( res == FTI_SCES ) 
@@ -1740,7 +1660,7 @@ int FTI_AddVarICP( int varID )
 
 	int res;
 	int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
-	res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
+	res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID]);
 
 	if ( res == FTI_SCES ) {
 		FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
@@ -1791,7 +1711,7 @@ int FTI_FinalizeICP()
 	int resPP;
 
 	int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
-	resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);;
+	resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID]);
 
 	if( resCP == FTI_SCES ) {
 		resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");

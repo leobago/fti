@@ -903,7 +903,7 @@ MF    - File meta data
 /*-------------------------------------------------------------------------*/
 int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
 	// update pre-checkpoint meta data
 	int pvar_idx;

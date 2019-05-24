@@ -92,7 +92,7 @@ int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 }
 
 
-WriteMPIInfo_t *FTI_InitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
 	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
 	int i;
 
@@ -121,10 +121,12 @@ WriteMPIInfo_t *FTI_InitMpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
 	}
 	free(chunkSizes);
 	write_info->offset = offset;
-	return write_info;
+	return (void *)write_info;
 }
 
-int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, WriteMPIInfo_t *write_info){
+int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
+	WriteMPIInfo_t *write_info = (WriteMPIInfo_t *) fd;
+
 	char str[FTI_BUFS];
 	int res;
 	if ( !(FTI_DataVar->isDevicePtr) ){

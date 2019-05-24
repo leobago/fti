@@ -48,6 +48,8 @@
 #include "utility.h"
 #include "macros.h"
 
+#include "FTI_IO.h"
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It updates the local and global mean iteration time.
@@ -146,7 +148,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			MKDIR(FTI_Ckpt[4].dcpDir, 0777);
 		}
 		//Actually call the respecitve function to store the checkpoint 
-		res = FTI_Exec->ckptFunc[1](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+		res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[GLOBAL]);
 	}
 	else {
 		if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
@@ -155,7 +157,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 			MKDIR(FTI_Ckpt[1].dcpDir, 0777);
 		}
 		//Actually call the respecitve function to store the checkpoint 
-		res = FTI_Exec->ckptFunc[0](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+		res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[LOCAL] );
 	}
 
 	//Check if all processes have written correctly (every process must succeed)
@@ -483,7 +485,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes ckpt.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -493,71 +495,23 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
+		FTIT_dataset* FTI_Data, FTIT_IO *io){
 	int i;
-
-	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-
+	void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		FTI_Data[i].filePos = FTI_GetPosixFilePos(write_info);
-		int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
-		if (ret !=FTI_SCES){
+		FTI_Data[i].filePos = io->getPos(write_info);
+		int ret = io->WriteData(&FTI_Data[i], write_info);
+		if (ret != FTI_SCES)
 			return ret;
-		}
 	}
-	FTI_PosixClose(write_info);
-	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
-	free(write_info);
+	io->finIntegrity(FTI_Exec->integrity, write_info);
+	io->finCKPT(write_info);
+	free (write_info);
 	return FTI_SCES;
-
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes ckpt to PFS using MPI I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  In here it is taken into account, that in MPIIO the count parameter
-  in both, MPI_Type_contiguous and MPI_File_write_at, are integer
-  types. The ckpt data is split into chunks of maximal (MAX_INT-1)/2
-  elements to form contiguous data types. It was experienced, that
-  if the size is greater then that, it may lead to problems.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
-{
-	int res = FTI_SCES;
-	int i;
-	char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-
-	FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-
-	snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-	snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-
-	WriteMPIInfo_t *write_info = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-
-	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		FTI_Data[i].filePos = FTI_GetMPIOFilePos(write_info);
-		res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
-		if (res != FTI_SCES)
-			return res;
-	}
-
-	FTI_MPIOClose(&write_info);
-	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
-	free(write_info);
-	return res;
-}
 
 /*-------------------------------------------------------------------------*/
 /**

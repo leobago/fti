@@ -1,175 +1,46 @@
 #include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
 #include "utility.h"
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Initializes iCP for POSIX I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
+#include "FTI_IO.h"
 
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
-{
-	WritePosixInfo_t *write_info = FTI_InitPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-	FTI_Exec->iCPInfo.fd= write_info;
-	return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes dataset into ckpt file using POSIX.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data, FTIT_IO *io)
 {
-	int res;
-	WritePosixInfo_t *write_info = (WritePosixInfo_t*) FTI_Exec->iCPInfo.fd;
-	long offset = 0;
-
-	// write data into ckpt file
-	int i;
-	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		if( FTI_Data[i].id == varID ) {
-			FTI_Data[i].filePos = FTI_GetPosixFilePos(write_info);
-			int ret = FTI_WritePosixData(&FTI_Data[i],write_info);
-			if (ret !=FTI_NSCS ){
-				FTI_Exec->iCPInfo.result = ret;
-				return ret;
-			}
-
-		}
-	}
-	FTI_Exec->iCPInfo.result = FTI_SCES;
-	return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finalizes iCP for POSIX I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
-		return FTI_NSCS;
-	}
-	WritePosixInfo_t *write_info = FTI_Exec->iCPInfo.fd;
-	FTI_PosixClose(write_info);
-  	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
-	free(write_info);
-	free (write_info);
-	FTI_Exec->iCPInfo.fd = NULL;
-	return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Initializes iCP for MPI I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	WriteMPIInfo_t *ret = FTI_InitMpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+	void *ret = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
 	FTI_Exec->iCPInfo.fd = ret;
 	return FTI_SCES;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes dataset into ckpt file using MPI-IO.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) FTI_Exec->iCPInfo.fd;
-	int res;
-	//    memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
 
+int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+		FTIT_dataset* FTI_Data, FTIT_IO *io)
+{
+	void *write_info = (void *) FTI_Exec->iCPInfo.fd;
+	int res;
 	int i;
 	for (i = 0; i < FTI_Exec->nbVar; i++) {
 		if ( FTI_Data[i].id == varID ) {
-			FTI_Data[i].filePos = FTI_GetMPIOFilePos(write_info);
-			res = FTI_WriteMPIOData(&FTI_Data[i],write_info);
+			FTI_Data[i].filePos = io->getPos(write_info);
+			res = io->WriteData(&FTI_Data[i],write_info);
 		}
 	}
 	FTI_Exec->iCPInfo.result = res;
 	return res;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finalizes iCP for MPI I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
 
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
+int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io){
 	if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
 		return FTI_NSCS;
 	}
-
-	WriteMPIInfo_t *write_info = FTI_Exec->iCPInfo.fd;
-	FTI_MPIOClose(write_info);
-  	MD5_Final (FTI_Exec->integrity, &(write_info->integrity));
+	void *write_info = FTI_Exec->iCPInfo.fd;
+	io->finCKPT(write_info);
+  	io->finIntegrity(FTI_Exec->integrity, write_info);
 	free(write_info);
 	FTI_Exec->iCPInfo.fd = NULL;
 	return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -188,7 +59,7 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
 	char fn[FTI_BUFS], strerr[FTI_BUFS];
 	WritePosixInfo_t *write_info = (WritePosixInfo_t*) malloc (sizeof(WritePosixInfo_t));
@@ -249,7 +120,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
 	char str[FTI_BUFS];
 
@@ -361,7 +232,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
+		FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {   
 	if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
 		return FTI_NSCS;
@@ -384,94 +255,6 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 }
 
-#ifdef ENABLE_HDF5
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Initializes iCP for HDF5 I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	FTI_Exec->iCPInfo.fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-	if (!(FTI_Exec->iCPInfo.fd))
-		FTI_Exec->iCPInfo.status = FTI_NSCS;
-	else 		
-		FTI_Exec->iCPInfo.status = FTI_SCES;
-
-	return FTI_Exec->iCPInfo.status;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes dataset into ckpt file using HDF5.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	int i;
-	WriteHDF5Info_t *fd = FTI_Exec->iCPInfo.fd;
-
-	if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
-		return FTI_NSCS;
-	}
-
-	// write data into ckpt file
-	for (i = 0; i < FTI_Exec->nbVar; i++) {
-		if( FTI_Data[i].id == varID ) {
-			FTI_Exec->iCPInfo.result = FTI_WriteHDF5Data(&FTI_Data[i],fd);	
-			break;
-		}
-	}
-	return FTI_Exec->iCPInfo.result;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finalizes iCP for HDF5 I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data)
-{
-	WriteHDF5Info_t *fd = (WriteHDF5Info_t*) FTI_Exec->iCPInfo.fd;
-	int ret =   FTI_HDF5Close(fd);
-	FTI_Exec->iCPInfo.result = ret;
-	fd->FTI_Exec = NULL;
-	fd->FTI_Data = NULL;
-	free(FTI_Exec->iCPInfo.fd);
-	return ret;
-
-}
-#endif
 
 /* 
  * As long SIONlib does not support seek in a single file

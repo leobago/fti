@@ -131,7 +131,7 @@ set(SRC_FTI
 	src/tools.c src/topo.c src/IO/ftiff.c src/IO/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
 	src/failure-injection.c src/api_cuda.c src/utility.c 
-	src/macros.c src/IO/mpio.c src/IO/posix.c)
+	src/macros.c src/IO/mpio.c src/IO/posix.c src/FTI_IO.c)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
