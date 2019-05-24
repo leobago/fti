@@ -245,7 +245,6 @@ typedef struct FTIFF_MPITypeInfo {
   STAGE TYPES
   ---------------------------------------------------------------------------*/
 
-//#include <fti-int/stage-types.h>
 /** @typedef    FTIT_StageInfo
  *  @brief      Staging meta info.
  *  
