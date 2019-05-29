@@ -286,14 +286,15 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("The number of heads needs to be set to 0 or 1.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Topo->nbProc % FTI_Topo->nodeSize != 0) {
-        FTI_Print("Number of ranks is not a multiple of the node size.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
-        FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
-        return FTI_NSCS;
-    }
+#warning remove comments
+    //if (FTI_Topo->nbProc % FTI_Topo->nodeSize != 0) {
+    //    FTI_Print("Number of ranks is not a multiple of the node size.", FTI_WARN);
+    //    return FTI_NSCS;
+    //}
+    //if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
+    //    FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
+    //    return FTI_NSCS;
+    //}
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;

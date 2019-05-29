@@ -127,7 +127,7 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
  */
 
 int main(int argc, char* argv[]) {
-
+    
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
 
-
+    
   char *env = getenv("ENABLE_ICP");
   if( env ) {
     if( !strcmp(env, "ON") ) {
