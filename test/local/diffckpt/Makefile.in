@@ -8,6 +8,8 @@ FTI_INC_DIR := $(FTI_RELEASE)/include
 FTI_LIB_DIR := $(FTI_RELEASE)/lib
 FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
 WORK_DIR := $(FTI_HOME)/test/local/diffckpt
+MD5_LIB = @DCP_CHECK_MD5_LIB@
+DEF = @DCP_CHECK_DEF@
 
 .PHONY: clean all run fti share env
 
@@ -24,10 +26,10 @@ fti: $(FTI_SRC) clean
 	cd $(WORK_DIR)
 
 diff_test_func.o: diff_test_func.c diff_test.h Makefile fti
-	mpicc -o $@ -c $< -g $(CDEF) -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti
+	mpicc -o $@ -c $< -g $(CDEF) -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti $(DEF)
 
 diff_test: diff_test_func.o diff_test.c diff_test.h Makefile fti
-	mpicc -o diff_test diff_test.c -g $(CDEF) $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti -lcrypto
+	mpicc -o diff_test diff_test.c -g $(CDEF) $< -I$(FTI_INC_DIR) -L$(FTI_LIB_DIR) -lfti $(MD5_LIB) $(DEF)
 
 run-test-nohead: diff_test Makefile
 	cp cfg/H0 ./config.fti
@@ -36,6 +38,16 @@ run-test-nohead: diff_test Makefile
 
 run-test-head: diff_test Makefile
 	cp cfg/H1 ./config.fti
+	mpirun -n 8 ./$<
+	mpirun -n 8 ./$<
+
+run-test-nohead-posix: diff_test Makefile
+	cp cfg/H0POSIX ./config.fti
+	mpirun -n 8 ./$<
+	mpirun -n 8 ./$<
+
+run-test-head-posix: diff_test Makefile
+	cp cfg/H1POSIX ./config.fti
 	mpirun -n 8 ./$<
 	mpirun -n 8 ./$<
 

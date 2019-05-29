@@ -273,7 +273,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
-
+       
         // determine file size in order to write at the end of the elongated file
         // (i.e. write at the end of file after 'truncate(..., maxFs)'.
         struct stat st_;
@@ -314,7 +314,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
             return FTI_NSCS;
         }
-
+        
         FILE* efd = fopen(efn, "wb");
         if (efd == NULL) {
             FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
@@ -412,8 +412,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             // Writting encoded checkpoints
-            size_t wBytes = 0;
-            FWRITE(wBytes,coding, sizeof(char), remBsize, efd,"",NULL);
+            fwrite(coding, sizeof(char), remBsize, efd);
             MD5_Update (&mdContext, coding, remBsize);
 
             // Next block
@@ -491,7 +490,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(efd);
 
         long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
-
+       
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
@@ -501,9 +500,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-    }
+}
 
-    return FTI_SCES;
+return FTI_SCES;
 }
 
 
@@ -537,7 +536,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
 
-    if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+    if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
         FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
         //Create global temp directory
@@ -568,7 +567,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
     }
     //}
-return FTI_SCES;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -635,6 +634,7 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
             RENAME(fn_from,fn_to);
         }
     }
+
     // needed to avoid that the files get deleted before we can move them
     MPI_Barrier(FTI_COMM_WORLD);
 
@@ -891,11 +891,11 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
     }
 
-    int rank, ckptID;
-    //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    //  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+  int rank, ckptID;
+//  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+//  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
+  snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
 
     int numFiles = 1;

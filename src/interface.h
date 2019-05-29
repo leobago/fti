@@ -65,7 +65,6 @@
 #include "FTI_IO.h"
 
 #include <stdint.h>
-#include "../deps/md5/md5.h"
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -152,9 +151,9 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_HDF5
 
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
+                    FTIT_dataset* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, int id);
+                        FTIT_dataset* FTI_Data, int id);
 int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum);
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec );
@@ -176,8 +175,9 @@ int FTI_LoadTmpMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
-        char* checksums, int* allVarIDs, long* allVarSizes, long *allVarPositions);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, long* fs, long mfs, char* fnl,
+        char* checksums, int* allVarIDs, long* allVarSizes, unsigned long* allLayerSizes,
+        char* allLayerHashes , long *allVarPositions);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data);
@@ -230,14 +230,14 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
-        FTIT_configuration* FTI_Conf, char* checksum);
+      FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 #ifdef ENABLE_HDF5
-herr_t FTI_WriteSharedFileData( FTIT_dataset *FTI_DataVar );
+herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data );
 void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
 void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
@@ -293,6 +293,18 @@ static inline uint32_t crc32(const void *buf, size_t size)
     return (crc ^ ~0U);
 }
 #endif
+
+// DIFFERENTIAL CHECKPOINTING POSIX
+int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
+int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
+int FTI_VerifyChecksumDcpPosix(char* fileName);
+void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
+int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data );
+int FTI_RecoverVarDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, int id );
+int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
+char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr );
 
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 

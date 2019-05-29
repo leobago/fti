@@ -1,0 +1,47 @@
+cd @CMAKE_SOURCE_DIR@/test/local/diffckpt
+N=16
+if [ $1 = 0 ]; then
+    TEST_MODE=$2 make run-test-nohead-posix > out
+    MKE=$?
+    awk '
+            BEGIN {VAL=100; dcpEnabled=0};
+            /L4 dCP requested, but dCP is disabled!/ {print "dCP is disabled!"; exit(-1)}
+            /FTI  dCP Message/ {dcpEnabled=1};
+            {print}; 
+            /DEBUG/ {VAL=$10}; 
+            /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
+            /Ckpt. ID 7/ {VAL=0}
+            END { if ( !dcpEnabled ) { print "dCP is disabled!"; exit(-1) } } 
+        ' out
+    AWK=$?
+    if [[ $AWK -eq 0 ]] && [[ $MKE -eq 0 ]]; then
+        GRP=$(grep $2 out | wc -l)
+        RTN=$((GRP-N))
+    else
+        RTN=255
+    fi
+
+
+elif [ $1 = 1 ]; then
+    TEST_MODE=$2 make run-test-head-posix > out
+    MKE=$?
+    awk '
+            BEGIN {VAL=100; dcpEnabled=0};
+            /L4 dCP requested, but dCP is disabled!/ {print "dCP is disabled!"; exit(-1)}
+            /FTI  dCP Message/ {dcpEnabled=1};
+            {print}; 
+            /DEBUG/ {VAL=$10}; 
+            /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
+            /Ckpt. ID 7/ {VAL=0}
+            END { if ( !dcpEnabled ) { print "dCP is disabled!"; exit(-1) } } 
+        ' out
+    AWK=$?
+    if [[ $AWK -eq 0 ]] && [[ $MKE -eq 0 ]]; then
+        GRP=$(grep $2 out | wc -l)
+        RTN=$((GRP-N))
+    else
+        RTN=255
+    fi
+fi
+cd @CMAKE_BINARY_DIR@/test/local
+exit $RTN

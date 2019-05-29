@@ -120,6 +120,8 @@
 typedef size_t 	hsize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
+#include <fti-int/differential_checkpoint_posix.h>
+#include <fti-int/deps/md5.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -171,8 +173,10 @@ extern "C" {
     double t0;                  /**< timing for CP statistics               */
     double t1;                  /**< timing for CP statistics               */
     char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
-	void *fd;
-  } FTIT_iCPInfo;
+   MD5_CTX ctx[MAX_STACK_SIZE];
+    unsigned long layerSize;
+void *fd;  
+} FTIT_iCPInfo;
 
   /** @typedef    FTIFF_metaInfo
    *  @brief      Meta Information about file.
@@ -406,8 +410,9 @@ extern "C" {
     bool                isDevicePtr;        /**< True if this data are stored in a device memory*/
     void                *devicePtr;         /**< Pointer to data in the device                  */
     FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
-	size_t				filePos;			/**<Position in the file in which we stored data	*/
-  } FTIT_dataset;
+    FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
+	size_t				filePos; 
+ } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
    *  @brief      Metadata for restart.
@@ -434,7 +439,8 @@ extern "C" {
    */
   typedef struct FTIT_configuration {
     bool            stagingEnabled;
-    bool            dcpEnabled;         /**< Enable differential ckpt.      */
+    bool            dcpFtiff;         /**< Enable differential ckpt.      */
+    bool            dcpPosix;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
     bool            keepHeadsAlive;     /**< TRUE if heads return           */
     int             dcpMode;            /**< dCP mode.                      */
@@ -469,6 +475,8 @@ extern "C" {
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
     size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
 	char 	 		suffix[4];			/** Suffix of the checkpoint files		*/
+FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
+
 
   } FTIT_configuration;
 
@@ -512,6 +520,7 @@ extern "C" {
     char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
     char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
     bool            isDcp;              /**< TRUE if dCP requested                  */
+    bool            recoIsDcp;          /**< TRUE if dCP requested                  */
     bool            hasDcp;             /**< TRUE if execution has already a dCP    */
     bool            hasCkpt;            /**< TRUE if level has ckpt                 */        
     int             isInline;           /**< TRUE if work is inline.                */
@@ -605,6 +614,7 @@ typedef struct ftit_io{
     MPI_Comm        globalComm;         /**< Global communicator.           */
     MPI_Comm        groupComm;          /**< Group communicator.            */
     MPI_Comm        nodeComm;
+FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
 	int (*ckptFunc[2]) 					/** A function pointer pointing to  */									
 			(FTIT_configuration* , 		/** the function which actually 	*/
 			struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 

@@ -335,15 +335,30 @@ fi
 #                     #
 # ---- Check dCP ---- #
 #                     #
-echo -e "[ \033[1m*** Testing dCP: head=0 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 NOICP &>> check.log )
+echo -e "[ \033[1m*** Testing dCP POSIX: head=0 ***\033[m ]"
+( set -x; bash checkDCPposix.sh 0 NOICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
     testFailed=0
 fi
-echo -e "[ \033[1m*** Testing dCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 1 NOICP &>> check.log )
+echo -e "[ \033[1m*** Testing dCP POSIX: head=1 ***\033[m ]"
+( set -x; bash checkDCPposix.sh 1 NOICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+
+echo -e "[ \033[1m*** Testing dCP FTI-FF: head=0 ***\033[m ]"
+( set -x; bash checkDCPftiff.sh 0 NOICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing dCP FTI-FF: head=1 ***\033[m ]"
+( set -x; bash checkDCPftiff.sh 1 NOICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
@@ -353,15 +368,29 @@ fi
 #                     #
 # ---- Check iCP ---- #
 #                     #
-echo -e "[ \033[1m*** Testing iCP: head=0 ***\033[m ]"
-( set -x; bash checkDCP.sh 0 ICP &>> check.log )
+echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=0 ***\033[m ]"
+( set -x; bash checkDCPposix.sh 0 ICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=0) failed" >> failed.log
     testFailed=0
 fi
-echo -e "[ \033[1m*** Testing iCP: head=1 ***\033[m ]"
-( set -x; bash checkDCP.sh 1 ICP &>> check.log )
+echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=1 ***\033[m ]"
+( set -x; bash checkDCPposix.sh 1 ICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=0 ***\033[m ]"
+( set -x; bash checkDCPftiff.sh 0 ICP &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "dCP check (head=0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=1 ***\033[m ]"
+( set -x; bash checkDCPftiff.sh 1 ICP &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log

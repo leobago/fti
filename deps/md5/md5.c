@@ -288,7 +288,7 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
-unsigned char *MD5(void *pointer, size_t pointerLength , unsigned char *md5HashPointer)
+unsigned char *MD5(void *pointer, unsigned long pointerLength , unsigned char *md5HashPointer)
 {
 
     MD5_CTX mdContext;
@@ -304,7 +304,7 @@ unsigned char *MD5(void *pointer, size_t pointerLength , unsigned char *md5HashP
     if ( pointer == NULL || pointerLength == 0 ) {
         MD5_Update( &mdContext, staticArray, MD5_CBLOCK );
     } else {
-        MD5_Update( &mdContext, pointer, pointeeLength );
+        MD5_Update( &mdContext, pointer, pointerLength );
     }
 
     if ( md5HashPointer == NULL ) {

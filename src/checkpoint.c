@@ -139,10 +139,12 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
 
+   
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf->gTmpDir, 0777);
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir, 0777);
@@ -151,7 +153,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[GLOBAL]);
     }
     else {
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf->lTmpDir,0777);
         } else if ( !FTI_Ckpt[4].hasDcp ){
             MKDIR(FTI_Ckpt[1].dcpDir, 0777);
@@ -166,20 +168,22 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( (FTI_Conf->dcpFtiff||FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
-        long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
-        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.pureDataSize };
-        MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+        unsigned long *dataSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.pureDataSize:&FTI_Exec->dcpInfoPosix.dataSize;
+        unsigned long *dcpSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.dcpSize:&FTI_Exec->dcpInfoPosix.dcpSize;
+        unsigned long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
+        unsigned long sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce( sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
         if ( FTI_Topo->splitRank ==  0 ) {
-            FTI_Exec->FTIFFMeta.dcpSize = dcpStats[0]; 
-            FTI_Exec->FTIFFMeta.pureDataSize = dcpStats[1];
+            *dcpSize = dcpStats[0]; 
+            *dataSize = dcpStats[1];
         }
     }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
-
-    if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
+    
+    if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
@@ -267,9 +271,9 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
-    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
+    globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-        if (FTI_Exec->ckptLvel == 4) {
+        if ((FTI_Exec->ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
             RENAME(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir);
         }
         // there is no temp meta data folder for FTI-FF
@@ -334,7 +338,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } 
 
         if ( stage_flag ) {
-
+            
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
@@ -347,10 +351,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.
         if ( finalize_flag ) {
-
+            
             char str[FTI_BUFS];
             FTI_Print("Head waits for message...", FTI_DBUG);
-
+            
             int val = 0, i;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
@@ -365,7 +369,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( val != FTI_ENDW) { // If we were asked to finalize
                 FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
             }
-
+            
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
@@ -406,6 +410,9 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        int isDCP;
+        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        FTI_Ckpt[4].isDcp = isDCP;
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
@@ -444,8 +451,8 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         }
         strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
 
-        if ( FTI_Conf->dcpEnabled ) {
-            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpEnabled ) {
+        if ( FTI_Conf->dcpFtiff ) {
+            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
                 FTI_Ckpt[4].isDcp = true;
             }
         } else {
@@ -513,17 +520,6 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes ckpt to PFS using SIONlib.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
- **/
-/*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)

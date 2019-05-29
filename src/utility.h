@@ -2,7 +2,7 @@
 #define __UTILITY__
 #include <string.h>
 
-#include "../deps/md5/md5.h"
+#include <fti-int/deps/md5.h>
 
 
 
