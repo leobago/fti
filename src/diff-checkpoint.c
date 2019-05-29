@@ -819,7 +819,7 @@ int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF
         init = true;
         return 0;
     }
-    
+
     called++;
 
     // if differential ckpt is disabled, return whole chunk and finalize call

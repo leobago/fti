@@ -145,16 +145,16 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_injection *FTI_Inje);
 
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-                  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-                  FTIT_dataset* FTI_Data, FTIT_IO *FTI_IO);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data, FTIT_IO *FTI_IO);
 
 
 #ifdef ENABLE_HDF5
 
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data);
+        FTIT_dataset* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                        FTIT_dataset* FTI_Data, int id);
+        FTIT_dataset* FTI_Data, int id);
 int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum);
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec );
@@ -230,7 +230,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
-      FTIT_configuration* FTI_Conf, char* checksum);
+        FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
@@ -299,7 +299,7 @@ typedef void*               FTI_ADDRPTR;        /**< void ptr type              
 
 //INCREMENTAL CHECKPOINTING FOR FTIFF
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
-                     FTIT_dataset *FTI_Data, unsigned char *hashchk, WritePosixInfo_t *fd, char *fn, long *dcpSize, unsigned char **dptr);
+        FTIT_dataset *FTI_Data, unsigned char *hashchk, WritePosixInfo_t *fd, char *fn, long *dcpSize, unsigned char **dptr);
 
 int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
@@ -320,14 +320,14 @@ int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF
 // INCREMENTAL CHECKPOINTING
 
 int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data, FTIT_IO *io);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data, FTIT_IO *io);
 int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-		FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-		FTIT_dataset* FTI_Data, FTIT_IO *io);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data, FTIT_IO *io);
 int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-					FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, 
-					FTIT_dataset* FTI_Data, FTIT_IO *io);
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, 
+        FTIT_dataset* FTI_Data, FTIT_IO *io);
 
 
 int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

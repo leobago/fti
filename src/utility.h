@@ -7,28 +7,28 @@
 
 
 typedef struct{
-	FTIT_configuration* FTI_Conf;
-	FTIT_topology *FTI_Topo;
-	MPI_Offset offset;
-	int err;
-	MPI_Info info;
-	MPI_File pfh;
-	char flag;
-	MD5_CTX integrity;
+    FTIT_configuration* FTI_Conf;
+    FTIT_topology *FTI_Topo;
+    MPI_Offset offset;
+    int err;
+    MPI_Info info;
+    MPI_File pfh;
+    char flag;
+    MD5_CTX integrity;
 } WriteMPIInfo_t;
 
 typedef struct{
-	FILE *f;
-	size_t offset;
-	char flag;
-	MD5_CTX integrity;
+    FILE *f;
+    size_t offset;
+    char flag;
+    MD5_CTX integrity;
 }WritePosixInfo_t;
 
 #ifdef ENABLE_HDF5
 typedef struct{
-	FTIT_execution *FTI_Exec;
-	FTIT_dataset *FTI_Data;
-	hid_t file_id;
+    FTIT_execution *FTI_Exec;
+    FTIT_dataset *FTI_Data;
+    hid_t file_id;
 }WriteHDF5Info_t;
 
 int FTI_HDF5Open(char *fn, void *fileDesc);

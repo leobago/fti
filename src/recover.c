@@ -126,7 +126,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #else
     consistency = &FTI_CheckFile;
 #endif
-    
+
     switch (level) {
         case 1:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
@@ -238,7 +238,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
                 FTI_Print(str, FTI_DBUG);
-     
+
                 int res;
                 switch (level) {
                     case 4:
@@ -247,7 +247,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         if ( FTI_Ckpt[4].isDcp ) {
                             res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                             FTI_Ckpt[4].isDcp = false;
-                            
+
                             if (res == FTI_SCES ) {
                                 break;
                             }
@@ -272,7 +272,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 if (allRes == FTI_SCES) {
                     //Inform heads that recovered successfully
                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-                     
+
                     // FTI-FF: ckptID is already set properly
                     if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
                         ckptID = FTI_Exec->ckptID;
@@ -295,7 +295,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         }
                         if( hasL4Ckpt ) {
                             snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
-                                FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
+                                    FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
                             FTI_Ckpt[4].hasCkpt = true;
                         }
                     }

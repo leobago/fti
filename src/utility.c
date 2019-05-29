@@ -22,12 +22,12 @@
 /*-------------------------------------------------------------------------*/
 int write_sion(void *src, size_t size, void *opaque)
 {
-  int *sid= (int *)opaque;
-  int res = sion_fwrite(src, size, 1, *sid);
-  if (res < 0 ){
-    return FTI_NSCS;
-  }
-  return FTI_SCES;
+    int *sid= (int *)opaque;
+    int res = sion_fwrite(src, size, 1, *sid);
+    if (res < 0 ){
+        return FTI_NSCS;
+    }
+    return FTI_SCES;
 }
 #endif
 
@@ -45,13 +45,13 @@ int write_sion(void *src, size_t size, void *opaque)
 
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
 #ifdef GPUSUPPORT
-  int i;
-  for (i = 0; i < FTI_Exec->nbVar; i++) {
-    if ( FTI_Data[i].isDevicePtr ){
-      FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if ( FTI_Data[i].isDevicePtr ){
+            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
+        }
     }
-  }
 #endif
-  return FTI_SCES;
+    return FTI_SCES;
 }
 

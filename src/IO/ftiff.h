@@ -59,9 +59,9 @@
     int rank; \
     MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
     if ( rank == RANK ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+    printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
     if ( RANK == -1 ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
+    printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
 /**

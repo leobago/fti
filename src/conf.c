@@ -193,7 +193,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } else {
         strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
     }
-    
+
     char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
     if( h5SingleFilePrefix ) {
         if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
@@ -348,7 +348,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
 CHECK_DCP_SETTING_END:
-    
+
     if (FTI_Conf->transferSize > (1024 * 1024 * 64) || FTI_Conf->transferSize < (1024 * 1024 * 8)) {
         FTI_Print("Transfer size (default = 16MB) not set in Cofiguration file.", FTI_WARN);
         FTI_Conf->transferSize = 16 * 1024 * 1024;
@@ -407,16 +407,16 @@ CHECK_DCP_SETTING_END:
             FTI_Print("Selected Ckpt I/O is FTI-FF", FTI_INFO);
             break;
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-            case FTI_IO_SIONLIB:
-                FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
-                break;
+        case FTI_IO_SIONLIB:
+            FTI_Print("Selected Ckpt I/O is SIONLIB", FTI_INFO);
+            break;
 #endif
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
-                FTI_Print("Selected Ckpt I/O is HDF5", FTI_INFO);
+            FTI_Print("Selected Ckpt I/O is HDF5", FTI_INFO);
 #else
-                FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled. Setting IO mode to POSIX.", FTI_WARN);
-                FTI_Conf->ioMode = FTI_IO_POSIX;
+            FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled. Setting IO mode to POSIX.", FTI_WARN);
+            FTI_Conf->ioMode = FTI_IO_POSIX;
 #endif
             break;
         default:
@@ -425,7 +425,7 @@ CHECK_DCP_SETTING_END:
             break;
 
     }
-    
+
     // check variate processor restart settings
     if( FTI_Exec->reco == 3 ) {
         if( FTI_Conf->ioMode != FTI_IO_HDF5 ) {
@@ -435,8 +435,8 @@ CHECK_DCP_SETTING_END:
             FTI_Exec->reco = 0;
         }
     }    
-   
-        return FTI_SCES;
+
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -459,30 +459,30 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
     FTI_Print(str, FTI_DBUG);
-	MKDIR(FTI_Conf->localDir,0777);
+    MKDIR(FTI_Conf->localDir,0777);
 
     if (FTI_Topo->myRank == 0) {
         // Checking metadata directory
         snprintf(str, FTI_BUFS, "Checking the metadata directory (%s)...", FTI_Conf->metadDir);
         FTI_Print(str, FTI_DBUG);
-		MKDIR(FTI_Conf->metadDir,0777);
+        MKDIR(FTI_Conf->metadDir,0777);
 
         // Checking global directory
         snprintf(str,FTI_BUFS,  "Checking the global directory (%s)...", FTI_Conf->glbalDir);
         FTI_Print(str, FTI_DBUG);
-		MKDIR(FTI_Conf->glbalDir, 0777);
-        
+        MKDIR(FTI_Conf->glbalDir, 0777);
+
         // Checking metadata directory
         if( FTI_Conf->h5SingleFileEnable ) {
             snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
             FTI_Print(str, FTI_DBUG);
-			MKDIR(FTI_Conf->h5SingleFileDir,0777);
+            MKDIR(FTI_Conf->h5SingleFileDir,0777);
         }
     }
-    
+
     if( FTI_Conf->h5SingleFileEnable ) {
         MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
-	MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
         if( h5DirFailed ) { 
             FTI_Conf->h5SingleFileEnable = false; 
             FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
@@ -517,7 +517,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
-	MKDIR(fn,0777);
+    MKDIR(fn,0777);
     snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", fn);
     snprintf(FTI_Conf->mTmpDir, FTI_BUFS, "%s/tmp", fn);
     snprintf(FTI_Ckpt[1].metaDir, FTI_BUFS, "%s/l1", fn);
@@ -528,26 +528,26 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Create global checkpoint timestamp directory
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-	MKDIR(FTI_Conf->glbalDir,0777);
+    MKDIR(FTI_Conf->glbalDir,0777);
     snprintf(FTI_Conf->gTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].archDir, FTI_BUFS, "%s/l4_archive", FTI_Conf->glbalDir);
     if ( FTI_Conf->keepL4Ckpt ) {
-		MKDIR(FTI_Ckpt[4].archDir,0777);
+        MKDIR(FTI_Ckpt[4].archDir,0777);
     }
 
     // Create local checkpoint timestamp directory
     if (FTI_Conf->test) { // If local test generate name by topology
         snprintf(fn, FTI_BUFS, "%s/node%d", FTI_Conf->localDir, FTI_Topo->myRank / FTI_Topo->nodeSize);
-		MKDIR(fn, 0777);
+        MKDIR(fn, 0777);
     }
     else {
         snprintf(fn, FTI_BUFS, "%s", FTI_Conf->localDir);
     }
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
-	MKDIR(FTI_Conf->localDir, 0777);
+    MKDIR(FTI_Conf->localDir, 0777);
 
     snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
