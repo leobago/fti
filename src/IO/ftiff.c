@@ -723,7 +723,6 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
 int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIFF_dbvar *currentdbvar, 
         unsigned char *dptr, size_t currentOffset, size_t fetchedBytes, long *dcpSize, WritePosixInfo_t *fd, char *fn){
 
-    char str[FTI_BUFS], strerr[FTI_BUFS];
     unsigned char *chunk_addr = NULL;
     size_t chunk_size,chunk_offset;
     size_t remainingBytes = fetchedBytes;
@@ -741,15 +740,14 @@ int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTI
 
         chunk_offset = chunk_addr - dptr;
         fptr = fptrTemp + chunk_offset;
-        unsigned long DBG_fpos; 
-#warning handle error of seek
+//#warning handle error of seek
         FTI_PosixSeek(fptr, fd);
 
         cpycnt = 0;
         while ( cpycnt < chunk_size ) {
             cpybuf = chunk_size - cpycnt;
             cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-#warning We need to also fault inject the writes etc.
+//#warning We need to also fault inject the writes etc.
             FTI_PosixWrite(&chunk_addr[cpycnt], cpynow, fd);
             cpycnt += cpynow;
         }
@@ -914,7 +912,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //FOR DEVELOPING 
     // FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
 
-    char str[FTI_BUFS], fn[FTI_BUFS], strerr[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS];
 
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
 
@@ -1024,7 +1022,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FTIFF_writeMetaDataFTIFF( FTI_Exec, &write_info );
-#warning fix error codes
+//#warning fix error codes
     FTI_PosixSync(&write_info);
     FTI_PosixClose(&write_info);
 
@@ -1130,7 +1128,6 @@ int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_D
 /*-------------------------------------------------------------------------*/
 int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WritePosixInfo_t *fd )
 {
-    char strerr[FTI_BUFS];
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
 
@@ -1175,10 +1172,10 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WritePosixInfo_t *fd )
     FTIFF_GetHashMetaInfo( FTI_Exec->FTIFFMeta.myHash, &(FTI_Exec->FTIFFMeta) ); 
     FTIFF_SerializeFileMeta( &FTI_Exec->FTIFFMeta, (FTI_ADDRPTR) mbuf_pos );
 
-#warning handle error of seek
+//#warning handle error of seek
     FTI_PosixSeek(FTI_Exec->FTIFFMeta.dataSize,fd);
 
-#warning handle error of write
+//#warning handle error of write
     FTI_PosixWrite( mbuf, FTI_Exec->FTIFFMeta.metaSize, fd );
 
     free( mbuf );

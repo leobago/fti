@@ -85,6 +85,7 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
     for (i = 0; i < rootGroup->childrenNo; i++) {
         FTI_CreateGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[i]], fd->file_id, fd->FTI_Exec->H5groups);
     }
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -124,6 +125,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar){
             return FTI_NSCS;
         }
     }
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -707,7 +709,7 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
         H5Fclose(fd->file_id);
         return FTI_NSCS;
     }
-
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -761,8 +763,7 @@ int  FTI_HDF5Close(void *fileDesc){
 /*-------------------------------------------------------------------------*/
 void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
-    int ret;
-    char str[FTI_BUFS], fn[FTI_BUFS];
+    char  fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
@@ -774,15 +775,12 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
     }
 
-    hid_t file_id;
     int i;
     WriteHDF5Info_t *fd= (WriteHDF5Info_t*) malloc(sizeof(WriteHDF5Info_t));;
     fd->FTI_Exec = FTI_Exec;
     fd->FTI_Data = FTI_Data;
 
     FTI_HDF5Open(fn, fd); 
-    file_id = fd->file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
 
     if (FTI_Exec->h5SingleFile){
         for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -810,12 +808,12 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     // write data
-    int i, ret;
+    int i;
     WriteHDF5Info_t *fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_WriteHDF5Data(&FTI_Data[i], fd);
     }
-    ret = FTI_HDF5Close(fd);
+    FTI_HDF5Close(fd);
     free(fd);
     return FTI_SCES;
 }

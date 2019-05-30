@@ -42,6 +42,9 @@ int FTI_HDF5Open(char *fn, void *fileDesc);
 int FTI_HDF5Close(void *fileDesc);
 void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
 int FTI_WriteHDF5Data(FTIT_dataset * FTI_DataVar, void *write_info);
+int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data);
 size_t FTI_GetHDF5FilePos(void *);
 #endif
 
