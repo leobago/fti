@@ -269,8 +269,6 @@ cd $DIR$(echo test)
 		echo "Set to default = 1 (POSIX)"
 		CKPT_IO=1
 	fi;
-	./heartbeat.sh &
-	pid=$!
 	if  [ ! -z "$TEST" ]; then
 		if [ "$TEST" = "diffSizes" ]; then
 			if [ -z "$NOTCORRUPT" ]; then
@@ -306,7 +304,6 @@ cd $DIR$(echo test)
 	else
 		runAllConfiguration 16
 	fi
-	kill -9 $pid
 
 #----------------------------------------------------------------------------------------
 cd ..
