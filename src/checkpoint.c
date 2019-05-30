@@ -499,8 +499,11 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-
+    
+    This function performs a normal checkpoint by calling the respective file format procedures,
+    initalize chkpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,

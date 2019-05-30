@@ -122,7 +122,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
 
-  This function receives ckpt file from partner process and saves it as
+  This function receives ckpt file from partner process aand saves it as
   Ptner file. Partner should call FTI_SendCkpt to send file.
 
  **/

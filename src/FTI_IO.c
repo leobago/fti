@@ -1,16 +1,79 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   FTI_IO.c
+ *  @date   May, 2019
+ *  @brief  API functions for the FTI library.
+ */
+
+
+
 #include "FTI_IO.h"
 #include "utility.h"
 #include "IO/ftiff.h"
 #include "interface.h"
 
-
+/** Structure that stores the function pointer wrappers to perform the IO **/
 FTIT_IO ftiIO[4];
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Place holder function, it is used when the file format does not support integrity checksums.
+  @param      data  Does not matter.
+  @param      a does not matter.
+  @return     void.
+
+    THis function is passed as a reference when different file formats do not 
+    actually compute an integrity checksum. It helps to avoid if statements in the
+    code and provides a more stream line code format.
+ **/
+/*-------------------------------------------------------------------------*/
 void FTI_dummy(unsigned char *data, void* a){
     return;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function initializes the FTI_IO structure with the functions that write the ckpt file.
+  @param      ckptIO                File format selected by the user in the configuration file. 
+  @param      FTI_Exec              Execution environment of the FTI. 
+  @return     int                   On success FTI_SCES
 
+    This function actually initializes the execution paths of the write checkpoint function.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_InitCheckpointWriters(int ckptIO, FTIT_execution * FTI_Exec ){
     //Initialize Local and Global writers
     switch (ckptIO) {

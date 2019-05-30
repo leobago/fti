@@ -1,6 +1,52 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   posix.c
+ *  @date   May, 2019
+ *  @brief  Funtions to support posix checkpointing.
+ */
+
+
 #include "interface.h"
 #include "utility.h"
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Opens and HDF5 file (Only for write).
+  @param      fileDesc        The file descriptor.
+  @return     integer         FTI_SCES on success.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixOpen(char *fn, void *fileDesc){
     char str[FTI_BUFS];
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
@@ -26,12 +72,32 @@ int FTI_PosixOpen(char *fn, void *fileDesc){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Closes the HDF5 file  
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixClose(void *fileDesc){
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     fclose(fd->f);
     return FTI_SCES;
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes to the file  
+  @param      src               pointer pointing to the data to be stored
+  @param      size              size of the data to be written 
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixWrite(void *src, size_t size, void *fileDesc){
     WritePosixInfo_t *fd = (WritePosixInfo_t *)fileDesc;
     size_t written = 0;
@@ -59,6 +125,16 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc){
 
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Seeks into the file  
+  @param      pos              The new file posisiton 
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixSeek(size_t pos, void *fileDesc){
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     if ( fseek( fd->f, pos, SEEK_SET ) == -1 ) {
@@ -70,21 +146,58 @@ int FTI_PosixSeek(size_t pos, void *fileDesc){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Return the current file postion 
+  @param      fileDesc          The fileDescriptor 
+  @return     size_t            Position of the file descriptor 
+
+ **/
+/*-------------------------------------------------------------------------*/
 size_t FTI_GetPosixFilePos(void *fileDesc){
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     return ftell(fd->f);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Reads from the file  
+  @param      src               pointer pointing to the data to be read 
+  @param      size              size of the data to be written 
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly read the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixRead(void *dest, size_t size, void *fileDesc){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Synchornizes the current file 
+  @param      fileDesc          The fileDescriptor 
+  @return     int               FTI_SCES on success 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_PosixSync(void *fileDesc){
     fsync(fileno(((WritePosixInfo_t *) fileDesc)->f));
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the files for the upcoming checkpoint.  
+  @param      FTI_Conf          Configuration of FTI 
+  @param      FTI_Exec          Execution environment options 
+  @param      FTI_Topo          Topology of nodes
+  @param      FTI_Ckpt          Checkpoint configurations
+  @param      FTI_Data          Data to be stored
+  @return     void*             Return void pointer to file descriptor 
 
+ **/
+/*-------------------------------------------------------------------------*/
 void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
@@ -106,6 +219,18 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     return write_info;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes ckpt to using MPIIO file format.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
     char str[FTI_BUFS];
@@ -138,7 +263,15 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes the checksum of the file.
+  @param      dest            Where to store the checksum.
+  @param      md5             Md5 checksum up to now.
+  @return     void.
 
+ **/
+/*-------------------------------------------------------------------------*/
 void FTI_PosixMD5(unsigned char *dest, void *md5){
     WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
     MD5_Final(dest,&(write_info->integrity));

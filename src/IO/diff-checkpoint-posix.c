@@ -1,7 +1,51 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   utility.c
+ *  @date   October, 2017
+ *  @brief  API functions for the FTI library.
+ */
+
 #include "interface.h"
 #include "macros.h"
 
-
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns the file positio.
+  @param      fileDesc        The file descriptor.
+  @return     integer         The position in the file.
+ **/
+/*-------------------------------------------------------------------------*/
 size_t FTI_GetDCPPosixFilePos(void *fileDesc){
     WriteDCPPosixInfo_t *fd = (WriteDCPPosixInfo_t*) fileDesc;
     return ftell(fd->write_info.f);
@@ -10,7 +54,7 @@ size_t FTI_GetDCPPosixFilePos(void *fileDesc){
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes iCP for dCP POSIX I/O.
+  @brief      Initializes dCP POSIX I/O.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -93,12 +137,9 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes dataset into dCP ckpt file using POSIX.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
+  @param      FTI_Data          Dataset metadata for a specific variable.
+  @param      file descrriptor  FIle descriptor.
+  @return     integer           FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
@@ -214,12 +255,8 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Finalizes iCP for dCP POSIX I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
+  @brief      Finalizes for dCP POSIX I/O.
+  @param      fileDesc  file descriptor for dcp POSIX.
   @return     integer         FTI_SCES if successful.
 
   This function takes care of the I/O specific actions needed to
@@ -283,7 +320,6 @@ int FTI_RecoverDcpPosix
 {
     unsigned long blockSize;
     unsigned int stackSize;
-    unsigned int counter;
     int nbVarLayer;
     int ckptID;
 
@@ -503,7 +539,6 @@ int FTI_RecoverVarDcpPosix
 {
     unsigned long blockSize;
     unsigned int stackSize;
-    unsigned int counter;
     int nbVarLayer;
     int ckptID;
 
@@ -787,12 +822,10 @@ int FTI_RecoverVarDcpPosix
 
     char errstr[FTI_BUFS];
     char dummyBuffer[FTI_BUFS];
-    char checksumToCmp[MD5_DIGEST_LENGTH];
     unsigned long blockSize;
     unsigned int stackSize;
     unsigned int counter;
     unsigned int dcpFileId;
-    int nbVarBasis;
 
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
@@ -804,7 +837,6 @@ int FTI_RecoverVarDcpPosix
 
     unsigned char md5_tmp[MD5_DIGEST_LENGTH];
     unsigned char md5_final[MD5_DIGEST_LENGTH];
-    unsigned char md5_string[MD5_DIGEST_STRING_LENGTH];
 
     MD5_CTX mdContext;
 

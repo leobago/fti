@@ -41,10 +41,26 @@
 #include "utility.h"
 #include "api_cuda.h"
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns the file position.
+  @param      fileDesc        The file descriptor.
+  @return     integer         The position in the file.
+ **/
+/*-------------------------------------------------------------------------*/
 size_t FTI_GetHDF5FilePos(void *fileDesc){
     return 0;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Opens and HDF5 file (Only for write).
+  @param      fileDesc        The file descriptor.
+  @return     integer         FTI_SCES on success.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_HDF5Open(char *fn, void *fileDesc){
     WriteHDF5Info_t *fd = (WriteHDF5Info_t*) fileDesc;
     char str[FTI_BUFS];
@@ -71,7 +87,14 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
     }
 }
 
-
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Commits a datatype in the hdf5 file format.
+  @param      FTI_Exec          Execution environment parameters.
+  @param FTI_DataVar       Variable metadata to commit.
+  @return   integer         FTI_SCES on success;
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar){
     char str[FTI_BUFS];
     int toCommit = 0;
@@ -651,6 +674,15 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes the specific variable in the file.
+  @param      FTI_DataVar     The Var we will write to the Checkpoint file 
+  @param      write_info      The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
     WriteHDF5Info_t *fd= (WriteHDF5Info_t *) write_info;
     char str[FTI_BUFS];
@@ -678,7 +710,14 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Closes the HDF5 file  
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
+ **/
+/*-------------------------------------------------------------------------*/
 int  FTI_HDF5Close(void *fileDesc){
     int i,j;
     WriteHDF5Info_t *fd = (WriteHDF5Info_t *)fileDesc;
@@ -708,6 +747,18 @@ int  FTI_HDF5Close(void *fileDesc){
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the files for the upcoming checkpoint.  
+  @param      FTI_Conf          Configuration of FTI 
+  @param      FTI_Exec          Execution environment options 
+  @param      FTI_Topo          Topology of nodes
+  @param      FTI_Ckpt          Checkpoint configurations
+  @param      FTI_Data          Data to be stored
+  @return     void*             Return void pointer to file descriptor 
+
+ **/
+/*-------------------------------------------------------------------------*/
 void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
     int ret;

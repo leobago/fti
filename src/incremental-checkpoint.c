@@ -1,7 +1,64 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   incremental-checkpoint.c
+ *  @date   May, 2019
+ *  @brief  functions for the FTI incremental checkpoint.
+ */
+
+
+
 #include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
 #include "utility.h"
 #include "FTI_IO.h"
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes starts incremental checkpoint procedure.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
+  @return     integer         FTI_SCES if successful.
+    
+ This function initializes all the necessary data structures and files
+ required to perform incremental checkpoint. 
+ **/
+/*-------------------------------------------------------------------------*/
 
 int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -12,6 +69,22 @@ int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes a specific variable on the checkpoint file.
+  @param      varID           Variable id to write.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
+  @return     integer         FTI_SCES if successful.
+ 
+ This functions writes the varid data on the checkpoint file
+ **/
+/*-------------------------------------------------------------------------*/
 
 int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -31,6 +104,20 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes the checkpoint file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
+  @return     integer         FTI_SCES if successful.
+ 
+ This functions Finalizes the checkpoint file
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io){
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
@@ -63,7 +150,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
-    char fn[FTI_BUFS], strerr[FTI_BUFS];
+    char fn[FTI_BUFS];
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) malloc (sizeof(WritePosixInfo_t));
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
     // only for printout of dCP share in FTI_Checkpoint

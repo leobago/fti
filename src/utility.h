@@ -5,37 +5,37 @@
 #include <fti-int/deps/md5.h>
 
 typedef struct{
-    FTIT_configuration* FTI_Conf;
-    FTIT_topology *FTI_Topo;
-    MPI_Offset offset;
-    int err;
-    MPI_Info info;
-    MPI_File pfh;
-    char flag;
-    MD5_CTX integrity;
+    FTIT_configuration* FTI_Conf;   // Configuration of the FTI
+    FTIT_topology *FTI_Topo;        // Topology of the nodes
+    MPI_Offset offset;              // Offset of the Rank in the file
+    int err;                        // Errors
+    MPI_Info info;                  // MPI info of the file
+    MPI_File pfh;                   // File descriptor
+    char flag;                      // Flags used to open the file
+    MD5_CTX integrity;              // integrity of the file
 } WriteMPIInfo_t;
 
 typedef struct{
-    FILE *f;
-    size_t offset;
-    char flag;
-    MD5_CTX integrity;
+    FILE *f;                        // Posix file descriptor
+    size_t offset;                  // offset in the file
+    char flag;                      // flags to open the file
+    MD5_CTX integrity;              // integrity of the file
 }WritePosixInfo_t;
 
 typedef struct{
-    WritePosixInfo_t write_info;
-    FTIT_configuration *FTI_Conf;
-    FTIT_checkpoint *FTI_Ckpt;
-    FTIT_execution *FTI_Exec;
-    FTIT_topology *FTI_Topo;
-    size_t layerSize;
+    WritePosixInfo_t write_info;    // Posix Write info descriptor 
+    FTIT_configuration *FTI_Conf;   // FTI Configuration
+    FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
+    FTIT_execution *FTI_Exec;       // FTI execution options
+    FTIT_topology *FTI_Topo;        // FTI node topology
+    size_t layerSize;               // size of the dcp layer
 }WriteDCPPosixInfo_t;
 
 #ifdef ENABLE_HDF5
 typedef struct{
-    FTIT_execution *FTI_Exec;
-    FTIT_dataset *FTI_Data;
-    hid_t file_id;
+    FTIT_execution *FTI_Exec;       // Execution environment
+    FTIT_dataset *FTI_Data;         // FTI Data
+    hid_t file_id;                  // File Id
 }WriteHDF5Info_t;
 
 int FTI_HDF5Open(char *fn, void *fileDesc);

@@ -547,6 +547,14 @@ FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
 
 typedef struct FTIT_execution FTIT_execution;
 
+
+  /** @typedef    FTIT_IO 
+   *  @brief      Pointer to functions which are used to write the checkpoint file.
+   *
+   * This is a general description of what different file formats need to implement in 
+   * order to checkpoint.
+   */
+
 typedef struct ftit_io{
 	void*  (*initCKPT) (	FTIT_configuration* , 
 							FTIT_execution*  ,
@@ -641,7 +649,7 @@ FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
 
 	int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
 			(FTIT_configuration* , 		/** the function which actually 	*/
-			struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
+			struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
 			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
 			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
 			FTIT_dataset*,				/** And one for the remaining cases	*/

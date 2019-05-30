@@ -692,6 +692,9 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @param      checksums       Checksums array.
   @param      allVarIDs       IDs of vars from all processes in group.
   @param      allVarSizes     Sizes of vars from all processes in group.
+  @param      allLayerSizes   Sizes of all layers used in dcp.
+  @param      allLayerHashes  Hashes of all layers used in dcp.
+  @param      allVarPositions Positions of variables stored in dCP.
   @return     integer         FTI_SCES if successful.
 
   This function should be executed only by one process per group. It

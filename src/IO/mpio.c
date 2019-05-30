@@ -1,6 +1,53 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   mpio.c
+ *  @date   May , 2019
+ *  @brief  API functions for the FTI library.
+ */
+
+
 #include "interface.h"
 #include "utility.h"
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Opens and file (Only for write).
+  @param      fileDesc        The file descriptor.
+  @return     integer         FTI_SCES on success.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MPIOOpen(char *fn, void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t*) fileDesc;
     int res;
@@ -46,6 +93,14 @@ int FTI_MPIOOpen(char *fn, void *fileDesc){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Closes the file  
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MPIOClose(void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t*) fileDesc;
     MPI_Info_free(&(fd->info));
@@ -53,6 +108,17 @@ int FTI_MPIOClose(void *fileDesc){
     return FTI_SCES;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes to the file  
+  @param      src               pointer pointing to the data to be stored
+  @param      size              size of the data to be written 
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
 {
     WriteMPIInfo_t *fd= (WriteMPIInfo_t *)fileDesc;
@@ -81,17 +147,49 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
     return FTI_SCES;
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns the file position.
+  @param      fileDesc        The file descriptor.
+  @return     integer         The position in the file.
+ **/
+/*-------------------------------------------------------------------------*/
 size_t FTI_GetMPIOFilePos(void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
     return fd->offset;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Reads from the file  
+  @param      src               pointer pointing to the data to be read 
+  @param      size              size of the data to be written 
+  @param      fileDesc          The fileDescriptor 
+  @return     integer         Return FTI_SCES  when successfuly read the data to the file 
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
     return MPI_File_read_at(fd->pfh, fd->offset, dest, size, MPI_BYTE, MPI_STATUS_IGNORE);
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the files for the upcoming checkpoint.  
+  @param      FTI_Conf          Configuration of FTI 
+  @param      FTI_Exec          Execution environment options 
+  @param      FTI_Topo          Topology of nodes
+  @param      FTI_Ckpt          Checkpoint configurations
+  @param      FTI_Data          Data to be stored
+  @return     void*             Return void pointer to file descriptor 
+
+ **/
+/*-------------------------------------------------------------------------*/
 void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     int i;
@@ -124,6 +222,20 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     return (void *)write_info;
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes ckpt to using MPIIO file format.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t *) fd;
 
