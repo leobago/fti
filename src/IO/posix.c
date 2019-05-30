@@ -10,12 +10,12 @@ int FTI_PosixOpen(char *fn, void *fileDesc){
         fd->f = fopen(fn,"rb");
     else if ( fd -> flag == 'e' )
         fd->f = fopen(fn, "r+" );
+    else if ( fd -> flag == 'a' )
+        fd->f = fopen(fn, "a" );
     else{
         FTI_Print("Posix Open Should always indicated flag",FTI_WARN);
     }
 
-    snprintf(str, FTI_BUFS, "Opening File %s with flags %c", fn, fd->flag);
-    FTI_Print(str,FTI_WARN);	
 
     if ( fd->f == NULL ){
         snprintf(str, FTI_BUFS, "unable to create file [POSIX ERROR - %d] %s", errno, strerror(errno));

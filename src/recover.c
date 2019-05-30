@@ -125,6 +125,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         consistency = &FTI_CheckFile;
 #else
     if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+        DBG_MSG("I AM CALLING FTI_DcpPosixRecoverRuntimeInfo",0);
         FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
         consistency = &FTI_CheckFileDcpPosix;
     } else {
@@ -196,10 +197,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (!FTI_Topo->amIaHead) {
         if( FTI_Exec->reco == 3 ) {
-            int res = FTI_SCES, allRes;
-            int ckptID;
+            int res = FTI_SCES, allRes = FTI_NSCS;
             if( FTI_Conf->h5SingleFileEnable ) {
 #ifdef ENABLE_HDF5
+                int ckptID;
                 if( FTI_Topo->splitRank == 0 ) {
                     res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
                 }

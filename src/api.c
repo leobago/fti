@@ -1588,13 +1588,14 @@ int FTI_InitICP(int id, int level, bool activate)
     snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptID, FTI_Topo.myRank,FTI_Conf.suffix);
 
     //If checkpoint is inlin and level 4 save directly to PFS
+    int offset = 2*(FTI_Conf.dcpPosix);
     if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
          if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL]);
+        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
     }
     else {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
@@ -1602,7 +1603,7 @@ int FTI_InitICP(int id, int level, bool activate)
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL]);
+        res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL+offset]);
     }
 
     if ( res == FTI_SCES ) 
@@ -1668,7 +1669,8 @@ int FTI_AddVarICP( int varID )
     
     int res;
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
-    res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID]);
+    int offset = 2*(FTI_Conf.dcpPosix);
+    res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID+offset]);
 
     if ( res == FTI_SCES ) {
         FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
@@ -1720,7 +1722,8 @@ int FTI_FinalizeICP()
     int resPP;
 
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
-    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID]);
+    int offset = 2*(FTI_Conf.dcpPosix);
+    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
 
     if( resCP == FTI_SCES ) {
         resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");

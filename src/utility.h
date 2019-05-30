@@ -4,8 +4,6 @@
 
 #include <fti-int/deps/md5.h>
 
-
-
 typedef struct{
     FTIT_configuration* FTI_Conf;
     FTIT_topology *FTI_Topo;
@@ -23,6 +21,15 @@ typedef struct{
     char flag;
     MD5_CTX integrity;
 }WritePosixInfo_t;
+
+typedef struct{
+    WritePosixInfo_t write_info;
+    FTIT_configuration *FTI_Conf;
+    FTIT_checkpoint *FTI_Ckpt;
+    FTIT_execution *FTI_Exec;
+    FTIT_topology *FTI_Topo;
+    size_t layerSize;
+}WriteDCPPosixInfo_t;
 
 #ifdef ENABLE_HDF5
 typedef struct{
@@ -60,6 +67,13 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void* write_info);
 size_t FTI_GetPosixFilePos(void *fileDesc);
 void FTI_PosixMD5(unsigned char *, void *);
 
+
+//Wrappers around dcp POSIX
+
+size_t FTI_GetDCPPosixFilePos(void *fileDesc);
+void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data);
+int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd);
+int FTI_PosixDCPClose(void *fileDesc);
 
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 

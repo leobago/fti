@@ -661,7 +661,7 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
         FTI_CommitDataType(fd->FTI_Exec,FTI_DataVar);
 
     if( fd->FTI_Exec->h5SingleFile ) { 
-        res = FTI_WriteSharedFileData( FTI_DataVar );
+        res = FTI_WriteSharedFileData( *FTI_DataVar );
     } else {
         res = FTI_WriteHDF5Var(FTI_DataVar); 
     }

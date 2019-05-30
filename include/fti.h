@@ -174,7 +174,6 @@ extern "C" {
     double t1;                  /**< timing for CP statistics               */
     char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
    MD5_CTX ctx[MAX_STACK_SIZE];
-    unsigned long layerSize;
 void *fd;  
 } FTIT_iCPInfo;
 

@@ -28,7 +28,7 @@ void cleanup(char* pattern, ...);
     }while(0)
 
 
-#define FREAD(bytes, buff, size, number, fd, format, ...) \
+#define FREAD(errorCode, bytes, buff, size, number, fd, format, ...) \
     do{																										\
         bytes = fread(buff, size, number, fd);																\
         if (ferror(fd)) {																					\
@@ -37,11 +37,11 @@ void cleanup(char* pattern, ...);
             FTI_Print(ErrorString, FTI_EROR); 																\
             cleanup(format,__VA_ARGS__,NULL);																\
             fclose(fd);																						\
-            return FTI_NSCS;																				\
+            return errorCode;																				\
         }																									\
     }while(0)																								
 
-#define FWRITE(bytes, buff, size, number, fd, format, ...) 														\
+#define FWRITE(errorCode, bytes, buff, size, number, fd, format, ...) 														\
     do{																										\
         bytes = fwrite(buff, size, number, fd);																\
         if (ferror(fd)) {																					\
@@ -50,7 +50,7 @@ void cleanup(char* pattern, ...);
             FTI_Print(ErrorString, FTI_EROR); 																\
             cleanup(format,__VA_ARGS__,NULL);																\
             fclose(fd);																						\
-            return FTI_NSCS;																				\
+            return errorCode;																				\
         }																									\
     }while(0)	
 

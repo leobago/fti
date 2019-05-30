@@ -4,7 +4,7 @@
 #include "interface.h"
 
 
-FTIT_IO ftiIO[2];
+FTIT_IO ftiIO[4];
 
 void FTI_dummy(unsigned char *data, void* a){
     return;
@@ -26,6 +26,20 @@ int FTI_InitCheckpointWriters(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[GLOBAL].finCKPT= FTI_PosixClose; 
             ftiIO[GLOBAL].getPos	= FTI_GetPosixFilePos; 
             ftiIO[GLOBAL].finIntegrity = FTI_PosixMD5; 
+
+
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix; 
+            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData; 
+            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose; 
+            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos; 
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix; 
+            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData; 
+            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose; 
+            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos; 
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
+
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
