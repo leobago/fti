@@ -42,6 +42,5 @@ file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
 file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
-file(COPY heartbeat.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
 
