@@ -40,78 +40,73 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It builds the list of nodes in the current execution.
+  @brief      It writes the topology in a file for recovery.
   @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
-  @param      nodeList        The list of the nodes to fill.
-  @param      nameList        The list of the node names to fill.
+  @param      nameList        The list of the node names.
   @return     integer         FTI_SCES if successful.
 
-  This function makes all the processes to detect in which node are they
-  located and distributes the information globally to create an uniform
-  mapping structure between processes and nodes.
+  This function writes the topology of the system (List of nodes and their
+  ID) in a topology file that will be read during recovery to detect which
+  nodes (and therefore checkpoit files) are missing in the new topology.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, int* nodeList, char* nameList)
+int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* nameList)
 {
-    char* lhn = talloc(char, FTI_BUFS* FTI_Topo->nbProc);
-    memset(lhn + (FTI_Topo->myRank * FTI_BUFS), 0, FTI_BUFS); // To get local hostname
-    if (!FTI_Conf->test) {
-        gethostname(lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS); // NOT local test
-    }
-    else {
-        snprintf(lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS, "node%d", FTI_Topo->myRank / FTI_Topo->nodeSize); // Local
-    }
-    char hname[FTI_BUFS];
-    strncpy(hname, lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS - 1); // Distributing host names
-    MPI_Allgather(hname, FTI_BUFS, MPI_CHAR, lhn, FTI_BUFS, MPI_CHAR, FTI_Exec->globalComm);
+    char str[FTI_BUFS];
+    snprintf(str, FTI_BUFS, "Trying to load configuration file (%s) to create topology.", FTI_Conf->cfgFile);
+    FTI_Print(str, FTI_DBUG);
 
-    int nbNodes = 0;
+    dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
+    if (ini == NULL) {
+        FTI_Print("Iniparser cannot parse the configuration file.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    // Set topology section
+    iniparser_set(ini, "topology", NULL);
+
+    // Write list of nodes
     int i;
-    for (i = 0; i < FTI_Topo->nbProc; i++) { // Creating the node list: For each process
-        int found = 0;
-        int pos = 0;
-        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS - 1); // Get node name of process i
-        while ((pos < nbNodes) && (found == 0)) { // Search the node name in the current list of node names
-            if (strncmp(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS) == 0) { // If we find it break out
-                found = 1;
-            }
-            else { // Else move to the next name in the list
-                pos++;
-            }
-        }
-        if (found) { // If we found the node name in the current list...
-            int p = pos * FTI_Topo->nodeSize;
-            while (p < pos * FTI_Topo->nodeSize + FTI_Topo->nodeSize) { // ... we look for empty spot in this node
-                if (nodeList[p] == -1) {
-                    nodeList[p] = i;
-                    break;
-                }
-                else {
-                    p++;
-                }
-            }
-        }
-        else { // ... else, we add the new node to the end of the current list of nodes
-            strncpy(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS - 1);
-            nodeList[pos * FTI_Topo->nodeSize] = i;
-            nbNodes++;
-        }
-    }
-    for (i = 0; i < FTI_Topo->nbProc; i++) { // Checking that all nodes have nodeSize processes
-        if (nodeList[i] == -1) {
-            char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
-            FTI_Print(str, FTI_WARN);
-            free(lhn);
-            return FTI_NSCS;
-        }
+    for (i = 0; i < FTI_Topo->nbNodes; i++) {
+        char mfn[FTI_BUFS];
+        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS - 1);
+        snprintf(str, FTI_BUFS, "topology:%d", i);
+        iniparser_set(ini, str, mfn);
     }
 
-    free(lhn);
+    // Unset sections of the configuration file
+    iniparser_unset(ini, "basic");
+    iniparser_unset(ini, "restart");
+    iniparser_unset(ini, "advanced");
+
+    char mfn[FTI_BUFS];
+    snprintf(mfn, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
+    snprintf(str, FTI_BUFS, "Creating topology file (%s)...", mfn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(mfn, "w");
+    if (fd == NULL) {
+        FTI_Print("Topology file could NOT be opened", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+
+    // Write new topology
+    iniparser_dump_ini(ini, fd);
+
+    if (fclose(fd) != 0) {
+        FTI_Print("Topology file could NOT be closed.", FTI_WARN);
+
+        iniparser_freedict(ini);
+
+        return FTI_NSCS;
+    }
+
+    iniparser_freedict(ini);
 
     return FTI_SCES;
 }
@@ -227,77 +222,106 @@ int FTI_ReorderNodes(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It writes the topology in a file for recovery.
+  @brief      It builds the list of nodes in the current execution.
   @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
-  @param      nameList        The list of the node names.
+  @param      nodeList        The list of the nodes to fill.
+  @param      nameList        The list of the node names to fill.
   @return     integer         FTI_SCES if successful.
 
-  This function writes the topology of the system (List of nodes and their
-  ID) in a topology file that will be read during recovery to detect which
-  nodes (and therefore checkpoit files) are missing in the new topology.
+  This function makes all the processes to detect in which node are they
+  located and distributes the information globally to create an uniform
+  mapping structure between processes and nodes.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SaveTopo(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo, char* nameList)
+int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, int* nodeList, char* nameList)
 {
-    char str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Trying to load configuration file (%s) to create topology.", FTI_Conf->cfgFile);
-    FTI_Print(str, FTI_DBUG);
-
-    dictionary* ini = iniparser_load(FTI_Conf->cfgFile);
-    if (ini == NULL) {
-        FTI_Print("Iniparser cannot parse the configuration file.", FTI_WARN);
-        return FTI_NSCS;
+    char* lhn = talloc(char, FTI_BUFS* FTI_Topo->nbProc);
+    memset(lhn + (FTI_Topo->myRank * FTI_BUFS), 0, FTI_BUFS); // To get local hostname
+    if (!FTI_Conf->test) {
+        gethostname(lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS); // NOT local test
     }
+    else {
+        snprintf(lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS, "node%d", FTI_Topo->myRank / FTI_Topo->nodeSize); // Local
+    }
+    char hname[FTI_BUFS];
+    strncpy(hname, lhn + (FTI_Topo->myRank * FTI_BUFS), FTI_BUFS - 1); // Distributing host names
+    MPI_Allgather(hname, FTI_BUFS, MPI_CHAR, lhn, FTI_BUFS, MPI_CHAR, FTI_Exec->globalComm);
 
-    // Set topology section
-    iniparser_set(ini, "topology", NULL);
-
-    // Write list of nodes
+    int nbNodes = 0;
     int i;
-    for (i = 0; i < FTI_Topo->nbNodes; i++) {
-        char mfn[FTI_BUFS];
-        strncpy(mfn, nameList + (i * FTI_BUFS), FTI_BUFS - 1);
-        snprintf(str, FTI_BUFS, "topology:%d", i);
-        iniparser_set(ini, str, mfn);
+    for (i = 0; i < FTI_Topo->nbProc; i++) { // Creating the node list: For each process
+        int found = 0;
+        int pos = 0;
+        strncpy(hname, lhn + (i * FTI_BUFS), FTI_BUFS - 1); // Get node name of process i
+        while ((pos < nbNodes) && (found == 0)) { // Search the node name in the current list of node names
+            if (strncmp(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS) == 0) { // If we find it break out
+                found = 1;
+            }
+            else { // Else move to the next name in the list
+                pos++;
+            }
+        }
+        if (found) { // If we found the node name in the current list...
+            int p = pos * FTI_Topo->nodeSize;
+            while (p < pos * FTI_Topo->nodeSize + FTI_Topo->nodeSize) { // ... we look for empty spot in this node
+                if (nodeList[p] == -1) {
+                    nodeList[p] = i;
+                    break;
+                }
+                else {
+                    p++;
+                }
+            }
+        }
+        else { // ... else, we add the new node to the end of the current list of nodes
+            strncpy(&(nameList[pos * FTI_BUFS]), hname, FTI_BUFS - 1);
+            nodeList[pos * FTI_Topo->nodeSize] = i;
+            nbNodes++;
+        }
+    }
+    for (i = 0; i < FTI_Topo->nbProc; i++) { // Checking that all nodes have nodeSize processes
+        if (nodeList[i] == -1) {
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "Node %d has no %d processes", i / FTI_Topo->nodeSize, FTI_Topo->nodeSize);
+            FTI_Print(str, FTI_WARN);
+            free(lhn);
+            return FTI_NSCS;
+        }
     }
 
-    // Unset sections of the configuration file
-    iniparser_unset(ini, "basic");
-    iniparser_unset(ini, "restart");
-    iniparser_unset(ini, "advanced");
-
-    char mfn[FTI_BUFS];
-    snprintf(mfn, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
-    snprintf(str, FTI_BUFS, "Creating topology file (%s)...", mfn);
-    FTI_Print(str, FTI_DBUG);
-
-    FILE* fd = fopen(mfn, "w");
-    if (fd == NULL) {
-        FTI_Print("Topology file could NOT be opened", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    // Write new topology
-    iniparser_dump_ini(ini, fd);
-
-    if (fclose(fd) != 0) {
-        FTI_Print("Topology file could NOT be closed.", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    iniparser_freedict(ini);
+    free(lhn);
 
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Creates the group topology.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      nodeList        The list of the nodes.
+  @param      group           The list of neighboring nodes.
+  @param      distProcList    The list of the distributed processes.
+  @return     integer         FTI_SCES if successful.
+    
+  This function deduces the actual groupsize from the value set in the
+  configuration file. The number of groups will be nbNodes/groupSize, where
+  groupSize here is the value from the configuration file. All residual
+  nodes will be evenly distributed to the available groups.
+
+  EXAMPLE:
+  
+  groupSize = 4, nbNodes = 19 -> nbGroups = 4 [3 residual nodes]
+
+  |0000|0000|0000|0000|  000 -> |00000|00000|00000|0000|
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_CreateGroupTopology( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, int * nodeList, int * group, int * distProcList )
 {
@@ -322,10 +346,8 @@ int FTI_CreateGroupTopology( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_E
     for (i = 0; i < FTI_Topo->groupSize; i++) { // Group of node-distributed processes (Topology-aware).
         group[i] = distProcList[offset + i];
     }
-    
-    DBG_MSG("groupSize: %d, sectorID: %d, nbGroups: %d", -1, FTI_Topo->groupSize, FTI_Topo->sectorID, nbGroups);
-    //MPI_Barrier(MPI_COMM_WORLD);
-    //MPI_Abort(MPI_COMM_WORLD, -1);
+
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -479,7 +501,15 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     int group[FTI_BUFS]; // FTI_BUFS > Max. group size
     
-    FTI_CreateGroupTopology( FTI_Conf, FTI_Exec, FTI_Topo, nodeList, group, distProcList );
+    res = FTI_Try( FTI_CreateGroupTopology( FTI_Conf, FTI_Exec, FTI_Topo, nodeList, group, distProcList ), "create group topology." );
+    if (res == FTI_NSCS) {
+        free(userProcList);
+        free(distProcList);
+        free(nameList);
+        free(nodeList);
+
+        return FTI_NSCS;
+    }
 
     res = FTI_Try(FTI_CreateComms(FTI_Conf, FTI_Exec, FTI_Topo, userProcList, distProcList, nodeList, group), "create communicators.");
     if (res == FTI_NSCS) {
