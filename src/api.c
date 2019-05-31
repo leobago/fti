@@ -1124,56 +1124,6 @@ void* FTI_Realloc(int id, void* ptr)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It corrupts a bit of the given float.
-  @param      target          Pointer to the float to corrupt.
-  @param      bit             Position of the bit to corrupt.
-  @return     integer         FTI_SCES if successful.
-
-  This function filps the bit of the target float.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FloatBitFlip(float* target, int bit)
-{
-    if (bit >= 32 || bit < 0) {
-        return FTI_NSCS;
-    }
-    int* corIntPtr = (int*)target;
-    int corInt = *corIntPtr;
-    corInt = corInt ^ (1 << bit);
-    corIntPtr = &corInt;
-    float* fp = (float*)corIntPtr;
-    *target = *fp;
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It corrupts a bit of the given float.
-  @param      target          Pointer to the float to corrupt.
-  @param      bit             Position of the bit to corrupt.
-  @return     integer         FTI_SCES if successful.
-
-  This function filps the bit of the target float.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_DoubleBitFlip(double* target, int bit)
-{
-    if (bit >= 64 || bit < 0) {
-        return FTI_NSCS;
-    }
-    FTIT_double myDouble;
-    myDouble.value = *target;
-    int bitf = (bit >= 32) ? bit - 32 : bit;
-    int half = (bit >= 32) ? 1 : 0;
-    FTI_FloatBitFlip(&(myDouble.floatval[half]), bitf);
-    *target = myDouble.value;
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      Bit-flip injection following the injection instructions.
   @param      datasetID       ID of the dataset where to inject.
   @return     integer         FTI_SCES if successful.
@@ -2372,7 +2322,6 @@ int FTI_RecoverVar(int id)
 
     return FTI_SCES;
 }
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Prints FTI messages.

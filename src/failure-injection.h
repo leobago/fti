@@ -113,4 +113,7 @@ unsigned int FUNCTION( const char *testFunction );
 #define FTI_FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) ( ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ) )
 #endif
 
+int FTI_FloatBitFlip(float *target, int bit);
+int FTI_DoubleBitFlip(double *target, int bit);
+
 #endif //_FAILURE_INJECTION_H
