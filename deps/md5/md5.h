@@ -26,11 +26,9 @@
 #define _MD5_H_WRAPPER
 
 #if 1
-#warning SHOULD BE PRINTED
 #include <openssl/md5.h>
 #elif !defined(_MD5_H)
 #define _MD5_H
-#error SHOULD not BE PRINTED
 /* Any 32-bit or wider unsigned integer data type will do */
 typedef unsigned int MD5_u32plus;
 
