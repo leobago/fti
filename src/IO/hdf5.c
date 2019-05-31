@@ -762,7 +762,9 @@ int  FTI_HDF5Close(void *fileDesc){
  **/
 /*-------------------------------------------------------------------------*/
 void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+    
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
+    
     char  fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
