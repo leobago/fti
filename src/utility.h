@@ -1,8 +1,8 @@
 #ifndef __UTILITY__
 #define __UTILITY__
-#include <string.h>
 
-#include <fti-int/deps/md5.h>
+#include <fti.h>
+#include "../deps/md5/md5.h"
 
 typedef struct{
     FTIT_configuration* FTI_Conf;   // Configuration of the FTI

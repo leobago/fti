@@ -42,7 +42,6 @@
 #include "fti.h"
 
 #include "meta.h"
-#include "interface.h"
 #include "api_cuda.h"
 #include "postreco.h"
 #include "tools.h"
@@ -64,7 +63,7 @@
 #include "macros.h"
 #include "utility.h"
 
-
+#include "../deps/md5/md5.h"
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
 
@@ -75,24 +74,8 @@
 #   include <sion.h>
 #endif
 
-
 #ifdef LUSTRE
 #   include "lustreapi.h"
 #endif
-
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <errno.h>
-
-#define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
-
-/** Malloc macro.                                                          */
-#define talloc(type, num) (type *)malloc(sizeof(type) * (num))
-
-typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
-typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
 #endif

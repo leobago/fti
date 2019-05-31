@@ -1,6 +1,8 @@
 #ifndef __FTIFF_DCP_H__
 #define __FTIFF_DCP_H__
 
+#define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
+
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
         FTIT_dataset *FTI_Data, unsigned char *hashchk, WritePosixInfo_t *fd, char *fn, long *dcpSize, unsigned char **dptr);
 

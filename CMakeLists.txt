@@ -272,14 +272,9 @@ set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
-install(FILES "include/fti-int/incremental_checkpoint.h"
-	DESTINATION "include/fti-int" )
-install(FILES "include/fti-int/differential_checkpoint_posix.h"
-	DESTINATION "include/fti-int" )
-configure_file(include/fti-int/deps/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/include/fti-int/deps/md5.h" @ONLY)
-message("${CMAKE_CURRENT_SOURCE_DIR}")
-install(FILES "include/fti-int/deps/md5.h"
-	DESTINATION "include/fti-int/deps" )
+install(FILES "include/fti-intern.h"
+	DESTINATION include)
+configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)

@@ -22,12 +22,15 @@
  *
  * See md5.c for more information.
  */
+#ifndef _MD5_H_WRAPPER
+#define _MD5_H_WRAPPER
 
-#ifdef HAVE_OPENSSL
+#if 1
+#warning SHOULD BE PRINTED
 #include <openssl/md5.h>
 #elif !defined(_MD5_H)
 #define _MD5_H
-
+#error SHOULD not BE PRINTED
 /* Any 32-bit or wider unsigned integer data type will do */
 typedef unsigned int MD5_u32plus;
 
@@ -46,9 +49,9 @@ extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 
-#ifndef HAVE_OPENSSL
 // openssl provide a function MD5(), we just wrap it out if the library is not used
-extern unsigned char * MD5( void *pointer, size_t pointerLength, unsigned char *md5HashPointer);
+extern unsigned char * MD5( void *pointer, unsigned long pointerLength, unsigned char *md5HashPointer);
+
 #endif
 
 #endif

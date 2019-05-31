@@ -2335,19 +2335,19 @@ void FTI_Print(char* msg, int priority)
         if (msg != NULL) {
             switch (priority) {
                 case FTI_EROR:
-                    fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
                     break;
                 case FTI_WARN:
-                    fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
                     break;
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_IDCP:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_DBUG:
