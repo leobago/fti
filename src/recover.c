@@ -121,6 +121,11 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #ifdef ENABLE_HDF5
     if (FTI_Conf->ioMode == FTI_IO_HDF5)
         consistency = &FTI_CheckHDF5File;
+    else if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+        DBG_MSG("I AM CALLING FTI_DcpPosixRecoverRuntimeInfo",0);
+        FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
+        consistency = &FTI_CheckFileDcpPosix;
+    }
     else
         consistency = &FTI_CheckFile;
 #else
