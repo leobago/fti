@@ -40,6 +40,7 @@
  */
 
 #include "interface.h"
+#include <libgen.h>
 
 /**
  * @todo

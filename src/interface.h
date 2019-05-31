@@ -39,8 +39,6 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
-
-
 #include "fti.h"
 
 #include "meta.h"
@@ -48,6 +46,7 @@
 #include "api_cuda.h"
 #include "postreco.h"
 #include "tools.h"
+#include "dcp.h"
 #include "conf.h"
 #include "checkpoint.h"
 #include "stage.h"
@@ -76,104 +75,24 @@
 #   include <sion.h>
 #endif
 
-#ifdef ENABLE_HDF5
-#include "hdf5.h"
-#include "hdf5_hl.h"
-#endif
-
-
-#include <stdint.h>
-
-#define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
-
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <math.h>
-#include <limits.h>
-#include <inttypes.h>
-#include <dirent.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <time.h>
-#include <libgen.h>
 
 #ifdef LUSTRE
 #   include "lustreapi.h"
 #endif
 
-/*---------------------------------------------------------------------------
-  Defines
-  ---------------------------------------------------------------------------*/
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include <errno.h>
+
+#define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
 
-extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
-extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
-extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
-
 typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
 typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
-#ifdef FTI_NOZLIB
-extern const uint32_t crc32_tab[];
-
-static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc)
-{
-    const uint8_t *p = (const uint8_t *)buf;
-
-    while (size--)
-        crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
-    return (crc);
-}
-
-static inline uint32_t crc32(const void *buf, size_t size)
-{
-    uint32_t crc;
-
-    crc = crc32_raw(buf, size, ~0U);
-    return (crc ^ ~0U);
-}
 #endif
-/*---------------------------------------------------------------------------
-  FTI private functions
-  ---------------------------------------------------------------------------*/
-
-//void FTI_PrintMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
-
-//int FTI_WritePar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-//        FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data);
-//int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-//        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int source);
-
-
-
-
-
-
-
-
-
-#endif
-
-// DIFFERENTIAL CHECKPOINTING
-
-
-// DIFFERENTIAL CHECKPOINTING POSIX
-
-
-//INCREMENTAL CHECKPOINTING FOR FTIFF
-
-
-// INCREMENTAL CHECKPOINTING
-
-
-

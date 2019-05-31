@@ -38,7 +38,6 @@
 
 #include "interface.h"
 #include <dirent.h>
-#include "api_cuda.h"
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */

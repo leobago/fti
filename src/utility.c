@@ -36,16 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
-
-
-#include <string.h>
-
 #include "interface.h"
-#include "IO/ftiff.h"
-#include "api_cuda.h"
-#include "utility.h"
-
-
 
 #ifdef ENABLE_SIONLIB 
 /*-------------------------------------------------------------------------*/

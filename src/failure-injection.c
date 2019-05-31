@@ -1,8 +1,4 @@
-#include "failure-injection.h"
-#include <stdlib.h>
-#include <fti.h>
-#include <string.h>
-#include <stdio.h>
+#include "interface.h"
 
 static float _PROBABILITY ;
 static char _FUNCTION[FTI_BUFS];

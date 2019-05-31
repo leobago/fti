@@ -39,16 +39,9 @@
 
 #include "interface.h"
 
-#include "IO/ftiff.h"
-
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif 
-
-#include "api_cuda.h"
-#include "utility.h"
-#include "macros.h"
-
 
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;

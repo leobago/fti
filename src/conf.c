@@ -37,8 +37,7 @@
  */
 
 #include "interface.h"
-#include "api_cuda.h"
-#include "macros.h"
+#include <time.h>
 
 /*-------------------------------------------------------------------------*/
 /**

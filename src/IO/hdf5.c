@@ -38,8 +38,8 @@
 
 #ifdef ENABLE_HDF5
 #include "interface.h"
-#include "utility.h"
-#include "api_cuda.h"
+#include <sys/types.h>
+#include <dirent.h>
 
 
 /*-------------------------------------------------------------------------*/

@@ -64,6 +64,10 @@
     printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
+extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
+extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
+extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
+
 /**
 
   +-------------------------------------------------------------------------+

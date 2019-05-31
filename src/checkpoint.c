@@ -40,15 +40,7 @@
 #    define _POSIX_C_SOURCE 200809L
 #endif
 
-#include <string.h>
-
 #include "interface.h"
-#include "IO/ftiff.h"
-#include "api_cuda.h"
-#include "utility.h"
-#include "macros.h"
-
-#include "FTI_IO.h"
 
 /*-------------------------------------------------------------------------*/
 /**

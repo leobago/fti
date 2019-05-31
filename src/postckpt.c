@@ -37,9 +37,7 @@
  */
 
 #include "interface.h"
-#include "macros.h"
-#include "utility.h"
-
+#include <time.h>
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It returns FTI_SCES.

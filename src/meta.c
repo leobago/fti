@@ -37,8 +37,7 @@
  */
 
 #include "interface.h"
-#include "macros.h"
-
+#include <time.h>
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It gets the checksums from metadata.

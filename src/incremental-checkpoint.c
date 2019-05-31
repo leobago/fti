@@ -36,13 +36,7 @@
  *  @brief  functions for the FTI incremental checkpoint.
  */
 
-
-
-#include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
-#include "utility.h"
-#include "FTI_IO.h"
-
 
 /*-------------------------------------------------------------------------*/
 /**
