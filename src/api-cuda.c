@@ -68,7 +68,7 @@ int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
   to the CPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_from_device(void *dst, const void *src, size_t count,  FTIT_execution *exec)
+int FTI_copy_from_device(void *dst, const void *src, size_t count)
 {
 #ifdef GPUSUPPORT
     CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
@@ -92,7 +92,7 @@ int FTI_copy_from_device(void *dst, const void *src, size_t count,  FTIT_executi
   to the GPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_execution *exec)
+int FTI_copy_to_device(void *dst, const void *src, size_t count)
 {
 #ifdef GPUSUPPORT
     CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));

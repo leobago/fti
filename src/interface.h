@@ -39,8 +39,9 @@
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
 
-#include "fti.h"
+#include "../include/fti.h"
 
+#include "kernel.h"
 #include "meta.h"
 #include "api-cuda.h"
 #include "postreco.h"
@@ -62,7 +63,6 @@
 #include "icp.h"
 #include "macros.h"
 #include "utility.h"
-#include "kernel.h"
 
 #include "../deps/md5/md5.h"
 #include "../deps/iniparser/iniparser.h"

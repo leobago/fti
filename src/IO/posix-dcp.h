@@ -18,7 +18,6 @@
 int FTI_WritePosixDcp();
 int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
-void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
 int FTI_RecoverDcpPosix();
 int FTI_RecoverVarDcpPosix(int id );
 int FTI_DataGetIdx( int varId );

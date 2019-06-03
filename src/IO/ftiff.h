@@ -40,13 +40,13 @@
 #ifndef _FTIFF_H
 #define _FTIFF_H
 
-#include "fti.h"
+#include "../../include/fti.h"
 #ifndef FTI_NOZLIB
 #   include "zlib.h"
 #endif
 #include <assert.h>
 #include <string.h>
-#include "utility.h"
+#include "../utility.h"
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]

@@ -1,7 +1,8 @@
 #ifndef __UTILITY__
 #define __UTILITY__
 
-#include <fti.h>
+#include <mpi.h>
+#include <stdio.h>
 #include "../deps/md5/md5.h"
 
 typedef struct{

@@ -1,7 +1,7 @@
 #ifndef __HDF5_FTI_H__
 #define __HDF5_FTI_H__
-#ifdef ENABLE_HDF5
 
+#ifdef ENABLE_HDF5
 int FTI_RecoverHDF5();
 int FTI_RecoverVarHDF5(int id);
 int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);

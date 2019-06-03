@@ -77,9 +77,9 @@ int write_sion(void *src, size_t size, void *opaque)
 int copyDataFromDevive(){
 #ifdef GPUSUPPORT
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         if ( FTI_Data[i].isDevicePtr ){
-            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
+            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size);
         }
     }
 #endif
