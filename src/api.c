@@ -43,24 +43,6 @@
 #include <cuda_runtime_api.h>
 #endif 
 
-/** General configuration information used by FTI.                         */
-static FTIT_configuration FTI_Conf;
-
-/** Checkpoint information for all levels of checkpoint.                   */
-static FTIT_checkpoint FTI_Ckpt[5];
-
-/** Dynamic information for this execution.                                */
-static FTIT_execution FTI_Exec;
-
-/** Topology of the system.                                                */
-static FTIT_topology FTI_Topo;
-
-/** Array of datasets and all their internal information.                  */
-static FTIT_dataset FTI_Data[FTI_BUFS];
-
-/** SDC injection model and all the required information.                  */
-static FTIT_injection FTI_Inje;
-
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
 
@@ -111,7 +93,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
 #ifdef ENABLE_HDF5
     H5Eset_auto2(0,0, NULL);
 #endif
-    FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
+    FTI_InitExecVars();
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
@@ -121,32 +103,32 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Inje.timer = MPI_Wtime();
     FTI_COMM_WORLD = globalComm; // Temporary before building topology. Needed in FTI_LoadConf and FTI_Topology to communicate.
     FTI_Topo.splitRank = FTI_Topo.myRank; // Temporary before building topology. Needed in FTI_Print.
-    int res = FTI_Try(FTI_LoadConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
+    int res = FTI_Try(FTI_LoadConf(), "load configuration.");
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    res = FTI_Try(FTI_Topology(&FTI_Conf, &FTI_Exec, &FTI_Topo), "build topology.");
+    res = FTI_Try(FTI_Topology(), "build topology.");
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
-    FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
+    FTI_Try(FTI_InitGroupsAndTypes(), "malloc arrays for groups and types.");
+    FTI_Try(FTI_InitBasicTypes(), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         int restart = (FTI_Exec.reco != 3) ? FTI_Exec.reco : 0;
-        FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
+        FTI_Try(FTI_UpdateConf( restart ), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
-    FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
-    res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+    FTI_MallocMeta();
+    res = FTI_Try(FTI_LoadMeta(), "load metadata");
     if (res == FTI_NSCS) {
-        FTI_FreeMeta(&FTI_Exec);
+        FTI_FreeMeta();
         return FTI_NSCS;
     }
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
     if( FTI_Conf.stagingEnabled ) {
-        FTI_InitStage( &FTI_Exec, &FTI_Conf, &FTI_Topo );
+        FTI_InitStage();
     }
 
     if ( FTI_Conf.ioMode == FTI_IO_HDF5){
@@ -158,32 +140,32 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            res = FTI_Try(FTI_RecoverFiles(), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files
             }
         }
-        FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
+        FTI_Listen(); //infinite loop inside, can stop only by callling FTI_Finalize
         // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
         return FTI_HEAD;
     }
     else { // If I am an application process
-        if ( FTI_Try( FTI_InitDevices(FTI_Conf.cHostBufSize), "Allocating resources for communication with the devices") != FTI_SCES){
+        if ( FTI_Try( FTI_InitDevices(), "Allocating resources for communication with the devices") != FTI_SCES){
             FTI_Print("Cannot Allocate defice memory\n", FTI_EROR);
         } 
-        if ( FTI_Try(FTI_InitCheckpointWriters(FTI_Conf.ioMode, &FTI_Exec),"Initializing IO pointers") != FTI_SCES){
+        if ( FTI_Try(FTI_InitCheckpointWriters(),"Initializing IO pointers") != FTI_SCES){
             FTI_Print("Cannot define the function pointers\n", FTI_EROR);
         }
 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpFtiff ) {
-            FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
+            FTI_InitDcp();
         }
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
+            res = FTI_Try(FTI_RecoverFiles(), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
-                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
+                res += FTI_Try( FTIFF_ReadDbFTIFF(), "Read FTIFF meta information" );
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
@@ -507,7 +489,7 @@ int FTI_GetStageStatus( int ID )
 
     // get status of request
     int status;
-    status = FTI_GetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
+    status = FTI_GetStatusField( ID, FTI_SIF_VAL, FTI_Topo.nodeRank );  
 
     // check if pending
     if ( status == FTI_SI_PEND ) {
@@ -522,12 +504,12 @@ int FTI_GetStageStatus( int ID )
     }
 
     if ( free_req ) {
-        FTI_FreeStageRequest( &FTI_Exec, &FTI_Topo, ID, FTI_Topo.nodeRank );
+        FTI_FreeStageRequest( ID, FTI_Topo.nodeRank );
     }
    
     if ( (status==FTI_SI_FAIL) || (status==FTI_SI_SCES) ) {
-        FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
-        FTI_SetStatusField( &FTI_Exec, &FTI_Topo, ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
+        FTI_SetStatusField( ID, FTI_SI_NINI, FTI_SIF_VAL, FTI_Topo.nodeRank );
+        FTI_SetStatusField( ID, FTI_SI_IAVL, FTI_SIF_AVL, FTI_Topo.nodeRank );
     }
 
     return status;
@@ -582,11 +564,11 @@ int FTI_SendFile( char* lpath, char *rpath )
     }
     ID = reqID;
 
-    FTI_InitStageRequestApp( &FTI_Exec, &FTI_Topo, ID );
+    FTI_InitStageRequestApp( ID );
     
     if ( FTI_Topo.nbHeads == 0 ) {
 
-        if ( FTI_SyncStage( lpath, rpath, &FTI_Exec, &FTI_Topo, &FTI_Conf, ID ) != FTI_SCES ) {
+        if ( FTI_SyncStage( lpath, rpath, ID ) != FTI_SCES ) {
             FTI_Print("synchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
@@ -595,7 +577,7 @@ int FTI_SendFile( char* lpath, char *rpath )
     
     if ( FTI_Topo.nbHeads > 0 ) {
         
-        if ( FTI_AsyncStage( lpath, rpath, &FTI_Conf, &FTI_Exec, &FTI_Topo, ID ) != FTI_SCES ) {
+        if ( FTI_AsyncStage( lpath, rpath, ID ) != FTI_SCES ) {
             FTI_Print("asynchronous staging failed!", FTI_WARN);
             return FTI_NSCS;
         }
@@ -1362,7 +1344,7 @@ int FTI_Checkpoint(int id, int level)
    
     if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
         //Setting recover flag to 1 (to recover from current ckpt level)
-        res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        res = FTI_Try(FTI_UpdateConf( 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
         if( res == FTI_SCES ) {
             FTI_Exec.hasCkpt = true;
@@ -1538,7 +1520,7 @@ int FTI_InitICP(int id, int level, bool activate)
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
+        res = FTI_Exec.initICPFunc[GLOBAL](&ftiIO[GLOBAL+offset]);
     }
     else {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
@@ -1546,7 +1528,7 @@ int FTI_InitICP(int id, int level, bool activate)
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL+offset]);
+        res = FTI_Exec.initICPFunc[LOCAL](&ftiIO[LOCAL+offset]);
     }
 
     if ( res == FTI_SCES ) 
@@ -1613,7 +1595,7 @@ int FTI_AddVarICP( int varID )
     int res;
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
-    res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID+offset]);
+    res=FTI_Exec.writeVarICPFunc[funcID](varID,&ftiIO[funcID+offset]);
 
     if ( res == FTI_SCES ) {
         FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
@@ -1666,10 +1648,10 @@ int FTI_FinalizeICP()
 
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
-    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    resCP=FTI_Exec.finalizeICPFunc[funcID](&ftiIO[funcID+offset]);
 
     if( resCP == FTI_SCES ) {
-        resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+        resCP = FTI_Try(FTI_CreateMetadata(), "create metadata.");
     }
 
     if ( resCP != FTI_SCES ) {
@@ -1817,7 +1799,7 @@ int FTI_FinalizeICP()
         }
         if (FTI_Exec.iCPInfo.isFirstCp && FTI_Topo.splitRank == 0) {
             //Setting recover flag to 1 (to recover from current ckpt level)
-            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+            FTI_Try(FTI_UpdateConf(1), "update configuration file.");
             FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
         }
     } else {
@@ -1901,7 +1883,7 @@ int FTI_Recover()
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
         for (i = 0; i < FTI_Exec.nbVar; i++) {
-            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
+            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID); 
             if (FTI_Data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
@@ -2124,7 +2106,7 @@ int FTI_Finalize()
     if ( FTI_Conf.saveLastCkpt && ( FTI_Exec.ckptID > 0 ) ) {
     //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
-            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+            FTI_Try(FTI_Flush( FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
@@ -2141,27 +2123,27 @@ int FTI_Finalize()
         }
         if (FTI_Topo.splitRank == 0) {
             //Setting recover flag to 2 (to recover from L4, keeped last checkpoint)
-            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 2), "update configuration file to 2.");
+            FTI_Try(FTI_UpdateConf( 2), "update configuration file to 2.");
         }
         //Cleaning only local storage
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
+        FTI_Try(FTI_Clean(6), "clean local directories");
     } else if ( FTI_Conf.keepL4Ckpt && FTI_Ckpt[4].hasCkpt ) {
         FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
         MPI_Barrier( FTI_COMM_WORLD );
         FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
         MPI_Barrier( FTI_COMM_WORLD );
         //Cleaning only local storage
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
+        FTI_Try(FTI_Clean(6), "clean local directories");
     } else {
         if (FTI_Conf.saveLastCkpt) { //if there was no saved checkpoint
             FTI_Print("No checkpoint to keep in PFS.", FTI_INFO);
         }
         if (FTI_Topo.splitRank == 0) {
             //Setting recover flag to 0 (no checkpoint files to recover from means no recovery)
-            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 0), "update configuration file to 0.");
+            FTI_Try(FTI_UpdateConf(0), "update configuration file to 0.");
         }
         //Cleaning everything
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 5), "do final clean.");
+        FTI_Try(FTI_Clean(5), "do final clean.");
     }
     
     if (FTI_Conf.dcpFtiff) {
@@ -2207,7 +2189,7 @@ int FTI_RecoverVar(int id)
         return FTI_NSCS;
     }
     if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+        return FTIFF_RecoverVar( id );
     }
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -2256,7 +2238,7 @@ int FTI_RecoverVar(int id)
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
+        return FTI_RecoverVarHDF5(id);
     }
 #endif
 
@@ -2265,7 +2247,7 @@ int FTI_RecoverVar(int id)
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+            return FTI_RecoverVarDcpPosix(id);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
         }

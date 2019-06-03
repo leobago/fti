@@ -163,6 +163,7 @@ SRC_FTI
     src/topo.c
     src/tools.c
     src/utility.c
+    src/kernel.c
 )
 
 if (ENABLE_GPU)

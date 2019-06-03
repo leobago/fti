@@ -53,9 +53,7 @@ int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-    FTIT_injection* FTI_Inje) {
+int FTI_InitExecVars() {
 
   // datablock size in file
   FTI_filemetastructsize
@@ -81,101 +79,101 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // | FTI_Exec |
   // +--------- +
 
-  /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);
-  /* int           */ FTI_Exec->ckpt                  =0;
-  /* int           */ FTI_Exec->reco                  =0;
-  /* int           */ FTI_Exec->ckptLvel              =0;
-  /* int           */ FTI_Exec->ckptIntv              =0;
-  /* int           */ FTI_Exec->lastCkptLvel          =0;
-  /* int           */ FTI_Exec->wasLastOffline        =0;
-  /* double        */ FTI_Exec->iterTime              =0;
-  /* double        */ FTI_Exec->lastIterTime          =0;
-  /* double        */ FTI_Exec->meanIterTime          =0;
-  /* double        */ FTI_Exec->globMeanIter          =0;
-  /* double        */ FTI_Exec->totalIterTime         =0;
-  /* unsigned int  */ FTI_Exec->syncIter              =0;
-  /* int           */ FTI_Exec->syncIterMax           =0;
-  /* unsigned int  */ FTI_Exec->minuteCnt             =0;
-  /* bool          */ FTI_Exec->hasCkpt               =false;
-  /* unsigned int  */ FTI_Exec->ckptCnt               =0;
-  /* unsigned int  */ FTI_Exec->ckptIcnt              =0;
-  /* unsigned int  */ FTI_Exec->ckptID                =0;
-  /* unsigned int  */ FTI_Exec->ckptNext              =0;
-  /* unsigned int  */ FTI_Exec->ckptLast              =0;
-  /* long          */ FTI_Exec->ckptSize              =0;
-  /* unsigned int  */ FTI_Exec->nbVar                 =0;
-  /* unsigned int  */ FTI_Exec->nbVarStored           =0;
-  /* unsigned int  */ FTI_Exec->nbType                =0;
-  /* int           */ FTI_Exec->metaAlloc             =0;
-  /* int           */ FTI_Exec->initSCES              =0;
-  /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
-  /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
-  /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
-  /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
-  /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
-  /* FTIT_globalDataset */ FTI_Exec->globalDatasets   =NULL;
-  FTI_Exec->stageInfo             =NULL;
-  /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
-  FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
-  /* MPI_Comm      */ FTI_Exec->globalComm            =0;
-  /* MPI_Comm      */ FTI_Exec->groupComm             =0;
-  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
-  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
-                      memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
-                      memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
+  /* char[BUFS]       FTI_Exec.id */                 memset(FTI_Exec.id,0x0,FTI_BUFS);
+  /* int           */ FTI_Exec.ckpt                  =0;
+  /* int           */ FTI_Exec.reco                  =0;
+  /* int           */ FTI_Exec.ckptLvel              =0;
+  /* int           */ FTI_Exec.ckptIntv              =0;
+  /* int           */ FTI_Exec.lastCkptLvel          =0;
+  /* int           */ FTI_Exec.wasLastOffline        =0;
+  /* double        */ FTI_Exec.iterTime              =0;
+  /* double        */ FTI_Exec.lastIterTime          =0;
+  /* double        */ FTI_Exec.meanIterTime          =0;
+  /* double        */ FTI_Exec.globMeanIter          =0;
+  /* double        */ FTI_Exec.totalIterTime         =0;
+  /* unsigned int  */ FTI_Exec.syncIter              =0;
+  /* int           */ FTI_Exec.syncIterMax           =0;
+  /* unsigned int  */ FTI_Exec.minuteCnt             =0;
+  /* bool          */ FTI_Exec.hasCkpt               =false;
+  /* unsigned int  */ FTI_Exec.ckptCnt               =0;
+  /* unsigned int  */ FTI_Exec.ckptIcnt              =0;
+  /* unsigned int  */ FTI_Exec.ckptID                =0;
+  /* unsigned int  */ FTI_Exec.ckptNext              =0;
+  /* unsigned int  */ FTI_Exec.ckptLast              =0;
+  /* long          */ FTI_Exec.ckptSize              =0;
+  /* unsigned int  */ FTI_Exec.nbVar                 =0;
+  /* unsigned int  */ FTI_Exec.nbVarStored           =0;
+  /* unsigned int  */ FTI_Exec.nbType                =0;
+  /* int           */ FTI_Exec.metaAlloc             =0;
+  /* int           */ FTI_Exec.initSCES              =0;
+  /* char[BUFS]       FTI_Exec.h5SingleFileLast */   memset(FTI_Exec.h5SingleFileLast,0x0,FTI_BUFS);
+  /* FTIT_iCPInfo     FTI_Exec.iCPInfo */            memset(&(FTI_Exec.iCPInfo),0x0,sizeof(FTIT_iCPInfo));
+  /* FTIT_metadata[5] FTI_Exec.meta */               memset(FTI_Exec.meta,0x0,5*sizeof(FTIT_metadata));
+  /* FTIFF_db      */ FTI_Exec.firstdb               =NULL;
+  /* FTIFF_db      */ FTI_Exec.lastdb                =NULL;
+  /* FTIT_globalDataset */ FTI_Exec.globalDatasets   =NULL;
+  FTI_Exec.stageInfo             =NULL;
+  /* FTIFF_metaInfo   FTI_Exec.FTIFFMeta */          memset(&(FTI_Exec.FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
+  FTI_Exec.FTIFFMeta.metaSize                        = FTI_filemetastructsize;
+  /* MPI_Comm      */ FTI_Exec.globalComm            =0;
+  /* MPI_Comm      */ FTI_Exec.groupComm             =0;
+  /* MPI_Comm      */ FTI_Exec.dcpInfoPosix.Counter  =0;
+  /* MPI_Comm      */ FTI_Exec.dcpInfoPosix.FileSize =0;
+                      memset(FTI_Exec.dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
+                      memset(FTI_Exec.dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
 
   // +--------- +
   // | FTI_Conf |
   // +--------- +
 
-  /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);
-  /* int           */ FTI_Conf->saveLastCkpt          =0;
-  /* int           */ FTI_Conf->verbosity             =0;
-  /* int           */ FTI_Conf->blockSize             =0;
-  /* int           */ FTI_Conf->transferSize          =0;
+  /* char[BUFS]       FTI_Conf.cfgFile */            memset(FTI_Conf.cfgFile,0x0,FTI_BUFS);
+  /* int           */ FTI_Conf.saveLastCkpt          =0;
+  /* int           */ FTI_Conf.verbosity             =0;
+  /* int           */ FTI_Conf.blockSize             =0;
+  /* int           */ FTI_Conf.transferSize          =0;
 #ifdef LUSTRE
-  /* int           */ FTI_Conf->stripeUnit            =0;
-  /* int           */ FTI_Conf->stripeOffset          =0;
-  /* int           */ FTI_Conf->stripeFactor          =0;
+  /* int           */ FTI_Conf.stripeUnit            =0;
+  /* int           */ FTI_Conf.stripeOffset          =0;
+  /* int           */ FTI_Conf.stripeFactor          =0;
 #endif
-  /* bool          */ FTI_Conf->keepL4Ckpt            =0;
-  /* bool          */ FTI_Conf->h5SingleFileEnable    =0;
-  /* int           */ FTI_Conf->ckptTag               =0;
-  /* int           */ FTI_Conf->stageTag              =0;
-  /* int           */ FTI_Conf->finalTag              =0;
-  /* int           */ FTI_Conf->generalTag            =0;
-  /* int           */ FTI_Conf->test                  =0;
-  /* int           */ FTI_Conf->l3WordSize            =0;
-  /* int           */ FTI_Conf->ioMode                =0;
-  /* char[BUFS]       FTI_Conf->localDir */           memset(FTI_Conf->localDir,0x0,FTI_BUFS);
-  /* char[BUFS]       FTI_Conf->glbalDir */           memset(FTI_Conf->glbalDir,0x0,FTI_BUFS);
-  /* char[BUFS]       FTI_Conf->metadDir */           memset(FTI_Conf->metadDir,0x0,FTI_BUFS);
-  /* char[BUFS]       FTI_Conf->lTmpDir */            memset(FTI_Conf->lTmpDir,0x0,FTI_BUFS);
-  /* char[BUFS]       FTI_Conf->gTmpDir */            memset(FTI_Conf->gTmpDir,0x0,FTI_BUFS);
-  /* char[BUFS]       FTI_Conf->mTmpDir */            memset(FTI_Conf->mTmpDir,0x0,FTI_BUFS);
+  /* bool          */ FTI_Conf.keepL4Ckpt            =0;
+  /* bool          */ FTI_Conf.h5SingleFileEnable    =0;
+  /* int           */ FTI_Conf.ckptTag               =0;
+  /* int           */ FTI_Conf.stageTag              =0;
+  /* int           */ FTI_Conf.finalTag              =0;
+  /* int           */ FTI_Conf.generalTag            =0;
+  /* int           */ FTI_Conf.test                  =0;
+  /* int           */ FTI_Conf.l3WordSize            =0;
+  /* int           */ FTI_Conf.ioMode                =0;
+  /* char[BUFS]       FTI_Conf.localDir */           memset(FTI_Conf.localDir,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Conf.glbalDir */           memset(FTI_Conf.glbalDir,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Conf.metadDir */           memset(FTI_Conf.metadDir,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Conf.lTmpDir */            memset(FTI_Conf.lTmpDir,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Conf.gTmpDir */            memset(FTI_Conf.gTmpDir,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Conf.mTmpDir */            memset(FTI_Conf.mTmpDir,0x0,FTI_BUFS);
 
   // +--------- +
   // | FTI_Topo |
   // +--------- +
 
-  /* int           */ FTI_Topo->nbProc                =0;
-  /* int           */ FTI_Topo->nbNodes               =0;
-  /* int           */ FTI_Topo->myRank                =0;
-  /* int           */ FTI_Topo->splitRank             =0;
-  /* int           */ FTI_Topo->nodeSize              =0;
-  /* int           */ FTI_Topo->nbHeads               =0;
-  /* int           */ FTI_Topo->nbApprocs             =0;
-  /* int           */ FTI_Topo->groupSize             =0;
-  /* int           */ FTI_Topo->sectorID              =0;
-  /* int           */ FTI_Topo->nodeID                =0;
-  /* int           */ FTI_Topo->groupID               =0;
-  /* int           */ FTI_Topo->amIaHead              =0;
-  /* int           */ FTI_Topo->headRank              =0;
-  /* int           */ FTI_Topo->nodeRank              =0;
-  /* int           */ FTI_Topo->groupRank             =0;
-  /* int           */ FTI_Topo->right                 =0;
-  /* int           */ FTI_Topo->left                  =0;
-  /* int[BUFS]        FTI_Topo->body */               memset(FTI_Topo->body,0x0,FTI_BUFS*sizeof(int));
+  /* int           */ FTI_Topo.nbProc                =0;
+  /* int           */ FTI_Topo.nbNodes               =0;
+  /* int           */ FTI_Topo.myRank                =0;
+  /* int           */ FTI_Topo.splitRank             =0;
+  /* int           */ FTI_Topo.nodeSize              =0;
+  /* int           */ FTI_Topo.nbHeads               =0;
+  /* int           */ FTI_Topo.nbApprocs             =0;
+  /* int           */ FTI_Topo.groupSize             =0;
+  /* int           */ FTI_Topo.sectorID              =0;
+  /* int           */ FTI_Topo.nodeID                =0;
+  /* int           */ FTI_Topo.groupID               =0;
+  /* int           */ FTI_Topo.amIaHead              =0;
+  /* int           */ FTI_Topo.headRank              =0;
+  /* int           */ FTI_Topo.nodeRank              =0;
+  /* int           */ FTI_Topo.groupRank             =0;
+  /* int           */ FTI_Topo.right                 =0;
+  /* int           */ FTI_Topo.left                  =0;
+  /* int[BUFS]        FTI_Topo.body */               memset(FTI_Topo.body,0x0,FTI_BUFS*sizeof(int));
 
   // +--------- +
   // | FTI_Ckpt |
@@ -189,13 +187,13 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // | FTI_Injc |
   // +--------- +
 
-  //* int           */ FTI_Injc->rank                  =0;
-  //* int           */ FTI_Injc->index                 =0;
-  //* int           */ FTI_Injc->position              =0;
-  //* int           */ FTI_Injc->number                =0;
-  //* int           */ FTI_Injc->frequency             =0;
-  //* int           */ FTI_Injc->counter               =0;
-  //* double        */ FTI_Injc->timer                 =0;
+  //* int           */ FTI_Injc.rank                  =0;
+  //* int           */ FTI_Injc.index                 =0;
+  //* int           */ FTI_Injc.position              =0;
+  //* int           */ FTI_Injc.number                =0;
+  //* int           */ FTI_Injc.frequency             =0;
+  //* int           */ FTI_Injc.counter               =0;
+  //* double        */ FTI_Injc.timer                 =0;
 
   return FTI_SCES;
 
@@ -215,14 +213,13 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
-        FTIT_configuration* FTI_Conf, char* checksum)
+int FTI_Checksum( char* checksum )
 {
     int i;
     int ii = 0;
 
     for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
+        sprintf(&checksum[ii], "%02x", FTI_Exec.integrity[i]);
         ii += 2;
     }
     return FTI_SCES;
@@ -324,37 +321,37 @@ int FTI_Try(int result, char* message)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+void FTI_MallocMeta()
 {
   int i;
-  if (FTI_Topo->amIaHead) {
+  if (FTI_Topo.amIaHead) {
     for (i = 0; i < 5; i++) {
-      FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
-      FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
-      FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
-      FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
-      FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-      FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-      FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
-      FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
-      FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
-	  FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+      FTI_Exec.meta[i].exists = calloc(FTI_Topo.nodeSize, sizeof(int));
+      FTI_Exec.meta[i].maxFs = calloc(FTI_Topo.nodeSize, sizeof(long));
+      FTI_Exec.meta[i].fs = calloc(FTI_Topo.nodeSize, sizeof(long));
+      FTI_Exec.meta[i].pfs = calloc(FTI_Topo.nodeSize, sizeof(long));
+      FTI_Exec.meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo.nodeSize, sizeof(char));
+      FTI_Exec.meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo.nodeSize, sizeof(char));
+      FTI_Exec.meta[i].nbVar = calloc(FTI_Topo.nodeSize, sizeof(int));
+      FTI_Exec.meta[i].varID = calloc(FTI_BUFS * FTI_Topo.nodeSize, sizeof(int));
+      FTI_Exec.meta[i].varSize = calloc(FTI_BUFS * FTI_Topo.nodeSize, sizeof(long));
+	  FTI_Exec.meta[i].filePos = calloc(FTI_BUFS * FTI_Topo.nodeSize, sizeof(long));
     }
   } else {
     for (i = 0; i < 5; i++) {
-      FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
-      FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
-      FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
-      FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
-      FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
-      FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
-      FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
-      FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
-      FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
-	  FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
+      FTI_Exec.meta[i].exists = calloc(1, sizeof(int));
+      FTI_Exec.meta[i].maxFs = calloc(1, sizeof(long));
+      FTI_Exec.meta[i].fs = calloc(1, sizeof(long));
+      FTI_Exec.meta[i].pfs = calloc(1, sizeof(long));
+      FTI_Exec.meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+      FTI_Exec.meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
+      FTI_Exec.meta[i].nbVar = calloc(1, sizeof(int));
+      FTI_Exec.meta[i].varID = calloc(FTI_BUFS, sizeof(int));
+      FTI_Exec.meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+	  FTI_Exec.meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
     }
   }
-  FTI_Exec->metaAlloc = 1;
+  FTI_Exec.metaAlloc = 1;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -366,22 +363,22 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_FreeMeta(FTIT_execution* FTI_Exec)
+void FTI_FreeMeta()
 {
-  if (FTI_Exec->metaAlloc == 1) {
+  if (FTI_Exec.metaAlloc == 1) {
     int i;
     for (i = 0; i < 5; i++) {
-      free(FTI_Exec->meta[i].exists);
-      free(FTI_Exec->meta[i].maxFs);
-      free(FTI_Exec->meta[i].fs);
-      free(FTI_Exec->meta[i].pfs);
-      free(FTI_Exec->meta[i].ckptFile);
-      free(FTI_Exec->meta[i].nbVar);
-      free(FTI_Exec->meta[i].varID);
-      free(FTI_Exec->meta[i].varSize);
-	  free(FTI_Exec->meta[i].filePos);
+      free(FTI_Exec.meta[i].exists);
+      free(FTI_Exec.meta[i].maxFs);
+      free(FTI_Exec.meta[i].fs);
+      free(FTI_Exec.meta[i].pfs);
+      free(FTI_Exec.meta[i].ckptFile);
+      free(FTI_Exec.meta[i].nbVar);
+      free(FTI_Exec.meta[i].varID);
+      free(FTI_Exec.meta[i].varSize);
+	  free(FTI_Exec.meta[i].filePos);
     }
-    FTI_Exec->metaAlloc = 0;
+    FTI_Exec.metaAlloc = 0;
   }
 }
 
@@ -395,27 +392,27 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) 
+int FTI_InitGroupsAndTypes() 
 {
-  FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
-  if (FTI_Exec->FTI_Type == NULL) {
+  FTI_Exec.FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
+  if (FTI_Exec.FTI_Type == NULL) {
     return FTI_NSCS;
   }
 
-  FTI_Exec->H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
-  if (FTI_Exec->H5groups == NULL) {
+  FTI_Exec.H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
+  if (FTI_Exec.H5groups == NULL) {
     return FTI_NSCS;
   }
 
-  FTI_Exec->H5groups[0] = malloc(sizeof(FTIT_H5Group));
-  if (FTI_Exec->H5groups[0] == NULL) {
+  FTI_Exec.H5groups[0] = malloc(sizeof(FTIT_H5Group));
+  if (FTI_Exec.H5groups[0] == NULL) {
     return FTI_NSCS;
   }
 
-  FTI_Exec->H5groups[0]->id = 0;
-  FTI_Exec->H5groups[0]->childrenNo = 0;
-  sprintf(FTI_Exec->H5groups[0]->name, "/");
-  FTI_Exec->nbGroup = 1;
+  FTI_Exec.H5groups[0]->id = 0;
+  FTI_Exec.H5groups[0]->childrenNo = 0;
+  sprintf(FTI_Exec.H5groups[0]->name, "/");
+  FTI_Exec.nbGroup = 1;
   return FTI_SCES;
 }
 
@@ -428,21 +425,21 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) 
+void FTI_FreeTypesAndGroups() 
 {
   int i;
-  for (i = 0; i < FTI_Exec->nbType; i++) {
-    if (FTI_Exec->FTI_Type[i]->structure != NULL) {
+  for (i = 0; i < FTI_Exec.nbType; i++) {
+    if (FTI_Exec.FTI_Type[i]->structure != NULL) {
       //if complex type and have structure
-      free(FTI_Exec->FTI_Type[i]->structure);
+      free(FTI_Exec.FTI_Type[i]->structure);
     }
-    free(FTI_Exec->FTI_Type[i]);
+    free(FTI_Exec.FTI_Type[i]);
   }
-  free(FTI_Exec->FTI_Type);
-  for (i = 0; i < FTI_Exec->nbGroup; i++) {
-    free(FTI_Exec->H5groups[i]);
+  free(FTI_Exec.FTI_Type);
+  for (i = 0; i < FTI_Exec.nbGroup; i++) {
+    free(FTI_Exec.H5groups[i]);
   }
-  free(FTI_Exec->H5groups);
+  free(FTI_Exec.H5groups);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -455,7 +452,7 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
+int FTI_InitBasicTypes()
 {
   int i;
   for (i = 0; i < FTI_BUFS; i++) {
@@ -550,21 +547,20 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-    FTIT_checkpoint* FTI_Ckpt, int level)
+int FTI_Clean( int level )
 {
   int nodeFlag; //only one process in the node has set it to 1
-  int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
+  int globalFlag = !FTI_Topo.splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
 
-  nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+  nodeFlag = (((!FTI_Topo.amIaHead) && ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0;
   
-  bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff); 
+  bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff); 
   bool notDcp = !FTI_Ckpt[4].isDcp;   
 
   if (level == 0) {
-    FTI_RmDir(FTI_Conf->mTmpDir, globalFlag && notDcpFtiff );
-    FTI_RmDir(FTI_Conf->gTmpDir, globalFlag && notDcp );
-    FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag && notDcp );
+    FTI_RmDir(FTI_Conf.mTmpDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Conf.gTmpDir, globalFlag && notDcp );
+    FTI_RmDir(FTI_Conf.lTmpDir, nodeFlag && notDcp );
   }
 
   // Clean last checkpoint level 1
@@ -589,37 +585,37 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   if ( level == 4 || level == 5 ) {
     FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff );
     FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp );
-    rmdir(FTI_Conf->gTmpDir);
+    rmdir(FTI_Conf.gTmpDir);
   }
-  if ( (FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5 ) {
-    FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
+  if ( (FTI_Conf.dcpPosix || FTI_Conf.dcpFtiff) && level == 5 ) {
+    FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo.splitRank);
   }
 
   // If it is the very last cleaning and we DO NOT keep the last checkpoint
   if (level == 5) {
-    rmdir(FTI_Conf->lTmpDir);
-    rmdir(FTI_Conf->localDir);
-    rmdir(FTI_Conf->glbalDir);
+    rmdir(FTI_Conf.lTmpDir);
+    rmdir(FTI_Conf.localDir);
+    rmdir(FTI_Conf.glbalDir);
     char buf[FTI_BUFS];
-    snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
+    snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf.metadDir);
     if (remove(buf) == -1) {
       if (errno != ENOENT) {
         FTI_Print("Cannot remove Topology.fti", FTI_EROR);
       }
     }
-    snprintf(buf, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
+    snprintf(buf, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf.metadDir);
     if (remove(buf) == -1) {
       if (errno != ENOENT) {
         FTI_Print("Cannot remove Checkpoint.fti", FTI_EROR);
       }
     }
-    rmdir(FTI_Conf->metadDir);
+    rmdir(FTI_Conf.metadDir);
   }
 
   // If it is the very last cleaning and we DO keep the last checkpoint
   if (level == 6) {
-    rmdir(FTI_Conf->lTmpDir);
-    rmdir(FTI_Conf->localDir);
+    rmdir(FTI_Conf.lTmpDir);
+    rmdir(FTI_Conf.localDir);
   }
 
   return FTI_SCES;

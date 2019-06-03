@@ -37,6 +37,7 @@
  */
 
 #include "interface.h"
+#include <inttypes.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -54,12 +55,10 @@
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+int FTI_startICP(FTIT_IO *io)
 {
-    void *ret = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-    FTI_Exec->iCPInfo.fd = ret;
+    void *ret = io->initCKPT();
+    FTI_Exec.iCPInfo.fd = ret;
     return FTI_SCES;
 }
 
@@ -80,20 +79,18 @@ int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+int FTI_WriteVar(int varID, FTIT_IO *io)
 {
-    void *write_info = (void *) FTI_Exec->iCPInfo.fd;
+    void *write_info = (void *) FTI_Exec.iCPInfo.fd;
     int res;
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         if ( FTI_Data[i].id == varID ) {
             FTI_Data[i].filePos = io->getPos(write_info);
             res = io->WriteData(&FTI_Data[i],write_info);
         }
     }
-    FTI_Exec->iCPInfo.result = res;
+    FTI_Exec.iCPInfo.result = res;
     return res;
 }
 
@@ -112,15 +109,15 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
  This functions Finalizes the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io){
-    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+int FTI_FinishICP(FTIT_IO *io){
+    if ( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
-    void *write_info = FTI_Exec->iCPInfo.fd;
+    void *write_info = FTI_Exec.iCPInfo.fd;
     io->finCKPT(write_info);
-    io->finIntegrity(FTI_Exec->integrity, write_info);
+    io->finIntegrity(FTI_Exec.integrity, write_info);
     free(write_info);
-    FTI_Exec->iCPInfo.fd = NULL;
+    FTI_Exec.iCPInfo.fd = NULL;
     return FTI_SCES;
 }
 
@@ -140,39 +137,37 @@ int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
   protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
+int FTI_InitFtiffICP(FTIT_IO *ignore)
 {
     char fn[FTI_BUFS];
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) malloc (sizeof(WritePosixInfo_t));
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
     // only for printout of dCP share in FTI_Checkpoint
-    FTI_Exec->FTIFFMeta.dcpSize = 0;
+    FTI_Exec.FTIFFMeta.dcpSize = 0;
     // important for reading and writing operations
-    FTI_Exec->FTIFFMeta.dataSize = 0;
-    FTI_Exec->FTIFFMeta.pureDataSize = 0;
+    FTI_Exec.FTIFFMeta.dataSize = 0;
+    FTI_Exec.FTIFFMeta.pureDataSize = 0;
 
     //If inline L4 save directly to global directory
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec.ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
-        if( FTI_Conf->dcpFtiff&& FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf.dcpFtiff&& FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.meta[0].ckptFile);
         }
     } else if ( level == 4 && !FTI_Ckpt[4].isInline )
-        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.meta[0].ckptFile);
         }
         else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.meta[0].ckptFile);
         }
 
     // for dCP: create if not exists, open if exists
-    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ){ 
+    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ){ 
         if (access(fn,R_OK) != 0){ 
             write_info->flag = 'w'; 
         }
@@ -185,7 +180,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     write_info->offset = 0;
     FTI_PosixOpen(fn,write_info);
-    FTI_Exec -> iCPInfo.fd = write_info;
+    FTI_Exec . iCPInfo.fd = write_info;
     return FTI_SCES;
 
 }
@@ -201,13 +196,11 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
+int FTI_WriteFtiffVar(int varID, FTIT_IO *ignore)
 {
     char str[FTI_BUFS];
 
-    FTIFF_db *db = FTI_Exec->firstdb;
+    FTIFF_db *db = FTI_Exec.firstdb;
     FTIFF_dbvar *dbvar = NULL;
     unsigned char *dptr;
     int dbvar_idx, dbcounter=0;
@@ -217,7 +210,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     long pureDataSize = 0;
 
     int pvar_idx = -1, pvar_idx_;
-    for( pvar_idx_=0; pvar_idx_<FTI_Exec->nbVar; pvar_idx_++ ) {
+    for( pvar_idx_=0; pvar_idx_<FTI_Exec.nbVar; pvar_idx_++ ) {
         if( FTI_Data[pvar_idx_].id == varID ) {
             pvar_idx = pvar_idx_;
         }
@@ -227,17 +220,17 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
         return FTI_NSCS;
     }
 
-    FTIFF_UpdateDatastructVarFTIFF( FTI_Exec, FTI_Data, FTI_Conf, pvar_idx );
+    FTIFF_UpdateDatastructVarFTIFF( pvar_idx );
 
     // check if metadata exists
-    if( FTI_Exec->firstdb == NULL ) {
+    if( FTI_Exec.firstdb == NULL ) {
         FTI_Print("No data structure found to write data to file. Discarding checkpoint.", FTI_WARN);
         return FTI_NSCS;
     }
 
-    WritePosixInfo_t *fd = FTI_Exec->iCPInfo.fd;
+    WritePosixInfo_t *fd = FTI_Exec.iCPInfo.fd;
 
-    db = FTI_Exec->firstdb;
+    db = FTI_Exec.firstdb;
 
     do {    
 
@@ -257,7 +250,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                 if( dbvar->hascontent ) 
                     pureDataSize += dbvar->chunksize;
 
-                FTI_ProcessDBVar(FTI_Exec, FTI_Conf, dbvar , FTI_Data, hashchk, fd, FTI_Exec->iCPInfo.fn , &dcpSize, &dptr);
+                FTI_ProcessDBVar(dbvar, hashchk, fd, FTI_Exec.iCPInfo.fn , &dcpSize, &dptr);
                 // create hash for datachunk and assign to member 'hash'
                 if( dbvar->hascontent ) {
                     memcpy( dbvar->hash, hashchk, MD5_DIGEST_LENGTH );
@@ -267,7 +260,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                 snprintf(str, FTI_BUFS, "FTIFF: CKPT(id:%i) dataBlock:%i/dataBlockVar%i id: %i, idx: %i"
                         ", dptr: %ld, fptr: %ld, chunksize: %ld, "
                         "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR " ", 
-                        FTI_Exec->ckptID, dbcounter, dbvar_idx,  
+                        FTI_Exec.ckptID, dbcounter, dbvar_idx,  
                         dbvar->id, dbvar->idx, dbvar->dptr,
                         dbvar->fptr, dbvar->chunksize,
                         (uintptr_t)FTI_Data[dbvar->idx].ptr, (uintptr_t)dptr);
@@ -287,13 +280,13 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     } while( isnextdb );
 
     // only for printout of dCP share in FTI_Checkpoint
-    FTI_Exec->FTIFFMeta.dcpSize += dcpSize;
-    FTI_Exec->FTIFFMeta.pureDataSize += pureDataSize;
+    FTI_Exec.FTIFFMeta.dcpSize += dcpSize;
+    FTI_Exec.FTIFFMeta.pureDataSize += pureDataSize;
 
     // important for reading and writing operations
-    FTI_Exec->FTIFFMeta.dataSize += dataSize;
+    FTI_Exec.FTIFFMeta.dataSize += dataSize;
 
-    FTI_Exec->iCPInfo.result = FTI_SCES;
+    FTI_Exec.iCPInfo.result = FTI_SCES;
 
     return FTI_SCES;
 
@@ -313,11 +306,9 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
   finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
+int FTI_FinalizeFtiffICP(FTIT_IO *ignore)
 {   
-    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
+    if ( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
 
@@ -326,13 +317,13 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    WritePosixInfo_t *write_info = FTI_Exec->iCPInfo.fd;
-    FTIFF_writeMetaDataFTIFF( FTI_Exec, write_info);
+    WritePosixInfo_t *write_info = FTI_Exec.iCPInfo.fd;
+    FTIFF_writeMetaDataFTIFF(write_info);
 
     FTI_PosixSync(write_info);
     FTI_PosixClose(write_info);
     free(write_info);
-    FTI_Exec->iCPInfo.fd = NULL;
+    FTI_Exec.iCPInfo.fd = NULL;
 
     return FTI_SCES;
 
@@ -360,9 +351,7 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_InitSionlibICP()
 {
     int res;
     FTI_Print("I/O mode: SIONlib.", FTI_DBUG);
@@ -374,14 +363,14 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* rank_map = talloc(int, 1);
     sion_int64* chunkSizes = talloc(sion_int64, 1);
     int fsblksize = -1;
-    chunkSizes[0] = FTI_Exec->ckptSize;
-    ranks[0] = FTI_Topo->splitRank;
-    rank_map[0] = FTI_Topo->splitRank;
+    chunkSizes[0] = FTI_Exec.ckptSize;
+    ranks[0] = FTI_Topo.splitRank;
+    rank_map[0] = FTI_Topo.splitRank;
 
     // open parallel file
     char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec.ckptID);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.gTmpDir, str);
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
 
@@ -397,7 +386,7 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    memcpy(FTI_Exec->iCPInfo.fh, &sid, sizeof(int));
+    memcpy(FTI_Exec.iCPInfo.fh, &sid, sizeof(int));
 
     free(file_map);
     free(rank_map);
@@ -419,23 +408,21 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_WriteSionlibVar(int varID)
 {
 
     int sid;
-    memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );
+    memcpy( &sid, FTI_Exec.iCPInfo.fh, sizeof(FTI_SL_FH) );
 
     unsigned long offset = 0;
     // write datasets into file
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
 
         if( FTI_Data[i].id == varID ) {
 
             // set file pointer to corresponding block in sionlib file
-            int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, offset);
+            int res = sion_seek(sid, FTI_Topo.splitRank, SION_CURRENT_BLK, offset);
 
             // check if successful
             if (res != SION_SUCCESS) {
@@ -462,7 +449,7 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
 
     }
 
-    FTI_Exec->iCPInfo.result = FTI_SCES;
+    FTI_Exec.iCPInfo.result = FTI_SCES;
     return FTI_SCES;
 
 }
@@ -481,13 +468,11 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
   finalize iCP.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_FinalizeSionlibICP()
 {
 
     int sid;
-    memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );
+    memcpy( &sid, FTI_Exec.iCPInfo.fh, sizeof(FTI_SL_FH) );
 
     // close parallel file
     if (sion_parclose_mapped_mpi(sid) == -1) {

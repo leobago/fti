@@ -74,7 +74,7 @@ int write_sion(void *src, size_t size, void *opaque)
  **/
 /*-------------------------------------------------------------------------*/
 
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
+int copyDataFromDevive(){
 #ifdef GPUSUPPORT
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {

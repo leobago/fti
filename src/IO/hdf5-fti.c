@@ -353,7 +353,7 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
     WriteHDF5Info_t *fd = (WriteHDF5Info_t*) fileDesc;
     char str[FTI_BUFS];
     //Creating new hdf5 file
-    if( fd->FTI_Exec->h5SingleFile ) { 
+    if( FTI_Exec.h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
         fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
@@ -366,12 +366,12 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
-    fd->FTI_Exec->H5groups[0]->h5groupID = fd->file_id;
-    FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+    FTI_Exec.H5groups[0]->h5groupID = fd->file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
 
     int i;
     for (i = 0; i < rootGroup->childrenNo; i++) {
-        FTI_CreateGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[i]], fd->file_id, fd->FTI_Exec->H5groups);
+        FTI_CreateGroup(FTI_Exec.H5groups[rootGroup->childrenID[i]], fd->file_id, FTI_Exec.H5groups);
     }
     return FTI_SCES;
 }
@@ -384,16 +384,16 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
   @return   integer         FTI_SCES on success;
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar){
+int FTI_CommitDataType(FTIT_dataset *FTI_DataVar){
     char str[FTI_BUFS];
     int toCommit = 0;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
     if (FTI_DataVar->type->h5datatype < 0) {
         toCommit = 1;
     }
     sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_DataVar->type->id, (long)FTI_DataVar->type->h5datatype);
     FTI_Print(str, FTI_DBUG);
-    FTI_CreateComplexType(FTI_DataVar->type, FTI_Exec->FTI_Type);
+    FTI_CreateComplexType(FTI_DataVar->type, FTI_Exec.FTI_Type);
     if (toCommit == 1) {
         char name[FTI_BUFS];
         if (FTI_DataVar->type->structure == NULL) {
@@ -407,8 +407,8 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar){
             sprintf(str, "Datatype #%d could not be commited", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             int j;
-            for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+            for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+                FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
             }
             return FTI_NSCS;
         }
@@ -977,12 +977,12 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
     WriteHDF5Info_t *fd= (WriteHDF5Info_t *) write_info;
     char str[FTI_BUFS];
     int res;
-    FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
 
-    if (!(fd->FTI_Exec->h5SingleFile))
-        FTI_CommitDataType(fd->FTI_Exec,FTI_DataVar);
+    if (!(FTI_Exec.h5SingleFile))
+        FTI_CommitDataType(FTI_DataVar);
 
-    if( fd->FTI_Exec->h5SingleFile ) { 
+    if( FTI_Exec.h5SingleFile ) { 
         res = FTI_WriteSharedFileData( *FTI_DataVar );
     } else {
         res = FTI_WriteHDF5Var(FTI_DataVar); 
@@ -991,8 +991,8 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
         int j;
         sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
         FTI_Print(str, FTI_EROR);
-        for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
-            FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);
+        for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+            FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
         }
         H5Fclose(fd->file_id);
         return FTI_NSCS;
@@ -1011,22 +1011,22 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
 int  FTI_HDF5Close(void *fileDesc){
     int i,j;
     WriteHDF5Info_t *fd = (WriteHDF5Info_t *)fileDesc;
-    FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
 
-    for (i = 0; i < fd->FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(fd->FTI_Data[i].type, fd->FTI_Exec->FTI_Type);
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec.FTI_Type);
     }
 
-    for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);
+    for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+        FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
     }
 
-    if( fd->FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( fd->FTI_Exec );
+    if( FTI_Exec.h5SingleFile ) { 
+        FTI_CloseGlobalDatasets();
     }
 
     // close file
-    fd->FTI_Exec->H5groups[0]->h5groupID = -1;
+    FTI_Exec.H5groups[0]->h5groupID = -1;
     if (H5Fclose(fd->file_id) < 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
         return FTI_NSCS;
@@ -1049,34 +1049,32 @@ int  FTI_HDF5Close(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitHDF5(){
     
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
     
     char  fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec.ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.gTmpDir, FTI_Exec.meta[0].ckptFile);
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.lTmpDir, FTI_Exec.meta[0].ckptFile);
     }
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+    if( FTI_Exec.h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
     }
 
     int i;
     WriteHDF5Info_t *fd= (WriteHDF5Info_t*) malloc(sizeof(WriteHDF5Info_t));;
-    fd->FTI_Exec = FTI_Exec;
-    fd->FTI_Data = FTI_Data;
 
     FTI_HDF5Open(fn, fd); 
 
-    if (FTI_Exec->h5SingleFile){
-        for (i = 0; i < FTI_Exec->nbVar; i++) {
-            FTI_CommitDataType(FTI_Exec,&FTI_Data[i]);
+    if (FTI_Exec.h5SingleFile){
+        for (i = 0; i < FTI_Exec.nbVar; i++) {
+            FTI_CommitDataType(&FTI_Data[i]);
         }
-        FTI_CreateGlobalDatasets( FTI_Exec );
+        FTI_CreateGlobalDatasets();
     }
     return (void *) fd;
 }
@@ -1093,14 +1091,12 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_WriteHDF5()
 {
     // write data
     int i;
-    WriteHDF5Info_t *fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    WriteHDF5Info_t *fd = FTI_InitHDF5();
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         FTI_WriteHDF5Data(&FTI_Data[i], fd);
     }
     FTI_HDF5Close(fd);
@@ -1120,13 +1116,12 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_RecoverHDF5()
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+    if( FTI_Exec.h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
     }
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
@@ -1135,7 +1130,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     hid_t file_id;
 
     //Open hdf5 file
-    if( FTI_Exec->h5SingleFile ) { 
+    if( FTI_Exec.h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
         file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
@@ -1147,25 +1142,25 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    FTI_Exec.H5groups[0]->h5groupID = file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
 
     int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
+    for (i = 0; i < FTI_Exec.H5groups[0]->childrenNo; i++) {
+        FTI_OpenGroup(FTI_Exec.H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec.H5groups);
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec.FTI_Type);
     }
 
-    if( FTI_Exec->h5SingleFile ) { 
+    if( FTI_Exec.h5SingleFile ) { 
         FTI_OpenGlobalDatasets( FTI_Exec );
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         herr_t res;
-        if( FTI_Exec->h5SingleFile ) { 
+        if( FTI_Exec.h5SingleFile ) { 
             res = FTI_ReadSharedFileData( FTI_Data[i] );
         } else {
             res = FTI_ReadHDF5Var(&FTI_Data[i]);
@@ -1173,32 +1168,32 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         if (res < 0) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             int j;
-            for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+            for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+                FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
             }
             H5Fclose(file_id);
             return FTI_NREC;
         }
     }
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
+        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec.FTI_Type);
     }
 
     int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+    for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+        FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
     }
 
-    if( FTI_Exec->h5SingleFile ) { 
+    if( FTI_Exec.h5SingleFile ) { 
         FTI_CloseGlobalDatasets( FTI_Exec );
     }
 
-    FTI_Exec->H5groups[0]->h5groupID = -1;
+    FTI_Exec.H5groups[0]->h5groupID = -1;
     if (H5Fclose(file_id) < 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    FTI_Exec->reco = 0;
+    FTI_Exec.reco = 0;
     return FTI_SCES;
 }
 
@@ -1213,11 +1208,10 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, int id)
+int FTI_RecoverVarHDF5(int id)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
@@ -1227,15 +1221,15 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    FTI_Exec.H5groups[0]->h5groupID = file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec.H5groups[0];
 
     int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
+    for (i = 0; i < FTI_Exec.H5groups[0]->childrenNo; i++) {
+        FTI_OpenGroup(FTI_Exec.H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec.H5groups);
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         if (FTI_Data[i].id == id) {
             break;
         }
@@ -1251,16 +1245,16 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
     if (res < 0) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
         int j;
-        for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-            FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+        for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+            FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
         }
         H5Fclose(file_id);
         return FTI_NREC;
     }
 
     int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
+    for (j = 0; j < FTI_Exec.H5groups[0]->childrenNo; j++) {
+        FTI_CloseGroup(FTI_Exec.H5groups[rootGroup->childrenID[j]], FTI_Exec.H5groups);
     }
     if (H5Fclose(file_id) < 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
@@ -1278,14 +1272,14 @@ int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
   This function is the analog to 'FTI_CreateGlobalDatasets' on recovery.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
+int FTI_OpenGlobalDatasets()
 {
     
     hsize_t *dims = NULL; 
     hsize_t *maxDims = NULL;
 
     char errstr[FTI_BUFS];
-    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
 
         dims = (hsize_t*) realloc( dims, sizeof(hsize_t)*dataset->rank ); 
@@ -1293,7 +1287,7 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
         
         // open dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = FTI_Exec.FTI_Type[dataset->type.id]->h5datatype;
         dataset->hdf5TypeId = tid;
 
         dataset->hid = H5Dopen( loc, dataset->name, H5P_DEFAULT );
@@ -1346,32 +1340,32 @@ int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec )
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
+herr_t FTI_ReadSharedFileData( FTIT_dataset data )
 {
 
     // hdf5 datatype
-    hid_t tid = FTI_Data.sharedData.dataset->hdf5TypeId;
+    hid_t tid = data.sharedData.dataset->hdf5TypeId;
     
     // dataset hdf5-id
-    hid_t did = FTI_Data.sharedData.dataset->hid;
+    hid_t did = data.sharedData.dataset->hid;
 
     // shared dataset file space
-    hid_t fsid = FTI_Data.sharedData.dataset->fileSpace;
+    hid_t fsid = data.sharedData.dataset->fileSpace;
     
     // shared dataset rank
-    int ndim = FTI_Data.sharedData.dataset->rank;
+    int ndim = data.sharedData.dataset->rank;
 
     // shared dataset array of nummber of elements in each dimension
-    hsize_t *count = FTI_Data.sharedData.count;
+    hsize_t *count = data.sharedData.count;
 
     // shared dataset array of the offsets for each dimension
-    hsize_t *offset = FTI_Data.sharedData.offset;
+    hsize_t *offset = data.sharedData.offset;
 
     // create dataspace for subset of shared dataset
     hid_t msid = H5Screate_simple( ndim, count, NULL );
     if(msid < 0) {
         char errstr[FTI_BUFS];
-        snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        snprintf( errstr, FTI_BUFS, "Unable to create space for var-id %d in dataset #%d", data.id, data.sharedData.dataset->id );
         FTI_Print(errstr,FTI_EROR);
         return FTI_NSCS;
     }
@@ -1384,10 +1378,10 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     // write data in file
-    herr_t status = H5Dread(did, tid, msid, fsid, plid, FTI_Data.ptr);
+    herr_t status = H5Dread(did, tid, msid, fsid, plid, data.ptr);
     if(status < 0) {
         char errstr[FTI_BUFS];
-        snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+        snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", data.id, data.sharedData.dataset->id );
         FTI_Print(errstr,FTI_EROR);
         return FTI_NSCS;
     }
@@ -1406,10 +1400,10 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec )
+int FTI_CloseGlobalDatasets()
 {
     
-    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
 
         H5Sclose(dataset->fileSpace);
@@ -1508,13 +1502,13 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec ) 
+int FTI_CheckDimensions() 
 {   
 
     // NOTE checking for overlap is complicated and likely expensive
     // since it requires sorting within all contributing processes.
     // Thus, we check currently only the number of elements.
-    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
         int i,j;
         // sum of local elements
@@ -1560,7 +1554,7 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID ) 
+int FTI_H5CheckSingleFile( int *ckptID ) 
 {
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
@@ -1568,10 +1562,10 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
     struct stat st;
    
     struct dirent *entry;
-    DIR *dir = opendir( FTI_Conf->h5SingleFileDir );
+    DIR *dir = opendir( FTI_Conf.h5SingleFileDir );
 
     if ( dir == NULL ) {
-        snprintf( errstr, FTI_BUFS, "VPR directory '%s' could not be accessed.", FTI_Conf->h5SingleFileDir );
+        snprintf( errstr, FTI_BUFS, "VPR directory '%s' could not be accessed.", FTI_Conf.h5SingleFileDir );
         FTI_Print(errstr, FTI_EROR);
         errno = 0;
         return FTI_NSCS;
@@ -1588,13 +1582,13 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
                 bzero( fileRoot, FTI_BUFS );
                 memcpy( fileRoot, entry->d_name, len - 14 );
                 char fileRootExpected[FTI_BUFS];
-                snprintf( fileRootExpected, FTI_BUFS, "%s", FTI_Conf->h5SingleFilePrefix );
+                snprintf( fileRootExpected, FTI_BUFS, "%s", FTI_Conf.h5SingleFilePrefix );
                 if( strncmp( fileRootExpected, fileRoot, FTI_BUFS ) == 0 ) {
                     int id_tmp;
                     sscanf( entry->d_name + len - 14 + 3, "%08d.h5", &id_tmp );
                     if( id_tmp > *ckptID ) {
                         *ckptID = id_tmp;
-                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, FTI_Conf.h5SingleFilePrefix, *ckptID ); 
                     }
                     found = true;
                 }
@@ -1603,7 +1597,7 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
     }
 
     if (!found) {
-        snprintf( errstr, FTI_BUFS, "unable to find matching VPR file (filename pattern: '%s-ID########.h5')!", FTI_Conf->h5SingleFilePrefix );
+        snprintf( errstr, FTI_BUFS, "unable to find matching VPR file (filename pattern: '%s-ID########.h5')!", FTI_Conf.h5SingleFilePrefix );
         FTI_Print( errstr, FTI_WARN );
         return FTI_NSCS;
     }
@@ -1635,9 +1629,9 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
     return res;
 }
 
-void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data ) 
+void FTI_FreeVPRMem() 
 {
-    FTIT_globalDataset * dataset = FTI_Exec->globalDatasets;
+    FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
         if( dataset->dimension ) { free( dataset->dimension ); }
         if( dataset->varIdx ) { free( dataset->varIdx ); }
@@ -1647,7 +1641,7 @@ void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
     }
 
     int i=0;
-    for( ; i<FTI_Exec->nbVar; i++ ) {
+    for( ; i<FTI_Exec.nbVar; i++ ) {
         if( FTI_Data[i].sharedData.offset ) {
             free( FTI_Data[i].sharedData.offset );
         }
@@ -1668,10 +1662,10 @@ void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
   'FTI_DefineGlobalDataset'.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
+int FTI_CreateGlobalDatasets()
 {
     
-    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
     while( dataset ) {
 
         // create file space
@@ -1686,7 +1680,7 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 
         // create dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = FTI_Exec.FTI_Type[dataset->type.id]->h5datatype;
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
         

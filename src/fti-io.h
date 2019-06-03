@@ -3,7 +3,7 @@
 
 
 #include "fti.h"
-int FTI_InitCheckpointWriters(int ckptIO, FTIT_execution * FTI_Exec );
+int FTI_InitCheckpointWriters();
 extern FTIT_IO ftiIO[4];
 
 #endif

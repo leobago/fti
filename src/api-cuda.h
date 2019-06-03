@@ -72,7 +72,7 @@ int FTI_InitPrefetcher(FTIT_data_prefetch *dfls);
 int FTI_getPrefetchedData( FTIT_data_prefetch *dfls, size_t *size, unsigned  char **fetchedData );
 int FTI_destroyPrefetcher(FTIT_data_prefetch *dfls);
 int FTI_DestroyDevices();
-int FTI_InitDevices ( int HostBuffSize );
+int FTI_InitDevices ();
 int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes);
 BYTE *FTI_getHostBuffer( int id );
 size_t FTI_getHostBuffSize();

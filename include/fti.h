@@ -8,6 +8,7 @@
 #ifndef __FTI_H__
 #define __FTI_H__
 
+
 /** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */

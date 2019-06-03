@@ -41,6 +41,7 @@
 #endif
 
 #include "interface.h"
+#include <math.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -57,50 +58,50 @@
 
 
 
-int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
+int FTI_UpdateIterTime()
 {
     int nbProcs, res;
     char str[FTI_BUFS];
-    double last = FTI_Exec->iterTime;
-    FTI_Exec->iterTime = MPI_Wtime();
-    if (FTI_Exec->ckptIcnt > 0) {
-        FTI_Exec->lastIterTime = FTI_Exec->iterTime - last;
-        FTI_Exec->totalIterTime = FTI_Exec->totalIterTime + FTI_Exec->lastIterTime;
-        if (FTI_Exec->ckptIcnt % FTI_Exec->syncIter == 0) {
-            FTI_Exec->meanIterTime = FTI_Exec->totalIterTime / FTI_Exec->ckptIcnt;
-            MPI_Allreduce(&FTI_Exec->meanIterTime, &FTI_Exec->globMeanIter, 1, MPI_DOUBLE, MPI_SUM, FTI_COMM_WORLD);
+    double last = FTI_Exec.iterTime;
+    FTI_Exec.iterTime = MPI_Wtime();
+    if (FTI_Exec.ckptIcnt > 0) {
+        FTI_Exec.lastIterTime = FTI_Exec.iterTime - last;
+        FTI_Exec.totalIterTime = FTI_Exec.totalIterTime + FTI_Exec.lastIterTime;
+        if (FTI_Exec.ckptIcnt % FTI_Exec.syncIter == 0) {
+            FTI_Exec.meanIterTime = FTI_Exec.totalIterTime / FTI_Exec.ckptIcnt;
+            MPI_Allreduce(&FTI_Exec.meanIterTime, &FTI_Exec.globMeanIter, 1, MPI_DOUBLE, MPI_SUM, FTI_COMM_WORLD);
             MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
-            FTI_Exec->globMeanIter = FTI_Exec->globMeanIter / nbProcs;
-            if (FTI_Exec->globMeanIter > 60) {
-                FTI_Exec->ckptIntv = 1;
+            FTI_Exec.globMeanIter = FTI_Exec.globMeanIter / nbProcs;
+            if (FTI_Exec.globMeanIter > 60) {
+                FTI_Exec.ckptIntv = 1;
             }
             else {
-                FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
+                FTI_Exec.ckptIntv = rint(60.0 / FTI_Exec.globMeanIter);
             }
-            res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
-            if (FTI_Exec->ckptLast == 0) {
+            res = FTI_Exec.ckptLast + FTI_Exec.ckptIntv;
+            if (FTI_Exec.ckptLast == 0) {
                 res = res + 1;
             }
-            if (res >= FTI_Exec->ckptIcnt) {
-                FTI_Exec->ckptNext = res;
+            if (res >= FTI_Exec.ckptIcnt) {
+                FTI_Exec.ckptNext = res;
             }
             snprintf(str, FTI_BUFS, "Current iter : %d ckpt intv. : %d . Next ckpt. at iter. %d . Sync. intv. : %d",
-                    FTI_Exec->ckptIcnt, FTI_Exec->ckptIntv, FTI_Exec->ckptNext, FTI_Exec->syncIter);
+                    FTI_Exec.ckptIcnt, FTI_Exec.ckptIntv, FTI_Exec.ckptNext, FTI_Exec.syncIter);
             FTI_Print(str, FTI_DBUG);
-            if ((FTI_Exec->syncIter < (FTI_Exec->ckptIntv / 2)) && (FTI_Exec->syncIter < FTI_Exec->syncIterMax)) {
-                FTI_Exec->syncIter = FTI_Exec->syncIter * 2;
+            if ((FTI_Exec.syncIter < (FTI_Exec.ckptIntv / 2)) && (FTI_Exec.syncIter < FTI_Exec.syncIterMax)) {
+                FTI_Exec.syncIter = FTI_Exec.syncIter * 2;
                 snprintf(str, FTI_BUFS, "Iteration frequency : %.2f sec/iter => %d iter/min. Resync every %d iter.",
-                        FTI_Exec->globMeanIter, FTI_Exec->ckptIntv, FTI_Exec->syncIter);
+                        FTI_Exec.globMeanIter, FTI_Exec.ckptIntv, FTI_Exec.syncIter);
                 FTI_Print(str, FTI_DBUG);
-                if (FTI_Exec->syncIter == FTI_Exec->syncIterMax) {
-                    snprintf(str, FTI_BUFS, "Sync. intv. has reached max value => %i iterations", FTI_Exec->syncIterMax);
+                if (FTI_Exec.syncIter == FTI_Exec.syncIterMax) {
+                    snprintf(str, FTI_BUFS, "Sync. intv. has reached max value => %i iterations", FTI_Exec.syncIterMax);
                     FTI_Print(str, FTI_DBUG);
                 }
 
             }
         }
     }
-    FTI_Exec->ckptIcnt++; // Increment checkpoint loop counter
+    FTI_Exec.ckptIcnt++; // Increment checkpoint loop counter
     return FTI_SCES;
 }
 
@@ -120,39 +121,37 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_WriteCkpt()
 {
     char str[FTI_BUFS]; //For console output
-    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
+    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
     //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
+    snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptID, FTI_Topo.myRank,FTI_Conf.suffix);
 
    
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
-    int offset = 2*(FTI_Conf->dcpPosix);
-    if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
+    int offset = 2*(FTI_Conf.dcpPosix);
+    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
         
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
-            MKDIR(FTI_Conf->gTmpDir, 0777);
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+            MKDIR(FTI_Conf.gTmpDir, 0777);
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
-        res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
+        res = FTI_Exec.ckptFunc[GLOBAL](&ftiIO[offset + GLOBAL]);
     }
     else {
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
-            MKDIR(FTI_Conf->lTmpDir,0777);
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+            MKDIR(FTI_Conf.lTmpDir,0777);
         } else if ( !FTI_Ckpt[4].hasDcp ){
             MKDIR(FTI_Ckpt[1].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
-        res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + LOCAL] );
+        res = FTI_Exec.ckptFunc[LOCAL](&ftiIO[offset + LOCAL] );
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -161,22 +160,22 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-    if ( (FTI_Conf->dcpFtiff||FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp ) {
+    if ( (FTI_Conf.dcpFtiff||FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
-        unsigned long *dataSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.pureDataSize:&FTI_Exec->dcpInfoPosix.dataSize;
-        unsigned long *dcpSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.dcpSize:&FTI_Exec->dcpInfoPosix.dcpSize;
+        unsigned long *dataSize = (FTI_Conf.dcpFtiff)?(unsigned long*)&FTI_Exec.FTIFFMeta.pureDataSize:&FTI_Exec.dcpInfoPosix.dataSize;
+        unsigned long *dcpSize = (FTI_Conf.dcpFtiff)?(unsigned long*)&FTI_Exec.FTIFFMeta.dcpSize:&FTI_Exec.dcpInfoPosix.dcpSize;
         unsigned long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
         unsigned long sendBuf[] = { *dcpSize, *dataSize };
         MPI_Reduce( sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
-        if ( FTI_Topo->splitRank ==  0 ) {
+        if ( FTI_Topo.splitRank ==  0 ) {
             *dcpSize = dcpStats[0]; 
             *dataSize = dcpStats[1];
         }
     }
 
-    res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+    res = FTI_Try(FTI_CreateMetadata(), "create metadata.");
     
-    if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
+    if ( (FTI_Conf.dcpFtiff || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
@@ -200,26 +199,25 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+int FTI_PostCkpt()
 {
     char str[FTI_BUFS]; //For console output
 
     double t1 = MPI_Wtime(); //Start time
 
     int res; //Response from post-processing functions
-    switch (FTI_Exec->ckptLvel) {
+    switch (FTI_Exec.ckptLvel) {
         case 4:
-            res = FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 0);
+            res = FTI_Flush(0);
             break;
         case 3:
-            res = FTI_RSenc(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_RSenc();
             break;
         case 2:
-            res = FTI_Ptner(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_Ptner();
             break;
         case 1:
-            res = FTI_Local(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            res = FTI_Local();
             break;
     }
 
@@ -228,50 +226,50 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes != FTI_SCES) {
         FTI_Print("Error postprocessing checkpoint. Discarding current checkpoint...", FTI_WARN);
-        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
+        FTI_Clean(0); //Remove temporary files
         return FTI_NSCS;
     }
 
     double t2 = MPI_Wtime(); //Post-processing time
 
     // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
-    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
+    if ( FTI_Conf.keepL4Ckpt && FTI_Exec.ckptLvel == 4 ) {
         if ( FTI_Ckpt[4].hasCkpt ) {
             FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
         }
         // store current ckpt file name in meta data.
-        if ( !FTI_Topo->amIaHead ) {
-            strncpy(FTI_Exec->meta[0].currentL4CkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+        if ( !FTI_Topo.amIaHead ) {
+            strncpy(FTI_Exec.meta[0].currentL4CkptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
         } else {
             int i;
-            for( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                strncpy(&FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS], &FTI_Exec->meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
+            for( i=1; i<FTI_Topo.nodeSize; ++i ) {
+                strncpy(&FTI_Exec.meta[0].currentL4CkptFile[i * FTI_BUFS], &FTI_Exec.meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
             }
         }
     }
 
-    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
-    int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    FTI_Clean(FTI_Exec.ckptLvel); //delete previous files on this checkpoint level
+    int nodeFlag = (((!FTI_Topo.amIaHead) && ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0;
     nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
-        snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+        snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo.nodeID, FTI_Exec.ckptLvel);
         FTI_Print(str, FTI_DBUG);
-        if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
+        if (!(FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4)) {
             //checkpoint was not saved in global temporary directory
-            int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
-            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
+            int level = (FTI_Exec.ckptLvel != 4) ? FTI_Exec.ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
+            RENAME(FTI_Conf.lTmpDir, FTI_Ckpt[level].dir);
         }
     }
-    int globalFlag = !FTI_Topo->splitRank;
-    globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
+    int globalFlag = !FTI_Topo.splitRank;
+    globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff) && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-        if ((FTI_Exec->ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
-            RENAME(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir);
+        if ((FTI_Exec.ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
+            RENAME(FTI_Conf.gTmpDir, FTI_Ckpt[4].dir);
         }
         // there is no temp meta data folder for FTI-FF
-        if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-            RENAME(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir);
+        if ( FTI_Conf.ioMode != FTI_IO_FTIFF ) {
+            RENAME(FTI_Conf.mTmpDir, FTI_Ckpt[FTI_Exec.ckptLvel].metaDir);
         }
     }
     MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
@@ -283,7 +281,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_INFO);
 
     // expose to FTI that a checkpoint exists for level
-    FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+    FTI_Ckpt[FTI_Exec.ckptLvel].hasCkpt = true;
 
     return FTI_SCES;
 }
@@ -302,8 +300,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   FTI_Checkpoint function in terms of communications.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+int FTI_Listen()
 {
 
     MPI_Status ckpt_status;         int ckpt_flag = 0;
@@ -315,11 +312,11 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         FTI_Print("Head waits for message...", FTI_DBUG);
 
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
-        if ( FTI_Conf->stagingEnabled ) {
-            MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->stageTag, FTI_Exec->nodeComm, &stage_flag, &stage_status );
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf.finalTag, FTI_Exec.globalComm, &finalize_flag, &finalize_status );
+        if ( FTI_Conf.stagingEnabled ) {
+            MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf.stageTag, FTI_Exec.nodeComm, &stage_flag, &stage_status );
         }
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->ckptTag, FTI_Exec->globalComm, &ckpt_flag, &ckpt_status );
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf.ckptTag, FTI_Exec.globalComm, &ckpt_flag, &ckpt_status );
         if( ckpt_flag ) {
 
             // head will process the whole checkpoint
@@ -335,7 +332,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
-            FTI_HandleStageRequest( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, stage_status.MPI_SOURCE );
+            FTI_HandleStageRequest( stage_status.MPI_SOURCE );
             stage_flag = 0;
             continue;
 
@@ -349,15 +346,15 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Head waits for message...", FTI_DBUG);
             
             int val = 0, i;
-            for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+            for (i = 0; i < FTI_Topo.nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
-                MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->finalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+                MPI_Recv(&buf, 1, MPI_INT, FTI_Topo.body[i], FTI_Conf.finalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
                 snprintf(str, FTI_BUFS, "The head received a %d message", buf);
                 FTI_Print(str, FTI_DBUG);
                 val += buf;
             }
 
-            val /= FTI_Topo->nbApprocs;
+            val /= FTI_Topo.nbApprocs;
 
             if ( val != FTI_ENDW) { // If we were asked to finalize
                 FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
@@ -366,7 +363,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
-            if ( FTI_Conf->keepHeadsAlive ) {
+            if ( FTI_Conf.keepHeadsAlive ) {
                 break;
             }
 
@@ -389,8 +386,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @return     integer         FTI_SCES if successful.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+int FTI_HandleCkptRequest()
 {   
     char str[FTI_BUFS]; //For console output
     int flags[7]; //Increment index if get corresponding value from application process
@@ -400,52 +396,52 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         flags[i] = 0;
     }
     FTI_Print("Head waits for message...", FTI_DBUG);
-    for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+    for (i = 0; i < FTI_Topo.nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
-        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo.body[i], FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         int isDCP;
-        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo.body[i], FTI_Conf.ckptTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         FTI_Ckpt[4].isDcp = isDCP;
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
     }
     for (i = 1; i < 7; i++) {
-        if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
-            FTI_Exec->ckptLvel = i;
+        if (flags[i] == FTI_Topo.nbApprocs) { // Determining checkpoint level
+            FTI_Exec.ckptLvel = i;
         }
     }
     if (flags[6] > 0) {
-        FTI_Exec->ckptLvel = 6;
+        FTI_Exec.ckptLvel = 6;
     }
 
     int isDcpCnt = 0;
     // FTI-FF: receive meta data information from the application ranks.
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
+    if ( FTI_Conf.ioMode == FTI_IO_FTIFF &&  FTI_Exec.ckptLvel != 6 &&  FTI_Exec.ckptLvel != 5 ) {
 
         // init headInfo
         FTIFF_headInfo *headInfo;
-        headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
+        headInfo = malloc(FTI_Topo.nbApprocs * sizeof(FTIFF_headInfo));
 
         int k;
-        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+        for (i = 0; i < FTI_Topo.nbApprocs; i++) { // Iterate on the application processes in the node
             k = i+1;
-            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
-            FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
-            FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
-            FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
-            FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
+            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.body[i], FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+            FTI_Exec.meta[0].exists[k] = headInfo[i].exists;
+            FTI_Exec.meta[0].nbVar[k] = headInfo[i].nbVar;
+            FTI_Exec.meta[0].maxFs[k] = headInfo[i].maxFs;
+            FTI_Exec.meta[0].fs[k] = headInfo[i].fs;
+            FTI_Exec.meta[0].pfs[k] = headInfo[i].pfs;
             isDcpCnt += headInfo[i].isDcp;
-            MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
-            sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
+            MPI_Recv(&(FTI_Exec.meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo.body[i], FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&(FTI_Exec.meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo.body[i], FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
+            strncpy(&(FTI_Exec.meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
+            sscanf(&(FTI_Exec.meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec.ckptID);
         }
-        strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+        strcpy(FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile, FTI_Exec.meta[0].ckptFile);
 
-        if ( FTI_Conf->dcpFtiff ) {
-            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
+        if ( FTI_Conf.dcpFtiff ) {
+            if ( (isDcpCnt == FTI_Topo.nbApprocs) && FTI_Conf.dcpFtiff ) {
                 FTI_Ckpt[4].isDcp = true;
             }
         } else {
@@ -457,28 +453,28 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     }
 
     //Check if checkpoint was written correctly by all processes
-    int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
+    int res = (FTI_Exec.ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
 
     // check for consistency of dCP request (isDcpCnt is 0 if dCP is disabled)
-    if ( (isDcpCnt > 0) && (isDcpCnt < FTI_Topo->nbApprocs) ) {
+    if ( (isDcpCnt > 0) && (isDcpCnt < FTI_Topo.nbApprocs) ) {
         FTI_Print( "dCP was requested by some but not all ranks, discarding checkpoint request!", FTI_WARN );
         res = FTI_NSCS;
     }
     int allRes;
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes == FTI_SCES) { //If checkpoint was written correctly do post-processing
-        res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+        res = FTI_Try(FTI_PostCkpt(), "postprocess the checkpoint.");
         if (res == FTI_SCES) {
-            res = FTI_Exec->ckptLvel; //return ckptLvel if post-processing succeeds
+            res = FTI_Exec.ckptLvel; //return ckptLvel if post-processing succeeds
         }
     }
     else {  //If checkpoint wasn't written correctly
         FTI_Print("Checkpoint have not been witten correctly. Discarding current checkpoint...", FTI_WARN);
-        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //Remove temporary files
+        FTI_Clean(0); //Remove temporary files
         res = FTI_NSCS;
     }
-    for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Send msg. to avoid checkpoint collision
-        MPI_Send(&res, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm);
+    for (i = 0; i < FTI_Topo.nbApprocs; i++) { // Send msg. to avoid checkpoint collision
+        MPI_Send(&res, 1, MPI_INT, FTI_Topo.body[i], FTI_Conf.generalTag, FTI_Exec.globalComm);
     }
     return FTI_SCES;
 }
@@ -498,18 +494,16 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     initalize chkpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io){
+int FTI_Write( FTIT_IO *io ){
     int i;
     void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         FTI_Data[i].filePos = io->getPos(write_info);
         int ret = io->WriteData(&FTI_Data[i], write_info);
         if (ret != FTI_SCES)
             return ret;
     }
-    io->finIntegrity(FTI_Exec->integrity, write_info);
+    io->finIntegrity(FTI_Exec.integrity, write_info);
     io->finCKPT(write_info);
     free (write_info);
     return FTI_SCES;
@@ -527,14 +521,14 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* rank_map = talloc(int, 1);
     sion_int64* chunkSizes = talloc(sion_int64, 1);
     int fsblksize = -1;
-    chunkSizes[0] = FTI_Exec->ckptSize;
-    ranks[0] = FTI_Topo->splitRank;
-    rank_map[0] = FTI_Topo->splitRank;
+    chunkSizes[0] = FTI_Exec.ckptSize;
+    ranks[0] = FTI_Topo.splitRank;
+    rank_map[0] = FTI_Topo.splitRank;
 
     // open parallel file
     char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec.ckptID);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf.gTmpDir, str);
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
     // check if successful
@@ -550,7 +544,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // set file pointer to corresponding block in sionlib file
-    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    int res = sion_seek(sid, FTI_Topo.splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
 
     // check if successful
     if (res != SION_SUCCESS) {
@@ -566,7 +560,7 @@ int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // write datasets into file
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVar; i++) {
         // SIONlib write call
 
         if ( !(FTI_Data[i].isDevicePtr) ){

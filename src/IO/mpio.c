@@ -60,8 +60,8 @@ int FTI_MPIOOpen(char *fn, void *fileDesc){
 
     MPI_Info_set(fd->info, "stripping_unit", "4194304");
 #ifdef LUSTRE
-    if (fd->FTI_Topo->splitRank == 0) {
-        res = llapi_file_create(gfn, fd->FTI_Conf->stripeUnit, fd->FTI_Conf->stripeOffset, fd->FTI_Conf->stripeFactor, 0);
+    if (FTI_Topo.splitRank == 0) {
+        res = llapi_file_create(gfn, FTI_Conf.stripeUnit, FTI_Conf.stripeOffset, FTI_Conf.stripeFactor, 0);
         if (res) {
             char error_msg[FTI_BUFS];
             error_msg[0] = 0;
@@ -70,7 +70,7 @@ int FTI_MPIOOpen(char *fn, void *fileDesc){
             FTI_Print(str, FTI_WARN);
         } else {
             snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
+                    ckptFile, FTI_Conf.stripeUnit, FTI_Conf.stripeFactor, FTI_Conf.stripeOffset);
             FTI_Print(str, FTI_DBUG);
         }
     }
@@ -122,9 +122,9 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
 {
     WriteMPIInfo_t *fd= (WriteMPIInfo_t *)fileDesc;
     size_t pos = 0;
-    size_t bSize = fd->FTI_Conf->transferSize;
+    size_t bSize = FTI_Conf.transferSize;
     while (pos < size) {
-        if ((size - pos) < fd->FTI_Conf->transferSize) {
+        if ((size - pos) < FTI_Conf.transferSize) {
             bSize = size - pos;
         }
 
@@ -189,31 +189,29 @@ int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitMPIO(){
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     int i;
 
     MPI_Offset offset = 0;
-    MPI_Offset chunkSize = FTI_Exec->ckptSize;
+    MPI_Offset chunkSize = FTI_Exec.ckptSize;
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) malloc (sizeof(WriteMPIInfo_t));
 
-    write_info->FTI_Conf = FTI_Conf;
-    write_info->FTI_Topo= FTI_Topo;
     write_info->flag = 'w';
 
     FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+    snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec.ckptID, FTI_Topo.myRank);
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec.ckptID);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf.gTmpDir, ckptFile);
     FTI_MPIOOpen(gfn, write_info);
 
 
     // collect chunksizes of other ranks
-    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
+    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo.nbApprocs * FTI_Topo.nbNodes);
     MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
     // set file offset
-    for (i = 0; i < FTI_Topo->splitRank; i++) {
+    for (i = 0; i < FTI_Topo.splitRank; i++) {
         offset += chunkSizes[i];
     }
     free(chunkSizes);

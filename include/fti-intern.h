@@ -572,19 +572,11 @@ extern "C" {
      */
 
     typedef struct ftit_io{
-        void*  (*initCKPT) (	FTIT_configuration* , 
-                FTIT_execution*  ,
-                FTIT_topology*   ,
-                FTIT_checkpoint* , 
-                FTIT_dataset *);
-
-        int (*WriteData) (	FTIT_dataset * ,
-                void *write_info);
+        void*  (*initCKPT) ();
+        int (*WriteData) (FTIT_dataset *, void *write_info);
         int (*finCKPT)	(void *fileDesc);
         size_t (*getPos) (void *fileDesc);
         void (*finIntegrity) (unsigned char *, void*);
-
-
     }FTIT_IO;
 
 
@@ -638,40 +630,34 @@ extern "C" {
         MPI_Comm        groupComm;          /**< Group communicator.            */
         MPI_Comm        nodeComm;
         FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
-        int (*ckptFunc[2]) 					/** A function pointer pointing to  */									
-            (FTIT_configuration* , 		/** the function which actually 	*/
-             struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 
-             FTIT_topology* ,			/** We need 2 function pointers,	*/ 
-             FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
-             FTIT_IO *);					
+        int (*ckptFunc[2])(FTIT_IO *); 		/** A function pointer pointing to  */									
+                                            /** the function which actually 	*/
+                                            /** the checkpoint file. Noticeably	*/ 
+                                            /** We need 2 function pointers,	*/ 
+                                            /** One for the Level 4 checkpoint  */
+                                            /** And one for the remaining cases	*/
+             					
 
-        int (*initICPFunc[2]) 				/** A function pointer pointing to  */									
-            (FTIT_configuration* , 		/** the function which actually 	*/
-             struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
-             FTIT_topology* ,			/** We need 2 function pointers,	*/ 
-             FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
-             FTIT_IO *);					
+        int (*initICPFunc[2])(FTIT_IO *);	/** A function pointer pointing to  */									
+                                            /** the function which actually 	*/
+                                            /** the checkpoint file. Noticeably	*/ 
+                                            /** We need 2 function pointers,	*/ 
+                                            /** One for the Level 4 checkpoint  */
+                                            /** And one for the remaining cases	*/
 
-        int (*writeVarICPFunc[2]) 		    /** A function pointer pointing to  */
-            (int,						/**									*/
-             FTIT_configuration* , 		/** the function which actually 	*/
-             struct FTIT_execution* ,	/** writes the iCP. Noticeably		*/ 
-             FTIT_topology* ,			/** We need 2 function pointers,	*/ 
-             FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
-             FTIT_IO*);					
+        int (*writeVarICPFunc[2])(int, FTIT_IO*);   /** A function pointer pointing to  */
+                                            /** the function which actually 	*/
+                                            /** the checkpoint file. Noticeably	*/ 
+                                            /** We need 2 function pointers,	*/ 
+                                            /** One for the Level 4 checkpoint  */
+                                            /** And one for the remaining cases	*/
 
-        int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
-            (FTIT_configuration* , 		/** the function which actually 	*/
-             struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
-             FTIT_topology* ,			/** We need 2 function pointers,	*/ 
-             FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
-             FTIT_IO *);					
-
-
+        int (*finalizeICPFunc[2])(FTIT_IO *); 	/** A function pointer pointing to  */									
+                                            /** the function which actually 	*/
+                                            /** the checkpoint file. Noticeably	*/ 
+                                            /** We need 2 function pointers,	*/ 
+                                            /** One for the Level 4 checkpoint  */
+                                            /** And one for the remaining cases	*/
     } FTIT_execution;
 
 #ifdef __cplusplus

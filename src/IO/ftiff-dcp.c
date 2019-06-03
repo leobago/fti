@@ -225,16 +225,16 @@ int FTI_FreeDataDiff( FTIT_DataDiffHash *dhash){
   dCP creation.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ) 
+int FTI_FinalizeDcp() 
 {
     // nothing to do, no ckpt was taken.
-    if ( FTI_Exec->firstdb == NULL ) {
-        FTI_Conf->dcpFtiff = false;
+    if ( FTI_Exec.firstdb == NULL ) {
+        FTI_Conf.dcpFtiff = false;
         return FTI_SCES;
     }
 
     // deallocate memory in dcp structures
-    FTIFF_db* currentDB = FTI_Exec->firstdb;
+    FTIFF_db* currentDB = FTI_Exec.firstdb;
     do {    
         int varIdx;
         for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
@@ -249,7 +249,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
     while ( (currentDB = currentDB->next) != NULL );
 
     // disable dCP
-    FTI_Conf->dcpFtiff = false;
+    FTI_Conf.dcpFtiff = false;
 
     return FTI_SCES;
 }
@@ -269,7 +269,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
   'DCP_BLOCK_SIZE'.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
+int FTI_InitDcp()
 {
     char str[FTI_BUFS];
 
@@ -277,12 +277,12 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         DCP_MODE = atoi(getenv("FTI_DCP_HASH_MODE")) + FTI_DCP_MODE_OFFSET;
         if ( (DCP_MODE < FTI_DCP_MODE_MD5) || (DCP_MODE > FTI_DCP_MODE_CRC32) ) {
             FTI_Print("dCP mode ('Basic:dcp_mode') must be either 1 (MD5) or 2 (CRC32), dCP disabled.", FTI_WARN);
-            FTI_Conf->dcpFtiff = false;
+            FTI_Conf.dcpFtiff = false;
             return FTI_NSCS;
         }
     } else {
         // check if dcpMode correct in 'conf.c'
-        DCP_MODE = FTI_Conf->dcpMode;
+        DCP_MODE = FTI_Conf.dcpMode;
     }
     if( getenv("FTI_DCP_BLOCK_SIZE") != 0 ) {
         int chk_size = atoi(getenv("FTI_DCP_BLOCK_SIZE"));
@@ -291,12 +291,12 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
         } else {
             snprintf( str, FTI_BUFS, "dCP block size ('Basic:dcp_block_size') must be between 512 and %d bytes, dCP disabled", USHRT_MAX );
             FTI_Print( str, FTI_WARN );
-            FTI_Conf->dcpFtiff = false;
+            FTI_Conf.dcpFtiff = false;
             return FTI_NSCS;
         }
     } else {
         // check if dcpBlockSize is in range in 'conf.c'
-        DCP_BLOCK_SIZE = (dcpBLK_t) FTI_Conf->dcpBlockSize;
+        DCP_BLOCK_SIZE = (dcpBLK_t) FTI_Conf.dcpBlockSize;
     }
 
     switch (DCP_MODE) {
@@ -308,13 +308,13 @@ int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_da
             break;
         default:
             FTI_Print("Hash mode not recognized, dCP disabled!", FTI_WARN);
-            FTI_Conf->dcpFtiff = false;
+            FTI_Conf.dcpFtiff = false;
             return FTI_NSCS;
     }
     snprintf( str, FTI_BUFS, "dCP hash block size is %d bytes.", DCP_BLOCK_SIZE);
     FTI_Print( str, FTI_IDCP ); 
 
-    dcpEnabled = &(FTI_Conf->dcpFtiff);
+    dcpEnabled = &(FTI_Conf.dcpFtiff);
 
     return FTI_SCES;
 }
@@ -739,9 +739,9 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
   dirty and initializes the hashes for data blocks that are invalid.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec) 
+int FTI_UpdateDcpChanges() 
 {
-    FTIFF_db *db = FTI_Exec->firstdb;
+    FTIFF_db *db = FTI_Exec.firstdb;
     FTIFF_dbvar *dbvar;
     int dbvar_idx, dbcounter=0;
     int isnextdb;
@@ -799,7 +799,7 @@ int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec)
   dirty regions are found in which case 0 is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  FTIT_dataset* FTI_Data, unsigned char *startAddr, size_t *totalBytes ) 
+int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar, unsigned char *startAddr, size_t *totalBytes ) 
 {
     static bool init = true;
     static bool reset;

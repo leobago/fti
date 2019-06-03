@@ -254,14 +254,14 @@ int FTI_destroyPrefetcher(FTIT_data_prefetch *dfls){
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_InitDevices ( int HostBuffSize ){
+int FTI_InitDevices (){
 #ifdef GPUSUPPORT
     char str[FTI_BUFS];
-    sprintf(str, "GPU Device Init:: Allocation of 2 GPU-Host Buffers: Total MBytes: %d", HostBuffSize);
+    sprintf(str, "GPU Device Init:: Allocation of 2 GPU-Host Buffers: Total MBytes: %d", FTI_Conf.cHostBufSize);
     FTI_Print(str, FTI_INFO);
-    bufferSize = HostBuffSize;
-    CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[0], HostBuffSize, cudaHostAllocDefault));
-    CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[1], HostBuffSize, cudaHostAllocDefault));
+    bufferSize = FTI_Conf.cHostBufSize;
+    CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[0], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
+    CUDA_ERROR_CHECK(cudaHostAlloc(&hostBuffers[1], FTI_Conf.cHostBufSize, cudaHostAllocDefault));
     CUDA_ERROR_CHECK(cudaStreamCreate(&Gstream));
 #endif
     return FTI_SCES;
