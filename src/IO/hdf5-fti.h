@@ -1,9 +1,13 @@
 #ifndef __HDF5_FTI_H__
 #define __HDF5_FTI_H__
 
+#define FTI_HDF5_MAX_DIM 32
+
 #ifdef ENABLE_HDF5
 int FTI_RecoverHDF5();
 int FTI_RecoverVarHDF5(int id);
+int FTI_GetDatasetRankReco( hid_t did );
+int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span );
 int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum);
 int FTI_OpenGlobalDatasets();

@@ -211,6 +211,7 @@ int FTI_RecoverFiles()
                     FTI_Exec.h5SingleFile = true;
                     MPI_Bcast( &ckptID, 1, MPI_INT, 0, FTI_COMM_WORLD );
                     FTI_Exec.ckptID = ckptID;
+                    snprintf(FTI_Exec.h5SingleFileReco, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, FTI_Conf.h5SingleFilePrefix, ckptID);
                 } else {
                     FTI_Print("VPR recovery failed!", FTI_WARN);
                     FTI_Exec.h5SingleFile = false;
