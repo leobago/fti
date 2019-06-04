@@ -334,6 +334,7 @@ extern "C" {
     typedef struct FTIT_H5Group {
         int                 id;                     /**< ID of the group.               */
         char                name[FTI_BUFS];         /**< Name of the group.             */
+        char                fullName[FTI_BUFS];     /**< Holds full 'path' of group     */
         int                 childrenNo;             /**< Number of children             */
         int                 childrenID[FTI_BUFS];   /**< IDs of the children groups     */
 #ifdef ENABLE_HDF5
@@ -372,6 +373,7 @@ extern "C" {
         struct FTIT_globalDataset*  next;           /**< Pointer to next dataset        */
         FTIT_type                   type;           /**< corresponding FTI type.        */
         char                        name[FTI_BUFS]; /**< Dataset name.                  */
+        char                        fullName[FTI_BUFS]; /**< full 'path' of dataset     */
     } FTIT_globalDataset;
 
     typedef struct FTIT_sharedData {
@@ -616,6 +618,7 @@ extern "C" {
         int             metaAlloc;          /**< TRUE if meta allocated.        */
         int             initSCES;           /**< TRUE if FTI initialized.       */
         char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
+        char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */
         unsigned char 	integrity[MD5_DIGEST_LENGTH];
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */

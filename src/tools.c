@@ -107,6 +107,7 @@ int FTI_InitExecVars() {
   /* int           */ FTI_Exec.metaAlloc             =0;
   /* int           */ FTI_Exec.initSCES              =0;
   /* char[BUFS]       FTI_Exec.h5SingleFileLast */   memset(FTI_Exec.h5SingleFileLast,0x0,FTI_BUFS);
+  /* char[BUFS]       FTI_Exec->h5SingleFileReco */  memset(FTI_Exec.h5SingleFileReco,0x0,FTI_BUFS);
   /* FTIT_iCPInfo     FTI_Exec.iCPInfo */            memset(&(FTI_Exec.iCPInfo),0x0,sizeof(FTIT_iCPInfo));
   /* FTIT_metadata[5] FTI_Exec.meta */               memset(FTI_Exec.meta,0x0,5*sizeof(FTIT_metadata));
   /* FTIFF_db      */ FTI_Exec.firstdb               =NULL;
@@ -412,6 +413,7 @@ int FTI_InitGroupsAndTypes()
   FTI_Exec.H5groups[0]->id = 0;
   FTI_Exec.H5groups[0]->childrenNo = 0;
   sprintf(FTI_Exec.H5groups[0]->name, "/");
+  sprintf(FTI_Exec.H5groups[0]->fullName, "");
   FTI_Exec.nbGroup = 1;
   return FTI_SCES;
 }
