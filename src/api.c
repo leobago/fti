@@ -1426,6 +1426,8 @@ int FTI_Checkpoint(int id, int level)
         }
     }
     
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
+
     t3 = MPI_Wtime(); //Time after post-processing
     
     if (res != FTI_SCES) {
@@ -2178,7 +2180,7 @@ int FTI_Finalize()
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint
-    if ( FTI_Conf.saveLastCkpt && ( FTI_Exec.ckptID > 0 ) ) {
+    if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
     //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
