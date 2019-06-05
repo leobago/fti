@@ -76,7 +76,7 @@ extern "C" {
     ---------------------------------------------------------------------------*/
 
   int FTI_Init(char *configFile, MPI_Comm globalComm);
-  int FTI_Status();
+  int FTI_Status(void);
   int FTI_InitType(FTIT_type* type, int size);
   int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
       size_t size, char* name, FTIT_H5Group* h5group);
@@ -97,13 +97,13 @@ extern "C" {
   int FTI_GetStageDir( char* stageDir, int maxLen );
   int FTI_GetStageStatus( int ID );
   int FTI_SendFile( char* lpath, char *rpath );
-  int FTI_Recover();
-  int FTI_Snapshot();
-  int FTI_Finalize();
+  int FTI_Recover(void);
+  int FTI_Snapshot(void);
+  int FTI_Finalize(void);
   int FTI_RecoverVar(int id);
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
-  int FTI_FinalizeICP(); 
+  int FTI_FinalizeICP(void); 
 
 #ifdef __cplusplus
 }

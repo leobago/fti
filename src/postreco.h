@@ -4,14 +4,14 @@
 int FTI_SendCkptFileL2( int destination, int ptner);
 int FTI_RecvCkptFileL2( int source, int ptner);
 int FTI_Decode(int *erased);
-int FTI_RecoverL1();
-int FTI_RecoverL2();
-int FTI_RecoverL3();
-int FTI_RecoverL4();
-int FTI_RecoverL4Posix();
-int FTI_RecoverL4Mpi();
+int FTI_RecoverL1(void);
+int FTI_RecoverL2(void);
+int FTI_RecoverL3(void);
+int FTI_RecoverL4(void);
+int FTI_RecoverL4Posix(void);
+int FTI_RecoverL4Mpi(void);
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-int FTI_RecoverL4Sionlib();
+int FTI_RecoverL4Sionlib(void);
 #endif
 
 #endif // __POSTRECO_H__

@@ -21,7 +21,7 @@ int FTI_InitFtiffICP(FTIT_IO *io);
 int FTI_FinalizeFtiffICP(FTIT_IO *io);
 #if 0
 int FTI_WriteSionlibVar(int varID);
-int FTI_InitSionlibICP();
-int FTI_FinalizeSionlibICP();
+int FTI_InitSionlibICP(void);
+int FTI_FinalizeSionlibICP(void);
 #endif
 #endif // __ICP_H__

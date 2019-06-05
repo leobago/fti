@@ -155,7 +155,7 @@ typedef struct FTIFF_MPITypeInfo {
 
  **/
 
-void FTIFF_InitMpiTypes();
+void FTIFF_InitMpiTypes(void);
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
 int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
@@ -163,20 +163,20 @@ int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
 int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
-int FTIFF_Recover();
+int FTIFF_Recover(void);
 int FTIFF_RecoverVar( int id );
 int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx );
-int FTIFF_ReadDbFTIFF();
+int FTIFF_ReadDbFTIFF(void);
 int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum );
 int FTIFF_WriteFTIFF( FTIT_IO *io);
-int FTIFF_createHashesDbVarFTIFF();
-int FTIFF_finalizeDatastructFTIFF();
+int FTIFF_createHashesDbVarFTIFF(void);
+int FTIFF_finalizeDatastructFTIFF(void);
 int FTIFF_writeMetaDataFTIFF(WritePosixInfo_t *fd );
-int FTIFF_CreateMetadata();
-int FTIFF_CheckL1RecoverInit();
+int FTIFF_CreateMetadata(void);
+int FTIFF_CheckL1RecoverInit(void);
 int FTIFF_CheckL2RecoverInit( int *exists);
 int FTIFF_CheckL3RecoverInit( int* erased);
-int FTIFF_CheckL4RecoverInit();
+int FTIFF_CheckL4RecoverInit(void);
 void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta );
 void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db );
 void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar );

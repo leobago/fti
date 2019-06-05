@@ -190,7 +190,7 @@ int FTI_RecoverFiles()
 {
 
     if( FTI_Conf.dcpFtiff ) {
-        FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        FTI_LoadCkptMetaData();
     }
 
     if (!FTI_Topo.amIaHead) {
@@ -225,7 +225,7 @@ int FTI_RecoverFiles()
                 res = FTI_NSCS;
             }
         }
-        //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+        
         int level;
         for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
             if (FTI_Exec.meta[level].exists[0] || FTI_Conf.ioMode == FTI_IO_FTIFF) {
@@ -253,7 +253,7 @@ int FTI_RecoverFiles()
                         FTI_Clean(1);
                         MPI_Barrier(FTI_COMM_WORLD);
                         if ( FTI_Ckpt[4].recoIsDcp ) {
-                            res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                            res = FTI_RecoverL4();
                             if( FTI_Conf.dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
                             if (res == FTI_SCES ) {
                                 break;
@@ -261,16 +261,16 @@ int FTI_RecoverFiles()
                             snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptID);
                             FTI_Print(str, FTI_INFO);
                         }
-                        res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        res = FTI_RecoverL4();
                         break;
                     case 3:
-                        res = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        res = FTI_RecoverL3();
                         break;
                     case 2:
-                        res = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        res = FTI_RecoverL2();
                         break;
                     case 1:
-                        res = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                        res = FTI_RecoverL1();
                         break;
                 }
                 int allRes;
@@ -293,7 +293,7 @@ int FTI_RecoverFiles()
                     FTI_Exec.ckptLvel = level;
                     FTI_Exec.lastCkptLvel = level;
                     if ( FTI_Conf.keepL4Ckpt ) {
-                        ckptID = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+                        ckptID = FTI_LoadL4CkptMetaData();
                         int hasL4Ckpt = ( ckptID >= 0 ) ? 1 : 0;
                         if ( (FTI_Topo.nbHeads > 0 ) && (FTI_Topo.nodeRank == 1) ) {
                             // send level and ckpt ID to head process in node

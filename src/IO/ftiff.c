@@ -541,7 +541,7 @@ int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx )
                             // [FOR DCP] init hash array for block
                             if ( FTI_Conf.dcpFtiff ) {
                                 if( FTI_InitBlockHashArray( dbvar ) != FTI_SCES ) {
-                                    FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                                    FTI_FinalizeDcp();
                                 }
                             }
                         } else {
@@ -567,7 +567,7 @@ int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx )
                             // [FOR DCP] init hash array for block
                             if ( FTI_Conf.dcpFtiff ) {
                                 if( FTI_InitBlockHashArray( dbvar )  != FTI_SCES ) {
-                                    FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                                    FTI_FinalizeDcp();
                                 }
 
                             }
@@ -648,7 +648,7 @@ int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx )
                     dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                     if ( FTI_Conf.dcpFtiff ) {
                         if( FTI_InitBlockHashArray( &(dbvars[evar_idx]) ) != FTI_SCES ) {
-                            FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                            FTI_FinalizeDcp();
                         }
                     }
                     dbvars[evar_idx].update = true;
@@ -673,7 +673,7 @@ int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx )
                     dbvars[evar_idx].cptr = FTI_Data[pvar_idx].ptr + dbvars[evar_idx].dptr;
                     if ( FTI_Conf.dcpFtiff ) {
                         if( FTI_InitBlockHashArray( &(dbvars[evar_idx]) ) != FTI_SCES ) {
-                            FTI_FinalizeDcp( FTI_Conf, FTI_Exec );
+                            FTI_FinalizeDcp();
                         }
                     }
                     dbvars[evar_idx].update = true;
@@ -692,7 +692,7 @@ int FTIFF_UpdateDatastructVarFTIFF( int pvar_idx )
     }
 
     // FOR DEVELOPING
-    // FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
+    // FTIFF_PrintDataStructure( 0 );
 
     return FTI_SCES;
 
@@ -906,7 +906,7 @@ int FTIFF_WriteFTIFF( FTIT_IO *ignore)
     }
 
     //FOR DEVELOPING 
-    // FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
+    // FTIFF_PrintDataStructure( 0 );
 
     char str[FTI_BUFS], fn[FTI_BUFS];
 
@@ -1013,7 +1013,7 @@ int FTIFF_WriteFTIFF( FTIT_IO *ignore)
     FTI_Exec.FTIFFMeta.dcpSize = dcpSize;
     FTI_Exec.FTIFFMeta.pureDataSize = pureDataSize;
 
-    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
+    if ( FTI_Try( FTIFF_CreateMetadata(), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
 
@@ -1293,7 +1293,7 @@ int FTIFF_CreateMetadata()
 /*-------------------------------------------------------------------------*/
 int FTIFF_Recover() 
 {
-    //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
+    //FTIFF_PrintDataStructure( 0 );
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;

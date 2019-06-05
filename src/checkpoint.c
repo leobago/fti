@@ -176,7 +176,7 @@ int FTI_WriteCkpt()
     res = FTI_Try(FTI_CreateMetadata(), "create metadata.");
     
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
-        FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        FTI_WriteCkptMetaData();
     }
 
     return res;
@@ -235,7 +235,7 @@ int FTI_PostCkpt()
     // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
     if ( FTI_Conf.keepL4Ckpt && FTI_Exec.ckptLvel == 4 ) {
         if ( FTI_Ckpt[4].hasCkpt ) {
-            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+            FTI_ArchiveL4Ckpt();
         }
         // store current ckpt file name in meta data.
         if ( !FTI_Topo.amIaHead ) {
@@ -321,7 +321,7 @@ int FTI_Listen()
 
             // head will process the whole checkpoint
             // (treated second due to priority)
-            FTI_HandleCkptRequest( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt ); 
+            FTI_HandleCkptRequest(); 
             ckpt_flag = 0;
             continue;
 
@@ -496,7 +496,7 @@ int FTI_HandleCkptRequest()
 /*-------------------------------------------------------------------------*/
 int FTI_Write( FTIT_IO *io ){
     int i;
-    void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+    void *write_info = io->initCKPT();
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         FTI_Data[i].filePos = io->getPos(write_info);
         int ret = io->WriteData(&FTI_Data[i], write_info);
@@ -511,8 +511,7 @@ int FTI_Write( FTIT_IO *io ){
 
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
+int FTI_WriteSionlib()
 {
     int numFiles = 1;
     int nlocaltasks = 1;

@@ -557,7 +557,7 @@ int FTI_SendFile( char* lpath, char *rpath )
 
     // asign new request ID
     // note: if ID found, FTI_Exec->stageInfo->status[ID] is set to not available
-    int reqID = FTI_GetRequestID( &FTI_Exec, &FTI_Topo );
+    int reqID = FTI_GetRequestID();
     if (reqID < 0) {
         FTI_Print("Too many stage requests!", FTI_WARN);
         return FTI_NSCS;
@@ -1205,7 +1205,7 @@ int FTI_Checkpoint(int id, int level)
             FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
             return FTI_DONE;
         }
-        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+        if( FTI_CheckDimensions() != FTI_SCES ) {
             FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
             return FTI_NREC;
         }
@@ -1213,7 +1213,7 @@ int FTI_Checkpoint(int id, int level)
         t1 = MPI_Wtime();
         int lastCkptLvelBackup = FTI_Exec.ckptLvel;
         FTI_Exec.ckptLvel = level; // undo in any case afterwards. H5 VPR is not for resiliency!
-        int status = FTI_Try(FTI_WriteHDF5(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write VPR checkpoint.");
+        int status = FTI_Try(FTI_WriteHDF5(), "write VPR checkpoint.");
         t2 = MPI_Wtime();
         FTI_Exec.ckptLvel = lastCkptLvelBackup;
         bool removeLastFile = (status == FTI_SCES) && !FTI_Conf.h5SingleFileKeep;
@@ -1256,8 +1256,6 @@ int FTI_Checkpoint(int id, int level)
         level = 4;
     }
     
-    bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
-
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
@@ -1274,7 +1272,7 @@ int FTI_Checkpoint(int id, int level)
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
-    int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
+    int res = FTI_Try(FTI_WriteCkpt(), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
     
     // set hasCkpt flags true
@@ -1292,7 +1290,7 @@ int FTI_Checkpoint(int id, int level)
         while ( (currentDB = currentDB->next) != NULL );    
         
     
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
+        FTI_UpdateDcpChanges();
         FTI_Ckpt[4].hasDcp = true;
     }
 
@@ -1335,14 +1333,14 @@ int FTI_Checkpoint(int id, int level)
         if (res != FTI_SCES) { //If Writing checkpoint failed
             FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
         }
-        res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+        res = FTI_Try(FTI_PostCkpt(), "postprocess the checkpoint.");
         if (res == FTI_SCES) { //If post-processing succeed
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
     double t3;
    
-    if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         res = FTI_Try(FTI_UpdateConf( 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
@@ -1350,6 +1348,8 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.hasCkpt = true;
         }
     }
+    
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
     
     t3 = MPI_Wtime(); //Time after post-processing
     
@@ -1677,7 +1677,7 @@ int FTI_FinalizeICP()
 
     // TODO this has to come inside postckpt on success! 
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
-        FTI_WriteCkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
+        FTI_WriteCkptMetaData();
     }
 
     // TODO this also has to come inside postckpt upon successful call!
@@ -1696,7 +1696,7 @@ int FTI_FinalizeICP()
         while ( (currentDB = currentDB->next) != NULL );    
 
 
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
+        FTI_UpdateDcpChanges();
         FTI_Ckpt[4].hasDcp = true;
     }
 
@@ -1739,13 +1739,24 @@ int FTI_FinalizeICP()
         if (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) { //If Writing checkpoint failed
             FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
         }
-        resPP = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+        resPP = FTI_Try(FTI_PostCkpt(), "postprocess the checkpoint.");
         if (resPP == FTI_SCES) { //If post-processing succeed
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
 
     double t3 = MPI_Wtime(); //Time after post-processing
+   
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (resPP == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        int res = FTI_Try(FTI_UpdateConf( 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+    
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
 
     if( resCP == FTI_SCES ) {
         sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
@@ -1828,7 +1839,7 @@ int FTI_FinalizeICP()
 int FTI_Recover()
 {
     if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-        int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
+        int ret = FTI_Try(FTIFF_Recover(), "Recovering from Checkpoint");
         return ret;
     }
 
@@ -1848,7 +1859,7 @@ int FTI_Recover()
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
 #ifdef ENABLE_HDF5
-        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+        if( FTI_CheckDimensions() != FTI_SCES ) {
             FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
             return FTI_NREC;
         }
@@ -1897,7 +1908,7 @@ int FTI_Recover()
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+        int ret = FTI_RecoverHDF5();
         return ret; 
     }
 #endif
@@ -1905,7 +1916,7 @@ int FTI_Recover()
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+            return FTI_RecoverDcpPosix();
         } else {
         //Try from L1
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -1998,7 +2009,7 @@ int FTI_Snapshot()
     }
     else { // If it is a checkpoint test
         res = FTI_SCES;
-        FTI_UpdateIterTime(&FTI_Exec);
+        FTI_UpdateIterTime();
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt) { // If it is time to check for possible ckpt. (every minute)
             FTI_Print("Checking if it is time to checkpoint.", FTI_DBUG);
             if (FTI_Exec.globMeanIter > 60) {
@@ -2055,9 +2066,9 @@ int FTI_Finalize()
     }
 
     if (FTI_Topo.amIaHead) {
-        FTI_FreeMeta(&FTI_Exec);
+        FTI_FreeMeta();
         if ( FTI_Conf.stagingEnabled ) {
-            FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+            FTI_FinalizeStage();
         }
         MPI_Barrier(FTI_Exec.globalComm);
         if ( !FTI_Conf.keepHeadsAlive ) { 
@@ -2099,11 +2110,11 @@ int FTI_Finalize()
     // comes after the heads have written all the staging files.
     // Thus FTI_FinalizeStage is blocking on global communicator.
     if ( FTI_Conf.stagingEnabled ) {
-        FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+        FTI_FinalizeStage();
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint
-    if ( FTI_Conf.saveLastCkpt && ( FTI_Exec.ckptID > 0 ) ) {
+    if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
     //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush( FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
@@ -2128,7 +2139,7 @@ int FTI_Finalize()
         //Cleaning only local storage
         FTI_Try(FTI_Clean(6), "clean local directories");
     } else if ( FTI_Conf.keepL4Ckpt && FTI_Ckpt[4].hasCkpt ) {
-        FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
+        FTI_ArchiveL4Ckpt();
         MPI_Barrier( FTI_COMM_WORLD );
         FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
         MPI_Barrier( FTI_COMM_WORLD );
@@ -2147,17 +2158,17 @@ int FTI_Finalize()
     }
     
     if (FTI_Conf.dcpFtiff) {
-        FTI_FinalizeDcp( &FTI_Conf, &FTI_Exec );
+        FTI_FinalizeDcp();
     }
 
-    FTI_FreeMeta(&FTI_Exec);
-    FTI_FreeTypesAndGroups(&FTI_Exec);
+    FTI_FreeMeta();
+    FTI_FreeTypesAndGroups();
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
     }
 #ifdef ENABLE_HDF5
     if( FTI_Conf.h5SingleFileEnable ) {
-       FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
+       FTI_FreeVPRMem(); 
     }
 #endif
     MPI_Barrier(FTI_Exec.globalComm);

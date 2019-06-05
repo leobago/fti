@@ -175,7 +175,7 @@ int FTI_Ptner()
 {
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
     if (FTI_Topo.amIaHead) {
-        int res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+        int res = FTI_Try(FTI_LoadTmpMeta(), "load temporary metadata.");
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
@@ -236,7 +236,7 @@ int FTI_RSenc()
 {
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
     if (FTI_Topo.amIaHead) {
-        int res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
+        int res = FTI_Try(FTI_LoadTmpMeta(), "load temporary metadata.");
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
@@ -538,7 +538,7 @@ int FTI_Flush(int level)
             MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
     }
-    int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
+    int res = FTI_Try(FTI_LoadMeta(), "load metadata.");
     if (res != FTI_SCES) {
         return FTI_NSCS;
     }
