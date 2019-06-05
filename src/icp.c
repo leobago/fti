@@ -313,7 +313,7 @@ int FTI_FinalizeFtiffICP(FTIT_IO *ignore)
     }
 
 
-    if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
+    if ( FTI_Try( FTIFF_CreateMetadata(), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
 

@@ -878,7 +878,7 @@ int FTI_RecoverL4()
     case FTI_IO_SIONLIB:
       strncpy(lfback,FTI_Exec.meta[1].ckptFile,FTI_BUFS);
       strncpy(gfback,FTI_Exec.meta[4].ckptFile,FTI_BUFS);
-      if (FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt) == FTI_SCES ){
+      if (FTI_RecoverL4Sionlib() == FTI_SCES ){
         return FTI_SCES;
       }
       strncpy(FTI_Exec.meta[1].ckptFile,lfback,FTI_BUFS);
@@ -888,9 +888,9 @@ int FTI_RecoverL4()
     case FTI_IO_FTIFF:
     case FTI_IO_HDF5:
     case FTI_IO_POSIX:
-      return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+      return FTI_RecoverL4Posix();
     case FTI_IO_MPI:
-      return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+      return FTI_RecoverL4Mpi();
     default:
       FTI_Print("unknown I/O mode",FTI_WARN);
       return FTI_NSCS;

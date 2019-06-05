@@ -33,9 +33,9 @@ typedef struct{
 
 int FTI_HDF5Open(char *fn, void *fileDesc);
 int FTI_HDF5Close(void *fileDesc);
-void *FTI_InitHDF5();
+void *FTI_InitHDF5(void);
 int FTI_WriteHDF5Data(FTIT_dataset * FTI_DataVar, void *write_info);
-int FTI_WriteHDF5();
+int FTI_WriteHDF5(void);
 size_t FTI_GetHDF5FilePos(void *);
 #endif
 
@@ -46,7 +46,7 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc);
 int FTI_MPIORead(void *src, size_t size, void *fileDesc);
 size_t FTI_GetMPIOFilePos(void *fileDesc);
 
-void *FTI_InitMPIO();
+void *FTI_InitMPIO(void);
 int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *write_info);
 
 //Wrappers around POSIX IO
@@ -56,7 +56,7 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
 int FTI_PosixRead(void *src, size_t size, void *fileDesc);
 int FTI_PosixSync(void *fileDesc);
 int FTI_PosixSeek(size_t pos, void *fileDesc);
-void *FTI_InitPosix();
+void *FTI_InitPosix(void);
 int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void* write_info);
 size_t FTI_GetPosixFilePos(void *fileDesc);
 void FTI_PosixMD5(unsigned char *, void *);
@@ -65,11 +65,11 @@ void FTI_PosixMD5(unsigned char *, void *);
 //Wrappers around dcp POSIX
 
 size_t FTI_GetDCPPosixFilePos(void *fileDesc);
-void *FTI_InitDCPPosix();
+void *FTI_InitDCPPosix(void);
 int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd);
 int FTI_PosixDCPClose(void *fileDesc);
 
-int copyDataFromDevive();
+int copyDataFromDevive(void);
 
 
 

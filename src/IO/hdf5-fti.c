@@ -1155,7 +1155,7 @@ int FTI_RecoverHDF5()
     }
 
     if( FTI_Exec.h5SingleFile ) { 
-        FTI_OpenGlobalDatasets( FTI_Exec );
+        FTI_OpenGlobalDatasets();
     }
 
     for (i = 0; i < FTI_Exec.nbVar; i++) {
@@ -1185,7 +1185,7 @@ int FTI_RecoverHDF5()
     }
 
     if( FTI_Exec.h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec );
+        FTI_CloseGlobalDatasets();
     }
 
     FTI_Exec.H5groups[0]->h5groupID = -1;

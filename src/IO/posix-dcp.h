@@ -15,10 +15,10 @@
 #define DCP_POSIX_CONF_TAG 1
 #define DCP_POSIX_INIT_TAG -1
 
-int FTI_WritePosixDcp();
+int FTI_WritePosixDcp(void);
 int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
-int FTI_RecoverDcpPosix();
+int FTI_RecoverDcpPosix(void);
 int FTI_RecoverVarDcpPosix(int id );
 int FTI_DataGetIdx( int varId );
 char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr );

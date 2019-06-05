@@ -106,8 +106,8 @@ typedef struct FTIT_StageAppInfo {
 } FTIT_StageAppInfo;
 
 
-int FTI_GetRequestID(); 
-int FTI_InitStage();
+int FTI_GetRequestID(void); 
+int FTI_InitStage(void);
 int FTI_InitStageRequestApp( uint32_t ID );
 int FTI_AsyncStage( char *lpath, char *rpath, int ID );
 int FTI_InitStageRequestHead( char* lpath, char *rpath, int source, uint32_t ID );
@@ -120,6 +120,6 @@ int FTI_SetRequestField( int ID, uint32_t entry, FTIT_RequestField val );
 int FTI_FreeStageRequest( int ID, int source ); 
 void FTI_PrintStageStatus( int ID, int source ); 
 int FTI_GetRequestIdx( int ID );
-void FTI_FinalizeStage(); 
+void FTI_FinalizeStage(void); 
 
 #endif
