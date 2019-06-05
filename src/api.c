@@ -1274,8 +1274,6 @@ int FTI_Checkpoint(int id, int level)
         level = 4;
     }
     
-    bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
-
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
@@ -1360,7 +1358,7 @@ int FTI_Checkpoint(int id, int level)
     }
     double t3;
    
-    if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
@@ -1368,6 +1366,8 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.hasCkpt = true;
         }
     }
+
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
     
     t3 = MPI_Wtime(); //Time after post-processing
     
@@ -1762,6 +1762,17 @@ int FTI_FinalizeICP()
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
+    
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (resPP == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        int res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
 
     double t3 = MPI_Wtime(); //Time after post-processing
 
@@ -2121,7 +2132,7 @@ int FTI_Finalize()
     }
 
     // If we need to keep the last checkpoint and there was a checkpoint
-    if ( FTI_Conf.saveLastCkpt && ( FTI_Exec.ckptID > 0 ) ) {
+    if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
     //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
         if (FTI_Exec.lastCkptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
