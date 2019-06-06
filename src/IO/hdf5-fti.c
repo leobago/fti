@@ -37,7 +37,7 @@
  */
 
 #ifdef ENABLE_HDF5
-#include "interface.h"
+#include "../interface.h"
 #include <sys/types.h>
 #include <dirent.h>
 

@@ -38,7 +38,7 @@
  */
 #define _GNU_SOURCE
 
-#include "interface.h"
+#include "../interface.h"
 #include <sys/mman.h>
 #include <time.h>
 #include <sys/types.h>

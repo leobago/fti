@@ -37,7 +37,7 @@
  */
 
 
-#include "interface.h"
+#include "../interface.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -46,7 +46,8 @@
   @return     integer         FTI_SCES on success.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixOpen(char *fn, void *fileDesc){
+int FTI_PosixOpen(char *fn, void *fileDesc)
+{
     char str[FTI_BUFS];
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     if ( fd->flag == 'w' )
@@ -79,7 +80,8 @@ int FTI_PosixOpen(char *fn, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixClose(void *fileDesc){
+int FTI_PosixClose(void *fileDesc)
+{
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     fclose(fd->f);
     return FTI_SCES;
@@ -97,7 +99,8 @@ int FTI_PosixClose(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixWrite(void *src, size_t size, void *fileDesc){
+int FTI_PosixWrite(void *src, size_t size, void *fileDesc)
+{
     WritePosixInfo_t *fd = (WritePosixInfo_t *)fileDesc;
     size_t written = 0;
     int fwrite_errno;
@@ -134,7 +137,8 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixSeek(size_t pos, void *fileDesc){
+int FTI_PosixSeek(size_t pos, void *fileDesc)
+{
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     if ( fseek( fd->f, pos, SEEK_SET ) == -1 ) {
         char error_msg[FTI_BUFS];
@@ -153,7 +157,8 @@ int FTI_PosixSeek(size_t pos, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetPosixFilePos(void *fileDesc){
+size_t FTI_GetPosixFilePos(void *fileDesc)
+{
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     return ftell(fd->f);
 }
@@ -168,7 +173,8 @@ size_t FTI_GetPosixFilePos(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixRead(void *dest, size_t size, void *fileDesc){
+int FTI_PosixRead(void *dest, size_t size, void *fileDesc)
+{
     return FTI_SCES;
 }
 
@@ -180,7 +186,8 @@ int FTI_PosixRead(void *dest, size_t size, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixSync(void *fileDesc){
+int FTI_PosixSync(void *fileDesc)
+{
     fsync(fileno(((WritePosixInfo_t *) fileDesc)->f));
     return FTI_SCES;
 }
@@ -197,7 +204,8 @@ int FTI_PosixSync(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
+{
     
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
     
@@ -233,13 +241,13 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
+int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
+{
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
     char str[FTI_BUFS];
     int res;
 
     if ( !(FTI_DataVar->isDevicePtr) ){
-        FTI_Print(str,FTI_INFO);
         if (( res = FTI_Try(FTI_PosixWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
             snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
@@ -251,7 +259,6 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
     // if data are stored to the GPU move them from device
     // memory to cpu memory and store them.
     else {
-        FTI_Print(str,FTI_INFO);
         if ((res = FTI_Try(
                         FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
@@ -274,7 +281,8 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd){
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_PosixMD5(unsigned char *dest, void *md5){
+void FTI_PosixMD5(unsigned char *dest, void *md5)
+{
     WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
     MD5_Final(dest,&(write_info->integrity));
 }

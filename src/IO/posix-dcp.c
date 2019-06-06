@@ -36,7 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
-#include "interface.h"
+#include "../interface.h"
 
 /*-------------------------------------------------------------------------*/
 /**
