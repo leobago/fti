@@ -37,6 +37,7 @@
  */
 
 #include "interface.h"
+#include "macros.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -313,19 +314,27 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     FTI_Print(str, FTI_DBUG);
                     FTI_Exec->meta[i].exists[0] = 1;
 
+                    // check for dcp
+                    char* ckpt_type = iniparser_getstring( ini, "ckpt_info:ckpt_type", NULL );
+                    FTI_Ckpt[i].recoIsDcp = !strcmp(ckpt_type, "dcp");
+
+                    // get ckptID
+                    FTI_Exec->ckptID = iniparser_getint( ini, "ckpt_info:ckpt_id", -1 );
+
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_name", FTI_Topo->groupRank);
                     char* ckptFileName = iniparser_getstring(ini, str, NULL);
                     snprintf(FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", ckptFileName);
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
                     FTI_Exec->meta[i].fs[0] = iniparser_getlint(ini, str, -1);
+                    FTI_Exec->dcpInfoPosix.FileSize = FTI_Exec->meta[i].fs[0];
 
                     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
                     FTI_Exec->meta[i].pfs[0] = iniparser_getlint(ini, str, -1);
 
                     FTI_Exec->meta[i].maxFs[0] = iniparser_getlint(ini, "0:Ckpt_file_maxs", -1);
 
-                    int k;
+                    int k,j;
                     for (k = 0; k < FTI_BUFS; k++) {
                         snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
                         int id = iniparser_getint(ini, str, -1);
@@ -338,9 +347,42 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                         snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
                         FTI_Exec->meta[i].varSize[k] = iniparser_getlint(ini, str, -1);
+
+                        snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
+                        FTI_Exec->meta[i].filePos[k] = iniparser_getlint(ini, str, -1);
+
                     }
                     //Save number of variables in metadata
                     FTI_Exec->meta[i].nbVar[0] = k;
+
+                    for (k = 0; k < MAX_STACK_SIZE; k++) {
+                        snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
+                        unsigned long LayerSize = iniparser_getlint(ini, str, -1);
+                        if (LayerSize == -1) {
+                            //No more variables
+                            break;
+                        }
+                        FTI_Exec->dcpInfoPosix.LayerSize[k] = LayerSize;
+
+                        snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
+                        char* LayerHash = iniparser_getstring(ini, str, NULL);
+                        snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", LayerHash );
+                        for( j=0; j<FTI_Exec->meta[i].nbVar[0]; j++ )
+                        {
+                            snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", FTI_Topo->groupRank, k, j );
+                            int varID = iniparser_getint( ini, str, -1 );
+                            if( varID == -1 ) {
+                                break;
+                            }
+                            FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varID = varID;
+                            snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_size", FTI_Topo->groupRank, k, j );
+                            long varSize = iniparser_getlint( ini, str, -1 );
+                            if( varID < 0 ) {
+                                break;
+                            }
+                            FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varSize = (unsigned long) varSize;
+                        }
+                    }
 
                     iniparser_freedict(ini);
                 }
@@ -429,30 +471,30 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
-	char str[FTI_BUFS], fn[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
-   
+
     dictionary* ini;
 
     if ( access( fn, F_OK ) != 0 ) { 
         snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
         FTI_Print(str, FTI_EROR);
     }     
-    
+
     // initialize dictionary
     ini = iniparser_load(fn);
     if ( ini == NULL ) {
         FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     if ( ((int)(ini->n)-6) < 0 ) {
         FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     char currCkpt[FTI_BUFS];
-    
+
     // ini->key[2] must be the level field
     int ckptID;
     int i=0;
@@ -467,7 +509,7 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
             sscanf( currCkpt, "checkpoint_id.%d", &ckptID );
         }
     }
-    
+
     // if we find a level 4 checkpoint return the id if not return -1
     return (hasL4Ckpt) ? ckptID : -1;    
 
@@ -486,39 +528,39 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
-	char str[FTI_BUFS], fn[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
-   
+
     dictionary* ini;
 
     if ( access( fn, F_OK ) != 0 ) { 
         snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
         FTI_Print(str, FTI_EROR);
     }     
-    
+
     // initialize dictionary
     ini = iniparser_load(fn);
     if ( ini == NULL ) {
         FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     char lastCkpt[FTI_BUFS];
     if ( ((int)(ini->n)-6) < 0 ) {
         FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     memset( lastCkpt, 0x0, FTI_BUFS );
     strncpy( lastCkpt, ini->key[ini->n-6], FTI_BUFS-1);
-    
+
     int ckptID;
     sscanf(lastCkpt, "checkpoint_id.%d", &ckptID ); 
 
     char key[FTI_BUFS];
     snprintf( key, FTI_BUFS, "%s:level", lastCkpt );
     int ckptLvel = iniparser_getint( ini, key, -1);
-    
+
     if ( ckptLvel == -1 ) {
         FTI_Print( "Unable to read checkpoint level from checkpoint meta data file", FTI_EROR );
         dictionary_del(ini);
@@ -533,7 +575,7 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             dictionary_del(ini);
             return FTI_NSCS;
         } else {    
-            FTI_Ckpt[4].isDcp = (bool) isDcp;
+            FTI_Ckpt[4].recoIsDcp = (bool) isDcp;
         }
     }
 
@@ -554,20 +596,20 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Ckpt        Checkpoint metadata.
 
   Writes checkpoint meta data in checkpoint meta data file.
-    - timestamp
-    - level
-    - number of processes participating in the checkpoint
-    - I/O mode
-    - dCP enabled/disabled
+  - timestamp
+  - level
+  - number of processes participating in the checkpoint
+  - I/O mode
+  - dCP enabled/disabled
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
 
-	char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
+    char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
-   
+
     FILE* fstream;
     dictionary* ini;
 
@@ -581,7 +623,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
             FTI_Print("Failed to allocate dictionary for checkpoint meta data file.", FTI_EROR);
             return FTI_NSCS;
         }
-    // [B] - initialize with data from ckpt meta file
+        // [B] - initialize with data from ckpt meta file
     } else {
         snprintf(str, FTI_BUFS, "Updating checkpoint metadata file (%s)...", fn);
         FTI_Print(str, FTI_DBUG);
@@ -591,7 +633,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
             return FTI_NSCS;
         }
     }
-    
+
     char section[FTI_BUFS], key[FTI_BUFS], value[FTI_BUFS];
     snprintf( section, FTI_BUFS, "checkpoint_id.%d", FTI_Exec->ckptID );
     iniparser_set( ini, section, NULL ); 
@@ -623,7 +665,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         FTI_Print( strErr, FTI_EROR );
         dictionary_del(ini);
     }
-    
+
     iniparser_dump_ini( ini, fstream );
 
     if ( fclose( fstream ) != 0 ) {
@@ -650,6 +692,9 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @param      checksums       Checksums array.
   @param      allVarIDs       IDs of vars from all processes in group.
   @param      allVarSizes     Sizes of vars from all processes in group.
+  @param      allLayerSizes   Sizes of all layers used in dcp.
+  @param      allLayerHashes  Hashes of all layers used in dcp.
+  @param      allVarPositions Positions of variables stored in dCP.
   @return     integer         FTI_SCES if successful.
 
   This function should be executed only by one process per group. It
@@ -658,13 +703,14 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, long* fs, long mfs, char* fnl,
-        char* checksums, int* allVarIDs, long* allVarSizes)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, long* fs, long mfs, char* fnl,
+        char* checksums, int* allVarIDs, long* allVarSizes, unsigned long* allLayerSizes,
+        char* allLayerHashes,long *allVarPositions )
 {
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
 
-	char str[FTI_BUFS], buf[FTI_BUFS];
+    char str[FTI_BUFS], buf[FTI_BUFS];
     snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
     snprintf(str, FTI_BUFS, "Temporary load of topology file (%s)...", buf);
     FTI_Print(str, FTI_DBUG);
@@ -675,6 +721,21 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
         return FTI_NSCS;
     }
+
+    // Add dcp POSIX meta data
+    iniparser_set( ini, "ckpt_info", NULL );
+    switch( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+        case 0:
+            iniparser_set( ini, "ckpt_info:ckpt_type", "full" );
+            break;
+        case 1:
+            iniparser_set( ini, "ckpt_info:ckpt_type", "dcp" );
+            break;
+    } 
+
+    // add checkpoint id
+    snprintf( buf, FTI_BUFS, "%d", FTI_Exec->ckptID );
+    iniparser_set( ini, "ckpt_info:ckpt_id", buf ); 
 
     // Add metadata to dictionary
     int i;
@@ -704,16 +765,39 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(str, FTI_BUFS, "%d:Var%d_size", i, j);
             snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + j]);
             iniparser_set(ini, str, buf);
+
+            snprintf(str, FTI_BUFS, "%d:Var%d_pos", i, j);
+            snprintf(buf, FTI_BUFS, "%ld", allVarPositions[i * FTI_Exec->nbVar + j]);
+            iniparser_set(ini, str, buf);
+        }
+        if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+            int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
+            for( j=0; j<nbLayer; j++ ) {
+                snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
+                snprintf(buf, FTI_BUFS, "%lu", allLayerSizes[i * nbLayer + j]);
+                iniparser_set(ini, str, buf);
+
+                snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
+                iniparser_set(ini, str, &allLayerHashes[i*nbLayer*MD5_DIGEST_STRING_LENGTH + j*MD5_DIGEST_STRING_LENGTH]);
+                int k;
+                for (k = 0; k < FTI_Exec->nbVar; k++) {
+                    //Save id of variable
+                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", i, j, k);
+                    snprintf(buf, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + k]);
+                    iniparser_set(ini, str, buf);
+
+                    //Save size of variable
+                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size", i, j, k);
+                    snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + k]);
+                    iniparser_set(ini, str, buf);
+                }
+            }
         }
     }
 
     // Remove topology section
     iniparser_unset(ini, "topology");
-    if (mkdir(FTI_Conf->mTmpDir, 0777) == -1) {
-        if (errno != EEXIST) {
-            FTI_Print("Cannot create directory", FTI_EROR);
-        }
-    }
+    MKDIR(FTI_Conf->mTmpDir,0777);
 
     snprintf(buf, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
     if (remove(buf) == -1) {
@@ -773,7 +857,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
 
-    FTI_Exec->meta[0].fs[0] = FTI_Exec->ckptSize;
+    FTI_Exec->meta[0].fs[0] = (FTI_Ckpt[FTI_Exec->ckptLvel].isDcp) ? FTI_Exec->dcpInfoPosix.FileSize : FTI_Exec->ckptSize;
     FTI_Exec->meta[0].nbVar[0] = FTI_Exec->nbVar;
 
 #ifdef ENABLE_HDF5
@@ -853,31 +937,67 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int* allVarIDs;
     long* allVarSizes;
+    long *allVarPositions;
+
+    // for posix dcp
+    unsigned long* allLayerSizes;
+    char* allLayerHashes;
+
+    int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
+
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarPositions = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+            allLayerSizes = talloc( unsigned long, FTI_Topo->groupSize * nbLayer );
+            allLayerHashes = talloc( char, FTI_Topo->groupSize * nbLayer * MD5_DIGEST_STRING_LENGTH );
+        }
     }
+
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);
+    long* myVarPositions = talloc(long, FTI_Exec->nbVar);
+
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         myVarIDs[i] = FTI_Data[i].id;
         myVarSizes[i] =  FTI_Data[i].size;
+        myVarPositions[i] = FTI_Data[i].filePos;
     }
+
     //Gather variables IDs
     MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar, MPI_INT, 0, FTI_Exec->groupComm);
     //Gather variables sizes
     MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+    //Gather variables file positions
+    MPI_Gather(myVarPositions, FTI_Exec->nbVar, MPI_LONG, allVarPositions, FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+
+    if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+        // Gather dcp layer sizes
+        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerSize, nbLayer, MPI_UNSIGNED_LONG, 
+                allLayerSizes, nbLayer, MPI_UNSIGNED_LONG, 0, FTI_Exec->groupComm);
+        // Gather dcp layer hashes
+        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerHash, nbLayer * MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 
+                allLayerHashes, nbLayer * MD5_DIGEST_STRING_LENGTH, MPI_CHAR, 0, FTI_Exec->groupComm);
+    }
 
     free(myVarIDs);
     free(myVarSizes);
+    free(myVarPositions);
+
 
     if (FTI_Topo->groupRank == 0) { // Only one process in the group create the metadata
-        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, fileSizes, mfs,
-                    ckptFileNames, checksums, allVarIDs, allVarSizes), "write the metadata.");
+        int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, fileSizes, mfs,
+                    ckptFileNames, checksums, allVarIDs, allVarSizes, allLayerSizes, allLayerHashes,allVarPositions), "write the metadata.");
         free(allVarIDs);
         free(allVarSizes);
+        if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
+            free(allLayerSizes);
+            free(allLayerHashes);
+        }
         free(ckptFileNames);
         free(checksums);
+        free(allVarPositions);
         if (res == FTI_NSCS) {
             return FTI_NSCS;
         }
@@ -888,12 +1008,18 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meta[FTI_Exec->ckptLvel].pfs[0] = FTI_Exec->meta[0].pfs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].maxFs[0] = FTI_Exec->meta[0].maxFs[0];
     FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0] = FTI_Exec->meta[0].nbVar[0];
+    FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[0] = FTI_Exec->meta[0].filePos[0];
+
     strncpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
         FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
+        FTI_Exec->meta[0].filePos[i] = FTI_Data[i].filePos;
+
         FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i] = FTI_Data[i].id;
         FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] = FTI_Data[i].size;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[i] = FTI_Data[i].filePos;
     }
 
     return FTI_SCES;

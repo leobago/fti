@@ -43,9 +43,12 @@
 #include <string.h>
 
 #include "interface.h"
-#include "ftiff.h"
+#include "IO/ftiff.h"
 #include "api_cuda.h"
 #include "utility.h"
+#include "macros.h"
+
+#include "FTI_IO.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -59,6 +62,9 @@
 
  **/
 /*-------------------------------------------------------------------------*/
+
+
+
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 {
     int nbProcs, res;
@@ -127,102 +133,34 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS]; //For console output
-    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)",
-            FTI_Exec->ckptID, FTI_Exec->ckptLvel);
+    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
 
     //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
 
-#ifdef ENABLE_HDF5 //If HDF5 is installed overwrite the name
-    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                    "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-    }
-#endif
-    
+   
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
+    int offset = 2*(FTI_Conf->dcpPosix);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
-            FTI_Print("Saving to temporary global directory", FTI_DBUG);
-
-            //Create global temp directory
-            if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-                if (errno != EEXIST) {
-                    FTI_Print("Cannot create global directory", FTI_EROR);
-                    return FTI_NSCS;
-                }
-            }
-        } else {
-            if ( !FTI_Ckpt[4].hasDcp ) {
-                if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
-                    if (errno != EEXIST) {
-                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
-                        return FTI_NSCS;
-                    }
-                }
-            }
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+            MKDIR(FTI_Conf->gTmpDir, 0777);
+        } else if ( !FTI_Ckpt[4].hasDcp ) {
+            MKDIR(FTI_Ckpt[4].dcpDir, 0777);
         }
-
-        switch (FTI_Conf->ioMode) {
-            case FTI_IO_POSIX:
-                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (POSIX I/O).");
-                break;
-            case FTI_IO_MPI:
-                res = FTI_Try(FTI_WriteMPI(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (MPI-IO).");
-                break;
-#ifdef ENABLE_SIONLIB //If SIONlib is installed
-            case FTI_IO_SIONLIB:
-                res = FTI_Try(FTI_WriteSionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Data), "write checkpoint to PFS (Sionlib).");
-                break;
-#endif
-            case FTI_IO_FTIFF:
-                res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (FTI-FF).");
-                break;
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-            case FTI_IO_HDF5:
-                res = FTI_Try(FTI_WriteHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint to PFS (HDF5).");
-                break;
-#endif
-        }
+        //Actually call the respecitve function to store the checkpoint 
+        res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
     }
     else {
-        if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
-            FTI_Print("Saving to temporary local directory", FTI_DBUG);
-            //Create local temp directory
-            if (mkdir(FTI_Conf->lTmpDir, 0777) == -1) {
-                if (errno != EEXIST) {
-                    FTI_Print("Cannot create local directory", FTI_EROR);
-                }
-            }
-        } else {
-            if ( !FTI_Ckpt[4].hasDcp ) {
-                if (mkdir(FTI_Ckpt[1].dcpDir, 0777) == -1) {
-                    if (errno != EEXIST) {
-                        FTI_Print("Cannot create global dCP directory", FTI_EROR);
-                        return FTI_NSCS;
-                    }
-                }
-            }
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+            MKDIR(FTI_Conf->lTmpDir,0777);
+        } else if ( !FTI_Ckpt[4].hasDcp ){
+            MKDIR(FTI_Ckpt[1].dcpDir, 0777);
         }
-        switch (FTI_Conf->ioMode) {
-            case FTI_IO_FTIFF:
-        
-                res = FTI_Try(FTIFF_WriteFTIFF(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint using FTI-FF.");
-                break;
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-            case FTI_IO_HDF5:
-                res = FTI_Try(FTI_WriteHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "write checkpoint (HDF5).");
-                break;
-#endif
-            default:
-                res = FTI_Try(FTI_WritePosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),"write checkpoint.");
-                break;
-        }
-
+        //Actually call the respecitve function to store the checkpoint 
+        res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + LOCAL] );
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -231,20 +169,22 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
     }
-    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+    if ( (FTI_Conf->dcpFtiff||FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
-        long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
-        long sendBuf[] = { FTI_Exec->FTIFFMeta.dcpSize, FTI_Exec->FTIFFMeta.pureDataSize };
-        MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+        unsigned long *dataSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.pureDataSize:&FTI_Exec->dcpInfoPosix.dataSize;
+        unsigned long *dcpSize = (FTI_Conf->dcpFtiff)?(unsigned long*)&FTI_Exec->FTIFFMeta.dcpSize:&FTI_Exec->dcpInfoPosix.dcpSize;
+        unsigned long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
+        unsigned long sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce( sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
         if ( FTI_Topo->splitRank ==  0 ) {
-            FTI_Exec->FTIFFMeta.dcpSize = dcpStats[0]; 
-            FTI_Exec->FTIFFMeta.pureDataSize = dcpStats[1];
+            *dcpSize = dcpStats[0]; 
+            *dataSize = dcpStats[1];
         }
     }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
     
-    if ( (FTI_Conf->dcpEnabled || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
+    if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
@@ -328,29 +268,18 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
             //checkpoint was not saved in global temporary directory
             int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
-            if (rename(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir) == -1) {
-                char dbg_str[FTI_BUFS];
-                snprintf(dbg_str, FTI_BUFS, "Cannot rename local directory (%s)", FTI_Conf->lTmpDir);
-                FTI_Print(dbg_str, FTI_EROR);
-            }
-            else {
-                FTI_Print("Local directory renamed", FTI_DBUG);
-            }
+            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
-    globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
+    globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-        if (FTI_Exec->ckptLvel == 4) {
-            if (rename(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir) == -1) {
-                FTI_Print("Cannot rename global directory", FTI_EROR);
-            }
+        if ((FTI_Exec->ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
+            RENAME(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir);
         }
         // there is no temp meta data folder for FTI-FF
         if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-            if (rename(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir) == -1) {
-                FTI_Print("Cannot rename meta directory", FTI_EROR);
-            }
+            RENAME(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir);
         }
     }
     MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
@@ -482,6 +411,9 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        int isDCP;
+        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        FTI_Ckpt[4].isDcp = isDCP;
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
@@ -520,8 +452,8 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         }
         strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
 
-        if ( FTI_Conf->dcpEnabled ) {
-            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpEnabled ) {
+        if ( FTI_Conf->dcpFtiff ) {
+            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
                 FTI_Ckpt[4].isDcp = true;
             }
         } else {
@@ -561,230 +493,37 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to PFS using POSIX.
+  @brief      Writes ckpt.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-
+    
+    This function performs a normal checkpoint by calling the respective file format procedures,
+    initalize chkpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-    int res = FTI_SCES;
-    FTI_Print("I/O mode: Posix.", FTI_DBUG);
-    char str[FTI_BUFS], fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-
-    // open task local ckpt file
-    FILE* fd = fopen(fn, "wb");
-    if (fd == NULL) {
-        snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(str, FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    // write data into ckpt file
+        FTIT_dataset* FTI_Data, FTIT_IO *io){
     int i;
-
+    void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        clearerr(fd);
-        if (!ferror(fd)) {
-            errno = 0;
-            // if data are stored to CPU just write them
-            if ( !(FTI_Data[i].isDevicePtr) ){
-                snprintf(str, FTI_BUFS, "ID:  %d Data are . %d %p %p", FTI_Data[i].id,FTI_Data[i].isDevicePtr,FTI_Data[i].ptr,FTI_Data[i].devicePtr);
-                FTI_Print(str,FTI_DBUG);
-                if (( res = FTI_Try( write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd), "Storing Data to Checkpoint File"))!=FTI_SCES){
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    fclose(fd);
-                    return res;
-                }
-            }
-#ifdef GPUSUPPORT            
-            // if data are stored to the GPU move them from device
-            // memory to cpu memory and store them.
-            else {
-                if ((res = FTI_Try(
-                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_posix, fd),
-                                "moving data from GPU to storage")) != FTI_SCES) {
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    fclose(fd);
-                    return res;
-                }
-            }
-#endif            
-        }
-
-        if (ferror(fd)) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(errno, error_msg, FTI_BUFS);
-            snprintf(str, FTI_BUFS, "%d Dataset #%d could not be written: %s.",__LINE__, FTI_Data[i].id, error_msg);
-            FTI_Print(str, FTI_EROR);
-            fclose(fd);
-            return FTI_NSCS;
-        }
+        FTI_Data[i].filePos = io->getPos(write_info);
+        int ret = io->WriteData(&FTI_Data[i], write_info);
+        if (ret != FTI_SCES)
+            return ret;
     }
-
-    // close file
-    if (fclose(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    return res;
-
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes ckpt to PFS using MPI I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  In here it is taken into account, that in MPIIO the count parameter
-  in both, MPI_Type_contiguous and MPI_File_write_at, are integer
-  types. The ckpt data is split into chunks of maximal (MAX_INT-1)/2
-  elements to form contiguous data types. It was experienced, that
-  if the size is greater then that, it may lead to problems.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_dataset* FTI_Data)
-{
-    WriteMPIInfo_t write_info;
-    int res;
-    FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-    char str[FTI_BUFS], mpi_err[FTI_BUFS];
-
-    write_info.FTI_Conf = FTI_Conf;
-
-    // enable collective buffer optimization
-    MPI_Info info;
-    MPI_Info_create(&info);
-    MPI_Info_set(info, "romio_cb_write", "enable");
-
-    // TODO enable to set stripping unit in the config file (Maybe also other hints)
-    // set stripping unit to 4MB
-    MPI_Info_set(info, "stripping_unit", "4194304");
-
-    MPI_Offset chunkSize = FTI_Exec->ckptSize;
-
-    // collect chunksizes of other ranks
-    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
-    MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-
-    char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-    // open parallel file (collective call)
-    //    MPI_File pfh;
-
-#ifdef LUSTRE
-    if (FTI_Topo->splitRank == 0) {
-        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-        if (res) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(-res, error_msg, FTI_BUFS);
-            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-            FTI_Print(str, FTI_WARN);
-        } else {
-            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-            FTI_Print(str, FTI_DBUG);
-        }
-    }
-#endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &(write_info.pfh));
-
-    // check if successful
-    if (res != 0) {
-        errno = 0;
-        int reslen;
-        MPI_Error_string(res, mpi_err, &reslen);
-        snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", res, mpi_err);
-        FTI_Print(str, FTI_EROR);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-
-    // set file offset
-    write_info.offset = 0;
-    int i;
-    for (i = 0; i < FTI_Topo->splitRank; i++) {
-        write_info.offset += chunkSizes[i];
-    }
-    free(chunkSizes);
-
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        // determine the type of data pointer
-        // Data are stored in the CPU side. 
-        if ( !(FTI_Data[i].isDevicePtr) ){
-            res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info);
-        }
-#ifdef GPUSUPPORT
-        // dowload data from the GPU if necessary
-        // Data are stored in the GPU side.
-        else {
-            if ((res = FTI_Try(
-                            FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],   write_mpi, &write_info),
-                            "moving data from GPU to storage")) != FTI_SCES) {
-                snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                FTI_Print(str, FTI_EROR);
-                MPI_File_close(&write_info.pfh);
-                return res;
-            }
-        }
-#endif
-
-
-        // check if successful
-        if (res != 0) {
-            errno = 0;
-            int reslen;
-            MPI_Error_string(write_info.err, mpi_err, &reslen);
-            snprintf(str, FTI_BUFS, "Failed to write protected_var[%i] to PFS  [MPI ERROR - %i] %s", i, write_info.err, mpi_err);
-            FTI_Print(str, FTI_EROR);
-            MPI_File_close(&write_info.pfh);
-            return FTI_NSCS;
-        }
-    }
-    MPI_File_close(&write_info.pfh);
-    MPI_Info_free(&info);
+    io->finIntegrity(FTI_Exec->integrity, write_info);
+    io->finCKPT(write_info);
+    free (write_info);
     return FTI_SCES;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes ckpt to PFS using SIONlib.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
 
- **/
-/*-------------------------------------------------------------------------*/
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)

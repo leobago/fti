@@ -14,6 +14,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
+
+
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif
@@ -117,6 +120,8 @@
 typedef size_t 	hsize_t;
 #endif
 #include <fti-int/incremental_checkpoint.h>
+#include <fti-int/differential_checkpoint_posix.h>
+#include <fti-int/deps/md5.h>
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -167,10 +172,10 @@ extern "C" {
     int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
     double t0;                  /**< timing for CP statistics               */
     double t1;                  /**< timing for CP statistics               */
-    char fh[FTI_ICP_FH_SIZE];   /**< generic fh container                   */
     char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
-    unsigned long long offset;  /**< file offset (for MPI-IO only)          */
-  } FTIT_iCPInfo;
+   MD5_CTX ctx[MAX_STACK_SIZE];
+void *fd;  
+} FTIT_iCPInfo;
 
   /** @typedef    FTIFF_metaInfo
    *  @brief      Meta Information about file.
@@ -404,7 +409,9 @@ extern "C" {
     bool                isDevicePtr;        /**< True if this data are stored in a device memory*/
     void                *devicePtr;         /**< Pointer to data in the device                  */
     FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
-  } FTIT_dataset;
+    FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
+	size_t				filePos; 
+ } FTIT_dataset;
 
   /** @typedef    FTIT_metadata
    *  @brief      Metadata for restart.
@@ -421,66 +428,18 @@ extern "C" {
     int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
     int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
     long*            varSize;            /**< Variable size. [FTI_BUFS]             */
+    long*            filePos;            /**< File Postion of each variable			*/
   } FTIT_metadata;
 
-  /** @typedef    FTIT_execution
-   *  @brief      Execution metadata.
-   *
-   *  This type stores all the dynamic metadata related to the current execution
-   */
-  typedef struct FTIT_execution {
-    char            id[FTI_BUFS];       /**< Execution ID.                  */
-    int             ckpt;               /**< Checkpoint flag.               */
-    int             reco;               /**< Recovery flag.                 */
-    int             ckptLvel;           /**< Checkpoint level.              */
-    int             ckptIntv;           /**< Ckpt. interval in minutes.     */
-    int             lastCkptLvel;       /**< Last checkpoint level.         */
-    int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
-    double          iterTime;           /**< Current wall time.             */
-    double          lastIterTime;       /**< Time spent in the last iter.   */
-    double          meanIterTime;       /**< Mean iteration time.           */
-    double          globMeanIter;       /**< Global mean iteration time.    */
-    double          totalIterTime;      /**< Total main loop time spent.    */
-    unsigned int    syncIter;           /**< To check mean iter. time.      */
-    int             syncIterMax;        /**< Maximal synch. intervall.      */
-    unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
-    bool            hasCkpt;            /**< Indicator that ckpt exists     */
-    bool            h5SingleFile;       /**< Indicator if HDF5 single file  */
-    unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
-    unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
-    unsigned int    ckptID;             /**< Checkpoint ID.                 */
-    unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
-    unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
-    long            ckptSize;           /**< Checkpoint size.               */
-    unsigned int    nbVar;              /**< Number of protected variables. */
-    unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
-    unsigned int    nbType;             /**< Number of data types.          */
-    int             nbGroup;            /**< Number of protected groups.    */
-    int             metaAlloc;          /**< TRUE if meta allocated.        */
-    int             initSCES;           /**< TRUE if FTI initialized.       */
-    char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
-    FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
-    FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
-    FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
-    FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
-    FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
-    FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
-    FTIT_globalDataset* globalDatasets; /**< Pointer to first global dataset*/
-    FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
-    FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
-    MPI_Comm        globalComm;         /**< Global communicator.           */
-    MPI_Comm        groupComm;          /**< Group communicator.            */
-    MPI_Comm        nodeComm;
-} FTIT_execution;
-
-  /** @typedef    FTIT_configuration
+    /** @typedef    FTIT_configuration
    *  @brief      Configuration metadata.
    *
    *  This type stores the general configuration metadata.
    */
   typedef struct FTIT_configuration {
     bool            stagingEnabled;
-    bool            dcpEnabled;         /**< Enable differential ckpt.      */
+    bool            dcpFtiff;         /**< Enable differential ckpt.      */
+    bool            dcpPosix;         /**< Enable differential ckpt.      */
     bool            keepL4Ckpt;         /**< TRUE if l4 ckpts to keep       */        
     bool            keepHeadsAlive;     /**< TRUE if heads return           */
     int             dcpMode;            /**< dCP mode.                      */
@@ -514,6 +473,9 @@ extern "C" {
     char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.        */
     char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
     size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
+	char 	 		suffix[4];			/** Suffix of the checkpoint files		*/
+FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
+
 
   } FTIT_configuration;
 
@@ -557,6 +519,7 @@ extern "C" {
     char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
     char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
     bool            isDcp;              /**< TRUE if dCP requested                  */
+    bool            recoIsDcp;          /**< TRUE if dCP requested                  */
     bool            hasDcp;             /**< TRUE if execution has already a dCP    */
     bool            hasCkpt;            /**< TRUE if level has ckpt                 */        
     int             isInline;           /**< TRUE if work is inline.                */
@@ -581,6 +544,124 @@ extern "C" {
     int             counter;            /**< Injection counter.             */
     double          timer;              /**< Timer to measure frequency     */
   } FTIT_injection;
+
+typedef struct FTIT_execution FTIT_execution;
+
+
+  /** @typedef    FTIT_IO 
+   *  @brief      Pointer to functions which are used to write the checkpoint file.
+   *
+   * This is a general description of what different file formats need to implement in 
+   * order to checkpoint.
+   */
+
+typedef struct ftit_io{
+	void*  (*initCKPT) (	FTIT_configuration* , 
+							FTIT_execution*  ,
+							FTIT_topology*   ,
+							FTIT_checkpoint* , 
+							FTIT_dataset *);
+
+	int (*WriteData) (	FTIT_dataset * ,
+							void *write_info);
+	int (*finCKPT)	(void *fileDesc);
+	size_t (*getPos) (void *fileDesc);
+	void (*finIntegrity) (unsigned char *, void*);
+
+	
+}FTIT_IO;
+
+
+/** @typedef    FTIT_execution
+   *  @brief      Execution metadata.
+   *
+   *  This type stores all the dynamic metadata related to the current execution
+   */
+  typedef struct FTIT_execution {
+    char            id[FTI_BUFS];       /**< Execution ID.                  */
+    int             ckpt;               /**< Checkpoint flag.               */
+    int             reco;               /**< Recovery flag.                 */
+    int             ckptLvel;           /**< Checkpoint level.              */
+    int             ckptIntv;           /**< Ckpt. interval in minutes.     */
+    int             lastCkptLvel;       /**< Last checkpoint level.         */
+    int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
+    double          iterTime;           /**< Current wall time.             */
+    double          lastIterTime;       /**< Time spent in the last iter.   */
+    double          meanIterTime;       /**< Mean iteration time.           */
+    double          globMeanIter;       /**< Global mean iteration time.    */
+    double          totalIterTime;      /**< Total main loop time spent.    */
+    unsigned int    syncIter;           /**< To check mean iter. time.      */
+    int             syncIterMax;        /**< Maximal synch. intervall.      */
+    unsigned int    minuteCnt;          /**< Checkpoint minute counter.     */
+    bool            hasCkpt;            /**< Indicator that ckpt exists     */
+    bool            h5SingleFile;       /**< Indicator if HDF5 single file  */
+    unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
+    unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
+    unsigned int    ckptID;             /**< Checkpoint ID.                 */
+    unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
+    unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
+    long            ckptSize;           /**< Checkpoint size.               */
+    unsigned int    nbVar;              /**< Number of protected variables. */
+    unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
+    unsigned int    nbType;             /**< Number of data types.          */
+    int             nbGroup;            /**< Number of protected groups.    */
+    int             metaAlloc;          /**< TRUE if meta allocated.        */
+    int             initSCES;           /**< TRUE if FTI initialized.       */
+    char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
+	unsigned char 	integrity[MD5_DIGEST_LENGTH];
+    FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
+    FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
+    FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
+    FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
+    FTIT_type**     FTI_Type;           /**< Pointer to FTI_Types           */
+    FTIT_H5Group**  H5groups;           /**< HDF5 root group.               */
+    FTIT_globalDataset* globalDatasets; /**< Pointer to first global dataset*/
+    FTIT_StageInfo* stageInfo;          /**< root of staging requests       */
+    FTIT_iCPInfo    iCPInfo;            /**< meta info iCP                  */
+    MPI_Comm        globalComm;         /**< Global communicator.           */
+    MPI_Comm        groupComm;          /**< Group communicator.            */
+    MPI_Comm        nodeComm;
+FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
+	int (*ckptFunc[2]) 					/** A function pointer pointing to  */									
+			(FTIT_configuration* , 		/** the function which actually 	*/
+			struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 
+			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
+			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
+
+	int (*initICPFunc[2]) 				/** A function pointer pointing to  */									
+			(FTIT_configuration* , 		/** the function which actually 	*/
+			struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
+			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
+			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
+
+	int (*writeVarICPFunc[2]) 		    /** A function pointer pointing to  */
+			(int,						/**									*/
+			FTIT_configuration* , 		/** the function which actually 	*/
+			struct FTIT_execution* ,	/** writes the iCP. Noticeably		*/ 
+			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
+			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO*);					
+
+	int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
+			(FTIT_configuration* , 		/** the function which actually 	*/
+			struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
+			FTIT_topology* ,			/** We need 2 function pointers,	*/ 
+			FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
+			FTIT_dataset*,				/** And one for the remaining cases	*/
+			FTIT_IO *);					
+	
+
+} FTIT_execution;
+
+
+
+#define LOCAL 0
+#define GLOBAL 1
 
   /*---------------------------------------------------------------------------
     Global variables

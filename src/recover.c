@@ -124,9 +124,15 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     else
         consistency = &FTI_CheckFile;
 #else
-    consistency = &FTI_CheckFile;
+    if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+        DBG_MSG("I AM CALLING FTI_DcpPosixRecoverRuntimeInfo",0);
+        FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
+        consistency = &FTI_CheckFileDcpPosix;
+    } else {
+        consistency = &FTI_CheckFile;
+    }
 #endif
-    
+
     switch (level) {
         case 1:
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
@@ -154,7 +160,11 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
         case 4:
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile); 
+            } else {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+            }
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -181,16 +191,16 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 
-    if( FTI_Conf->dcpEnabled ) {
+    if( FTI_Conf->dcpFtiff ) {
         FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
     if (!FTI_Topo->amIaHead) {
         if( FTI_Exec->reco == 3 ) {
-            int res = FTI_SCES, allRes;
-            int ckptID;
+            int res = FTI_SCES, allRes = FTI_NSCS;
             if( FTI_Conf->h5SingleFileEnable ) {
 #ifdef ENABLE_HDF5
+                int ckptID;
                 if( FTI_Topo->splitRank == 0 ) {
                     res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
                 }
@@ -244,10 +254,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     case 4:
                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                         MPI_Barrier(FTI_COMM_WORLD);
-                        if ( FTI_Ckpt[4].isDcp ) {
+                        if ( FTI_Ckpt[4].recoIsDcp ) {
                             res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                            FTI_Ckpt[4].isDcp = false;
-                            
+                            if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
                             if (res == FTI_SCES ) {
                                 break;
                             }
@@ -274,7 +283,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
                      
                     // FTI-FF: ckptID is already set properly
-                    if(FTI_Conf->ioMode == FTI_IO_FTIFF) {
+                    if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].recoIsDcp && FTI_Conf->dcpPosix) ) {
                         ckptID = FTI_Exec->ckptID;
                     }
 

@@ -12,16 +12,16 @@
 #include <cuda_runtime_api.h>
 
 #define CUDA_ERROR_CHECK(fun)                                                           \
-do {                                                                                    \
-    cudaError_t err = fun;                                                              \
-    char str[FTI_BUFS];                                                                 \
-    sprintf(str, "Cuda error %d %s:: %s", __LINE__, __func__, cudaGetErrorString(err)); \
-    if (err != cudaSuccess)                                                             \
-    {                                                                                   \
-      FTI_Print(str, FTI_WARN);                                                         \
-      return FTI_NSCS;                                                                  \
-    }                                                                                   \
-} while(0)
+    do {                                                                                    \
+        cudaError_t err = fun;                                                              \
+        char str[FTI_BUFS];                                                                 \
+        sprintf(str, "Cuda error %d %s:: %s", __LINE__, __func__, cudaGetErrorString(err)); \
+        if (err != cudaSuccess)                                                             \
+        {                                                                                   \
+            FTI_Print(str, FTI_WARN);                                                         \
+            return FTI_NSCS;                                                                  \
+        }                                                                                   \
+    } while(0)
 
 #endif
 #include "interface.h"
@@ -49,15 +49,15 @@ typedef struct FTIT_ptrinfo {
 
 
 typedef struct FTIT_data_prefetch{
-  unsigned char *dptr; // Pointer pointing to data to be fetched;
-  size_t totalBytesToFetch; // total number of bytes to be streamed;
-  size_t fetchSize;  // Bytes I will fetch each time;
-  int isDevice;     //Check Whether Bytes are stored in device
-  int Id;           //Points to the current stream
-  bool end;                  // Equals to 1 when I have prefetched all the data         
-  int requestedData;         //Size of data I requested on previous iteration.
+    unsigned char *dptr; // Pointer pointing to data to be fetched;
+    size_t totalBytesToFetch; // total number of bytes to be streamed;
+    size_t fetchSize;  // Bytes I will fetch each time;
+    int isDevice;     //Check Whether Bytes are stored in device
+    int Id;           //Points to the current stream
+    bool end;                  // Equals to 1 when I have prefetched all the data         
+    int requestedData;         //Size of data I requested on previous iteration.
 #ifdef GPUSUPPORT
-cudaStream_t streams[2];  // Streams Used by FTI to get/set data to the gpu side
+    cudaStream_t streams[2];  // Streams Used by FTI to get/set data to the gpu side
 #endif
 }FTIT_data_prefetch;
 

@@ -37,6 +37,8 @@
  */
 
 #include "interface.h"
+#include "macros.h"
+#include "utility.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -98,17 +100,8 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
     long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
-        int bytes = fread(buffer, sizeof(char), sendSize, lfd);
-
-        if (ferror(lfd)) {
-            FTI_Print("Error reading data from L2 ckpt file", FTI_DBUG);
-
-            free(buffer);
-            fclose(lfd);
-
-            return FTI_NSCS;
-        }
-
+        int bytes;
+        FREAD(FTI_NSCS,bytes,buffer, sizeof(char), sendSize, lfd,"p",buffer);
         MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->generalTag, FTI_Exec->groupComm);
         toSend -= bytes;
     }
@@ -129,7 +122,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
   @param      postFlag        0 if postckpt done by approc, > 0 if by head
   @return     integer         FTI_SCES if successful.
 
-  This function receives ckpt file from partner process and saves it as
+  This function receives ckpt file from partner process aand saves it as
   Ptner file. Partner should call FTI_SendCkpt to send file.
 
  **/
@@ -157,16 +150,8 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
-        fwrite(buffer, sizeof(char), recvSize, pfd);
-
-        if (ferror(pfd)) {
-            FTI_Print("Error writing data to L2 ptner file", FTI_DBUG);
-
-            free(buffer);
-            fclose(pfd);
-
-            return FTI_NSCS;
-        }
+        size_t wbytes;
+        FWRITE(FTI_NSCS,wbytes,buffer, sizeof(char), recvSize, pfd,"p",buffer);
         toRecv -= recvSize;
     }
 
@@ -376,20 +361,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             bzero(coding, bs);
             bzero(myData, bs);
             bzero(data, 2*bs);
-            size_t bytes = fread(myData, sizeof(char), remBsize, lfd);
-            if (ferror(lfd)) {
-                FTI_Print("FTI failed to read from L3 ckpt. file.", FTI_EROR);
-
-                free(data);
-                free(matrix);
-                free(coding);
-                free(myData);
-                fclose(lfd);
-                fclose(efd);
-
-                return FTI_NSCS;
-            }
-
+            size_t bytes;
+            FREAD(FTI_NSCS, bytes,myData, sizeof(char), remBsize, lfd,"ppppf",data,matrix,coding,myData,efd);
             int dest = FTI_Topo->groupRank;
             i = FTI_Topo->groupRank;
             int offset = 0;
@@ -503,19 +476,8 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 errno = 0;
                 return FTI_NSCS;
             }
-            fwrite(buffer_ser, FTI_filemetastructsize, 1, efd);
-            if ( ferror( efd ) ) {
-                snprintf(str, FTI_BUFS, "FTI_RSenc - could not write metadata in file: %s", efn);
-                FTI_Print(str, FTI_EROR);
-                errno=0;
-                free(data);
-                free(matrix);
-                free(coding);
-                free(myData);
-                fclose(lfd);
-                fclose(efd);
-                return FTI_NSCS;
-            }
+            size_t wBytes = 0;
+            FWRITE(FTI_NSCS, wBytes,buffer_ser, FTI_filemetastructsize, 1, efd,"ppppf",data,matrix,coding,myData,lfd);
             free( buffer_ser );
 
         }
@@ -574,24 +536,14 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
 
-    if ( !(FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp) ) {
+    if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
         FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
         //Create global temp directory
-        if (mkdir(FTI_Conf->gTmpDir, 0777) == -1) {
-            if (errno != EEXIST) {
-                FTI_Print("Cannot create global directory", FTI_EROR);
-                return FTI_NSCS;
-            }
-        }
+        MKDIR(FTI_Conf->gTmpDir,0777);
     } else {
         if ( !FTI_Ckpt[4].hasDcp ) {
-            if (mkdir(FTI_Ckpt[4].dcpDir, 0777) == -1) {
-                if (errno != EEXIST) {
-                    FTI_Print("Cannot create global dCP directory", FTI_EROR);
-                    return FTI_NSCS;
-                }
-            }
+            MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
     }
     int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
@@ -666,35 +618,20 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
         if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
             snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].currentL4CkptFile ); 
             snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].currentL4CkptFile ); 
-            if ( rename(fn_from,fn_to) != 0 ) {
-                snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
-                FTI_Print( strerr, FTI_EROR );
-                errno = 0;
-                return FTI_NSCS;
-            }
+            RENAME(fn_from, fn_to);
         } else {
             int i;
             for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
                 snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
                 snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
-                if ( rename(fn_from,fn_to) != 0 ) {
-                    snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
-                    FTI_Print( strerr, FTI_EROR );
-                    errno = 0;
-                    return FTI_NSCS;
-                }
+                RENAME(fn_from, fn_to);
             }
         }
     } else {
         if ( FTI_Topo->splitRank == 0 ) {
             snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
             snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
-            if ( rename(fn_from,fn_to) != 0 ) {
-                snprintf(strerr, FTI_BUFS, "could not move '%s' to '%s', cannot keep L4 checkpoint.", fn_from, fn_to);
-                FTI_Print( strerr, FTI_EROR );
-                errno = 0;
-                return FTI_NSCS;
-            }
+            RENAME(fn_from,fn_to);
         }
     }
 
@@ -783,23 +720,10 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ((fs - pos) < FTI_Conf->transferSize)
                 bSize = fs - pos;
 
-            size_t bytes = fread(readData, sizeof(char), bSize, lfd);
-            if (ferror(lfd)) {
-                FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
-                free(readData);
-                fclose(lfd);
-                fclose(gfd);
-                return FTI_NSCS;
-            }
-
-            fwrite(readData, sizeof(char), bytes, gfd);
-            if (ferror(gfd)) {
-                FTI_Print("L4 cannot write to the ckpt. file in the PFS.", FTI_EROR);
-                free(readData);
-                fclose(lfd);
-                fclose(gfd);
-                return FTI_NSCS;
-            }
+            size_t bytes;
+            FREAD(FTI_NSCS, bytes,readData, sizeof(char), bSize, lfd,"pf",readData,gfd);
+            size_t wBytes = 0;	
+            FWRITE(FTI_NSCS, wBytes,readData, sizeof(char), bytes, gfd,"pf",readData,lfd);
             pos = pos + bytes;
         }
         free(readData);
@@ -826,48 +750,17 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    int res;
     FTI_Print("Starting checkpoint post-processing L4 using MPI-IO.", FTI_DBUG);
+    WriteMPIInfo_t write_info;
     // enable collective buffer optimization
-    MPI_Info info;
-    MPI_Info_create(&info);
-    MPI_Info_set(info, "romio_cb_write", "enable");
-    // TODO enable to set stripping unit in the config file (Maybe also other hints)
-    // set stripping unit to 4MB
-    MPI_Info_set(info, "stripping_unit", "4194304");
-
-    // open parallel file (collective call)
-    MPI_File pfh; // MPI-IO file handle
-    char gfn[FTI_BUFS], str[FTI_BUFS], ckptFile[FTI_BUFS];
+    char gfn[FTI_BUFS],  ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-#ifdef LUSTRE
-    if (FTI_Topo->splitRank == 0) {
-        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-        if (res) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(-res, error_msg, FTI_BUFS);
-            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-            FTI_Print(str, FTI_WARN);
-        } else {
-            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-            FTI_Print(str, FTI_DBUG);
-        }
-    }
-#endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
-    if (res != 0) {
-        errno = 0;
-        char mpi_err[FTI_BUFS];
-        MPI_Error_string(res, mpi_err, NULL);
-        snprintf(str, FTI_BUFS, "Unable to create file during MPI-IO flush [MPI ERROR - %i] %s", res, mpi_err);
-        FTI_Print(str, FTI_EROR);
-        MPI_Info_free(&info);
-        return FTI_NSCS;
-    }
-    MPI_Info_free(&info);
+
+    write_info.FTI_Conf = FTI_Conf;
+    write_info.FTI_Topo= FTI_Topo;
+    write_info.flag = 'w';
+    FTI_MPIOOpen(gfn,&write_info);
 
     int proc, startProc, endProc;
     if (FTI_Topo->amIaHead) {
@@ -902,6 +795,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Allgather(localFileSizes, nbProc, MPI_OFFSET, allFileSizes, nbProc, MPI_OFFSET, FTI_COMM_WORLD);
     free(localFileSizes);
 
+
     for (proc = startProc; proc < endProc; proc++) {
         MPI_Offset offset = 0;
         int i;
@@ -929,38 +823,12 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 bSize = fs - pos;
             }
 
-            size_t bytes = fread(readData, sizeof(char), bSize, lfd);
-            if (ferror(lfd)) {
-                FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
-                free(localFileNames);
-                free(allFileSizes);
-                free(splitRanks);
-                free(readData);
-                fclose(lfd);
-                MPI_File_close(&pfh);
-                return FTI_NSCS;
-            }
-            MPI_Datatype dType;
-            MPI_Type_contiguous(bytes, MPI_BYTE, &dType);
-            MPI_Type_commit(&dType);
+            size_t bytes;
+//#warning I also need to close pfh file but this marcro is not yet ready
+            //                MPI_File_close(&pfh);
+            FREAD(FTI_NSCS, bytes,readData, sizeof(char), bSize, lfd,"pppp",localFileNames,allFileSizes,splitRanks,readData);
 
-            res = MPI_File_write_at(pfh, offset, readData, 1, dType, MPI_STATUS_IGNORE);
-            // check if successful
-            if (res != 0) {
-                errno = 0;
-                char mpi_err[FTI_BUFS];
-                MPI_Error_string(res, mpi_err, NULL);
-                snprintf(str, FTI_BUFS, "Failed to write data to PFS during MPIIO Flush [MPI ERROR - %i] %s", res, mpi_err);
-                FTI_Print(str, FTI_EROR);
-                free(localFileNames);
-                free(splitRanks);
-                free(allFileSizes);
-                fclose(lfd);
-                MPI_File_close(&pfh);
-                return FTI_NSCS;
-            }
-            MPI_Type_free(&dType);
-            offset += bytes;
+            FTI_MPIOWrite(readData, bytes,&write_info);
             pos = pos + bytes;
         }
         free(readData);
@@ -969,7 +837,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(localFileNames);
     free(allFileSizes);
     free(splitRanks);
-    MPI_File_close(&pfh);
+    FTI_MPIOClose(&write_info);
     return FTI_SCES;
 }
 
@@ -1095,20 +963,11 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ((fs - pos) < FTI_Conf->transferSize)
                 bSize = fs - pos;
 
-            size_t bytes = fread(readData, sizeof(char), bSize, lfd);
-            if (ferror(lfd)) {
-                FTI_Print("L4 cannot read from the ckpt. file.", FTI_EROR);
-                free(localFileNames);
-                free(splitRanks);
-                free(readData);
-                fclose(lfd);
-                sion_parclose_mapped_mpi(sid);
-                free(file_map);
-                free(ranks);
-                free(rank_map);
-                free(chunkSizes);
-                return FTI_NSCS;
-            }
+            size_t bytes;
+#warning I need to also close sion file
+            //sion_parclose_mapped_mpi(sid);
+            FREAD(FTI_NSCS, bytes,readData, sizeof(char), bSize, lfd,"pppppppp",localFileNames,splitRanks,readData,file_map,ranks,rank_map,chunkSizes);
+
 
             long data_written = sion_fwrite(readData, sizeof(char), bytes, sid);
 

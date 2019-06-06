@@ -1,344 +1,136 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @file   incremental-checkpoint.c
+ *  @date   May, 2019
+ *  @brief  functions for the FTI incremental checkpoint.
+ */
+
+
+
 #include <fti-int/incremental_checkpoint.h>
 #include "interface.h"
 #include "utility.h"
+#include "FTI_IO.h"
+
+
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes iCP for POSIX I/O.
+  @brief      Writes starts incremental checkpoint procedure.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
+    
+ This function initializes all the necessary data structures and files
+ required to perform incremental checkpoint. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitPosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+
+int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_dataset* FTI_Data, FTIT_IO *io)
 {
-    char str[FTI_BUFS]; //For console output
-    snprintf(str, FTI_BUFS, "Initialize incremental checkpoint (ID: %d, Lvl: %d, I/O: POSIX)",
-            FTI_Exec->ckptID, FTI_Exec->ckptLvel);
-    FTI_Print(str, FTI_DBUG);
-
-    //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-
-    char fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-
-    // open task local ckpt file
-    FILE *fd = fopen(fn, "wb");
-    if (fd == NULL) {
-        snprintf(str, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(str, FTI_EROR);
-
-        return FTI_NSCS;
-    }
-    memcpy( FTI_Exec->iCPInfo.fh, &fd, sizeof(FTI_PO_FH) );
-
+    void *ret = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+    FTI_Exec->iCPInfo.fd = ret;
     return FTI_SCES;
 }
 
+
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes dataset into ckpt file using POSIX.
+  @brief      Writes a specific variable on the checkpoint file.
+  @param      varID           Variable id to write.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
+ 
+ This functions writes the varid data on the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosixVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+
+int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_dataset* FTI_Data, FTIT_IO *io)
 {
-    FILE *fd;
+    void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res;
-    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
-
-    char str[FTI_BUFS];
-
-    long offset = 0;
-
-    // write data into ckpt file
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if( FTI_Data[i].id == varID ) {
-            clearerr(fd);
-            if ( fseek( fd, offset, SEEK_SET ) == -1 ) {
-                FTI_Print("Error on fseek in writeposixvar", FTI_EROR );
-                return FTI_NSCS;
-            }
-            if ( !(FTI_Data[i].isDevicePtr) ){
-                FTI_Print(str,FTI_INFO);
-                if (( res = FTI_Try(write_posix(FTI_Data[i].ptr, FTI_Data[i].size, fd),"Storing Data to Checkpoint file")) != FTI_SCES){
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    fclose(fd);
-                    return FTI_NSCS;
-                }
-            }
-#ifdef GPUSUPPORT            
-            // if data are stored to the GPU move them from device
-            // memory to cpu memory and store them.
-            else {
-                FTI_Print(str,FTI_INFO);
-                if ((res = FTI_Try(
-                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i],  write_posix, fd),
-                                "moving data from GPU to storage")) != FTI_SCES) {
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    fclose(fd);
-                    return FTI_NSCS;
-                }
-            }
-#endif  
-            if (ferror(fd)) {
-                return FTI_NSCS;
-            }
-        }
-        offset += FTI_Data[i].count*FTI_Data[i].eleSize;
-    }
-
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-
-    return FTI_SCES;
-
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finalizes iCP for POSIX I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FinalizePosixICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
-        return FTI_NSCS;
-    }
-
-    FILE *fd;
-    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_PO_FH) );
-
-    // close file
-    if (fclose(fd) != 0) {
-        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-
-        return FTI_NSCS;
-    }
-
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Initializes iCP for MPI I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-    int res;
-    FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-    char str[FTI_BUFS], mpi_err[FTI_BUFS];
-
-    // enable collective buffer optimization
-    MPI_Info info;
-    MPI_Info_create(&info);
-    MPI_Info_set(info, "romio_cb_write", "enable");
-
-    /* 
-     * update ckpt file name (neccessary for the restart!)
-     * not very nice TODO we should think about another mechanism
-     */
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-
-    // TODO enable to set stripping unit in the config file (Maybe also other hints)
-    // set stripping unit to 4MB
-    MPI_Info_set(info, "stripping_unit", "4194304");
-
-    char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-    // open parallel file (collective call)
-    MPI_File pfh;
-
-#ifdef LUSTRE
-    if (FTI_Topo->splitRank == 0) {
-        res = llapi_file_create(gfn, FTI_Conf->stripeUnit, FTI_Conf->stripeOffset, FTI_Conf->stripeFactor, 0);
-        if (res) {
-            char error_msg[FTI_BUFS];
-            error_msg[0] = 0;
-            strerror_r(-res, error_msg, FTI_BUFS);
-            snprintf(str, FTI_BUFS, "[Lustre] %s.", error_msg);
-            FTI_Print(str, FTI_WARN);
-        } else {
-            snprintf(str, FTI_BUFS, "[LUSTRE] file:%s striping_unit:%i striping_factor:%i striping_offset:%i",
-                    ckptFile, FTI_Conf->stripeUnit, FTI_Conf->stripeFactor, FTI_Conf->stripeOffset);
-            FTI_Print(str, FTI_DBUG);
-        }
-    }
-#endif
-    res = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
-
-    // check if successful
-    if (res != 0) {
-        errno = 0;
-        int reslen;
-        MPI_Error_string(res, mpi_err, &reslen);
-        snprintf(str, FTI_BUFS, "unable to create file %s [MPI ERROR - %i] %s", gfn, res, mpi_err);
-        FTI_Print(str, FTI_EROR);
-        return FTI_NSCS;
-    }
-
-    MPI_Offset chunkSize = FTI_Exec->ckptSize;
-
-    // collect chunksizes of other ranks
-    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
-    MPI_Allgather(&chunkSize, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
-
-    // set file offset
-    MPI_Offset offset = 0;
-    int i;
-    for (i = 0; i < FTI_Topo->splitRank; i++) {
-        offset += chunkSizes[i];
-    }
-    free(chunkSizes);
-
-    FTI_Exec->iCPInfo.offset = offset;
-
-    memcpy( FTI_Exec->iCPInfo.fh, &pfh, sizeof(FTI_MI_FH) );
-    MPI_Info_free(&info);
-
-    return FTI_SCES;
-
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes dataset into ckpt file using MPI-IO.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteMpiVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-    char str[FTI_BUFS];
-    WriteMPIInfo_t write_info;
-    int res;
-    memcpy( &write_info.pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
-
-    write_info.offset = FTI_Exec->iCPInfo.offset; 
-    write_info.FTI_Conf = FTI_Conf;
-
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         if ( FTI_Data[i].id == varID ) {
-            if ( !(FTI_Data[i].isDevicePtr) ){
-                FTI_Print(str,FTI_INFO);
-                if (( res = write_mpi(FTI_Data[i].ptr, FTI_Data[i].size, &write_info), "Storing Data to checkpoint file")!=FTI_SCES){
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&write_info.pfh);
-                    return res;
-                }
-            }
-#ifdef GPUSUPPORT
-            // dowload data from the GPU if necessary
-            // Data are stored in the GPU side.
-            else {
-                snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_Data[i].id);
-                FTI_Print(str,FTI_INFO);
-                if ((res = FTI_Try(
-                                FTI_TransferDeviceMemToFileAsync(&FTI_Data[i], write_mpi, &write_info),
-                                "moving data from GPU to storage")) != FTI_SCES) {
-                    snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    MPI_File_close(&write_info.pfh);
-                    return res;
-                }
-            }
-#endif
+            FTI_Data[i].filePos = io->getPos(write_info);
+            res = io->WriteData(&FTI_Data[i],write_info);
         }
-        write_info.offset += FTI_Data[i].size;
     }
-
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-
-    return FTI_SCES;
-
+    FTI_Exec->iCPInfo.result = res;
+    return res;
 }
+
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Finalizes iCP for MPI I/O.
+  @brief      Finalizes the checkpoint file.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @param      FTI_Data        Dataset metadata.
+  @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
+ 
+ This functions Finalizes the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
+int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io){
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
-
-    MPI_File pfh;
-    memcpy( &pfh, FTI_Exec->iCPInfo.fh, sizeof(FTI_MI_FH) );
-
-    MPI_File_close(&pfh);
+    void *write_info = FTI_Exec->iCPInfo.fd;
+    io->finCKPT(write_info);
+    io->finIntegrity(FTI_Exec->integrity, write_info);
+    free(write_info);
+    FTI_Exec->iCPInfo.fd = NULL;
     return FTI_SCES;
-
 }
+
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -356,20 +148,13 @@ int FTI_FinalizeMpiICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
-
-    char fn[FTI_BUFS], strerr[FTI_BUFS];
-
+    char fn[FTI_BUFS];
+    WritePosixInfo_t *write_info = (WritePosixInfo_t*) malloc (sizeof(WritePosixInfo_t));
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
-
-    //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-            "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-
     // only for printout of dCP share in FTI_Checkpoint
     FTI_Exec->FTIFFMeta.dcpSize = 0;
-
     // important for reading and writing operations
     FTI_Exec->FTIFFMeta.dataSize = 0;
     FTI_Exec->FTIFFMeta.pureDataSize = 0;
@@ -377,13 +162,13 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptLvel;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
-        if( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf->dcpFtiff&& FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
         }
     } else if ( level == 4 && !FTI_Ckpt[4].isInline )
-        if( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
+        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
@@ -392,29 +177,21 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
         }
 
-    int fd;
-
     // for dCP: create if not exists, open if exists
-    if ( FTI_Conf->dcpEnabled && FTI_Ckpt[4].isDcp ) {
-        if (access(fn,R_OK) != 0) {
-            fd = open( fn, O_WRONLY|O_CREAT, (mode_t) 0600 ); 
-        } 
-        else {
-            fd = open( fn, O_WRONLY );
+    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ){ 
+        if (access(fn,R_OK) != 0){ 
+            write_info->flag = 'w'; 
         }
-    } else {
-        fd = open( fn, O_WRONLY|O_CREAT, (mode_t) 0600 ); 
+        else {
+            write_info->flag = 'e'; //e means extend file 
+        }
     }
-
-    if (fd == -1) {
-        snprintf(strerr, FTI_BUFS, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(strerr, FTI_EROR);
-        return FTI_NSCS;
+    else {
+        write_info->flag = 'w';
     }
-
-    memcpy( FTI_Exec->iCPInfo.fh, &fd, sizeof(FTI_FF_FH) );
-    strcpy( FTI_Exec->iCPInfo.fn, fn );
-
+    write_info->offset = 0;
+    FTI_PosixOpen(fn,write_info);
+    FTI_Exec -> iCPInfo.fd = write_info;
     return FTI_SCES;
 
 }
@@ -432,7 +209,7 @@ int FTI_InitFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {
     char str[FTI_BUFS];
 
@@ -441,7 +218,6 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
     unsigned char *dptr;
     int dbvar_idx, dbcounter=0;
     int isnextdb;
-    // block size for fwrite buffer in file.
     long dcpSize = 0;
     long dataSize = 0;
     long pureDataSize = 0;
@@ -465,8 +241,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
         return FTI_NSCS;
     }
 
-    int fd;
-    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
+    WritePosixInfo_t *fd = FTI_Exec->iCPInfo.fd;
 
     db = FTI_Exec->firstdb;
 
@@ -546,209 +321,29 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_dataset* FTI_Data, FTIT_IO *ignore)
 {   
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
 
-    int fd; 
-    memcpy( &fd, FTI_Exec->iCPInfo.fh, sizeof(FTI_FF_FH) );
 
     if ( FTI_Try( FTIFF_CreateMetadata( FTI_Exec, FTI_Topo, FTI_Data, FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
 
-    FTIFF_writeMetaDataFTIFF( FTI_Exec, fd );
+    WritePosixInfo_t *write_info = FTI_Exec->iCPInfo.fd;
+    FTIFF_writeMetaDataFTIFF( FTI_Exec, write_info);
 
-
-    fdatasync( fd );
-    close( fd );
-
-    return FTI_SCES;
-
-}
-
-#ifdef ENABLE_HDF5
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Initializes iCP for HDF5 I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed before
-  protected variables may be added to the checkpoint files.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-    FTI_Print("I/O mode: HDF5.", FTI_DBUG);
-    char str[FTI_BUFS], fn[FTI_BUFS];
-
-    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-        snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS,
-                "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-    }
-
-    int level = FTI_Exec->ckptLvel;
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-
-    //Creating new hdf5 file
-    hid_t file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    if (file_id < 0) {
-        sprintf(str, "FTI checkpoint file (%s) could not be opened.", fn);
-        FTI_Print(str, FTI_EROR);
-
-        return FTI_NSCS;
-    }
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-
-    int i;
-    for (i = 0; i < rootGroup->childrenNo; i++) {
-        FTI_CreateGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
-    }
-
-    memcpy( FTI_Exec->iCPInfo.fh, &file_id, sizeof(FTI_H5_FH) );
+    FTI_PosixSync(write_info);
+    FTI_PosixClose(write_info);
+    free(write_info);
+    FTI_Exec->iCPInfo.fd = NULL;
 
     return FTI_SCES;
 
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Writes dataset into ckpt file using HDF5.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_WriteHdf5Var(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-
-    if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
-        return FTI_NSCS;
-    }
-
-    char str[FTI_BUFS];
-
-    hid_t file_id;
-    memcpy( &file_id, FTI_Exec->iCPInfo.fh, sizeof(FTI_H5_FH) );
-
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-
-    // write data into ckpt file
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if( FTI_Data[i].id == varID ) {
-            int toCommit = 0;
-            if (FTI_Data[i].type->h5datatype < 0) {
-                toCommit = 1;
-            }
-            sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_Data[i].type->id, (long)FTI_Data[i].type->h5datatype);
-            FTI_Print(str, FTI_DBUG);
-            FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-            if (toCommit == 1) {
-                char name[FTI_BUFS];
-                if (FTI_Data[i].type->structure == NULL) {
-                    //this is the array of bytes with no name
-                    sprintf(name, "Type%d", FTI_Data[i].type->id);
-                } else {
-                    strncpy(name, FTI_Data[i].type->structure->name, FTI_BUFS);
-                }
-                herr_t res = H5Tcommit(FTI_Data[i].type->h5group->h5groupID, name, FTI_Data[i].type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                if (res < 0) {
-                    sprintf(str, "Datatype #%d could not be commited", FTI_Data[i].id);
-                    FTI_Print(str, FTI_EROR);
-                    int j;
-                    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-                    }
-                    H5Fclose(file_id);
-                    return FTI_NSCS;
-                }
-            }
-            //convert dimLength array to hsize_t
-            if ( FTI_Try(FTI_WriteHDF5Var(&FTI_Data[i]) , "Writing data to HDF5 filesystem") != FTI_SCES){
-                sprintf(str, "Dataset #%d could not be written", FTI_Data[i].id);
-                FTI_Print(str, FTI_EROR);
-                int j;
-                for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-                    FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-                }
-                H5Fclose(file_id);
-                return FTI_NSCS;
-            }
-        }
-    }
-
-    FTI_Exec->iCPInfo.result = FTI_SCES;
-    return FTI_SCES;
-
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finalizes iCP for HDF5 I/O.
-  @param      FTI_Conf        Configuration metadata.
-  @param      FTI_Exec        Execution metadata.
-  @param      FTI_Topo        Topology metadata.
-  @param      FTI_Ckpt        Checkpoint metadata.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function takes care of the I/O specific actions needed to
-  finalize iCP.
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FinalizeHdf5ICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
-{
-
-    hid_t file_id;
-    memcpy( &file_id, FTI_Exec->iCPInfo.fh, sizeof(FTI_H5_FH) );
-
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
-    }
-
-    int j;
-    for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-    }
-
-    // close file
-    FTI_Exec->H5groups[0]->h5groupID = -1;
-    if (H5Fclose(file_id) < 0) {
-        FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
-        return FTI_NSCS;
-    }
-
-
-    return FTI_SCES;
-
-}
-#endif
 
 /* 
  * As long SIONlib does not support seek in a single file

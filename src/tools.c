@@ -120,6 +120,10 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
   /* MPI_Comm      */ FTI_Exec->globalComm            =0;
   /* MPI_Comm      */ FTI_Exec->groupComm             =0;
+  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
+  /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
+                      memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
+                      memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
 
   // +--------- +
   // | FTI_Conf |
@@ -213,55 +217,16 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
-    FTIT_configuration* FTI_Conf, char* checksum)
+        FTIT_configuration* FTI_Conf, char* checksum)
 {
+    int i;
+    int ii = 0;
 
-  MD5_CTX mdContext;
-  MD5_Init (&mdContext);
-  int i;
-
-  //iterate all variables
-  for (i = 0; i < FTI_Exec->nbVar; i++) {
-   
-#ifdef GPUSUPPORT
-    if (FTI_Data[i].isDevicePtr) {
-        if (FTI_Conf->ioMode != FTI_IO_FTIFF)
-          FTI_Data[i].ptr = malloc(FTI_Data[i].count * FTI_Data[i].eleSize);
-
-      if(FTI_Data[i].ptr == NULL){
-        FTI_Print("Failed to allocate FTI scratch buffer", FTI_EROR);
-        return FTI_NSCS;
-      }
-      // TODO: Reuse GPU data on the host memory
-      int result = FTI_Try(FTI_copy_from_device(FTI_Data[i].ptr, FTI_Data[i].devicePtr, FTI_Data[i].size,  FTI_Exec), "copying data from GPU");
-
-      if(result == FTI_NSCS) {
-        return FTI_NSCS;
-      }
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
+        ii += 2;
     }
-#endif
-    MD5_Update (&mdContext, FTI_Data[i].ptr, FTI_Data[i].size);
-
-#ifdef GPUSUPPORT    
-    if (FTI_Data[i].isDevicePtr) {
-        if (FTI_Conf->ioMode != FTI_IO_FTIFF){
-          free(FTI_Data[i].ptr);
-          FTI_Data[i].ptr = NULL;
-        }
-    }
-#endif
-  }
-
-  unsigned char hash[MD5_DIGEST_LENGTH];
-  MD5_Final (hash, &mdContext);
-
-  int ii = 0;
-  for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
-    sprintf(&checksum[ii], "%02x", hash[i]);
-    ii += 2;
-  }
-
-  return FTI_SCES;
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -374,6 +339,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
       FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
       FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
       FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+	  FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
     }
   } else {
     for (i = 0; i < 5; i++) {
@@ -386,6 +352,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
       FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
       FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
       FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+	  FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
     }
   }
   FTI_Exec->metaAlloc = 1;
@@ -413,6 +380,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
       free(FTI_Exec->meta[i].nbVar);
       free(FTI_Exec->meta[i].varID);
       free(FTI_Exec->meta[i].varSize);
+	  free(FTI_Exec->meta[i].filePos);
     }
     FTI_Exec->metaAlloc = 0;
   }
@@ -1351,43 +1319,43 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 {
   int nodeFlag; //only one process in the node has set it to 1
   int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
-  globalFlag = (!FTI_Ckpt[4].isDcp && (globalFlag != 0));
-
 
   nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
-  nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
+  
+  bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff); 
+  bool notDcp = !FTI_Ckpt[4].isDcp;   
 
   if (level == 0) {
-    FTI_RmDir(FTI_Conf->mTmpDir, globalFlag);
-    FTI_RmDir(FTI_Conf->gTmpDir, globalFlag);
-    FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag);
+    FTI_RmDir(FTI_Conf->mTmpDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Conf->gTmpDir, globalFlag && notDcp );
+    FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag && notDcp );
   }
 
   // Clean last checkpoint level 1
   if (level >= 1) {
-    FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag);
-    FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag);
+    FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag && notDcp );
   }
 
   // Clean last checkpoint level 2
   if (level >= 2) {
-    FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag);
-    FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag);
+    FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag && notDcp );
   }
 
   // Clean last checkpoint level 3
   if (level >= 3) {
-    FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag);
-    FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag);
+    FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag && notDcp );
   }
 
   // Clean last checkpoint level 4
   if ( level == 4 || level == 5 ) {
-    FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag);
-    FTI_RmDir(FTI_Ckpt[4].dir, globalFlag);
+    FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff );
+    FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp );
     rmdir(FTI_Conf->gTmpDir);
   }
-  if ( FTI_Conf->dcpEnabled && level == 5 ) {
+  if ( (FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5 ) {
     FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
   }
 
@@ -1419,4 +1387,27 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   }
 
   return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      generates hex string representation of hash digest.
+  @param      char*             hash digest 
+  @param      int               digest width 
+  @return     char*             hex string of hash
+ **/
+/*-------------------------------------------------------------------------*/
+char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr )
+{       
+    static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
+    if( hashHexStr == NULL ) {
+        hashHexStr = hashHexStatic;
+    }
+
+    int i;
+    for(i = 0; i < digestWidth; i++) {
+        sprintf(&hashHexStr[2*i], "%02x", hash[i]);
+    }
+
+    return hashHexStr;
 }

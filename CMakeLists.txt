@@ -141,9 +141,10 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SRC_FTI
 	src/api.c src/checkpoint.c src/conf.c src/meta.c
 	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/ftiff.c src/hdf5.c
+	src/tools.c src/topo.c src/IO/ftiff.c src/IO/hdf5.c
 	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-	src/failure-injection.c src/api_cuda.c src/utility.c)
+	src/failure-injection.c src/api_cuda.c src/utility.c
+	src/IO/diff-checkpoint-posix.c src/macros.c src/IO/mpio.c src/IO/posix.c src/FTI_IO.c)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
@@ -174,7 +175,8 @@ if(${OPENSSL_FOUND})
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
 	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
+    set(HAVE_OPENSSL 1)
+    #set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
 else()
 	add_library(fti.static STATIC ${SRC_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
@@ -185,6 +187,7 @@ else()
 	append_property(TARGET fti.static fti.shared
 		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
+    set(HAVE_OPENSSL 0)
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
@@ -271,6 +274,12 @@ install(FILES "include/fti.h"
 	DESTINATION include)
 install(FILES "include/fti-int/incremental_checkpoint.h"
 	DESTINATION "include/fti-int" )
+install(FILES "include/fti-int/differential_checkpoint_posix.h"
+	DESTINATION "include/fti-int" )
+configure_file(include/fti-int/deps/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/include/fti-int/deps/md5.h" @ONLY)
+message("${CMAKE_CURRENT_SOURCE_DIR}")
+install(FILES "include/fti-int/deps/md5.h"
+	DESTINATION "include/fti-int/deps" )
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)

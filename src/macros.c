@@ -31,67 +31,47 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   utility.c
- *  @date   October, 2017
+ *  @file   macros.c
+ *  @date   May, 2019
  *  @brief  API functions for the FTI library.
  */
 
 
 
+#include <stdlib.h>
 #include <string.h>
-
+#include <stdio.h>
+#include <stdarg.h>
 #include "interface.h"
-#include "IO/ftiff.h"
-#include "api_cuda.h"
-#include "utility.h"
 
-
-
-#ifdef ENABLE_SIONLIB 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief     Writes data to a file using the SION library
-  @param     src    The location of the data to be written 
-  @param     size   The number of bytes that I need to write 
-  @param     opaque A pointer to the file descriptor  
-  @return    integer FTI_SCES if successful.
-
-  Writes the data to a file using the SION library. 
-
- **/
-/*-------------------------------------------------------------------------*/
-int write_sion(void *src, size_t size, void *opaque)
-{
-    int *sid= (int *)opaque;
-    int res = sion_fwrite(src, size, 1, *sid);
-    if (res < 0 ){
-        return FTI_NSCS;
-    }
-    return FTI_SCES;
-}
-#endif
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief     copies all data of GPU variables to a CPU memory location 
-  @param     FTI_Exec Execution Meta data. 
-  @param     FTI_Data        Dataset metadata.
-  @return    integer FTI_SCES if successful.
+  @brief      Varidic function that cleans the execution when an error occurs.
+  @param      patttern.       a series of characters, f denotes that the respective argument is a file to be closed p corresponds to a pointer to be freed 
+  @param      ....            Pointers corresponding to files or pointers.
+  @return     integer         FTI_SCES if successful.
 
-  Copis data from the GPU side to the CPU memory  
-
+    This functions cleans up the local environment after an error occurs.
  **/
 /*-------------------------------------------------------------------------*/
-
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
-#ifdef GPUSUPPORT
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if ( FTI_Data[i].isDevicePtr ){
-            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
+__attribute__ ((sentinel))
+    void cleanup(char *pattern, ...) {
+        va_list args;
+        va_start(args, pattern);
+        while (*pattern!= '\0') {
+            switch (*pattern++) {
+                case 'p':
+                    free(va_arg(args, void*));
+                    break;
+                case 'f':
+                    fclose(va_arg(args, void*));
+                    break;
+                default:
+                    FTI_Print("Unknown pattern in error Clean UP",FTI_WARN);
+            }
         }
+
+        va_end(args);
     }
-#endif
-    return FTI_SCES;
-}
 

@@ -198,8 +198,8 @@ int FTI_InitPrefetcher(FTIT_data_prefetch *dfls){
   @param     fetchData pointer pointing to the data fetched. 
   @return     integer         FTI_SCES if successful.
 
-    This data returns a pointer to data copied from the GPU side. It also
-    requests more data from the GPU side.
+  This data returns a pointer to data copied from the GPU side. It also
+  requests more data from the GPU side.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_getPrefetchedData( FTIT_data_prefetch *dfls, size_t *size, unsigned  char **fetchedData ){
@@ -251,9 +251,9 @@ int FTI_destroyPrefetcher(FTIT_data_prefetch *dfls){
   @brief     Allocates Host buffers which will be used for asynchronous communication with the GPU
   @param     HostBuffSize Size in bytes of each buffer. 
   @return     integer         FTI_SCES if successful.
-    
- Allocates 2 host buffers which are going to be used for asynchronous communication
- with the GPU.
+
+  Allocates 2 host buffers which are going to be used for asynchronous communication
+  with the GPU.
  **/
 /*-------------------------------------------------------------------------*/
 
@@ -274,9 +274,9 @@ int FTI_InitDevices ( int HostBuffSize ){
 /**
   @brief     De-allocates Host buffers which will be used for asynchronous communication with the GPU
   @return     integer         FTI_SCES if successful.
-    
- De-Allocates 2 host buffers which are going to be used for asynchronous communication
- with the GPU.
+
+  De-Allocates 2 host buffers which are going to be used for asynchronous communication
+  with the GPU.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_DestroyDevices(){
@@ -298,8 +298,8 @@ int FTI_DestroyDevices(){
   @param    dptr    Pointer to the data
   @param    numBytes number of bytes to be written 
   @return     integer         FTI_SCES if successful.
-    
- Uses 2 streams to copy data from a file to the GPU device memory.
+
+  Uses 2 streams to copy data from a file to the GPU device memory.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -316,9 +316,9 @@ int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes){
     while(numBytes){
         int bytesRead = fread(hostBuffers[id], 1, copy_size, fd);
         if (bytesRead != copy_size){
-          FTI_Print("Could Not read entire file",FTI_EROR);
-          fclose(fd);
-          return FTI_NSCS;
+            FTI_Print("Could Not read entire file",FTI_EROR);
+            fclose(fd);
+            return FTI_NSCS;
         }
         CUDA_ERROR_CHECK(cudaMemcpyAsync( dptr,hostBuffers[id], copy_size, cudaMemcpyHostToDevice, streams[id]));
         numBytes = numBytes - copy_size;
@@ -386,9 +386,9 @@ BYTE *FTI_getHostBuffer( int id ){
 int FTI_copy_to_device_async(void *dst, const void *src, size_t count)
 {
 #ifdef GPUSUPPORT
-  CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice,Gstream));
+    CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice,Gstream));
 #endif
-  return FTI_SCES;
+    return FTI_SCES;
 }
 
 
@@ -402,7 +402,7 @@ int FTI_copy_to_device_async(void *dst, const void *src, size_t count)
 int FTI_device_sync()
 {
 #ifdef GPUSUPPORT
-  CUDA_ERROR_CHECK(cudaStreamSynchronize(Gstream));
+    CUDA_ERROR_CHECK(cudaStreamSynchronize(Gstream));
 #endif
-  return FTI_SCES;
+    return FTI_SCES;
 }
