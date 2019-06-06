@@ -1369,6 +1369,8 @@ int FTI_Checkpoint(int id, int level)
 
     MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
     
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
+
     t3 = MPI_Wtime(); //Time after post-processing
     
     if (res != FTI_SCES) {
