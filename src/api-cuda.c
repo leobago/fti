@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "api_cuda.h"
 #include "interface.h"
 
 #ifdef GPUSUPPORT

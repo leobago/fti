@@ -37,8 +37,7 @@
  */
 
 
-#include "interface.h"
-#include "utility.h"
+#include "../interface.h"
 
 
 /*-------------------------------------------------------------------------*/

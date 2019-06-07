@@ -42,6 +42,12 @@
 #ifndef _STAGE_H_
 #define _STAGE_H_
 
+/** Maximum amount of concurrent active staging requests                   
+  @note leads to 2.5MB for the application processes as minimum memory
+  allocated
+ **/
+#define FTI_SI_MAX_NUM (512L*1024L) 
+
 // 1 bit field
 #define FTI_SI_NAVL 0x1
 #define FTI_SI_IAVL 0x0

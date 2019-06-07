@@ -38,11 +38,11 @@
  */
 #define _GNU_SOURCE
 
-#include "interface.h"
-#include "api_cuda.h"
-
-#include "utility.h"
-
+#include "../interface.h"
+#include <sys/mman.h>
+#include <time.h>
+#include <sys/types.h>
+#include <dirent.h>
 /*  
 
     +-------------------------------------------------------------------------+

@@ -46,23 +46,16 @@
 #endif
 #include <assert.h>
 #include <string.h>
-#include "utility.h"
+#include "../utility.h"
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-
-#define DBG_MSG(MSG,RANK,...) do { \
-    int rank; \
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank); \
-    if ( rank == RANK ) \
-    printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
-    if ( RANK == -1 ) \
-    printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
-} while (0)
+extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
+extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
+extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
 
 /**
 

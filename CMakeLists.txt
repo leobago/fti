@@ -138,13 +138,32 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
-set(SRC_FTI
-	src/api.c src/checkpoint.c src/conf.c src/meta.c
-	src/postckpt.c src/postreco.c src/recover.c
-	src/tools.c src/topo.c src/IO/ftiff.c src/IO/hdf5.c
-	src/diff-checkpoint.c src/stage.c src/incremental-checkpoint.c
-	src/failure-injection.c src/api_cuda.c src/utility.c
-	src/IO/diff-checkpoint-posix.c src/macros.c src/IO/mpio.c src/IO/posix.c src/FTI_IO.c)
+set(
+SRC_FTI
+    src/postckpt.c
+    src/conf.c
+    src/fti-io.c
+    src/recover.c
+    src/postreco.c
+    src/failure-injection.c
+    src/api-cuda.c
+    src/api.c
+    src/checkpoint.c
+    src/IO/posix-dcp.c
+    src/IO/hdf5-fti.c
+    src/IO/ftiff.c
+    src/IO/mpio.c
+    src/IO/posix.c
+    src/IO/ftiff-dcp.c
+    src/macros.c
+    src/stage.c
+    src/meta.c
+    src/icp.c
+    src/fortran/ftif.c
+    src/topo.c
+    src/tools.c
+    src/utility.c
+)
 
 if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
@@ -272,14 +291,9 @@ set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
-install(FILES "include/fti-int/incremental_checkpoint.h"
-	DESTINATION "include/fti-int" )
-install(FILES "include/fti-int/differential_checkpoint_posix.h"
-	DESTINATION "include/fti-int" )
-configure_file(include/fti-int/deps/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/include/fti-int/deps/md5.h" @ONLY)
-message("${CMAKE_CURRENT_SOURCE_DIR}")
-install(FILES "include/fti-int/deps/md5.h"
-	DESTINATION "include/fti-int/deps" )
+install(FILES "include/fti-intern.h"
+	DESTINATION include)
+configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)

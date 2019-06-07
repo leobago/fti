@@ -39,16 +39,9 @@
 
 #include "interface.h"
 
-#include "IO/ftiff.h"
-
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif 
-
-#include "api_cuda.h"
-#include "utility.h"
-#include "macros.h"
-
 
 /** General configuration information used by FTI.                         */
 static FTIT_configuration FTI_Conf;
@@ -1124,56 +1117,6 @@ void* FTI_Realloc(int id, void* ptr)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It corrupts a bit of the given float.
-  @param      target          Pointer to the float to corrupt.
-  @param      bit             Position of the bit to corrupt.
-  @return     integer         FTI_SCES if successful.
-
-  This function filps the bit of the target float.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_FloatBitFlip(float* target, int bit)
-{
-    if (bit >= 32 || bit < 0) {
-        return FTI_NSCS;
-    }
-    int* corIntPtr = (int*)target;
-    int corInt = *corIntPtr;
-    corInt = corInt ^ (1 << bit);
-    corIntPtr = &corInt;
-    float* fp = (float*)corIntPtr;
-    *target = *fp;
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It corrupts a bit of the given float.
-  @param      target          Pointer to the float to corrupt.
-  @param      bit             Position of the bit to corrupt.
-  @return     integer         FTI_SCES if successful.
-
-  This function filps the bit of the target float.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_DoubleBitFlip(double* target, int bit)
-{
-    if (bit >= 64 || bit < 0) {
-        return FTI_NSCS;
-    }
-    FTIT_double myDouble;
-    myDouble.value = *target;
-    int bitf = (bit >= 32) ? bit - 32 : bit;
-    int half = (bit >= 32) ? 1 : 0;
-    FTI_FloatBitFlip(&(myDouble.floatval[half]), bitf);
-    *target = myDouble.value;
-    return FTI_SCES;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      Bit-flip injection following the injection instructions.
   @param      datasetID       ID of the dataset where to inject.
   @return     integer         FTI_SCES if successful.
@@ -1331,8 +1274,6 @@ int FTI_Checkpoint(int id, int level)
         level = 4;
     }
     
-    bool ckptFirst = !FTI_Exec.hasCkpt; //ckptID = 0 if first checkpoint
-
     double t0 = MPI_Wtime(); //Start time
     if (FTI_Exec.wasLastOffline == 1) { // Block until previous checkpoint is done (Async. work)
         int lastLevel;
@@ -1417,7 +1358,7 @@ int FTI_Checkpoint(int id, int level)
     }
     double t3;
    
-    if ( ckptFirst && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (res == FTI_SCES) ) {
         //Setting recover flag to 1 (to recover from current ckpt level)
         res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
         FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
@@ -1425,9 +1366,9 @@ int FTI_Checkpoint(int id, int level)
             FTI_Exec.hasCkpt = true;
         }
     }
-    
-    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
 
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
+    
     t3 = MPI_Wtime(); //Time after post-processing
     
     if (res != FTI_SCES) {
@@ -1821,6 +1762,17 @@ int FTI_FinalizeICP()
             FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
         }
     }
+    
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (resPP == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        int res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
 
     double t3 = MPI_Wtime(); //Time after post-processing
 
@@ -2374,7 +2326,6 @@ int FTI_RecoverVar(int id)
 
     return FTI_SCES;
 }
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Prints FTI messages.
@@ -2395,19 +2346,19 @@ void FTI_Print(char* msg, int priority)
         if (msg != NULL) {
             switch (priority) {
                 case FTI_EROR:
-                    fprintf(stderr, "[ " RED "FTI Error - %06d" RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
                     break;
                 case FTI_WARN:
-                    fprintf(stdout, "[ " ORG "FTI Warning %06d" RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
                     break;
                 case FTI_INFO:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " GRN "FTI  Information" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_IDCP:
                     if (FTI_Topo.splitRank == 0) {
-                        fprintf(stdout, "[ " BLU "FTI  dCP Message" RESET " ] : %s \n", msg);
+                        fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
                     }
                     break;
                 case FTI_DBUG:

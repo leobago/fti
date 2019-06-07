@@ -36,7 +36,7 @@
  *  @brief  Post recovery functions for the FTI library.
  */
 #include "interface.h"
-
+#include <time.h>
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It recovers a set of ckpt. files using RS decoding.

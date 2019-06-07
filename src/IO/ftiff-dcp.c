@@ -40,7 +40,7 @@
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 
-#include "interface.h"
+#include "../interface.h"
 
 
 #ifdef FTI_NOZLIB

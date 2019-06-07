@@ -37,8 +37,7 @@
  */
 
 #include "interface.h"
-#include "macros.h"
-
+#include <time.h>
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It gets the checksums from metadata.
@@ -861,29 +860,31 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meta[0].nbVar[0] = FTI_Exec->nbVar;
 
 #ifdef ENABLE_HDF5
-    char fn[FTI_BUFS];
-    if (FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
-    if (access(fn, F_OK) == 0) {
-        struct stat fileStatus;
-        if (stat(fn, &fileStatus) == 0) {
-            FTI_Exec->meta[0].fs[0] = fileStatus.st_size;
+    if( FTI_Conf->ioMode == FTI_IO_HDF5 ) {
+        char fn[FTI_BUFS];
+        if (FTI_Exec->ckptLvel == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        }
+        else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        }
+        if (access(fn, F_OK) == 0) {
+            struct stat fileStatus;
+            if (stat(fn, &fileStatus) == 0) {
+                FTI_Exec->meta[0].fs[0] = fileStatus.st_size;
+            }
+            else {
+                char str[FTI_BUFS];
+                snprintf(str, FTI_BUFS, "FTI couldn't get ckpt file size. (%s)", fn);
+                FTI_Print(str, FTI_WARN);
+            }
         }
         else {
             char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "FTI couldn't get ckpt file size. (%s)", fn);
+            snprintf(str, FTI_BUFS, "FTI couldn't access file ckpt file. (%s)", fn);
+            snprintf(str, FTI_BUFS, "FTI couldn't acces file ckpt file. (%s)", fn);
             FTI_Print(str, FTI_WARN);
         }
-    }
-    else {
-        char str[FTI_BUFS];
-        snprintf(str, FTI_BUFS, "FTI couldn't access file ckpt file. (%s)", fn);
-        snprintf(str, FTI_BUFS, "FTI couldn't acces file ckpt file. (%s)", fn);
-        FTI_Print(str, FTI_WARN);
     }
 #endif
 

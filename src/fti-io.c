@@ -38,9 +38,6 @@
 
 
 
-#include "FTI_IO.h"
-#include "utility.h"
-#include "IO/ftiff.h"
 #include "interface.h"
 
 /** Structure that stores the function pointer wrappers to perform the IO **/
