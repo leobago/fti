@@ -54,10 +54,12 @@
  */
 
 #define X 64
-#define Y (1024*256)
+#define Y1 (1024*128)
+#define Y2 (2*Y1)
 
-#define fdim0 X
-#define fdim1 Y
+#define fdimX X
+#define fdimY1 Y1
+#define fdimY2 Y2
 
 #define fn "row-conti.h5"
 #define dn "shared dataset"
@@ -115,15 +117,15 @@ int main() {
 
     size_bac = size;
 
-    int ldim0 = fdim0/((int)sqrt(size));
-    int ldim1 = fdim1/((int)sqrt(size));
+    int ldim0 = fdimX/((int)sqrt(size));
+    int ldim1 = fdimY1/((int)sqrt(size));
     
     // define local properties
     hsize_t offset[] = { ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0, (rank%((int)sqrt(size)))*ldim1 };
     hsize_t count[] = { 1, ldim1 };
     
     // set dataset properties
-    hsize_t fdim[2] = { fdim0, fdim1 }; 
+    hsize_t fdim[2] = { fdimX, fdimY1 }; 
  
     // check for correct behavior using define datatypes
     struct STRUCT {
@@ -163,6 +165,36 @@ int main() {
     // reset offset 0 to original value
     offset[0] = ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0;
 
+    MPI_Barrier(FTI_COMM_WORLD);
+    // simulate dynamic size
+    ldim1 = fdimY2/((int)sqrt(size));
+    
+    // define local properties
+    offset[1] = (rank%((int)sqrt(size)))*ldim1;
+    count[1] = ldim1;
+    
+    // set dataset properties
+    fdim[1] = fdimY2; 
+    
+    FTI_UpdateGlobalDataset( 0, 2, fdim );
+    FTI_UpdateGlobalDataset( 1, 2, fdim );
+    
+    // create row contiguous array and add rows to dataset
+    for(i=0; i<ldim0; ++i) {
+        data[i] = (int*) realloc( data[i], sizeof(int) * ldim1 );
+        sdata[i] = (struct STRUCT*) realloc( sdata[i], sizeof(struct STRUCT) * ldim1 );
+        FTI_Protect( i, data[i], ldim1, FTI_INTG );
+        FTI_Protect( i+ldim0, sdata[i], ldim1, FTI_NEW_STRUCT );
+        FTI_UpdateSubset( i, 2, offset, count, 0 );
+        FTI_UpdateSubset( i+ldim0, 2, offset, count, 1 );
+        offset[0]++;
+    }
+    MPI_Barrier(FTI_COMM_WORLD);
+    
+    // reset offset 0 to original value
+    offset[0] = ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0;
+    
+
 //
 // -->> CHECKPOINT AND RESTART
 //
@@ -172,6 +204,26 @@ int main() {
         for(i=0; i<ldim0; ++i) {
             for(j=0; j<ldim1; ++j) {
                 data[i][j] = -1;
+            }
+        }
+        
+        hsize_t nulldim[2] = { 0, 0 }; 
+        FTI_UpdateGlobalDataset( 0, 2, nulldim );
+        FTI_UpdateGlobalDataset( 1, 2, nulldim );
+        if( FTI_Status() == 3 ) {
+            FTI_RecoverDatasetDimension( 0 );
+            FTI_RecoverDatasetDimension( 1 );
+            int rankReco = FTI_GetDatasetRank( 0 );
+            if( rankReco != 2 ) {
+                printf("[FAILURE-%d] Rank Missmatch!\n", rank);
+                MPI_Abort(MPI_COMM_WORLD, -1);
+            }
+            hsize_t* spanReco = FTI_GetDatasetSpan( 0, rankReco ); 
+            for(i=0; i<rankReco; i++) {
+                if( (spanReco[i] != fdim[i]) ) {
+                    printf("[FAILURE-%d] Dimension Missmatch!\n", rank);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                }
             }
         }
         FTI_Recover();
