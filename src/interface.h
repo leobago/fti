@@ -51,6 +51,7 @@
 #include "stage.h"
 #include "fti-io.h"
 #include "topo.h"
+#include "IO/posix.h"
 #include "IO/posix-dcp.h"
 #include "IO/hdf5-fti.h"
 #include "IO/ftiff.h"

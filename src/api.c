@@ -172,7 +172,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         if ( FTI_Try( FTI_InitDevices(FTI_Conf.cHostBufSize), "Allocating resources for communication with the devices") != FTI_SCES){
             FTI_Print("Cannot Allocate defice memory\n", FTI_EROR);
         } 
-        if ( FTI_Try(FTI_InitCheckpointWriters(FTI_Conf.ioMode, &FTI_Exec),"Initializing IO pointers") != FTI_SCES){
+        if ( FTI_Try(FTI_InitFunctionPointers(FTI_Conf.ioMode, &FTI_Exec),"Initializing IO pointers") != FTI_SCES){
             FTI_Print("Cannot define the function pointers\n", FTI_EROR);
         }
 
@@ -1213,6 +1213,7 @@ int FTI_Checkpoint(int id, int level)
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
+
     if ( level == FTI_L4_DCP ) {
         if ( (FTI_Conf.ioMode == FTI_IO_FTIFF) || (FTI_Conf.ioMode == FTI_IO_POSIX)  ) {
             if ( FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix ) {
@@ -1240,7 +1241,6 @@ int FTI_Checkpoint(int id, int level)
     }
     
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
-    int lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
@@ -1271,40 +1271,10 @@ int FTI_Checkpoint(int id, int level)
         FTI_Ckpt[4].hasDcp = true;
     }
 
-    // FTIFF: send meta info to the heads
-    FTIFF_headInfo *headInfo;
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
-        FTI_Exec.wasLastOffline = 1;
-        // Head needs ckpt. ID to determine ckpt file name.
-        int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
-        if (res != FTI_SCES) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = lastCkptLvel; //Set previous ckptLvel
-            value = FTI_REJW; //Send reject checkpoint token to head
-        }
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
-        int isDCP = (int)FTI_Ckpt[4].isDcp;
-        MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
-        // FTIFF: send meta info to the heads
-        if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
-            headInfo = malloc(sizeof(FTIFF_headInfo));
-            headInfo->exists = FTI_Exec.meta[0].exists[0];
-            headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
-            headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
-            headInfo->fs = FTI_Exec.meta[0].fs[0];
-            headInfo->pfs = FTI_Exec.meta[0].pfs[0];
-            headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-            if( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-                strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
-            } else {
-                strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            }            
-	    MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            free(headInfo);
-        }
-
+        FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, res );
     }
+
     else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
         if (res != FTI_SCES) { //If Writing checkpoint failed
@@ -1483,7 +1453,6 @@ int FTI_InitICP(int id, int level, bool activate)
     }
 
     FTI_Exec.iCPInfo.t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
-    FTI_Exec.iCPInfo.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful writing checkpoint level in case of failure
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
 
     // Name of the  CKPT file.
@@ -1677,41 +1646,10 @@ int FTI_FinalizeICP()
         FTI_Ckpt[4].hasDcp = true;
     }
 
-    // FTIFF: send meta info to the heads
-    FTIFF_headInfo *headInfo;
+    int status = (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) ? FTI_NSCS : FTI_SCES;
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
-        FTI_Exec.wasLastOffline = 1;
-        // Head needs ckpt. ID to determine ckpt file name.
-        int value = FTI_BASE + FTI_Exec.ckptLvel; //Token to send to head
-        if (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_Exec.iCPInfo.lastCkptLvel; //Set previous ckptLvel
-            value = FTI_REJW; //Send reject checkpoint token to head
-        }
-        MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
-        int isDCP = (int)FTI_Ckpt[4].isDcp;
-        MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.ckptTag, FTI_Exec.globalComm);
-        // FTIFF: send meta info to the heads
-        if( FTI_Conf.ioMode == FTI_IO_FTIFF && value != FTI_REJW ) {
-            headInfo = malloc(sizeof(FTIFF_headInfo));
-            headInfo->exists = FTI_Exec.meta[0].exists[0];
-            headInfo->nbVar = FTI_Exec.meta[0].nbVar[0];
-            headInfo->maxFs = FTI_Exec.meta[0].maxFs[0];
-            headInfo->fs = FTI_Exec.meta[0].fs[0];
-            headInfo->pfs = FTI_Exec.meta[0].pfs[0];
-            headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-            if( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-                strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
-            } else {
-                strncpy(headInfo->ckptFile, FTI_Exec.meta[0].ckptFile, FTI_BUFS);
-            }            
-            MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            MPI_Send(FTI_Exec.meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm);
-            free(headInfo);
-        }
-
-    }
-    else { //If post-processing is inline
+        FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, status);
+    } else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
         if (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) { //If Writing checkpoint failed
             FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
@@ -1791,7 +1729,6 @@ int FTI_FinalizeICP()
             FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
         }
     } else {
-        FTI_Exec.ckptLvel = FTI_Exec.iCPInfo.lastCkptLvel;
         FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
     }
     if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {

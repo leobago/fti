@@ -155,6 +155,7 @@ typedef struct FTIFF_MPITypeInfo {
 
  **/
 
+int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 void FTIFF_InitMpiTypes();
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
