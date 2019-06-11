@@ -26,4 +26,6 @@ static inline uint32_t crc32(const void *buf, size_t size)
 }
 #endif
 
+int FTI_PrintDcpStats( FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec, FTIT_topology FTI_Topo );
+
 #endif // __DCP_H__

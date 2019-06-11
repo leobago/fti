@@ -1059,6 +1059,23 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 //#warning fix error codes
     FTI_PosixSync(&write_info);
     FTI_PosixClose(&write_info);
+        
+    // set hasCkpt flags true
+    FTIFF_db* currentDB = FTI_Exec->firstdb;
+    currentDB->update = false;
+    do {    
+        int varIdx;
+        for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
+            FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
+            currentdbVar->hasCkpt = true;
+            currentdbVar->update = false;
+        }
+    }
+    while ( (currentDB = currentDB->next) != NULL );    
+
+
+    FTI_UpdateDcpChanges(FTI_Data, FTI_Exec);
+    FTI_Ckpt[4].hasDcp = true;
 
     return FTI_SCES;
 

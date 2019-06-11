@@ -149,6 +149,7 @@ SRC_FTI
     src/api-cuda.c
     src/api.c
     src/checkpoint.c
+    src/dcp.c
     src/IO/posix-dcp.c
     src/IO/hdf5-fti.c
     src/IO/ftiff.c

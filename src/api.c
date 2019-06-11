@@ -1244,6 +1244,8 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
+    
+    // no postprocessing or meta data for h5 single file
     if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
         char str[FTI_BUFS];
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
@@ -1252,25 +1254,6 @@ int FTI_Checkpoint(int id, int level)
         return FTI_SCES;
     }
     
-    // set hasCkpt flags true
-    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        FTIFF_db* currentDB = FTI_Exec.firstdb;
-        currentDB->update = false;
-        do {    
-            int varIdx;
-            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
-                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
-                currentdbVar->hasCkpt = true;
-                currentdbVar->update = false;
-            }
-        }
-        while ( (currentDB = currentDB->next) != NULL );    
-        
-    
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
-        FTI_Ckpt[4].hasDcp = true;
-    }
-
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, res );
     }
@@ -1311,53 +1294,7 @@ int FTI_Checkpoint(int id, int level)
     FTI_Print(str, FTI_INFO);
     
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
-       
-        unsigned long pureDataSize = (FTI_Conf.dcpFtiff) ? FTI_Exec.FTIFFMeta.pureDataSize : FTI_Exec.dcpInfoPosix.dataSize;
-        unsigned long dcpSize = (FTI_Conf.dcpFtiff) ? FTI_Exec.FTIFFMeta.dcpSize : FTI_Exec.dcpInfoPosix.dcpSize;
-        long norder_data, norder_dcp;
-        char corder_data[3], corder_dcp[3];
-        long DCP_TB = (1024L*1024L*1024L*1024L);
-        long DCP_GB = (1024L*1024L*1024L);
-        long DCP_MB = (1024L*1024L);
-        if ( pureDataSize > DCP_TB ) {
-            norder_data = DCP_TB;
-            snprintf( corder_data, 3, "TB" );
-        } else if ( pureDataSize > DCP_GB ) {
-            norder_data = DCP_GB;
-            snprintf( corder_data, 3, "GB" );
-        } else {
-            norder_data = DCP_MB;
-            snprintf( corder_data, 3, "MB" );
-        }
-        if ( dcpSize > DCP_TB ) {
-            norder_dcp = DCP_TB;
-            snprintf( corder_dcp, 3, "TB" );
-        } else if ( dcpSize > DCP_GB ) {
-            norder_dcp = DCP_GB;
-            snprintf( corder_dcp, 3, "GB" );
-        } else {
-            norder_dcp = DCP_MB;
-            snprintf( corder_dcp, 3, "MB" );
-        }
-
-        if ( FTI_Topo.splitRank != 0 ) {
-            snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)pureDataSize/norder_data, corder_data,
-                    (double)dcpSize/norder_dcp, corder_dcp,
-                    ((double)dcpSize/pureDataSize)*100 );
-            FTI_Print( str, FTI_DBUG );
-        } else {
-            snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
-                    (double)pureDataSize/norder_data, corder_data,
-                    (double)dcpSize/norder_dcp, corder_dcp,
-                    ((double)dcpSize/pureDataSize)*100 );
-        }
-        
-        FTI_Print(str, FTI_IDCP);
-    }
-    
-    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        FTI_Ckpt[4].isDcp = false;
+        FTI_PrintDcpStats( FTI_Conf, FTI_Exec, FTI_Topo );   
     }
  
     return FTI_DONE;
@@ -1679,50 +1616,9 @@ int FTI_FinalizeICP()
         FTI_Print(str, FTI_INFO);
 
         if ( (FTI_Conf.dcpFtiff||FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
-
-            unsigned long pureDataSize = (FTI_Conf.dcpFtiff) ? FTI_Exec.FTIFFMeta.pureDataSize : FTI_Exec.dcpInfoPosix.dataSize;
-            unsigned long dcpSize = (FTI_Conf.dcpFtiff) ? FTI_Exec.FTIFFMeta.dcpSize : FTI_Exec.dcpInfoPosix.dcpSize;
-            long norder_data, norder_dcp;
-            char corder_data[3], corder_dcp[3];
-            long DCP_TB = (1024L*1024L*1024L*1024L);
-            long DCP_GB = (1024L*1024L*1024L);
-            long DCP_MB = (1024L*1024L);
-            if ( pureDataSize > DCP_TB ) {
-                norder_data = DCP_TB;
-                snprintf( corder_data, 3, "TB" );
-            } else if ( pureDataSize > DCP_GB ) {
-                norder_data = DCP_GB;
-                snprintf( corder_data, 3, "GB" );
-            } else {
-                norder_data = DCP_MB;
-                snprintf( corder_data, 3, "MB" );
-            }
-            if ( dcpSize > DCP_TB ) {
-                norder_dcp = DCP_TB;
-                snprintf( corder_dcp, 3, "TB" );
-            } else if ( dcpSize > DCP_GB ) {
-                norder_dcp = DCP_GB;
-                snprintf( corder_dcp, 3, "GB" );
-            } else {
-                norder_dcp = DCP_MB;
-                snprintf( corder_dcp, 3, "MB" );
-            }
-
-            if ( FTI_Topo.splitRank != 0 ) {
-                snprintf( str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update: %.2lf %s, dCP share: %.2lf%%",
-                        (double)pureDataSize/norder_data, corder_data,
-                        (double)dcpSize/norder_dcp, corder_dcp,
-                        ((double)dcpSize/pureDataSize)*100 );
-                FTI_Print( str, FTI_DBUG );
-            } else {
-                snprintf( str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update: %.2lf %s, dCP share: %.2lf%%",
-                        (double)pureDataSize/norder_data, corder_data,
-                        (double)dcpSize/norder_dcp, corder_dcp,
-                        ((double)dcpSize/pureDataSize)*100 );
-            }
-
-            FTI_Print(str, FTI_IDCP);
+            FTI_PrintDcpStats( FTI_Conf, FTI_Exec, FTI_Topo );
         }
+
         if (FTI_Exec.iCPInfo.isFirstCp && FTI_Topo.splitRank == 0) {
             //Setting recover flag to 1 (to recover from current ckpt level)
             FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
@@ -1730,9 +1626,6 @@ int FTI_FinalizeICP()
         }
     } else {
         FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
-    }
-    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        FTI_Ckpt[4].isDcp = false;
     }
 
     FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
