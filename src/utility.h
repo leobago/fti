@@ -35,6 +35,8 @@ typedef struct{
 typedef struct{
     FTIT_execution *FTI_Exec;       // Execution environment
     FTIT_dataset *FTI_Data;         // FTI Data
+    FTIT_topology *FTI_Topo;         // FTI Data
+    FTIT_configuration *FTI_Conf;         // FTI Data
     hid_t file_id;                  // File Id
 }WriteHDF5Info_t;
 

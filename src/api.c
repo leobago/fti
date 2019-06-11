@@ -1210,54 +1210,6 @@ int FTI_Checkpoint(int id, int level)
     
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
-    if ( level == FTI_L4_H5_SINGLE ) {
-#ifdef ENABLE_HDF5
-        if ( FTI_Conf.ioMode == FTI_IO_HDF5 ) {
-            if( FTI_Conf.h5SingleFileEnable ) {
-                FTI_Exec.h5SingleFile = true;
-            } else {
-                FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
-                return FTI_DONE;
-            }
-        } else {
-            FTI_Print("L4 Single HDF5 file checkpoint is requested, but selected I/O is not HDF5", FTI_WARN);
-            return FTI_DONE;
-        }
-        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
-            FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
-            return FTI_NREC;
-        }
-        level = 4;
-        t1 = MPI_Wtime();
-        int lastCkptLvelBackup = FTI_Exec.ckptLvel;
-        FTI_Exec.ckptLvel = level; // undo in any case afterwards. H5 VPR is not for resiliency!
-        int status = FTI_Try(FTI_WriteHDF5(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write VPR checkpoint.");
-        t2 = MPI_Wtime();
-        FTI_Exec.ckptLvel = lastCkptLvelBackup;
-        bool removeLastFile = (status == FTI_SCES) && !FTI_Conf.h5SingleFileKeep;
-        removeLastFile &=  (bool)strcmp( FTI_Exec.h5SingleFileLast, "" );
-        if( removeLastFile && !FTI_Topo.splitRank ) {
-            status = remove( FTI_Exec.h5SingleFileLast );
-            if ( (status != ENOENT) && (status != 0) ) {
-                char errstr[FTI_BUFS];
-                snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", FTI_Exec.h5SingleFileLast );
-                FTI_Print( errstr, FTI_EROR );
-            }
-        }
-        if( status == FTI_SCES ) {
-            snprintf( FTI_Exec.h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf.h5SingleFileDir, 
-                    FTI_Conf.h5SingleFilePrefix, FTI_Exec.ckptID );
-            char str[FTI_BUFS];
-            sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                    FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
-            FTI_Print(str, FTI_INFO);
-        }
-        return status;
-#else
-        FTI_Print("FTI is not compiled with HDF5 support!", FTI_EROR);
-        return FTI_NSCS;
-#endif
-    }
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1292,6 +1244,13 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
+    if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
+        char str[FTI_BUFS];
+        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
+        FTI_Print(str, FTI_INFO);
+        return FTI_SCES;
+    }
     
     // set hasCkpt flags true
     if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {

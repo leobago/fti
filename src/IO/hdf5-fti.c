@@ -337,7 +337,8 @@ int FTI_ScanGroup( hid_t gid, char* fn )
   @return     integer         The position in the file.
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetHDF5FilePos(void *fileDesc){
+size_t FTI_GetHDF5FilePos(void *fileDesc)
+{
     return 0;
 }
 
@@ -349,7 +350,8 @@ size_t FTI_GetHDF5FilePos(void *fileDesc){
   @return     integer         FTI_SCES on success.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_HDF5Open(char *fn, void *fileDesc){
+int FTI_HDF5Open(char *fn, void *fileDesc)
+{
     WriteHDF5Info_t *fd = (WriteHDF5Info_t*) fileDesc;
     char str[FTI_BUFS];
     //Creating new hdf5 file
@@ -384,7 +386,8 @@ int FTI_HDF5Open(char *fn, void *fileDesc){
   @return   integer         FTI_SCES on success;
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar){
+int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar)
+{
     char str[FTI_BUFS];
     int toCommit = 0;
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
@@ -973,7 +976,8 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
+int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info)
+{
     WriteHDF5Info_t *fd= (WriteHDF5Info_t *) write_info;
     char str[FTI_BUFS];
     int res;
@@ -1008,8 +1012,9 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info){
 
  **/
 /*-------------------------------------------------------------------------*/
-int  FTI_HDF5Close(void *fileDesc){
-    int i,j;
+int  FTI_HDF5Close(void *fileDesc)
+{
+    int i,j,status = FTI_SCES;
     WriteHDF5Info_t *fd = (WriteHDF5Info_t *)fileDesc;
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
 
@@ -1031,8 +1036,25 @@ int  FTI_HDF5Close(void *fileDesc){
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
         return FTI_NSCS;
     }
+    if( fd->FTI_Exec->h5SingleFile ) {
+        bool removeLastFile = !fd->FTI_Conf->h5SingleFileKeep && (bool)strcmp( fd->FTI_Exec->h5SingleFileLast, "" );
+        if( removeLastFile && !fd->FTI_Topo->splitRank ) {
+            status = remove( fd->FTI_Exec->h5SingleFileLast );
+            if ( (status != ENOENT) && (status != 0) ) {
+                char errstr[FTI_BUFS];
+                snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", fd->FTI_Exec->h5SingleFileLast );
+                FTI_Print( errstr, FTI_EROR );
+            } else {
+                status = FTI_SCES;
+            }
+        }
+        if( status == FTI_SCES ) {
+            snprintf( fd->FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", fd->FTI_Conf->h5SingleFileDir, 
+                    fd->FTI_Conf->h5SingleFilePrefix, fd->FTI_Exec->ckptID );
+        }
+    }
 
-    return FTI_SCES;
+    return status;
 
 }
 
@@ -1049,9 +1071,24 @@ int  FTI_HDF5Close(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
+{
     
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
+    
+    if ( FTI_Exec->ckptLvel == FTI_L4_H5_SINGLE ) {
+        if( FTI_Conf->h5SingleFileEnable ) {
+            FTI_Exec->h5SingleFile = true;
+        } else {
+            FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
+            return NULL;
+        }
+        if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
+            FTI_Print( "Dimension missmatch in VPR file. Checkpoint failed!", FTI_WARN );
+            return NULL;
+        }
+        FTI_Exec->ckptLvel = 4;
+    }
     
     char  fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
@@ -1069,6 +1106,8 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     WriteHDF5Info_t *fd= (WriteHDF5Info_t*) malloc(sizeof(WriteHDF5Info_t));;
     fd->FTI_Exec = FTI_Exec;
     fd->FTI_Data = FTI_Data;
+    fd->FTI_Conf = FTI_Conf;
+    fd->FTI_Topo = FTI_Topo;
 
     FTI_HDF5Open(fn, fd); 
 
