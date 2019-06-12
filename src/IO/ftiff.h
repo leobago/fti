@@ -47,6 +47,7 @@
 #include <assert.h>
 #include <string.h>
 #include "../utility.h"
+#include <inttypes.h> 
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
