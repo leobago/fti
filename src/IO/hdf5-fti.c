@@ -1530,6 +1530,36 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
 }
 
+int FTI_GetDatasetRankReco( hid_t did ) 
+{
+
+    hid_t sid;
+
+    sid = H5Dget_space( did );
+
+    int drank = H5Sget_simple_extent_ndims( sid );
+
+    H5Sclose(sid);
+
+    return drank;
+
+}
+
+int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span )
+{
+
+    hid_t sid;
+
+    sid = H5Dget_space( did );
+
+    H5Sget_simple_extent_dims( sid, span, NULL );
+
+    H5Sclose(sid);
+
+    return FTI_SCES;
+
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Checks for matching dimension sizes of sub-sets
