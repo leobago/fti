@@ -666,7 +666,8 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
+int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) 
+{
     strncpy(FTI_Exec.H5groups[h5group->id]->name, name, FTI_BUFS);
     return FTI_SCES;
 }
