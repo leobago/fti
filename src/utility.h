@@ -31,6 +31,18 @@ typedef struct{
     size_t layerSize;               // size of the dcp layer
 }WriteDCPPosixInfo_t;
 
+typedef struct{
+    FILE *f;                        // Posix file descriptor
+    size_t offset;                  // offset in the file
+    char flag;                      // flags to open the file
+    MD5_CTX integrity;              // integrity of the file
+    FTIT_configuration *FTI_Conf;   // FTI Configuration
+    FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
+    FTIT_execution *FTI_Exec;       // FTI execution options
+    FTIT_topology *FTI_Topo;        // FTI node topology
+    FTIT_dataset *FTI_Data;
+}WriteFTIFFInfo_t;
+
 #ifdef ENABLE_HDF5
 typedef struct{
     FTIT_execution *FTI_Exec;       // Execution environment

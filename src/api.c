@@ -1937,6 +1937,7 @@ int FTI_FinalizeICP()
 
     int allRes[2];
     int locRes[2] = { (int)(FTI_Exec.iCPInfo.result==FTI_SCES), (int)(FTI_Exec.iCPInfo.countVar==FTI_Exec.nbVar) };
+    //DBG_MSG("RANK",-1);
     //Check if all processes have written all the datasets failure free.
     MPI_Allreduce(locRes, allRes, 2, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes[0] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {

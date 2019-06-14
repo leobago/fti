@@ -135,7 +135,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
    
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
-    int offset = 2*(FTI_Conf->dcpPosix);
+    int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {

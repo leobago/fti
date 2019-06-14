@@ -721,7 +721,7 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIFF_dbvar *currentdbvar, 
-        unsigned char *dptr, size_t currentOffset, size_t fetchedBytes, long *dcpSize, WritePosixInfo_t *fd, char *fn){
+        unsigned char *dptr, size_t currentOffset, size_t fetchedBytes, long *dcpSize, WriteFTIFFInfo_t *fd){
 
     unsigned char *chunk_addr = NULL;
     size_t chunk_size,chunk_offset;
@@ -781,7 +781,7 @@ int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTI
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
-        FTIT_dataset *FTI_Data, unsigned char *hashchk, WritePosixInfo_t *fd, char *fn, long *dcpSize, unsigned char **dptr){
+        FTIT_dataset *FTI_Data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr){
     bool hascontent = currentdbvar->hascontent;
     unsigned char *cbasePtr = NULL; 
     errno = 0;
@@ -828,7 +828,7 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTI
 
         while (cbasePtr){
             MD5_Update( &dbContext, cbasePtr, totalBytes );  
-            FTI_WriteMemFTIFFChunk(FTI_Exec, FTI_Data, currentdbvar, cbasePtr, offset, totalBytes,  dcpSize, fd, fn);
+            FTI_WriteMemFTIFFChunk(FTI_Exec, FTI_Data, currentdbvar, cbasePtr, offset, totalBytes,  dcpSize, fd);
             offset+=totalBytes;
             if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &cbasePtr), " Fetching Next Memory block from memory") != FTI_SCES ){
                 return FTI_NSCS;
@@ -940,7 +940,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
         }
 
-    WritePosixInfo_t write_info;
+    WriteFTIFFInfo_t write_info;
     write_info.offset = 0;
     // for dCP: create if not exists, open if exists
     if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) 
@@ -981,7 +981,7 @@ int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 pureDataSize += currentdbvar->chunksize;
             }
 
-            FTI_ProcessDBVar(FTI_Exec, FTI_Conf, currentdbvar, FTI_Data, hashchk, &write_info, fn, &dcpSize, &dptr);
+            FTI_ProcessDBVar(FTI_Exec, FTI_Conf, currentdbvar, FTI_Data, hashchk, &write_info, &dcpSize, &dptr);
 
             if( currentdbvar->hascontent ) {
                 memcpy( currentdbvar->hash, hashchk, MD5_DIGEST_LENGTH );
@@ -1126,7 +1126,7 @@ int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_D
   conventional and incremental checkpointing.
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WritePosixInfo_t *fd )
+int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd )
 {
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;

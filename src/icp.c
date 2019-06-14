@@ -125,6 +125,170 @@ int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
 }
 
 
+void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data )
+{
+    char fn[FTI_BUFS];
+    WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) malloc (sizeof(WriteFTIFFInfo_t));
+    FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
+    // only for printout of dCP share in FTI_Checkpoint
+    FTI_Exec->FTIFFMeta.dcpSize = 0;
+    // important for reading and writing operations
+    FTI_Exec->FTIFFMeta.dataSize = 0;
+    FTI_Exec->FTIFFMeta.pureDataSize = 0;
+
+    //If inline L4 save directly to global directory
+    int level = FTI_Exec->ckptLvel;
+    if (level == 4 && FTI_Ckpt[4].isInline) { 
+        if( FTI_Conf->dcpFtiff&& FTI_Ckpt[4].isDcp ) {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        }
+    } else if ( level == 4 && !FTI_Ckpt[4].isInline )
+        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Ckpt[4].dcpName);
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        }
+        else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        }
+
+    // for dCP: create if not exists, open if exists
+    if ( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ){ 
+        if (access(fn,R_OK) != 0){ 
+            write_info->flag = 'w'; 
+        }
+        else {
+            write_info->flag = 'e'; //e means extend file 
+        }
+    }
+    else {
+        write_info->flag = 'w';
+    }
+    write_info->offset = 0;
+    FTI_PosixOpen(fn,write_info);
+    write_info->FTI_Conf = FTI_Conf;
+    write_info->FTI_Exec = FTI_Exec;
+    write_info->FTI_Topo = FTI_Topo;
+    write_info->FTI_Ckpt = FTI_Ckpt;
+    write_info->FTI_Data = FTI_Data;
+    return write_info;
+}
+
+int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd )
+{
+    
+    WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) fd;
+    
+    char str[FTI_BUFS];
+
+    FTIFF_db *db = write_info->FTI_Exec->firstdb;
+    FTIFF_dbvar *dbvar = NULL;
+    unsigned char *dptr;
+    int dbvar_idx, dbcounter=0;
+    int isnextdb;
+    long dcpSize = 0;
+    long dataSize = 0;
+    long pureDataSize = 0;
+
+    int pvar_idx = -1, pvar_idx_;
+    for( pvar_idx_=0; pvar_idx_<write_info->FTI_Exec->nbVar; pvar_idx_++ ) {
+        if( write_info->FTI_Data[pvar_idx_].id == FTI_Data->id ) {
+            pvar_idx = pvar_idx_;
+        }
+    }
+    if( pvar_idx == -1 ) {
+        FTI_Print("FTI_WriteFtiffVar: Illegal ID", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTIFF_UpdateDatastructVarFTIFF( write_info->FTI_Exec, write_info->FTI_Data, write_info->FTI_Conf, pvar_idx );
+
+    // check if metadata exists
+    if( write_info->FTI_Exec->firstdb == NULL ) {
+        FTI_Print("No data structure found to write data to file. Discarding checkpoint.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    db = write_info->FTI_Exec->firstdb;
+
+    do {    
+
+        isnextdb = 0;
+
+        for(dbvar_idx=0;dbvar_idx<db->numvars;dbvar_idx++) {
+
+            dbvar = &(db->dbvars[dbvar_idx]);
+
+            if( dbvar->id == FTI_Data->id ) {
+                unsigned char hashchk[MD5_DIGEST_LENGTH];
+                // important for dCP!
+                // TODO check if we can use:
+                // 'dataSize += dbvar->chunksize'
+                // for dCP disabled
+                dataSize += dbvar->containersize;
+                if( dbvar->hascontent ) 
+                    pureDataSize += dbvar->chunksize;
+
+                FTI_ProcessDBVar(write_info->FTI_Exec, write_info->FTI_Conf, dbvar , write_info->FTI_Data, hashchk, fd, &dcpSize, &dptr);
+                // create hash for datachunk and assign to member 'hash'
+                if( dbvar->hascontent ) {
+                    memcpy( dbvar->hash, hashchk, MD5_DIGEST_LENGTH );
+                }
+
+            }
+
+        }
+
+        if (db->next) {
+            db = db->next;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
+
+    // only for printout of dCP share in FTI_Checkpoint
+    write_info->FTI_Exec->FTIFFMeta.dcpSize += dcpSize;
+    write_info->FTI_Exec->FTIFFMeta.pureDataSize += pureDataSize;
+
+    // important for reading and writing operations
+    write_info->FTI_Exec->FTIFFMeta.dataSize += dataSize;
+
+    write_info->FTI_Exec->iCPInfo.result = FTI_SCES;
+
+    return FTI_SCES;
+
+}
+
+int FTI_FinalizeFtiff( void *fd )
+{   
+    
+    WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) fd;
+
+    if ( FTI_Try( FTIFF_CreateMetadata( write_info->FTI_Exec, write_info->FTI_Topo, write_info->FTI_Data, write_info->FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
+        return FTI_NSCS;
+    }
+
+    FTIFF_writeMetaDataFTIFF( write_info->FTI_Exec, write_info );
+
+    FTI_PosixSync(write_info);
+    FTI_PosixClose(write_info);
+    free(write_info);
+
+    return FTI_SCES;
+
+}
+
+size_t FTI_DummyFilePos(void *ignore)
+{
+    return 0;
+}
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -235,7 +399,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
         return FTI_NSCS;
     }
 
-    WritePosixInfo_t *fd = FTI_Exec->iCPInfo.fd;
+    WriteFTIFFInfo_t *fd = FTI_Exec->iCPInfo.fd;
 
     db = FTI_Exec->firstdb;
 
@@ -257,7 +421,7 @@ int FTI_WriteFtiffVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* F
                 if( dbvar->hascontent ) 
                     pureDataSize += dbvar->chunksize;
 
-                FTI_ProcessDBVar(FTI_Exec, FTI_Conf, dbvar , FTI_Data, hashchk, fd, FTI_Exec->iCPInfo.fn , &dcpSize, &dptr);
+                FTI_ProcessDBVar(FTI_Exec, FTI_Conf, dbvar , FTI_Data, hashchk, fd, &dcpSize, &dptr);
                 // create hash for datachunk and assign to member 'hash'
                 if( dbvar->hascontent ) {
                     memcpy( dbvar->hash, hashchk, MD5_DIGEST_LENGTH );
@@ -326,7 +490,7 @@ int FTI_FinalizeFtiffICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    WritePosixInfo_t *write_info = FTI_Exec->iCPInfo.fd;
+    WriteFTIFFInfo_t *write_info = FTI_Exec->iCPInfo.fd;
     FTIFF_writeMetaDataFTIFF( FTI_Exec, write_info);
 
     FTI_PosixSync(write_info);
