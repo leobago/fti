@@ -795,10 +795,10 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
     for (proc = startProc; proc < endProc; proc++) {
-        MPI_Offset offset = 0;
         int i;
+        write_info.offset = 0;
         for (i = 0; i < splitRanks[proc]; i++) {
-            offset += allFileSizes[i];
+            write_info.offset += allFileSizes[i];
         }
 
         FILE* lfd = fopen(&localFileNames[FTI_BUFS * proc], "rb");

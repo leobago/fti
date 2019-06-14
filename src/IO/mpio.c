@@ -136,6 +136,11 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
         // check if successful
         if (fd->err != 0) {
             errno = 0;
+            int reslen;
+            char str[FTI_BUFS], mpi_err[FTI_BUFS];
+            MPI_Error_string(fd->err, mpi_err, &reslen);
+            snprintf(str, FTI_BUFS, "unable to create file [MPI ERROR - %i] %s", fd->err, mpi_err);
+            FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
         MPI_Type_free(&dType);
@@ -152,12 +157,12 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc)
 /**
   @brief      Returns the file position.
   @param      fileDesc        The file descriptor.
-  @return     integer         The position in the file.
+  @return     integer         The position in virtual local file.
  **/
 /*-------------------------------------------------------------------------*/
 size_t FTI_GetMPIOFilePos(void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
-    return fd->offset;
+    return fd->loffset;
 }
 
 
@@ -199,6 +204,7 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
     write_info->FTI_Conf = FTI_Conf;
     write_info->FTI_Topo= FTI_Topo;
+    write_info->loffset = 0;
     write_info->flag = 'w';
 
     FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
@@ -242,7 +248,8 @@ int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
     int res;
     if ( !(FTI_DataVar->isDevicePtr) ){
         FTI_Print(str,FTI_INFO);
-        if (( res = FTI_MPIOWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info), "Storing Data to checkpoint file")!=FTI_SCES){
+        res = FTI_MPIOWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info);
+        if (res != FTI_SCES ){
             snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
@@ -265,6 +272,6 @@ int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
         }
     }
 #endif
-    write_info->offset += FTI_DataVar->size;
+    write_info->loffset+= FTI_DataVar->size;
     return FTI_SCES;
 }
