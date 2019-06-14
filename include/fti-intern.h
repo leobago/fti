@@ -183,7 +183,6 @@ extern "C" {
         bool isFirstCp;             /**< TRUE if first cp in run                */
         short status;               /**< holds status (active,failed) of iCP    */
         int  result;                /**< holds result of I/O specific write     */
-        int lastCkptLvel;           /**< holds last successful cp level         */
         int lastCkptID;             /**< holds last successful cp ID            */
         int countVar;               /**< counts datasets written                */
         int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
@@ -673,6 +672,13 @@ extern "C" {
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
              FTIT_dataset*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
+        
+        int (*activateHeads) 			/** A function pointer pointing to  */									
+            (FTIT_configuration* , 		/** the function which actually 	*/
+             struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
+             FTIT_topology* ,			/** We need 2 function pointers,	*/ 
+             FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
+             int ); 			/** One for the Level 4 checkpoint  */
 
 
     } FTIT_execution;

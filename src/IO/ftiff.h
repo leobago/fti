@@ -47,6 +47,7 @@
 #include <assert.h>
 #include <string.h>
 #include "../utility.h"
+#include <inttypes.h> 
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
@@ -155,6 +156,7 @@ typedef struct FTIFF_MPITypeInfo {
 
  **/
 
+int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 void FTIFF_InitMpiTypes();
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
