@@ -204,6 +204,7 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
+        int ckptID;  /**< size of ckpt data                                  */
         long metaSize;  /**< size of ckpt data                                  */
         long ckptSize;  /**< also file size TODO remove                         */
         long dataSize;  /**< total size of protected data (excluding meta data) */

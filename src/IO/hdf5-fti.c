@@ -1055,6 +1055,10 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     
     char  fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
+
+    //update ckpt file name
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
+    
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }

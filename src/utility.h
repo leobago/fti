@@ -70,19 +70,6 @@ size_t FTI_GetMPIOFilePos(void *fileDesc);
 void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
 int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *write_info);
 
-//Wrappers around POSIX IO
-int FTI_PosixOpen(char *fn, void *fileDesc);
-int FTI_PosixClose(void *fileDesc);
-int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
-int FTI_PosixRead(void *src, size_t size, void *fileDesc);
-int FTI_PosixSync(void *fileDesc);
-int FTI_PosixSeek(size_t pos, void *fileDesc);
-void *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
-int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void* write_info);
-size_t FTI_GetPosixFilePos(void *fileDesc);
-void FTI_PosixMD5(unsigned char *, void *);
-
-
 //Wrappers around dcp POSIX
 
 size_t FTI_GetDCPPosixFilePos(void *fileDesc);

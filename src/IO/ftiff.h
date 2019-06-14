@@ -160,7 +160,6 @@ int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd );
 void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data );
-
 void FTIFF_InitMpiTypes();
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
@@ -176,9 +175,6 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
         int pvar_idx );
 int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
 int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, char *checksum );
-int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io);
 int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd );
