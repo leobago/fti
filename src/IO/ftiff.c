@@ -1079,8 +1079,6 @@ int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd )
     // important for reading and writing operations
     write_info->FTI_Exec->FTIFFMeta.dataSize += dataSize;
 
-    write_info->FTI_Exec->iCPInfo.result = FTI_SCES;
-
     return FTI_SCES;
 
 }
@@ -1107,7 +1105,25 @@ int FTI_FinalizeFtiff( void *fd )
 
     FTI_PosixSync(write_info);
     FTI_PosixClose(write_info);
+    
+    // set hasCkpt flags true
+    if ( write_info->FTI_Ckpt[4].isDcp ) {
+        FTIFF_db* currentDB = write_info->FTI_Exec->firstdb;
+        currentDB->update = false;
+        do {    
+            int varIdx;
+            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
+                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
+                currentdbVar->hasCkpt = true;
+                currentdbVar->update = false;
+            }
+        }
+        while ( (currentDB = currentDB->next) != NULL );    
 
+
+        FTI_UpdateDcpChanges(write_info->FTI_Data, write_info->FTI_Exec);
+        write_info->FTI_Ckpt[4].hasDcp = true;
+    }
     return FTI_SCES;
 
 }

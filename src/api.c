@@ -1852,26 +1852,6 @@ int FTI_FinalizeICP()
         FTI_WriteCkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
     }
 
-    // TODO this also has to come inside postckpt upon successful call!
-    // set hasCkpt flags true
-    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        FTIFF_db* currentDB = FTI_Exec.firstdb;
-        currentDB->update = false;
-        do {    
-            int varIdx;
-            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
-                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
-                currentdbVar->hasCkpt = true;
-                currentdbVar->update = false;
-            }
-        }
-        while ( (currentDB = currentDB->next) != NULL );    
-
-
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
-        FTI_Ckpt[4].hasDcp = true;
-    }
-
     int status = (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) ? FTI_NSCS : FTI_SCES;
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, status);
