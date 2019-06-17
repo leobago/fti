@@ -134,18 +134,18 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
             MKDIR(FTI_Conf->gTmpDir, 0777);
-        } else if ( !FTI_Ckpt[4].hasDcp ) {
+        } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ) {
             MKDIR(FTI_Ckpt[4].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
         res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
     }
     else {
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
             MKDIR(FTI_Conf->lTmpDir,0777);
-        } else if ( !FTI_Ckpt[4].hasDcp ){
+        } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ){
             MKDIR(FTI_Ckpt[1].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
@@ -157,6 +157,8 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes != FTI_SCES) {
         return FTI_NSCS;
+    } else if( FTI_Exec->h5SingleFile ) {
+        return FTI_SCES;
     }
     if ( (FTI_Conf->dcpFtiff||FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp ) {
         // After dCP update store total data and dCP sizes in application rank 0
@@ -500,6 +502,10 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data, FTIT_IO *io){
     int i;
     void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+    if( !write_info ) {
+        FTI_Print("unable to initialize checkpoint!", FTI_EROR);
+        return FTI_NSCS;
+    }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_Data[i].filePos = io->getPos(write_info);
         int ret = io->WriteData(&FTI_Data[i], write_info);

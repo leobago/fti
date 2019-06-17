@@ -60,6 +60,40 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
    +-------------------------------------------------------------------------+
 
  */
+int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
+{
+
+    FTIFF_headInfo *headInfo;
+    FTI_Exec->wasLastOffline = 1;
+    // Head needs ckpt. ID to determine ckpt file name.
+    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
+    if (status != FTI_SCES) { //If Writing checkpoint failed
+        value = FTI_REJW; //Send reject checkpoint token to head
+    }
+    MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    int isDCP = (int)FTI_Ckpt[4].isDcp;
+    MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    // FTIFF: send meta info to the heads
+    if( value != FTI_REJW ) {
+        headInfo = malloc(sizeof(FTIFF_headInfo));
+        headInfo->exists = FTI_Exec->meta[0].exists[0];
+        headInfo->nbVar = FTI_Exec->meta[0].nbVar[0];
+        headInfo->maxFs = FTI_Exec->meta[0].maxFs[0];
+        headInfo->fs = FTI_Exec->meta[0].fs[0];
+        headInfo->pfs = FTI_Exec->meta[0].pfs[0];
+        headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
+        if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
+            strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
+        } else {
+            strncpy(headInfo->ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+        }            
+        MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
+        MPI_Send(FTI_Exec->meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
+        MPI_Send(FTI_Exec->meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
+        free(headInfo);
+    }
+    return FTI_SCES;
+}
 
 /*-------------------------------------------------------------------------*/
 /**

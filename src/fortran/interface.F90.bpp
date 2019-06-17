@@ -48,7 +48,8 @@ module FTI
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
 			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
-      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType
+      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
+      FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP
 
 
 
@@ -162,7 +163,48 @@ module FTI
 
   endinterface
 
+  interface
 
+    function FTI_InitICP_impl(id_F, level, activate) &
+            bind(c, name='FTI_InitICP')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_InitICP_impl
+      integer(c_int), value :: id_F
+      integer(c_int), value :: level
+      logical(c_bool), value :: activate
+
+    endfunction FTI_InitICP_impl
+
+  endinterface
+
+  interface
+
+    function FTI_AddVarICP_impl(id_F) &
+            bind(c, name='FTI_AddVarICP')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_AddVarICP_impl
+      integer(c_int), value :: id_F
+
+    endfunction FTI_AddVarICP_impl
+
+  endinterface
+
+  interface
+
+    function FTI_FinalizeICP_impl() &
+            bind(c, name='FTI_FinalizeICP')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_FinalizeICP_impl
+
+    endfunction FTI_FinalizeICP_impl
+
+  endinterface
 
   interface
 
@@ -499,6 +541,34 @@ contains
     err = int(FTI_Checkpoint_impl(int(id_F, c_int), int(level, c_int)))
 
   endsubroutine FTI_Checkpoint
+  
+  subroutine FTI_InitICP(id_F, level, activate, err)
+
+    integer, intent(IN) :: id_F
+    integer, intent(IN) :: level
+    logical, intent(IN) :: activate
+    integer, intent(OUT) :: err
+
+    err = int(FTI_InitICP_impl(int(id_F, c_int), int(level, c_int), logical(activate, c_bool)))
+
+  endsubroutine FTI_InitICP
+  
+  subroutine FTI_AddVarICP(id_F, err)
+
+    integer, intent(IN) :: id_F
+    integer, intent(OUT) :: err
+
+    err = int(FTI_AddVarICP_impl(int(id_F, c_int)))
+
+  endsubroutine FTI_AddVarICP
+  
+  subroutine FTI_FinalizeICP(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_FinalizeICP_impl())
+
+  endsubroutine FTI_FinalizeICP
 
   !>  This function loads the checkpoint data from the checkpoint file and
   !!  it updates some basic checkpoint information.
