@@ -1812,7 +1812,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         goto GATHER_L1INFO;
     }
 
-    snprintf( fn, FTI_BUFS, "Ckpt-Rank%d.fti", FTI_Topo->splitRank );
+    snprintf( fn, FTI_BUFS, "Ckpt-Rank%d.fti", FTI_Topo->myRank );
     snprintf( fp, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, fn );
     int fd = FTIFF_OpenCkptFile( fp, &fs, O_RDONLY ); 
     if (fd == -1) {
@@ -2594,175 +2594,79 @@ GATHER_L3INFO:
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt)
 {
-    char str[FTI_BUFS], strerr[FTI_BUFS], tmpfn[FTI_BUFS];
-    int fexist = 0, fileTarget, ckptID, fcount;
+    char str[FTI_BUFS], strerr[FTI_BUFS], fn[FTI_BUFS], fp[FTI_BUFS];
+    int fexist = 0, fcount, fneeded;
+    size_t fs;
 
-    struct dirent *entry;
-    struct stat ckptFS;
-    struct stat ckptDIR;
-
-    FTIFF_metaInfo _FTIFFMeta;
-    FTIFF_metaInfo *FTIFFMeta = (FTIFF_metaInfo*) memset( &_FTIFFMeta, 0x0, sizeof(FTIFF_metaInfo) ); 
+    FTIFF_metaInfo *FTIFFMeta = (FTIFF_metaInfo*) calloc( 1, sizeof(FTIFF_metaInfo) ); 
+    if ( FTIFFMeta == NULL ) {
+        snprintf( strerr, FTI_BUFS, "FTI-FF: L4RecoverInit - failed to allocate %ld bytes for 'FTIFFMeta'", sizeof(FTIFF_metaInfo));
+        FTI_Print(strerr, FTI_EROR);
+        errno = 0;
+        goto GATHER_L4INFO;
+    }
 
     char L4DirName[FTI_BUFS];
 
     if ( FTI_Ckpt[4].recoIsDcp ) {
         strcpy( L4DirName, FTI_Ckpt[4].dcpDir );
+        snprintf( fn, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank );
     } else {
         strcpy( L4DirName, FTI_Ckpt[4].dir );
+        snprintf( fn, FTI_BUFS, "Ckpt-Rank%d.fti", FTI_Topo->myRank );
     }
-    // check if L4 ckpt directory exists
-    bool L4CkptDirExists = false;
-    if ( stat( L4DirName, &ckptDIR ) == 0 ) {
-        if ( S_ISDIR( ckptDIR.st_mode ) != 0 ) {
-            L4CkptDirExists = true;
-        } else {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoverInit - (%s) is not a directory.", L4DirName);
-            FTI_Print(strerr, FTI_WARN);
-            goto GATHER_L4INFO;
-        }
+    
+    snprintf( fp, FTI_BUFS, "%s/%s", L4DirName, fn );
+    int fd = FTIFF_OpenCkptFile( fp, &fs, O_RDONLY ); 
+    if (fd == -1) {
+        goto GATHER_L4INFO;
     }
 
-    if(L4CkptDirExists) {
+    if( FTIFF_LoadFileMeta( fd, FTIFFMeta ) == FTI_NSCS ) {
+        FTI_Print("unable to load file meta data.", FTI_WARN);
+        goto GATHER_L4INFO;
+    }
 
-        DIR *L4CkptDir = opendir( L4DirName );
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
 
-        if (L4CkptDir == NULL) {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - checkpoint directory (%s) could not be accessed.", L4DirName);
-            FTI_Print(strerr, FTI_EROR);
-            errno = 0;
+    if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
+        FTI_Exec->meta[4].fs[0] = fs;    
+
+        char checksum[MD5_DIGEST_STRING_LENGTH];
+        FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
+
+        if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
+            snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt-Rank%d.fti", FTI_Topo->myRank );
+            strncpy(FTI_Exec->meta[4].ckptFile, fn, NAME_MAX);
+            fexist = 1;
+        } 
+        else {
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
+                    fn, checksum, FTIFFMeta->checksum);
+            FTI_Print(str, FTI_WARN);
             goto GATHER_L4INFO;
         }
-
-        while((entry = readdir(L4CkptDir)) != NULL) {
-
-            if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
-                if ( FTI_Ckpt[4].recoIsDcp ) {
-                    sscanf(entry->d_name, "dCPFile-Rank%d.fti", &fileTarget );
-                } else {
-                    sscanf(entry->d_name, "Ckpt%d-Rank%d.fti", &ckptID, &fileTarget );
-                }
-                if( fileTarget == FTI_Topo->myRank ) {
-                    snprintf(str, FTI_BUFS, "FTI-FF: L4RecoveryInit - found file with name: %s", entry->d_name);
-                    FTI_Print(str, FTI_DBUG);
-                    snprintf(tmpfn, FTI_BUFS, "%s/%s", L4DirName, entry->d_name);
-
-                    if ( stat(tmpfn, &ckptFS) == -1 ) {
-                        snprintf( strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - Problem with stats on file %s", tmpfn );
-                        FTI_Print( strerr, FTI_EROR );
-                        errno = 0;
-                        closedir(L4CkptDir);
-                        goto GATHER_L4INFO;
-                    }
-
-                    if ( S_ISREG(ckptFS.st_mode) == 0 ) {
-                        snprintf( strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - %s is not a regular file", tmpfn );
-                        FTI_Print( strerr, FTI_WARN );
-                        closedir(L4CkptDir);
-                        goto GATHER_L4INFO;
-                    }
-
-                    // Check for reasonable file size. At least has to contain file meta-data
-                    if ( ckptFS.st_size > FTI_filemetastructsize ) {
-
-                        int fd = open(tmpfn, O_RDONLY);
-                        if (fd == -1) {
-                            snprintf( strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - could not open '%s' for reading.", tmpfn);
-                            FTI_Print(strerr, FTI_EROR);
-                            errno = 0;
-                            closedir(L4CkptDir);
-                            goto GATHER_L4INFO;
-                        }
-
-                        if ( lseek(fd, -FTI_filemetastructsize, SEEK_END) == -1 ) {
-                            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - could not seek in file: %s", tmpfn);
-                            FTI_Print(strerr, FTI_EROR);
-                            errno = 0;
-                            closedir(L4CkptDir);
-                            close(fd);
-                            goto GATHER_L4INFO;
-                        }
-
-                        // Read in file meta-data
-                        if ( 
-                                ( read( fd, FTIFFMeta->checksum, MD5_DIGEST_STRING_LENGTH ) == -1 )     ||
-                                ( read( fd, FTIFFMeta->myHash, MD5_DIGEST_LENGTH ) == -1 )              ||
-                                ( read( fd, &(FTIFFMeta->ckptSize), sizeof(long) ) == -1 )              ||
-                                ( read( fd, &(FTIFFMeta->metaSize), sizeof(long) ) == -1 )              ||
-                                ( read( fd, &(FTIFFMeta->dataSize), sizeof(long) ) == -1 )              ||
-                                ( read( fd, &(FTIFFMeta->fs), sizeof(long) ) == -1 )                    ||
-                                ( read( fd, &(FTIFFMeta->maxFs), sizeof(long) ) == -1 )                 ||
-                                ( read( fd, &(FTIFFMeta->ptFs), sizeof(long) ) == -1 )                  ||
-                                ( read( fd, &(FTIFFMeta->timestamp), sizeof(long) ) == -1 )                                     
-                           ) 
-                        {
-                            snprintf(strerr, FTI_BUFS, "FTI-FF: L4RecoveryInit - Failed to request file meta data from: %s", tmpfn);
-                            FTI_Print(strerr, FTI_EROR);
-                            errno=0;
-                            closedir(L4CkptDir);
-                            close(fd);
-                            goto GATHER_L4INFO;
-                        }
-
-                        unsigned char hash[MD5_DIGEST_LENGTH];
-                        FTIFF_GetHashMetaInfo( hash, FTIFFMeta );
-
-                        if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
-                            FTI_Exec->meta[4].fs[0] = ckptFS.st_size;    
-                            if ( !FTI_Ckpt[4].recoIsDcp ) {
-                                FTI_Exec->ckptID = ckptID;
-                            }
-
-                            char checksum[MD5_DIGEST_STRING_LENGTH];
-                            FTIFF_GetFileChecksum( FTIFFMeta, FTI_Ckpt, fd, checksum ); 
-
-                            if ( strcmp( checksum, FTIFFMeta->checksum ) == 0 ) {
-                                if ( !FTI_Ckpt[4].recoIsDcp ) {
-                                    strncpy(FTI_Exec->meta[1].ckptFile, entry->d_name, NAME_MAX);
-                                } else {
-                                    snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, fileTarget );
-                                }
-                                strncpy(FTI_Exec->meta[4].ckptFile, entry->d_name, NAME_MAX);
-                                fexist = 1;
-                            } 
-                            else {
-                                char str[FTI_BUFS];
-                                snprintf(str, FTI_BUFS, "Checksum do not match. \"%s\" file is corrupted. %s != %s",
-                                        entry->d_name, checksum, FTIFFMeta->checksum);
-                                FTI_Print(str, FTI_WARN);
-                                close(fd);
-                                free(FTIFFMeta);
-                                closedir(L4CkptDir);
-                                goto GATHER_L4INFO;
-                            }
-                        } else {
-                            char str[FTI_BUFS];
-                            snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.",entry->d_name);
-                            FTI_Print(str, FTI_WARN);
-                            closedir(L4CkptDir);
-                            goto GATHER_L4INFO;
-                        }
-                        close(fd);
-                        break;
-                    } else {
-                        char str[FTI_BUFS];
-                        snprintf(str, FTI_BUFS, "size %lu of file \"%s\" is smaller then file meta data struct size.", ckptFS.st_size, entry->d_name);
-                        FTI_Print(str, FTI_WARN);
-                        closedir(L4CkptDir);
-                        goto GATHER_L4INFO;
-                    }
-                }
-            }
-        }
-        closedir(L4CkptDir);
+    } else {
+        char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS, "Metadata in file \"%s\" is corrupted.", fn);
+        FTI_Print(str, FTI_WARN);
+        goto GATHER_L4INFO;
     }
 
 GATHER_L4INFO:
 
     MPI_Allreduce(&fexist, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    int fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
-    int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
-    return res;
+    
+    fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
+    
+    free(FTIFFMeta);
+    
+    close(fd);
+    
+    return (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
+
 }
 
 void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_dataset* FTI_Data ) 
