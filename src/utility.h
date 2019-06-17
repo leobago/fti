@@ -8,6 +8,7 @@ typedef struct{
     FTIT_configuration* FTI_Conf;   // Configuration of the FTI
     FTIT_topology *FTI_Topo;        // Topology of the nodes
     MPI_Offset offset;              // Offset of the Rank in the file
+    size_t loffset;                 // Offset in the local file
     int err;                        // Errors
     MPI_Info info;                  // MPI info of the file
     MPI_File pfh;                   // File descriptor
