@@ -53,6 +53,8 @@
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
+#define CKPT_FN_FORMAT(level, backup) ( ( backup ) ? ( ( level == 2 ) ? "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti" ) : "Ckpt%d-Rank%d.fti" )
+
 extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
 extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
 extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
@@ -91,34 +93,21 @@ typedef struct FTIFF_headInfo {
     int isDcp;
 } FTIFF_headInfo;
 
-/** @typedef    FTIFF_L2Info
+/** @typedef    FTIFF_RecoveryInfo
  *  @brief      Meta data for L2 recovery.
  *
  *  keeps meta data information that needs to be exchanged between the ranks.
  *
  */
-typedef struct FTIFF_L2Info {
+typedef struct FTIFF_RecoveryInfo {
     int FileExists;
-    int CopyExists;
+    int BackupExists;
     int ckptID;
     int rightIdx;
+    long maxFs;
     long fs;
-    long pfs;
-} FTIFF_L2Info;
-
-/** @typedef    FTIFF_L3Info
- *  @brief      Meta data for L3 recovery.
- *
- *  keeps meta data information that needs to be exchanged between the ranks.
- *
- */
-typedef struct FTIFF_L3Info {
-    int FileExists;
-    int RSFileExists;
-    int ckptID;
-    long fs;
-    long RSfs;  // maxFs
-} FTIFF_L3Info;
+    long bfs;
+} FTIFF_RecoveryInfo;
 
 /**
 
@@ -131,8 +120,7 @@ typedef struct FTIFF_L3Info {
 // ID MPI types
 enum {
     FTIFF_HEAD_INFO,
-    FTIFF_L2_INFO,
-    FTIFF_L3_INFO,
+    FTIFF_RECO_INFO,
     FTIFF_NUM_MPI_TYPES
 };
 
@@ -175,7 +163,7 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf, 
         int pvar_idx );
 int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
-int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, char *checksum );
+int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum );
 int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd );
