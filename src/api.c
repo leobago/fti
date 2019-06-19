@@ -1103,8 +1103,6 @@ int FTI_GetDatasetRank( int did )
 {
 #ifdef ENABLE_HDF5 
     
-    static hsize_t dims_[FTI_HDF5_MAX_DIM];
-    
     FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
     if( !dataset ) {
         FTI_Print("No datasets defined!", FTI_WARN);

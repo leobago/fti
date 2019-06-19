@@ -205,7 +205,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if( FTI_Conf->h5SingleFileEnable ) {
             int allRes = FTI_NSCS;
 #ifdef ENABLE_HDF5
-                int ckptID, res;
+                int ckptID, res = FTI_SCES;
                 if( FTI_Topo->splitRank == 0 ) {
                     res = FTI_H5CheckSingleFile( FTI_Conf, &ckptID );
                 }
