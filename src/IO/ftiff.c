@@ -1002,8 +1002,6 @@ int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd )
 {
     
     WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) fd;
-    
-    char str[FTI_BUFS];
 
     FTIFF_db *db = write_info->FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar = NULL;
@@ -1821,7 +1819,7 @@ int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, 
         if ( S_ISDIR( ckptDIR.st_mode ) != 0 ) {
             dirExists = true;
         } else {
-            snprintf(strerr, FTI_BUFS, "FTI-FF: L%RecoverInit - (%s) is not a directory.", level, dir);
+            snprintf(strerr, FTI_BUFS, "FTI-FF: L%dRecoverInit - (%s) is not a directory.", level, dir);
             FTI_Print(strerr, FTI_WARN);
             return FTI_NSCS;
         }
@@ -1940,6 +1938,7 @@ int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *check
         if ( lseek( fd, rcount, SEEK_SET ) == -1 ) {
             FTI_Print("FTI-FF: L3RecoveryInit - could not seek in file", FTI_EROR);
             errno = 0;
+            return FTI_NSCS;
         }
 
         diff = FTIFFMeta->fs - rcount;
@@ -1949,6 +1948,7 @@ int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *check
             snprintf(strerr, FTI_BUFS, "FTI-FF: L3RecoveryInit - Failed to read %ld bytes from file", toRead);
             FTI_Print(strerr, FTI_EROR);
             errno=0;
+            return FTI_NSCS;
         }
 
         rcount += rbuffer;
@@ -1962,6 +1962,7 @@ int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *check
         sprintf(&checksum[ii], "%02x", hash[i]);
         ii += 2;
     }
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2077,7 +2078,6 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
 int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration *FTI_Conf )
 {
-    char fn[FTI_BUFS];
     int fcount, fneeded;
     
     FTIFF_RecoveryInfo info;
@@ -2115,7 +2115,7 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf, int *exists)
 {
-    char dbgstr[FTI_BUFS], strerr[FTI_BUFS];
+    char dbgstr[FTI_BUFS];
 
     enum {
         LEFT_FILE,  // ckpt file of left partner (on left node)
@@ -2142,8 +2142,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     FTIFF_RecoveryInfo* appProcsMetaInfo = calloc( appCommSize, sizeof(FTIFF_RecoveryInfo) );
 
-    char str[FTI_BUFS], fp[FTI_BUFS];
-    int fileTarget, ckptID = -1, fcount = 0, match;
+    int ckptID = -1, fcount = 0;
     
     FTIFF_RecoveryInfo info = {0};
     
@@ -2223,9 +2222,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
 
-    char str[FTI_BUFS], strerr[FTI_BUFS];
     int ckptID;
-    struct stat ckptFS;
 
     FTIFF_RecoveryInfo *groupInfo = calloc( FTI_Topo->groupSize, sizeof(FTIFF_RecoveryInfo) );
     FTIFF_RecoveryInfo info = {0};
@@ -2299,8 +2296,8 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt)
 {
-    char str[FTI_BUFS], strerr[FTI_BUFS], fn[FTI_SCES];
-    int fexist = 0, fcount, fneeded;
+    char fn[FTI_SCES];
+    int fcount, fneeded;
 
     FTIFF_RecoveryInfo info;
     
