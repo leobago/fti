@@ -169,6 +169,11 @@ int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_D
 int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd );
 int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf );
+int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, char* fn );
+int FTIFF_LoadFileMeta(int fd, FTIFF_metaInfo* fm );
+int FTIFF_OpenCkptFile(char* fn, int oflag);
+int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum ); 
+int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, int level, bool dcp, bool backup );
 int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf );
 int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
