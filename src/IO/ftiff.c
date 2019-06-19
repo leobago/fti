@@ -1997,11 +1997,9 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
     }
 
     snprintf( path, FTI_BUFS, "%s/%s", dir, file );
-    DBG_MSG("filename : %s",-1, path);
     
     int fd = FTIFF_OpenCkptFile( path, O_RDONLY ); 
     if (fd == -1) {
-        DBG_MSG("cannot open dcp file",-1);
         free( FTIFFMeta );
         return FTI_NSCS;
     }
@@ -2296,7 +2294,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_checkpoint* FTI_Ckpt)
 {
-    char fn[FTI_SCES];
+    char fn[FTI_BUFS];
     int fcount, fneeded;
 
     FTIFF_RecoveryInfo info;

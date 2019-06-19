@@ -9,6 +9,8 @@ FTI_LIB_DIR := $(FTI_RELEASE)/lib
 FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
 WORK_DIR := $(FTI_HOME)/test/local/variateProcessorRestart
 
+MPIRUN := mpirun ${MPIRUN_ARGS} 
+
 .PHONY: clean all run fti
 
 all: run-nohead run-head
@@ -24,18 +26,18 @@ test: test.c Makefile fti
 
 run-head: test Makefile
 	cp cfg/HEAD-npn4 config.fti
-	mpirun -n 20 ./$<
-	mpirun -n 20 ./$<
+	$(MPIRUN) -n 20 ./$<
+	$(MPIRUN) -n 20 ./$<
 	cp cfg/HEAD-npn16 config.fti
-	mpirun -n 68 ./$<
+	$(MPIRUN) -n 68 ./$<
 	rm -rf Global*/ Local/ Meta/ config.fti
 
 run-nohead: test Makefile
 	cp cfg/NOHEAD-npn4 config.fti
-	mpirun -n 16 ./$<
-	mpirun -n 16 ./$<
+	$(MPIRUN) -n 16 ./$<
+	$(MPIRUN) -n 16 ./$<
 	cp cfg/NOHEAD-npn16 config.fti
-	mpirun -n 64 ./$<
+	$(MPIRUN) -n 64 ./$<
 	rm -rf Global*/ Local/ Meta/ config.fti
 
 clean:

@@ -11,6 +11,8 @@ WORK_DIR := $(FTI_HOME)/test/local/diffckpt
 MD5_LIB = @DCP_CHECK_MD5_LIB@
 DEF = @DCP_CHECK_DEF@
 
+MPIRUN := mpirun ${MPIRUN_ARGS} 
+
 .PHONY: clean all run fti share env
 
 all: diff_test
@@ -33,23 +35,23 @@ diff_test: diff_test_func.o diff_test.c diff_test.h Makefile fti
 
 run-test-nohead: diff_test Makefile
 	cp cfg/H0 ./config.fti
-	mpirun -n 8 ./$<
-	mpirun -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
 
 run-test-head: diff_test Makefile
 	cp cfg/H1 ./config.fti
-	mpirun -n 8 ./$<
-	mpirun -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
 
 run-test-nohead-posix: diff_test Makefile
 	cp cfg/H0POSIX ./config.fti
-	mpirun -n 8 ./$<
-	mpirun -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
 
 run-test-head-posix: diff_test Makefile
 	cp cfg/H1POSIX ./config.fti
-	mpirun -n 8 ./$<
-	mpirun -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$<
 
 clean:
 	rm -rf *.o diff_test Global Local Meta config.fti
