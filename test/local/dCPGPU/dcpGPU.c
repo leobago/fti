@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <hdf5.h>
 #include <string.h>
 #include "wrapperFunc.h"
 #include "mpi.h"
@@ -25,7 +24,6 @@ int main ( int argc, char *argv[]){
   int sizeOfDimension;
   int success = 1;
   int FTI_APP_RANK;
-  herr_t status;
   int *ptr;
   int *devPtr;
   int result;

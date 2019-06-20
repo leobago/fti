@@ -275,7 +275,7 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
         if ((res = FTI_Try(
                         FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;

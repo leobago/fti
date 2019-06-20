@@ -34,7 +34,6 @@ add_subdirectory(cornerCases)
 add_subdirectory(ckptHierarchy)
 
 if (ENABLE_GPU)
-  message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
   add_subdirectory(cuda)
 endif()
 

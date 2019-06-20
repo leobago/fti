@@ -1,5 +1,4 @@
 if (ENABLE_GPU)
-  message(AUTHOR_WARNING "  ** Project is going to be build WITH GPU Support")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
 #  add_executable(check.exe checkAll.c cudaTest.cu)

@@ -265,7 +265,7 @@ int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
         if ((res = FTI_Try(
                         FTI_TransferDeviceMemToFileAsync(FTI_DataVar, FTI_MPIOWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
             return res;

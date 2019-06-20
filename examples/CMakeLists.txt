@@ -19,6 +19,9 @@ if(ENABLE_FORTRAN)
 	target_compile_options(hdf.exe PRIVATE -cpp)
 endif()
 
+if (ENABLE_GPU)
+  add_subdirectory(GPU)
+endif()
 
 if(NOT $MPIRUN)
 	set(MPIRUN mpirun)
