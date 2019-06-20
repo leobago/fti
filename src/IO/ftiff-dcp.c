@@ -709,8 +709,6 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
             case FTI_DCP_MODE_MD5:
                 prevHash = &(hashes->md5hash[CURRENT(hashes)][MD5_DIGEST_LENGTH * hashIdx]);
                 nextHash = &(hashes->md5hash[NEXT(hashes)][MD5_DIGEST_LENGTH * hashIdx]);
-                if((prevHash == NULL) || (nextHash == NULL))
-                    DBG_MSG("prvHash: %p, nextHash: %p", -1, prevHash, nextHash);
                 clean = memcmp(nextHash , prevHash , MD5_DIGEST_LENGTH) == 0;
                 break;
             case FTI_DCP_MODE_CRC32:
