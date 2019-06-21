@@ -1626,36 +1626,6 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
 /*-------------------------------------------------------------------------*/
 int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
 {
-    if (FTI_Exec->initSCES == 0) {
-        FTI_Print("FTI is not initialized.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    if(FTI_Exec->reco==0){
-        /* This is not a restart: no actions performed */
-        return FTI_SCES;
-    }
-
-    if (FTI_Exec->initSCES == 2) {
-        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    //Check if sizes of protected variables matches
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if (id == FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i]) {
-            if (FTI_Data[i].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
-                char str[FTI_BUFS];
-                snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
-                        FTI_Data[i].size);
-                FTI_Print(str, FTI_WARN);
-                return FTI_NREC;
-            }
-        }
-    }
-
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
     if (!FTI_Exec->firstdb) {
@@ -1719,6 +1689,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
     unsigned char hash[MD5_DIGEST_LENGTH];
 
     int isnextdb;
+    int oldIndex;
 
     currentdb = FTI_Exec->firstdb;
 
@@ -1732,9 +1703,10 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
             if (currentdbvar->id == id) {
                 // get source and destination pointer
+                FTI_FindVarInMeta(FTI_Exec, FTI_Data, id, &(currentdbvar->idx), &oldIndex);
                 destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
                 srcptr = (char*) fmmap + currentdbvar->fptr;
-
+                
                 MD5_Init( &mdContext );
                 cpycnt = 0;
                 while ( cpycnt < currentdbvar->chunksize ) {

@@ -10,7 +10,7 @@ else ()
   add_executable(check.exe check.c)
 endif()
 set(CMAKE_VERBOSE_MAKEFILE on)
-
+add_subdirectory(recoverVar)
 target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET check.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})

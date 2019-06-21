@@ -315,6 +315,31 @@ INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
 MEM_NAMES=(@MEMORYTYPES@)  
+
+#                     #
+# ---- Check Recover Var ---- #
+#                     #
+for io in ${!IO_NAMES[@]}; do
+    let io_id=io-1
+    get_io ${IO_NAMES[$io_id]}
+    awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
+    keep=0
+    NAME="H0K"$keep"I111"
+    for level in ${LEVEL[*]}; do
+        awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
+        echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(Recover Var): L"$level", head=0, inline=(1,1,1) ... ***\033[m ]"
+        ( set -x; $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 1 $level 1 &>> check.log )
+        check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
+        ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+        should_not_fail $?
+        if [ $testFailed = 1 ]; then
+            echo -e ${IO_NAMES[$io_id]}"(recoverVar): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
+            testFailed=0
+        fi
+    done
+done    
+
+
 #                     #
 # ---- Check VPR ---- #
 #                     #
