@@ -2,7 +2,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 add_executable(recoverVar.exe checkRecoverVar.c)
 
 
-target_link_libraries(recoverVar.exe -L${PROJECT_BINARY_DIR}/lib fti m ${MPI_C_LIBRARIES} ${MPI_C_LINK_FLAGS})
+target_link_libraries(recoverVar.exe fti.static ${MPI_C_LIBRARIES} m)
 
 configure_file(configH0.fti.in ${CMAKE_CURRENT_SOURCE_DIR}/configH0.fti @ONLY)
 configure_file(configH1.fti.in ${CMAKE_CURRENT_SOURCE_DIR}/configH1.fti @ONLY)
