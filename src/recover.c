@@ -293,10 +293,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         ckptID = FTI_Exec->ckptID;
                     }
 
-                    if( level == 4 ) {
+                    if( level == 4 && !FTI_Ckpt[4].recoIsDcp ) {
                         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
                         MPI_Barrier(FTI_COMM_WORLD);
-                        if( FTI_Topo->nodeRank - FTI_Topo->nbHeads ) {
+                        if( !(FTI_Topo->nodeRank - FTI_Topo->nbHeads) ) {
                             RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
                         }
                         MPI_Barrier(FTI_COMM_WORLD);
