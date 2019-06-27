@@ -47,12 +47,13 @@
 #include <assert.h>
 #include <string.h>
 #include "../utility.h"
-#include <inttypes.h> 
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
+
+#define CKPT_FN_FORMAT(level, backup) ( ( backup ) ? ( ( level == 2 ) ? "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti" ) : "Ckpt%d-Rank%d.fti" )
 
 extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
 extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
@@ -92,34 +93,21 @@ typedef struct FTIFF_headInfo {
     int isDcp;
 } FTIFF_headInfo;
 
-/** @typedef    FTIFF_L2Info
+/** @typedef    FTIFF_RecoveryInfo
  *  @brief      Meta data for L2 recovery.
  *
  *  keeps meta data information that needs to be exchanged between the ranks.
  *
  */
-typedef struct FTIFF_L2Info {
+typedef struct FTIFF_RecoveryInfo {
     int FileExists;
-    int CopyExists;
+    int BackupExists;
     int ckptID;
     int rightIdx;
+    long maxFs;
     long fs;
-    long pfs;
-} FTIFF_L2Info;
-
-/** @typedef    FTIFF_L3Info
- *  @brief      Meta data for L3 recovery.
- *
- *  keeps meta data information that needs to be exchanged between the ranks.
- *
- */
-typedef struct FTIFF_L3Info {
-    int FileExists;
-    int RSFileExists;
-    int ckptID;
-    long fs;
-    long RSfs;  // maxFs
-} FTIFF_L3Info;
+    long bfs;
+} FTIFF_RecoveryInfo;
 
 /**
 
@@ -132,8 +120,7 @@ typedef struct FTIFF_L3Info {
 // ID MPI types
 enum {
     FTIFF_HEAD_INFO,
-    FTIFF_L2_INFO,
-    FTIFF_L3_INFO,
+    FTIFF_RECO_INFO,
     FTIFF_NUM_MPI_TYPES
 };
 
@@ -155,8 +142,13 @@ typedef struct FTIFF_MPITypeInfo {
   +-------------------------------------------------------------------------+
 
  **/
-
 int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
+int FTI_FinalizeFtiff( void *fd );
+size_t FTI_DummyFilePos(void *ignore);
+int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd );
+void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data );
 void FTIFF_InitMpiTypes();
 int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
 int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
@@ -171,15 +163,17 @@ int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec,
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf, 
         int pvar_idx );
 int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
-int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, FTIT_checkpoint* FTI_Ckpt, int fd, char *checksum );
-int FTIFF_WriteFTIFF(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io);
+int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum );
 int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
-int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WritePosixInfo_t *fd );
+int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd );
 int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf );
+int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, char* fn );
+int FTIFF_LoadFileMeta(int fd, FTIFF_metaInfo* fm );
+int FTIFF_OpenCkptFile(char* fn, int oflag);
+int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum ); 
+int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, int level, bool dcp, bool backup );
 int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf );
 int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,

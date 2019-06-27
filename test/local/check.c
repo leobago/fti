@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
       FTI_InitICP( 1, level, 1 );
       FTI_AddVarICP( 2 );  
       FTI_AddVarICP( 0 );  
-      FTI_AddVarICP( 1 );  
+      FTI_AddVarICP( 1 );
       FTI_FinalizeICP();
     } 
     else if ( enable_icp == 0 ) {

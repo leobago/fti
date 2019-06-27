@@ -165,18 +165,42 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             break;
 #endif
         case FTI_IO_FTIFF:
-            FTI_Exec->ckptFunc[GLOBAL] = FTIFF_WriteFTIFF;
-            FTI_Exec->ckptFunc[LOCAL] = FTIFF_WriteFTIFF;
-
-            FTI_Exec->initICPFunc[LOCAL] = FTI_InitFtiffICP; 
-            FTI_Exec->initICPFunc[GLOBAL] = FTI_InitFtiffICP;
-
-            FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteFtiffVar;
-            FTI_Exec->writeVarICPFunc[GLOBAL] = FTI_WriteFtiffVar;
-
-            FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinalizeFtiffICP;
-            FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinalizeFtiffICP;
             
+            ftiIO[LOCAL].initCKPT = FTI_InitFtiff; 
+            ftiIO[LOCAL].WriteData = FTI_WriteFtiffData; 
+            ftiIO[LOCAL].finCKPT= FTI_FinalizeFtiff; 
+            ftiIO[LOCAL].getPos	= FTI_DummyFilePos; 
+            ftiIO[LOCAL].finIntegrity = FTI_dummy; 
+
+            ftiIO[GLOBAL].initCKPT = FTI_InitFtiff; 
+            ftiIO[GLOBAL].WriteData = FTI_WriteFtiffData; 
+            ftiIO[GLOBAL].finCKPT= FTI_FinalizeFtiff; 
+            ftiIO[GLOBAL].getPos	= FTI_DummyFilePos; 
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
+            
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitFtiff; 
+            ftiIO[2 + LOCAL].WriteData = FTI_WriteFtiffData; 
+            ftiIO[2 + LOCAL].finCKPT= FTI_FinalizeFtiff; 
+            ftiIO[2 + LOCAL].getPos	= FTI_DummyFilePos; 
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitFtiff; 
+            ftiIO[2 + GLOBAL].WriteData = FTI_WriteFtiffData; 
+            ftiIO[2 + GLOBAL].finCKPT= FTI_FinalizeFtiff; 
+            ftiIO[2 + GLOBAL].getPos	= FTI_DummyFilePos; 
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
+            
+            FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
+            FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
+
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
+
+            FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
+            FTI_Exec->writeVarICPFunc[GLOBAL] = FTI_WriteVar;
+
+            FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
+            FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
             FTI_Exec->activateHeads = FTI_ActivateHeadsFTIFF;
 
             break;

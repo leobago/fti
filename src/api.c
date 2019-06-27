@@ -1103,8 +1103,6 @@ int FTI_GetDatasetRank( int did )
 {
 #ifdef ENABLE_HDF5 
     
-    static hsize_t dims_[FTI_HDF5_MAX_DIM];
-    
     FTIT_globalDataset * dataset = FTI_Exec.globalDatasets;
     if( !dataset ) {
         FTI_Print("No datasets defined!", FTI_WARN);
@@ -1851,26 +1849,6 @@ int FTI_FinalizeICP()
         FTI_WriteCkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
     }
 
-    // TODO this also has to come inside postckpt upon successful call!
-    // set hasCkpt flags true
-    if ( FTI_Conf.dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        FTIFF_db* currentDB = FTI_Exec.firstdb;
-        currentDB->update = false;
-        do {    
-            int varIdx;
-            for(varIdx=0; varIdx<currentDB->numvars; ++varIdx) {
-                FTIFF_dbvar* currentdbVar = &(currentDB->dbvars[varIdx]);
-                currentdbVar->hasCkpt = true;
-                currentdbVar->update = false;
-            }
-        }
-        while ( (currentDB = currentDB->next) != NULL );    
-
-
-        FTI_UpdateDcpChanges(FTI_Data, &FTI_Exec);
-        FTI_Ckpt[4].hasDcp = true;
-    }
-
     int status = (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) ? FTI_NSCS : FTI_SCES;
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, status);
@@ -2294,9 +2272,7 @@ int FTI_RecoverVar(int id)
         FTI_Print("FTI_RecoverVar is not supported yet by VPR! Please consider using FTI_Recover.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
-    }
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -2312,35 +2288,18 @@ int FTI_RecoverVar(int id)
         return FTI_NSCS;
     }
 
-    //Check if sizes of protected variables matches
-    int i;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
-            int j;
-            for ( j = 0 ; j < FTI_Exec.nbVar; j++){
-                if ( id == FTI_Data[j].id){
-                    break;
-                }
-            }						
-            if ( j == FTI_Exec.nbVar){
-                FTI_Print("Variables must be protected before the can be revoered.", FTI_EROR);
-                return FTI_NREC;
-            }
-
-            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
-                char str[FTI_BUFS];
-                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                        FTI_Data[i].size);
-                FTI_Print(str, FTI_WARN);
-                return FTI_NREC;
-            }
-
-
-            FTI_Print(str,FTI_DBUG);
-            break;
-        }
+    int activeID, oldID;
+    if ( FTI_FindVarInMeta(&FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_SCES){
+        return FTI_NREC;
     }
+
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
+
+    sprintf(str, "Variable with id is stored in %d and information is stored in %d", activeID, oldID);
+    FTI_Print(str,FTI_DBUG);
+
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
@@ -2373,29 +2332,18 @@ int FTI_RecoverVar(int id)
         return FTI_NREC;
     }
 
-    long offset = 0;
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
-        if (id == FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i]) {
-            sprintf(str, "Recovering var %d ", id);
-            FTI_Print(str, FTI_DBUG);
-            long filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
-            fseek(fd,filePos, SEEK_SET);
-            fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
-            if (ferror(fd)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-                fclose(fd);
-                return FTI_NREC;
-            }
-            break;
-        }
-        offset += FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
-    }
 
-    if (i == FTI_Exec.nbVar) {
-        FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
+    sprintf(str, "Recovering var %d ", id);
+    FTI_Print(str, FTI_DBUG);
+    long filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[oldID];
+    fseek(fd,filePos, SEEK_SET);
+    fread(FTI_Data[activeID].ptr, 1, FTI_Data[activeID].size, fd);
+    if (ferror(fd)) {
+        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
         fclose(fd);
         return FTI_NREC;
     }
+
     if (fclose(fd) != 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;

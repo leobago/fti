@@ -1,6 +1,6 @@
 #include "interface.h"
 
-int FTI_PrintDcpStats( FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec, FTIT_topology FTI_Topo )
+void FTI_PrintDcpStats( FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec, FTIT_topology FTI_Topo )
 {
 
     char str[FTI_BUFS];

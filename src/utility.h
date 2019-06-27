@@ -32,6 +32,18 @@ typedef struct{
     size_t layerSize;               // size of the dcp layer
 }WriteDCPPosixInfo_t;
 
+typedef struct{
+    FILE *f;                        // Posix file descriptor
+    size_t offset;                  // offset in the file
+    char flag;                      // flags to open the file
+    MD5_CTX integrity;              // integrity of the file
+    FTIT_configuration *FTI_Conf;   // FTI Configuration
+    FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
+    FTIT_execution *FTI_Exec;       // FTI execution options
+    FTIT_topology *FTI_Topo;        // FTI node topology
+    FTIT_dataset *FTI_Data;
+}WriteFTIFFInfo_t;
+
 #ifdef ENABLE_HDF5
 typedef struct{
     FTIT_execution *FTI_Exec;       // Execution environment
@@ -60,19 +72,6 @@ size_t FTI_GetMPIOFilePos(void *fileDesc);
 
 void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
 int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *write_info);
-
-//Wrappers around POSIX IO
-int FTI_PosixOpen(char *fn, void *fileDesc);
-int FTI_PosixClose(void *fileDesc);
-int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
-int FTI_PosixRead(void *src, size_t size, void *fileDesc);
-int FTI_PosixSync(void *fileDesc);
-int FTI_PosixSeek(size_t pos, void *fileDesc);
-void *FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
-int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void* write_info);
-size_t FTI_GetPosixFilePos(void *fileDesc);
-void FTI_PosixMD5(unsigned char *, void *);
-
 
 //Wrappers around dcp POSIX
 

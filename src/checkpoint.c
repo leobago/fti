@@ -128,14 +128,10 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS]; //For console output
     snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
-
-    //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
-
    
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
-    int offset = 2*(FTI_Conf->dcpPosix);
+    int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
         
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
