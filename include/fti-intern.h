@@ -133,8 +133,8 @@ extern "C" {
     typedef struct FTIT_dcpDatasetPosix
     {
         unsigned long hashDataSize;
-        unsigned char* hashArray;
-        unsigned char* hashArrayTmp;
+        unsigned char* currentHashArray;
+        unsigned char* oldHashArray;
 
     } FTIT_dcpDatasetPosix;
 
