@@ -48,7 +48,7 @@ extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 
 // openssl provide a function MD5(), we just wrap it out if the library is not used
-extern unsigned char * MD5( void *pointer, unsigned long pointerLength, unsigned char *md5HashPointer);
+extern unsigned char * MD5( const unsigned char *pointer, unsigned long pointerLength, unsigned char *md5HashPointer);
 
 #endif
 

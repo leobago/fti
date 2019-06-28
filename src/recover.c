@@ -122,7 +122,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Conf->ioMode == FTI_IO_HDF5)
         consistency = &FTI_CheckHDF5File;
     else if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
-        DBG_MSG("I AM CALLING FTI_DcpPosixRecoverRuntimeInfo",0);
         FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
         consistency = &FTI_CheckFileDcpPosix;
     }
@@ -130,7 +129,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         consistency = &FTI_CheckFile;
 #else
     if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
-        DBG_MSG("I AM CALLING FTI_DcpPosixRecoverRuntimeInfo",0);
         FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_INIT_TAG, FTI_Exec, FTI_Conf );
         consistency = &FTI_CheckFileDcpPosix;
     } else {
@@ -234,7 +232,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;
-        for (level = 1; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+        for (level = 0; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
             if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
                 //Get ckptID from checkpoint file name
 
@@ -256,18 +254,21 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      
                 int res;
                 switch (level) {
-                    case 4:
-                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
-                        MPI_Barrier(FTI_COMM_WORLD);
+                    case 0:
                         if ( FTI_Ckpt[4].recoIsDcp ) {
                             res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                             if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
                             if (res == FTI_SCES ) {
-                                break;
+                                level = 4;
+                            } else {
+                                snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptID);
+                                FTI_Print(str, FTI_INFO);
                             }
-                            snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptID);
-                            FTI_Print(str, FTI_INFO);
+                        } else {
+                            res = FTI_NSCS;
                         }
+                        break;
+                    case 4:
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                         break;
                     case 3:
@@ -290,6 +291,15 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     // FTI-FF: ckptID is already set properly
                     if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].recoIsDcp && FTI_Conf->dcpPosix) ) {
                         ckptID = FTI_Exec->ckptID;
+                    }
+
+                    if( level == 4 && !FTI_Ckpt[4].recoIsDcp ) {
+                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
+                        MPI_Barrier(FTI_COMM_WORLD);
+                        if( !(FTI_Topo->nodeRank - FTI_Topo->nbHeads) ) {
+                            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
+                        }
+                        MPI_Barrier(FTI_COMM_WORLD);
                     }
 
                     snprintf(str, FTI_BUFS, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);

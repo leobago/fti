@@ -973,7 +973,8 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
 
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+  
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
 
   if ( FTI_Ckpt[4].recoIsDcp ) {
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[4].ckptFile);
@@ -987,6 +988,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_NSCS;
   }
 
+  MKDIR(FTI_Conf->lTmpDir,0777);
   FILE* lfd = fopen(lfn, "wb");
   if (lfd == NULL) {
     FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
@@ -1078,7 +1080,8 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
+  //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
   // open parallel file
@@ -1110,6 +1113,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
   free(chunkSizes);
 
+  MKDIR(FTI_Conf->lTmpDir,0777);
   FILE *lfd = fopen(lfn, "wb");
   if (lfd == NULL) {
     FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);

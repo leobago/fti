@@ -15,17 +15,11 @@
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
 #else
-typedef size_t 	hsize_t;
+typedef unsigned long long hsize_t;
 #endif
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
-#endif
-
-#ifdef ENABLE_HDF5 // --> If HDF5 is installed
-#include "hdf5.h"
-#else
-typedef size_t 	hsize_t;
 #endif
 
 /** Malloc macro.                                                          */
