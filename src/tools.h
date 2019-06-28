@@ -1,6 +1,11 @@
 #ifndef __TOOLS_H__
 #define __TOOLS_H__
 
+#ifdef ENABLE_HDF5
+#include <hdf5.h>
+int FTI_DebugCheckOpenObjects(hid_t fid, int rank);
+#endif
+
 void FTI_Print(char *msg, int priority);
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
       FTIT_configuration* FTI_Conf, char* checksum);

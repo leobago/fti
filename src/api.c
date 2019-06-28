@@ -1227,8 +1227,7 @@ int FTI_RecoverDatasetDimension( int did )
     dataset->rank = drank;
     free( dataset->dimension );
     dataset->dimension = span;
-
-    H5Dclose( did );
+    H5Dclose( dataset_id );
     H5Fclose( file_id );
 
     return FTI_SCES;
@@ -2268,10 +2267,6 @@ int FTI_Finalize()
 int FTI_RecoverVar(int id)
 {
     char str[FTI_BUFS];
-    if( FTI_Exec.h5SingleFile ) {
-        FTI_Print("FTI_RecoverVar is not supported yet by VPR! Please consider using FTI_Recover.", FTI_WARN);
-        return FTI_NSCS;
-    }
 
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -2303,7 +2298,7 @@ int FTI_RecoverVar(int id)
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        return FTI_RecoverVarHDF5(&FTI_Exec, FTI_Ckpt, FTI_Data, id);
+        return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
     }
 #endif
 
