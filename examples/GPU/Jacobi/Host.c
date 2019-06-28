@@ -27,6 +27,8 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <fti.h>
 #include "Jacobi.h"
 
@@ -484,23 +486,37 @@ void RunJacobi(MPI_Comm cartComm, int rank, int size, const int2 * domSize, cons
 {
   real residue, globalResidue = (real)1.0;
   int4 bounds = GetComputeBounds(domSize, neighbors);
+  const char *levelNames[] = {"Local", "Partner Copy", "RS-Encoding", "GPFS Full Ckpt", 
+                              "(DCP) Local", "(DCP) Partner Copy", "(DCP) RS-Encoding", "(DCP) GPFS Full Ckpt"};
   double localTime = 0.0;
-
   * iterations = 0;
   * avgTransferTime = 0.0;
+  int recovered = 0;
   FTI_Protect(0,devBlocks[0],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
   FTI_Protect(1,devBlocks[1],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
   FTI_Protect(2, &localTime, 1, FTI_DBLE);
   FTI_Protect(3, iterations, 1, FTI_INTG);
   FTI_Protect(4, &globalResidue, 1, FTI_DBLE);
+  const char* strLevel = getenv("FTI_CKPT_L4");
+  int level = atoi(strLevel);
+  if (rank == 0)
+      printf("I am going to ckpt To level %s \n", levelNames[level-1]);
+
+  if ( FTI_Status() != 0){
+      FTI_Recover();
+      recovered = 1;
+  }
+
 
   while ((* iterations < JACOBI_MAX_LOOPS) && (globalResidue > JACOBI_TOLERANCE))
   {
 
 //  Compute the residue for the current iteration
-   if ( ((* iterations)%4000) == 1000 ){
-          FTI_Checkpoint(*iterations,4); 
-    }
+   
+   if ( (!recovered) && ((*iterations)%4000) == 1000 ){
+          FTI_Checkpoint(*iterations,level); 
+   }
+   recovered = 0;
     residue = CallJacobiKernel(devBlocks, devResidue, &bounds, domSize);
 
     // Exchange the old block with the new (updated) one

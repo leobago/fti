@@ -2,9 +2,9 @@
 [basic]
 head                           = 1
 node_size                      = 3
-ckpt_dir                       =  
-glbl_dir                       = /gpfs/scratch/bsc93/bsc93780/ftiTest/Global
-meta_dir                       = /gpfs/scratch/bsc93/bsc93780/ftiTest/Meta
+ckpt_dir                       = ./Local/ 
+glbl_dir                       = ./Global
+meta_dir                       = ./Meta
 ckpt_l1                        = 0
 ckpt_l2                        = 0
 ckpt_l3                        = 0
