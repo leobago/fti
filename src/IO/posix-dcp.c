@@ -1012,7 +1012,7 @@ void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ ) {
     static void* exec = NULL;
     static void* conf = NULL;
 
-    void* ret;
+    void* ret = NULL;
 
     switch( tag ) {
         case DCP_POSIX_EXEC_TAG:

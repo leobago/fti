@@ -52,13 +52,12 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 	hid_t anobj;
 	hid_t *objs;
 	char name[1024];
-	herr_t status;
 
 	cnt = H5Fget_obj_count(fid, H5F_OBJ_ALL);
 
 	if (cnt <= 0) return cnt;
 
-	DBG_MSG("%d object(s) open", rank, cnt);
+	DBG_MSG("%ld object(s) open", rank, cnt);
 
 	objs = malloc(cnt * sizeof(hid_t));
 
@@ -69,7 +68,7 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 	for (i = 0; i < howmany; i++ ) {
 		anobj = *objs++;
 		ot = H5Iget_type(anobj);
-		status = H5Iget_name(anobj, name, 1024);
+		H5Iget_name(anobj, name, 1024);
 		DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
 	}
 

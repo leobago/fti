@@ -673,7 +673,7 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
 {
 
     bool clean = true;
-    uint32_t bit32hashNow;
+    uint32_t bit32hashNow = 0;
     unsigned char *prevHash;
     unsigned char *nextHash;
 
