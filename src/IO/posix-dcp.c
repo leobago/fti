@@ -38,6 +38,7 @@
 
 #include "../interface.h"
 #include "../api-cuda.h"
+#include "cuda-md5/md5Opt.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -96,8 +97,8 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     if( dcpLayer == 0 ) {
         int i = 0;
         for(; i<FTI_Exec->nbVar; i++) {
-//            free(FTI_Data[i].dcpInfoPosix.hashArray);
-//            FTI_Data[i].dcpInfoPosix.hashArray = NULL;
+            //            free(FTI_Data[i].dcpInfoPosix.hashArray);
+            //            FTI_Data[i].dcpInfoPosix.hashArray = NULL;
             FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
         }
     }
@@ -135,6 +136,28 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     write_DCPinfo->layerSize += 2*sizeof(int);// + sizeof(unsigned int);
 
     return write_DCPinfo;
+}
+
+
+int FTI_ComputeHash(FTIT_dataset *FTI_DataVar, FTIT_configuration *FTI_Conf){
+    unsigned long dataSize = FTI_DataVar->size;
+    unsigned char block[FTI_Conf->dcpInfoPosix.BlockSize];
+    size_t i;
+    unsigned char *ptr = FTI_DataVar->ptr;
+    for ( i = 0 ; i < FTI_DataVar->size; i+=FTI_Conf->dcpInfoPosix.BlockSize){
+        unsigned int blockId = i/FTI_Conf->dcpInfoPosix.BlockSize;
+        unsigned int hashIdx = blockId*FTI_Conf->dcpInfoPosix.digestWidth;
+        unsigned int chunkSize = ( (dataSize-i) < FTI_Conf->dcpInfoPosix.BlockSize ) ? dataSize-i: FTI_Conf->dcpInfoPosix.BlockSize;
+        if( chunkSize < FTI_Conf->dcpInfoPosix.BlockSize ) {
+            memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
+            memcpy( block, &ptr[i], chunkSize );
+            FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+            chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
+        } else {
+            FTI_Conf->dcpInfoPosix.hashFunc( &ptr[i], FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+        }
+    }
+    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -176,7 +199,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
     }
 
     // allocate tmp hash array
-//    FTI_DataVar->dcpInfoPosix.hashArrayTmp = (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf->dcpInfoPosix.digestWidth );
+    //    FTI_DataVar->dcpInfoPosix.hashArrayTmp = (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf->dcpInfoPosix.digestWidth );
 
     // create meta data buffer
     blockMetaInfo_t blockMeta;
@@ -214,6 +237,8 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
         return FTI_NSCS;
     }
 
+
+    FTI_ComputeHash(FTI_DataVar, FTI_Conf);
     size_t offset = 0;
     while ( ptr ){
         pos = 0;
@@ -226,17 +251,17 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
             unsigned int chunkSize = ( (dataSize-offset) < FTI_Conf->dcpInfoPosix.BlockSize ) ? dataSize-offset : FTI_Conf->dcpInfoPosix.BlockSize;
             unsigned int dcpChunkSize = chunkSize;
-
             if( chunkSize < FTI_Conf->dcpInfoPosix.BlockSize ) {
                 // if block smaller pad with zeros
                 memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
                 memcpy( block, ptr, chunkSize );
-                FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+//                FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
                 ptr = block;
                 chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
-            } else {
-                FTI_Conf->dcpInfoPosix.hashFunc( ptr, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
             }
+            /*else {
+                FTI_Conf->dcpInfoPosix.hashFunc( ptr, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+            }*/
 
             bool commitBlock;
             // if old hash exists, compare. If datasize increased, there wont be an old hash to compare with.
@@ -275,12 +300,12 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
     }
     // swap hash arrays and free old one
-//    free(FTI_DataVar->dcpInfoPosix.hashArray);
+    //    free(FTI_DataVar->dcpInfoPosix.hashArray);
     FTI_DataVar->dcpInfoPosix.hashDataSize = dataSize;
     unsigned char *tmp = FTI_DataVar->dcpInfoPosix.currentHashArray;
     FTI_DataVar->dcpInfoPosix.currentHashArray = FTI_DataVar->dcpInfoPosix.oldHashArray;
     FTI_DataVar->dcpInfoPosix.oldHashArray = tmp;
-//    FTI_DataVar->dcpInfoPosix.hashArray = FTI_DataVar->dcpInfoPosix.hashArrayTmp;
+    //    FTI_DataVar->dcpInfoPosix.hashArray = FTI_DataVar->dcpInfoPosix.hashArrayTmp;
 
     free(block);
 
@@ -577,7 +602,7 @@ int FTI_RecoverDcpPosix
         unsigned long nbBlocks = (FTI_DataVar->size % blockSize) ? FTI_DataVar->size/blockSize + 1 : FTI_DataVar->size/blockSize;
         FTI_DataVar->dcpInfoPosix.hashDataSize = FTI_DataVar->size;
 #warning Comment line needs a  fix        
-//        FTI_DataVar->dcpInfoPosix.hashArray = realloc(FTI_DataVar->dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
+        //        FTI_DataVar->dcpInfoPosix.hashArray = realloc(FTI_DataVar->dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
         int j =0 ;
         while (startPtr){
             ptr = startPtr;
@@ -825,12 +850,12 @@ int FTI_RecoverVarDcpPosix
     i = FTI_DataGetIdx( id, FTI_Exec, FTI_Data );
     unsigned long nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
     FTI_Data[i].dcpInfoPosix.hashDataSize = FTI_Data[i].size;
-//    FTI_Data[i].dcpInfoPosix.hashArray = realloc(FTI_Data[i].dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
+    //    FTI_Data[i].dcpInfoPosix.hashArray = realloc(FTI_Data[i].dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
     int j;
     for(j=0; j<nbBlocks-1; j++) {
         unsigned long offset = j*blockSize;
         unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
-//        MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
+        //        MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
     }
     if( FTI_Data[i].size%blockSize ) {
         unsigned char* buffer = calloc( 1, blockSize );
@@ -841,7 +866,7 @@ int FTI_RecoverVarDcpPosix
         unsigned long dataOffset = blockSize * (nbBlocks - 1);
         unsigned long dataSize = FTI_Data[i].size - dataOffset;
         memcpy( buffer, FTI_Data[i].ptr + dataOffset, dataSize ); 
-//        MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
+        //        MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
     }
 
     free(buffer);
