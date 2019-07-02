@@ -37,7 +37,7 @@ int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo)
         return FTI_NSCS;
     }
 
-    if (err == cudaErrorInvalidValue || attributes.memoryType == cudaMemoryTypeHost || attributes.isManaged) {
+    if (err == cudaErrorInvalidValue || attributes.type== cudaMemoryTypeHost || attributes.type == cudaMemoryTypeManaged) {
         ptrInfo->type = FTIT_PTRTYPE_CPU;
         sprintf(message, "Ptr %p is a CPU pointer", ptr);
     }

@@ -165,7 +165,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
     FTI_Exec->dcpInfoPosix.dataSize += FTI_DataVar->size;
     unsigned long dataSize = FTI_DataVar->size;
-    unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
+//    unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
 
     if( dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize) ) {
         snprintf( errstr, FTI_BUFS, "overflow in size of dataset with id: %d (datasize: %lu > MAX_DATA_SIZE: %lu)", 
@@ -198,7 +198,6 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
     size_t totalBytes = 0;
     unsigned char * ptr;
 #ifdef GPUSUPPORT    
-    size_t DCP_BLOCK_SIZE = FTI_GetDiffBlockSize();
     prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
 #else
     prefetcher.fetchSize =  FTI_DataVar->size;
@@ -314,15 +313,22 @@ int FTI_PosixDCPClose(void *fileDesc)
     FTIT_checkpoint *FTI_Ckpt = write_dcpInfo->FTI_Ckpt;
     FTIT_topology *FTI_Topo = write_dcpInfo->FTI_Topo;
 
+    const char *mem= getenv("IN_MEMORY");
+    int inmemory= atoi(mem);
+
     char errstr[FTI_BUFS];
 
     int dcpFileId = FTI_Exec->dcpInfoPosix.Counter / FTI_Conf->dcpInfoPosix.StackSize;
     // dcpLayer corresponds to the additional layers towards the base layer.
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
 
-    FTI_CLOSE_ASYNC((write_dcpInfo->write_info.f));
-//    FTI_PosixSync(&(write_dcpInfo->write_info));
-//    FTI_PosixClose(&(write_dcpInfo->write_info));
+    if (inmemory ){ 
+        FTI_CLOSE_ASYNC((write_dcpInfo->write_info.f));
+    }
+    else{
+        FTI_PosixSync(&(write_dcpInfo->write_info));
+        FTI_PosixClose(&(write_dcpInfo->write_info));
+    }
 
     // create final dcp layer hash
     unsigned char LayerHash[MD5_DIGEST_LENGTH];
@@ -562,7 +568,6 @@ int FTI_RecoverDcpPosix
         FTIT_dataset *FTI_DataVar = &FTI_Data[i];
 
 #ifdef GPUSUPPORT    
-        size_t DCP_BLOCK_SIZE = FTI_GetDiffBlockSize();
         prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
 #else
         prefetcher.fetchSize =  FTI_DataVar->size;
@@ -584,8 +589,6 @@ int FTI_RecoverDcpPosix
 
         unsigned long nbBlocks = (FTI_DataVar->size % blockSize) ? FTI_DataVar->size/blockSize + 1 : FTI_DataVar->size/blockSize;
         FTI_DataVar->dcpInfoPosix.hashDataSize = FTI_DataVar->size;
-#warning Comment line needs a  fix        
-        //        FTI_DataVar->dcpInfoPosix.hashArray = realloc(FTI_DataVar->dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
         int j =0 ;
         while (startPtr){
             ptr = startPtr;
@@ -828,7 +831,7 @@ int FTI_RecoverVarDcpPosix
         }
 
     }
-
+    /*
     // create hasharray for id
     i = FTI_DataGetIdx( id, FTI_Exec, FTI_Data );
     unsigned long nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
@@ -850,8 +853,9 @@ int FTI_RecoverVarDcpPosix
         unsigned long dataSize = FTI_Data[i].size - dataOffset;
         memcpy( buffer, FTI_Data[i].ptr + dataOffset, dataSize ); 
         //        MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
+        free(buffer);
     }
-
+    */
     free(buffer);
     fclose(fd);
 

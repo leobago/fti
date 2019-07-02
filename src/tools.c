@@ -508,8 +508,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                 FTI_Print(fil, FTI_DBUG);
                 if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
                     char fn[FTI_BUFS];
-                    sprintf(fn, "%s/%s", path, fil);
-                    sprintf(str, "File %s will be removed.", fn);
+                    snprintf(fn,FTI_BUFS, "%s/%s", path, fil);
+                    snprintf(str,FTI_BUFS, "File %s will be removed.", fn);
                     FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {

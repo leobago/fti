@@ -87,7 +87,7 @@ extern "C" {
  * This is the Jacobi iteration count limit. The Jacobi run will never cycle more than this, even if it 
  * has not converged when finishing the last allowed iteration.
  */
-#define JACOBI_MAX_LOOPS	20000	
+#define JACOBI_MAX_LOOPS	5000	
 
 #define DIR_TOP				0
 #define DIR_RIGHT			1

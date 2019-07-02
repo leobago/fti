@@ -17,15 +17,15 @@ group_size                     = 2
 max_sync_intv                  = 0
 ckpt_io                        = 1
 verbosity                      = 2
-enable_dcp                     = 0
-dcp_mode                       = 0
+enable_dcp                     = 1
+dcp_mode                       = 1
 dcp_block_size                 = 4096
 dcp_stack_size                 = 10
 
 
 [restart]
 failure                        = 0
-exec_id                        = 2019-07-02_16-20-18
+exec_id                        = 2019-07-02_16-26-58
 
 
 [injection]

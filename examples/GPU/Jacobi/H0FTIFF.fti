@@ -15,7 +15,7 @@ inline_l4                      = 1
 keep_last_ckpt                 = 0
 group_size                     = 2
 max_sync_intv                  = 0
-ckpt_io                        = 1
+ckpt_io                        = 3
 verbosity                      = 2
 enable_dcp                     = 0
 dcp_mode                       = 0
@@ -25,7 +25,7 @@ dcp_stack_size                 = 10
 
 [restart]
 failure                        = 0
-exec_id                        = 2019-07-02_16-20-18
+exec_id                        = 2019-07-02_15-34-53
 
 
 [injection]

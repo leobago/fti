@@ -424,9 +424,6 @@ void *workerMain(void *){
                 sprintf(str,"In memory Ckpt Pushed in Stable Storage in : %.2f sec", t1-t0);
                 FTI_Print(str,FTI_INFO);
             }
-            else{
-                FTI_Print("This should never happen work is either GPU or CPU\n",FTI_EROR);
-            }
         }
         totalWork = 0;
         syncDevice();
@@ -447,14 +444,12 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
     cudaGetDevice(&deviceId);
 
     if (pthread_mutex_init(&application, NULL) != 0){
-        FTI_Print("Error in initing mutes", FTI_EROR);
         return 1;
     }
     pthread_mutex_lock(&application);
 
     // This will be used by the worker to sync
     if (pthread_mutex_init(&worker, NULL) != 0){
-        FTI_Print("Error in initing mutes", FTI_EROR);
         return 1;
     }
     pthread_mutex_lock(&worker);
@@ -465,7 +460,7 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
 
 
     if(pthread_create(&thread, &attr, workerMain, NULL)) {
-        FTI_Print( "Error creating thread",FTI_EROR);
+        return 1;
     }
 
 
@@ -503,9 +498,9 @@ int FTI_destroyMD5(){
 
 int MD5GPU(FTIT_dataset *FTI_DataVar){
     size_t size = FTI_DataVar->size;
-    unsigned long lvl1Chunks = GETDIV(size,md5ChunkSize);// + (((size % md5ChunkSize) == 0 )? 0:1);
-    long i;
-    unsigned char block[md5ChunkSize];
+//    unsigned long lvl1Chunks = GETDIV(size,md5ChunkSize);// + (((size % md5ChunkSize) == 0 )? 0:1);
+//    long i;
+//    unsigned char block[md5ChunkSize];
     long numKernels= GETDIV(size,md5ChunkSize);
     long numThreads = min(numKernels,1024L);
     long numGroups = GETDIV(numKernels,numThreads);// + ((( numKernels % numThreads ) == 0 ) ? 0:1);
@@ -650,6 +645,7 @@ int FTI_CLOSE_ASYNC(FILE *f){
     work[totalWork].type= CFILE;
     totalWork++;
     pthread_mutex_unlock(&worker);
+    return 1;
 }
 
 int FTI_SyncMD5(){

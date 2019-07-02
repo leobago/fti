@@ -1970,7 +1970,7 @@ int FTI_Recover()
 
     int i;
     char fn[FTI_BUFS]; //Path to the checkpoint file
-    char str[FTI_BUFS]; //For console output
+    char str[2*FTI_BUFS]; //For console output
 
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
@@ -2319,7 +2319,7 @@ int FTI_Finalize()
     /*-------------------------------------------------------------------------*/
     int FTI_RecoverVar(int id)
     {
-        char str[FTI_BUFS];
+        char str[2*FTI_BUFS];
         if( FTI_Exec.h5SingleFile ) {
             FTI_Print("FTI_RecoverVar is not supported yet by VPR! Please consider using FTI_Recover.", FTI_WARN);
             return FTI_NSCS;

@@ -242,7 +242,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
         if ((dir = opendir (path)) != NULL) {
             while ((ent = readdir (dir)) != NULL) {
                 if (strstr(ent->d_name , "Rank") != NULL) {
-                    sprintf(str, "%s/%s", path, ent->d_name);
+                    snprintf(str,300, "%s/%s", path, ent->d_name);
 
                     FILE* f = fopen(str, "rb");
                     fseek(f, 0L, SEEK_END);

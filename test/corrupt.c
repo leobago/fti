@@ -78,7 +78,7 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
     DIR *dir;
     struct dirent *ent;
     char folder_path[256];
-    char file_path[256];
+    char file_path[1024];
     int ckpt_id = -1;
     char buff[5];
     int res;
@@ -119,13 +119,13 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
     }
 
     if (ckpt_io == HDF5_IO && ckptORPtner == 0)
-        sprintf(file_path, "%s/Ckpt%d-%s%d.h5", folder_path, ckpt_id, buff, target_rank);
+        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.h5", folder_path, ckpt_id, buff, target_rank);
     else if (level == 4 && ckpt_io == MPI_IO)
-        sprintf(file_path, "%s/Ckpt%d-mpiio.fti", folder_path, ckpt_id);
+        snprintf(file_path,1024, "%s/Ckpt%d-mpiio.fti", folder_path, ckpt_id);
     else if (level == 4 && ckpt_io == SIONlib_IO)
-        sprintf(file_path, "%s/Ckpt%d-sionlib.fti", folder_path, ckpt_id);
+        snprintf(file_path,1024, "%s/Ckpt%d-sionlib.fti", folder_path, ckpt_id);
     else
-        sprintf(file_path, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
+        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
 
     if (corrORErase == 0) {
         res = corruptFile(file_path);

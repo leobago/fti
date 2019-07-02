@@ -92,8 +92,8 @@ int main(int argc, char *argv[])
 
   if (rank == 0 ){
     memSize = (double)(M * nbLines * 2 * sizeof(double)) /(double) (1024 * 1024 *1024);
-    printf("Local data size is %d x %d = %g MB.\n", M, nbLines, memSize );
-    printf("Allocated Extra %d MB For padding .\n", 4*M/(1024*1024));
+    printf("Local data size is %ld x %ld = %g MB.\n", M, nbLines, memSize );
+    printf("Allocated Extra %ld MB For padding .\n", 4*M/(1024*1024));
     printf("Target precision : %f \n", PRECISION);
     printf("Maximum number of iterations : %d \n", ITER_TIMES);
   }
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     g = h;
     h = temp;
     if ( rank == 0){
-      printf("%d) Step : %d, error = %g\n",rank, i, globalerror);
+      printf("%d) Step : %ld, error = %g\n",rank, i, globalerror);
     }
   }
 
