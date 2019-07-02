@@ -38,7 +38,10 @@
 
 #ifndef _FTI_INTERFACE_H
 #define _FTI_INTERFACE_H
-
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 #include "fti.h"
 
 #include "meta.h"
@@ -78,5 +81,7 @@
 #ifdef LUSTRE
 #   include "lustreapi.h"
 #endif
-
+#ifdef __cplusplus
+}
+#endif
 #endif

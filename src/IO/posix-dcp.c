@@ -139,26 +139,7 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 }
 
 
-int FTI_ComputeHash(FTIT_dataset *FTI_DataVar, FTIT_configuration *FTI_Conf){
-    unsigned long dataSize = FTI_DataVar->size;
-    unsigned char block[FTI_Conf->dcpInfoPosix.BlockSize];
-    size_t i;
-    unsigned char *ptr = FTI_DataVar->ptr;
-    for ( i = 0 ; i < FTI_DataVar->size; i+=FTI_Conf->dcpInfoPosix.BlockSize){
-        unsigned int blockId = i/FTI_Conf->dcpInfoPosix.BlockSize;
-        unsigned int hashIdx = blockId*FTI_Conf->dcpInfoPosix.digestWidth;
-        unsigned int chunkSize = ( (dataSize-i) < FTI_Conf->dcpInfoPosix.BlockSize ) ? dataSize-i: FTI_Conf->dcpInfoPosix.BlockSize;
-        if( chunkSize < FTI_Conf->dcpInfoPosix.BlockSize ) {
-            memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
-            memcpy( block, &ptr[i], chunkSize );
-            FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
-            chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
-        } else {
-            FTI_Conf->dcpInfoPosix.hashFunc( &ptr[i], FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
-        }
-    }
-    return FTI_SCES;
-}
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -226,20 +207,21 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
     prefetcher.isDevice = FTI_DataVar->isDevicePtr;
 
     if ( prefetcher.isDevice ){ 
+        FTI_MD5GPU(FTI_DataVar);
         prefetcher.dptr = FTI_DataVar->devicePtr;
     }
     else{
+        FTI_MD5CPU(FTI_DataVar);
         prefetcher.dptr = FTI_DataVar->ptr;
     }
+    FTI_startMD5();
     FTI_InitPrefetcher(&prefetcher);
 
     if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &ptr), " Fetching Next Memory block from memory") != FTI_SCES ){
         return FTI_NSCS;
     }
-
-
-    FTI_ComputeHash(FTI_DataVar, FTI_Conf);
     size_t offset = 0;
+    FTI_SyncMD5();
     while ( ptr ){
         pos = 0;
         while( pos < totalBytes ) {
@@ -255,6 +237,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
                 // if block smaller pad with zeros
                 memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
                 memcpy( block, ptr, chunkSize );
+
 //                FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
                 ptr = block;
                 chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
@@ -337,9 +320,9 @@ int FTI_PosixDCPClose(void *fileDesc)
     // dcpLayer corresponds to the additional layers towards the base layer.
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
 
-
-    FTI_PosixSync(&(write_dcpInfo->write_info));
-    FTI_PosixClose(&(write_dcpInfo->write_info));
+    FTI_CLOSE_ASYNC((write_dcpInfo->write_info.f));
+//    FTI_PosixSync(&(write_dcpInfo->write_info));
+//    FTI_PosixClose(&(write_dcpInfo->write_info));
 
     // create final dcp layer hash
     unsigned char LayerHash[MD5_DIGEST_LENGTH];

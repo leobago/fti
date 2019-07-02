@@ -636,7 +636,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   @return     char*             hex string of hash
  **/
 /*-------------------------------------------------------------------------*/
-char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr )
+char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr )
 {       
     static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
     if( hashHexStr == NULL ) {

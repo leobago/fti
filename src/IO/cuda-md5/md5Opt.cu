@@ -8,6 +8,7 @@
 #include <interface.h>
 #define CPU 1
 #define GPU 2
+#define CFILE 3
 
 int MD5GPU(FTIT_dataset *);
 int MD5CPU(FTIT_dataset *);
@@ -18,9 +19,12 @@ pthread_mutex_t application;
 long totalWork= 0;
 long worker_exit = 0;
 int deviceId;
+unsigned char* (*cpuHash)( const unsigned char *data, unsigned long nBytes, unsigned char *hash );
+
 
 typedef struct threadWork{
     FTIT_dataset *FTI_DataVar;
+    FILE *f;
     unsigned int type;
 }tw;
 
@@ -397,19 +401,28 @@ int syncDevice(){
 void *workerMain(void *){
     cudaSetDevice(deviceId);
     long l;
+    int lock= 1;
     while (1){
         pthread_mutex_lock(&worker);
         if (worker_exit ){
-            FTI_Print("Worker exits\n",FTI_WARN);
             return NULL;
         }
         for ( l = 0; l < totalWork; l++){
-            printf("I am doing extra work\n");
             if( work[l].type == CPU ){
                 MD5CPU(work[l].FTI_DataVar);
             }
             else if ( work[l].type == GPU ){
                 MD5GPU(work[l].FTI_DataVar);
+            }
+            else if ( work[l].type == CFILE ){
+                lock = 0;
+                char str[100];
+                double t0 = MPI_Wtime();
+                fsync(fileno(work[l].f));
+                fclose(work[l].f);
+                double t1 = MPI_Wtime();
+                sprintf(str,"In memory Ckpt Pushed in Stable Storage in : %.2f sec", t1-t0);
+                FTI_Print(str,FTI_INFO);
             }
             else{
                 FTI_Print("This should never happen work is either GPU or CPU\n",FTI_EROR);
@@ -417,26 +430,31 @@ void *workerMain(void *){
         }
         totalWork = 0;
         syncDevice();
-        pthread_mutex_unlock(&application);
+        if ( lock ){
+            pthread_mutex_unlock(&application);
+        }
+        else {
+            lock = 1;
+        }
     }
 }
 
-int FTI_initMD5(long cSize, long tempSize){
+int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
     //this will be use by the application to sync
-
+    cpuHash = FTI_Conf->dcpInfoPosix.hashFunc;
     pthread_attr_t attr;
 
     cudaGetDevice(&deviceId);
 
     if (pthread_mutex_init(&application, NULL) != 0){
-        printf("\n mutex init failed\n");
+        FTI_Print("Error in initing mutes", FTI_EROR);
         return 1;
     }
     pthread_mutex_lock(&application);
 
     // This will be used by the worker to sync
     if (pthread_mutex_init(&worker, NULL) != 0){
-        printf("\n mutex init failed\n");
+        FTI_Print("Error in initing mutes", FTI_EROR);
         return 1;
     }
     pthread_mutex_lock(&worker);
@@ -487,11 +505,40 @@ int MD5GPU(FTIT_dataset *FTI_DataVar){
     size_t size = FTI_DataVar->size;
     unsigned long lvl1Chunks = GETDIV(size,md5ChunkSize);// + (((size % md5ChunkSize) == 0 )? 0:1);
     long i;
+    unsigned char block[md5ChunkSize];
     long numKernels= GETDIV(size,md5ChunkSize);
     long numThreads = min(numKernels,1024L);
     long numGroups = GETDIV(numKernels,numThreads);// + ((( numKernels % numThreads ) == 0 ) ? 0:1);
+    unsigned char *tmp = (unsigned char*) malloc (sizeof(char)*size);
+    body<<<numGroups,numThreads,0,Gstream>>>((MD5_u32plus *) FTI_DataVar->dcpInfoPosix.currentHashArray, FTI_DataVar->devicePtr, size, md5ChunkSize);
+//    body<<<numGroups,numThreads>>>((MD5_u32plus *) FTI_DataVar->dcpInfoPosix.currentHashArray, FTI_DataVar->devicePtr, size, md5ChunkSize);
+/*    CUDA_ERROR_CHECK(cudaMemcpy(tmp,FTI_DataVar->devicePtr,size,cudaMemcpyDeviceToHost));
+    syncDevice();
+    for (size_t i =0 ; i < size; i+=md5ChunkSize){
+        int chunkSize = size-i;
+        int hashIdx = i/md5ChunkSize;
+        unsigned char tmpHash[16];
 
-    body<<<numGroups,numThreads,0,Gstream>>>((MD5_u32plus *) FTI_DataVar->dcpInfoPosix.currentHashArray, FTI_DataVar->ptr, size, md5ChunkSize);
+        if( chunkSize < md5ChunkSize ) {
+            memset( block, 0x0, md5ChunkSize );
+            memcpy( block, &tmp[i], chunkSize );
+            cpuHash( block, md5ChunkSize , tmpHash );
+        } else {
+            cpuHash( &tmp[i], md5ChunkSize , tmpHash );
+        }
+        int val = memcmp( &(FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx*16]), tmpHash , 16 );
+        if ( val != 0 ){
+            char str[100];
+            char str1[33],str2[33];
+            FTI_GetHashHexStr(tmpHash,16,str1);
+            FTI_GetHashHexStr(&FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx*16],16,str2);
+            sprintf(str,"Indexes %ld differ from total %ld (%s %s)",i,size,str1,str2);
+            FTI_Print(str,FTI_WARN);
+        }
+    }
+
+    free(tmp);
+*/
 
     /*
        i = lvl1Chunks*16;
@@ -538,11 +585,31 @@ long md5Level( char *tempGpuBuffer, const char *data , MD5_u32plus *Dmd5hash, un
     return outputSize;
 }
 
+
 int MD5CPU(FTIT_dataset *FTI_DataVar){
+    unsigned long dataSize = FTI_DataVar->size;
+    unsigned char block[md5ChunkSize];
+    size_t i;
+    unsigned char *ptr = (unsigned char *) FTI_DataVar->ptr;
+    for ( i = 0 ; i < FTI_DataVar->size; i+=md5ChunkSize){
+        unsigned int blockId = i/md5ChunkSize;
+        unsigned int hashIdx = blockId*16;
+        unsigned int chunkSize = ( (dataSize-i) < md5ChunkSize ) ? dataSize-i: md5ChunkSize;
+        if( chunkSize < md5ChunkSize ) {
+            memset( block, 0x0, md5ChunkSize );
+            memcpy( block, &ptr[i], chunkSize );
+            cpuHash( block, md5ChunkSize , &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+        } else {
+            cpuHash( &ptr[i], md5ChunkSize , &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+        }
+    }
+    return FTI_SCES;
+}
+
+    /*
     size_t size = FTI_DataVar->size;
     unsigned long lvl1Chunks = GETDIV(size,md5ChunkSize);// + (((size % md5ChunkSize) == 0 )? 0:1);
     long remainingSize = md5Level(tempGpuBuffer, (char*) FTI_DataVar->ptr, (MD5_u32plus*) FTI_DataVar->dcpInfoPosix.currentHashArray , size);
-    /*
        while ( i > 1 ){ 
        tmp = out;
        out = in;
@@ -559,11 +626,10 @@ int MD5CPU(FTIT_dataset *FTI_DataVar){
        i = GETDIV(i,converge);
        }
        CUDA_ERROR_CHECK(cudaMemcpyAsync(chunk,out,16,cudaMemcpyDeviceToHost,Gstream));
-     */
     return FTI_SCES;
 }
 
-
+     */
 
 int FTI_MD5CPU(FTIT_dataset *FTI_DataVar){
     work[totalWork].FTI_DataVar= FTI_DataVar;
@@ -579,13 +645,20 @@ int FTI_MD5GPU(FTIT_dataset *FTI_DataVar){
     return 1;
 }
 
-
+int FTI_CLOSE_ASYNC(FILE *f){
+    work[totalWork].f= f;
+    work[totalWork].type= CFILE;
+    totalWork++;
+    pthread_mutex_unlock(&worker);
+}
 
 int FTI_SyncMD5(){
     pthread_mutex_lock(&application);
+    return FTI_SCES;
 }
 
 int FTI_startMD5(){
     pthread_mutex_unlock(&worker);
+    return FTI_SCES;
 }
 

@@ -38,6 +38,7 @@
 
 
 #include "interface.h"
+#include "IO/cuda-md5/md5Opt.h"
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
@@ -179,6 +180,9 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpFtiff ) {
             FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
+        }
+        if (FTI_Conf.dcpPosix ){
+            FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
         }
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -746,13 +750,28 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
             FTI_Print(str, FTI_DBUG);
             if ( prevSize != FTI_Data[i].size &&  FTI_Conf.dcpPosix){
-                unsigned long nbHashes = FTI_Data[i].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
-                //                free( FTI_Data[i].dcpInfoPosix.currentHashArray);
-                //                free( FTI_Data[i].dcpInfoPosix.oldHashArray);
-                //                FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
-                FTI_Data[i].dcpInfoPosix.currentHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.currentHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-                FTI_Data[i].dcpInfoPosix.oldHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.oldHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-                FTI_Print("Updated dcp INFO", FTI_INFO);
+                if (!(FTI_Data[i].isDevicePtr)){
+                    unsigned long nbHashes = FTI_Data[i].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
+                    FTI_Data[i].dcpInfoPosix.currentHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.currentHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+                    FTI_Data[i].dcpInfoPosix.oldHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.oldHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+                }
+#ifdef GPUSUPPORT
+                else{
+                    unsigned char *x;
+                    unsigned long nbNewHashes = FTI_Data[i].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
+                    unsigned long nbOldHashes = prevSize /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
+                    CUDA_ERROR_CHECK(cudaMallocManaged((void**) &x, (nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth),cudaMemAttachGlobal));
+                    memcpy(x, FTI_Data[i].dcpInfoPosix.currentHashArray, MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
+                    CUDA_ERROR_CHECK(cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray ));
+                    FTI_Data[i].dcpInfoPosix.currentHashArray = x;
+
+                    CUDA_ERROR_CHECK(cudaMallocManaged((void **)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
+                    memcpy(x, FTI_Data[i].dcpInfoPosix.oldHashArray,  MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
+                    CUDA_ERROR_CHECK(cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray));
+                    FTI_Data[i].dcpInfoPosix.oldHashArray= x;
+
+                }
+#endif
             }
             return FTI_SCES;
         }
@@ -805,14 +824,21 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
 
     if ( FTI_Conf.dcpPosix ){
-        unsigned long nbHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
-        FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.hashDataSize = 0;
-        FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-        FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+        if (!(FTI_Data[FTI_Exec.nbVar].isDevicePtr)){
+            unsigned long nbHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
+            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.hashDataSize = 0;
+            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+        }
+        else{
+            unsigned char *x;
+            unsigned long nbNewHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
+            CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
+            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray = x;
+            CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
+            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= x;
+        }
     }
-
-
-
 
     sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
@@ -2175,12 +2201,20 @@ int FTI_Finalize()
     if( FTI_Conf.dcpPosix ) {
         int i = 0;
         for(; i<FTI_Exec.nbVar; i++) {
-            free(FTI_Data[i].dcpInfoPosix.currentHashArray);
-            free(FTI_Data[i].dcpInfoPosix.oldHashArray);
+            if ( FTI_Data[i].isDevicePtr ){
+                cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
+            }
+            else{
+                free(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                free(FTI_Data[i].dcpInfoPosix.oldHashArray);
+            }
         }
     }
 
     FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
+    
+    FTI_destroyMD5();
 
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {
