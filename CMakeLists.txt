@@ -164,10 +164,17 @@ SRC_FTI
     src/utility.c
 )
 
+if (ENABLE_GPU)
 set(
     SRC_CUDA_FTI
     src/IO/cuda-md5/md5Opt.cu
 )
+else ()
+set(
+    SRC_CUDA_FTI
+    src/IO/cuda-md5/md5Opt.c
+)
+endif()
 
 
 if (ENABLE_GPU)
@@ -389,10 +396,6 @@ export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
 
 # set up exaples in build/examples/
-message("${CUDA_NVCC_FLAGS}")
-message("${ADD_CFLAGS}")
-message("${CMAKE_CUDA_FLAGS}")
-
 file(COPY examples/config.fti DESTINATION examples)
 file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)

@@ -830,6 +830,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
             FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
         }
+#ifdef GPUSUPPORT        
         else{
             unsigned char *x;
             unsigned long nbNewHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
@@ -838,6 +839,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
             FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= x;
         }
+#endif
     }
 
     sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -2201,14 +2203,16 @@ int FTI_Finalize()
     if( FTI_Conf.dcpPosix ) {
         int i = 0;
         for(; i<FTI_Exec.nbVar; i++) {
-            if ( FTI_Data[i].isDevicePtr ){
-                cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
-                cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
-            }
-            else{
+            if (!( FTI_Data[i].isDevicePtr) ){
                 free(FTI_Data[i].dcpInfoPosix.currentHashArray);
                 free(FTI_Data[i].dcpInfoPosix.oldHashArray);
             }
+#ifdef GPUSUPPORT
+            else{
+                cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
+            }
+#endif
         }
     }
 

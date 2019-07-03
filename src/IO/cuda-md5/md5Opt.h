@@ -8,8 +8,6 @@
 extern "C"
 {
 #endif
-
-
 typedef unsigned int MD5_u32plus;
 int FTI_destroyMD5();
 int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf);
