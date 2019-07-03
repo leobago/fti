@@ -40,6 +40,8 @@
 #include "../api-cuda.h"
 #include "cuda-md5/md5Opt.h"
 
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Returns the file positio.
@@ -165,7 +167,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
     FTI_Exec->dcpInfoPosix.dataSize += FTI_DataVar->size;
     unsigned long dataSize = FTI_DataVar->size;
-//    unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
+    //    unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize + (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
 
     if( dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize) ) {
         snprintf( errstr, FTI_BUFS, "overflow in size of dataset with id: %d (datasize: %lu > MAX_DATA_SIZE: %lu)", 
@@ -237,13 +239,13 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
                 memset( block, 0x0, FTI_Conf->dcpInfoPosix.BlockSize );
                 memcpy( block, ptr, chunkSize );
 
-//                FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+                //                FTI_Conf->dcpInfoPosix.hashFunc( block, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
                 ptr = block;
                 chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
             }
             /*else {
-                FTI_Conf->dcpInfoPosix.hashFunc( ptr, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
-            }*/
+              FTI_Conf->dcpInfoPosix.hashFunc( ptr, FTI_Conf->dcpInfoPosix.BlockSize, &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+              }*/
 
             bool commitBlock;
             // if old hash exists, compare. If datasize increased, there wont be an old hash to compare with.
@@ -313,8 +315,6 @@ int FTI_PosixDCPClose(void *fileDesc)
     FTIT_checkpoint *FTI_Ckpt = write_dcpInfo->FTI_Ckpt;
     FTIT_topology *FTI_Topo = write_dcpInfo->FTI_Topo;
 
-    const char *mem= getenv("IN_MEMORY");
-    int inmemory= atoi(mem);
 
     char errstr[FTI_BUFS];
 
@@ -322,7 +322,7 @@ int FTI_PosixDCPClose(void *fileDesc)
     // dcpLayer corresponds to the additional layers towards the base layer.
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
 
-    if (inmemory ){ 
+    if (FTI_Conf->dcpInfoPosix.cachedCkpt){ 
         FTI_CLOSE_ASYNC((write_dcpInfo->write_info.f));
     }
     else{
@@ -839,27 +839,27 @@ int FTI_RecoverVarDcpPosix
     //    FTI_Data[i].dcpInfoPosix.hashArray = realloc(FTI_Data[i].dcpInfoPosix.hashArray, nbBlocks*MD5_DIGEST_LENGTH);
     int j;
     for(j=0; j<nbBlocks-1; j++) {
-        unsigned long offset = j*blockSize;
-        unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
-        //        MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
-    }
-    if( FTI_Data[i].size%blockSize ) {
-        unsigned char* buffer = calloc( 1, blockSize );
-        if( !buffer ) {
-            FTI_Print("unable to allocate memory!", FTI_EROR);
-            return FTI_NSCS;
-        }
-        unsigned long dataOffset = blockSize * (nbBlocks - 1);
-        unsigned long dataSize = FTI_Data[i].size - dataOffset;
-        memcpy( buffer, FTI_Data[i].ptr + dataOffset, dataSize ); 
-        //        MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
-        free(buffer);
-    }
-    */
-    free(buffer);
-    fclose(fd);
+    unsigned long offset = j*blockSize;
+    unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
+//        MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
+}
+if( FTI_Data[i].size%blockSize ) {
+unsigned char* buffer = calloc( 1, blockSize );
+if( !buffer ) {
+FTI_Print("unable to allocate memory!", FTI_EROR);
+return FTI_NSCS;
+}
+unsigned long dataOffset = blockSize * (nbBlocks - 1);
+unsigned long dataSize = FTI_Data[i].size - dataOffset;
+memcpy( buffer, FTI_Data[i].ptr + dataOffset, dataSize ); 
+//        MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
+free(buffer);
+}
+     */
+free(buffer);
+fclose(fd);
 
-    return FTI_SCES;
+return FTI_SCES;
 
 }
 
@@ -885,21 +885,17 @@ int FTI_RecoverVarDcpPosix
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
-            if (fileStatus.st_size == fs) {
-                if (strlen(checksum)) {
-                    int res = FTI_VerifyChecksumDcpPosix(fn);
-                    if (res != FTI_SCES) {
-                        return 1;
-                    }
-                    return 0;
+            if (strlen(checksum)) {
+                int res = FTI_VerifyChecksumDcpPosix(fn);
+                if (res != FTI_SCES) {
+                    return 1;
                 }
                 return 0;
             }
-            else {
-                return 1;
-            }
-        }
+            return 0;
+                    }
         else {
+            FTI_Print("Stat return wrong error code",FTI_WARN);
             return 1;
         }
     }
@@ -927,7 +923,6 @@ int FTI_RecoverVarDcpPosix
  )
 
 {
-
     FTIT_execution* exec = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_EXEC_TAG, NULL, NULL );
     FTIT_configuration* conf = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_CONF_TAG, NULL, NULL ); 
 
@@ -937,13 +932,14 @@ int FTI_RecoverVarDcpPosix
     unsigned int stackSize;
     unsigned int counter;
     unsigned int dcpFileId;
+    int lastCorrectLayer=-1;
 
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
         char str[FTI_BUFS];
         sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
         FTI_Print(str, FTI_WARN);
-        return FTI_NSCS;
+        goto FINALIZE;
     }
 
     unsigned char md5_tmp[MD5_DIGEST_LENGTH];
@@ -959,13 +955,13 @@ int FTI_RecoverVarDcpPosix
     if(ferror(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
         FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
+        goto FINALIZE;
     }
     fs += fread( &stackSize, 1, sizeof(unsigned int), fd );
     if(ferror(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
         FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
+        goto FINALIZE;
     }
 
     // check if settings are correckt. If not correct them
@@ -1001,45 +997,45 @@ int FTI_RecoverVarDcpPosix
     void* buffer = malloc( blockSize );
     if( !buffer ) {
         FTI_Print("unable to allocate memory!", FTI_EROR);
-        return FTI_NSCS;
+        goto FINALIZE;
     }
 
     // check layer 0 first
     // get number of variables stored in layer
     MD5_Init( &mdContext );
     fs += fread( &ckptID, 1, sizeof(int), fd );
-    if(ferror(fd)) {
+    if(ferror(fd)|| feof(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
         FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
+        goto FINALIZE;
     }
     fs += fread( &nbVarLayer, 1, sizeof(int), fd );
-    if(ferror(fd)) {
+    if(ferror(fd) || feof(fd) ) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
         FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
+        goto FINALIZE;
     }
     for(i=0; i<nbVarLayer; i++) {
         unsigned long dataSize;
         unsigned long pos = 0;
         fs += fread( dummyBuffer, 1, sizeof(int), fd );
-        if(ferror(fd)) {
+        if(ferror(fd)|| feof(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
             FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
+            goto FINALIZE;
         }
         fs += fread( &dataSize, 1, sizeof(unsigned long), fd );
-        if(ferror(fd)) {
+        if(ferror(fd)|| feof(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
             FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
+            goto FINALIZE;
         }
         while( pos < dataSize ) {
             pos += fread( buffer, 1, blockSize, fd );
-            if(ferror(fd)) {
+            if(ferror(fd)|| feof(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
                 FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
+                goto FINALIZE;
             }
             MD5( buffer, blockSize, md5_tmp );
             MD5_Update( &mdContext, md5_tmp, MD5_DIGEST_LENGTH );
@@ -1050,68 +1046,136 @@ int FTI_RecoverVarDcpPosix
     // compare hashes
     if( strcmp( FTI_GetHashHexStr( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
         FTI_Print("hashes differ in base", FTI_WARN);
-        return FTI_NSCS;
+        goto FINALIZE;
     }
+    size_t *layerSizes = (size_t*) malloc (sizeof(size_t)*stackSize);
+    int *ckptIDs  = (int*) malloc (sizeof(int)*stackSize);
+    int *nbVarLayers = (int *) malloc (sizeof(int)*stackSize);
+
+    layerSizes[layer] = fs;
+    ckptIDs[layer] = ckptID;
+    nbVarLayers[layer] = nbVarLayer;
+
+    lastCorrectLayer++;
     layer++;
     exec->dcpInfoPosix.nbLayerReco = layer;
     exec->dcpInfoPosix.nbVarReco = nbVarLayer;
     exec->ckptID = ckptID;
-    counter++;
-    //exec->dcpInfoPosix.Counter = counter;
 
+    //exec->dcpInfoPosix.Counter = counter;
+    bool readLayer = true;
+    size_t bytes;
+    size_t layerSize;
     // now treat other layers
-    for(; layer<stackSize; layer++) {
+
+    for(; layer<stackSize && readLayer; layer++) {
+        readLayer = true;
+        layerSize = 0;
         MD5_Init( &mdContext );
-        unsigned long layerSize = fread( &ckptID, 1, sizeof(int), fd );
+        bytes = fread( &ckptID, 1, sizeof(int), fd );
+        if (feof(fd) ){
+            readLayer = false;
+            break;
+        }
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
             FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
+            goto FINALIZE;
         }
-        if (feof(fd)) break;
-        layerSize += fread( &nbVarLayer, 1, sizeof(int), fd );
+
+        layerSize += bytes;
+
+        bytes = fread( &nbVarLayer, 1, sizeof(int), fd );
+
+        if (feof(fd) ){
+            readLayer = false;
+            break;
+        }
+
+
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
             FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
+            goto FINALIZE;
         }
-        while( layerSize < exec->dcpInfoPosix.LayerSize[layer] ) {
-            layerSize += fread( dummyBuffer, 1, 6, fd );
+
+        layerSize += bytes;
+
+        while( (readLayer) && layerSize < exec->dcpInfoPosix.LayerSize[layer] ) {
+            bytes = fread( dummyBuffer, 1, 6, fd );
+            if (feof(fd) ){
+                readLayer = false;
+                break;
+            }
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
                 FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
+                goto FINALIZE;
             }
-            layerSize += fread( buffer, 1, blockSize, fd );
+            layerSize += bytes;
+
+            bytes = fread( buffer, 1, blockSize, fd );
+            if (feof(fd) ){
+                readLayer = false;
+                break;
+            }
+
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
                 FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
+                goto FINALIZE;
             }
+            layerSize += bytes;
+
             MD5( buffer, blockSize, md5_tmp );
             MD5_Update( &mdContext, md5_tmp, MD5_DIGEST_LENGTH ); 
         }
         MD5_Final( md5_final, &mdContext );
         // compare hashes
-        if( strcmp( FTI_GetHashHexStr( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
-            FTI_Print("hashes differ in layer", FTI_WARN);
-            break;
+        if( readLayer && strcmp( FTI_GetHashHexStr( md5_final, conf->dcpInfoPosix.digestWidth, NULL ), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH] ) ) {
+            readLayer = false;
         }
 
-        fs += layerSize;
-        exec->dcpInfoPosix.nbLayerReco = layer+1;
-        exec->dcpInfoPosix.nbVarReco = nbVarLayer;
-        exec->ckptID = ckptID;
-        counter++;
+        if (readLayer){
+            fs += layerSize;
+            layerSizes[layer] = fs;
+            ckptIDs[layer] = ckptID;
+            nbVarLayers[layer] = nbVarLayer;
+            exec->dcpInfoPosix.nbLayerReco = layer+1;
+            exec->dcpInfoPosix.nbVarReco = nbVarLayer;
+            lastCorrectLayer++;
+        }
     }
 
-    exec->dcpInfoPosix.Counter = counter;
 
-    // truncate file if some layer were not possible to recover.
-    ftruncate(fileno(fd), fs);
-    fclose (fd);
+FINALIZE:;
+         int minLayer =0;
 
-    return FTI_SCES;
+         MPI_Allreduce(&lastCorrectLayer, &minLayer, 1, MPI_INT, MPI_MIN, FTI_COMM_WORLD); 
+         if ( minLayer == -1 ){
+             exec->dcpInfoPosix.Counter= 0;
+             fclose (fd);
+             return FTI_NSCS;
+         }
+         else{
+             exec->dcpInfoPosix.nbLayerReco = minLayer+1;
+             exec->dcpInfoPosix.nbVarReco = nbVarLayers[minLayer];
+             exec->dcpInfoPosix.Counter= minLayer +counter + 1;
+             fclose (fd);
+             exec->ckptID = ckptIDs[minLayer];
+             if ( truncate(fileName, layerSizes[minLayer]) != 0 ){
+                 FTI_Print("Error On Truncating the file",FTI_EROR);
+                 return FTI_EROR;
+             }
+
+             free(layerSizes);
+             free(ckptIDs);
+             free(nbVarLayers);
+             return FTI_SCES;
+         }
+         // truncate file if some layer were not possible to recover.
+
+
 }
 
 // HELPER FUNCTIONS

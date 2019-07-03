@@ -10,31 +10,26 @@ inMemory=0
 if [ "$demoCase" == "ORIGINAL" ]; then
     name="ORIGINAL"
     export FTI_CKPT_L4=1
-    export IN_MEMORY=0
     export ENABLE_FTI=0
 elif [ "$demoCase" == "NON_OPT" ]; then
     name="NON_OPT"
     configFile="H0POSIX.fti"
     export FTI_CKPT_L4=4
-    export IN_MEMORY=0
     export ENABLE_FTI=1
 elif [ "$demoCase" == "DCP" ]; then
     name="DCP"
     configFile="H0FTIFFDCP.fti"
     export FTI_CKPT_L4=8
-    export IN_MEMORY=0
     export ENABLE_FTI=1
 elif [ "$demoCase" == "DCP_OPT" ]; then
     name="DCP_OPT"
     configFile="H0POSIXDCP.fti"
     export FTI_CKPT_L4=8
-    export IN_MEMORY=0
     export ENABLE_FTI=1
 elif [ "$demoCase" == "DCP_INMEMORY" ]; then
     name="DCP_INMEMORY"
-    configFile="H0POSIXDCP.fti"
+    configFile="H0POSIXDCPCached.fti"
     export FTI_CKPT_L4=8
-    export IN_MEMORY=1
     export ENABLE_FTI=1
 else
     echo "Options are : ORIGINAL, NON_OPT, DCP, DCP_OPT, DCP_INMEMORY"

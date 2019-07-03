@@ -181,7 +181,7 @@ int FTI_Init(char* configFile, MPI_Comm globalComm)
         if( FTI_Conf.dcpFtiff ) {
             FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
         }
-        if (FTI_Conf.dcpPosix ){
+        if (FTI_Conf.dcpPosix  ){
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
         }
         if (FTI_Exec.reco) {
@@ -2213,8 +2213,9 @@ int FTI_Finalize()
     }
 
     FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
-    
-    FTI_destroyMD5();
+    if (FTI_Conf.dcpInfoPosix.cachedCkpt){ 
+        FTI_destroyMD5();
+    }
 
     // If there is remaining work to do for last checkpoint
     if (FTI_Exec.wasLastOffline == 1) {

@@ -227,7 +227,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
     exec_id = iniparser_getstring(ini, "Restart:exec_id", NULL);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int nodes = nodeSize ? global_world_size / nodeSize : 0;
-    char str[300];
+    char str[600];
     char path[300];
 
     DIR *dir;
@@ -242,7 +242,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size, int le
         if ((dir = opendir (path)) != NULL) {
             while ((ent = readdir (dir)) != NULL) {
                 if (strstr(ent->d_name , "Rank") != NULL) {
-                    snprintf(str,300, "%s/%s", path, ent->d_name);
+                    snprintf(str,600, "%s/%s", path, ent->d_name);
 
                     FILE* f = fopen(str, "rb");
                     fseek(f, 0L, SEEK_END);

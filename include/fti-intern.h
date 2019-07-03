@@ -113,7 +113,7 @@ extern "C" {
         unsigned char* (*hashFunc)( const unsigned char *data, unsigned long nBytes, unsigned char *hash );
         unsigned int StackSize;
         unsigned long BlockSize;
-
+        unsigned int cachedCkpt;
     } FTIT_dcpConfigurationPosix;
 
     typedef struct FTIT_dcpExecutionPosix
