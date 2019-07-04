@@ -9,9 +9,10 @@
 #include "../../../deps/iniparser/iniparser.h"
 #include "../../../deps/iniparser/dictionary.h"
 
-bool ICP;
+bool ICP, RECOVERVAR;
 
 int checkpoint( int, int, int*, int );
+int recover( int*, int );
 void shuffle( int*, size_t );
 
 /**
@@ -76,12 +77,13 @@ int main( int argc, char** argv ) {
 // -->> INIT AND DEFINITIONS
 //
 
-    if( argc < 2 ) {
-        printf("insufficiant parameter\n");
+    if( argc < 3 ) {
+        printf("insufficiant parameters (needs 2: icp recovervar)\n");
         return -1;
     }
 
     ICP = atoi(argv[1]);
+    RECOVERVAR = atoi(argv[2]);
     int rank, grank; 
     int size; 
     int size_bac; 
@@ -242,7 +244,7 @@ int main( int argc, char** argv ) {
                 }
             }
         }
-        FTI_Recover();
+        recover( ids, ldim0*2 );
         int out[3];
         bzero( out, 3*sizeof(int) );
         for(i=0; i<ldim0; ++i) {
@@ -326,12 +328,28 @@ int checkpoint( int id, int level, int* ids, int nids )
         int i;
         FTI_InitICP( id, level, 1 );
         for(i=0; i<nids; i++) {
-            //if(rank == 0) printf("[%d] adding variable: %d to checkpoint\n", i, ids[i]); // DEBUG
+            //if(rank == 0) printf("[%d] adding variable '%d' to checkpoint\n", i, ids[i]); // DEBUG
             FTI_AddVarICP(ids[i]);
         }
         FTI_FinalizeICP();
     } else {
         FTI_Checkpoint( id, level );
+    }
+}
+
+int recover( int* ids, int nids )
+{
+    int rank;
+    MPI_Comm_rank( FTI_COMM_WORLD, &rank );
+    if( RECOVERVAR ) {
+        shuffle( ids, nids );
+        int i;
+        for(i=0; i<nids; i++) {
+            // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
+            FTI_RecoverVar( ids[i] );
+        }
+    } else {
+        FTI_Recover();
     }
 }
 

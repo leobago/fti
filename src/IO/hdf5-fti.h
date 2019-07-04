@@ -7,7 +7,7 @@
 
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
-int FTI_RecoverVarHDF5(FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_dataset* FTI_Data, int id);
 int FTI_GetDatasetRankReco( hid_t did );
 int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span );
