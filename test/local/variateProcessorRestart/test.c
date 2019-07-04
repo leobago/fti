@@ -4,9 +4,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "../../../deps/iniparser/iniparser.h"
 #include "../../../deps/iniparser/dictionary.h"
+
+bool ICP;
+
+int checkpoint( int id, int level );
 
 /**
  * run with x mpi rank, where x is the cube of an integer.
@@ -64,16 +69,23 @@
 #define fn "row-conti.h5"
 #define dn "shared dataset"
 
-int main() {
+int main( int argc, char** argv ) {
 
 //
 // -->> INIT AND DEFINITIONS
 //
-    
+
+    if( argc < 2 ) {
+        printf("insufficiant parameter");
+        return -1;
+    }
+
+    ICP = atoi(argv[1]);
     int rank, grank; 
     int size; 
     int size_bac; 
     int i,j;
+    int *ids;
 
     MPI_Init(NULL,NULL);
     
@@ -149,6 +161,8 @@ int main() {
     FTI_DefineGlobalDataset( 1, 2, fdim, "struct", &gr, FTI_NEW_STRUCT );
     
     // create row contiguous array and add rows to dataset
+    ids = malloc(2*ldim0*sizeof(int));
+    for(i=0; i<2*ldim0; i++) {ids[i] = i;} 
     int **data = (int**) malloc( sizeof(int*) * ldim0 );
     struct STRUCT **sdata = (struct STRUCT**) malloc( sizeof(struct STRUCT*) * ldim0 );
     for(i=0; i<ldim0; ++i) {
@@ -156,6 +170,7 @@ int main() {
         sdata[i] = (struct STRUCT*) malloc( sizeof(struct STRUCT) * ldim1 );
         FTI_Protect( i, data[i], ldim1, FTI_INTG );
         FTI_Protect( i+ldim0, sdata[i], ldim1, FTI_NEW_STRUCT );
+        
         FTI_AddSubset( i, 2, offset, count, 0 );
         FTI_AddSubset( i+ldim0, 2, offset, count, 1 );
         offset[0]++;
@@ -301,3 +316,9 @@ int main() {
 
 }
 
+int checkpoint( int id, int level )
+{
+    if(ICP) {
+    } else {
+    }
+}
