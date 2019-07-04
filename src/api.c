@@ -1661,6 +1661,9 @@ int FTI_InitICP(int id, int level, bool activate)
     if ( !activate ) {
         return FTI_SCES;
     }
+    
+    // reset hdf5 single file requests.
+    FTI_Exec.h5SingleFile = false;
 
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
@@ -1863,6 +1866,15 @@ int FTI_FinalizeICP()
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
     resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    
+    // no postprocessing or meta data for h5 single file
+    if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
+        char str[FTI_BUFS];
+        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
+        FTI_Print(str, FTI_INFO);
+        return FTI_SCES;
+    }
 
     if( resCP == FTI_SCES ) {
         resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");

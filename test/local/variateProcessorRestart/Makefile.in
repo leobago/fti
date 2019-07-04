@@ -26,18 +26,34 @@ test: test.c Makefile fti
 
 run-head: test Makefile
 	cp cfg/HEAD-npn4 config.fti
-	$(MPIRUN) -n 20 ./$<
-	$(MPIRUN) -n 20 ./$<
+	$(MPIRUN) -n 20 ./$< 0 
+	$(MPIRUN) -n 20 ./$< 0
 	cp cfg/HEAD-npn16 config.fti
-	$(MPIRUN) -n 68 ./$<
+	$(MPIRUN) -n 68 ./$< 0
 	rm -rf Global*/ Local/ Meta/ config.fti
 
 run-nohead: test Makefile
 	cp cfg/NOHEAD-npn4 config.fti
-	$(MPIRUN) -n 16 ./$<
-	$(MPIRUN) -n 16 ./$<
+	$(MPIRUN) -n 16 ./$< 0
+	$(MPIRUN) -n 16 ./$< 0
 	cp cfg/NOHEAD-npn16 config.fti
-	$(MPIRUN) -n 64 ./$<
+	$(MPIRUN) -n 64 ./$< 0
+	rm -rf Global*/ Local/ Meta/ config.fti
+
+run-head-icp: test Makefile
+	cp cfg/HEAD-npn4 config.fti
+	$(MPIRUN) -n 20 ./$< 1 
+	$(MPIRUN) -n 20 ./$< 1
+	cp cfg/HEAD-npn16 config.fti
+	$(MPIRUN) -n 68 ./$< 1
+	rm -rf Global*/ Local/ Meta/ config.fti
+
+run-nohead-icp: test Makefile
+	cp cfg/NOHEAD-npn4 config.fti
+	$(MPIRUN) -n 16 ./$< 1
+	$(MPIRUN) -n 16 ./$< 1
+	cp cfg/NOHEAD-npn16 config.fti
+	$(MPIRUN) -n 64 ./$< 1
 	rm -rf Global*/ Local/ Meta/ config.fti
 
 clean:
