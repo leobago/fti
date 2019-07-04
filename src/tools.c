@@ -508,8 +508,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
                 FTI_Print(fil, FTI_DBUG);
                 if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
                     char fn[FTI_BUFS];
-                    sprintf(fn, "%s/%s", path, fil);
-                    sprintf(str, "File %s will be removed.", fn);
+                    snprintf(fn,FTI_BUFS, "%s/%s", path, fil);
+                    snprintf(str,FTI_BUFS, "File %s will be removed.", fn);
                     FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {
@@ -636,7 +636,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   @return     char*             hex string of hash
  **/
 /*-------------------------------------------------------------------------*/
-char* FTI_GetHashHexStr( const unsigned char* hash, int digestWidth, char* hashHexStr )
+char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr )
 {       
     static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
     if( hashHexStr == NULL ) {

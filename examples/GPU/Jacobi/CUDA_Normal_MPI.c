@@ -54,7 +54,6 @@ void SetDeviceAfterInit(int rank)
 
 	SafeCudaCall(cudaGetDeviceCount(&devCount));
   OnePrintf((rank == 0), "Number of devices are %d\n", devCount);
-  printf("Rank %d uses device %d\n", rank, (rank% devCount));
 	SafeCudaCall(cudaSetDevice(rank % devCount));
 }
 

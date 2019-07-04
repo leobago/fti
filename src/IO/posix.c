@@ -96,6 +96,7 @@ int FTI_PosixOpen(char *fn, void *fileDesc)
 int FTI_PosixClose(void *fileDesc)
 {
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
+    FTI_PosixSync(fileDesc);
     fclose(fd->f);
     return FTI_SCES;
 }

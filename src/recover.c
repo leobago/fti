@@ -112,7 +112,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char checksum[MD5_DIGEST_STRING_LENGTH], ptnerChecksum[MD5_DIGEST_STRING_LENGTH], rsChecksum[MD5_DIGEST_STRING_LENGTH];
     FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
     char str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Checking file %s and its erasures.", ckptFile);
+    snprintf(str, FTI_BUFS, "Checking file %s and its erasures %d.", ckptFile,level);
     FTI_Print(str, FTI_DBUG);
     char fn[FTI_BUFS]; //Path to the checkpoint/partner file name
     int buf;

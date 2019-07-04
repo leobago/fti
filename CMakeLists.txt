@@ -165,10 +165,26 @@ SRC_FTI
 )
 
 if (ENABLE_GPU)
+set(
+    SRC_CUDA_FTI
+    src/IO/cuda-md5/md5Opt.cu
+)
+else ()
+set(
+    SRC_CUDA_FTI
+    src/IO/cuda-md5/md5Opt.c
+)
+endif()
+
+
+if (ENABLE_GPU)
   include_directories(${CUDA_INCLUDE_DIRS})
   set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
+  message("${CUDA_NVCC_FLAGS}")
+  message("${ADD_CFLAGS}")
 endif()
+
 
 # add compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -189,17 +205,17 @@ endif()
 set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
 
 if(${OPENSSL_FOUND})
-	add_library(fti.static STATIC ${SRC_FTI} ${OPENSSL_LIBRARIES}
+	add_library(fti.static STATIC ${SRC_FTI} ${SRC_CUDA_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
-	add_library(fti.shared SHARED ${SRC_FTI} ${OPENSSL_LIBRARIES}
+	add_library(fti.shared SHARED ${SRC_FTI} ${SRC_CUDA_FTI} ${OPENSSL_LIBRARIES}
     		$<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
     set(HAVE_OPENSSL 1)
     #set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL")
 else()
-	add_library(fti.static STATIC ${SRC_FTI}
+	add_library(fti.static STATIC ${SRC_FTI} ${SRC_CUDA_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
 		$<TARGET_OBJECTS:md5>)
-	add_library(fti.shared SHARED ${SRC_FTI}
+	add_library(fti.shared SHARED ${SRC_FTI} ${SRC_CUDA_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
 		$<TARGET_OBJECTS:md5>)
 	append_property(TARGET fti.static fti.shared
@@ -211,6 +227,9 @@ set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE
 
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
+
+append_property(SOURCE ${SRC_CUDA_FTI}
+    PROPERTY COMPILE_FLAGS )
 
 
 append_property(TARGET fti.static fti.shared
@@ -377,7 +396,6 @@ export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
 
 # set up exaples in build/examples/
-
 file(COPY examples/config.fti DESTINATION examples)
 file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)

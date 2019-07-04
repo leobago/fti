@@ -27,6 +27,8 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <fti.h>
 #include "Jacobi.h"
 
@@ -42,57 +44,57 @@
 // Allocate a block of host memory
 real * SafeHostAlloc(size_t byteCount)
 {
-  real * newBuffer = (real *)malloc(byteCount);
+    real * newBuffer = (real *)malloc(byteCount);
 
-  if (newBuffer == NULL)
-  {
-    fprintf(stderr, "Error: Failed to allocate host memory (%lu bytes). Terminating...\n", byteCount);
-    exit(STATUS_ERR);
-  }
+    if (newBuffer == NULL)
+    {
+        fprintf(stderr, "Error: Failed to allocate host memory (%lu bytes). Terminating...\n", byteCount);
+        exit(STATUS_ERR);
+    }
 
-  return newBuffer;
+    return newBuffer;
 }
 
 // Display a number in a pretty format
 char * FormatNumber(double value, const char * suffix, char * printBuf)
 {
-  char * magnitude = " kMGT";
-  int orderIdx = 0;
+    char * magnitude = " kMGT";
+    int orderIdx = 0;
 
-  value = fabs(value);
-  while ((value > 1000.0) && (orderIdx < strlen(magnitude) - 1))
-  {
-    ++orderIdx;
-    value /= 1000.0;
-  }
+    value = fabs(value);
+    while ((value > 1000.0) && (orderIdx < strlen(magnitude) - 1))
+    {
+        ++orderIdx;
+        value /= 1000.0;
+    }
 
-  sprintf(printBuf, "%.2lf %c%s", value, magnitude[orderIdx], suffix);
+    sprintf(printBuf, "%.2lf %c%s", value, magnitude[orderIdx], suffix);
 
-  return printBuf;
+    return printBuf;
 }
 
 // Swap 2 device buffers
 void SwapDeviceBlocks(real * devBlocks[2])
 {
-  real * tempBlock = devBlocks[0];
+    real * tempBlock = devBlocks[0];
 
-  devBlocks[0] = devBlocks[1];
-  devBlocks[1] = tempBlock;
+    devBlocks[0] = devBlocks[1];
+    devBlocks[1] = tempBlock;
 }
 
 // Check the status of an MPI transfer
 void SafeCheckMPIStatus(MPI_Status * status, int expectedElems)
 {
-  int recvElems;
+    int recvElems;
 
-  MPI_Get_count(status, MPI_CUSTOM_REAL, &recvElems);
+    MPI_Get_count(status, MPI_CUSTOM_REAL, &recvElems);
 
-  if (recvElems != expectedElems)
-  {
-    fprintf(stderr, "Error: MPI transfer returned %d elements, but %d were expected. "
-        "Terminating...\n", recvElems, expectedElems);
-    exit(STATUS_ERR);
-  }
+    if (recvElems != expectedElems)
+    {
+        fprintf(stderr, "Error: MPI transfer returned %d elements, but %d were expected. "
+                "Terminating...\n", recvElems, expectedElems);
+        exit(STATUS_ERR);
+    }
 }
 
 // ===================================
@@ -109,35 +111,35 @@ void SafeCheckMPIStatus(MPI_Status * status, int expectedElems)
  */
 void Initialize(int * argc, char *** argv, int * rank, int * size)
 {
-  // Setting the device here will have an effect only for the CUDA-aware MPI version
-  int i;
-  char *config=NULL;
-  SetDeviceBeforeInit();
-  MPI_Init(argc, argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, rank);
-  for ( i = 1 ; i < *argc; i++){
-    if (strcmp((*argv)[i],"-fticonfig") == 0){
-      config = (*argv)[i+1]; 
-      break;
+    // Setting the device here will have an effect only for the CUDA-aware MPI version
+    int i;
+    char *config=NULL;
+    SetDeviceBeforeInit();
+    MPI_Init(argc, argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, rank);
+    for ( i = 1 ; i < *argc; i++){
+        if (strcmp((*argv)[i],"-fticonfig") == 0){
+            config = (*argv)[i+1]; 
+            break;
+        }
     }
-  }
 
-  if (config){
-    FTI_Init(config,MPI_COMM_WORLD);
-  }
-  else{
-    OneErrPrintf((*rank == 0)," I am exiting cause I dont have fti configuration file");
-    exit(-1);
-  }
+    if (config){
+        FTI_Init(config,MPI_COMM_WORLD);
+    }
+    else{
+        OneErrPrintf((*rank == 0)," I am exiting cause I dont have fti configuration file");
+        exit(-1);
+    }
 
-  if ( config ==  NULL){
-    OneErrPrintf((*rank == 0)," I am exiting cause I dont have fti configuration file");
-    exit(-1);
-  }
+    if ( config ==  NULL){
+        OneErrPrintf((*rank == 0)," I am exiting cause I dont have fti configuration file");
+        exit(-1);
+    }
 
-  MPI_Comm_rank(FTI_COMM_WORLD, rank);
-  MPI_Comm_size(FTI_COMM_WORLD, size);
-  OnePrintf((*rank==0), "Size of world is %d\n", *size)
+    MPI_Comm_rank(FTI_COMM_WORLD, rank);
+    MPI_Comm_size(FTI_COMM_WORLD, size);
+    //  OnePrintf((*rank==0), "Size of world is %d\n", *size)
 }
 
 /**
@@ -152,25 +154,25 @@ void Initialize(int * argc, char *** argv, int * rank, int * size)
  * @param[in]	copyStream		The stream used to overlap top & bottom halo exchange with side halo copy to host memory
  */
 void Finalize(real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], 
-    real * hostRecvLines[2], real * devResidue, cudaStream_t copyStream)
+        real * hostRecvLines[2], real * devResidue, cudaStream_t copyStream)
 {
-  FTI_Finalize();
-  MPI_Finalize();
+    FTI_Finalize();
+    MPI_Finalize();
 
-  for(int i = 0; i < 2; ++i)
-  {
-    SafeHostFree(hostSendLines[i]);
-    SafeHostFree(hostRecvLines[i]);
-    SafeDevFree(devHaloLines[i]);
-    SafeDevFree(devBlocks[i]);
-    SafeDevFree(devSideEdges[i]);
-  }
+    for(int i = 0; i < 2; ++i)
+    {
+        SafeHostFree(hostSendLines[i]);
+        SafeHostFree(hostRecvLines[i]);
+        SafeDevFree(devHaloLines[i]);
+        SafeDevFree(devBlocks[i]);
+        SafeDevFree(devSideEdges[i]);
+    }
 
-  SafeDevFree(devResidue);	
-  if (copyStream != NULL)
-  {
-    SafeCudaCall(cudaStreamDestroy(copyStream));
-  }	
+    SafeDevFree(devResidue);	
+    if (copyStream != NULL)
+    {
+        SafeCudaCall(cudaStreamDestroy(copyStream));
+    }	
 }
 
 // ====================
@@ -189,43 +191,43 @@ void Finalize(real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2
  */
 int ApplyTopology(int * rank, int size, const int2 * topSize, int * neighbors, int2 * topIndex, MPI_Comm * cartComm)
 {
-  int topologySize = topSize->x * topSize->y;
-  int dimSize[2] = {topSize->x, topSize->y};
-  int usePeriods[2] = {0, 0}, newCoords[2];
-  int oldRank = * rank;
+    int topologySize = topSize->x * topSize->y;
+    int dimSize[2] = {topSize->x, topSize->y};
+    int usePeriods[2] = {0, 0}, newCoords[2];
+    int oldRank = * rank;
 
-  // The number of MPI processes must fill the topology
-  if (size != topologySize)
-  {
-    OneErrPrintf(* rank == MPI_MASTER_RANK, "Error: The number of MPI processes (%d) doesn't match "
-        "the topology size (%d).\n", size, topologySize);
+    // The number of MPI processes must fill the topology
+    if (size != topologySize)
+    {
+        OneErrPrintf(* rank == MPI_MASTER_RANK, "Error: The number of MPI processes (%d) doesn't match "
+                "the topology size (%d).\n", size, topologySize);
 
-    return STATUS_ERR;
-  }
+        return STATUS_ERR;
+    }
 
-  // Create a carthesian communicator
-  MPI_Cart_create(FTI_COMM_WORLD, 2, dimSize, usePeriods, 1, cartComm);
+    // Create a carthesian communicator
+    MPI_Cart_create(FTI_COMM_WORLD, 2, dimSize, usePeriods, 1, cartComm);
 
-  // Update the rank to be relevant to the new communicator
-  MPI_Comm_rank(* cartComm, rank);
+    // Update the rank to be relevant to the new communicator
+    MPI_Comm_rank(* cartComm, rank);
 
-  if ((*rank) != oldRank)
-  {
-    printf("Rank change: from %d to %d\n", oldRank, * rank);
-  }
+    if ((*rank) != oldRank)
+    {
+        printf("Rank change: from %d to %d\n", oldRank, * rank);
+    }
 
-  // Obtain the 2D coordinates in the new communicator
-  MPI_Cart_coords(* cartComm, * rank, 2, newCoords);
-  * topIndex = make_int2(newCoords[0], newCoords[1]);
+    // Obtain the 2D coordinates in the new communicator
+    MPI_Cart_coords(* cartComm, * rank, 2, newCoords);
+    * topIndex = make_int2(newCoords[0], newCoords[1]);
 
-  // Obtain the direct neighbor ranks
-  MPI_Cart_shift(* cartComm, 0, 1, neighbors + DIR_LEFT, neighbors + DIR_RIGHT);
-  MPI_Cart_shift(* cartComm, 1, 1, neighbors + DIR_TOP, neighbors + DIR_BOTTOM);
+    // Obtain the direct neighbor ranks
+    MPI_Cart_shift(* cartComm, 0, 1, neighbors + DIR_LEFT, neighbors + DIR_RIGHT);
+    MPI_Cart_shift(* cartComm, 1, 1, neighbors + DIR_TOP, neighbors + DIR_BOTTOM);
 
-  // Setting the device here will have effect only for the normal CUDA & MPI version
-  SetDeviceAfterInit(* rank);
+    // Setting the device here will have effect only for the normal CUDA & MPI version
+    SetDeviceAfterInit(* rank);
 
-  return STATUS_OK;
+    return STATUS_OK;
 }
 
 // ===================
@@ -235,8 +237,8 @@ int ApplyTopology(int * rank, int size, const int2 * topSize, int * neighbors, i
 // Initialize the send and receive buffers for a given direction
 void InitExchangeBuffers(real * hostSendLines[2], real * hostRecvLines[2], int bufIndex, size_t byteCount)
 {
-  hostSendLines[bufIndex] = SafeHostAlloc(byteCount);
-  hostRecvLines[bufIndex] = SafeHostAlloc(byteCount);
+    hostSendLines[bufIndex] = SafeHostAlloc(byteCount);
+    hostRecvLines[bufIndex] = SafeHostAlloc(byteCount);
 }
 
 /**
@@ -255,57 +257,57 @@ void InitExchangeBuffers(real * hostSendLines[2], real * hostRecvLines[2], int b
  * @param[out]	devResidue		The global device residue, which will be updated after every Jacobi iteration
  */
 void InitializeDataChunk(int topSizeY, int topIdxY, const int2 * domSize, const int * neighbors, cudaStream_t * copyStream, 
-    real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2], real ** devResidue)
+        real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2], real ** devResidue)
 {
-  const real PI = (real)3.1415926535897932384626;
-  const real E_M_PI = (real)exp(-PI);
+    const real PI = (real)3.1415926535897932384626;
+    const real E_M_PI = (real)exp(-PI);
 
-  size_t blockBytes = (domSize->x + 2) * (domSize->y + 2) * sizeof(real);
-  size_t sideLineBytes = domSize->y * sizeof(real);
-  int2 borderBounds = make_int2(topIdxY * domSize->y, (topIdxY + 1) * domSize->y);
-  int borderSpan = domSize->y * topSizeY - 1;
-  real * hostBlock = SafeHostAlloc(blockBytes);
+    size_t blockBytes = (domSize->x + 2) * (domSize->y + 2) * sizeof(real);
+    size_t sideLineBytes = domSize->y * sizeof(real);
+    int2 borderBounds = make_int2(topIdxY * domSize->y, (topIdxY + 1) * domSize->y);
+    int borderSpan = domSize->y * topSizeY - 1;
+    real * hostBlock = SafeHostAlloc(blockBytes);
 
-  // Clearing the block also sets the boundary conditions for top and bottom edges to 0
-  memset(hostBlock, 0, blockBytes);
+    // Clearing the block also sets the boundary conditions for top and bottom edges to 0
+    memset(hostBlock, 0, blockBytes);
 
-  InitExchangeBuffers(hostSendLines, hostRecvLines, 0, domSize->x * sizeof(real));
-  InitExchangeBuffers(hostSendLines, hostRecvLines, 1, sideLineBytes);
+    InitExchangeBuffers(hostSendLines, hostRecvLines, 0, domSize->x * sizeof(real));
+    InitExchangeBuffers(hostSendLines, hostRecvLines, 1, sideLineBytes);
 
-  // Set the boundary conditions for the left edge
-  if (!HasNeighbor(neighbors, DIR_LEFT))
-  {
-    for (int j = borderBounds.x, idx = domSize->x + 3; j < borderBounds.y; ++j, idx += domSize->x + 2)
+    // Set the boundary conditions for the left edge
+    if (!HasNeighbor(neighbors, DIR_LEFT))
     {
-      hostBlock[idx] = (real)sin(PI * j / borderSpan);
+        for (int j = borderBounds.x, idx = domSize->x + 3; j < borderBounds.y; ++j, idx += domSize->x + 2)
+        {
+            hostBlock[idx] = (real)sin(PI * j / borderSpan);
+        }
     }
-  }
 
-  // Set the boundary conditions for the right edge
-  if (!HasNeighbor(neighbors, DIR_RIGHT))
-  {
-    for (int j = borderBounds.x, idx = ((domSize->x + 2) << 1) - 2; j < borderBounds.y; ++j, idx += domSize->x + 2)
+    // Set the boundary conditions for the right edge
+    if (!HasNeighbor(neighbors, DIR_RIGHT))
     {
-      hostBlock[idx] = (real)sin(PI * j / borderSpan) * E_M_PI;
+        for (int j = borderBounds.x, idx = ((domSize->x + 2) << 1) - 2; j < borderBounds.y; ++j, idx += domSize->x + 2)
+        {
+            hostBlock[idx] = (real)sin(PI * j / borderSpan) * E_M_PI;
+        }
     }
-  }
 
-  // Perform device memory allocation and initialization
-  for (int i = 0; i < 2; ++i)
-  {
-    SafeCudaCall(cudaMalloc((void **)&devBlocks[i], blockBytes));
-    SafeCudaCall(cudaMalloc((void **)&devSideEdges[i], sideLineBytes));	
-    SafeCudaCall(cudaMalloc((void **)&devHaloLines[i], sideLineBytes));
+    // Perform device memory allocation and initialization
+    for (int i = 0; i < 2; ++i)
+    {
+        SafeCudaCall(cudaMalloc((void **)&devBlocks[i], blockBytes));
+        SafeCudaCall(cudaMalloc((void **)&devSideEdges[i], sideLineBytes));	
+        SafeCudaCall(cudaMalloc((void **)&devHaloLines[i], sideLineBytes));
 
-    SafeCudaCall(cudaMemset(devSideEdges[i], 0, sideLineBytes));
-  }
+        SafeCudaCall(cudaMemset(devSideEdges[i], 0, sideLineBytes));
+    }
 
-  SafeCudaCall(cudaMalloc((void **)devResidue, sizeof(real)));
-  SafeCudaCall(cudaMemcpy(devBlocks[0], hostBlock, blockBytes, cudaMemcpyHostToDevice));
-  SafeCudaCall(cudaMemcpy(devBlocks[1], devBlocks[0], blockBytes, cudaMemcpyDeviceToDevice));
-  SafeCudaCall(cudaStreamCreate(copyStream));			
+    SafeCudaCall(cudaMalloc((void **)devResidue, sizeof(real)));
+    SafeCudaCall(cudaMemcpy(devBlocks[0], hostBlock, blockBytes, cudaMemcpyHostToDevice));
+    SafeCudaCall(cudaMemcpy(devBlocks[1], devBlocks[0], blockBytes, cudaMemcpyDeviceToDevice));
+    SafeCudaCall(cudaStreamCreate(copyStream));			
 
-  SafeHostFree(hostBlock);
+    SafeHostFree(hostBlock);
 }
 
 // =====================
@@ -314,27 +316,27 @@ void InitializeDataChunk(int topSizeY, int topIdxY, const int2 * domSize, const 
 
 // Update the performance counters for the current MPI process
 void UpdatePerfCounters(const int2 * topSize, const int2 * domSize, int iterations, int useFastSwap, 
-    double * lattUpdates, double * flops, double * bandWidth)
+        double * lattUpdates, double * flops, double * bandWidth)
 {
-  * lattUpdates = 1.0 * (topSize->x * domSize->x - 2) * (topSize->y * domSize->y - 2) * iterations;
-  * flops = 5.0 * (* lattUpdates);							// Operations per Jacobi kernel run
-  * bandWidth = 6.0 * (* lattUpdates) * sizeof(real);			// Transfers per Jacobi kernel run
+    * lattUpdates = 1.0 * (topSize->x * domSize->x - 2) * (topSize->y * domSize->y - 2) * iterations;
+    * flops = 5.0 * (* lattUpdates);							// Operations per Jacobi kernel run
+    * bandWidth = 6.0 * (* lattUpdates) * sizeof(real);			// Transfers per Jacobi kernel run
 
-  if (!useFastSwap)
-  {
-    * bandWidth += 2.0 * (* lattUpdates) * sizeof(real);	// Transfers from block copying must be included
-  }
+    if (!useFastSwap)
+    {
+        * bandWidth += 2.0 * (* lattUpdates) * sizeof(real);	// Transfers from block copying must be included
+    }
 }
 
 // Print a performance counter in a specific format
 void PrintPerfCounter(const char * counterDesc, const char * counterUnit, double counter, double elapsedTime, int size)
 {
-  char printBuf[256];
-  double avgCounter = counter / elapsedTime;
-  double rankAvgCounter = avgCounter / size;
+    char printBuf[256];
+    double avgCounter = counter / elapsedTime;
+    double rankAvgCounter = avgCounter / size;
 
-  printf("%s: %s (total), ", counterDesc, FormatNumber(avgCounter, counterUnit, printBuf));
-  printf("%s (per process)\n", FormatNumber(rankAvgCounter, counterUnit, printBuf));
+    printf("%s: %s (total), ", counterDesc, FormatNumber(avgCounter, counterUnit, printBuf));
+    printf("%s (per process)\n", FormatNumber(rankAvgCounter, counterUnit, printBuf));
 }
 
 /**
@@ -347,20 +349,20 @@ void PrintPerfCounter(const char * counterDesc, const char * counterUnit, double
  */
 void PreRunJacobi(MPI_Comm cartComm, int rank, int size, double * timerStart)
 {
-  struct cudaDeviceProp devProps;
-  int crtDevice = 0, enabledECC = 0;
+    struct cudaDeviceProp devProps;
+    int crtDevice = 0, enabledECC = 0;
 
-  // We get the properties of the current device, assuming all other devices are the same
-  SafeCudaCall(cudaGetDevice(&crtDevice));
-  SafeCudaCall(cudaGetDeviceProperties(&devProps, crtDevice));
+    // We get the properties of the current device, assuming all other devices are the same
+    SafeCudaCall(cudaGetDevice(&crtDevice));
+    SafeCudaCall(cudaGetDeviceProperties(&devProps, crtDevice));
 
-  // Determine how many devices have ECC enabled (assuming exactly one process per device)
-  MPI_Reduce(&devProps.ECCEnabled, &enabledECC, 1, MPI_INT, MPI_SUM, MPI_MASTER_RANK, cartComm);
+    // Determine how many devices have ECC enabled (assuming exactly one process per device)
+    MPI_Reduce(&devProps.ECCEnabled, &enabledECC, 1, MPI_INT, MPI_SUM, MPI_MASTER_RANK, cartComm);
 
-  MPI_Barrier(cartComm);
-  OnePrintf(rank == MPI_MASTER_RANK, "Starting Jacobi run with %d processes using \"%s\" GPUs (ECC enabled: %d / %d):\n", 
-      size, devProps.name, enabledECC, size);
-  * timerStart = MPI_Wtime();
+    MPI_Barrier(cartComm);
+    OnePrintf(rank == MPI_MASTER_RANK, "Starting Jacobi run with %d processes using \"%s\" GPUs (ECC enabled: %d / %d):\n", 
+            size, devProps.name, enabledECC, size);
+    * timerStart = MPI_Wtime();
 }
 
 /**
@@ -376,27 +378,27 @@ void PreRunJacobi(MPI_Comm cartComm, int rank, int size, double * timerStart)
  * @param[in]	avgTransferTime	The average time spent performing MPI transfers (per process)
  */
 void PostRunJacobi(MPI_Comm cartComm, int rank, int size, const int2 * topSize, const int2 * domSize, int iterations, int useFastSwap, 
-    double timerStart, double avgTransferTime)
+        double timerStart, double avgTransferTime)
 {
-  double elapsedTime;
-  double lattUpdates = 0.0, flops = 0.0, bandWidth = 0.0;
+    double elapsedTime;
+    double lattUpdates = 0.0, flops = 0.0, bandWidth = 0.0;
 
-  MPI_Barrier(cartComm);
-  elapsedTime = MPI_Wtime() - timerStart;
+    MPI_Barrier(cartComm);
+    elapsedTime = MPI_Wtime() - timerStart;
 
-  // Show the performance counters
-  if (rank == MPI_MASTER_RANK)
-  {
-    printf("Total Jacobi run time: %.4lf sec.\n", elapsedTime);
-    printf("Average per-process communication time: %.4lf sec.\n", avgTransferTime);
+    // Show the performance counters
+    if (rank == MPI_MASTER_RANK)
+    {
+        printf("Total Jacobi run time: %.4lf sec.\n", elapsedTime);
+        printf("Average per-process communication time: %.4lf sec.\n", avgTransferTime);
 
-    // Compute the performance counters over all MPI processes
-    UpdatePerfCounters(topSize, domSize, iterations, useFastSwap, &lattUpdates, &flops, &bandWidth);
+        // Compute the performance counters over all MPI processes
+        UpdatePerfCounters(topSize, domSize, iterations, useFastSwap, &lattUpdates, &flops, &bandWidth);
 
-    PrintPerfCounter("Measured lattice updates", "LU/s", lattUpdates, elapsedTime, size);
-    PrintPerfCounter("Measured FLOPS", "FLOPS", flops, elapsedTime, size);
-    PrintPerfCounter("Measured device bandwidth", "B/s", bandWidth, elapsedTime, size);
-  }
+        PrintPerfCounter("Measured lattice updates", "LU/s", lattUpdates, elapsedTime, size);
+        PrintPerfCounter("Measured FLOPS", "FLOPS", flops, elapsedTime, size);
+        PrintPerfCounter("Measured device bandwidth", "B/s", bandWidth, elapsedTime, size);
+    }
 }
 
 /**
@@ -415,47 +417,47 @@ void PostRunJacobi(MPI_Comm cartComm, int rank, int size, const int2 * topSize, 
  * @return							The time spent during the MPI transfers
  */
 double TransferAllHalos(MPI_Comm cartComm, const int2 * domSize, const int2 * topIndex, const int * neighbors, cudaStream_t copyStream,
-    real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2])
+        real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2])
 {
-  real * devSendLines[2] = {devBlocks[0] + domSize->x + 3, devBlocks[0] + domSize->y * (domSize->x + 2) + 1};
-  real * devRecvLines[2] = {devBlocks[0] + 1, devBlocks[0] + (domSize->y + 1) * (domSize->x + 2) + 1};
-  int yNeighbors[2] = {neighbors[DIR_TOP], neighbors[DIR_BOTTOM]};
-  int xNeighbors[2] = {neighbors[DIR_LEFT], neighbors[DIR_RIGHT]};
-  int2 order = make_int2(topIndex->x % 2, topIndex->y % 2);
-  double transferTime;
+    real * devSendLines[2] = {devBlocks[0] + domSize->x + 3, devBlocks[0] + domSize->y * (domSize->x + 2) + 1};
+    real * devRecvLines[2] = {devBlocks[0] + 1, devBlocks[0] + (domSize->y + 1) * (domSize->x + 2) + 1};
+    int yNeighbors[2] = {neighbors[DIR_TOP], neighbors[DIR_BOTTOM]};
+    int xNeighbors[2] = {neighbors[DIR_LEFT], neighbors[DIR_RIGHT]};
+    int2 order = make_int2(topIndex->x % 2, topIndex->y % 2);
+    double transferTime;
 
-  // Populate the block's side edges
-  CopyDevSideEdgesFromBlock(devBlocks[0], devSideEdges, domSize, neighbors, copyStream);
+    // Populate the block's side edges
+    CopyDevSideEdgesFromBlock(devBlocks[0], devSideEdges, domSize, neighbors, copyStream);
 
-  // Exchange data with the top and bottom neighbors
-  transferTime = MPI_Wtime();
-  ExchangeHalos(cartComm, devSendLines[order.y], hostSendLines[0], 
-      hostRecvLines[0], devRecvLines[order.y], yNeighbors[order.y], domSize->x);
-  ExchangeHalos(cartComm, devSendLines[1 - order.y], hostSendLines[0], 
-      hostRecvLines[0], devRecvLines[1 - order.y], yNeighbors[1 - order.y], domSize->x);
+    // Exchange data with the top and bottom neighbors
+    transferTime = MPI_Wtime();
+    ExchangeHalos(cartComm, devSendLines[order.y], hostSendLines[0], 
+            hostRecvLines[0], devRecvLines[order.y], yNeighbors[order.y], domSize->x);
+    ExchangeHalos(cartComm, devSendLines[1 - order.y], hostSendLines[0], 
+            hostRecvLines[0], devRecvLines[1 - order.y], yNeighbors[1 - order.y], domSize->x);
 
-  SafeCudaCall(cudaStreamSynchronize(copyStream));
+    SafeCudaCall(cudaStreamSynchronize(copyStream));
 
-  // Exchange data with the left and right neighbors
-  ExchangeHalos(cartComm, devSideEdges[order.x], hostSendLines[1], 
-      hostRecvLines[1], devHaloLines[order.x], xNeighbors[order.x], domSize->y);
-  ExchangeHalos(cartComm, devSideEdges[1 - order.x], hostSendLines[1], 
-      hostRecvLines[1], devHaloLines[1 - order.x], xNeighbors[1 - order.x], domSize->y); 
-  transferTime = MPI_Wtime() - transferTime;
+    // Exchange data with the left and right neighbors
+    ExchangeHalos(cartComm, devSideEdges[order.x], hostSendLines[1], 
+            hostRecvLines[1], devHaloLines[order.x], xNeighbors[order.x], domSize->y);
+    ExchangeHalos(cartComm, devSideEdges[1 - order.x], hostSendLines[1], 
+            hostRecvLines[1], devHaloLines[1 - order.x], xNeighbors[1 - order.x], domSize->y); 
+    transferTime = MPI_Wtime() - transferTime;
 
-  // Copy the received halos to the device block
-  CopyDevHalosToBlock(devBlocks[0], devHaloLines[0], devHaloLines[1], domSize, neighbors);
+    // Copy the received halos to the device block
+    CopyDevHalosToBlock(devBlocks[0], devHaloLines[0], devHaloLines[1], domSize, neighbors);
 
-  return transferTime;
+    return transferTime;
 }
 
 // Get the bounds of the chunk area that n
 int4 GetComputeBounds(const int2 * size, const int * neighbors)
 {
-  return make_int4(neighbors[DIR_LEFT] 	!= MPI_PROC_NULL? 0 : 1,
-      neighbors[DIR_TOP] 	!= MPI_PROC_NULL? 0 : 1,
-      neighbors[DIR_RIGHT]   != MPI_PROC_NULL? size->x - 1 : size->x - 2,
-      neighbors[DIR_BOTTOM]  != MPI_PROC_NULL? size->y - 1 : size->y - 2);
+    return make_int4(neighbors[DIR_LEFT] 	!= MPI_PROC_NULL? 0 : 1,
+            neighbors[DIR_TOP] 	!= MPI_PROC_NULL? 0 : 1,
+            neighbors[DIR_RIGHT]   != MPI_PROC_NULL? size->x - 1 : size->x - 2,
+            neighbors[DIR_BOTTOM]  != MPI_PROC_NULL? size->y - 1 : size->y - 2);
 }
 
 /**
@@ -479,59 +481,87 @@ int4 GetComputeBounds(const int2 * size, const int * neighbors)
  * @param[out]		avgTransferTime The average time spent performing MPI transfers (per process)
  */
 void RunJacobi(MPI_Comm cartComm, int rank, int size, const int2 * domSize, const int2 * topIndex, const int * neighbors, int useFastSwap,
-    real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2], real * devResidue,
-    cudaStream_t copyStream, int * iterations, double * avgTransferTime, int failedIter)
+        real * devBlocks[2], real * devSideEdges[2], real * devHaloLines[2], real * hostSendLines[2], real * hostRecvLines[2], real * devResidue,
+        cudaStream_t copyStream, int * iterations, double * avgTransferTime, int failedIter)
 {
-  real residue, globalResidue = (real)1.0;
-  int4 bounds = GetComputeBounds(domSize, neighbors);
-  double localTime = 0.0;
+    real residue, globalResidue = (real)1.0;
+    int4 bounds = GetComputeBounds(domSize, neighbors);
+    const char *levelNames[] = {"Local", "Partner Copy", "RS-Encoding", "GPFS Full Ckpt", 
+        "(DCP) Local", "(DCP) Partner Copy", "(DCP) RS-Encoding", "(DCP) GPFS Full Ckpt"};
+    double localTime = 0.0;
+    * iterations = 0;
+    * avgTransferTime = 0.0;
+    int recovered = 0;
 
-  * iterations = 0;
-  * avgTransferTime = 0.0;
-  FTI_Protect(0,devBlocks[0],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
-  FTI_Protect(1,devBlocks[1],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
-  FTI_Protect(2, &localTime, 1, FTI_DBLE);
-  FTI_Protect(3, iterations, 1, FTI_INTG);
-  FTI_Protect(4, &globalResidue, 1, FTI_DBLE);
+    const char *fti = getenv("ENABLE_FTI");
+    int enable_fti = atoi(fti);
 
-  while ((* iterations < JACOBI_MAX_LOOPS) && (globalResidue > JACOBI_TOLERANCE))
-  {
-
-//  Compute the residue for the current iteration
-   if ( ((* iterations)%4000) == 1000 ){
-          FTI_Checkpoint(*iterations,4); 
+    if (enable_fti){
+        FTI_Protect(0,devBlocks[0],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
+        FTI_Protect(1,devBlocks[1],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
+        FTI_Protect(2, &localTime, 1, FTI_DBLE);
+        FTI_Protect(3, iterations, 1, FTI_INTG);
+        FTI_Protect(4, &globalResidue, 1, FTI_DBLE);
     }
-    residue = CallJacobiKernel(devBlocks, devResidue, &bounds, domSize);
 
-    // Exchange the old block with the new (updated) one
-    if (useFastSwap)
+    const char* strLevel = getenv("FTI_CKPT_L4");
+    int level = atoi(strLevel);
+
+    if (rank == 0)
+        printf("I am going to ckpt To level %s \n", levelNames[level-1]);
+
+    if (enable_fti){
+        if ( FTI_Status() != 0){
+            FTI_Recover();
+            recovered = 1;
+        }
+    }
+
+
+    while ((* iterations < JACOBI_MAX_LOOPS) && (globalResidue > JACOBI_TOLERANCE))
     {
-      SwapDeviceBlocks(devBlocks);
-      // IF we swap I need to remeber this information. 
-      FTI_Protect(0,devBlocks[0],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
-      FTI_Protect(1,devBlocks[1],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
+
+        //  Compute the residue for the current iteration
+
+        if (enable_fti){
+            if ( (!recovered) && ((*iterations)%1000 +1) == 1000 ){
+                FTI_Checkpoint(*iterations,level); 
+            }
+            recovered = 0;
+        }
+        residue = CallJacobiKernel(devBlocks, devResidue, &bounds, domSize);
+
+        // Exchange the old block with the new (updated) one
+        if (useFastSwap)
+        {
+            SwapDeviceBlocks(devBlocks);
+            // IF we swap I need to remeber this information. 
+            if (enable_fti){
+                FTI_Protect(0,devBlocks[0],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
+                FTI_Protect(1,devBlocks[1],(domSize->x + 2) * (domSize->y + 2),FTI_DBLE); 
+            }
+        }
+        else
+        {
+            CopyDeviceBlock(devBlocks, &bounds, domSize);
+        }
+
+        // Send and receive halo (exchange) elements
+        localTime += TransferAllHalos(cartComm, domSize, topIndex, neighbors, copyStream, devBlocks, devSideEdges, devHaloLines, hostSendLines, hostRecvLines);
+
+        // Obtain and distribute the global maximum residue
+        globalResidue = (real)0.0;
+        MPI_Allreduce(&residue, &globalResidue, 1, MPI_CUSTOM_REAL, MPI_MAX, cartComm);
+
+        OnePrintf((rank == MPI_MASTER_RANK) && ((* iterations) % 100 == 0),
+                "Iteration: %d - Residue: %.6f\n", * iterations, globalResidue);
+        ++(* iterations);
     }
-    else
-    {
-      CopyDeviceBlock(devBlocks, &bounds, domSize);
-    }
 
-    // Send and receive halo (exchange) elements
-    localTime += TransferAllHalos(cartComm, domSize, topIndex, neighbors, copyStream, devBlocks, devSideEdges, devHaloLines, hostSendLines, hostRecvLines);
+    // Calculate the total time spent on transfers
+    MPI_Reduce(&localTime, avgTransferTime, 1, MPI_DOUBLE, MPI_SUM, MPI_MASTER_RANK, cartComm);
+    * avgTransferTime /= size;
 
-    // Obtain and distribute the global maximum residue
-    globalResidue = (real)0.0;
-    MPI_Allreduce(&residue, &globalResidue, 1, MPI_CUSTOM_REAL, MPI_MAX, cartComm);
-
-    OnePrintf((rank == MPI_MASTER_RANK) && ((* iterations) % 100 == 0),
-        "Iteration: %d - Residue: %.6f\n", * iterations, globalResidue);
-    ++(* iterations);
-  }
-
-  // Calculate the total time spent on transfers
-  MPI_Reduce(&localTime, avgTransferTime, 1, MPI_DOUBLE, MPI_SUM, MPI_MASTER_RANK, cartComm);
-  * avgTransferTime /= size;
-
-  OnePrintf(rank == MPI_MASTER_RANK, "Stopped after %d iterations with residue %.6f\n", * iterations, globalResidue);
+    OnePrintf(rank == MPI_MASTER_RANK, "Stopped after %d iterations with residue %.6f\n", * iterations, globalResidue);
 }
 

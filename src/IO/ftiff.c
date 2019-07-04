@@ -826,7 +826,9 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTI
 
     if (hascontent){
         // Now I allocate the New hash tables
+
         FTI_InitNextHashData(currentdbvar->dataDiffHash);
+
         size_t offset=0;
         totalBytes = 0;
         FTIT_data_prefetch prefetcher;
