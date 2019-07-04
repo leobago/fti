@@ -1212,8 +1212,12 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
         hash = hash_;
     }
 
+#ifdef FTI_NOZLIB
+    uint32_t digest = crc32( d, nBytes );
+#else
     uint32_t digest = crc32( 0L, Z_NULL, 0 );
     digest = crc32( digest, d, nBytes );
+#endif
 
     memcpy( hash, &digest, CRC32_DIGEST_LENGTH );
 
