@@ -104,7 +104,7 @@ FTIT_type FTI_LDBE;
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Init(char* configFile, MPI_Comm globalComm)
+int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
@@ -470,7 +470,6 @@ int FTI_GetStageDir( char* stageDir, int maxLen)
     return FTI_SCES;
 
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -866,7 +865,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type)
+int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
 #ifdef ENABLE_HDF5
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;

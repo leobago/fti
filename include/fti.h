@@ -74,7 +74,7 @@ extern "C" {
     FTI public functions
     ---------------------------------------------------------------------------*/
 
-  int FTI_Init(char *configFile, MPI_Comm globalComm);
+  int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
   int FTI_InitType(FTIT_type* type, int size);
   int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
@@ -87,7 +87,7 @@ extern "C" {
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
-  int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, char* name, FTIT_H5Group* h5group, FTIT_type type);
+  int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
   int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
   int FTI_RecoverDatasetDimension( int did ); 
   hsize_t* FTI_GetDatasetSpan( int did, int rank );
