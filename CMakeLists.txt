@@ -230,10 +230,10 @@ append_property(SOURCE ${SRC_FTI}
 
 if( NOT ZLIB_FOUND )
 append_property(SOURCE ${SRC_CUDA_FTI}
-    PROPERTY COMPILE_FLAGS )
+    PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
 else()
 append_property(SOURCE ${SRC_CUDA_FTI}
-    PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
+    PROPERTY COMPILE_FLAGS )
 endif()
 
 append_property(TARGET fti.static fti.shared
