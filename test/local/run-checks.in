@@ -345,17 +345,59 @@ done
 #                     #
 if @DO_VPR_CHECK@ ; then 
 echo -e "[ \033[1m*** Testing VPR: head=0 ***\033[m ]"
-( set -x; bash checkVPR.sh 0 &>> check.log )
+( set -x; bash checkVPR.sh 0 0 0 &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "VPR check (head=0) failed" >> failed.log
     testFailed=0
 fi
+echo -e "[ \033[1m*** Testing VPR: head=0 recoverVar ***\033[m ]"
+( set -x; bash checkVPR.sh 0 0 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=0 recoverVar) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=0 iCP ***\033[m ]"
+( set -x; bash checkVPR.sh 0 1 0&>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=0 iCP) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=0 iCP recoverVar ***\033[m ]"
+( set -x; bash checkVPR.sh 0 1 1&>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=0 iCP recoverVar) failed" >> failed.log
+    testFailed=0
+fi
 echo -e "[ \033[1m*** Testing VPR: head=1 ***\033[m ]"
-( set -x; bash checkVPR.sh 1 &>> check.log )
+( set -x; bash checkVPR.sh 1 0 0 &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
     echo -e "VPR check (head=1) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=1 recoverVar ***\033[m ]"
+( set -x; bash checkVPR.sh 1 0 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=1 recoverVar) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=1 iCP ***\033[m ]"
+( set -x; bash checkVPR.sh 1 1 0&>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=1 iCP) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing VPR: head=1 iCP recoverVar ***\033[m ]"
+( set -x; bash checkVPR.sh 1 1 1&>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "VPR check (head=1 iCP recoverVar) failed" >> failed.log
     testFailed=0
 fi
 fi

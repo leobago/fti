@@ -1083,10 +1083,15 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
             FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
             return NULL;
         }
-        if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
-            FTI_Print( "Dimension missmatch in VPR file. Checkpoint failed!", FTI_WARN );
-            return NULL;
-        }
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // Cannot check dimensions when using icp! FIXME
+        // will only succeed when all subsets are added. In iCP this might not
+        // have been happen yet until this point.
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        //if( FTI_CheckDimensions( FTI_Data, FTI_Exec ) != FTI_SCES ) {
+        //    FTI_Print( "Dimension missmatch in VPR file. Checkpoint failed!", FTI_WARN );
+        //    return NULL;
+        //}
         FTI_Exec->ckptLvel = 4;
     }
     

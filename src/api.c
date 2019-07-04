@@ -2416,6 +2416,7 @@ int FTI_RecoverVar(int id)
 
     return FTI_SCES;
 }
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Prints FTI messages.
