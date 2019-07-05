@@ -1,15 +1,16 @@
 #!/bin/bash
+MPIRUN="mpirun $MPIRUN_ARGS"
 
 recoveryType=$1
 cp cfg/H0POSIX .
 rm -f logfile
 rm -f logfile*.log
 
-mpirun -n 8 ./checkDCPPosix.exe H0POSIX 1 8 0 $recoveryType > logfile0.log
+$MPIRUN -n 8 ./checkDCPPosix.exe H0POSIX 1 8 0 $recoveryType > logfile0.log
 cat logfile0.log >>logfile
 
 for i in $(seq 1 6); do
-    mpirun -n 8 ./checkDCPPosix.exe H0POSIX $i 8 0 $recoveryType > logfile$i.log
+    $MPIRUN -n 8 ./checkDCPPosix.exe H0POSIX $i 8 0 $recoveryType > logfile$i.log
     exec_id=$(grep "The execution ID is:" logfile$i.log | cut -d ':' -f 3|sed 's/ //g')
     if [ "$i" -ne "6" ]; then 
         rank=$(echo $((RANDOM % 8)))
