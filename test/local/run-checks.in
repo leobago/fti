@@ -651,8 +651,8 @@ for MEM in "${!MEM_NAMES[@]}"; do
               # --- HEAD = 0 --- #
               #                  #
               head=0
-              l2=2
-              l3=3
+              l2=1
+              l3=1
               l4=1
               for level in ${LEVEL[*]}; do
                   awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
