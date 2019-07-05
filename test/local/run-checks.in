@@ -341,7 +341,7 @@ run_failure() {
         should_not_fail $RTN
     fi
     if [ $testFailed = 1 ]; then
-        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=(1,1,1), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
+        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
         testFailed=0
     fi
     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -355,7 +355,7 @@ run_normal() {
     ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
     should_not_fail $?
     if [ $testFailed = 1 ]; then
-        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=(1,1,1), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
+        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
         testFailed=0
     fi
     awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
@@ -621,6 +621,9 @@ for MEM in "${!MEM_NAMES[@]}"; do
               # --- HEAD = 0 --- #
               #                  #
               head=0
+              l2=2
+              l3=3
+              l4=1
               for level in ${LEVEL[*]}; do
                   awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
                   echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1) "${MEM_NAMES[$MEM]}" ... ***\033[m ]"
