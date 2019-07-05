@@ -515,6 +515,24 @@ if [ $testFailed = 1 ]; then
     echo -e "dCP check (head=1) failed" >> failed.log
     testFailed=0
 fi
+
+echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer :  ***\033[m ]"
+cd diffckpt
+( set -x; bash run.sh 0 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "DCP Posix Corrupt Layer  failed" >> failed.log
+    testFailed=0
+fi
+
+echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer : Recover Var ***\033[m ]"
+( set -x; bash run.sh 1 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "DCP Posix Corrupt Layer with Recover Var" >> failed.log
+    testFailed=0
+fi
+cd ..
 fi
 
 if [ ! -z $TESTDCPFTIFF ]; then
