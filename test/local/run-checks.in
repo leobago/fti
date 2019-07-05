@@ -291,6 +291,10 @@ run_failure() {
         base="Global"
         node0=""
         node2=""
+    elif [ $4 = "MPIIO" ]; then
+        base="Global"
+        node0=""
+        node2=""
     elif [ $4 = "LOCAL" ]; then
         base="Local"
         node0="node0"
@@ -302,7 +306,11 @@ run_failure() {
     if [ "$1" = "CORRUPT" ]; then
         if [ "$2" = "CKPT" ]; then
             echo -e "[ \033[1mCorrupting Checkpoint Files...\033[m ]"
-            files="$(find $base/$node0/$check_id/l$level | grep Rank | head -n 1) $(find $base/$node2/$check_id/l$level | grep Rank | head -n 1)"
+            if [ $4 = "MPIIO" ]; then
+                files=$base/$check_id/l$level/*
+            else
+                files="$(find $base/$node0/$check_id/l$level | grep Rank | head -n 1) $(find $base/$node2/$check_id/l$level | grep Rank | head -n 1)"
+            fi
         elif [ "$2" = "PTN" ]; then
             echo -e "[ \033[1mCorrupting Partner Files...\033[m ]"
             files="$(find $base/$node0/$check_id/l$level | grep Pcof | head -n 1) $(find $base/$node2/$check_id/l$level | grep Pcof | head -n 1)"
@@ -317,7 +325,11 @@ run_failure() {
     if [ "$1" = "ERASE" ]; then
         if [ "$2" = "CKPT" ]; then
             echo -e "[ \033[1mDeleting Checkpoint Files...\033[m ]"
-            files="$(find $base/$node0/$check_id/l$level | grep Rank | head -n 1) $(find $base/$node2/$check_id/l$level | grep Rank | head -n 1)"
+            if [ $4 = "MPIIO" ]; then
+                files=$base/$check_id/l$level/*
+            else
+                files="$(find $base/$node0/$check_id/l$level | grep Rank | head -n 1) $(find $base/$node2/$check_id/l$level | grep Rank | head -n 1)"
+            fi
         elif [ "$2" = "PTN" ]; then
             echo -e "[ \033[1mDeleting Partner Files...\033[m ]"
             files="$(find $base/$node0/$check_id/l$level | grep Pcof | head -n 1) $(find $base/$node2/$check_id/l$level | grep Pcof | head -n 1)"
@@ -699,7 +711,11 @@ for MEM in "${!MEM_NAMES[@]}"; do
                               run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
                           fi
                           if [ $level = 4 ]; then
-                              run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                              if [ ${IO_NAMES[$io_id]} = "MPIIO" ]; then
+                                  run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
+                              else
+                                  run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                              fi
                           fi
                       fi
                       if [ $eraseFiles = "1" ]; then
@@ -719,7 +735,11 @@ for MEM in "${!MEM_NAMES[@]}"; do
                               run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
                           fi
                           if [ $level = 4 ]; then
-                              run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                              if [ ${IO_NAMES[$io_id]} = "MPIIO" ]; then
+                                  run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
+                              else
+                                  run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                              fi
                           fi
                       fi
                   fi
@@ -790,7 +810,11 @@ for MEM in "${!MEM_NAMES[@]}"; do
                                       run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
                                   fi
                                   if [ $level = 4 ]; then
-                                      run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                                      if [ ${IO_NAMES[$io_id]} = "MPIIO" ]; then
+                                          run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
+                                      else
+                                          run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                                      fi
                                   fi
                               fi
                               if [ $eraseFiles = "1" ]; then
@@ -810,7 +834,11 @@ for MEM in "${!MEM_NAMES[@]}"; do
                                       run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
                                   fi
                                   if [ $level = 4 ]; then
-                                      run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                                      if [ ${IO_NAMES[$io_id]} = "MPIIO" ]; then
+                                          run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
+                                      else
+                                          run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                                      fi
                                   fi
                               fi
                           fi
