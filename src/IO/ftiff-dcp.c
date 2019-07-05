@@ -673,9 +673,9 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
 {
 
     bool clean = true;
-    uint32_t bit32hashNow;
-    unsigned char *prevHash;
-    unsigned char *nextHash;
+    uint32_t bit32hashNow = 0;
+    unsigned char *prevHash = NULL;
+    unsigned char *nextHash = NULL;
 
     FTIT_DataDiffHash* hashes = dbvar->dataDiffHash; 
     //  unsigned char* ptr = (unsigned char*) dbvar->cptr + hashIdx * DCP_BLOCK_SIZE;

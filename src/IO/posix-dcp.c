@@ -375,6 +375,8 @@ int FTI_RecoverDcpPosix
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
 
+    void* ptr;
+
     snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
 
     // read base part of file
@@ -536,11 +538,11 @@ int FTI_RecoverDcpPosix
                 FTI_copy_to_device_async(FTI_Data[idx].devicePtr + offset ,block, chunkSize); 
             }
             else{
-                void* ptr = FTI_Data[idx].ptr + offset;
+                ptr = FTI_Data[idx].ptr + offset;
                 fread( ptr, 1, chunkSize, fd );
             }
 #else
-            void* ptr = FTI_Data[idx].ptr + offset;
+            ptr = FTI_Data[idx].ptr + offset;
             fread( ptr, 1, chunkSize, fd );
 #endif
             if(ferror(fd)) {
@@ -564,7 +566,7 @@ int FTI_RecoverDcpPosix
     for(i=0; i<FTI_Exec->nbVar; i++) {
         FTIT_data_prefetch prefetcher;
         size_t totalBytes = 0;
-        unsigned char * ptr,*startPtr;
+        unsigned char * ptr = NULL,*startPtr = NULL;
         FTIT_dataset *FTI_DataVar = &FTI_Data[i];
 
 #ifdef GPUSUPPORT    
@@ -837,7 +839,7 @@ int FTI_RecoverVarDcpPosix
     FTIT_dataset *FTI_DataVar = &FTI_Data[i];
     FTIT_data_prefetch prefetcher;
     size_t totalBytes = 0;
-    unsigned char * ptr,*startPtr;
+    unsigned char * ptr = NULL,*startPtr = NULL;
 
 #ifdef GPUSUPPORT    
     prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
@@ -984,12 +986,14 @@ int FTI_RecoverVarDcpPosix
 {
     FTIT_execution* exec = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_EXEC_TAG, NULL, NULL );
     FTIT_configuration* conf = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_CONF_TAG, NULL, NULL ); 
-
+    int *nbVarLayers = NULL;
+    size_t *layerSizes = NULL;
+    int *ckptIDs  = NULL;
     char errstr[FTI_BUFS];
     char dummyBuffer[FTI_BUFS];
     unsigned long blockSize;
     unsigned int stackSize;
-    unsigned int counter;
+    unsigned int counter = 0;
     unsigned int dcpFileId;
     int lastCorrectLayer=-1;
 
@@ -1107,9 +1111,9 @@ int FTI_RecoverVarDcpPosix
         FTI_Print("hashes differ in base", FTI_WARN);
         goto FINALIZE;
     }
-    size_t *layerSizes = (size_t*) malloc (sizeof(size_t)*stackSize);
-    int *ckptIDs  = (int*) malloc (sizeof(int)*stackSize);
-    int *nbVarLayers = (int *) malloc (sizeof(int)*stackSize);
+    layerSizes = (size_t*) malloc (sizeof(size_t)*stackSize);
+    ckptIDs  = (int*) malloc (sizeof(int)*stackSize);
+    nbVarLayers = (int *) malloc (sizeof(int)*stackSize);
 
     layerSizes[layer] = fs;
     ckptIDs[layer] = ckptID;
@@ -1244,7 +1248,7 @@ void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ ) {
     static void* exec = NULL;
     static void* conf = NULL;
 
-    void* ret;
+    void* ret = NULL;
 
     switch( tag ) {
         case DCP_POSIX_EXEC_TAG:

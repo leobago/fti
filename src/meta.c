@@ -910,7 +910,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
 
-    char* ckptFileNames;
+    char* ckptFileNames = NULL;
     if (FTI_Topo->groupRank == 0) {
         ckptFileNames = talloc(char, FTI_Topo->groupSize * FTI_BUFS);
     }
@@ -927,7 +927,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 #endif
 
-    char* checksums;
+    char* checksums = NULL;
     if (FTI_Topo->groupRank == 0) {
         checksums = talloc(char, FTI_Topo->groupSize * MD5_DIGEST_STRING_LENGTH);
     }
@@ -936,13 +936,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     //Every process has the same number of protected variables
 
-    int* allVarIDs;
-    long* allVarSizes;
-    long *allVarPositions;
+    int* allVarIDs = NULL;
+    long* allVarSizes = NULL;
+    long *allVarPositions = NULL;
 
     // for posix dcp
-    unsigned long* allLayerSizes;
-    char* allLayerHashes;
+    unsigned long* allLayerSizes = NULL;
+    char* allLayerHashes = NULL;
 
     int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
 

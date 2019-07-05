@@ -117,7 +117,7 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc)
 {
     WritePosixInfo_t *fd = (WritePosixInfo_t *)fileDesc;
     size_t written = 0;
-    int fwrite_errno;
+    int fwrite_errno = 0;
     char str[FTI_BUFS];
 
     while (written < size && !ferror(fd->f)) {

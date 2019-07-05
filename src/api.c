@@ -1860,7 +1860,7 @@ int FTI_FinalizeICP()
 
     char str[FTI_BUFS];
     int resCP;
-    int resPP;
+    int resPP = FTI_SCES;
 
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
