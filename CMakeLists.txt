@@ -228,9 +228,13 @@ set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
 
+if( NOT ZLIB_FOUND )
+append_property(SOURCE ${SRC_CUDA_FTI}
+    PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
+else()
 append_property(SOURCE ${SRC_CUDA_FTI}
     PROPERTY COMPILE_FLAGS )
-
+endif()
 
 append_property(TARGET fti.static fti.shared
 	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")

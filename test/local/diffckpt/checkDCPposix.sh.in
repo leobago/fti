@@ -43,5 +43,6 @@ elif [ $1 = 1 ]; then
         RTN=255
     fi
 fi
+
 cd @CMAKE_BINARY_DIR@/test/local
 exit $RTN

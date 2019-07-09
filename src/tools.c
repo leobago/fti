@@ -43,6 +43,38 @@ int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
+#ifdef ENABLE_HDF5
+int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
+	ssize_t cnt;
+	int howmany;
+	int i;
+	H5I_type_t ot;
+	hid_t anobj;
+	hid_t *objs;
+	char name[1024];
+
+	cnt = H5Fget_obj_count(fid, H5F_OBJ_ALL);
+
+	if (cnt <= 0) return cnt;
+
+	DBG_MSG("%ld object(s) open", rank, cnt);
+
+	objs = malloc(cnt * sizeof(hid_t));
+
+	howmany = H5Fget_obj_ids(fid, H5F_OBJ_ALL, cnt, objs);
+
+	DBG_MSG("open objects:", rank);
+
+	for (i = 0; i < howmany; i++ ) {
+		anobj = *objs++;
+		ot = H5Iget_type(anobj);
+		H5Iget_name(anobj, name, 1024);
+		DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
+	}
+
+	return howmany;
+}
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**

@@ -4,9 +4,16 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "../../../deps/iniparser/iniparser.h"
 #include "../../../deps/iniparser/dictionary.h"
+
+bool ICP, RECOVERVAR;
+
+int checkpoint( int, int, int*, int );
+int recover( int*, int );
+void shuffle( int*, size_t );
 
 /**
  * run with x mpi rank, where x is the cube of an integer.
@@ -64,16 +71,24 @@
 #define fn "row-conti.h5"
 #define dn "shared dataset"
 
-int main() {
+int main( int argc, char** argv ) {
 
 //
 // -->> INIT AND DEFINITIONS
 //
-    
+
+    if( argc < 3 ) {
+        printf("insufficiant parameters (needs 2: icp recovervar)\n");
+        return -1;
+    }
+
+    ICP = atoi(argv[1]);
+    RECOVERVAR = atoi(argv[2]);
     int rank, grank; 
     int size; 
     int size_bac; 
     int i,j;
+    int *ids;
 
     MPI_Init(NULL,NULL);
     
@@ -149,6 +164,8 @@ int main() {
     FTI_DefineGlobalDataset( 1, 2, fdim, "struct", &gr, FTI_NEW_STRUCT );
     
     // create row contiguous array and add rows to dataset
+    ids = malloc(2*ldim0*sizeof(int));
+    for(i=0; i<2*ldim0; i++) {ids[i] = i;} 
     int **data = (int**) malloc( sizeof(int*) * ldim0 );
     struct STRUCT **sdata = (struct STRUCT**) malloc( sizeof(struct STRUCT*) * ldim0 );
     for(i=0; i<ldim0; ++i) {
@@ -156,6 +173,7 @@ int main() {
         sdata[i] = (struct STRUCT*) malloc( sizeof(struct STRUCT) * ldim1 );
         FTI_Protect( i, data[i], ldim1, FTI_INTG );
         FTI_Protect( i+ldim0, sdata[i], ldim1, FTI_NEW_STRUCT );
+        
         FTI_AddSubset( i, 2, offset, count, 0 );
         FTI_AddSubset( i+ldim0, 2, offset, count, 1 );
         offset[0]++;
@@ -226,7 +244,7 @@ int main() {
                 }
             }
         }
-        FTI_Recover();
+        recover( ids, ldim0*2 );
         int out[3];
         bzero( out, 3*sizeof(int) );
         for(i=0; i<ldim0; ++i) {
@@ -273,18 +291,18 @@ int main() {
             }
             base += fdim[1] - ldim1;
         }
-        FTI_Checkpoint( 1, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 2, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 3, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 4, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 5, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 6, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 7, FTI_L4_H5_SINGLE );
-        FTI_Checkpoint( 8, 1 );
-        FTI_Checkpoint( 9, 2 );
-        FTI_Checkpoint( 10, 3 );
-        FTI_Checkpoint( 11, 4 );
-        FTI_Checkpoint( 12, FTI_L4_H5_SINGLE );
+        checkpoint( 1, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 2, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 3, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 4, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 5, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 6, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 7, FTI_L4_H5_SINGLE, ids, ldim0*2 );
+        checkpoint( 8, 1, ids, ldim0*2 );
+        checkpoint( 9, 2, ids, ldim0*2 );
+        checkpoint( 10, 3, ids, ldim0*2 );
+        checkpoint( 11, 4, ids, ldim0*2 );
+        checkpoint( 12, FTI_L4_H5_SINGLE, ids, ldim0*2 );
         
         // simulate crash
         if( nbHeads > 0 ) { 
@@ -301,3 +319,51 @@ int main() {
 
 }
 
+int checkpoint( int id, int level, int* ids, int nids )
+{
+    int rank;
+    MPI_Comm_rank( FTI_COMM_WORLD, &rank );
+    if(ICP) {
+		shuffle( ids, nids );
+        int i;
+        FTI_InitICP( id, level, 1 );
+        for(i=0; i<nids; i++) {
+            //if(rank == 0) printf("[%d] adding variable '%d' to checkpoint\n", i, ids[i]); // DEBUG
+            FTI_AddVarICP(ids[i]);
+        }
+        FTI_FinalizeICP();
+    } else {
+        FTI_Checkpoint( id, level );
+    }
+}
+
+int recover( int* ids, int nids )
+{
+    int rank;
+    MPI_Comm_rank( FTI_COMM_WORLD, &rank );
+    if( RECOVERVAR ) {
+        shuffle( ids, nids );
+        int i;
+        for(i=0; i<nids; i++) {
+            // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
+            FTI_RecoverVar( ids[i] );
+        }
+    } else {
+        FTI_Recover();
+    }
+}
+
+void shuffle(int *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}

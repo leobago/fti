@@ -1,0 +1,31 @@
+#!/bin/bash
+MPIRUN="mpirun $MPIRUN_ARGS"
+
+recoveryType=$1
+cp cfg/H0POSIX .
+rm -f logfile
+rm -f logfile*.log
+
+$MPIRUN -n 8 ./checkDCPPosix.exe H0POSIX 1 8 0 $recoveryType > logfile0.log
+cat logfile0.log >>logfile
+
+for i in $(seq 1 6); do
+    $MPIRUN -n 8 ./checkDCPPosix.exe H0POSIX $i 8 0 $recoveryType > logfile$i.log
+    exec_id=$(grep "The execution ID is:" logfile$i.log | cut -d ':' -f 3|sed 's/ //g')
+    if [ "$i" -ne "6" ]; then 
+        rank=$(echo $((RANDOM % 8)))
+        bytesToRemove=$(echo $((RANDOM % (10*1024*1024))))
+        corruptedFile="Global/$exec_id/dCP/dcp-id0-rank$rank.fti"
+        truncate -s -$bytesToRemove $corruptedFile 
+    fi            
+    cat logfile$i.log >> logfile
+done
+grep -q "\[SUCCESSFUL\]" logfile$i.log 
+code=$?
+if [ "$code" -eq "0" ]; then
+    rm -f logfile*.log
+    exit 0
+else
+    exit 255
+fi    
+

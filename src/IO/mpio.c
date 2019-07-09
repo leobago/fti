@@ -49,7 +49,7 @@
 /*-------------------------------------------------------------------------*/
 int FTI_MPIOOpen(char *fn, void *fileDesc){
     WriteMPIInfo_t *fd = (WriteMPIInfo_t*) fileDesc;
-    int res;
+    int res = FTI_SCES;
     char str[FTI_BUFS], mpi_err[FTI_BUFS];
     MPI_Info_create(&(fd->info));
 

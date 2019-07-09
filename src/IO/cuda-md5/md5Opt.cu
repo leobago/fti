@@ -1,3 +1,43 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
+ *
+ *  Revision 1.0 : Fault Tolerance Interface (FTI)
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice, this
+ *  list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *  this list of conditions and the following disclaimer in the documentation
+ *  and/or other materials provided with the distribution.
+ *
+ *  3. Neither the name of the copyright holder nor the names of its contributors
+ *  may be used to endorse or promote products derived from this software without
+ *  specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  @author Konstantinos Parasyris (konstantinos.parasyris@bsc.es)
+ *  @file   diff-checkpoint.c
+ *  @date   February, 2018
+ *  @brief  Routines to compute the MD5 checksum  
+ */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -82,7 +122,20 @@ cudaStream_t Gstream;
 (dst)[2] = (unsigned char)((src) >> 16); \
 (dst)[3] = (unsigned char)((src) >> 24);
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This CUDA function computes the MD5 DCP chunks for the data, and stores each
+             checksum on the corresponding out index
+  @param     out  Array containing all the MD5 checksums
+  @param     data pointing to the actual data. 
+  @param     size Total Size of the data
+  @param     md5ChunkSize Total bytes used to comute a single checksum 
+  @return    void.
 
+  This function computes the MD5 checksums of the data  stored in the data ptr 
+  the checksums are stored in the out memory location
+ **/
+/*-------------------------------------------------------------------------*/
     __global__
 void body(MD5_u32plus *out, const void *data, unsigned long size, long md5ChunkSize )
 {
@@ -394,11 +447,28 @@ void body(MD5_u32plus *out, const void *data, unsigned long size, long md5ChunkS
     return;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     Syncrhonizes the CPU with the GPU stream that computes the checksims
+    
+  Syncrhonizes the CPU with the GPU stream that computes the checksims
+ **/
+/*-------------------------------------------------------------------------*/
+
 int syncDevice(){
     CUDA_ERROR_CHECK(cudaStreamSynchronize(Gstream));
     return 1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This is the main loop of the parallel thread responsible of computing
+  the MD5 checksums
+  @return    void.
+
+ This is the main loop of the parallel thread responsible of computing
+ **/
+/*-------------------------------------------------------------------------*/
 void *workerMain(void *){
     cudaSetDevice(deviceId);
     long l;
@@ -437,6 +507,18 @@ void *workerMain(void *){
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function initializes the MD5 checksum functions  for DCP
+  @param     cSize Size of the chunk  
+  @param     tempSize Size of intermediate buffers (Not used in this file) 
+  @param     FTI_Conf Pointer to the configuration options 
+  @return     integer         FTI_SCES if successfu.
+
+  This function initializes parameters for the computation of DCP MD5 checksums
+  and if requested spawns the worker thread.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
     if ( FTI_Conf->dcpInfoPosix.cachedCkpt)
         usesAsync = 1;
@@ -487,7 +569,16 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
 
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function computes the checksums of an Protected Variable 
+  @param     FTI_DataVar Variable We need to compute the checksums
+  @return     integer         FTI_SCES if successfu.
 
+  This function computes the checksums of a specific variable stored in the
+  GPU and is called in the async mode by the worker thread
+ **/
+/*-------------------------------------------------------------------------*/
 int MD5GPU(FTIT_dataset *FTI_DataVar){
     size_t size = FTI_DataVar->size;
     long numKernels= GETDIV(size,md5ChunkSize);
@@ -499,26 +590,16 @@ int MD5GPU(FTIT_dataset *FTI_DataVar){
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function computes the checksums of an Protected Variable 
+  @param     FTI_DataVar Variable We need to compute the checksums
+  @return     integer         FTI_SCES if successfu.
 
-long md5Level( char *tempGpuBuffer, const char *data , MD5_u32plus *Dmd5hash, unsigned long size){
-    unsigned long numIntermediateSteps = GETDIV(size, (tempBufferSize));
-    long converge = md5ChunkSize/16L;
-    long l;
-    long outputSize =0;
-    long hashesPerIter = 4*(tempBufferSize/(md5ChunkSize));
-    for ( l = 0 ; l < numIntermediateSteps; l++){
-        long problemSize = min((size-l*tempBufferSize),tempBufferSize);
-        long numKernels= GETDIV((problemSize),md5ChunkSize); 
-        long numThreads = min(numKernels,1024L);
-        long numGroups = numKernels / numThreads + ((( numKernels % numThreads ) == 0 ) ? 0:1);
-        CUDA_ERROR_CHECK(cudaMemcpyAsync(tempGpuBuffer,&data[l*tempBufferSize],problemSize,cudaMemcpyHostToDevice,Gstream));
-        body<<<numGroups,numThreads,0,Gstream>>>(&Dmd5hash[l*hashesPerIter], tempGpuBuffer , problemSize, md5ChunkSize);
-        outputSize += (tempBufferSize/converge); 
-    }
-    return outputSize;
-}
-
-
+  This function computes the checksums of a specific variable stored in the
+  CPU and is called in the async mode by the worker thread
+ **/
+/*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_dataset *FTI_DataVar){
     unsigned long dataSize = FTI_DataVar->size;
     unsigned char block[md5ChunkSize];
@@ -540,6 +621,15 @@ int MD5CPU(FTIT_dataset *FTI_DataVar){
 }
 
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function computes the checksums of a Protected Variable 
+  @param     FTI_DataVar Variable We need to compute the checksums
+  @return     integer         FTI_SCES if successfu.
+
+  This function initializes either computes directly the checksums of the CPU 
+  dataVar or assigns the work to a worker thread                       
+/*-------------------------------------------------------------------------*/
 int FTI_MD5CPU(FTIT_dataset *FTI_DataVar){
     if ( usesAsync ){
         work[totalWork].FTI_DataVar= FTI_DataVar;
@@ -550,6 +640,16 @@ int FTI_MD5CPU(FTIT_dataset *FTI_DataVar){
     }
     return 1;
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function computes the checksums of a Protected Variable 
+  @param     FTI_DataVar Variable We need to compute the checksums
+  @return     integer         FTI_SCES if successfu.
+
+  This function initializes either computes directly the checksums of the GPU 
+  dataVar or assigns the work to a worker thread                       
+/*-------------------------------------------------------------------------*/
 
 int FTI_MD5GPU(FTIT_dataset *FTI_DataVar){
     if ( usesAsync ){
@@ -564,6 +664,15 @@ int FTI_MD5GPU(FTIT_dataset *FTI_DataVar){
     return 1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     This function synchronizes the file writes with the stable storages 
+  @param     f pointer to the file to be synchronized 
+  @return     integer         FTI_SCES if successfull.
+
+ The function instracts the worker thread to close the file and immediately returns
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_CLOSE_ASYNC(FILE *f){
     if ( usesAsync ){
         work[totalWork].f= f;
@@ -574,6 +683,16 @@ int FTI_CLOSE_ASYNC(FILE *f){
     return 1;
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    This function waits until all MD5 checksums are computed 
+  @return     integer         FTI_SCES if successfull.
+
+ The function waits until all MD5 Checksums are computed either by waiting the worker
+ thread or by immediately returning. 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SyncMD5(){
     if ( usesAsync ){
         pthread_mutex_lock(&application);
@@ -581,6 +700,14 @@ int FTI_SyncMD5(){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    This function starts the  MD5 checksums computation
+  @return     integer         FTI_SCES if successfull.
+ The function starts the MD5 Checksums computation 
+
+**/
+/*-------------------------------------------------------------------------*/
 int FTI_startMD5(){
     if ( usesAsync ){
         pthread_mutex_unlock(&worker);
@@ -588,6 +715,13 @@ int FTI_startMD5(){
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    This function de-allocates or the MD5 related resources
+  @return     integer         FTI_SCES if successfull.
+ The function de-allocates or the MD5 related resources. 
+**/
+/*-------------------------------------------------------------------------*/
 int FTI_destroyMD5(){
     if (usesAsync ){
         worker_exit = 1;
@@ -596,6 +730,5 @@ int FTI_destroyMD5(){
     CUDA_ERROR_CHECK(cudaFreeHost((void *)Hin));
     CUDA_ERROR_CHECK(cudaFreeHost((void *)Hout));
     CUDA_ERROR_CHECK(cudaFree(tempGpuBuffer));
-//    CUDA_ERROR_CHECK(cudaStreamDestroy(Gstream));
     return FTI_SCES;
 }
