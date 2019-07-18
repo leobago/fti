@@ -138,6 +138,8 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MKDIR(FTI_Conf->gTmpDir, 0777);
         } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ) {
             MKDIR(FTI_Ckpt[4].dcpDir, 0777);
+        } else if ( FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline ) {
+            MKDIR(FTI_Conf->gTmpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
         res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
@@ -231,8 +233,21 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    double t2 = MPI_Wtime(); //Post-processing time
 
+    double t2 = MPI_Wtime(); //Post-processing time
+    
+    if( FTI_Exec->h5SingleFile ) {
+        
+        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //delete previous files on this checkpoint level
+    
+        double t3 = MPI_Wtime(); //Post-processing time
+        
+        snprintf(str, FTI_BUFS, "Post-checkpoint (VPR) took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
+                t3 - t1, t2 - t1, t3 - t2);
+        FTI_Print(str, FTI_INFO);
+        return FTI_SCES;
+    }
+    
     // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
     if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
         if ( FTI_Ckpt[4].hasCkpt ) {
@@ -311,7 +326,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
-
+        sleep(1);
         FTI_Print("Head waits for message...", FTI_DBUG);
 
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
@@ -402,9 +417,14 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-        int isDCP;
-        MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-        FTI_Ckpt[4].isDcp = isDCP;
+        if( FTI_Conf->ioMode = FTI_IO_HDF5 ) {
+            MPI_Recv(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        } else {
+            int isDCP;
+            MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            FTI_Ckpt[4].isDcp = isDCP;
+        }
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;

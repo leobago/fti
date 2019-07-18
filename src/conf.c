@@ -151,6 +151,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
     FTI_Ckpt[3].isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
     FTI_Ckpt[4].isInline = (int)iniparser_getint(ini, "Basic:inline_l4", 1);
+    FTI_Conf->h5SingleFileIsInline = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_inline", 1);
     FTI_Ckpt[1].ckptCnt  = 1;
     FTI_Ckpt[2].ckptCnt  = 1;
     FTI_Ckpt[3].ckptCnt  = 1;

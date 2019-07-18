@@ -110,7 +110,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     FTI_InitFIIO();
 #endif
 #ifdef ENABLE_HDF5
-    H5Eset_auto2(0,0, NULL);
+    //H5Eset_auto2(0,0, NULL);
 #endif
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;
@@ -1730,7 +1730,7 @@ int FTI_InitICP(int id, int level, bool activate)
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix);
-    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+    if (FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4) && !FTI_Exec.h5SingleFile ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -1739,7 +1739,7 @@ int FTI_InitICP(int id, int level, bool activate)
         res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
     }
     else {
-        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) || (FTI_Exec.h5SingleFile && !FTI_Conf.h5SingleFileIsInline) ) {
             MKDIR(FTI_Conf.lTmpDir,0777);
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
@@ -1872,6 +1872,9 @@ int FTI_FinalizeICP()
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
                 FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
         FTI_Print(str, FTI_INFO);
+        if( !FTI_Conf.h5SingleFileIsInline ) {
+            FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_SCES);
+        }
         return FTI_SCES;
     }
 

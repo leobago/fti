@@ -534,25 +534,31 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
+    
+    if( !FTI_Exec->h5SingleFile ) {
+        if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
-    if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
-        FTI_Print("Saving to temporary global directory", FTI_DBUG);
-
-        //Create global temp directory
-        MKDIR(FTI_Conf->gTmpDir,0777);
-    } else {
-        if ( !FTI_Ckpt[4].hasDcp ) {
-            MKDIR(FTI_Ckpt[4].dcpDir,0777);
+            //Create global temp directory
+            MKDIR(FTI_Conf->gTmpDir,0777);
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                MKDIR(FTI_Ckpt[4].dcpDir,0777);
+            }
         }
-    }
-    int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
+        int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
+        if (res != FTI_SCES) {
+            return FTI_NSCS;
+        }
     }
 
     switch(FTI_Conf->ioMode) {
         case FTI_IO_FTIFF:
         case FTI_IO_HDF5:
+            if( FTI_Exec->h5SingleFile ) {
+                FTI_FlushH5SingleFile( FTI_Exec );
+                break;
+            }
         case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;

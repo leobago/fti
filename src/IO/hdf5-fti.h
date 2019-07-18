@@ -5,13 +5,14 @@
 
 #ifdef ENABLE_HDF5
 
+int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_dataset* FTI_Data, int id);
 int FTI_GetDatasetRankReco( hid_t did );
 int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span );
-int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
+int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar, FTIT_execution* FTI_Exec );
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum);
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec );
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data );
@@ -26,7 +27,10 @@ void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** F
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup, FTIT_H5Group** FTI_Group);
 void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec );
+int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec );
+int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
+int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec );
 #endif
 
 #endif // __HDF5_FTI_H__

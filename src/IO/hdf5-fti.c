@@ -41,6 +41,19 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
+{
+    FTI_Exec->wasLastOffline = 1;
+    // Head needs ckpt. ID to determine ckpt file name.
+    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
+    if (status != FTI_SCES) { //If Writing checkpoint failed
+        value = FTI_REJW; //Send reject checkpoint token to head
+    }
+    MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    return FTI_SCES;
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -355,7 +368,7 @@ int FTI_HDF5Open(char *fn, void *fileDesc)
     WriteHDF5Info_t *fd = (WriteHDF5Info_t*) fileDesc;
     char str[FTI_BUFS];
     //Creating new hdf5 file
-    if( fd->FTI_Exec->h5SingleFile ) { 
+    if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
         fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
@@ -685,7 +698,7 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
+int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar, FTIT_execution* FTI_Exec )
 {
     int j;
     hsize_t dimLength[32];
@@ -700,9 +713,24 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
     dcpl = H5Pcreate (H5P_DATASET_CREATE);
     res = H5Pset_fletcher32 (dcpl);
     res = H5Pset_chunk (dcpl, FTI_DataVar->rank, dimLength);
-
+	
     hid_t dataspace = H5Screate_simple( FTI_DataVar->rank, dimLength, NULL);
-    hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+	hid_t dataset;
+    if( FTI_Exec->h5SingleFile ) {  
+		hid_t globalDataset = FTI_DataVar->sharedData.dataset->hid;
+    	dataset = H5Dcreate2 ( globalDataset, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+        int rank = 1;
+        hsize_t att_dims = FTI_DataVar->sharedData.dataset->rank;
+        hid_t att_space = H5Screate_simple( rank, &att_dims, NULL);
+        hid_t att_offset = H5Acreate( dataset, "offset", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
+        hid_t att_count = H5Acreate( dataset, "count", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
+        H5Awrite( att_offset, H5T_NATIVE_HSIZE, FTI_DataVar->sharedData.offset );
+        H5Awrite( att_count, H5T_NATIVE_HSIZE, FTI_DataVar->sharedData.count );
+        H5Aclose( att_offset );
+        H5Aclose( att_count );
+    } else {
+    	dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+    }
 
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
@@ -983,13 +1011,11 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info)
     int res;
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
 
-    if (!(fd->FTI_Exec->h5SingleFile))
-        FTI_CommitDataType(fd->FTI_Exec,FTI_DataVar);
-
-    if( fd->FTI_Exec->h5SingleFile ) { 
+    if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
         res = FTI_WriteSharedFileData( *FTI_DataVar );
     } else {
-        res = FTI_WriteHDF5Var(FTI_DataVar); 
+        FTI_CommitDataType(fd->FTI_Exec,FTI_DataVar);
+        res = FTI_WriteHDF5Var( FTI_DataVar, fd->FTI_Exec ); 
     }
     if ( res != FTI_SCES ) {
         int j;
@@ -1027,7 +1053,11 @@ int  FTI_HDF5Close(void *fileDesc)
     }
 
     if( fd->FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( fd->FTI_Exec );
+        if( fd->FTI_Conf->h5SingleFileIsInline ) {
+            FTI_CloseGlobalDatasets( fd->FTI_Exec );
+        } else {
+            FTI_CloseGlobalDatasetsAsGroups( fd->FTI_Exec );
+        }
     }
 
     // close file
@@ -1101,13 +1131,13 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     //update ckpt file name
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
     
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
+    if ( level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile ) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
-    else {
+    else if ( !(level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile) || (FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline) ) {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
-    if( FTI_Exec->h5SingleFile ) {
+    else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
         snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
     }
 
@@ -1124,7 +1154,11 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         for (i = 0; i < FTI_Exec->nbVar; i++) {
             FTI_CommitDataType(FTI_Exec,&FTI_Data[i]);
         }
-        FTI_CreateGlobalDatasets( FTI_Exec );
+        if ( fd->FTI_Conf->h5SingleFileIsInline ) {
+            FTI_CreateGlobalDatasets( FTI_Exec );
+        } else {
+            FTI_CreateGlobalDatasetsAsGroups( FTI_Exec );
+        }
     }
     return (void *) fd;
 }
@@ -1506,6 +1540,29 @@ int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec )
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      Closes global datasets in VPR file 
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
+{
+    
+    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+
+        H5Gclose(dataset->hid);
+
+        dataset = dataset->next;
+
+    }
+
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      Writes global dataset subsets into VPR file.
   @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
@@ -1824,5 +1881,47 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 
     return FTI_SCES;
 
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It creates the global dataset in the VPR file.
+  @param      FTI_Exec        Execution metadata.
+  @return     integer         FTI_SCES if successful.
+
+  Creates global dataset (shared among all ranks) in VPR file. The dataset
+  position will be the group assigned to it by calling the FTI API function 
+  'FTI_DefineGlobalDataset'.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
+{
+    
+    FTIT_globalDataset* dataset = FTI_Exec->globalDatasets;
+    while( dataset ) {
+
+        // create dataset as group
+        hid_t loc = dataset->location->h5groupID;
+
+        dataset->hid = H5Gcreate2(loc, dataset->name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        if(dataset->hid < 0) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to create dataset #%d as group", dataset->id );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
+        
+        dataset->initialized = true;
+
+        dataset = dataset->next;
+
+    }
+
+    return FTI_SCES;
+
+}
+
+int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec )
+{
 }
 #endif
