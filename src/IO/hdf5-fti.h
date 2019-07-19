@@ -5,6 +5,14 @@
 
 #ifdef ENABLE_HDF5
 
+typedef struct FTIT_h5GroupInfo {
+    
+    char name[FTI_BUFS];
+    int rank;
+    hsize_t* dimension;
+
+} FTIT_h5GroupInfo;
+
 int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                     FTIT_dataset* FTI_Data);
@@ -30,7 +38,7 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
-int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec );
+int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo );
 #endif
 
 #endif // __HDF5_FTI_H__

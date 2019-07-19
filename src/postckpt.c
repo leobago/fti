@@ -556,7 +556,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         case FTI_IO_FTIFF:
         case FTI_IO_HDF5:
             if( FTI_Exec->h5SingleFile ) {
-                FTI_FlushH5SingleFile( FTI_Exec );
+                FTI_FlushH5SingleFile( FTI_Exec, FTI_Conf, FTI_Topo );
                 break;
             }
         case FTI_IO_POSIX:

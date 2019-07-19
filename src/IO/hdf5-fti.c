@@ -1911,6 +1911,13 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
             return FTI_NSCS;
         }
         
+        int rank = 1;
+        hsize_t att_dims = dataset->rank;
+        hid_t att_space = H5Screate_simple( rank, &att_dims, NULL);
+        hid_t aid = H5Acreate( dataset->hid, "global_dimension", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
+        H5Awrite( aid, H5T_NATIVE_HSIZE, dataset->dimension );
+        H5Aclose( aid );
+        
         dataset->initialized = true;
 
         dataset = dataset->next;
@@ -1921,7 +1928,164 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
 
 }
 
-int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec )
+int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer ) 
 {
+    hid_t aid, sid;
+    hsize_t rank; 
+    aid = H5Aopen( oid, name, H5P_DEFAULT );
+    sid = H5Aget_space( aid );
+    H5Sget_simple_extent_dims( sid, &rank, NULL );
+    H5Aread( aid, H5T_NATIVE_HSIZE, buffer );
+    H5Sclose( sid );
+    H5Aclose( aid );
+}
+
+int FTI_GetDatasetRankFlush( hid_t oid ) 
+{
+    hid_t aid, sid;
+    hsize_t rank;
+    aid = H5Aopen_idx( oid, 0 );
+    sid = H5Aget_space( aid );
+    H5Sget_simple_extent_dims( sid, &rank, NULL );
+    H5Sclose( sid );
+    H5Aclose( aid );
+
+    return rank;
+}
+
+hid_t FTI_GetDatasetTypeFlush( hid_t gid )
+{
+    char objname[FTI_BUFS];
+    H5Gget_objname_by_idx( gid, 0, objname, FTI_BUFS );
+    hid_t did = H5Dopen( gid, objname, H5P_DEFAULT );
+    hid_t tid = H5Dget_type( did );
+    H5Dclose(did);
+    return tid;
+}
+
+int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
+{
+   
+    hid_t did, sid, tid, subset;
+    int i;
+    hsize_t n;
+    char subsetname[FTI_BUFS];
+
+    void* data;
+
+    int datasetrank = FTI_GetDatasetRankFlush( gid );
+    hsize_t* globaldimension = talloc( hsize_t, datasetrank );
+    hsize_t* offset = talloc( hsize_t, datasetrank );
+    hsize_t* count = talloc( hsize_t, datasetrank );
+    
+    FTI_ReadAttributeHDF5( gid, "global_dimension", globaldimension );
+        
+    sid = H5Screate_simple( datasetrank, globaldimension, NULL );
+
+    free( globaldimension );
+
+    tid = FTI_GetDatasetTypeFlush( gid );
+
+    did = H5Dcreate( loc, datasetname, tid, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    
+    H5Gget_num_objs( gid, &n );
+    for( i=0; i<n; i++ ) {
+        H5Gget_objname_by_idx( gid, i, subsetname, FTI_BUFS ); 
+        subset = H5Dopen( gid, subsetname, H5P_DEFAULT );  
+        size_t typesize = H5Tget_size( tid );
+        FTI_ReadAttributeHDF5( subset, "offset", offset );
+        FTI_ReadAttributeHDF5( subset, "count", count );
+        hid_t msid = H5Screate_simple( datasetrank, count, NULL );
+        H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
+        
+        hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+        H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+
+        data = malloc( typesize*H5Sget_simple_extent_npoints( msid ) );
+        
+        H5Dread( subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data );
+        
+        // write data in file
+        H5Dwrite( did, tid, msid, sid, plid, data );
+
+        free( data );
+    }
+    
+    H5Sclose( sid );
+    H5Tclose( tid );
+    H5Dclose( did ); 
+
+}
+
+int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
+{
+    int i, arank, drank;
+    herr_t err;
+    hsize_t n, na;
+    int h5objtype;
+    hid_t childorig;
+    hid_t childcopy;
+    hid_t aid, aspace;
+    hsize_t* abuffer, dbuffer;
+    char groupname[FTI_BUFS];
+    char childname[FTI_BUFS];
+
+    H5Iget_name( orig, groupname, FTI_BUFS );
+
+    err = H5Gget_num_objs( orig, &n );
+    for( i=0; i<n; i++ ) {
+
+        H5Gget_objname_by_idx( orig, i, childname, FTI_BUFS ); 
+        h5objtype = H5Gget_objtype_by_idx( orig, i );
+
+        switch( h5objtype ) {
+            case H5G_GROUP:
+                childorig = H5Gopen( orig, childname, H5P_DEFAULT );
+                na = H5Aget_num_attrs(childorig );
+                if( na > 0 ) {
+                    FTI_MergeDatasetSingleFile( childorig, copy, childname ); 
+                } else {
+                    childcopy = H5Gcreate( copy, childname, 0, H5P_DEFAULT, H5P_DEFAULT );
+                    FTI_MergeObjectsSingleFile( childorig, childcopy );
+                    H5Gclose( childcopy );
+                }
+                H5Gclose( childorig );
+                break;
+        }
+    
+    }
+
+    return FTI_SCES;
+    
+}
+
+int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo )
+{
+    char fn[FTI_BUFS], lfn[FTI_BUFS];
+    hid_t fid, lfid, gid;
+
+    snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->body[0] ); 
+    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
+    
+    lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
+    if( lfid < 0 ) {
+        DBG_MSG("fn: %s", -1, lfn);
+        MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+    gid = H5Gopen( lfid, "/", H5P_DEFAULT );
+
+    hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
+    H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
+    fid = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
+    H5Pclose( plid );
+
+    FTI_MergeObjectsSingleFile( gid, fid );
+
+    MPI_Barrier(FTI_COMM_WORLD);
+    H5Fclose( lfid );
+    H5Fclose( fid );
+
+    return FTI_SCES;
+
 }
 #endif
