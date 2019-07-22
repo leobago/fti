@@ -1108,7 +1108,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     
     if ( FTI_Exec->ckptLvel == FTI_L4_H5_SINGLE ) {
         if( FTI_Conf->h5SingleFileEnable ) {
-            FTI_Exec->h5SingleFile = true;
+            FTI_Exec->ckptLvel = 4;
         } else {
             FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
             return NULL;
@@ -1122,7 +1122,6 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         //    FTI_Print( "Dimension missmatch in VPR file. Checkpoint failed!", FTI_WARN );
         //    return NULL;
         //}
-        FTI_Exec->ckptLvel = 4;
     }
     
     char  fn[FTI_BUFS];
@@ -1134,7 +1133,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     if ( level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile ) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
-    else if ( !(level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile) || (FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline) ) {
+    else if ( (level == 4 && !FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile) || (FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline)) {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
@@ -1986,8 +1985,12 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
 
     tid = FTI_GetDatasetTypeFlush( gid );
 
-    did = H5Dcreate( loc, datasetname, tid, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    
+    if( H5Lexists( loc, datasetname, H5P_DEFAULT ) ) {
+        did = H5Dopen( loc, datasetname, H5P_DEFAULT );
+    } else {
+        did = H5Dcreate( loc, datasetname, tid, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    }
+
     H5Gget_num_objs( gid, &n );
     for( i=0; i<n; i++ ) {
         H5Gget_objname_by_idx( gid, i, subsetname, FTI_BUFS ); 
@@ -2064,25 +2067,28 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     char fn[FTI_BUFS], lfn[FTI_BUFS];
     hid_t fid, lfid, gid;
 
-    snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->body[0] ); 
     snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
     
-    lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
-    if( lfid < 0 ) {
-        DBG_MSG("fn: %s", -1, lfn);
-        MPI_Abort(MPI_COMM_WORLD, -1);
-    }
-    gid = H5Gopen( lfid, "/", H5P_DEFAULT );
-
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
     H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
     fid = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
     H5Pclose( plid );
 
-    FTI_MergeObjectsSingleFile( gid, fid );
+    int b;
+    for( b=0; b<FTI_Topo->nbApprocs; b++ ) {
+        
+        snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->body[b] ); 
 
-    MPI_Barrier(FTI_COMM_WORLD);
-    H5Fclose( lfid );
+        lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
+
+        gid = H5Gopen( lfid, "/", H5P_DEFAULT );
+
+        FTI_MergeObjectsSingleFile( gid, fid );
+
+        H5Fclose( lfid );
+
+    }
+    
     H5Fclose( fid );
 
     return FTI_SCES;

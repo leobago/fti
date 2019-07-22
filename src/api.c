@@ -1661,8 +1661,13 @@ int FTI_InitICP(int id, int level, bool activate)
         return FTI_SCES;
     }
     
-    // reset hdf5 single file requests.
-    FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if( FTI_Conf.h5SingleFileEnable ) {
+            FTI_Exec.h5SingleFile = true;
+        } else {
+            FTI_Exec.h5SingleFile = false;
+        }
+    }
 
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
@@ -1730,7 +1735,7 @@ int FTI_InitICP(int id, int level, bool activate)
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix);
-    if (FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4) && !FTI_Exec.h5SingleFile ) {
+    if ( FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -1738,13 +1743,15 @@ int FTI_InitICP(int id, int level, bool activate)
         }
         res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
     }
-    else {
-        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) || (FTI_Exec.h5SingleFile && !FTI_Conf.h5SingleFileIsInline) ) {
+    else if( !(FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
+        if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.lTmpDir,0777);
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
         res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL+offset]);
+    } else { // if h5singlefile inline
+        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
     }
 
     if ( res == FTI_SCES ) 
