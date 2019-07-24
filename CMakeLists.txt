@@ -225,9 +225,6 @@ else()
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
-append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS}" "${SIONLIB_CFLAGS}" "${ADD_CFLAGS}")
-
 if( NOT ZLIB_FOUND )
 append_property(SOURCE ${SRC_CUDA_FTI}
     PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
@@ -308,6 +305,9 @@ endif()
 if(ENABLE_FI_IO)
     add_definitions(-DENABLE_FTI_FI_IO)
 endif()
+
+append_property(SOURCE ${SRC_FTI}
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
 
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
