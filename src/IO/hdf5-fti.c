@@ -369,6 +369,11 @@ int FTI_HDF5Open(char *fn, void *fileDesc)
     char str[FTI_BUFS];
     //Creating new hdf5 file
     if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
+        // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
+        //MPI_Info info;
+        //MPI_Info_create(&info);
+        //MPI_Info_set(info, "romio_cb_write", "enable");
+        //MPI_Info_set(info, "stripping_unit", "4194304");
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
         H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
         fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
@@ -2068,7 +2073,12 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     hid_t fid, lfid, gid;
 
     snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
-    
+   
+    // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
+    //MPI_Info info;
+    //MPI_Info_create(&info);
+    //MPI_Info_set(info, "romio_cb_write", "enable");
+    //MPI_Info_set(info, "stripping_unit", "4194304");
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
     H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
     fid = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
