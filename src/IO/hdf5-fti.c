@@ -1138,11 +1138,11 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     if ( level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile ) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
-    else if ( (level == 4 && !FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile) || (FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline)) {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
-    }
     else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
         snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+    }
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     int i;
@@ -2053,7 +2053,11 @@ int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
                 if( na > 0 ) {
                     FTI_MergeDatasetSingleFile( childorig, copy, childname ); 
                 } else {
-                    childcopy = H5Gcreate( copy, childname, 0, H5P_DEFAULT, H5P_DEFAULT );
+                    if( H5Lexists( copy, childname, H5P_DEFAULT ) ) {
+                        childcopy = H5Gopen( copy, childname, H5P_DEFAULT );
+                    } else {
+                        childcopy = H5Gcreate( copy, childname, 0, H5P_DEFAULT, H5P_DEFAULT );
+                    }
                     FTI_MergeObjectsSingleFile( childorig, childcopy );
                     H5Gclose( childcopy );
                 }

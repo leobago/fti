@@ -1661,12 +1661,11 @@ int FTI_InitICP(int id, int level, bool activate)
         return FTI_SCES;
     }
     
+    FTI_Exec.h5SingleFile = false;
     if ( level == FTI_L4_H5_SINGLE ) {
         if( FTI_Conf.h5SingleFileEnable ) {
             FTI_Exec.h5SingleFile = true;
-        } else {
-            FTI_Exec.h5SingleFile = false;
-        }
+        } 
     }
 
     // reset iCP meta info (i.e. set counter to zero etc.)

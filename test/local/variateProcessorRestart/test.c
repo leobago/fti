@@ -64,6 +64,10 @@ void shuffle( int*, size_t );
 #define Y1 (1024*128)
 #define Y2 (2*Y1)
 
+//#define X 4
+//#define Y1 4
+//#define Y2 (2*Y1)
+
 #define fdimX X
 #define fdimY1 Y1
 #define fdimY2 Y2
