@@ -132,27 +132,24 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
-    if (FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4) {
-        
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
-            MKDIR(FTI_Conf->gTmpDir, 0777);
-        } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ) {
-            MKDIR(FTI_Ckpt[4].dcpDir, 0777);
-        } else if ( FTI_Exec->h5SingleFile && !FTI_Conf->h5SingleFileIsInline ) {
-            MKDIR(FTI_Conf->gTmpDir, 0777);
+    if ( FTI_Ckpt[4].isInline && (FTI_Exec->ckptLvel == 4) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
+            MKDIR(FTI_Conf->gTmpDir,0777);	
+        } else if ( !FTI_Ckpt[4].hasDcp ) {
+            MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
-        //Actually call the respecitve function to store the checkpoint 
         res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
     }
-    else {
-        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
+    else if( !(FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline) ) {
+        if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf->lTmpDir,0777);
-        } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ){
-            MKDIR(FTI_Ckpt[1].dcpDir, 0777);
+        } else if ( !FTI_Ckpt[4].hasDcp ) {
+            MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
-        //Actually call the respecitve function to store the checkpoint 
         res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + LOCAL] );
-    }
+    } else { // if h5singlefile inline
+        res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
+    }    
 
     //Check if all processes have written correctly (every process must succeed)
     int allRes;

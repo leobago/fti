@@ -1540,6 +1540,11 @@ int FTI_Checkpoint(int id, int level)
 
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if( FTI_Conf.h5SingleFileEnable ) {
+            FTI_Exec.h5SingleFile = true;
+        } 
+    }
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1581,6 +1586,9 @@ int FTI_Checkpoint(int id, int level)
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
                 FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
         FTI_Print(str, FTI_INFO);
+        if( !FTI_Conf.h5SingleFileIsInline ) {
+            FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_SCES);
+        }
         return FTI_SCES;
     }
 
@@ -1733,7 +1741,7 @@ int FTI_InitICP(int id, int level, bool activate)
     snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptID, FTI_Topo.myRank,FTI_Conf.suffix);
 
     //If checkpoint is inlin and level 4 save directly to PFS
-    int offset = 2*(FTI_Conf.dcpPosix);
+    int offset = 2*(FTI_Conf.dcpPosix || FTI_Conf.dcpFtiff);
     if ( FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
