@@ -162,6 +162,8 @@ SRC_FTI
     src/topo.c
     src/tools.c
     src/utility.c
+    src/paper/create_hostfile.c
+    src/paper/init.c
 )
 
 if (ENABLE_GPU)
@@ -314,6 +316,8 @@ install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
 install(FILES "include/fti-intern.h"
+	DESTINATION include)
+install(FILES "include/interface-paper.h"
 	DESTINATION include)
 configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 

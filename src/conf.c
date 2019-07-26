@@ -402,6 +402,10 @@ CHECK_DCP_SETTING_END:
             return FTI_NSCS;
         }
     }
+    if (FTI_Conf->h5SingleFileIsInline == 0 && FTI_Topo->nbHeads != 1) {
+        FTI_Print("If h5_single_file_inline is set to 0 then head must be set to 1.", FTI_WARN);
+        return FTI_NSCS;
+    }
     if (FTI_Exec->syncIterMax < 0) {
         FTI_Exec->syncIterMax = 512;
         FTI_Print("Variable 'Basic:max_sync_intv' is not set. Set to default (512 iterations).", FTI_WARN);

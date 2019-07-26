@@ -106,6 +106,7 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
+    XFTI_Init( &FTI_Topo, &FTI_Exec, &FTI_Conf, FTI_Data, FTI_Ckpt );
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
 #endif
