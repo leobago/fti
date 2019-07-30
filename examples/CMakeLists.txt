@@ -16,6 +16,11 @@ set_property( TARGET hd-hfsf.exe APPEND PROPERTY LINK_LIBRARIES ${Boost_LIBRARIE
 set_property(TARGET hd-hfsf.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
 set_property(TARGET hd-hfsf.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
 
+add_executable(hd-hfsf-noboost.exe heat2d-hfsf-noboost.cpp)
+set_property( TARGET hd-hfsf-noboost.exe APPEND PROPERTY LINK_LIBRARIES fti.static ${MPI_CXX_LIBRARIES} m )
+set_property(TARGET hd-hfsf-noboost.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
+set_property(TARGET hd-hfsf-noboost.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
+
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
     target_link_libraries(hdf.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)

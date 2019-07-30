@@ -1067,6 +1067,22 @@ int  FTI_HDF5Close(void *fileDesc)
 
     // close file
     fd->FTI_Exec->H5groups[0]->h5groupID = -1;
+    herr_t err = H5Fflush( fd->file_id, H5F_SCOPE_GLOBAL );
+    if( err < 0 ) {
+        FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    MPI_File* file_handle;
+    err = H5Fget_vfd_handle(fd->file_id, H5P_DEFAULT, (void**)&file_handle );
+    if( err < 0 ) {
+        FTI_Print("Unable to acquire MPI file handle.", FTI_EROR);
+        return FTI_NSCS;
+    }
+    err = MPI_File_sync( *file_handle );
+    if( err < 0 ) {
+        FTI_Print("Unable to sync MPI file.", FTI_EROR);
+        return FTI_NSCS;
+    }
     if (H5Fclose(fd->file_id) < 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
         return FTI_NSCS;

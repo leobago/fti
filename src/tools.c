@@ -87,7 +87,9 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 /*-------------------------------------------------------------------------*/
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_injection* FTI_Inje) {
+        FTIT_dataset* FTI_Data, FTIT_injection* FTI_Inje) {
+
+    memset(FTI_Data, 0x0, FTI_BUFS*sizeof(FTIT_dataset));
 
     // datablock size in file
     FTI_filemetastructsize
@@ -157,6 +159,8 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
     memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
     memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
+    
+    memset(FTI_Exec, 0x0, sizeof(FTIT_execution));
 
     // +--------- +
     // | FTI_Conf |
