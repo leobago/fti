@@ -1,3 +1,5 @@
+find_package( Boost REQUIRED COMPONENTS mpi )
+
 add_executable(hd.exe heatdis.c)
 target_link_libraries(hd.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET hd.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
@@ -7,6 +9,12 @@ add_executable(hd2.exe heatd2.c)
 target_link_libraries(hd2.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
+
+add_executable(hd-hfsf.exe heat2d-hfsf.cpp)
+set_property( SOURCE heat2d-hfsf.cpp APPEND PROPERTY INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIRS} )
+set_property( TARGET hd-hfsf.exe APPEND PROPERTY LINK_LIBRARIES ${Boost_LIBRARIES} fti.static ${MPI_CXX_LIBRARIES} m )
+set_property(TARGET hd-hfsf.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
+set_property(TARGET hd-hfsf.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
 
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)

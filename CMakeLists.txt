@@ -16,13 +16,12 @@ if (ENABLE_GPU)
 else ()
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
       if( ${ENABLE_FORTRAN} )
-        project(FTI C Fortran)
+          project(FTI C CXX Fortran)
       else()
-        project(FTI C)
+          project(FTI C CXX)
       endif()
   endif()
 endif()  
-
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )

@@ -9,7 +9,7 @@
 #define __FTI_H__
 
 /** Standard size of buffer and max node size.                             */
-#define FTI_BUFS 256
+#define FTI_BUFS 4096
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
