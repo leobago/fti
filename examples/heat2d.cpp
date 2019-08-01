@@ -36,12 +36,6 @@ class SEnvironment {
             m_global_comm = MPI_COMM_WORLD;
             MPI_Comm_set_errhandler( MPI_COMM_WORLD, MPI::ERRORS_THROW_EXCEPTIONS );
             
-            if( argc > 1 ) {
-                m_crash = atoi( argv[1] );
-            } else {
-                m_crash = false;
-            }
-
             FTI_Init( "config.fti", MPI_COMM_WORLD );
             m_comm = FTI_COMM_WORLD;
             MPI_Comm_rank( m_comm, &m_rank );
@@ -51,7 +45,6 @@ class SEnvironment {
             FTI_Finalize();
             MPI_Finalize();
         }
-        const bool & crash() const { return m_crash; }
         const int & rank() const { return m_rank; }
         const int & size() const { return m_size; }
         const MPI_Comm & comm() const { return m_comm; }
@@ -70,15 +63,10 @@ class SEnvironment {
 
             // reset FTI
             MPI_Comm_free(&FTI_COMM_WORLD);
-            
             FTI_Init( "config.fti", m_global_comm );
             m_comm = FTI_COMM_WORLD;
             MPI_Comm_rank( m_comm, &m_rank );
             MPI_Comm_size( m_comm, &m_size );
-            
-            m_crash = false;
-            
-            MPI_Barrier( m_global_comm );
         
         }
 
@@ -90,7 +78,6 @@ class SEnvironment {
         int m_global_rank;
         int m_size;
         double m_t0;
-        bool m_crash;
 
 };
 
@@ -102,6 +89,7 @@ class TDist {
                 std::cout << "Step : " << i << ", current error = " << m_error << "; target = " << PRECISION << std::endl;
         }
         void init( const size_t & M, const size_t & N, const SEnvironment & env ) {
+            m_crash = true;
             m_chk_id = 1;
             m_Mloc = ( M / env.size() );
             if( env.rank() == env.size()-1 ) m_Mloc += M%static_cast<size_t>(env.size());
@@ -123,11 +111,6 @@ class TDist {
             }
             alloc();
             init_data( env );
-            
-            hsize_t dim_i = 1;
-            hsize_t dim_data[2] = { M, N };
-            FTI_DefineGlobalDataset( 0, 1, &dim_i, "iteration counter", NULL, FTI_INTG );
-            FTI_DefineGlobalDataset( 1, 2, dim_data, "temperature distribution (h)", NULL, FTI_DBLE );
 
         }
         void alloc( void ) {
@@ -155,20 +138,20 @@ class TDist {
                     m_dist[m][n] = 0;
                 }
             }
-            if (env.rank() == 0) {
+            if (env.rank() == env.rank()) {
                 int min = static_cast<int>(m_Nloc*0.1);
                 int max = static_cast<int>(m_Nloc*0.9);
-                //for(int m = 0; m < m_Mloc/2; ++m) { 
+                for(int m = 0; m < m_Mloc/2; ++m) { 
                     for (int n = min; n < max; ++n) {
-                        m_dist[0][n] = 1000;
+                        m_dist[m][n] = 1000;
                     }
-                //}
+                }
             }
         }
         void compute_step( const SEnvironment & env ) {
             MPI_Request req1[2], req2[2];
             MPI_Status status1[2], status2[2];
-            double localerror;
+            double localerror, globalerror;
             
             localerror = 0;
             for(int m = 0; m <= m_max_dist_row; ++m) {
@@ -218,8 +201,9 @@ class TDist {
                 }
             }
             
-            MPI_Allreduce( &localerror, &m_error, 1, MPI_DOUBLE, MPI_MAX, env.comm() );
+            MPI_Allreduce( &localerror, &globalerror, 1, MPI_DOUBLE, MPI_MAX, env.comm() );
 
+            m_error = globalerror;
         }
         void checkpoint( int & i, SEnvironment & env, bool force=false ) {
             if( ((i%ITER_CHK == 0) && (i>0)) || force ) {
@@ -228,6 +212,11 @@ class TDist {
         }
         void protect( int & i, SEnvironment & env ) {
             int id = 0;
+
+            hsize_t dim_i = 1;
+            hsize_t dim_data[2] = { M, N };
+            FTI_DefineGlobalDataset( 0, 1, &dim_i, "iteration counter", NULL, FTI_INTG );
+            FTI_DefineGlobalDataset( 1, 2, dim_data, "temperature distribution (h)", NULL, FTI_DBLE );
 
             hsize_t offset_i = 0;
             hsize_t count_i = 1;
@@ -266,15 +255,18 @@ class TDist {
             protect( i, env );
             FTI_Recover();
 
+            m_crash = false;
+
         }
         void inject_failure( int i, SEnvironment & env, int rank = 0 ) {
-            if( (i%ITER_FAIL == 0) && (i>0) && (env.rank() == rank) && env.crash() ) {
+            if( (i%ITER_FAIL == 0) && (i>0) && (env.rank() == rank) && m_crash ) {
                 *(int*)NULL = 1;
             }
         }
 
     private:
 
+        bool m_crash;
         int m_chk_id;
 
         double m_error;
