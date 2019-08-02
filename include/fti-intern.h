@@ -469,6 +469,8 @@ extern "C" {
         int             ckptTag;            /**< MPI tag for ckpt requests.         */
         int             stageTag;           /**< MPI tag for staging comm.          */
         int             finalTag;           /**< MPI tag for finalize comm.         */
+        int             failedTag;           /**< MPI tag for finalize comm.         */
+        int             killTag;           /**< MPI tag for finalize comm.         */
         int             generalTag;         /**< MPI tag for general comm.          */
         int             test;               /**< TRUE if local test.                */
         int             l3WordSize;         /**< RS encoding word size.             */

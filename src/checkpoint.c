@@ -320,12 +320,33 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Status ckpt_status;         int ckpt_flag = 0;
     MPI_Status stage_status;        int stage_flag = 0;
     MPI_Status finalize_status;     int finalize_flag = 0;
+    MPI_Status failed_status;     int failed_flag = 0;
+    MPI_Status kill_status;     int kill_flag = 0;
 
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
-        sleep(1);
         FTI_Print("Head waits for message...", FTI_DBUG);
 
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->killTag, FTI_Exec->globalComm, &kill_flag, &kill_status );
+        if ( kill_flag ) {
+            
+            int buf;
+            MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->killTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Ssend(&buf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->killTag, FTI_Exec->globalComm);
+            DBG_MSG("I WILL DIE",-1);
+
+            XFTI_CRASH;
+
+        }
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->failedTag, FTI_Exec->globalComm, &failed_flag, &failed_status );
+        if ( failed_flag ) {
+            
+            int buf;
+            MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->finalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+
+            break;
+
+        }
         MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
         if ( FTI_Conf->stagingEnabled ) {
             MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->stageTag, FTI_Exec->nodeComm, &stage_flag, &stage_status );
