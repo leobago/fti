@@ -164,6 +164,12 @@ SRC_FTI
     src/utility.c
 )
 
+if (ENABLE_SIONLIB)
+    list(APPEND SRC_FTI "src/IO/sion-fti.c")
+    message("${SRC_FTI}")
+endif()
+
+
 if (ENABLE_GPU)
 set(
     SRC_CUDA_FTI
@@ -268,6 +274,7 @@ if(ENABLE_LUSTRE)
     endif()
 endif()
 
+
 if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
@@ -282,6 +289,7 @@ if(ENABLE_SIONLIB)
     target_link_libraries(fti.shared "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     add_definitions(-DENABLE_SIONLIB)
 endif()
+
 
 if(ENABLE_HDF5)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
