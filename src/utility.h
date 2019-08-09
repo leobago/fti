@@ -63,6 +63,23 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 size_t FTI_GetHDF5FilePos(void *);
 #endif
 
+#ifdef ENABLE_SIONLIB
+#include <sion.h>
+typedef struct{
+    int sid;
+    int *file_map;
+    int *ranks;
+    int *rank_map;
+    size_t loffset;
+    sion_int64* chunkSizes;
+}WriteSionInfo_t;
+
+int FTI_WriteSionData(FTIT_dataset * FTI_DataVar, void *fd);
+void* FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
+int FTI_SionClose(void *fileDesc);
+size_t FTI_GetSionFilePos(void *fileDesc);
+#endif
+
 // Wrappers around MPIO
 int FTI_MPIOOpen(char *fn, void *fileDesc);
 int FTI_MPIOClose(void *fileDesc);

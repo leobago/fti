@@ -890,6 +890,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
       strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
       strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
+      return FTI_NSCS;
 #endif
 
     case FTI_IO_FTIFF:
@@ -1197,12 +1198,16 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
     }
   }
+  
 
   snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-  char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+  char gfn[FTI_BUFS], lfn[FTI_BUFS];
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+
+  FTI_Print(lfn,FTI_INFO); 
+  FTI_Print(gfn,FTI_INFO); 
 
   // this is done, since sionlib aborts if the file is not readable.
   if (access(gfn, F_OK) != 0) {
@@ -1221,9 +1226,19 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   rank_map[0] = FTI_Topo->splitRank;
   int sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
+  if ( sid < 0 ){
+    FTI_Print("R4 cannot open the Global ckpt. file.", FTI_WARN);
+    free(file_map);
+    free(ranks);
+    free(rank_map);
+    free(chunkSizes);
+    return FTI_NSCS;
+  }
+
+  MKDIR(FTI_Conf->lTmpDir,0777);
   FILE* lfd = fopen(lfn, "wb");
   if (lfd == NULL) {
-    FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+    FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
     sion_parclose_mapped_mpi(sid);
     free(file_map);
     free(ranks);
@@ -1273,7 +1288,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       fwrite(readData, sizeof(char), bSize, lfd);
       if (ferror(lfd)) {
-        FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+        FTI_Print("R4 cannot write to the local ckpt. file.", FTI_WARN);
         free(readData);
         fclose(lfd);
         sion_parclose_mapped_mpi(sid);
@@ -1290,7 +1305,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
 
   fclose(lfd);
-
   sion_parclose_mapped_mpi(sid);
   free(file_map);
   free(ranks);

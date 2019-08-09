@@ -148,17 +148,30 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
         case FTI_IO_SIONLIB:
-            FTI_Exec->ckptFunc[LOCAL] = FTI_WritePosix;
-            FTI_Exec->ckptFunc[GLOBAL] = FTI_WriteSionlib;
+            ftiIO[LOCAL].initCKPT = FTI_InitPosix; 
+            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
+            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
+            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_InitPosixICP; 
-            FTI_Exec->initICPFunc[GLOBAL] = FTI_InitPosixICP; 
+            ftiIO[GLOBAL].initCKPT = FTI_InitSion; 
+            ftiIO[GLOBAL].WriteData = FTI_WriteSionData; 
+            ftiIO[GLOBAL].finCKPT= FTI_SionClose; 
+            ftiIO[GLOBAL].getPos	= FTI_GetSionFilePos; 
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
 
-            FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WritePosixVar; 
-            FTI_Exec->writeVarICPFunc[GLOBAL] = FTI_WritePosixVar;
 
-            FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinalizePosixICP;
-            FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinalizePosixICP;
+            FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
+            FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
+
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
+
+            FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
+            FTI_Exec->writeVarICPFunc[GLOBAL] = FTI_WriteVar;
+
+            FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
+            FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
             
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 

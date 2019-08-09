@@ -859,6 +859,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int level)
 {
     int proc, startProc, endProc;
+    char fn[FTI_BUFS],str[FTI_BUFS];
     if (FTI_Topo->amIaHead) {
         startProc = 1;
         endProc = FTI_Topo->nodeSize;
@@ -875,26 +876,24 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         // Open local file case 0:
         if (level == 0) {
-            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[ (proc) * FTI_BUFS]);
         }
         else {
-            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[(proc) * FTI_BUFS]);
         }
         if (FTI_Topo->amIaHead) {
-            splitRanks[proc - startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //[proc - startProc] to get index from 0
+            splitRanks[proc-startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //determine process splitRank if head
         }
         else {
-            splitRanks[proc - startProc] = FTI_Topo->splitRank; //[proc - startProc] to get index from 0
+            splitRanks[proc-startProc] = FTI_Topo->splitRank;
         }
         localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
     }
 
-  int rank, ckptID;
 //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
   snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
 //  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptID);
   snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
-
 
     int numFiles = 1;
     int nlocaltasks = nbProc;
@@ -909,10 +908,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         ranks[i] = splitRanks[i];
         rank_map[i] = splitRanks[i];
     }
+
     int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
     if (sid == -1) {
         FTI_Print("Cannot open with sion_paropen_mapped_mpi.", FTI_EROR);
-
         free(file_map);
         free(ranks);
         free(rank_map);
@@ -922,9 +921,11 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     for (proc = startProc; proc < endProc; proc++) {
-        FILE* lfd = fopen(&localFileNames[FTI_BUFS * proc], "rb");
+        FILE* lfd = fopen(&localFileNames[FTI_BUFS * (proc-startProc)], "rb");
         if (lfd == NULL) {
-            FTI_Print("L4 cannot open the checkpoint file.", FTI_EROR);
+            char str[FTI_BUFS];
+            sprintf(str,"L4 cannot open the checkpoint file:%s",&localFileNames[FTI_BUFS * (proc-startProc)]);
+            FTI_Print(str, FTI_EROR);
             free(localFileNames);
             free(splitRanks);
             sion_parclose_mapped_mpi(sid);
@@ -994,5 +995,6 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(ranks);
     free(rank_map);
     free(chunkSizes);
+    return FTI_SCES;
 }
 #endif

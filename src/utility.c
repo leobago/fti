@@ -39,27 +39,6 @@
 #include "interface.h"
 
 #ifdef ENABLE_SIONLIB 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief     Writes data to a file using the SION library
-  @param     src    The location of the data to be written 
-  @param     size   The number of bytes that I need to write 
-  @param     opaque A pointer to the file descriptor  
-  @return    integer FTI_SCES if successful.
-
-  Writes the data to a file using the SION library. 
-
- **/
-/*-------------------------------------------------------------------------*/
-int write_sion(void *src, size_t size, void *opaque)
-{
-    int *sid= (int *)opaque;
-    int res = sion_fwrite(src, size, 1, *sid);
-    if (res < 0 ){
-        return FTI_NSCS;
-    }
-    return FTI_SCES;
-}
 #endif
 
 /*-------------------------------------------------------------------------*/

@@ -494,7 +494,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @return     integer         FTI_SCES if successful.
     
     This function performs a normal checkpoint by calling the respective file format procedures,
-    initalize chkpt, write data, compute integrity and finalize files.
+    initalize ckpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -519,98 +519,4 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    int numFiles = 1;
-    int nlocaltasks = 1;
-    int* file_map = calloc(1, sizeof(int));
-    int* ranks = talloc(int, 1);
-    int* rank_map = talloc(int, 1);
-    sion_int64* chunkSizes = talloc(sion_int64, 1);
-    int fsblksize = -1;
-    chunkSizes[0] = FTI_Exec->ckptSize;
-    ranks[0] = FTI_Topo->splitRank;
-    rank_map[0] = FTI_Topo->splitRank;
 
-    // open parallel file
-    char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
-    int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
-
-    // check if successful
-    if (sid == -1) {
-        errno = 0;
-        FTI_Print("SIONlib: File could no be opened", FTI_EROR);
-
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-
-    // set file pointer to corresponding block in sionlib file
-    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
-
-    // check if successful
-    if (res != SION_SUCCESS) {
-        errno = 0;
-        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
-        sion_parclose_mapped_mpi(sid);
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-
-    // write datasets into file
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        // SIONlib write call
-
-        if ( !(FTI_Data[i].isDevicePtr) ){
-            res = write_sion(FTI_Data[i].ptr, FTI_Data[i].size, &sid);
-        }
-#ifdef GPUSUPPORT            
-        // if data are stored to the GPU move them from device
-        // memory to cpu memory and store them.
-        else {
-            if ((res = FTI_Try(
-                            TransferDeviceMemToFileAsync(&FTI_Data[i], write_sion, &sid),
-                            "moving data from GPU to storage")) != FTI_SCES) {
-                snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                FTI_Print(str, FTI_EROR);
-                errno = 0;
-                FTI_Print("SIONlib: Data could not be written", FTI_EROR);
-                res =  sion_parclose_mapped_mpi(sid);
-                free(file_map);
-                free(rank_map);
-                free(ranks);
-                free(chunkSizes);
-                return res;
-            }
-        }
-#endif            
-    }
-
-    // close parallel file
-    if (sion_parclose_mapped_mpi(sid) == -1) {
-        FTI_Print("Cannot close sionlib file.", FTI_WARN);
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-    free(file_map);
-    free(rank_map);
-    free(ranks);
-    free(chunkSizes);
-
-    return FTI_SCES;
-}
-#endif
