@@ -17,17 +17,19 @@
 #include <random>
 
 // GRID PARAMETERS
-const size_t M = 1024;
-const size_t N = 1024;
+//const size_t M = 1024;
+//const size_t N = 1024;
+const size_t M = 32;
+const size_t N = 32;
 
 // SIMULATION PARAMETERS
 const int ITER_MAX = 50000;
 const int ITER_OUT = 1000;
-const double PRECISION = 0.001;
+const double PRECISION = 0.000;
 
 // FAULT TOLERANCE
-const int ITER_CHK = 5000;
-const int ITER_FAIL =5200;
+const int ITER_CHK = 1000;
+const int ITER_FAIL =1200;
 
 class SEnvironment {
 
@@ -87,7 +89,9 @@ class SEnvironment {
         void reset( void ) {
             
             // propagate error and shrink communicator
+            MPIX_Comm_revoke(m_global_comm);
             MPI_Comm new_global_comm;
+            std::cout << "i am here (rank:" << m_rank << "|pid:" << getpid() << ")" <<  std::endl;
             MPIX_Comm_shrink( m_global_comm, &new_global_comm );
             //MPI_Comm_free( &m_global_comm );
             m_global_comm = new_global_comm;
@@ -98,11 +102,11 @@ class SEnvironment {
             if( m_global_rank == 0 ) std::cout << "==========================================================================" << std::endl;
             if( m_global_rank == 0 ) std::cout << ":: Error detected, try to recover... " << std::endl;
 
+            int size; MPI_Comm_size( m_global_comm, &size );
+            MPI_Barrier( m_global_comm );
             // reset FTI
             MPI_Comm_free(&FTI_COMM_WORLD);
             
-            int size; MPI_Comm_size( m_global_comm, &size );
-            MPI_Barrier( m_global_comm );
             if( m_global_rank == 0 ) {
                 std::cout << "   :::   WORLD SIZE = " << size << "   :::   " << std::endl;
             }
@@ -351,11 +355,11 @@ class TDist {
         
         void handle_error( int & i, SEnvironment & env ) {
             
-            if( !env.head() ) XFTI_LiberateHeads();
-            
+            //if( !env.head() ) XFTI_LiberateHeads();
             int chk_id = m_chk_id;
             // reset environment
             env.reset();
+            sleep(2);            
 
             // reset pointers
             finalize();
@@ -424,10 +428,11 @@ int main( int argc, char** argv )
     dist.init( M, N, env );
     dist.protect( i, env );
         
-    //dist.checkpoint( i, env, true );
-
     // MAINLOOP
     for(i=0; i<ITER_MAX; ++i) {
+        
+        dist.checkpoint( i, env );
+        dist.recover( env );
  
         try {
 
@@ -438,18 +443,15 @@ int main( int argc, char** argv )
         } catch ( MPI::Exception ) {
              
             dist.handle_error( i, env );
-            continue;
+            dist.compute_step( env );
+            dist.print_progress( i, env );
+        
         }
         
-        if( dist.recover( env ) ) continue;
-
-        dist.checkpoint( i, env );
         
         if( dist.condition() ) break;
         
     }
-        
-    dist.checkpoint( i, env, true );
     
     // FINALIZE
     dist.finalize();

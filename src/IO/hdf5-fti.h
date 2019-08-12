@@ -39,6 +39,8 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec );
 int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo );
+int FTI_FinalizeH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, 
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, double t );
 #endif
 
 #endif // __HDF5_FTI_H__

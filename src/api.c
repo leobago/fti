@@ -1583,14 +1583,7 @@ int FTI_Checkpoint(int id, int level)
 
     // no postprocessing or meta data for h5 single file
     if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
-        char str[FTI_BUFS];
-        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
-        FTI_Print(str, FTI_INFO);
-        if( !FTI_Conf.h5SingleFileIsInline ) {
-            FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_SCES);
-        }
-        return FTI_SCES;
+        return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, t2 - t1 ); 
     }
 
     if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message

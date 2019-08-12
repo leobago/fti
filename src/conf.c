@@ -208,29 +208,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
     FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
 #endif
-    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
-    if( h5SingleFileDir ) {
-        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
-            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
-        } else {
-            strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
-        }
-    } else {
-        strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
-    }
-
-    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
-    if( h5SingleFilePrefix ) {
-        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
-            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
-        } else {
-            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
-        }
-    } else {
-        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
-    }
-    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
-    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
@@ -252,7 +229,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->meanIterTime = 0;
     FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
-    if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
+    if ( FTI_Exec->reco == 0 ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
@@ -267,6 +244,30 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "This is a restart. The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);
     }
+    
+    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
+    if( h5SingleFileDir ) {
+        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
+        } else {
+            snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+    }
+
+    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
+    if( h5SingleFilePrefix ) {
+        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
+        } else {
+            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+    }
+    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
+    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
     // Reading/setting topology metadata
     FTI_Topo->nbHeads = (int)iniparser_getint(ini, "Basic:head", 0);
@@ -488,7 +489,6 @@ CHECK_DCP_SETTING_END:
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 {
     char str[FTI_BUFS]; //For console output
-    int h5DirFailed = 0;
 
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
@@ -505,22 +505,6 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
         snprintf(str,FTI_BUFS,  "Checking the global directory (%s)...", FTI_Conf->glbalDir);
         FTI_Print(str, FTI_DBUG);
         MKDIR(FTI_Conf->glbalDir, 0777);
-
-        // Checking metadata directory
-        if( FTI_Conf->h5SingleFileEnable ) {
-            snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
-            FTI_Print(str, FTI_DBUG);
-            MKDIR(FTI_Conf->h5SingleFileDir,0777);
-        }
-    }
-
-    if( FTI_Conf->h5SingleFileEnable ) {
-        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
-        MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
-        if( h5DirFailed ) { 
-            FTI_Conf->h5SingleFileEnable = false; 
-            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
-        }
     }
 
     //Waiting for metadDir being created
@@ -548,6 +532,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     char strerr[FTI_BUFS];
     char fn[FTI_BUFS]; //Path of metadata directory
+    int h5DirFailed = 0;
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
@@ -598,6 +583,23 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
+        
+    // Checking metadata directory
+    if( FTI_Conf->h5SingleFileEnable && FTI_Topo->myRank == 0 ) {
+        char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS, "Creating the VPR directory (%s)...", FTI_Conf->h5SingleFileDir);
+        FTI_Print(str, FTI_DBUG);
+        MKDIR(FTI_Conf->h5SingleFileDir,0777);
+    }
+
+    if( FTI_Conf->h5SingleFileEnable ) {
+        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        if( h5DirFailed ) { 
+            FTI_Conf->h5SingleFileEnable = false; 
+            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
+        }
+    }
     return FTI_SCES;
 }
 

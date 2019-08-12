@@ -1155,7 +1155,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
     }
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
@@ -2123,5 +2123,34 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
     return FTI_SCES;
 
+}
+
+int FTI_FinalizeH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, 
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, double t ) 
+{
+    char str[FTI_BUFS];
+    sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+            FTI_Exec->ckptID, FTI_Exec->ckptSize / (1024.0 * 1024.0), t );
+    FTI_Print(str, FTI_INFO);
+    if( !FTI_Conf->h5SingleFileIsInline ) {
+        FTI_Exec->activateHeads( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_SCES);
+    } else {
+        char tmpfn[FTI_BUFS];
+        char fn[FTI_BUFS];
+        snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        if( FTI_Topo->splitRank == 0 ) {
+            if( rename( tmpfn, fn ) == 0 ) {
+                if( rmdir( FTI_Conf->gTmpDir ) < 0 ) {
+                    FTI_Print( "cannot remove global temp directory!", FTI_EROR );
+                    return FTI_NSCS;
+                }
+            } else {
+                FTI_Print( "unable to rename VPR file!", FTI_EROR );
+                return FTI_NSCS;
+            }
+        }
+    }
+    return FTI_SCES;
 }
 #endif

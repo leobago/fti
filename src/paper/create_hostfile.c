@@ -1,5 +1,7 @@
 #include "interface-paper.h"
 #include "../interface.h"
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef __INTEL_COMPILER
 #   define HFPAT "%s:%d\n"
@@ -61,6 +63,9 @@ void XFTI_CrashNodes( int nbNodes )
     MPI_Comm affectedNodes;
     MPI_Comm_split( FTI_COMM_WORLD, topo->nodeID < nbNodes, 0, &affectedNodes );
     if( topo->nodeID < nbNodes ) {
+        int rank, size;
+        MPI_Comm_size(affectedNodes, &size);
+        MPI_Comm_rank(affectedNodes, &rank);
         if( (topo->nodeRank == 1) && (topo->nbHeads == 1) ) {
             int value = 1;
             MPI_Ssend(&value, 1, MPI_INT, topo->headRank, conf->killTag, exec->globalComm);
@@ -68,14 +73,14 @@ void XFTI_CrashNodes( int nbNodes )
         }
         MPI_Barrier( affectedNodes );
         sleep(2);
-        DBG_MSG("I WILL DIE",-1);
+        DBG_MSG("I WILL DIE (pid:%d|rank:%d)",-1, getpid(), topo->myRank);
         XFTI_CRASH;
     } else {
-        MPI_Barrier(FTI_COMM_WORLD);
-        sleep(4);
-        DBG_MSG("I WILL SURVIVE",-1);
+        //sleep(4);
+        //DBG_MSG("I WILL SURVIVE",-1);
+        DBG_MSG("I WILL SURVIVE (pid:%d|rank:%d)",-1, getpid(), topo->myRank);
     }
-    sleep(2);
+    //sleep(2);
 }
 
 void XFTI_Crash() 
