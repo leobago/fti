@@ -1072,23 +1072,23 @@ int  FTI_HDF5Close(void *fileDesc)
         FTI_Print("FTI checkpoint file could not be flushed.", FTI_EROR);
         return FTI_NSCS;
     }
-    MPI_File* file_handle;
-    err = H5Fget_vfd_handle(fd->file_id, H5P_DEFAULT, (void**)&file_handle );
-    if( err < 0 ) {
-        FTI_Print("Unable to acquire MPI file handle.", FTI_EROR);
-        return FTI_NSCS;
-    }
-    err = MPI_File_sync( *file_handle );
-    if( err < 0 ) {
-        FTI_Print("Unable to sync MPI file.", FTI_EROR);
-        return FTI_NSCS;
-    }
+    //MPI_File* file_handle;
+    //err = H5Fget_vfd_handle(fd->file_id, H5P_DEFAULT, (void**)&file_handle );
+    //if( err < 0 ) {
+    //    FTI_Print("Unable to acquire MPI file handle.", FTI_EROR);
+    //    return FTI_NSCS;
+    //}
+    //err = MPI_File_sync( *file_handle );
+    //if( err < 0 ) {
+    //    FTI_Print("Unable to sync MPI file.", FTI_EROR);
+    //    return FTI_NSCS;
+    //}
     if (H5Fclose(fd->file_id) < 0) {
         FTI_Print("FTI checkpoint file could not be closed.", FTI_EROR);
         return FTI_NSCS;
     }
     if( fd->FTI_Exec->h5SingleFile ) {
-        bool removeLastFile = !fd->FTI_Conf->h5SingleFileKeep && (bool)strcmp( fd->FTI_Exec->h5SingleFileLast, "" );
+        bool removeLastFile = !fd->FTI_Conf->h5SingleFileKeep && (bool)strcmp( fd->FTI_Exec->h5SingleFileLast, "" ) && fd->FTI_Conf->h5SingleFileIsInline;
         if( removeLastFile && !fd->FTI_Topo->splitRank ) {
             status = remove( fd->FTI_Exec->h5SingleFileLast );
             if ( (status != ENOENT) && (status != 0) ) {
@@ -2089,10 +2089,15 @@ int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
 
 int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo )
 {
-    char fn[FTI_BUFS], lfn[FTI_BUFS];
+    char fn[FTI_BUFS], tmpfn[FTI_BUFS], lfn[FTI_BUFS];
     hid_t fid, lfid, gid;
 
+    snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
     snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
+    if( FTI_Topo->splitRank == 0 ) {
+        MKDIR(FTI_Conf->gTmpDir,0777);	
+    }
+    MPI_Barrier( FTI_COMM_WORLD );
    
     // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
     //MPI_Info info;
@@ -2101,7 +2106,7 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     //MPI_Info_set(info, "stripping_unit", "4194304");
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
     H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
-    fid = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
+    fid = H5Fcreate(tmpfn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
     H5Pclose( plid );
 
     int b;
@@ -2119,7 +2124,31 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
     }
     
+    sleep(2);
     H5Fclose( fid );
+    
+#warning ERROR HANDLING HERE + ALLREDUCE IFF ALL HEADS SUCCESSFUL
+
+    if( FTI_Topo->splitRank == 0 ) {
+        int status = rename( tmpfn, fn );
+        remove( FTI_Conf->gTmpDir );
+        bool removeLastFile = !FTI_Conf->h5SingleFileKeep && (bool)strcmp( FTI_Exec->h5SingleFileLast, "" );
+        if( removeLastFile ) {
+            status = remove( FTI_Exec->h5SingleFileLast );
+            if ( (status != ENOENT) && (status != 0) ) {
+                char errstr[FTI_BUFS];
+                snprintf( errstr, FTI_BUFS, "failed to remove last VPR file '%s'", FTI_Exec->h5SingleFileLast );
+                FTI_Print( errstr, FTI_EROR );
+            } else {
+                status = FTI_SCES;
+            }
+        }
+        if( status == FTI_SCES ) {
+            snprintf( FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, 
+                    FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        }
+    }
+
 
     return FTI_SCES;
 

@@ -19,8 +19,8 @@
 // GRID PARAMETERS
 //const size_t M = 1024;
 //const size_t N = 1024;
-const size_t M = 32;
-const size_t N = 32;
+const size_t M = 512;
+const size_t N = 512;
 
 // SIMULATION PARAMETERS
 const int ITER_MAX = 50000;
