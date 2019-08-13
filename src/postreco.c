@@ -1198,7 +1198,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
     }
   }
-  
 
   snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
@@ -1206,25 +1205,44 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
 
-  FTI_Print(lfn,FTI_INFO); 
-  FTI_Print(gfn,FTI_INFO); 
+  int nTasks;
+  MPI_Comm_size(FTI_COMM_WORLD, &nTasks);
+  int numFiles = 1;
+  int sid;
+  int nlocaltasks = 1;
+  int* file_map = calloc(nTasks, sizeof(int));
+  int* ranks = talloc(int, nTasks);
+  int* rank_map = talloc(int, nTasks);
+  sion_int64* chunkSizes = talloc(sion_int64, nTasks);
+  sion_int32 fsblksize = -1;
+
+  for (int i = 0; i < nTasks; i++){
+      chunkSizes[i] = 1000; 
+      ranks[i] = FTI_Topo->splitRank;
+      rank_map[i] = FTI_Topo->splitRank;
+  }
+
+
 
   // this is done, since sionlib aborts if the file is not readable.
   if (access(gfn, F_OK) != 0) {
     return FTI_NSCS;
   }
+  else{
+    sid = sion_open(gfn, "rb,posix",&nlocaltasks , &numFiles, &chunkSizes, &fsblksize, &ranks, NULL);   
+    int correct  = 1;
+    int globalcorrect = 1;
+    if ( sid < 0 ){
+        correct =0;
+    }
+    MPI_Allreduce(&correct,&globalcorrect,1, MPI_INT, MPI_BAND, FTI_COMM_WORLD);
+    if ( globalcorrect == 0 ){
+        return FTI_NSCS;
+    }
+  }
 
-  int numFiles = 1;
-  int nlocaltasks = 1;
-  int* file_map = calloc(1, sizeof(int));
-  int* ranks = talloc(int, 1);
-  int* rank_map = talloc(int, 1);
-  sion_int64* chunkSizes = talloc(sion_int64, 1);
-  int fsblksize = -1;
-  chunkSizes[0] = FTI_Exec->meta[4].fs[0];
-  ranks[0] = FTI_Topo->splitRank;
-  rank_map[0] = FTI_Topo->splitRank;
-  int sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+
+  sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
   if ( sid < 0 ){
     FTI_Print("R4 cannot open the Global ckpt. file.", FTI_WARN);

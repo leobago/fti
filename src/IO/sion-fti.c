@@ -171,3 +171,6 @@ size_t FTI_GetSionFilePos(void *fileDesc){
     WriteSionInfo_t *fd  = (WriteSionInfo_t *) fileDesc;
     return fd->loffset;
 }
+
+
+
