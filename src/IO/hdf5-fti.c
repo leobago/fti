@@ -2011,6 +2011,9 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
     } else {
         did = H5Dcreate( loc, datasetname, tid, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     }
+        
+    hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+    H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     H5Gget_num_objs( gid, &n );
     for( i=0; i<n; i++ ) {
@@ -2021,9 +2024,6 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
         FTI_ReadAttributeHDF5( subset, "count", count );
         hid_t msid = H5Screate_simple( datasetrank, count, NULL );
         H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
-        
-        hid_t plid = H5Pcreate( H5P_DATASET_XFER );
-        H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
         data = malloc( typesize*H5Sget_simple_extent_npoints( msid ) );
         
@@ -2031,13 +2031,19 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
         
         // write data in file
         H5Dwrite( did, tid, msid, sid, plid, data );
-
+#warning ADDED, TO BE CHECKED        
+        H5Sclose( msid );
+        H5Dclose( subset );
         free( data );
     }
     
+    H5Pclose( plid );
     H5Sclose( sid );
     H5Tclose( tid );
-    H5Dclose( did ); 
+    H5Dclose( did );
+
+    free( count );
+    free( offset );
 
 }
 
@@ -2116,15 +2122,19 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
         lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
 
-        gid = H5Gopen( lfid, "/", H5P_DEFAULT );
+        //gid = H5Gopen( lfid, "/", H5P_DEFAULT );
 
-        FTI_MergeObjectsSingleFile( gid, fid );
+        FTI_MergeObjectsSingleFile( lfid, fid );
+        
+        //FTI_DebugCheckOpenObjects( lfid, 0 );
 
+        //H5Gclose( gid );
         H5Fclose( lfid );
 
     }
     
     sleep(2);
+    //FTI_DebugCheckOpenObjects( fid, 0 );
     H5Fclose( fid );
     
 #warning ERROR HANDLING HERE + ALLREDUCE IFF ALL HEADS SUCCESSFUL

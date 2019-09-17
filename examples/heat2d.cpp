@@ -15,6 +15,10 @@
 #include <cmath>
 #include <assert.h>
 #include <random>
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
+
+#define DEBUG(A) std::cout << A << std::endl;
 
 // GRID PARAMETERS
 //const size_t M = 1024;
@@ -40,19 +44,33 @@ class SEnvironment {
             MPI::Init( argc, argv );
             m_global_comm = MPI_COMM_WORLD;
             MPI_Comm_set_errhandler( MPI_COMM_WORLD, MPI::ERRORS_THROW_EXCEPTIONS );
+           
+            MPI_Comm_group( MPI_COMM_WORLD, &m_world_group );
             
+            MPI_Comm_size(MPI_COMM_WORLD, &m_global_size);
+            MPI_Comm_rank(MPI_COMM_WORLD, &m_global_rank);
+
             if( argc > 1 ) {
                 m_crash = atoi( argv[1] );
             } else {
                 m_crash = false;
             }
+    
+            dictionary* ini = iniparser_load( "config.fti" );
+            m_nodeSize = iniparser_getint( ini, "Basic:node_size", -1 );
 
-            try {
+            //try {
             
-                m_head = FTI_Init( "config.fti", MPI_COMM_WORLD ) == FTI_HEAD;
-                            
-            } catch ( MPI::Exception ) {
-            }
+                int rval = FTI_Init( "config.fti", MPI_COMM_WORLD );
+                m_head = rval == FTI_HEAD;
+                if( rval == 666 ) {
+                    DEBUG("head will crash now!!!");
+                    *(int*)NULL = 0;
+                }
+            //} catch ( MPI::Exception ) {
+            //    int r; MPI_Comm_rank( MPI_COMM_WORLD, &r );
+            //    std::cout << "[" << r << "] exception caught" << std::endl;
+            //}
             
             m_restart = ( FTI_Status() > 0 );
             
@@ -89,13 +107,27 @@ class SEnvironment {
         void reset( void ) {
             
             // propagate error and shrink communicator
-            MPIX_Comm_revoke(m_global_comm);
+            // MPIX_Comm_revoke(m_global_comm);
             MPI_Comm new_global_comm;
-            std::cout << "i am here (rank:" << m_rank << "|pid:" << getpid() << ")" <<  std::endl;
-            MPIX_Comm_shrink( m_global_comm, &new_global_comm );
+            //MPIX_Comm_shrink( m_global_comm, &new_global_comm );
+            //MPI_Barrier( new_global_comm );
             //MPI_Comm_free( &m_global_comm );
+            //MPI_Comm_rank( m_global_comm, &m_global_rank );
+          
+            MPI_Group new_world_group;
+            int* ranks = (int*)malloc( sizeof(int)*(m_global_size - m_nodeSize) );
+            int i;
+            for(i=m_nodeSize;i<m_global_size;i++) ranks[i-m_nodeSize] = i;
+            MPI_Group_incl( m_world_group, m_global_size-m_nodeSize, ranks, &new_world_group );
+
+            MPI_Comm_create_group( m_global_comm, new_world_group, 0, &new_global_comm );
+             
             m_global_comm = new_global_comm;
+            
+            MPI_Barrier( m_global_comm );
+            
             MPI_Comm_rank( m_global_comm, &m_global_rank );
+            MPI_Comm_size( m_global_comm, &m_global_size );
             
             // enable VPR restart
             if( m_global_rank == 0 ) XFTI_updateKeyCfg( "Restart", "failure", "3" ); 
@@ -105,7 +137,7 @@ class SEnvironment {
             int size; MPI_Comm_size( m_global_comm, &size );
             MPI_Barrier( m_global_comm );
             // reset FTI
-            MPI_Comm_free(&FTI_COMM_WORLD);
+            //MPI_Comm_free(&FTI_COMM_WORLD);
             
             if( m_global_rank == 0 ) {
                 std::cout << "   :::   WORLD SIZE = " << size << "   :::   " << std::endl;
@@ -131,8 +163,11 @@ class SEnvironment {
         int m_rank;
         int m_global_rank;
         int m_size;
+        int m_global_size;
         double m_t0;
         bool m_crash;
+        int m_nodeSize;
+        MPI_Group m_world_group;
 
 };
 
@@ -309,7 +344,11 @@ class TDist {
             
             if( env.head() ) return;
             if( ((i%ITER_CHK == 0) && (i>0)) || force ) {
-                FTI_Checkpoint( m_chk_id++, FTI_L4_H5_SINGLE );
+                FTI_InitICP( m_chk_id++, FTI_L4_H5_SINGLE, 1 );  
+                //FTI_Checkpoint( m_chk_id++, FTI_L4_H5_SINGLE );
+                FTI_AddVarICP( 0 );
+                FTI_AddVarICP( 1 );
+                FTI_FinalizeICP();
             }
         
         }
@@ -359,7 +398,7 @@ class TDist {
             int chk_id = m_chk_id;
             // reset environment
             env.reset();
-            sleep(2);            
+            //sleep(2);            
 
             // reset pointers
             finalize();
@@ -384,9 +423,14 @@ class TDist {
         }
         void inject_failure( int i, SEnvironment & env, int rank = 0 ) {
             
+            int r,s;
             if( env.head() ) return;
-            if( i%ITER_FAIL == 0 && i>0 && env.crash() ) XFTI_CrashNodes(1);
-            //if( (i%ITER_FAIL == 0) && (i>0) && (env.rank() == rank) && env.crash() ) {
+            if( i%ITER_FAIL == 0 && i>0 && env.crash() ) {
+                XFTI_CrashNodes(1);
+                //XFTI_LiberateHeads();
+                throw MPI::Exception(0);
+                //MPI_Allreduce( &r, &s, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+            }//if( (i%ITER_FAIL == 0) && (i>0) && (env.rank() == rank) && env.crash() ) {
             //    *(int*)NULL = 1;
             //}
         

@@ -325,15 +325,21 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_CreateGroupTopology( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         int * nodeList, int * group, int * distProcList )
 {
-    FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
     
     int nbGroups = FTI_Topo->nbNodes / FTI_Topo->groupSize;
     int residue = FTI_Topo->nbNodes % FTI_Topo->groupSize;
     
-    FTI_Topo->groupSize += residue / nbGroups;
+    if( nbGroups != 0 ) {
+        FTI_Topo->groupSize += residue / nbGroups;
+    } else {
+        FTI_Topo->groupSize = residue;
+    }
 
     int offset;
-    if( FTI_Topo->nodeID < (FTI_Topo->groupSize + 1)*(residue%nbGroups) ) {
+    if( nbGroups == 0 ) {
+        FTI_Topo->sectorID = 0;
+        offset = 0;
+    } else if( FTI_Topo->nodeID < (FTI_Topo->groupSize + 1)*(residue%nbGroups) ) {
         FTI_Topo->groupSize++;
         FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
         offset = FTI_Topo->sectorID * FTI_Topo->groupSize;

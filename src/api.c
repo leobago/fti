@@ -166,9 +166,8 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 FTI_Exec.initSCES = 2; //Could not recover all ckpt files
             }
         }
-        FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
+        return FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt); //infinite loop inside, can stop only by callling FTI_Finalize
         // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
-        return FTI_HEAD;
     }
     else { // If I am an application process
         if ( FTI_Try( FTI_InitDevices(FTI_Conf.cHostBufSize), "Allocating resources for communication with the devices") != FTI_SCES){
@@ -1736,7 +1735,7 @@ int FTI_InitICP(int id, int level, bool activate)
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix || FTI_Conf.dcpFtiff);
-    if ( FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4) ) {
+    if ( (FTI_Ckpt[4].isInline && (FTI_Exec.ckptLvel == 4)) || (FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -1744,16 +1743,16 @@ int FTI_InitICP(int id, int level, bool activate)
         }
         res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
     }
-    else if( !(FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
+    else { //if( !(FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.lTmpDir,0777);
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
         res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL+offset]);
-    } else { // if h5singlefile inline
+    } /*else { // if h5singlefile inline
         res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
-    }
+    }*/
 
     if ( res == FTI_SCES ) 
         FTI_Exec.iCPInfo.status = FTI_ICP_ACTV;
@@ -1876,14 +1875,7 @@ int FTI_FinalizeICP()
     
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
-        char str[FTI_BUFS];
-        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
-        FTI_Print(str, FTI_INFO);
-        if( !FTI_Conf.h5SingleFileIsInline ) {
-            FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_SCES);
-        }
-        return FTI_SCES;
+        return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, MPI_Wtime() - FTI_Exec.iCPInfo.t0 ); 
     }
 
     if( resCP == FTI_SCES ) {

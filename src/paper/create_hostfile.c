@@ -12,8 +12,9 @@
 void XFTI_LiberateHeads()
 {
     if( topo->nodeRank == 0 + topo->nbHeads ) {
+        DBG_MSG("[Liberate Head] head_rank: %d, failed_tag: %d", -1, topo->headRank, conf->failedTag);
         int dummy;
-        MPI_Send( &dummy, 1, MPI_INT, topo->headRank, conf->failedTag, exec->globalComm );
+        MPI_Ssend( &dummy, 1, MPI_INT, topo->headRank, conf->failedTag, exec->globalComm );
     }
 }
 int XFTI_updateKeyCfg( const char* tag, const char* key, const char* value )
@@ -59,28 +60,20 @@ int XFTI_updateKeyCfg( const char* tag, const char* key, const char* value )
 
 void XFTI_CrashNodes( int nbNodes ) 
 {
-    MPI_Barrier(FTI_COMM_WORLD);
     MPI_Comm affectedNodes;
     MPI_Comm_split( FTI_COMM_WORLD, topo->nodeID < nbNodes, 0, &affectedNodes );
     if( topo->nodeID < nbNodes ) {
-        int rank, size;
-        MPI_Comm_size(affectedNodes, &size);
-        MPI_Comm_rank(affectedNodes, &rank);
+        MPI_Barrier(affectedNodes);
         if( (topo->nodeRank == 1) && (topo->nbHeads == 1) ) {
-            int value = 1;
-            MPI_Ssend(&value, 1, MPI_INT, topo->headRank, conf->killTag, exec->globalComm);
-            MPI_Recv(&value, 1, MPI_INT, topo->headRank, conf->killTag, exec->globalComm, MPI_STATUS_IGNORE);
+            int rbuf, sbuf;
+            MPI_Send(&rbuf, 1, MPI_INT, topo->headRank, conf->killTag, exec->globalComm);
+            MPI_Recv(&sbuf, 1, MPI_INT, topo->headRank, conf->killTag, exec->globalComm, MPI_STATUS_IGNORE);
         }
         MPI_Barrier( affectedNodes );
-        sleep(2);
-        DBG_MSG("I WILL DIE (pid:%d|rank:%d)",-1, getpid(), topo->myRank);
         XFTI_CRASH;
-    } else {
-        //sleep(4);
-        //DBG_MSG("I WILL SURVIVE",-1);
-        DBG_MSG("I WILL SURVIVE (pid:%d|rank:%d)",-1, getpid(), topo->myRank);
     }
-    //sleep(2);
+    XFTI_LiberateHeads();
+    //sleep(5);
 }
 
 void XFTI_Crash() 

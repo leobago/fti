@@ -43,6 +43,28 @@ int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
+char* typename( int type ) {
+    static char tn[512];
+    switch ( type ) {
+        case H5I_FILE:    
+            snprintf(tn, 512, "%s", "File");
+            break;
+        case H5I_GROUP:    
+            snprintf(tn, 512, "%s", "Group");
+            break;
+        case H5I_DATATYPE:    
+            snprintf(tn, 512, "%s", "Datatype");
+            break;
+        case H5I_DATASET:    
+            snprintf(tn, 512, "%s", "Dataset");
+            break;
+        case H5I_ATTR:    
+            snprintf(tn, 512, "%s", "Attribute");
+            break;
+    }
+    return tn;
+}
+
 #ifdef ENABLE_HDF5
 int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 	ssize_t cnt;
@@ -69,7 +91,7 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 		anobj = *objs++;
 		ot = H5Iget_type(anobj);
 		H5Iget_name(anobj, name, 1024);
-		DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
+		DBG_MSG(" %d: type %s, name %s", rank, i,typename(ot),name);
 	}
 
 	return howmany;
