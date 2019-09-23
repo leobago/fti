@@ -1,0 +1,39 @@
+#!/bin/bash
+#SBATCH --ntasks=@NUMTASKS@
+#SBATCH --job-name=ckptD
+#SBATCH --cpus-per-task=@CPUSPERTASK@
+#SBATCH --time=00-00:45:00
+#SBATCH --gres=gpu:4
+#SBATCH --output=./@EXP@.out
+
+baseConfig=config.fti
+fileName=@EXP@/stdout
+config=@EXP@_config.fti
+tmp=${config}_tmp
+curDir=$(pwd)
+
+module purge
+module load gcc/6.4.0  openmpi/3.0.0  cuda/10.0
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@INSTALL_DIR@/lib
+mkdir -p ./@EXP@/
+
+ratios=(0.1 0.5 0.9)
+for i in ${ratios[@]}; do
+profileDir="${curDir}/profile/@EXP@/ratio_${i}/"
+metaDir="${curDir}/Meta/"
+globalDir="${curDir}/Global/"
+mkdir -p ${profileDir}
+profileDir="${profileDir}run_${j}_"
+mkdir -p ${globalDir}
+mkdir -p ${metaDir}
+locarDir="${NVME1DIR}/Local/:${NVME2DIR}/Local/"
+awk -v var=$locarDir '$1 == "ckpt_dir" {$3 = var}1' $baseConfig > $tmp; cp $tmp $config
+awk -v var=$globalDir '$1 == "glbl_dir" {$3 = var}1' $config > $tmp; cp $tmp $config
+awk -v var=$metaDir '$1 == "meta_dir" {$3 = var}1' $config> $tmp; cp $tmp $config
+awk -v var=$profileDir '$1 == "profile_dir" {$3 = var}1' $config> $tmp; cp $tmp $config
+srun ./stress.exe @SIZE@ $i $config > "${fileName}_${i}.log" 2>"${fileName}_${i}.err"
+done
+
+
+
