@@ -2176,6 +2176,12 @@ int FTI_Snapshot()
     return res;
 }
 
+int FTI_CleanGPU(){
+  FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
+  return FTI_SCES;
+}
+
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It closes FTI properly on the application processes.
