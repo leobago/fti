@@ -27,5 +27,5 @@ int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data 
 char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr );
 // wrapper for CRC32 hash algorithm
 unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned char *hash );
-
+void FTI_dcpMD5(unsigned char *dest, void *md5);
 #endif // __POSIX_DCP_H__

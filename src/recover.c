@@ -117,10 +117,12 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long maxFs = FTI_Exec->meta[level].maxFs[0];
     char ckptFile[FTI_BUFS];
     strncpy(ckptFile, FTI_Exec->meta[level].ckptFile, FTI_BUFS);
+    char str[FTI_BUFS];
+    sprintf(str, "FTI_CheckErasures: %d %d %d", level, FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp, FTI_Exec->ckptLvel);
+    FTI_Print(str,FTI_IDCP);
 
     char checksum[MD5_DIGEST_STRING_LENGTH], ptnerChecksum[MD5_DIGEST_STRING_LENGTH], rsChecksum[MD5_DIGEST_STRING_LENGTH];
     FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
-    char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Checking file %s and its erasures %d.", ckptFile,level);
     FTI_Print(str, FTI_DBUG);
     char fn[FTI_BUFS]; //Path to the checkpoint/partner file name
@@ -147,7 +149,12 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     switch (level) {
         case 1:
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, ckptFile);
+            if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dcpDir, ckptFile); 
+            } else {
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, ckptFile);
+            }
+
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -265,6 +272,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print(str, FTI_DBUG);
 
                 int res;
+                sprintf(str, "Level %d is DCP %d", level, FTI_Ckpt[level].recoIsDcp);
+                FTI_Print(str,FTI_IDCP);
                 switch (level) {
                     case 0:
                         if ( FTI_Ckpt[4].recoIsDcp ) {

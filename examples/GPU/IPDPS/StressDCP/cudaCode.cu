@@ -13,6 +13,15 @@
     }                                                                                           \
   } while(0)
 
+
+
+__global__ void myInitkernel(char * data,long numHashes){
+  long myId = blockIdx.x * blockDim.x +  threadIdx.x;
+   if ( myId>= numHashes )
+    return;
+  data[myId] = myId%256;
+}
+
 __global__ void mykernel(char * data,long numHashes, float ratio){
   long myId = blockIdx.x * blockDim.x +  threadIdx.x;
   if ( myId>= numHashes )
@@ -33,6 +42,7 @@ __global__ void mykernel(char * data,long numHashes, float ratio){
   }
 }
 
+
 void getMemoryUsage(int rank, int device, char *str){
   size_t total,free;
   CUDA_CALL_SAFE(cudaMemGetInfo   (   &free, &total )); 
@@ -42,6 +52,7 @@ void getMemoryUsage(int rank, int device, char *str){
 
 void allocateMemory(void **ptr, size_t size){
   CUDA_CALL_SAFE(cudaMalloc(ptr, size));
+  CUDA_CALL_SAFE(cudaMemset(*ptr, 12, size));
   return;
 }
 
@@ -66,8 +77,8 @@ float executeKernel( char *ptr, long numElements, float ratio ){
   if (numHashes < 1 ){
     fprintf(stderr,"This should not happen\n");
   }
-  dim3 blocks={1024};
-  dim3 grids={(numHashes/1024)+(((numHashes%1024)==0)?0:1)};
+  long blocks=1024;
+  long grids=(numHashes/1024)+(((numHashes%1024)==0)?0:1);
   mykernel<<<grids, blocks>>>(ptr, numHashes, ratio);
   CUDA_CALL_SAFE(cudaPeekAtLastError());
   CUDA_CALL_SAFE(cudaDeviceSynchronize());
@@ -75,9 +86,19 @@ float executeKernel( char *ptr, long numElements, float ratio ){
   return 1.0;
 }
 
+void initKernel( char *ptr, long numElements ){
+  long blocks=1024;
+  long grids=(numElements/1024)+(((numElements%1024)==0)?0:1);
+  myInitkernel<<<grids, blocks>>>(ptr, numElements );
+  CUDA_CALL_SAFE(cudaPeekAtLastError());
+  CUDA_CALL_SAFE(cudaDeviceSynchronize());
+  
+  return ;
+}
+
 int getProperties(){
   int nDevices;
-  cudaGetDeviceCount(&nDevices);
+  CUDA_CALL_SAFE(cudaGetDeviceCount(&nDevices));
   return nDevices;
 }
 

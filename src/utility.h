@@ -29,6 +29,7 @@ typedef struct{
     FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
     FTIT_execution *FTI_Exec;       // FTI execution options
     FTIT_topology *FTI_Topo;        // FTI node topology
+    FTIT_dataset *FTI_Data;
     size_t layerSize;               // size of the dcp layer
 }WriteDCPPosixInfo_t;
 
@@ -98,6 +99,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd);
 int FTI_PosixDCPClose(void *fileDesc);
 
 int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int FTI_AsyncDCPClose(void *fileDesc);
 
 
 

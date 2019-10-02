@@ -96,7 +96,7 @@ typedef void*               FTI_ADDRPTR;        /**< void ptr type              
 #define FTI_IO_SIONLIB 1004
 #endif
 
-#define MAX_STACK_SIZE 10
+#define MAX_STACK_SIZE 30
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,9 +124,7 @@ extern "C" {
         unsigned long FileSize;
         unsigned long dataSize;
         unsigned long dcpSize;
-        unsigned long LayerSize[MAX_STACK_SIZE];
-        FTIT_datasetInfo datasetInfo[MAX_STACK_SIZE][FTI_BUFS];
-        char LayerHash[MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH];
+        unsigned long LayerMetaPos[MAX_STACK_SIZE];
 
     } FTIT_dcpExecutionPosix;
 
@@ -409,6 +407,7 @@ extern "C" {
      */
     typedef struct FTIT_dataset {
         int                 id;                 /**< ID to search/update dataset.                   */
+        int                 threadIndex;
         void                *ptr;               /**< Pointer to the dataset.                        */
         long                count;              /**< Number of elements in dataset.                 */
         FTIT_type*          type;               /**< Data type for the dataset.                     */
@@ -423,6 +422,7 @@ extern "C" {
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
         size_t				filePos; 
+        size_t *storeFileLocations;
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -484,6 +484,7 @@ extern "C" {
         char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.         */
         char            gTmpDir[FTI_BUFS];  /**< Global temporary directory.        */
         char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
+        char            profileDir[FTI_BUFS];
         size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
         char 	 		suffix[4];			/** Suffix of the checkpoint files		*/
         FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
@@ -516,6 +517,7 @@ extern "C" {
         int             right;              /**< Proc. on the right of the ring.*/
         int             left;               /**< Proc. on the left of the ring. */
         int             body[FTI_BUFS];     /**< List of app. proc. in the node.*/
+        int lowner;
     } FTIT_topology;
 
 

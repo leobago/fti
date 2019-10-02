@@ -92,7 +92,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData; 
             ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose; 
             ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos; 
-            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dcpMD5; 
 
             ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix; 
             ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData; 

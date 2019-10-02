@@ -8,7 +8,6 @@
 
 void executeCPUKernel(char *ptr, long numElements, float ratio){
   unsigned int numHashes = numElements/(16*1024) ;
-  printf("Num Hashes are %d\n",numHashes);
   int i,j;
   for ( i = 0; i < numHashes; i++){
     if ( ratio > (float)rand()/(float)RAND_MAX){
@@ -20,17 +19,25 @@ void executeCPUKernel(char *ptr, long numElements, float ratio){
   }
 }
 
+void init(char *ptr, long numElements){
+  for ( long i = 0; i < numElements; i++){
+      ptr[i]= rand()%256;
+  }
+}
+
+
 int main ( int argc, char *argv[]){
   MPI_Init(&argc, &argv);
   int world_size;
   int world_rank;
 
   int numDevices = getProperties();
-  srand(time(NULL));
+  srand( time(NULL));
 
-
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   int myDevice = (world_rank)%numDevices;
+  printf("I am rank %d, Size of world is %d Number of devices are %d I am setting my device to %d\n", world_rank,world_size, numDevices, myDevice); 
   setDevice(myDevice);
 
   FTI_Init(argv[3],MPI_COMM_WORLD);
@@ -46,6 +53,8 @@ int main ( int argc, char *argv[]){
   float ratioOfMemory = atof(argv[2]);
   float ratioOfChange = atof(argv[4]);
 
+  float numIters = atoi(argv[5]);
+
   long dSize = ratioOfMemory * mySize;
   long hSize = (1.0 - ratioOfMemory) * mySize;
 
@@ -54,18 +63,27 @@ int main ( int argc, char *argv[]){
 
   allocateMemory((void**) &dPtr,dSize);
   lPtr = (char*) malloc (sizeof(char) * hSize);
+  initKernel(dPtr,dSize);
   memset(lPtr,'5',hSize);
-
+  int iter = 0;
   FTI_Protect(0, dPtr, dSize , FTI_CHAR);
   FTI_Protect(1, lPtr, hSize , FTI_CHAR);
+  FTI_Protect(2, &iter, 1, FTI_INTG);
+  
+  if (FTI_Status()!= 0){
+    FTI_Recover();
+  }
+  int i = iter;
 
-  int i;
 
-  for ( i = 0; i < 5; i++){
-    FTI_Checkpoint(i,8);
+  for ( ; i < numIters ; i++){
     executeKernel(dPtr,dSize, ratioOfChange);
     executeCPUKernel(lPtr,hSize, ratioOfChange);
-    sleep(120);
+    if ( world_rank == 0)
+      printf("I am sleeping\n");
+    iter++;
+    FTI_Checkpoint(i,5);
+    sleep(30);
   }
   
   freeCuda(dPtr);

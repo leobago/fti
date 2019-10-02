@@ -20,6 +20,7 @@ void setDevice(int id);
 void deviceMemset(void *ptr, int size);
 void getMemoryUsage(int rank, int device, char *str);
 void getError();
+void initKernel( char *ptr, long numElements );
 //int getProperties();
 //void setDevice(int id);
 #ifdef __cplusplus

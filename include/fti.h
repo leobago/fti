@@ -108,6 +108,7 @@ extern "C" {
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
   int FTI_FinalizeICP(); 
+  int FTI_CleanGPU();
 
 #ifdef __cplusplus
 }

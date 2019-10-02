@@ -78,4 +78,5 @@ BYTE *FTI_getHostBuffer( int id );
 size_t FTI_getHostBuffSize();
 int FTI_copy_to_device_async(void *dst, const void *src, size_t count);
 int FTI_device_sync();
+int FTI_ReadRandomFileToGPU(FILE *fd, unsigned char *dptr, size_t *locations, size_t numHashes, size_t numBytes);
 #endif

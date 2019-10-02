@@ -14,5 +14,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection *FTI_Inje);
+int FTI_CreateMetaDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 
 #endif // __CONF_H__

@@ -300,6 +300,55 @@ int FTI_DestroyDevices(){
 
  **/
 /*-------------------------------------------------------------------------*/
+
+size_t random_read(unsigned char* ptr, size_t *fileLoc, size_t numBytes, FILE *fd){
+  numBytes = MIN(numBytes, bufferSize);
+  size_t readBytes = 0;
+  size_t index = 0;
+  size_t totalBytes=0;
+  while (numBytes) {
+    fseek(fd, fileLoc[index], SEEK_SET);
+    readBytes = fread(&ptr[index*16384], 1, MIN(numBytes,16384),fd);
+    numBytes-= readBytes;
+    totalBytes+= readBytes;
+    index++;
+  }
+  return totalBytes;
+}
+
+int FTI_ReadRandomFileToGPU(FILE *fd, unsigned char *dptr, size_t *locations, size_t numHashes, size_t numBytes){
+    int id = 0 ;
+    int prevId = 1;
+    cudaStream_t streams[2]; 
+    CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[0])));
+    CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[1])));
+
+    while(numBytes){
+        startCount("ReadFile");      
+        size_t bytesRead = random_read(hostBuffers[id], locations, numBytes , fd);
+        stopCount("ReadFile");
+        CUDA_ERROR_CHECK(cudaMemcpyAsync( dptr,hostBuffers[id], bytesRead , cudaMemcpyHostToDevice, streams[id]));
+        numBytes -= bytesRead;
+        locations += bytesRead/16384;
+
+        dptr+=bytesRead;
+
+        if (ferror(fd)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            fclose(fd);
+            return FTI_NSCS;
+        }
+
+        CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
+        prevId = id;
+        id = (id +1)%2;
+    }
+    CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
+    CUDA_ERROR_CHECK(cudaStreamDestroy(streams[0]));
+    CUDA_ERROR_CHECK(cudaStreamDestroy(streams[1]));
+    return FTI_SCES;
+}
+
 int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes){
 #ifdef GPUSUPPORT
     int id = 0 ;
