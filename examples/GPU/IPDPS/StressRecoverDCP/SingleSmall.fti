@@ -1,0 +1,54 @@
+
+[basic]
+head                           = 0
+node_size                      = 4
+ckpt_dir                       = ./Local/
+glbl_dir                       = /gpfs/scratch/bsc93/bsc93780/ftiTest/Global
+meta_dir                       = /gpfs/scratch/bsc93/bsc93780/ftiTest/Meta
+profile_dir                    = ./Profile/
+ckpt_l1                        = 0
+ckpt_l2                        = 0
+ckpt_l3                        = 0
+ckpt_l4                        = 5
+dcp_l4                         = 0
+inline_l2                      = 1
+inline_l3                      = 1
+inline_l4                      = 1
+keep_last_ckpt                 = 0
+keep_l4_ckpt                   = 0
+group_size                     = 1
+max_sync_intv                  = 0
+ckpt_io                        = 1
+enable_staging                 = 0
+enable_dcp                     = 1 
+dcp_mode                       = 1
+dcp_block_size                 = 16384
+verbosity                      = 2
+CachedDCP                      = 1
+
+
+[restart]
+failure                        = 0
+exec_id                        = 2019-09-19_16-16-30
+
+
+[injection]
+rank                           = 0
+number                         = 0
+position                       = 0
+frequency                      = 0
+
+
+[advanced]
+block_size                     = 1024
+transfer_size                  = 16
+general_tag                    = 2612
+ckpt_tag                       = 711
+stage_tag                      = 406
+final_tag                      = 3107
+local_test                     = 0 
+lustre_striping_unit           = 4194304
+lustre_striping_factor         = -1
+lustre_striping_offset         = -1
+
+
