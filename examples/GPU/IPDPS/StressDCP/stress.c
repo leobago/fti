@@ -7,8 +7,8 @@
 #include <time.h>
 
 void executeCPUKernel(char *ptr, long numElements, float ratio){
-  unsigned int numHashes = numElements/(16*1024) ;
-  int i,j;
+  long numHashes = numElements/(16*1024) ;
+  long i,j;
   for ( i = 0; i < numHashes; i++){
     if ( ratio > (float)rand()/(float)RAND_MAX){
       char *chunk = &ptr[i*16384];
