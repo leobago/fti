@@ -252,8 +252,13 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
-        snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
-                n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec);
+       
+        char rhash[MD5_DIGEST_STRING_LENGTH];
+        
+        FTI_GetRandomHash( rhash );
+
+        snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d_%s",
+                n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour, n->tm_min, n->tm_sec, rhash);
         MPI_Bcast(FTI_Exec->id, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->globalComm);
         snprintf(str, FTI_BUFS, "The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);

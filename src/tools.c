@@ -38,6 +38,26 @@
 
 #include "interface.h"
 #include <dirent.h>
+#include <time.h>
+
+int FTI_GetRandomHash( char* hash ) 
+{
+    
+    if( hash == NULL )  {
+        return FTI_NSCS;
+    }
+
+    void *random_buffer = malloc( sizeof(struct timespec) );
+    unsigned char digest[MD5_DIGEST_LENGTH];
+    clock_gettime(CLOCK_REALTIME, (struct timespec*)random_buffer);
+    MD5( random_buffer, sizeof(struct timespec), digest );
+    
+    int i=0;
+    for(; i<MD5_DIGEST_LENGTH; i++) {
+        sprintf( &hash[i*2], "%02x", (unsigned int)digest[i] );
+    }
+
+}
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
