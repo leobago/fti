@@ -754,7 +754,9 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if( FTI_Ckpt[FTI_Exec->ckptLvel].isDcp ) {
-      int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
+      int nbLayer = ((FTI_Exec->dcpInfoPosix.currentCounter) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
+      sprintf(str,"NBLAYER is %d %d %ld",FTI_Exec->dcpInfoPosix.Counter , FTI_Conf->dcpInfoPosix.StackSize, nbLayer);
+      FTI_Print(str,FTI_DBUG);
       for( j=0; j<nbLayer; j++ ) {
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_pos", i, j);
         snprintf(buf, FTI_BUFS, "%lu", allLayerMetaPos[i * nbLayer + j]);

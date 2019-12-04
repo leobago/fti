@@ -105,8 +105,24 @@ FTIT_type FTI_LDBE;
 
  **/
 /*-------------------------------------------------------------------------*/
+
+
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+
+static void dump_trace() {
+  void * buffer[255];
+  const int calls = backtrace(buffer,
+      sizeof(buffer) / sizeof(void *));
+  backtrace_symbols_fd(buffer, calls, 1);
+  exit(EXIT_FAILURE);
+}
+
 int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
+  signal(SIGSEGV, dump_trace);
 #ifdef ENABLE_FTI_FI_IO
   FTI_InitFIIO();
 #endif
@@ -132,12 +148,12 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
   if (res == FTI_NSCS) {
     return FTI_NSCS;
   }
- res = FTI_Try(FTI_CreateConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
+  res = FTI_Try(FTI_CreateConf(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje), "load configuration.");
   if (res == FTI_NSCS) {
     return FTI_NSCS;
   }
 
-  
+
 
   FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
   FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");

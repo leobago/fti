@@ -628,6 +628,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     rmdir(FTI_Conf->gTmpDir);
   }
   if ( (FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5 ) {
+    FTI_Print("I am trying to delete local checkpoint files and i dont",FTI_WARN);
     FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
   }
 

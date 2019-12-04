@@ -1,12 +1,15 @@
 #include <cuda_runtime_api.h>
 #include "cudaWrap.h"
 #include <stdio.h>
+#include <unistd.h>
 
 
-#define BLKX 32
-#define BLKY 32
+#define BLKX (32)
+#define BLKY (32)
+#define BLK (BLKX*BLKY)
 
 cudaStream_t gstream;
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 
 #define CUDA_CALL_SAFE(f)                                                                       \
@@ -20,7 +23,7 @@ cudaStream_t gstream;
 
 
 void hostCopy(void *src, void *dest, size_t size){
-  CUDA_CALL_SAFE(cudaMemcpyAsync(dest, src, size, cudaMemcpyDeviceToHost,gstream));
+  CUDA_CALL_SAFE(cudaMemcpy(dest, src, size, cudaMemcpyDeviceToHost));
 }
 
 void deviceCopy(void *src, void *dest, size_t size){
@@ -37,16 +40,16 @@ int getProperties(){
   return nDevices;
 }
 
-void initStream(){
-  cudaStreamCreate(&gstream);
+void initStream(cudaStream_t *stream){
+  cudaStreamCreate(stream);
 }
 
-void syncStream(){
-  CUDA_CALL_SAFE(cudaStreamSynchronize(gstream));
+void syncStream(cudaStream_t *stream){
+  CUDA_CALL_SAFE(cudaStreamSynchronize((*stream)));
 }
 
-void destroyStream(){
-  CUDA_CALL_SAFE(cudaStreamDestroy(gstream));
+void destroyStream(cudaStream_t *stream){
+  CUDA_CALL_SAFE(cudaStreamDestroy(*stream));
 }
 
 void freeCuda( void *ptr ){
@@ -58,7 +61,7 @@ void freeCudaHost(void *ptr){
 }
 
 
-__global__ void initData(int nbLines, int M, double *h, double *g)
+__global__ void initData(long nbLines, long M, double *h, double *g, int rank)
 {
   long idX = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -68,28 +71,33 @@ __global__ void initData(int nbLines, int M, double *h, double *g)
   h[idX] = 0.0L;
   g[idX] = 0.0L;
   if ( idX >= M +1  && idX  < 2*M-1 ){ 
-    h[idX] = 100.0;
-    g[idX] = 100.0;
+    h[idX] = 32768.0;
+    g[idX] = 0.0;
+  }
+  else{
+    h[idX] = 0.0L;
+    g[idX] = 0.0L;
   }
 }
 
-__global__ void gpuWork(double *g, double *h, double *error,  int M, int nbLines){
+__global__ void gpuWork(double *g, double *h,  long M, long nbLines, double *error, long offset, int rank){
 
   // This moves thread (0,0) to position (1,1) on the grid
   long idX = threadIdx.x + blockIdx.x * blockDim.x +1; 
   long idY = threadIdx.y + blockIdx.y * blockDim.y +1;
-  long threadId = threadIdx.y * blockDim.x + threadIdx.x;
+  long threadId =  threadIdx.x + threadIdx.y * blockDim.x;
   long tidX = threadIdx.x + blockIdx.x * blockDim.x; 
-  long tidY = threadIdx.y + blockIdx.y * blockDim.y;
+  long tidY =  idY-1;
 
   register double temp;
   long xSize = M+2;
 
-  __shared__ double errors[BLKX*BLKY];
+  __shared__ double errors[BLK];
 
   errors[threadId] = 0.0;
+  __syncthreads();
 
-  if (tidX < M && tidY < nbLines ){
+  if (tidX < M && tidY < nbLines  ){
     temp = 0.25*(h[(idY-1)*xSize +idX]
         +h[((idY+1)*xSize)+idX]
         +h[(idY*xSize)+idX-1]
@@ -103,7 +111,6 @@ __global__ void gpuWork(double *g, double *h, double *error,  int M, int nbLines
 
   __syncthreads();
 
-
   for (unsigned long s = (blockDim.x*blockDim.y)/2; s>0; s=s>>1){
     if ( threadId < s ){
       errors[threadId] =  fmax(errors[threadId], errors[threadId+s]);
@@ -111,11 +118,12 @@ __global__ void gpuWork(double *g, double *h, double *error,  int M, int nbLines
     __syncthreads();
   }
 
-
+  __syncthreads();
   if ( threadId == 0 ){
-    int id = blockIdx.y * (gridDim.x) + blockIdx.x;
+    long id =  (gridDim.x) * blockIdx.y + blockIdx.x;
     error[id] = errors[0];
   }
+  __syncthreads();
   return;
 }
 
@@ -130,32 +138,78 @@ void allocateSafeHost(void **ptr, size_t size){
   return;
 }
 
-void allocateErrorMemory( void **lerror, void **derror, long xElem, long yElem){
-  long numGridsX = ceil(xElem/BLKX);
-  long numGridsY = ceil(yElem)/BLKY;
-  *lerror = (double*) malloc(sizeof(double)*numGridsX*numGridsY);
-  allocateMemory(derror, sizeof(double) * numGridsX*numGridsY );
+void allocateErrorMemory( void **lerror, void **derror, long xElem, long yElem, int rank){
+  long gridSizeX = (xElem +BLKX-1)/BLKX;
+  long gridSizeY = (yElem +BLKY-1)/BLKY;
+  long numGridsX = gridSizeX * gridSizeY;
+  *lerror = (double*) malloc(sizeof(double)*numGridsX);
+  allocateMemory(derror, sizeof(double) * numGridsX );
+  if ( rank == 0 )
+    printf("In function value is %p\n", *derror);
 }
 
-double executekernel(long xElem, long yElem, double *in, double *out, double *halo[2],  double *dError, double *lError, int rank){
-  long numGridsX = ceil(xElem/BLKX);
-  long numGridsY = ceil(yElem)/BLKY;
-  dim3 dimGrid(numGridsX,numGridsY);
-  dim3 dimBlock(BLKX,BLKY);
-  double localError;
-  gpuWork<<<dimGrid,dimBlock,0,gstream>>>(out, in, dError,  xElem , yElem);
-  CUDA_CALL_SAFE(cudaPeekAtLastError());
-  hostCopy(dError,lError, sizeof(double) *((xElem*yElem)/(numGridsX*numGridsY)+1));
+double executekernel(long xElem, long yElem, double *in, double *out,  double *dError, double *lError, int rank, int deviceId){
+  cudaStream_t CpuToDev;
+  cudaStream_t Execute;
+  cudaStream_t DevToCpu;
+
+  initStream(&CpuToDev);
+  initStream(&Execute);
+  initStream(&DevToCpu);
+  long linesToSend = 128;// (1024*1024)/(float)(sizeof(double) * (xElem+2)) +1;
+//  linesToSend = linesToSend - ( (yElem+2)%linesToSend );
+
+  long i;
+  long erroIndex = 0;
+    double localError;
   localError=0.0;
-  for (long  j = 0; j < numGridsX*numGridsY; j++){
-    localError = fmax(localError, lError[j]);
+
+
+
+  long remainingLines = yElem ;
+  //  linesToSend = remainingLines;
+
+  for ( i =0; i < yElem; i+=linesToSend ){
+
+
+    long gridSizeX = (xElem +BLKX-1)/BLKX;
+    long min = MIN( remainingLines, linesToSend);
+    long gridSizeY = (min+BLKY-1)/BLKY;
+    dim3 grid(gridSizeX,gridSizeY,1);
+    dim3 block(BLKX,BLKY,1);
+
+    syncStream(&Execute);
+    if ( erroIndex > 0 ){
+      for (long  j = 0; j < erroIndex ; j++){
+        localError = fmax(localError, dError[j]);
+      }
+    }
+
+    gpuWork<<<grid,block,0,Execute>>>(&out[i*(xElem+2)], &in[i*(xElem+2)],  xElem , min, dError, erroIndex, rank);
+
+    erroIndex = gridSizeX*gridSizeY;
+
+    remainingLines -= linesToSend;
   }
+  remainingLines += linesToSend;
+
+  syncStream(&Execute);
+
+  syncStream(&DevToCpu);
+  destroyStream(&Execute);
+  destroyStream(&DevToCpu);
+  destroyStream(&CpuToDev);
+
+
   return localError;
+
 }
 
-void init(double *h, double *g, long Y, long X){
-  long numBlocks = ceil((X*Y)/1024.0);
-  initData<<<numBlocks ,1024,0,gstream>>>(Y, X, h, g);
+void init(double *h, double *g, long Y, long X, int rank){
+  memset(g,0,  X *Y);
+  memset(h,0,  X *Y);
+  long numBlocks = ceil((X*2)/1024.0);
+  initData<<<numBlocks ,1024,0,gstream>>>(Y, X, h, g, rank);
   CUDA_CALL_SAFE(cudaStreamSynchronize(gstream));
 }
 

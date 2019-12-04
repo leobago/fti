@@ -81,13 +81,13 @@ extern "C" {
  * This is the Jacobi tolerance threshold. The run is considered to have converged when the maximum residue
  * falls below this value.
  */
-#define	JACOBI_TOLERANCE	1.0E-5F	
+#define	JACOBI_TOLERANCE	1.0E-8F	
 
 /**
  * This is the Jacobi iteration count limit. The Jacobi run will never cycle more than this, even if it 
  * has not converged when finishing the last allowed iteration.
  */
-#define JACOBI_MAX_LOOPS	5000	
+#define JACOBI_MAX_LOOPS	10000	
 
 #define DIR_TOP				0
 #define DIR_RIGHT			1

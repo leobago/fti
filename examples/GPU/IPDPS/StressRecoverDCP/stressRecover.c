@@ -7,8 +7,8 @@
 #include <time.h>
 
 void executeCPUKernel(char *ptr, long numElements, float ratio){
-  unsigned int numHashes = numElements/(16*1024) ;
-  int i,j;
+  size_t numHashes = numElements/(16*1024) ;
+  size_t i,j;
   for ( i = 0; i < numHashes; i++){
     if ( ratio > (float)rand()/(float)RAND_MAX){
       char *chunk = &ptr[i*16384];
@@ -53,7 +53,7 @@ int main ( int argc, char *argv[]){
   float ratioOfMemory = atof(argv[2]);
   float ratioOfChange = atof(argv[4]);
 
-  float faultIter = atoi(argv[5]);
+  int faultIter = atoi(argv[5]);
 
   long dSize = ratioOfMemory * mySize;
   long hSize = (1.0 - ratioOfMemory) * mySize;
@@ -71,6 +71,7 @@ int main ( int argc, char *argv[]){
   FTI_Protect(2, &iter, 1, FTI_INTG);
   
   if (FTI_Status()!= 0){
+    printf("I am starting recovery\n");
     startCount("TotalRecover");
     FTI_Recover();
     stopCount("TotalRecover");
@@ -81,15 +82,18 @@ int main ( int argc, char *argv[]){
     MPI_Finalize();
     return 0;
   }
+  else{
+    printf("This is a normal run %d %d\n",iter, faultIter);
+  }
   int i = iter;
 
   for ( ; i < 20; i++){
     executeKernel(dPtr,dSize, ratioOfChange);
     executeCPUKernel(lPtr,hSize, ratioOfChange);
-     iter++;
+    iter++;
     FTI_Checkpoint(i,5);
-    sleep(30);
     if ( faultIter == i){
+      sleep(20);
       MPI_Barrier(FTI_COMM_WORLD);
       FTI_CleanGPU();
       MPI_Barrier(FTI_COMM_WORLD);

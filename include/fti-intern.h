@@ -121,6 +121,7 @@ extern "C" {
         int nbLayerReco;
         int nbVarReco;
         unsigned int Counter;
+        unsigned int currentCounter;
         unsigned long FileSize;
         unsigned long dataSize;
         unsigned long dcpSize;

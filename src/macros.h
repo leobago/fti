@@ -73,7 +73,7 @@ void cleanup(char* pattern, ...);
         bytes = fread(buff, size, number, fd);																\
         if (ferror(fd)) {																					\
             char ErrorString[400];																			\
-            sprintf(ErrorString,"FILE %s FUNC %s:%d Error Reading File Bytes Read : %ld",__FILE__,__FUNCTION__,__LINE__, (long)bytes);	\
+            sprintf(ErrorString,"FILE %s FUNC %s:%d Error Reading File Bytes Read : %ld -- %ld %ld %ld -- %p",__FILE__,__FUNCTION__,__LINE__, (long)bytes,size,number, ftell(fd), buff);	\
             FTI_Print(ErrorString, FTI_EROR); 																\
             cleanup(format,__VA_ARGS__,NULL);																\
             fclose(fd);																						\

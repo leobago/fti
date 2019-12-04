@@ -39,6 +39,7 @@
 #include "../interface.h"
 #include "../api-cuda.h"
 #include "cuda-md5/md5Opt.h"
+#include "../profiler/profiler.h"
 
 
 
@@ -94,8 +95,9 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 
   // dcpLayer corresponds to the additional layers towards the base layer.
   int dcpLayer = FTI_Exec->dcpInfoPosix.Counter % FTI_Conf->dcpInfoPosix.StackSize;
+  FTI_Exec->dcpInfoPosix.currentCounter = dcpLayer;
 
-    int i = 0;
+  int i = 0;
   // if first layer, make sure that we write all data by setting hashdatasize = 0
   if( dcpLayer == 0 ) {
     for(; i<FTI_Exec->nbVar; i++){
@@ -104,14 +106,14 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
   }
 
   for(i = 0; i<FTI_Exec->nbVar; i++) {
-      if (FTI_Data[i].isDevicePtr){
-        FTI_MD5GPU(&FTI_Data[i]);
-      }
-      else{
-        FTI_MD5CPU(&FTI_Data[i]);
-      }
-      char str[FTI_BUFS];
+    if (FTI_Data[i].isDevicePtr){
+      FTI_MD5GPU(&FTI_Data[i]);
     }
+    else{
+      FTI_MD5CPU(&FTI_Data[i]);
+    }
+    char str[FTI_BUFS];
+  }
   FTI_startMD5();
 
   snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
@@ -219,33 +221,63 @@ int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd){
 
   while ( ptr ){
     pos = 0;
+    unsigned char *startWritePtr = NULL;
+    size_t bytesToCommit = 0;
+    bool success;
     while( pos < totalBytes ) {
       // hash index
       unsigned int blockId = offset/FTI_Conf->dcpInfoPosix.BlockSize;
       unsigned int hashIdx = blockId*FTI_Conf->dcpInfoPosix.digestWidth;
       unsigned int chunkSize = ( (dataSize-offset) < FTI_Conf->dcpInfoPosix.BlockSize ) ? dataSize-offset : FTI_Conf->dcpInfoPosix.BlockSize;
       unsigned int dcpChunkSize = chunkSize;
-      bool commitBlock;
+      bool commitBlock = false;
       if( offset < FTI_DataVar->dcpInfoPosix.hashDataSize ) {
-        commitBlock = memcmp( &(FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx]), &(FTI_DataVar->dcpInfoPosix.oldHashArray[hashIdx]), FTI_Conf->dcpInfoPosix.digestWidth );
-      } else {
-        commitBlock = true;
-      }
-
-      bool success = true;
-
-      if( commitBlock ) {
-        FWRITE(FTI_NSCS, success,ptr, chunkSize,1,write_info->f,"",NULL);
-        FTI_Exec->dcpInfoPosix.FileSize += chunkSize;
-        write_DCPinfo->layerSize += chunkSize;
-        FTI_Exec->dcpInfoPosix.dcpSize += dcpChunkSize;
+        int tmp = memcmp( &(FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx]), &(FTI_DataVar->dcpInfoPosix.oldHashArray[hashIdx]), FTI_Conf->dcpInfoPosix.digestWidth );
+        if ( tmp != 0 ){
+          FTI_DataVar->storeFileLocations[blockId] = startFilePos;
+          startFilePos += chunkSize;
+          if ( bytesToCommit == 0 )
+            startWritePtr = ptr;
+          bytesToCommit += chunkSize;
+        }
+        else{
+          if (bytesToCommit != 0 )
+            commitBlock = true;
+        }
+      } 
+      else {
+        if (bytesToCommit == 0)
+          startWritePtr = ptr;
+        bytesToCommit += chunkSize;
         FTI_DataVar->storeFileLocations[blockId] = startFilePos;
         startFilePos += chunkSize;
       }
+
+      success = true;
+
+      if( commitBlock ) {
+        FWRITE(FTI_NSCS, success,startWritePtr, bytesToCommit,1,write_info->f,"",NULL);
+        FTI_Exec->dcpInfoPosix.FileSize += bytesToCommit;
+        write_DCPinfo->layerSize += bytesToCommit;
+        FTI_Exec->dcpInfoPosix.dcpSize += bytesToCommit;
+        bytesToCommit = 0;
+      }
+
       offset += dcpChunkSize*success;
       pos += dcpChunkSize*success;
       ptr = ptr + dcpChunkSize ; //chunkSize*success;
     }
+
+    success = true;
+
+    if ( bytesToCommit ){
+      FWRITE(FTI_NSCS, success,startWritePtr, bytesToCommit,1,write_info->f,"",NULL);
+      FTI_Exec->dcpInfoPosix.FileSize += bytesToCommit;
+      write_DCPinfo->layerSize += bytesToCommit;
+      FTI_Exec->dcpInfoPosix.dcpSize += bytesToCommit;
+      bytesToCommit = 0;
+    }
+
     if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &ptr), " Fetching Next Memory block from memory") != FTI_SCES ){
       return FTI_NSCS;
     }
@@ -415,20 +447,20 @@ int FTI_RecoverDcpPosix
     }
     else{
       size_t remainingBytes = varSize;
-      int k;
+      size_t k;
       char *buff = FTI_Data[newPosistion].ptr;
       size_t *locations = FTI_Data[newPosistion].storeFileLocations;
       startCount("ReadFile");
       for ( k= 0; k < nbHashes; k++){
         fseek(fd, locations[k], SEEK_SET);
-        int dataToRead = MIN(16384,remainingBytes);
+        size_t dataToRead = MIN(16384,remainingBytes);
         FREAD(FTI_NSCS, bytes,&buff[k*16384], sizeof(char), dataToRead ,fd, "", NULL);
         remainingBytes -= dataToRead;
       }
       stopCount("ReadFile");
       FTI_MD5CPU(&FTI_Data[newPosistion]);
     }
-    
+
     FTI_Data[newPosistion].dcpInfoPosix.hashDataSize = varSize;
     fseek(fd, curPos, SEEK_SET);
   }
@@ -815,10 +847,9 @@ int FTI_VerifyChecksumDcpPosix (  char* fileName  )
   int counter;
   sscanf( exec->meta[exec->ckptLvel].ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
   counter = dcpFileId * conf->dcpInfoPosix.StackSize; 
-  
+
   FILE *fd = fopen(fileName, "rb");
   if (fd == NULL) {
-    char str[FTI_BUFS];
     sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
     FTI_Print(str, FTI_WARN);
     return FTI_NSCS;
@@ -852,17 +883,18 @@ int FTI_VerifyChecksumDcpPosix (  char* fileName  )
 
       size_t remainingBytes = varSize;
 
-      int hashesPerStep = 8192;
-      int numSteps = nbHashes/(hashesPerStep) + (nbHashes%(hashesPerStep)>0);
-      int k = 0;
-      int l;
+      size_t hashesPerStep = 8192;
+      size_t numSteps = nbHashes/(hashesPerStep) + (nbHashes%(hashesPerStep)>0);
+      size_t k = 0;
+      size_t l;
       for ( l = 0; l < numSteps; l++){
-        int end = MIN(nbHashes, (l+1)*hashesPerStep);
+        size_t end = MIN(nbHashes, (l+1)*hashesPerStep);
         size_t start = k;
         size_t bytesRead = 0;
+
         for ( ; k < end; k++){
           fseek(fd, filePos[k], SEEK_SET);
-          int dataToRead = MIN(16384,remainingBytes);
+          size_t dataToRead = MIN(16384,remainingBytes);
           FREAD(FTI_NSCS, bytes,&buff[k*16384], sizeof(char), dataToRead ,fd, "", NULL);
           remainingBytes -= dataToRead;
           bytesRead += dataToRead;
@@ -872,6 +904,8 @@ int FTI_VerifyChecksumDcpPosix (  char* fileName  )
       }
       CUDA_ERROR_CHECK(cudaStreamSynchronize(stream));
       fseek(fd, curPos, SEEK_SET);
+      sprintf(str, "(%p %ld, %p)Hashes Per Step %d, Num Steps %ld, VarId %d VarSize %ld", interMediateHashes, nbHashes*MD5_DIGEST_LENGTH,&hashes[j*MD5_DIGEST_LENGTH], hashesPerStep, numSteps, varId, varSize);
+      FTI_Print(str,FTI_DBUG);
 
       MD5(interMediateHashes,nbHashes*MD5_DIGEST_LENGTH,&hashes[j*MD5_DIGEST_LENGTH]);
       free(filePos);
@@ -901,14 +935,15 @@ int FTI_VerifyChecksumDcpPosix (  char* fileName  )
     hashes = NULL;
 
     if( strcmp( checkpointHash, tmp ) ) {
-      sprintf(str,"hashes differ %s %s",checkpointHash, tmp);
+      sprintf(str,"hashes differ %s %s in Layer %ld",checkpointHash, tmp,i);
       FTI_Print(str,FTI_IDCP);
     }
     else{
       exec->dcpInfoPosix.nbLayerReco = i ;
       exec->dcpInfoPosix.Counter = counter + i ;
       exec->dcpInfoPosix.nbVarReco = nbVars;
-      FTI_Print("Successfull recovered from checkpoint",FTI_INFO);
+      sprintf(str,"Successfull recovered from checkpoint (Layer %d)",i);
+      FTI_Print(str,FTI_INFO);
       fclose(fd);
       return FTI_SCES;
     }

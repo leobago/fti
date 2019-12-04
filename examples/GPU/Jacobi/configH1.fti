@@ -26,7 +26,7 @@ verbosity                      = 2
 
 
 [restart]
-failure                        = 0
+failure=0
 exec_id                        = 2019-02-04_17-51-28
 
 

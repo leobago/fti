@@ -191,6 +191,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }
+    FTI_Print("Finished checking Erasures",FTI_DBUG);
     return FTI_SCES;
 }
 
@@ -304,6 +305,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
                 int allRes;
 
+                FTI_Print("Checking For Sucess Erasures",FTI_DBUG);
                 MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
                 if (allRes == FTI_SCES) {
                     //Inform heads that recovered successfully

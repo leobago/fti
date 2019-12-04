@@ -74,16 +74,15 @@ int main ( int argc, char *argv[]){
     FTI_Recover();
   }
   int i = iter;
+  printf("Iter is equal to %d\n", iter);
 
 
   for ( ; i < numIters ; i++){
     executeKernel(dPtr,dSize, ratioOfChange);
     executeCPUKernel(lPtr,hSize, ratioOfChange);
-    if ( world_rank == 0)
-      printf("I am sleeping\n");
     iter++;
-    FTI_Checkpoint(i,5);
-    sleep(30);
+    FTI_Checkpoint(iter,5);
+    sleep(60);
   }
   
   freeCuda(dPtr);

@@ -24,7 +24,7 @@ dcp_stack_size                 = 10
 
 
 [restart]
-failure                        = 0
+failure=0
 exec_id                        = 2019-07-03_16-52-25
 
 
