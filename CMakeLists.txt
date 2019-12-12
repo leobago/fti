@@ -98,6 +98,7 @@ option(ENABLE_TESTS "Enables the generation of tests" ON)
 option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
+option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
@@ -385,6 +386,10 @@ endif()
 
 if(ENABLE_TESTS)
 	add_subdirectory(test)
+endif()
+
+if(ENABLE_TUTORIAL)
+	add_subdirectory(tutorial)
 endif()
 
 if(ENABLE_DOCU)
