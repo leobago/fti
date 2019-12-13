@@ -46,6 +46,7 @@ extern "C" {
 
   /** MPI communicator that splits the global one into app and FTI appart.   */
   extern MPI_Comm FTI_COMM_WORLD;
+  extern MPI_Comm FTI_COMM_DUP;
 
   /** FTI data type for chars.                                               */
   extern FTIT_type FTI_CHAR;
@@ -107,6 +108,8 @@ extern "C" {
   int FTI_RecoverVar(int id);
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
+  int FTI_CheckSanityICP(); 
+  int FTI_FlushICP(); 
   int FTI_FinalizeICP(); 
 
 #ifdef __cplusplus

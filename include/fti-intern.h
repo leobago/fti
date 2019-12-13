@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <mpi.h>
+#include <time.h>
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
@@ -96,6 +97,7 @@ typedef void*               FTI_ADDRPTR;        /**< void ptr type              
 #define FTI_IO_SIONLIB 1004
 #endif
 
+#define FTI_UIDD_LENGTH sizeof(struct timespec)
 #define MAX_STACK_SIZE 10
 
 #ifdef __cplusplus
@@ -486,8 +488,13 @@ extern "C" {
         char            mTmpDir[FTI_BUFS];  /**< Metadata temporary directory.      */
         size_t          cHostBufSize;       /**< Host buffer size for GPU data. */
         char 	 		suffix[4];			/** Suffix of the checkpoint files		*/
+        char            uid[2*FTI_UIDD_LENGTH];
         FTIT_dcpConfigurationPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
-
+        struct FTIT_environment {
+            bool cfgCreate;
+            bool cfgDefault;
+            char cfgTemplate[FTI_BUFS];
+        } FTIT_environment;
 
     } FTIT_configuration;
 

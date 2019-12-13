@@ -47,14 +47,12 @@ int FTI_GetRandomHash( char* hash )
         return FTI_NSCS;
     }
 
-    void *random_buffer = malloc( sizeof(struct timespec) );
-    unsigned char digest[MD5_DIGEST_LENGTH];
-    clock_gettime(CLOCK_REALTIME, (struct timespec*)random_buffer);
-    MD5( random_buffer, sizeof(struct timespec), digest );
+    void *digest = malloc( FTI_UIDD_LENGTH );
+    clock_gettime(CLOCK_REALTIME, (struct timespec*)digest);
     
     int i=0;
-    for(; i<MD5_DIGEST_LENGTH; i++) {
-        sprintf( &hash[i*2], "%02x", (unsigned int)digest[i] );
+    for(; i<FTI_UIDD_LENGTH; i++) {
+        sprintf( &hash[i*2], "%02x", ((unsigned int*)digest)[i] );
     }
 
 }

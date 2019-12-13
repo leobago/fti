@@ -1460,11 +1460,11 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
     // enable collective buffering
-    hid_t plid = H5Pcreate( H5P_DATASET_XFER );
-    H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+    //hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+    //H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     // write data in file
-    herr_t status = H5Dread(did, tid, msid, fsid, plid, FTI_Data.ptr);
+    herr_t status = H5Dread(did, tid, msid, fsid, H5P_DEFAULT, FTI_Data.ptr);
     if(status < 0) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
@@ -1473,7 +1473,7 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     }
 
     H5Sclose( msid );
-    H5Pclose( plid );
+    //H5Pclose( plid );
 
     return status;
 
@@ -1551,19 +1551,21 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         }
 
         // enable collective buffering
-        hid_t plid = H5Pcreate( H5P_DATASET_XFER );
-        H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+        //hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+        //H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
         // write data in file
-        if( H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr) < 0 ) {
+        errno = 0;
+        if( H5Dwrite(did, tid, msid, fsid, H5P_DEFAULT, FTI_Data.ptr) < 0 ) {
             char errstr[FTI_BUFS];
             snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
+            H5Eprint( H5E_DEFAULT, stderr );
             FTI_Print(errstr,FTI_EROR);
             return FTI_NSCS;
         }
 
         H5Sclose( msid );
-        H5Pclose( plid );
+        //H5Pclose( plid );
 
     }
 
@@ -1641,13 +1643,13 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
         for( i=0; i<dataset->rank; ++i ) {
             numElem *= dataset->dimension[i];
         }
-        MPI_Allreduce( &numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, FTI_COMM_WORLD );
-        if( numElem != numElemGlobal ) {
-            char errstr[FTI_BUFS];
-            snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
-            FTI_Print( errstr, FTI_WARN);
-            return FTI_NSCS;
-        }
+        //MPI_Allreduce( &numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, FTI_COMM_WORLD );
+        //if( numElem != numElemGlobal ) {
+        //    char errstr[FTI_BUFS];
+        //    snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
+        //    FTI_Print( errstr, FTI_WARN);
+        //    return FTI_NSCS;
+        //}
         dataset = dataset->next;
     }
     return FTI_SCES;

@@ -38,8 +38,8 @@
 
 
 #include "interface.h"
+#include <extrae.h>
 #include "IO/cuda-md5/md5Opt.h"
-
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
 #endif 
@@ -64,6 +64,7 @@ static FTIT_injection FTI_Inje;
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
+MPI_Comm FTI_COMM_DUP;
 
 /** FTI data type for chars.                                               */
 FTIT_type FTI_CHAR;
@@ -87,8 +88,6 @@ FTIT_type FTI_SFLT;
 FTIT_type FTI_DBLE;
 /** FTI data type for long doble floating point.                           */
 FTIT_type FTI_LDBE;
-
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -156,6 +155,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     else{
         strcpy(FTI_Conf.suffix,"fti");
     }
+    MPI_Comm_dup( FTI_COMM_WORLD, &FTI_COMM_DUP );
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
@@ -1752,7 +1752,7 @@ int FTI_InitICP(int id, int level, bool activate)
     else{
         FTI_Print("Could Not initialize ICP",FTI_WARN);
     }
-
+    
     return res;
 }
 
@@ -1782,6 +1782,8 @@ int FTI_AddVarICP( int varID )
     if ( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
     }
+    
+    Extrae_user_function(1);
 
     char str[FTI_BUFS];
 
@@ -1807,18 +1809,25 @@ int FTI_AddVarICP( int varID )
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     int res;
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
+    char dbg_str[FTI_BUFS];
+    snprintf( dbg_str, FTI_BUFS, "try to write variable-id '%d'", varID );
+    FTI_Print( dbg_str, FTI_DBUG );
     res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID+offset]);
 
     if ( res == FTI_SCES ) {
+        snprintf( dbg_str, FTI_BUFS, "succeeded to write variable-id '%d'", varID );
+        FTI_Print( dbg_str, FTI_DBUG );
         FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
     }
     else{
         FTI_Print("Could not add variable to checkpoint",FTI_WARN);
     }
+    
+    Extrae_user_function(0);
     return res;
 
 }
@@ -1833,7 +1842,8 @@ int FTI_AddVarICP( int varID )
   FTI_COMM_WORLD and blocking.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinalizeICP() 
+#if 0
+int FTI_CheckSanityICP() 
 {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -1858,13 +1868,38 @@ int FTI_FinalizeICP()
         FTI_Print("Not all datasets were added to the CP file!.", FTI_EROR);
     }
 
+    if( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) {
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+
+}
+
+int FTI_FlushICP()
+{
+    int resCP;
+    
+    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
+    int offset = 2*(FTI_Conf.dcpPosix);
+    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    
+    if ( resCP != FTI_SCES ) {
+        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+        return FTI_NSCS;
+    }
+
+    return FTI_SCES;
+    
+}
+
+int FTI_FinalizeICP()
+{
     char str[FTI_BUFS];
     int resCP;
     int resPP = FTI_SCES;
 
-    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
-    int offset = 2*(FTI_Conf.dcpPosix);
-    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    resCP = ( FTI_Exec.iCPInfo.status == FTI_ICP_FAIL ) ? FTI_NSCS : FTI_SCES;
     
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
@@ -1951,7 +1986,135 @@ int FTI_FinalizeICP()
     }
 
     FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
+    
+    return FTI_SCES;
+}
 
+#endif
+
+int FTI_FinalizeICP() 
+{
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    // if iCP uninitialized, don't step in.
+    if ( FTI_Exec.iCPInfo.status == FTI_ICP_NINI ) {
+        return FTI_SCES;
+    }
+    
+    Extrae_user_function(1);
+
+    int allRes[2];
+    int locRes[2] = { (int)(FTI_Exec.iCPInfo.result==FTI_SCES), (int)(FTI_Exec.iCPInfo.countVar==FTI_Exec.nbVar) };
+    //Check if all processes have written all the datasets failure free.
+    MPI_Allreduce(locRes, allRes, 2, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+    if (allRes[0] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
+        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+        FTI_Print("Not all variables were successfully written!.", FTI_EROR);
+    }
+    if (allRes[1] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
+        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+        FTI_Print("Not all datasets were added to the CP file!.", FTI_EROR);
+    }
+
+    char str[FTI_BUFS];
+    int resCP;
+    int resPP = FTI_SCES;
+    
+    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
+    int offset = 2*(FTI_Conf.dcpPosix);
+    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    
+    // no postprocessing or meta data for h5 single file
+    if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
+        char str[FTI_BUFS];
+        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
+                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
+        FTI_Print(str, FTI_INFO);
+        Extrae_user_function(0);
+        return FTI_SCES;
+    }
+
+    if( resCP == FTI_SCES ) {
+        resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+    }
+
+    if ( resCP != FTI_SCES ) {
+        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
+        FTI_Print(str, FTI_WARN);
+    }
+
+    double t2 = MPI_Wtime(); //Time after writing checkpoint
+
+    if ( (FTI_Conf.dcpFtiff||FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
+        // After dCP update store total data and dCP sizes in application rank 0
+        unsigned long *dataSize = (FTI_Conf.dcpFtiff)?(unsigned long*)&FTI_Exec.FTIFFMeta.pureDataSize:&FTI_Exec.dcpInfoPosix.dataSize;
+        unsigned long *dcpSize = (FTI_Conf.dcpFtiff)?(unsigned long*)&FTI_Exec.FTIFFMeta.dcpSize:&FTI_Exec.dcpInfoPosix.dcpSize;
+        unsigned long dcpStats[2]; // 0:totalDcpSize, 1:totalDataSize
+        unsigned long sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce( sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
+        if ( FTI_Topo.splitRank ==  0 ) {
+            *dcpSize = dcpStats[0]; 
+            *dataSize = dcpStats[1];
+        }
+    }
+
+    // TODO this has to come inside postckpt on success! 
+    if ( (FTI_Conf.dcpFtiff || FTI_Conf.keepL4Ckpt) && (FTI_Topo.splitRank == 0) ) {
+        FTI_WriteCkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
+    }
+
+    int status = (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) ? FTI_NSCS : FTI_SCES;
+    if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
+        FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, status);
+    } else { //If post-processing is inline
+        FTI_Exec.wasLastOffline = 0;
+        if (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) { //If Writing checkpoint failed
+            FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
+        }
+        resPP = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
+        if (resPP == FTI_SCES) { //If post-processing succeed
+            FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
+        }
+    }
+
+    if ( !FTI_Exec.hasCkpt && (FTI_Topo.splitRank == 0) && (resPP == FTI_SCES) ) {
+        //Setting recover flag to 1 (to recover from current ckpt level)
+        int res = FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+        FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        if( res == FTI_SCES ) {
+            FTI_Exec.hasCkpt = true;
+        }
+    }
+
+    MPI_Bcast( &FTI_Exec.hasCkpt, 1, MPI_INT, 0, FTI_COMM_WORLD );
+
+    double t3 = MPI_Wtime(); //Time after post-processing
+
+    if( resCP == FTI_SCES ) {
+        sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
+                FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
+        FTI_Print(str, FTI_INFO);
+
+        if ( (FTI_Conf.dcpFtiff||FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
+            FTI_PrintDcpStats( FTI_Conf, FTI_Exec, FTI_Topo );
+        }
+
+        if (FTI_Exec.iCPInfo.isFirstCp && FTI_Topo.splitRank == 0) {
+            //Setting recover flag to 1 (to recover from current ckpt level)
+            FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, 1), "update configuration file.");
+            FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
+        }
+    } else {
+        FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
+    }
+
+    FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
+    
+    Extrae_user_function(0);
     return FTI_SCES;
 }
 
@@ -2193,7 +2356,6 @@ int FTI_Finalize()
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
         if ( FTI_Conf.stagingEnabled ) {
