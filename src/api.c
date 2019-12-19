@@ -38,7 +38,6 @@
 
 
 #include "interface.h"
-#include <extrae.h>
 #include "IO/cuda-md5/md5Opt.h"
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>
@@ -1783,7 +1782,6 @@ int FTI_AddVarICP( int varID )
         return FTI_NSCS;
     }
     
-    Extrae_user_function(1);
 
     char str[FTI_BUFS];
 
@@ -1827,7 +1825,6 @@ int FTI_AddVarICP( int varID )
         FTI_Print("Could not add variable to checkpoint",FTI_WARN);
     }
     
-    Extrae_user_function(0);
     return res;
 
 }
@@ -2004,7 +2001,6 @@ int FTI_FinalizeICP()
         return FTI_SCES;
     }
     
-    Extrae_user_function(1);
 
     int allRes[2];
     int locRes[2] = { (int)(FTI_Exec.iCPInfo.result==FTI_SCES), (int)(FTI_Exec.iCPInfo.countVar==FTI_Exec.nbVar) };
@@ -2033,7 +2029,6 @@ int FTI_FinalizeICP()
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
                 FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
         FTI_Print(str, FTI_INFO);
-        Extrae_user_function(0);
         return FTI_SCES;
     }
 
@@ -2114,7 +2109,6 @@ int FTI_FinalizeICP()
 
     FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
     
-    Extrae_user_function(0);
     return FTI_SCES;
 }
 
