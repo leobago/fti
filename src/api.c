@@ -1782,6 +1782,7 @@ int FTI_AddVarICP( int varID )
         return FTI_NSCS;
     }
     
+
     char str[FTI_BUFS];
 
     bool validID = false;
@@ -2000,6 +2001,7 @@ int FTI_FinalizeICP()
         return FTI_SCES;
     }
     
+
     int allRes[2];
     int locRes[2] = { (int)(FTI_Exec.iCPInfo.result==FTI_SCES), (int)(FTI_Exec.iCPInfo.countVar==FTI_Exec.nbVar) };
     //Check if all processes have written all the datasets failure free.

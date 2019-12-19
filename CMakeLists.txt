@@ -249,7 +249,6 @@ set_property(TARGET fti.static fti.shared
 if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 	find_library(LIBM m DOC "The math library")
 endif()
-
 if(ZLIB_FOUND)
     target_link_libraries(fti.static ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
     target_link_libraries(fti.shared ${MPI_C_LIBRARIES} "${LIBM}" "${OPENSSL_LIBRARIES}" "${ZLIB_LIBRARIES}" ${CUDA_LIBRARIES})
