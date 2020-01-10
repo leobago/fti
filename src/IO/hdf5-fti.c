@@ -370,12 +370,12 @@ int FTI_HDF5Open(char *fn, void *fileDesc)
     //Creating new hdf5 file
     if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
         // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
-        //MPI_Info info;
-        //MPI_Info_create(&info);
-        //MPI_Info_set(info, "romio_cb_write", "enable");
-        //MPI_Info_set(info, "stripping_unit", "4194304");
+        MPI_Info info;
+        MPI_Info_create(&info);
+        MPI_Info_set(info, "romio_cb_write", "enable");
+        MPI_Info_set(info, "stripping_unit", "4194304");
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
+        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
         fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
         H5Pclose( plid );
     } else {
@@ -1628,11 +1628,11 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         }
 
         // enable collective buffering
-        //hid_t plid = H5Pcreate( H5P_DATASET_XFER );
-        //H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+        hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+        H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
         // write data in file
-        if( H5Dwrite(did, tid, msid, fsid, H5P_DEFAULT, FTI_Data.ptr) < 0 ) {
+        if( H5Dwrite(did, tid, msid, fsid, plid, FTI_Data.ptr) < 0 ) {
             char errstr[FTI_BUFS];
             snprintf( errstr, FTI_BUFS, "Unable to write var-id %d of dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
             FTI_Print(errstr,FTI_EROR);
@@ -1640,7 +1640,7 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         }
 
         H5Sclose( msid );
-        //H5Pclose( plid );
+        H5Pclose( plid );
 
     }
 
@@ -2106,12 +2106,12 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     MPI_Barrier( FTI_COMM_WORLD );
    
     // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
-    //MPI_Info info;
-    //MPI_Info_create(&info);
-    //MPI_Info_set(info, "romio_cb_write", "enable");
-    //MPI_Info_set(info, "stripping_unit", "4194304");
+    MPI_Info info;
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "romio_cb_write", "enable");
+    MPI_Info_set(info, "stripping_unit", "4194304");
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-    H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
     fid = H5Fcreate(tmpfn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
     H5Pclose( plid );
 
@@ -2133,8 +2133,6 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
     }
     
-    sleep(2);
-    //FTI_DebugCheckOpenObjects( fid, 0 );
     H5Fclose( fid );
     
 #warning ERROR HANDLING HERE + ALLREDUCE IFF ALL HEADS SUCCESSFUL

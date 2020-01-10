@@ -101,6 +101,8 @@ option(ENABLE_ULFM "Generates example that works with ULFM" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
+
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
 if(${ENABLE_FORTRAN})
@@ -109,6 +111,8 @@ if(${ENABLE_FORTRAN})
 endif()
 
 include(CheckCCompilerFlag)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 
 #check for ZLIB (crc32)
 find_package(ZLIB)
@@ -387,6 +391,7 @@ if(ENABLE_DOCU)
     add_subdirectory(doc/Doxygen)
 endif()
 
+
 # installable config
 
 set(WORK_DIR "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
@@ -405,6 +410,7 @@ configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.
 
 # set up exaples in build/examples/
 file(COPY examples/config.fti DESTINATION examples)
+#configure_file(examples/config-ulfm.fti ${CMAKE_INSTALL_PREFIX_ULFM}/config.fti COPYONLY)
 file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)

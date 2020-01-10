@@ -212,8 +212,6 @@ class SEnvironment {
         
         void reset( void ) {
             
-            // propagate error and shrink communicator
-            // MPIX_Comm_revoke(m_global_comm);
             MPI_Comm new_global_comm;
             //MPIX_Comm_shrink( m_global_comm, &new_global_comm );
             //MPI_Barrier( new_global_comm );
@@ -456,7 +454,7 @@ class TDist {
             if( env.head() ) return;
             if( ((i%ITER_CHK == 0) && (i>0)) || force ) {
                 m_clock.start(CKPT);
-                FTI_InitICP( m_chk_id++, FTI_L4_H5_SINGLE, 1 );  
+                FTI_InitICP( m_chk_id++, 4, 1 );  
                 //FTI_InitICP( m_chk_id++, 4, 1 );  
                 //FTI_Checkpoint( m_chk_id++, FTI_L4_H5_SINGLE );
                 FTI_AddVarICP( 0 );
@@ -623,7 +621,6 @@ int main( int argc, char** argv )
             ss << "Iteration[" << i << "]";
             dist.clock().stop( ITER );
             dist.clock().log( ITER, ss.str() );
-//            dist.clock().flush( "timing.log", env.rank()==0 );
 
             dist.print_progress( i, env );
         
@@ -646,7 +643,7 @@ int main( int argc, char** argv )
     dist.clock().flush( ss.str(), 1 );
     ss.str(std::string());
     env.finalize();
-    
+        
     return 0;
 
 }

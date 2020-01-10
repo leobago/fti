@@ -239,6 +239,8 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
         double t3 = MPI_Wtime(); //Post-processing time
         
+        if(FTI_Topo->amIaHead) FTI_RmDir(FTI_Conf->lTmpDir, true );
+
         snprintf(str, FTI_BUFS, "Post-checkpoint (VPR) took %.2f sec. (Pt:%.2fs, Cl:%.2fs)",
                 t3 - t1, t2 - t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
@@ -434,7 +436,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-        if( FTI_Conf->ioMode = FTI_IO_HDF5 ) {
+        if( FTI_Conf->ioMode == FTI_IO_HDF5 ) {
             MPI_Recv(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             MPI_Recv(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         } else {

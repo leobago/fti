@@ -38,6 +38,7 @@
 
 #include "interface.h"
 #include <dirent.h>
+#include <hdf5.h>
 
 int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
@@ -175,7 +176,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->stageInfo             =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
-    /* MPI_Comm      */ FTI_Exec->globalComm            =0;
+    /* MPI_Comm      */ memset(&(FTI_Exec->globalComm), 0x0, sizeof(MPI_Comm));
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
     /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
     /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;

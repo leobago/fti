@@ -11,7 +11,7 @@
 
 void XFTI_LiberateHeads()
 {
-    if( topo->nodeRank == 0 + topo->nbHeads ) {
+    if( (topo->nodeRank==1) && (topo->nbHeads==1) ) {
         DBG_MSG("[Liberate Head] head_rank: %d, failed_tag: %d", -1, topo->headRank, conf->failedTag);
         int dummy;
         MPI_Ssend( &dummy, 1, MPI_INT, topo->headRank, conf->failedTag, exec->globalComm );
@@ -62,6 +62,7 @@ void XFTI_CrashNodes( int nbNodes )
 {
     MPI_Comm affectedNodes;
     MPI_Comm_split( FTI_COMM_WORLD, topo->nodeID < nbNodes, 0, &affectedNodes );
+    //MPI_Barrier(FTI_COMM_WORLD);
     if( topo->nodeID < nbNodes ) {
         MPI_Barrier(affectedNodes);
         if( (topo->nodeRank == 1) && (topo->nbHeads == 1) ) {
@@ -73,7 +74,7 @@ void XFTI_CrashNodes( int nbNodes )
         XFTI_CRASH;
     }
     XFTI_LiberateHeads();
-    //sleep(5);
+    sleep(10);
 }
 
 void XFTI_Crash() 

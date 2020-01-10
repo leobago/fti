@@ -9,10 +9,29 @@ set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS}
 set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
 if(ENABLE_ULFM)
-    add_executable(hd-cpp.exe heat2d.cpp)
-    set_property( TARGET hd-cpp.exe APPEND PROPERTY LINK_LIBRARIES fti.static ${MPI_CXX_LIBRARIES} m )
-    set_property(TARGET hd-cpp.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
-    set_property(TARGET hd-cpp.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
+    add_executable(hd-cpp-vpr.exe heat2d.cpp)
+    set_property(TARGET hd-cpp-vpr.exe APPEND PROPERTY LINK_LIBRARIES fti.static ${MPI_CXX_LIBRARIES} m )
+    set_property(TARGET hd-cpp-vpr.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
+    set_property(TARGET hd-cpp-vpr.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
+    add_custom_command( TARGET hd-cpp-vpr.exe POST_BUILD 
+        COMMAND mkdir -p ${CMAKE_INSTALL_PREFIX_ULFM}
+        COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/hd-cpp-vpr.exe ${CMAKE_INSTALL_PREFIX_ULFM} )
+    
+    add_executable(hd-cpp-plain.exe heat2d-no-fti.cpp)
+    set_property(TARGET hd-cpp-plain.exe APPEND PROPERTY LINK_LIBRARIES fti.static ${MPI_CXX_LIBRARIES} m )
+    set_property(TARGET hd-cpp-plain.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
+    set_property(TARGET hd-cpp-plain.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
+    add_custom_command( TARGET hd-cpp-plain.exe POST_BUILD 
+        COMMAND mkdir -p ${CMAKE_INSTALL_PREFIX_ULFM}
+        COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/hd-cpp-plain.exe ${CMAKE_INSTALL_PREFIX_ULFM} )
+    
+    add_executable(hd-cpp-posix.exe heat2d-posix.cpp)
+    set_property(TARGET hd-cpp-posix.exe APPEND PROPERTY LINK_LIBRARIES fti.static ${MPI_CXX_LIBRARIES} m )
+    set_property(TARGET hd-cpp-posix.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_CXX_COMPILE_FLAGS})
+    set_property(TARGET hd-cpp-posix.exe APPEND PROPERTY LINK_FLAGS ${MPI_CXX_LINK_FLAGS})
+    add_custom_command( TARGET hd-cpp-posix.exe POST_BUILD 
+        COMMAND mkdir -p ${CMAKE_INSTALL_PREFIX_ULFM}
+        COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/hd-cpp-posix.exe ${CMAKE_INSTALL_PREFIX_ULFM} )
 endif()
 
 if(ENABLE_FORTRAN)
