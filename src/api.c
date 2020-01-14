@@ -661,6 +661,54 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     return FTI_SCES;
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Searches in the protected variables for a name. If not found it allocates and returns the ID 
+  @param      name            Name of the protected variable to search 
+  @return     integer         id of the variable.
+
+  This function searches for a given name in the protected variables and returns the respective id for it.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_setIDFromString( char *name ){
+  int i = 0;
+  for ( i = 0 ; i < FTI_Exec.nbVar; i++){
+    if (strcmp(name, FTI_Data[i].idChar) == 0){
+      return i;
+    }
+  }
+  strncpy(FTI_Data[i].idChar, name, FTI_BUFS);
+  return i;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Searches in the protected variables for a name. If not found it allocates and returns the ID 
+  @param      name            Name of the protected variable to search 
+  @return     integer         id of the variable.
+
+  This function searches for a given name in the protected variables and returns the respective id for it.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_getIDFromString( char *name ){
+  int i = 0;
+  int ckptLvL = FTI_Exec.ckptLvel;
+  int numVars = FTI_Exec.meta[ckptLvL].nbVar[0];
+  char *varNames = FTI_Exec.meta[ckptLvL].idChar;
+
+  for ( i = 0 ; i < numVars; i++){
+    if (strcmp(name, &varNames[i*FTI_BUFS]) == 0){
+      return i;
+    }
+
+  }
+  return -1;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Renames a HDF5 group
@@ -2402,6 +2450,9 @@ int FTI_RecoverVar(int id)
     long filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[oldID];
     fseek(fd,filePos, SEEK_SET);
     fread(FTI_Data[activeID].ptr, 1, FTI_Data[activeID].size, fd);
+
+    strncpy(FTI_Data[activeID].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[oldID*FTI_BUFS]), FTI_BUFS);
+
     if (ferror(fd)) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
         fclose(fd);

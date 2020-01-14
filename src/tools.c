@@ -373,6 +373,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
         }
     } else {
         for (i = 0; i < 5; i++) {
@@ -386,6 +387,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
             FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS, sizeof(char));
         }
     }
     FTI_Exec->metaAlloc = 1;
@@ -414,6 +416,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].varID);
             free(FTI_Exec->meta[i].varSize);
             free(FTI_Exec->meta[i].filePos);
+            free(FTI_Exec->meta[i].idChar);
         }
         FTI_Exec->metaAlloc = 0;
     }

@@ -177,9 +177,6 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             } else {
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
             }
-            char str[FTI_BUFS];
-            sprintf(str,"I am going to look for file %s",ckptFile);
-            FTI_Print(str,FTI_WARN);
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
