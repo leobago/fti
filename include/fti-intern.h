@@ -422,6 +422,7 @@ extern "C" {
         void                *devicePtr;         /**< Pointer to data in the device                  */
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
+        char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
         size_t				filePos; 
     } FTIT_dataset;
 
@@ -441,6 +442,7 @@ extern "C" {
         int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
         long*            varSize;            /**< Variable size. [FTI_BUFS]             */
         long*            filePos;            /**< File Postion of each variable			*/
+        char*            idChar;
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration
@@ -677,6 +679,8 @@ extern "C" {
 
 
     } FTIT_execution;
+
+
 
 #ifdef __cplusplus
 }
