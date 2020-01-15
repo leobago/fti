@@ -713,7 +713,7 @@ int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, 
                 }
             }		
             if ( j == FTI_Exec->nbVar){
-                FTI_Print("Variables must be protected before theiy can be revoered.", FTI_EROR);
+                FTI_Print("Variables must be protected before they can be revoered.", FTI_EROR);
                 return FTI_NREC;
             }
 
