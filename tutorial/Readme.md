@@ -128,7 +128,7 @@ make
 
 To execute your implementation change directory to ${TUTORIAL\_EXEC}/practice and execute the binary hdp.exe. 
 
-Besides implementing the source code you need also to create an appropriate configuration file. Information about the options in the configuration file can be found [here](Configuration) and example configuration files can be found [here](Configuration-Examples).  
+Besides implementing the source code you need also to create an appropriate configuration file. Information about the options in the configuration file can be found [here](https://github.com/leobago/fti/wiki/Configuration) and example configuration files can be found [here](https://github.com/leobago/fti/wiki/Configuration-Examples).  
 
 
 ```bash
