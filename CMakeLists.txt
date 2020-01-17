@@ -170,6 +170,9 @@ if (ENABLE_SIONLIB)
     message("${SRC_FTI}")
 endif()
 
+if (ENABLE_TOOLS)
+    add_subdirectory("util")
+endif()    
 
 if (ENABLE_GPU)
 set(
