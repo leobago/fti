@@ -1,11 +1,21 @@
 #ifndef __UTIL_MACROS__
 #define __UTIL_MACROS__
+
 #define OPEN(out,name,type) \
     do{\
     out = fopen(name,type); \
     if (out == NULL ){\
         fprintf(stderr, "%s:%s:%d Could Not Open File: %s\n", __FILE__, __func__, __LINE__, name);\
         return ERROR;\
+        }\
+    }while(0)
+
+#define CLOSE(desc)\
+    do{\
+        if( fclose(desc) != 0 ){\
+            fprintf(stderr, "%s:%s:%d Could Not Close File\n", __FILE__, __func__, __LINE__);\
+            return ERROR;\
+        }\
     }while(0)
 
 #define MALLOC(ptr, elements, type)\

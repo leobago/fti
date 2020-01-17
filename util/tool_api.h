@@ -1,7 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __TOOL_API__
+#define __TOOL_API__
 
 #define BUFF_SIZE 1000
+#define MAX_BUFF (16*1024*1024)
+#define MD5_DIGEST_STRING_LENGTH 33
+#define MD5_DIGEST_LENGTH 16
 #define ERROR -1
 #define SUCCESS 1
 
@@ -28,7 +31,7 @@ typedef struct FTI_DataVar{
     int id;
     size_t size;
     size_t pos;
-    char *buf;
+    unsigned char *buf;
 }FTI_DataVar;
 
 typedef struct FTI_ckptFile{
@@ -38,4 +41,7 @@ typedef struct FTI_ckptFile{
     int numVars;
     int globalRank;
     int applicationRank;
+    int verified;
 }FTI_CkptFile;
+
+#endif

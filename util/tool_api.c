@@ -7,10 +7,12 @@
 
 
 #include "../deps/iniparser/iniparser.h"
+#include "../deps/md5/md5.h"
 #include "tool_api.h"
 #include "util_macros.h"
 
 FTI_Info *info = NULL; 
+FTI_CkptFile *files = NULL;
 
 static int cmpFunc( const void *a, const void *b){
     FTI_CkptFile *A = (FTI_CkptFile *) a;
@@ -33,6 +35,7 @@ static int getDirs(char *pathToConfigFile, char **name, char **path ){
 
     return SUCCESS;
 }
+
 
 int initEnvironment(char *pathToConfigFile){
     assert(pathToConfigFile);
@@ -171,7 +174,6 @@ int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int gr
 }
 
 int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files){
-    // I need to check how many meta data files I have. 
     char metaPath[BUFF_SIZE]; 
     sprintf(metaPath,"%s/%s/l4/",info->metaDir, info->execId);
     struct dirent *de; 
@@ -200,12 +202,12 @@ int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files){
     }
 
     qsort(*files, totalRanks, sizeof(FTI_CkptFile), cmpFunc);
+
     for ( int i = 0; i < totalRanks; i++){
         (*files)[i].applicationRank = i;
+        (*files)[i].verified = 0;
         printf("%d -- %d -- %d\n", i, (*files)[i].globalRank, (*files)[i].applicationRank);
     }
-
-
 
     CLOSEDIR(dr); 
 }
@@ -252,11 +254,153 @@ void printCkptInfo(FTI_CkptFile *files, FTI_Info *info){
     
 }
 
+int verifyCkpt(FTI_Info *info, FTI_CkptFile *file){
+    char tmp[BUFF_SIZE];
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+    int ii = 0;
+    int bytes;
+    unsigned char *data;
+    int i;
+    FILE *ckpt;
+
+    if ( file->verified )
+        return SUCCESS;
+
+    sprintf(tmp,"%s/%s/l4/%s",info->globalDir, info->execId, file->name);
+    OPEN(ckpt,tmp,"rb");
+
+    MD5_CTX mdContext;
+    MD5_Init (&mdContext);
+    MALLOC(data, MAX_BUFF, char);
+
+    while ((bytes = fread (data, 1, MAX_BUFF, ckpt)) != 0) {
+        MD5_Update (&mdContext, data, bytes);
+    }
+
+    MD5_Final (hash, &mdContext);
+
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", hash[i]);
+        ii += 2;
+    }
+
+    if (strcmp(checksum, file->md5hash) != 0) {
+        fprintf(stderr, "Checksums do not match:\nFile Hash : %s \nMeta Hash : %s\n",checksum, file->md5hash);
+        CLOSE(ckpt);
+        return ERROR;
+    }
+    
+    CLOSE(ckpt);
+    FREE(data);
+    file->verified = 1;
+    return SUCCESS;
+}
+
+int readVariable( FTI_DataVar *var, FTI_CkptFile *ckpt, unsigned char **data, size_t *size){
+    FILE *fd = NULL;
+    unsigned char *tmpdata = NULL;
+    char tmp[BUFF_SIZE];
+    size_t index = 0;
+    int bytes;
+
+    *size = var->size;
+    printf("Size is %ld\n", *size);
+    if ( var->buf ){
+        (*data) = var->buf;
+        return SUCCESS;
+    }
+
+    MALLOC(tmpdata, (*size) , unsigned char);
+    sprintf(tmp,"%s/%s/l4/%s",info->globalDir, info->execId, ckpt->name);
+    OPEN(fd,tmp,"rb");
+    fseek(fd, var->pos, SEEK_SET); 
+    size_t bytesToRead = *size;
+    do{
+        int MIN = bytesToRead > MAX_BUFF ? MAX_BUFF: bytesToRead;
+        bytes = fread (&tmpdata[index], 1, MIN, fd);
+        bytesToRead -= bytes;
+        index+=bytes;
+    }while(bytes > 0 );
+
+    var->buf = tmpdata;
+    (*data) = tmpdata;
+    CLOSE(fd);
+
+    return SUCCESS;
+}
+
+int readVarById(int id, unsigned char **ptr, int rank, size_t *size ){
+  int i;
+  if ( rank >= info->userRanks){
+      fprintf(stderr, "You are requesting ckpt data from a rank that does not exist\n");
+      return ERROR;
+  }
+
+  FTI_CkptFile *ckpt = &files[rank];      
+  if ( ckpt->verified == 0){
+      fprintf(stderr, "You are requesting to read a ckpt which you have not verified\n");
+  }
+
+  FTI_DataVar *variable = NULL;
+
+  for ( i = 0; i < ckpt->numVars; i++){
+      if ( id == ckpt->variables[i].id){
+          variable = &ckpt->variables[i];
+          break;
+      }
+  }
+
+  if (!variable ){
+      fprintf(stderr, "Could not find requested variable\n");
+      return ERROR;
+  }
+
+  return readVariable(variable,ckpt,  ptr, size);
+
+}
+
+int readVarByName(char *name, unsigned char **ptr, int rank, size_t *size ){
+  int i;
+  if ( rank >= info->userRanks){
+      fprintf(stderr, "You are requesting ckpt data from a rank that does not exist\n");
+      return ERROR;
+  }
+
+  FTI_CkptFile *ckpt = &files[rank];      
+  if ( ckpt->verified == 0){
+      fprintf(stderr, "You are requesting to read a ckpt which you have not verified\n");
+  }
+
+  FTI_DataVar *variable = NULL;
+
+  for ( i = 0; i < ckpt->numVars; i++){
+      if ( strcmp(name,ckpt->variables[i].name) == 0){
+          variable = &ckpt->variables[i];
+          break;
+      }
+  }
+
+  if (!variable ){
+      fprintf(stderr, "Could not find requested variable\n");
+      return ERROR;
+  }
+
+  return readVariable(variable,ckpt,  ptr, size);
+
+}
+
+
 int main(int argc, char *argv[]){
-    FTI_CkptFile *files;
+    unsigned char *ptr = NULL;
+    size_t size;
     initEnvironment(argv[1]); 
     readMetaDataFiles(info, &files);
-    printInfo(info);
+    for ( int i = 0; i < info->userRanks; i++){
+        verifyCkpt(info, &files[i]);
+    }
+    readVarById(0, &ptr, 0, &size);
+    readVarByName("PRESS", &ptr, 3, &size);
     destroyEnvironment(info, files);
     return 0;
 }
