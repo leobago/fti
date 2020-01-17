@@ -22,3 +22,20 @@ typedef struct FTI_Info{
     int nodeSize;
     int userRanks;
 }FTI_Info;
+
+typedef struct FTI_DataVar{
+    char *name;
+    int id;
+    size_t size;
+    size_t pos;
+    char *buf;
+}FTI_DataVar;
+
+typedef struct FTI_ckptFile{
+    char *name;
+    char *md5hash;
+    FTI_DataVar *variables;
+    int numVars;
+    int globalRank;
+    int applicationRank;
+}FTI_CkptFile;
