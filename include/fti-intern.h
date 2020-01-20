@@ -530,6 +530,7 @@ extern "C" {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.                  */
         char            dcpDir[FTI_BUFS];   /**< dCP directory.                         */
         char            archDir[FTI_BUFS];  /**< Checkpoint directory.                  */        
+        char            archMeta[FTI_BUFS]; /**< .Directory storing archieved meta      */        
         char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
         char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
         bool            isDcp;              /**< TRUE if dCP requested                  */
@@ -541,7 +542,7 @@ extern "C" {
         int             ckptCnt;            /**< Checkpoint counter.                    */
         int             ckptDcpIntv;        /**< Checkpoint interval.                   */
         int             ckptDcpCnt;         /**< Checkpoint counter.                    */
-
+        int             ckptID;             /**<Id of the checkpoint stored in this leve */
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection

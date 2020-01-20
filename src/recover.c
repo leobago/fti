@@ -330,6 +330,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                             snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
                                     FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
                             FTI_Ckpt[4].hasCkpt = true;
+                            FTI_Ckpt[4].ckptID= ckptID;
                         }
                     }
                     return FTI_SCES; //Recovered successfully
