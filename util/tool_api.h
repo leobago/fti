@@ -22,7 +22,6 @@ typedef struct FTI_Info{
     int head;
     int nodeSize;
     int userRanks;
-
 }FTI_Info;
 
 typedef struct FTI_DataVar{
@@ -41,14 +40,13 @@ typedef struct FTI_ckptFile{
     int globalRank;
     int applicationRank;
     int verified;
+    char *pathToFile;
 }FTI_CkptFile;
 
 typedef struct FTI_collection{
     FTI_CkptFile *files;
     int numCkpts;
     int ckptId;
-    char *pathTockpts;
-    char *pathToMeta;
 }FTI_Collection;
 
 #endif

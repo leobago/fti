@@ -104,6 +104,12 @@ int isMetaFile(char *name){
     return ret;
 }
 
+int isCkptDir(char *name){
+    int ckptId;
+    int ret = sscanf(name,"Ckpt_%d",&ckptId);
+    return ret;
+}
+
 int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int groupSize){
     dictionary *ini = NULL;
     char buff[BUFF_SIZE];
@@ -136,6 +142,7 @@ int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int gr
         strcpy(ckptFile[i].name, par);
         sscanf(par, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
         ckptFile[i].globalRank= rank;
+        ckptFile[i].pathToFile = NULL;
 
         int numVars = -1;
         int id;
@@ -179,9 +186,7 @@ int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int gr
 }
 
 
-int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files, int *ckptId, char *path){
-    char metaPath[BUFF_SIZE]; 
-    sprintf(metaPath,"%s/%s/%s/",info->metaDir, info->execId, path);
+int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files, int *ckptId, char *metaPath, char *glblPath){
     struct dirent *de; 
     DIR *dr = NULL; 
     size_t totalRanks = 0;
@@ -210,9 +215,14 @@ int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files, int *ckptId, char *p
     qsort(*files, totalRanks, sizeof(FTI_CkptFile), cmpFunc);
 
     for ( int i = 0; i < totalRanks; i++){
+        char tmp[BUFF_SIZE];
         (*files)[i].applicationRank = i;
         (*files)[i].verified = 0;
-        printf("%d -- %d -- %d\n", i, (*files)[i].globalRank, (*files)[i].applicationRank);
+        sprintf(tmp,"%s/%s/%s/%s",info->globalDir, info->execId,glblPath, (*files)[i].name);
+        int length = strlen(tmp);
+        MALLOC((*files)[i].pathToFile,length+1, char);
+        strcpy((*files)[i].pathToFile, tmp);
+        (*files)[i].pathToFile[length] = '\0';
     }
 
     CLOSEDIR(dr); 
@@ -224,15 +234,44 @@ int readMetaDataFiles(FTI_Info *info, FTI_CkptFile **files, int *ckptId, char *p
 
 int readAllMetaDataFiles(FTI_Info *info, FTIpool  *allCkpts){
     FTI_Collection *newCollection;
+    struct dirent *de; 
+    DIR *dr = NULL; 
     MALLOC(newCollection,1, FTI_Collection);
+    char metaPath[BUFF_SIZE]; 
+    char archive[BUFF_SIZE];
     int ckpts = -1;
-    ckpts = readMetaDataFiles(info, &(newCollection->files),&(newCollection->ckptId), "l4");
-    if (ckpt < 0){
+    // Here I read all meta files of last ckpt
+    sprintf(metaPath,"%s/%s/l4/",info->metaDir, info->execId);
+    ckpts = readMetaDataFiles(info, &(newCollection->files),&(newCollection->ckptId), metaPath, "l4");
+    if (ckpts < 0){
         fprintf(stderr, "Some kind of an error occured on readMetaFiles\n");
         return ERROR;
     }
 
-    newCollection->ckptId = ckpts;
+    newCollection->numCkpts= ckpts;
+    addNode(&allCkpts, newCollection, newCollection->ckptId);
+    
+    sprintf(metaPath,"%s/%s/l4_archive/",info->metaDir, info->execId);
+
+    OPENDIR( dr,metaPath );   
+    while ((de = readdir(dr)) != NULL){
+        if ( isCkptDir(de->d_name) ){
+            MALLOC(newCollection,1, FTI_Collection);
+            sprintf(archive,"%s/%s/",metaPath,de->d_name);
+            printf("I am trying to add %s\n", archive);
+            ckpts = readMetaDataFiles(info, &(newCollection->files),&(newCollection->ckptId), archive, "l4_archive");
+            if (ckpts < 0){
+                fprintf(stderr, "Some kind of an error occured on readMetaFiles\n");
+                return ERROR;
+            }
+            newCollection->numCkpts= ckpts;
+            addNode(&allCkpts, newCollection, newCollection->ckptId);
+        }
+    }
+
+    CLOSEDIR(dr);
+
+
     return SUCCESS;
 
 }
@@ -249,10 +288,10 @@ int destroyCollection( void* ptr){
             FREE(files[i].variables[j].buf);
         }
         FREE(files[i].variables);
+        FREE(files[i].pathToFile);
     }
     FREE(files);
-    FREE(collection->pathTockpts);
-    FREE(collection->pathToMeta);
+    return SUCCESS;
 }
 
 int destroyInfo(FTI_Info *info){
@@ -266,14 +305,17 @@ int destroyInfo(FTI_Info *info){
     FREE(info);
 }
 
-void printCkptInfo(FTI_CkptFile *files, FTI_Info *info){
-    int i, j;
-    for ( i = 0 ; i < info->userRanks; i++){
+void printCollection(void *ptr){
+    int i,j;
+    FTI_Collection *collection = (FTI_Collection *) ptr;
+    FTI_CkptFile *files = collection->files;
+    for ( i = 0; i < collection-> numCkpts; i++){
         printf("===================================%s=============================================\n", files[i].name);
         printf("\tNum Vars %d\n", files[i].numVars);
         printf("\tHash %s\n", files[i].md5hash);
         printf("\tGlobal Rank %d\n", files[i].globalRank);
         printf("\tApplication Rank %d\n", files[i].applicationRank);
+        printf("\t Path:%s\n", files[i].pathToFile);
         for ( j = 0; j < files[i].numVars; j++){
             printf("____________________________________________________________\n");
             printf("\t\t Name:%s id:%d\n",files[i].variables[j].name, files[i].variables[j].id);
@@ -282,7 +324,6 @@ void printCkptInfo(FTI_CkptFile *files, FTI_Info *info){
             printf("____________________________________________________________\n");
         }
     }
-    
 }
 
 int verifyCkpt(FTI_Info *info, FTI_CkptFile *file){
@@ -435,14 +476,18 @@ int main(int argc, char *argv[]){
     }
 
     readAllMetaDataFiles(info, allCkpts);
+    execOnAllNodes(&allCkpts, printCollection);
+    destroyInfo(info);
+    destroyPool(&allCkpts);
+    /*
     for ( int i = 0; i < info->userRanks; i++){
         verifyCkpt(info, &collection.files[i]);
     }
     printCkptInfo(collection.files, info);
     readVarById(0, &ptr, 0, &size);
     readVarByName("PRESS", &ptr, 3, &size);
-    destroyInfo(info);
     info = NULL;
+    */
     return 0;
 }
 
