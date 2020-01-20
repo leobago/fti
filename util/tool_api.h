@@ -5,8 +5,6 @@
 #define MAX_BUFF (16*1024*1024)
 #define MD5_DIGEST_STRING_LENGTH 33
 #define MD5_DIGEST_LENGTH 16
-#define ERROR -1
-#define SUCCESS 1
 
 typedef struct FTI_Info{
     char *execDir; // This is the path in which I started executing my application
@@ -24,6 +22,7 @@ typedef struct FTI_Info{
     int head;
     int nodeSize;
     int userRanks;
+
 }FTI_Info;
 
 typedef struct FTI_DataVar{
@@ -43,5 +42,13 @@ typedef struct FTI_ckptFile{
     int applicationRank;
     int verified;
 }FTI_CkptFile;
+
+typedef struct FTI_collection{
+    FTI_CkptFile *files;
+    int numCkpts;
+    int ckptId;
+    char *pathTockpts;
+    char *pathToMeta;
+}FTI_Collection;
 
 #endif
