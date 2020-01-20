@@ -237,6 +237,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
         if ( FTI_Ckpt[4].hasCkpt ) {
             FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+            int globalFlag = !FTI_Topo->splitRank;
+            globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
+            if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
+                snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
+                RENAME(FTI_Ckpt[4].metaDir, str );
+            }
         }
         // store current ckpt file name in meta data.
         if ( !FTI_Topo->amIaHead ) {
@@ -283,6 +289,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // expose to FTI that a checkpoint exists for level
     FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+    FTI_Ckpt[FTI_Exec->ckptLvel].ckptID= FTI_Exec->ckptID;
 
     return FTI_SCES;
 }
