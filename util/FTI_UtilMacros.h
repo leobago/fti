@@ -1,10 +1,8 @@
 #ifndef __UTIL_MACROS__
 #define __UTIL_MACROS__
 
-#include "FTI_List.h"
 
-#define ERROR -1
-#define SUCCESS 1
+#include "FTI_UtilAPI.h"
 
 
 #define OPEN(out,name,type) \

@@ -22,6 +22,9 @@ typedef struct FTI_Info{
     int head;
     int nodeSize;
     int userRanks;
+
+    int numCheckpoints;
+
 }FTI_Info;
 
 typedef struct FTI_DataVar{
@@ -48,5 +51,13 @@ typedef struct FTI_collection{
     int numCkpts;
     int ckptId;
 }FTI_Collection;
+
+
+
+
+int FTI_LLInitEnvironment(char *configFile);
+int FTI_LLGetNumCheckpoints();
+int FTI_LLGetCkptID(int *ckptIds);
+int FTI_LLFinalizeUtil();
 
 #endif

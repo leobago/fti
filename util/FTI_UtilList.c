@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "FTI_List.h"
-#include "util_macros.h"
+#include "FTI_UtilList.h"
+#include "FTI_UtilMacros.h"
+#include "FTI_UtilAPI.h"
 
 int createPool(FTIpool **data, int (*func)( void * )){
     FTIpool* root = NULL;

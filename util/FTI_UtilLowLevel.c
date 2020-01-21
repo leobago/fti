@@ -8,12 +8,15 @@
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/md5/md5.h"
-#include "tool_api.h"
-#include "util_macros.h"
-#include "FTI_List.h"
+
+#include "FTI_UtilLowLevel.h"
+#include "FTI_UtilMacros.h"
+#include "FTI_UtilList.h"
+#include "FTI_UtilAPI.h"
 
 FTI_Info *info = NULL; 
 FTI_Collection collection;
+FTIpool *allCkpts = NULL;
 
 static int cmpFunc( const void *a, const void *b){
     FTI_CkptFile *A = (FTI_CkptFile *) a;
@@ -79,6 +82,7 @@ int initEnvironment(char *pathToConfigFile){
     info->groupSize =  (int)iniparser_getint(ini, "Basic:group_size", -1); 
     info->head = (int)iniparser_getint(ini, "Basic:head", 0);
     info->nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
+    info->numCheckpoints = 0;
 
     iniparser_freedict(ini);
     return SUCCESS;
@@ -121,7 +125,6 @@ int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int gr
 
     MALLOC(fullName, fullNameSize, char);
     int size = sprintf(fullName, "%s/%s", directory, fileName);
-    printf("FullName is %s\n", fullName);
 
     ini = iniparser_load(fullName);
 
@@ -249,6 +252,7 @@ int readAllMetaDataFiles(FTI_Info *info, FTIpool  *allCkpts){
     }
 
     newCollection->numCkpts= ckpts;
+    info->numCheckpoints++;
     addNode(&allCkpts, newCollection, newCollection->ckptId);
     
     sprintf(metaPath,"%s/%s/l4_archive/",info->metaDir, info->execId);
@@ -258,7 +262,6 @@ int readAllMetaDataFiles(FTI_Info *info, FTIpool  *allCkpts){
         if ( isCkptDir(de->d_name) ){
             MALLOC(newCollection,1, FTI_Collection);
             sprintf(archive,"%s/%s/",metaPath,de->d_name);
-            printf("I am trying to add %s\n", archive);
             ckpts = readMetaDataFiles(info, &(newCollection->files),&(newCollection->ckptId), archive, "l4_archive");
             if (ckpts < 0){
                 fprintf(stderr, "Some kind of an error occured on readMetaFiles\n");
@@ -266,6 +269,7 @@ int readAllMetaDataFiles(FTI_Info *info, FTIpool  *allCkpts){
             }
             newCollection->numCkpts= ckpts;
             addNode(&allCkpts, newCollection, newCollection->ckptId);
+            info->numCheckpoints++;
         }
     }
 
@@ -463,34 +467,59 @@ int readVarByName(char *name, unsigned char **ptr, int rank, size_t *size ){
 }
 
 
-int main(int argc, char *argv[]){
-    unsigned char *ptr = NULL;
-    size_t size;
-    initEnvironment(argv[1]); 
-
-    FTIpool *allCkpts;
-
+int FTI_CreatePool(){
     if ( createPool(&allCkpts,destroyCollection) != SUCCESS){
         fprintf(stderr,"Could not create pools\n");
-        return 0;
+        return ERROR;
     }
-
-    readAllMetaDataFiles(info, allCkpts);
-    execOnAllNodes(&allCkpts, printCollection);
-    destroyInfo(info);
-    destroyPool(&allCkpts);
-    /*
-    for ( int i = 0; i < info->userRanks; i++){
-        verifyCkpt(info, &collection.files[i]);
-    }
-    printCkptInfo(collection.files, info);
-    readVarById(0, &ptr, 0, &size);
-    readVarByName("PRESS", &ptr, 3, &size);
-    info = NULL;
-    */
-    return 0;
+    return SUCCESS;
 }
 
+int FTI_LLInitEnvironment(char *configFile){
+    int ret = 0;
+    ret = initEnvironment(configFile); 
+
+    if ( ret != SUCCESS )
+        return ERROR;
+
+    ret = FTI_CreatePool();
+    if (ret != SUCCESS )
+        return ERROR;
+
+    ret = readAllMetaDataFiles(info, allCkpts);
+    if ( ret != SUCCESS )
+        return ERROR;
+
+    return SUCCESS;
+}
+
+int FTI_LLGetNumCheckpoints(){
+    if (info != NULL )
+        return info->numCheckpoints;
+    return ERROR;        
+}
+
+int FTI_LLGetCkptID(int *ckptIds){
+   node *iter = allCkpts->head;
+   int cnt= 0;
+   while ( iter != NULL){
+      FTI_Collection *data = (FTI_Collection *) iter->data;
+      ckptIds[cnt++] = data->ckptId;
+      iter = iter->next;
+   }
+   return SUCCESS;
+}
+
+
+int FTI_LLFinalizeUtil(){
+    int ret = destroyInfo(info);
+    if (ret == ERROR )
+        return ret;
+    ret = destroyPool(&allCkpts);
+    if (ret == ERROR )
+        return ret;
+    return ret;
+}
 
 
 
