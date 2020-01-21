@@ -59,8 +59,8 @@ void cleanup(char* pattern, ...);
     do{																										\
         errno = 0;																							\
         if ( rename(a,b) != 0 ){																			\
-            char ErrorString[400];																			\
-            sprintf(ErrorString,"FILE %s FUNC %s:%d Cannot rename : %s",__FILE__,__FUNCTION__,__LINE__,a);	\
+            char ErrorString[600];																			\
+            sprintf(ErrorString,"FILE %s FUNC %s:%d Cannot rename : %s to %s",__FILE__,__FUNCTION__,__LINE__,a, b);	\
             FTI_Print(ErrorString, FTI_EROR); 																	\
             errno = 0;																							\
             return FTI_NSCS; 																					\

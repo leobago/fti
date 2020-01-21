@@ -648,20 +648,35 @@ fi
 # ---- Check KL4 ---- #
 #                     #
 if [ ! -z $TESTKEEPL4 ]; then
-echo -e "[ \033[1m*** Testing KL4: head=0 ***\033[m ]"
+echo -e "[ \033[1m*** Testing KL4: head=0 KEEP = 0***\033[m ]"
 ( set -x; bash checkKL4.sh 0 &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=0) failed" >> failed.log
+    echo -e "KL4 check (head=0 && keep last = 0) failed" >> failed.log
     testFailed=0
 fi
-echo -e "[ \033[1m*** Testing KL4: head=1 ***\033[m ]"
+echo -e "[ \033[1m*** Testing KL4: head=1 KEEP = 0 ***\033[m ]"
 ( set -x; bash checkKL4.sh 1 &>> check.log )
 check_return_val $?
 if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=1) failed" >> failed.log
+    echo -e "KL4 check (head=1 && keep last = 0) failed" >> failed.log
     testFailed=0
 fi
+echo -e "[ \033[1m*** Testing KL4: head=0 KEEP LAST = 1 ***\033[m ]"
+( set -x; bash checkKL4.sh 2 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=0 && keep last = 0) failed" >> failed.log
+    testFailed=0
+fi
+echo -e "[ \033[1m*** Testing KL4: head=1 KEEP LAST = 1 ***\033[m ]"
+( set -x; bash checkKL4.sh 3 &>> check.log )
+check_return_val $?
+if [ $testFailed = 1 ]; then
+    echo -e "KL4 check (head=0 && keep last = 1) failed" >> failed.log
+    testFailed=0
+fi
+
 fi
 
 if [ ! -z $TESTSTANDARD ]; then
