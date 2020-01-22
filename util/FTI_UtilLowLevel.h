@@ -22,7 +22,6 @@ typedef struct FTI_Info{
     int head;
     int nodeSize;
     int userRanks;
-
     int numCheckpoints;
 
 }FTI_Info;
@@ -44,6 +43,7 @@ typedef struct FTI_ckptFile{
     int applicationRank;
     int verified;
     char *pathToFile;
+    FILE *fd;
 }FTI_CkptFile;
 
 typedef struct FTI_collection{
@@ -59,5 +59,9 @@ int FTI_LLInitEnvironment(char *configFile);
 int FTI_LLGetNumCheckpoints();
 int FTI_LLGetCkptID(int *ckptIds);
 int FTI_LLFinalizeUtil();
+int FTI_LLGetNumUserRanks();
+int FTI_LLverifyCkpt( int ckptId, int rank);
+int FTI_LLGetNumVars(int ckptId, int rank);
+int FTI_LLreadVariable(int varId, int ckptId, int rank, char **varName, unsigned char **buf, size_t *size);
 
 #endif

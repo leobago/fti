@@ -10,7 +10,6 @@
         fprintf(stderr, "Error in :%s\n",__func__)
 
 int FTI_InitUtil(char *configFile){
-    printf("I am being called with %s\n",configFile);
     int ret = FTI_LLInitEnvironment(configFile); 
     if (ret != SUCCESS ){
         PRINTERROR();
@@ -48,4 +47,44 @@ int FTI_FinalizeUtil(){
     return SUCCESS;
 }
 
+int FTI_GetUserRanks(int *numRanks){
+    assert(numRanks);
+    *numRanks = FTI_LLGetNumUserRanks();
+    if (*numRanks == ERROR ){
+        PRINTERROR();
+        return ERROR;
+    }
+    return SUCCESS;
+
+}
+
+int FTI_VerifyCkpt(int collection, int ckpt){
+    int ret =  FTI_LLverifyCkpt(collection, ckpt);
+    if (ret != SUCCESS){
+        PRINTERROR();
+        return ERROR;
+    }
+    return SUCCESS;
+
+}
+
+int FTI_GetNumVars(int collection, int ckpt){
+    int ret = FTI_LLGetNumVars(collection, ckpt);
+    if (ret == ERROR){
+        PRINTERROR();
+        return ERROR;
+    }
+    return ret ;
+
+}
+
+int FTI_readVariable(int varId, int ckptId, int rank, char **varName, unsigned char **buf, size_t *size){
+    int ret = FTI_LLreadVariable(varId, ckptId, rank, varName, buf, size);
+    if (ret == ERROR){
+        PRINTERROR();
+        return ERROR;
+    }
+    return ret ;
+
+}
 

@@ -17,6 +17,7 @@
 FTI_Info *info = NULL; 
 FTI_Collection collection;
 FTIpool *allCkpts = NULL;
+FTI_Collection *latest = NULL;
 
 static int cmpFunc( const void *a, const void *b){
     FTI_CkptFile *A = (FTI_CkptFile *) a;
@@ -146,6 +147,7 @@ int readMetaFile(FTI_CkptFile *ckptFile, char *directory, char *fileName, int gr
         sscanf(par, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
         ckptFile[i].globalRank= rank;
         ckptFile[i].pathToFile = NULL;
+        ckptFile[i].fd = NULL;
 
         int numVars = -1;
         int id;
@@ -293,8 +295,11 @@ int destroyCollection( void* ptr){
         }
         FREE(files[i].variables);
         FREE(files[i].pathToFile);
+        if (files[i].fd)
+            CLOSE(files[i].fd); 
     }
     FREE(files);
+    latest = NULL;
     return SUCCESS;
 }
 
@@ -343,8 +348,7 @@ int verifyCkpt(FTI_Info *info, FTI_CkptFile *file){
     if ( file->verified )
         return SUCCESS;
 
-    sprintf(tmp,"%s/%s/%s",info->globalDir, info->execId,  file->name);
-    OPEN(ckpt,tmp,"rb");
+    OPEN(ckpt, file->pathToFile,"rb");
 
     MD5_CTX mdContext;
     MD5_Init (&mdContext);
@@ -367,9 +371,10 @@ int verifyCkpt(FTI_Info *info, FTI_CkptFile *file){
         return ERROR;
     }
     
-    CLOSE(ckpt);
+//    CLOSE(ckpt);
     FREE(data);
     file->verified = 1;
+    file->fd = ckpt;
     return SUCCESS;
 }
 
@@ -381,15 +386,14 @@ int readVariable( FTI_DataVar *var, FTI_CkptFile *ckpt, unsigned char **data, si
     int bytes;
 
     *size = var->size;
-    printf("Size is %ld\n", *size);
+
     if ( var->buf ){
         (*data) = var->buf;
         return SUCCESS;
     }
 
     MALLOC(tmpdata, (*size) , unsigned char);
-    sprintf(tmp,"%s/%s/l4/%s",info->globalDir, info->execId, ckpt->name);
-    OPEN(fd,tmp,"rb");
+    OPEN(fd,ckpt->pathToFile,"rb");
     fseek(fd, var->pos, SEEK_SET); 
     size_t bytesToRead = *size;
     do{
@@ -406,14 +410,11 @@ int readVariable( FTI_DataVar *var, FTI_CkptFile *ckpt, unsigned char **data, si
     return SUCCESS;
 }
 
-int readVarById(int id, unsigned char **ptr, int rank, size_t *size ){
+int readVarById(int id, unsigned char **ptr, FTI_CkptFile *ckpt, size_t *size, char **varName ){
   int i;
-  if ( rank >= info->userRanks){
-      fprintf(stderr, "You are requesting ckpt data from a rank that does not exist\n");
-      return ERROR;
-  }
+  
 
-  FTI_CkptFile *ckpt = &collection.files[rank];      
+//  FTI_CkptFile *ckpt = &collection.files[rank];      
   if ( ckpt->verified == 0){
       fprintf(stderr, "You are requesting to read a ckpt which you have not verified\n");
   }
@@ -423,6 +424,7 @@ int readVarById(int id, unsigned char **ptr, int rank, size_t *size ){
   for ( i = 0; i < ckpt->numVars; i++){
       if ( id == ckpt->variables[i].id){
           variable = &ckpt->variables[i];
+          (*varName) = ckpt->variables[i].name;
           break;
       }
   }
@@ -522,4 +524,82 @@ int FTI_LLFinalizeUtil(){
 }
 
 
+int FTI_LLGetNumUserRanks(){
+    if (info != NULL){
+        return info->userRanks;
+    }
+    return ERROR;
+}
 
+int FTI_LLGetNumVars(int ckptId, int rank){
+
+    FTI_Collection *coll= NULL;
+    if ( latest && latest-> ckptId == ckptId) {
+        coll = latest;
+    }else{
+        coll = (FTI_Collection*) search(allCkpts, ckptId);
+        latest = coll;
+    }
+
+    if (!coll){
+        fprintf(stderr, "%s:%s:%d Could Not Find requestd Ckpt\n", __FILE__, __func__, __LINE__);
+        return ERROR;
+    }
+
+    if ( rank > coll->numCkpts ){
+        fprintf(stderr, "%s:%s:%d We do not have that many ckpts.\n", __FILE__, __func__, __LINE__);
+        return ERROR;
+    }
+
+    return coll->files[rank].numVars;
+}
+
+int FTI_LLverifyCkpt( int ckptId, int rank){
+    int ret;
+    FTI_Collection *coll= NULL;
+    if ( latest && latest-> ckptId == ckptId) {
+        coll = latest;
+    }else{
+        coll = (FTI_Collection*) search(allCkpts, ckptId);
+        latest = coll;
+    }
+
+    if (!coll){
+        fprintf(stderr, "%s:%s:%d Could Not Find requestd Ckpt\n", __FILE__, __func__, __LINE__);
+        return ERROR;
+    }
+
+    if ( rank > coll->numCkpts ){
+        fprintf(stderr, "%s:%s:%d We do not have that many ckpts.\n", __FILE__, __func__, __LINE__);
+        return ERROR;
+    }
+
+    ret = verifyCkpt(info, &(coll->files[rank]));
+    return ret;
+}
+
+
+
+int FTI_LLreadVariable(int varId, int ckptId, int rank, char **varName, unsigned char **buf, size_t *size){
+    int ret;
+    FTI_Collection *coll= NULL;
+    if ( latest && latest-> ckptId == ckptId) {
+        coll = latest;
+    }else{
+        coll = (FTI_Collection*) search(allCkpts, ckptId);
+        latest = coll;
+    }
+
+    if (!coll){
+        fprintf(stderr, "%s:%s:%d Could Not Find requestd Ckpt %d\n", __FILE__, __func__, __LINE__,ckptId);
+        return ERROR;
+    }
+
+    if ( rank > coll->numCkpts ){
+        fprintf(stderr, "%s:%s:%d We do not have that many ckpts.\n", __FILE__, __func__, __LINE__);
+        return ERROR;
+    }
+
+    ret = readVarById(varId, buf, &(coll->files[rank]) , size , varName);
+     
+}

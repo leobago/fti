@@ -85,6 +85,17 @@ void execOnAllNodes(FTIpool **pool, void (*func)(void *data)){
 
 }
 
+void *search(FTIpool *pool, int id){
+    node *ptr = pool->head;
+    while(ptr){
+        if (ptr->id == id ){
+            return ptr->data;
+        }
+        ptr=ptr->next;
+    }
+    return NULL;
+}
+
 int dummy(void *ptr){
     return SUCCESS;
 }

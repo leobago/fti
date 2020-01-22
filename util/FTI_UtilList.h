@@ -17,5 +17,6 @@ int createPool(FTIpool **data, int (*func)( void * ));
 int destroyPool(FTIpool **data);
 int addNode(FTIpool **data, void *ptr, int id);
 void execOnAllNodes(FTIpool **pool, void (*func)(void *data));
+void *search(FTIpool *pool, int id);
 
 #endif
