@@ -3,6 +3,11 @@
 #include <assert.h>
 #include <mpi.h>
 #include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 
 #include "FTI_UtilAPI.h"
 
@@ -42,7 +47,7 @@ int FTI_MPIOWrite(void *src, size_t size, MPI_File *fd, MPI_Offset *offset){
 }
 
 
-void processCkpts(int start, int end, int *ckptId, int numCkpts){
+void processCkpts(int start, int end, int *ckptId, int numCkpts, char *dir){
     int i;
     int ret = 0;
     MPI_Info info = 0;
@@ -90,10 +95,10 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
             }
             
             if ( strlen(name[0]) != 0 ){
-                sprintf(fn,"./output/Ckpt_%d_%s.mpio",ckptId[i],name[0]);
+                sprintf(fn,"%s/Ckpt_%d_%s.mpio",dir, ckptId[i],name[0]);
             }
             else{
-                sprintf(fn,"./output/Ckpt_%d_%d.mpio",ckptId[i], varIds[i]);
+                sprintf(fn,"%s/Ckpt_%d_%d.mpio",dir, ckptId[i], varIds[i]);
             }
             MPI_Offset mySize = 0;
             MPI_Offset offset = 0;
@@ -146,11 +151,42 @@ int main(int argc, char *argv[]){
     int numCkpts = 0;
     int *checkpointIds = NULL;
     int FTI_ranks;
-    char *configFile = argv[1];
     int start, end , responsibleRanks;
-
+    struct stat sb;
     MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    if (argc != 3 ){
+
+        if (myRank == 0)
+            printf("Executable should be executed as : %s 'pathToConfigFile' 'directoryOfExport'\n",argv[0]);
+        MPI_Finalize();
+        return 0;
+    }
+
+    char *configFile = argv[1];
+    char *exportDir = argv[2];
+
+    DIR* dir = opendir(exportDir);
+    if (dir) {
+        closedir(dir);
+    } else if (ENOENT == errno) {
+        if (myRank == 0 ){
+            fprintf(stderr, "Directory does not exist I will try to make it...");
+            if ( mkdir(exportDir, 0777) != 0 ){
+                fprintf(stderr, "Could not create directory\n");
+                exit(-1);
+            }else{
+                printf("SUCCESS\n");
+            }
+        }
+    } else {
+        fprintf(stderr, "Error when trying to open export dir\n"); 
+        
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+
 
     int ret = FTI_InitUtil(configFile);         
     if (ret != SUCCESS ) {fprintf(stderr, "Failed to initialize fti util\n"); return (-1); }
@@ -186,7 +222,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    processCkpts(start, end, checkpointIds, numCkpts); 
+    processCkpts(start, end, checkpointIds, numCkpts, exportDir); 
 
     free(checkpointIds);
     checkpointIds = NULL;
