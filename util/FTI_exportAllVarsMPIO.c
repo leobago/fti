@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <mpi.h>
+#include <string.h>
 
 #include "FTI_UtilAPI.h"
 
@@ -24,7 +25,6 @@ int FTI_MPIOWrite(void *src, size_t size, MPI_File *fd, MPI_Offset *offset){
         MPI_Type_commit(&dType);
 
         int err = MPI_File_write_at(*fd, *offset, src, 1, dType, MPI_STATUS_IGNORE);
-        // check if successful
         if ( err != 0) {
             char str[100], mpi_err[100];
             int reslen;
@@ -45,9 +45,8 @@ int FTI_MPIOWrite(void *src, size_t size, MPI_File *fd, MPI_Offset *offset){
 void processCkpts(int start, int end, int *ckptId, int numCkpts){
     int i;
     int ret = 0;
-    MPI_Offset offset;
-    MPI_Info info;
-    MPI_File pfh;
+    MPI_Info info = 0;
+    MPI_File pfh = 0;
 
     MPI_Offset* rankSizes = (MPI_Offset*) malloc(sizeof(MPI_Offset)*numRanks);
 
@@ -61,16 +60,22 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
         ret = FTI_GetNumVars(ckptId[i], 0);
         if (ret == ERROR ) {fprintf(stderr, "Failed to Get number of variables ckpt ckptid:%d rank:%d\n", ckptId[i], 0); exit (-1); }
         numVars[i] = ret;
-
     }
 
-    //        for ( int j = start; j <  end; j++){
+
     for ( i = 0; i < numCkpts; i++){
         unsigned char **buf;
+        buf = NULL;
         char **name;
         size_t *size;
+
+        int *varIds = (int *) malloc (sizeof(int)*numVars[i]);
+
         for (int k = 0; k < numVars[i]; k++){
             buf = (unsigned char**) malloc(sizeof(unsigned char*)*(end-start));
+            for ( int r = 0; r < end - start ; r++ ){
+                buf[r] = NULL;
+            }
             name = (char **) malloc (sizeof(char*) *(end-start)); 
             size = (size_t *) malloc (sizeof(size_t)*(end-start));
             char fn[1000];
@@ -79,12 +84,17 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
             int elements = end -start;
 
             for ( int r = start; r < end; r++){
-                ret =  FTI_readVariable(k, ckptId[i], r, &name[cnt], &buf[cnt], &size[cnt]);
+                ret =  FTI_readVariableByIndex(k, ckptId[i], r, &name[cnt], &varIds[i], &buf[cnt], &size[cnt]);
                 if (ret == ERROR ) {fprintf(stderr, "Failed to Read Var %d: in ckpt %d rank:%d\n",k, ckptId[i], r); exit (-1); }
                 cnt++;
             }
-
-            sprintf(fn,"./output/Ckpt_%d_%s.mpio",ckptId[i],name[0]);
+            
+            if ( strlen(name[0]) != 0 ){
+                sprintf(fn,"./output/Ckpt_%d_%s.mpio",ckptId[i],name[0]);
+            }
+            else{
+                sprintf(fn,"./output/Ckpt_%d_%d.mpio",ckptId[i], varIds[i]);
+            }
             MPI_Offset mySize = 0;
             MPI_Offset offset = 0;
 
@@ -102,6 +112,7 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
             ret = MPI_File_open(MPI_COMM_WORLD, fn, MPI_MODE_WRONLY|MPI_MODE_CREATE, info, &pfh);
             if (ret != 0 ){
                 char str[1000], mpi_err[100];
+                MPI_Info_free(&info);
                 int reslen;
                 MPI_Error_string(ret , mpi_err, &reslen);
                 fprintf(stderr, "unable to create file [MPI ERROR - %i] %s:%s aaa\n", ret, mpi_err,fn);
@@ -124,6 +135,7 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
             size = NULL;
 
         }
+        free(varIds);
     }
     free(numVars);
 
@@ -131,7 +143,6 @@ void processCkpts(int start, int end, int *ckptId, int numCkpts){
 
 int main(int argc, char *argv[]){
     MPI_Init(&argc, &argv);
-
     int numCkpts = 0;
     int *checkpointIds = NULL;
     int FTI_ranks;
@@ -177,9 +188,8 @@ int main(int argc, char *argv[]){
 
     processCkpts(start, end, checkpointIds, numCkpts); 
 
-
-
     free(checkpointIds);
+    checkpointIds = NULL;
     FTI_FinalizeUtil();
     MPI_Finalize();
 }

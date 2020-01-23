@@ -12,6 +12,6 @@ int FTI_FinalizeUtil();
 int FTI_GetUserRanks(int *numRanks);
 int FTI_VerifyCkpt(int collection, int ckpt);
 int FTI_GetNumVars(int ckptId, int rank);
-int FTI_readVariable(int varId, int ckptId, int rank, char **varName, unsigned char **buf, size_t *size);
+int FTI_readVariableByIndex(int varIndex, int ckptId, int rank, char **varName, int *varId, unsigned char **buf, size_t *size);
 
 #endif
