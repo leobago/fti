@@ -17,5 +17,5 @@ install(DIRECTORY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/local)
 install(DIRECTORY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/global)
 install(DIRECTORY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/meta)
 
-add_custom_target(hdl1 mpirun -n 8 ./hdl1.exe 64 ./config.L1.fti)
+add_custom_target(hdl1 mpirun -n 8 --oversubscribe ./hdl1.exe 64 ./config.L1.fti)
 add_custom_target(hdl1rm rm -Rf ./local/* ./global/* ./meta/* COMMAND sed -i 's/failure[ ]\\+= 1/failure = 0/g' config.L1.fti)
