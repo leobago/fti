@@ -136,11 +136,11 @@ int main( int argc, char** argv ) {
     int ldim1 = fdimY1/((int)sqrt(size));
     
     // define local properties
-    hsize_t offset[] = { ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0, (rank%((int)sqrt(size)))*ldim1 };
-    hsize_t count[] = { 1, ldim1 };
+    FTIT_hsize_t offset[] = { ((rank/((int)sqrt(size)))%((int)sqrt(size)))*ldim0, (rank%((int)sqrt(size)))*ldim1 };
+    FTIT_hsize_t count[] = { 1, ldim1 };
     
     // set dataset properties
-    hsize_t fdim[2] = { fdimX, fdimY1 }; 
+    FTIT_hsize_t fdim[2] = { fdimX, fdimY1 }; 
  
     // check for correct behavior using define datatypes
     struct STRUCT {
@@ -225,7 +225,7 @@ int main( int argc, char** argv ) {
             }
         }
         
-        hsize_t nulldim[2] = { 0, 0 }; 
+        FTIT_hsize_t nulldim[2] = { 0, 0 }; 
         FTI_UpdateGlobalDataset( 0, 2, nulldim );
         FTI_UpdateGlobalDataset( 1, 2, nulldim );
         if( FTI_Status() == 3 ) {
@@ -236,7 +236,7 @@ int main( int argc, char** argv ) {
                 printf("[FAILURE-%d] Rank Missmatch!\n", rank);
                 MPI_Abort(MPI_COMM_WORLD, -1);
             }
-            hsize_t* spanReco = FTI_GetDatasetSpan( 0, rankReco ); 
+            FTIT_hsize_t* spanReco = FTI_GetDatasetSpan( 0, rankReco ); 
             for(i=0; i<rankReco; i++) {
                 if( (spanReco[i] != fdim[i]) ) {
                     printf("[FAILURE-%d] Dimension Missmatch!\n", rank);
