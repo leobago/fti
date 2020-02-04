@@ -14,8 +14,9 @@
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
+typedef hsize_t FTIT_hsize_t;
 #else
-typedef unsigned long long hsize_t;
+typedef unsigned long long FTIT_hsize_t;
 #endif
 
 #ifdef GPUSUPPORT
