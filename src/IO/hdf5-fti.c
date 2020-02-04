@@ -370,12 +370,13 @@ int FTI_HDF5Open(char *fn, void *fileDesc)
     //Creating new hdf5 file
     if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
         // NO IMPROVEMENT IN PERFORMANCE OBSERVED USING HINTS HERE
-        MPI_Info info;
-        MPI_Info_create(&info);
-        MPI_Info_set(info, "romio_cb_write", "enable");
-        MPI_Info_set(info, "stripping_unit", "4194304");
+        //MPI_Info info;
+        //MPI_Info_create(&info);
+        //MPI_Info_set(info, "romio_cb_write", "enable");
+        //MPI_Info_set(info, "stripping_unit", "4194304");
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
+        //H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
+        H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
         fd->file_id = H5Fcreate(fn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
         H5Pclose( plid );
     } else {
@@ -1514,11 +1515,11 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     H5Sselect_hyperslab(fsid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
     // enable collective buffering
-    //hid_t plid = H5Pcreate( H5P_DATASET_XFER );
-    //H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
+    hid_t plid = H5Pcreate( H5P_DATASET_XFER );
+    H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     // write data in file
-    herr_t status = H5Dread(did, tid, msid, fsid, H5P_DEFAULT, FTI_Data.ptr);
+    herr_t status = H5Dread(did, tid, msid, fsid, plid, FTI_Data.ptr);
     if(status < 0) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
@@ -1527,7 +1528,7 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     }
 
     H5Sclose( msid );
-    //H5Pclose( plid );
+    H5Pclose( plid );
 
     return status;
 
@@ -1590,9 +1591,11 @@ int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
 /*-------------------------------------------------------------------------*/
 herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 {
+    static double T = 0;
 
     if( FTI_Data.sharedData.dataset ) {
         
+        double t1 = MPI_Wtime();
         // hdf5 datatype
         hid_t tid = FTI_Data.sharedData.dataset->hdf5TypeId;
 
@@ -1642,6 +1645,9 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         H5Sclose( msid );
         H5Pclose( plid );
 
+        double t2 = MPI_Wtime();
+        T += t2-t1;
+        //DBG_MSG("time to write dataset: %lf seconds, total time: %lf seconds.", 0, t2-t1, T);
     }
 
     return FTI_SCES;
@@ -1877,6 +1883,12 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
         
+        hid_t plid = H5Pcreate (H5P_DATASET_CREATE);
+        //int size; MPI_Comm_size(MPI_COMM_WORLD,&size);
+        //if((dataset->rank)==2) {
+        //    hsize_t dim[2] = {256,256};
+        //    H5Pset_chunk (plid, dataset->rank, dim);
+        //}
         // FLETCHER CHECKSUM NOT SUPPORTED FOR PARALLEL I/O IN HDF5
         //hid_t dcpl = H5Pcreate (H5P_DATASET_CREATE);
         //H5Pset_fletcher32 (dcpl);
@@ -1885,14 +1897,14 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
         //chunk[0] = chunk[1] = 4096;
         //H5Pset_chunk (dcpl, 2, chunk);
 
-        dataset->hid = H5Dcreate( loc, dataset->name, tid, fsid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+        dataset->hid = H5Dcreate( loc, dataset->name, tid, fsid, H5P_DEFAULT, plid, H5P_DEFAULT );
         if(dataset->hid < 0) {
             char errstr[FTI_BUFS];
             snprintf( errstr, FTI_BUFS, "Unable to create dataset #%d", dataset->id );
             FTI_Print(errstr,FTI_EROR);
             return FTI_NSCS;
         }
-
+        H5Pclose(plid);
         dataset->initialized = true;
 
         dataset = dataset->next;
@@ -2109,9 +2121,10 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     MPI_Info info;
     MPI_Info_create(&info);
     MPI_Info_set(info, "romio_cb_write", "enable");
-    MPI_Info_set(info, "stripping_unit", "4194304");
+    MPI_Info_set(info, "stripping_unit", "16777216");
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
     H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
+    //H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, MPI_INFO_NULL);
     fid = H5Fcreate(tmpfn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
     H5Pclose( plid );
 

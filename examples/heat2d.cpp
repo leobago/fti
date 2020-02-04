@@ -103,8 +103,8 @@ class Timer{
 // GRID PARAMETERS
 //const size_t M = 1024;
 //const size_t N = 1024;
-size_t M = (768*128);               // largest (768*256);
-size_t N = (768*128);               // largest (768*256);
+size_t M;               // largest (768*256);
+size_t N;               // largest (768*256);
 
 // SIMULATION PARAMETERS
 std::string m_logdir;
@@ -131,7 +131,8 @@ class SEnvironment {
             ITER_MAX  = atoi( argv[2] );
             ITER_CHK  = atoi( argv[3] );
             ITER_FAIL = atoi( argv[4] );
-            M *= atoi( argv[5] );
+            M = 256*24*atoi(argv[5]);
+            N = (768*256);               // largest (768*256);
             std::stringstream ss;
             ss << argv[6] << "/timing/";
             m_logdir = ss.str();

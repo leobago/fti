@@ -93,8 +93,8 @@ class Timer{
     std::stringstream _log;
 };
 
-size_t M = (768*128);               // largest (768*256);
-size_t N = (768*128);               // largest (768*256);
+size_t M;               // largest (768*256);
+size_t N;               // largest (768*256);
 
 // SIMULATION PARAMETERS
 std::string m_logdir;
@@ -108,15 +108,16 @@ class SEnvironment {
         
         void init( int & argc, char** & argv ) {
             
-            if( argc != 5 ) {
+            if( argc != 4 ) {
                 printf("usage: %s IterMax", argv[0]);
                 exit(-1);
             }
             
-            ITER_MAX  = atoi( argv[2] );
-            M *= atoi( argv[3] );
+            ITER_MAX  = atoi( argv[1] );
+            M = 256*24*atoi(argv[2]);
+            N = (768*256);               // largest (768*256);
             std::stringstream ss;
-            ss << argv[4] << "/timing/";
+            ss << argv[3] << "/timing/";
             m_logdir = ss.str();
             ss.str(std::string());
             

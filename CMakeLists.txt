@@ -90,14 +90,15 @@ endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
-option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
-option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" ON)
+option(ENABLE_TESTS "Enables the generation of tests" OFF)
 option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 option(ENABLE_ULFM "Generates example that works with ULFM" OFF)
+option(ENABLE_ADIOS "Generates example that works with ULFM" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
