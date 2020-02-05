@@ -928,7 +928,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type)
+int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
 #ifdef ENABLE_HDF5
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;
@@ -999,7 +999,7 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* na
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
     int i, found=0, pvar_idx;
@@ -1078,7 +1078,7 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
   direction. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength )
+int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength )
 {
 #ifdef ENABLE_HDF5
     FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
@@ -1128,7 +1128,7 @@ int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength )
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
     int i, found=0, pvar_idx;
@@ -1242,7 +1242,7 @@ int FTI_GetDatasetRank( int did )
 
  **/
 /*-------------------------------------------------------------------------*/
-hsize_t* FTI_GetDatasetSpan( int did, int rank ) 
+FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank ) 
 {
 #ifdef ENABLE_HDF5 
 

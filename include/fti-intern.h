@@ -14,8 +14,6 @@
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
-#else
-typedef unsigned long long hsize_t;
 #endif
 
 #ifdef GPUSUPPORT
@@ -24,9 +22,6 @@ typedef unsigned long long hsize_t;
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
-
-typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
-typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
 #define LOCAL 0
 #define GLOBAL 1
@@ -101,6 +96,15 @@ typedef void*               FTI_ADDRPTR;        /**< void ptr type              
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+    typedef hsize_t FTIT_hsize_t;
+#else
+    typedef unsigned long long FTIT_hsize_t;
+#endif
+    
+    typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+    typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
     typedef struct FTIT_datasetInfo {
         int varID;
