@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
     arg = atoi(argv[1]);
     M = (int)sqrt((double)(arg * 1024.0 * 512.0 * nbProcs)/sizeof(double));
     nbLines = (M / nbProcs)+3;
-    h = (double *) malloc(sizeof(double *) * M * nbLines);
-    g = (double *) malloc(sizeof(double *) * M * nbLines);
+    h = (double *) malloc(sizeof(double) * M * nbLines);
+    g = (double *) malloc(sizeof(double) * M * nbLines);
     initData(nbLines, M, rank, g);
     memSize = M * nbLines * 2 * sizeof(double) / (1024 * 1024);
 
