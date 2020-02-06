@@ -16,12 +16,13 @@ if (ENABLE_GPU)
 else ()
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
       if( ${ENABLE_FORTRAN} )
-          project(FTI C CXX Fortran)
+        project(FTI C Fortran)
       else()
-          project(FTI C CXX)
+        project(FTI C)
       endif()
   endif()
 endif()  
+
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
@@ -90,19 +91,16 @@ endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
-option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
+option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
-option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" ON)
-option(ENABLE_TESTS "Enables the generation of tests" OFF)
+option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
+option(ENABLE_TESTS "Enables the generation of tests" ON)
 option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
-option(ENABLE_ULFM "Generates example that works with ULFM" OFF)
-option(ENABLE_ADIOS "Generates example that works with ULFM" OFF)
+option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
-
-
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -113,8 +111,6 @@ endif()
 
 include(CheckCCompilerFlag)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
-
 #check for ZLIB (crc32)
 find_package(ZLIB)
 if(NOT ZLIB_FOUND)
@@ -124,6 +120,7 @@ endif()
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
+    include_directories( ${OPENSSL_INCLUDE_DIR} )
 else()
 	set(OPENSSL_FOUND false)
 endif()
@@ -167,9 +164,13 @@ SRC_FTI
     src/topo.c
     src/tools.c
     src/utility.c
-    src/paper/create_hostfile.c
-    src/paper/init.c
 )
+
+if (ENABLE_SIONLIB)
+    list(APPEND SRC_FTI "src/IO/sion-fti.c")
+    message("${SRC_FTI}")
+endif()
+
 
 if (ENABLE_GPU)
 set(
@@ -232,9 +233,6 @@ else()
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
-append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
-
 if( NOT ZLIB_FOUND )
 append_property(SOURCE ${SRC_CUDA_FTI}
     PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
@@ -278,6 +276,7 @@ if(ENABLE_LUSTRE)
     endif()
 endif()
 
+
 if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
@@ -292,6 +291,7 @@ if(ENABLE_SIONLIB)
     target_link_libraries(fti.shared "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     add_definitions(-DENABLE_SIONLIB)
 endif()
+
 
 if(ENABLE_HDF5)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
@@ -316,13 +316,14 @@ if(ENABLE_FI_IO)
     add_definitions(-DENABLE_FTI_FI_IO)
 endif()
 
+append_property(SOURCE ${SRC_FTI}
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
+
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
 install(FILES "include/fti-intern.h"
-	DESTINATION include)
-install(FILES "include/interface-paper.h"
 	DESTINATION include)
 configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 
@@ -388,10 +389,13 @@ if(ENABLE_TESTS)
 	add_subdirectory(test)
 endif()
 
+if(ENABLE_TUTORIAL)
+	add_subdirectory(tutorial)
+endif()
+
 if(ENABLE_DOCU)
     add_subdirectory(doc/Doxygen)
 endif()
-
 
 # installable config
 
@@ -411,7 +415,6 @@ configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.
 
 # set up exaples in build/examples/
 file(COPY examples/config.fti DESTINATION examples)
-#configure_file(examples/config-ulfm.fti ${CMAKE_INSTALL_PREFIX_ULFM}/config.fti COPYONLY)
 file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)

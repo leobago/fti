@@ -422,6 +422,7 @@ extern "C" {
         void                *devicePtr;         /**< Pointer to data in the device                  */
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
+        char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
         size_t				filePos; 
     } FTIT_dataset;
 
@@ -441,6 +442,7 @@ extern "C" {
         int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
         long*            varSize;            /**< Variable size. [FTI_BUFS]             */
         long*            filePos;            /**< File Postion of each variable			*/
+        char*            idChar;
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration
@@ -469,8 +471,6 @@ extern "C" {
         int             ckptTag;            /**< MPI tag for ckpt requests.         */
         int             stageTag;           /**< MPI tag for staging comm.          */
         int             finalTag;           /**< MPI tag for finalize comm.         */
-        int             failedTag;           /**< MPI tag for finalize comm.         */
-        int             killTag;           /**< MPI tag for finalize comm.         */
         int             generalTag;         /**< MPI tag for general comm.          */
         int             test;               /**< TRUE if local test.                */
         int             l3WordSize;         /**< RS encoding word size.             */
@@ -531,6 +531,7 @@ extern "C" {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.                  */
         char            dcpDir[FTI_BUFS];   /**< dCP directory.                         */
         char            archDir[FTI_BUFS];  /**< Checkpoint directory.                  */        
+        char            archMeta[FTI_BUFS]; /**< .Directory storing archieved meta      */        
         char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
         char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
         bool            isDcp;              /**< TRUE if dCP requested                  */
@@ -542,7 +543,7 @@ extern "C" {
         int             ckptCnt;            /**< Checkpoint counter.                    */
         int             ckptDcpIntv;        /**< Checkpoint interval.                   */
         int             ckptDcpCnt;         /**< Checkpoint counter.                    */
-
+        int             ckptID;             /**<Id of the checkpoint stored in this leve */
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection
@@ -680,6 +681,8 @@ extern "C" {
 
 
     } FTIT_execution;
+
+
 
 #ifdef __cplusplus
 }

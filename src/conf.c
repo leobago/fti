@@ -177,8 +177,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->ckptTag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
     FTI_Conf->stageTag = (int)iniparser_getint(ini, "Advanced:stage_tag", 406);
     FTI_Conf->finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
-    FTI_Conf->failedTag = (int)iniparser_getint(ini, "Advanced:failed_tag", 31070);
-    FTI_Conf->killTag = (int)iniparser_getint(ini, "Advanced:kill_tag", 310700);
     FTI_Conf->generalTag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
@@ -543,6 +541,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
     snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
     snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
+    snprintf(FTI_Ckpt[4].archMeta, FTI_BUFS, "%s/l4_archive", fn);
 
     // Create global checkpoint timestamp directory
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
@@ -553,13 +552,15 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].archDir, FTI_BUFS, "%s/l4_archive", FTI_Conf->glbalDir);
+
     if ( FTI_Conf->keepL4Ckpt ) {
         MKDIR(FTI_Ckpt[4].archDir,0777);
+        MKDIR(FTI_Ckpt[4].archMeta,0777);
     }
     if ( FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff ) {
         if (mkdir(FTI_Ckpt[4].dcpDir, (mode_t) 0777) == -1) {
             if (errno != EEXIST) {
-                snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].archDir);
+                snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].dcpDir);
                 FTI_Print(strerr, FTI_EROR);
                 FTI_Conf->dcpPosix = false;
                 FTI_Conf->dcpFtiff = false;

@@ -176,14 +176,12 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->stageInfo             =NULL;
     /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
     FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
-    /* MPI_Comm      */ memset(&(FTI_Exec->globalComm), 0x0, sizeof(MPI_Comm));
+    /* MPI_Comm      */ FTI_Exec->globalComm            =0;
     /* MPI_Comm      */ FTI_Exec->groupComm             =0;
     /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
     /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
     memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
     memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
-    
-    memset(FTI_Exec, 0x0, sizeof(FTIT_execution));
 
     // +--------- +
     // | FTI_Conf |
@@ -400,6 +398,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
             FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
         }
     } else {
         for (i = 0; i < 5; i++) {
@@ -413,6 +412,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
             FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
             FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS, sizeof(char));
         }
     }
     FTI_Exec->metaAlloc = 1;
@@ -441,6 +441,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
             free(FTI_Exec->meta[i].varID);
             free(FTI_Exec->meta[i].varSize);
             free(FTI_Exec->meta[i].filePos);
+            free(FTI_Exec->meta[i].idChar);
         }
         FTI_Exec->metaAlloc = 0;
     }
@@ -737,7 +738,7 @@ int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, 
                 }
             }		
             if ( j == FTI_Exec->nbVar){
-                FTI_Print("Variables must be protected before theiy can be revoered.", FTI_EROR);
+                FTI_Print("Variables must be protected before they can be recovered.", FTI_EROR);
                 return FTI_NREC;
             }
 

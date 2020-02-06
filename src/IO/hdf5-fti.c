@@ -1591,11 +1591,9 @@ int FTI_CloseGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
 /*-------------------------------------------------------------------------*/
 herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 {
-    static double T = 0;
 
     if( FTI_Data.sharedData.dataset ) {
         
-        double t1 = MPI_Wtime();
         // hdf5 datatype
         hid_t tid = FTI_Data.sharedData.dataset->hdf5TypeId;
 
@@ -1645,9 +1643,6 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
         H5Sclose( msid );
         H5Pclose( plid );
 
-        double t2 = MPI_Wtime();
-        T += t2-t1;
-        //DBG_MSG("time to write dataset: %lf seconds, total time: %lf seconds.", 0, t2-t1, T);
     }
 
     return FTI_SCES;
@@ -1726,10 +1721,10 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
         }
         MPI_Allreduce( &numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, FTI_COMM_WORLD );
         if( numElem != numElemGlobal ) {
-            //char errstr[FTI_BUFS];
-            //snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
-            //FTI_Print( errstr, FTI_WARN);
-            //return FTI_NSCS;
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
+            FTI_Print( errstr, FTI_WARN);
+            return FTI_NSCS;
         }
         dataset = dataset->next;
     }

@@ -54,7 +54,7 @@ int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
 }
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Opens and HDF5 file (Only for write).
+  @brief      Opens and POSIX file (Only for write).
   @param      fileDesc        The file descriptor.
   @return     integer         FTI_SCES on success.
  **/
@@ -87,7 +87,7 @@ int FTI_PosixOpen(char *fn, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Closes the HDF5 file  
+  @brief      Closes the POSIX file  
   @param      fileDesc          The fileDescriptor 
   @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
@@ -245,7 +245,7 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to using MPIIO file format.
+  @brief      Writes ckpt to using POSIX format.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.

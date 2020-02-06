@@ -251,6 +251,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
         if ( FTI_Ckpt[4].hasCkpt ) {
             FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+            int globalFlag = !FTI_Topo->splitRank;
+            globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
+            if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
+                snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
+                RENAME(FTI_Ckpt[4].metaDir, str );
+            }
         }
         // store current ckpt file name in meta data.
         if ( !FTI_Topo->amIaHead ) {
@@ -297,6 +303,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // expose to FTI that a checkpoint exists for level
     FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
+    FTI_Ckpt[FTI_Exec->ckptLvel].ckptID= FTI_Exec->ckptID;
 
     return FTI_SCES;
 }
@@ -322,13 +329,13 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Status ckpt_status;         int ckpt_flag = 0;
     MPI_Status stage_status;        int stage_flag = 0;
     MPI_Status finalize_status;     int finalize_flag = 0;
-    MPI_Status failed_status;     int failed_flag = 0;
-    MPI_Status kill_status;     int kill_flag = 0;
 
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) { //heads can stop only by receiving FTI_ENDW
+
         FTI_Print("Head waits for message...", FTI_DBUG);
 
+        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
         if ( FTI_Conf->stagingEnabled ) {
             MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->stageTag, FTI_Exec->nodeComm, &stage_flag, &stage_status );
         }
@@ -353,26 +360,6 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             continue;
 
         } 
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->killTag, FTI_Exec->globalComm, &kill_flag, &kill_status );
-        if ( kill_flag ) {
-            
-            int rbuf, sbuf;
-            MPI_Recv(&rbuf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->killTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Send(&sbuf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->killTag, FTI_Exec->globalComm);
-            return 666;
-            //XFTI_CRASH;
-
-        }
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->failedTag, FTI_Exec->globalComm, &failed_flag, &failed_status );
-        if ( failed_flag ) {
-            
-            int buf;
-            MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[0], FTI_Conf->failedTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-
-            break;
-
-        }
-        MPI_Iprobe( MPI_ANY_SOURCE, FTI_Conf->finalTag, FTI_Exec->globalComm, &finalize_flag, &finalize_status );
 
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.
@@ -408,7 +395,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // will be reached only if keepHeadsAlive is TRUE
-    return FTI_HEAD;
+    return FTI_SCES;
 
 }
 
@@ -533,7 +520,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @return     integer         FTI_SCES if successful.
     
     This function performs a normal checkpoint by calling the respective file format procedures,
-    initalize chkpt, write data, compute integrity and finalize files.
+    initalize ckpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -558,98 +545,4 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-int FTI_WriteSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo,FTIT_dataset* FTI_Data)
-{
-    int numFiles = 1;
-    int nlocaltasks = 1;
-    int* file_map = calloc(1, sizeof(int));
-    int* ranks = talloc(int, 1);
-    int* rank_map = talloc(int, 1);
-    sion_int64* chunkSizes = talloc(sion_int64, 1);
-    int fsblksize = -1;
-    chunkSizes[0] = FTI_Exec->ckptSize;
-    ranks[0] = FTI_Topo->splitRank;
-    rank_map[0] = FTI_Topo->splitRank;
 
-    // open parallel file
-    char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
-    int sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
-
-    // check if successful
-    if (sid == -1) {
-        errno = 0;
-        FTI_Print("SIONlib: File could no be opened", FTI_EROR);
-
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-
-    // set file pointer to corresponding block in sionlib file
-    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
-
-    // check if successful
-    if (res != SION_SUCCESS) {
-        errno = 0;
-        FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
-        sion_parclose_mapped_mpi(sid);
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-
-    // write datasets into file
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        // SIONlib write call
-
-        if ( !(FTI_Data[i].isDevicePtr) ){
-            res = write_sion(FTI_Data[i].ptr, FTI_Data[i].size, &sid);
-        }
-#ifdef GPUSUPPORT            
-        // if data are stored to the GPU move them from device
-        // memory to cpu memory and store them.
-        else {
-            if ((res = FTI_Try(
-                            TransferDeviceMemToFileAsync(&FTI_Data[i], write_sion, &sid),
-                            "moving data from GPU to storage")) != FTI_SCES) {
-                snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_Data[i].id);
-                FTI_Print(str, FTI_EROR);
-                errno = 0;
-                FTI_Print("SIONlib: Data could not be written", FTI_EROR);
-                res =  sion_parclose_mapped_mpi(sid);
-                free(file_map);
-                free(rank_map);
-                free(ranks);
-                free(chunkSizes);
-                return res;
-            }
-        }
-#endif            
-    }
-
-    // close parallel file
-    if (sion_parclose_mapped_mpi(sid) == -1) {
-        FTI_Print("Cannot close sionlib file.", FTI_WARN);
-        free(file_map);
-        free(rank_map);
-        free(ranks);
-        free(chunkSizes);
-        return FTI_NSCS;
-    }
-    free(file_map);
-    free(rank_map);
-    free(ranks);
-    free(chunkSizes);
-
-    return FTI_SCES;
-}
-#endif

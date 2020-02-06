@@ -9,7 +9,7 @@
 #define __FTI_H__
 
 /** Standard size of buffer and max node size.                             */
-#define FTI_BUFS 4096
+#define FTI_BUFS 256
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
@@ -108,6 +108,8 @@ extern "C" {
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
   int FTI_FinalizeICP(); 
+  int FTI_setIDFromString( char *name );
+  int FTI_getIDFromString( char *name );
 
 #ifdef __cplusplus
 }

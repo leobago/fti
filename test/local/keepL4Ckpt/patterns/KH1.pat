@@ -1,0 +1,12 @@
+Ckpt3-Rank1.fti
+Ckpt3-Rank3.fti
+Ckpt3-Rank5.fti
+Ckpt3-Rank7.fti
+Ckpt6-Rank1.fti
+Ckpt6-Rank3.fti
+Ckpt6-Rank5.fti
+Ckpt6-Rank7.fti
+Ckpt9-Rank1.fti
+Ckpt9-Rank3.fti
+Ckpt9-Rank5.fti
+Ckpt9-Rank7.fti
