@@ -66,6 +66,7 @@ extern "C"
 #include "icp.h"
 #include "macros.h"
 #include "utility.h"
+#include "vector.h"
 
 #include "../deps/md5/md5.h"
 #include "../deps/iniparser/iniparser.h"

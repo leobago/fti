@@ -37,6 +37,13 @@
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
+/** Maximum size for dynamic reallocation                                  */
+#define FTI_MAX_REALLOC 10L*1024L*1024L // 10 Mb
+
+/** highest value for id of protected variable                             */
+#define FTI_DEFAULT_MAX_VAR_ID 100L*1024L // about 100K
+#define FTI_LIMIT_MAX_VAR_ID 10L*1024L*1024L // about 10 million
+
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
 /** MD5-hash: hex converted char digest length.                            */
@@ -427,7 +434,7 @@ extern "C" {
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
         char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
-        size_t				filePos; 
+        size_t				filePos;
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -467,6 +474,7 @@ extern "C" {
         int             verbosity;          /**< Verbosity level.               */
         int             blockSize;          /**< Communication block size.      */
         int             transferSize;       /**< Transfer size local to PFS     */
+        int             maxVarId;
 #ifdef LUSTRE
         int             stripeUnit;         /**< Striping Unit for Lustre FS    */
         int             stripeOffset;       /**< Striping Offset for Lustre FS  */

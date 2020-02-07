@@ -166,6 +166,17 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->dcpInfoPosix.StackSize = (int)iniparser_getint(ini, "Basic:dcp_stack_size", 5);
 
+    unsigned long maxVarId = (unsigned long)iniparser_getint(ini, "Basic:max_var_id", FTI_DEFAULT_MAX_VAR_ID); 
+    if( maxVarId > FTI_LIMIT_MAX_VAR_ID ) {
+        char err[FTI_BUFS];
+        snprintf(err,FTI_BUFS,"Value of 'Basic:max_var_id' cannot be higher than 'FTI_LIMIT_MAX_VAR_ID' ('%ul > %ul')", maxVarId, FTI_LIMIT_MAX_VAR_ID); 
+        FTI_Print(err, FTI_WARN);
+        FTI_Conf->maxVarId = FTI_DEFAULT_MAX_VAR_ID;
+    } else {
+        FTI_Conf->maxVarId = maxVarId;
+    }
+
+
     FTI_Conf->dcpInfoPosix.cachedCkpt = (int)iniparser_getint(ini, "Basic:CachedDCP", 0);
 
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
