@@ -116,6 +116,49 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
+        
+        case FTI_IO_IME:
+            ftiIO[LOCAL].initCKPT = FTI_InitIME; 
+            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
+            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
+            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
+
+            ftiIO[GLOBAL].initCKPT = FTI_InitPosix; 
+            ftiIO[GLOBAL].WriteData = FTI_WritePosixData; 
+            ftiIO[GLOBAL].finCKPT= FTI_PosixClose; 
+            ftiIO[GLOBAL].getPos	= FTI_GetPosixFilePos; 
+            ftiIO[GLOBAL].finIntegrity = FTI_PosixMD5; 
+
+
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix; 
+            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData; 
+            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose; 
+            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos; 
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix; 
+            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData; 
+            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose; 
+            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos; 
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
+
+
+            FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
+            FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
+
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
+
+            FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
+            FTI_Exec->writeVarICPFunc[GLOBAL] = FTI_WriteVar;
+
+            FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
+            FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
+            
+            FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
+
+            break;
 
         case FTI_IO_MPI:
             ftiIO[LOCAL].initCKPT = FTI_InitPosix; 

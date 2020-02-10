@@ -155,6 +155,7 @@ SRC_FTI
     src/IO/ftiff.c
     src/IO/mpio.c
     src/IO/posix.c
+    src/IO/ime.c
     src/IO/ftiff-dcp.c
     src/macros.c
     src/stage.c
