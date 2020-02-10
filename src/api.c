@@ -2535,31 +2535,31 @@ int FTI_Finalize()
     }
 
 
-//int testvector()
+//int testkeymap()
 //{
 //    size_t NUM = 1024L*1024L*1024L;
 //    size_t* arr = NULL;
-//    FTIT_vectorkey vec;
-//    FTI_VectorKey( &vec, sizeof(size_t), FTI_Conf );
+//    FTIT_keymap kmap;
+//    FTI_KeyMap( &kmap, sizeof(size_t), FTI_Conf );
 //    //size_t ids[NUM];
 //    double t0 = MPI_Wtime();
 //    size_t i=0; for(; i<NUM; i++) {
-//        vec.push_back( &vec, &i, 2*i );
+//        kmap.push_back( &kmap, &i, 2*i );
 //    }
 //    double t1 = MPI_Wtime();
-//    free(vec._data);
+//    free(kmap._data);
 //    double t2 = MPI_Wtime();
 //    for(i=0; i<NUM; i++) {
 //        arr = realloc( arr, (i+1) * sizeof(size_t) );
 //        arr[i] = 2*i;
 //    }
 //    double t3 = MPI_Wtime();
-//    printf("type_size: %lu\n", vec._type_size);
-//    printf("size: %lu\n", vec._size);
-//    printf("used: %lu\n", vec._used);
+//    printf("type_size: %lu\n", kmap._type_size);
+//    printf("size: %lu\n", kmap._size);
+//    printf("used: %lu\n", kmap._used);
 //    printf("allocated total: %lf Gb\n", ((double)(NUM*sizeof(size_t)))/(1024*1024*1024) );
 //    printf("realloc: %lf seconds, push_back: %lf seconds\n", t3-t2, t1-t0 ); 
-//    //printf("insertations: %d\n", vec._nadds);
-//    //for(i=0; i<vec._used; i++)
-//    //    printf("    id: %d, value: %d\n", ids[i], *(int*)vec.data(&vec, ids[i]));
+//    //printf("insertations: %d\n", kmap._nadds);
+//    //for(i=0; i<kmap._used; i++)
+//    //    printf("    id: %d, value: %d\n", ids[i], *(int*)kmap.data(&kmap, ids[i]));
 //}

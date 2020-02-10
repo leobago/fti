@@ -164,7 +164,7 @@ SRC_FTI
     src/topo.c
     src/tools.c
     src/utility.c
-    src/vector.c
+    src/keymap.c
 )
 
 if (ENABLE_SIONLIB)

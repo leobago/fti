@@ -38,15 +38,15 @@
 
 #include "interface.h"
 
-int FTI_VectorKey( FTIT_vectorkey* self, size_t type_size, FTIT_configuration FTI_Conf )
+int FTI_KeyMap( FTIT_keymap* self, size_t type_size, FTIT_configuration FTI_Conf )
 {
     if( self == NULL ) {
-        FTI_Print("Call to FTI_VectorKey with 'NULL' vector",FTI_EROR);
+        FTI_Print("Call to FTI_KeyMap with 'NULL' keymap",FTI_EROR);
         return FTI_NSCS;
     }
     
     if( type_size == 0 ) {
-        FTI_Print("Call to FTI_VectorKey with typesize '0' is invalid",FTI_EROR);
+        FTI_Print("Call to FTI_KeyMap with typesize '0' is invalid",FTI_EROR);
         return FTI_NSCS;
     }
 
@@ -60,15 +60,15 @@ int FTI_VectorKey( FTIT_vectorkey* self, size_t type_size, FTIT_configuration FT
     int i=0; for(; i<FTI_Conf.maxVarId+1; i++)
         self->_key[i] = -1;
 
-    self->push_back = FTI_VectorKeyPushBack;
-    self->data = FTI_VectorKeyGet;
-    self->clear = FTI_VectorKeyClear;
+    self->push_back = FTI_KeyMapPushBack;
+    self->data = FTI_KeyMapGet;
+    self->clear = FTI_KeyMapClear;
 }
 
-int FTI_VectorKeyPushBack( FTIT_vectorkey* self, void* new_item, int id )
+int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
 {
     if( self == NULL ) {
-        FTI_Print("Call to FTI_PushBack with 'NULL' vector",FTI_EROR);
+        FTI_Print("Call to FTI_PushBack with 'NULL' keymap",FTI_EROR);
         return FTI_NSCS;
     }
     
@@ -83,7 +83,7 @@ int FTI_VectorKeyPushBack( FTIT_vectorkey* self, void* new_item, int id )
     }
 
     if( id > self->_max_id ) { 
-        FTI_Print("id is larger than 'max_id' for vector",FTI_EROR);
+        FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
         return FTI_NSCS;
     }
 
@@ -107,10 +107,10 @@ int FTI_VectorKeyPushBack( FTIT_vectorkey* self, void* new_item, int id )
     self->_size = new_size;
 }
 
-void* FTI_VectorKeyGet( FTIT_vectorkey* self, int id )
+void* FTI_KeyMapGet( FTIT_keymap* self, int id )
 {
     if( self == NULL ) {
-        FTI_Print("Call to FTI_VectorKeyGet with 'NULL' vector",FTI_EROR);
+        FTI_Print("Call to FTI_KeyMapGet with 'NULL' keymap",FTI_EROR);
         return NULL;
     }
 
@@ -120,7 +120,7 @@ void* FTI_VectorKeyGet( FTIT_vectorkey* self, int id )
     }
 
     if( id > self->_max_id ) { 
-        FTI_Print("id is larger than 'max_id' for vector",FTI_EROR);
+        FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
         return NULL;
     }
     
@@ -139,10 +139,12 @@ void* FTI_VectorKeyGet( FTIT_vectorkey* self, int id )
     return self->_data + check_pos * self->_type_size;
 }
 
-void* FTI_VectorKeyClear( FTIT_vectorkey* self ) 
+void* FTI_KeyMapClear( FTIT_keymap* self ) 
 {
         self->_size = 0;
         self->_used = 0;
         free(self->_data);
+        self->_data = NULL;
         free(self->_key);
+        self->_key = NULL;
 }
