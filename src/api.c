@@ -56,8 +56,11 @@ static FTIT_execution FTI_Exec;
 /** Topology of the system.                                                */
 static FTIT_topology FTI_Topo;
 
+/** id map that holds data for FTI_Data                                    */
+static FTIT_keymap IdMapVar;
+
 /** Array of datasets and all their internal information.                  */
-static FTIT_dataset FTI_Data[FTI_BUFS];
+static FTIT_dataset* FTI_Data;
 
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
@@ -131,8 +134,9 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
+    FTI_KeyMap( &IdMapVar, sizeof(FTIT_dataset), FTI_Conf );
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
-    FTI_Try(FTI_InitBasicTypes(FTI_Data), "create the basic data types.");
+    FTI_Try(FTI_InitBasicTypes(), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         int restart = (FTI_Exec.reco != 3) ? FTI_Exec.reco : 0;
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
@@ -180,7 +184,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpFtiff ) {
-            FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
+            FTI_InitDcp( &FTI_Conf, &FTI_Exec );
         }
         if (FTI_Conf.dcpPosix  ){
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
@@ -204,9 +208,9 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         return FTI_SCES;
     }
 
-    for ( i = 0; i < FTI_BUFS; i++){
-        memset(FTI_Data[i].idChar,'\0',FTI_BUFS);
-    }
+//    for ( i = 0; i < FTI_BUFS; i++){
+//        memset(FTI_Data[i].idChar,'\0',FTI_BUFS);
+//    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -755,8 +759,18 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     char str[5*FTI_BUFS]; //For console output
+    
+    // Id out of bounds.
+    if (id > FTI_Conf.maxVarId) {
+        snprintf( str, FTI_BUFS, "Id out of bounds ('Basic:max_var_id = %d').", FTI_Conf.maxVarId );
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTIT_dataset* data;
+
 #ifdef GPUSUPPORT 
     FTIT_ptrinfo ptrInfo;
     int res;
@@ -766,144 +780,149 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     int i;
     char memLocation[4];
-    for (i = 0; i < FTI_BUFS; i++) {
-        if (id == FTI_Data[i].id) { //Search for dataset with given id
-            long prevSize = FTI_Data[i].size;
+    if (IdMapVar.get(&IdMapVar, id, data) == FTI_SCES) { //Search for dataset with given id
+        long prevSize = data->size;
 #ifdef GPUSUPPORT
-            if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
-                strcpy(memLocation,"CPU");
-                FTI_Data[i].isDevicePtr = false;
-                FTI_Data[i].devicePtr= NULL;
-                FTI_Data[i].ptr = ptr;
-            }
-            else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
-                strcpy(memLocation,"GPU");
-                FTI_Data[i].isDevicePtr = true;
-                FTI_Data[i].devicePtr= ptr;
-                FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
-            }
-            else{
-                FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
-                FTI_Data[i].ptr = NULL; //(void *) malloc (type.size *count);
-                return FTI_NSCS;
-            }
-#else            
+        if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
             strcpy(memLocation,"CPU");
-            FTI_Data[i].isDevicePtr = false;
-            FTI_Data[i].devicePtr= NULL;
-            FTI_Data[i].ptr = ptr;
-#endif  
-            FTI_Data[i].count = count;
-            FTI_Data[i].type = FTI_Exec.FTI_Type[type.id];
-            FTI_Data[i].eleSize = type.size;
-            FTI_Data[i].size = type.size * count;
-            FTI_Data[i].dimLength[0] = count;
-            FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-            if ( strlen(FTI_Data[i].idChar) == 0 ){ 
-                sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
-            }
-            else{
-                sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",FTI_Data[i].idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
-            }
-
-            FTI_Print(str, FTI_DBUG);
-            if ( prevSize != FTI_Data[i].size &&  FTI_Conf.dcpPosix){
-                if (!(FTI_Data[i].isDevicePtr)){
-                    unsigned long nbHashes = FTI_Data[i].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
-                    FTI_Data[i].dcpInfoPosix.currentHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.currentHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-                    FTI_Data[i].dcpInfoPosix.oldHashArray= (unsigned char*) realloc( FTI_Data[i].dcpInfoPosix.oldHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-                }
-#ifdef GPUSUPPORT
-                else{
-                    unsigned char *x;
-                    unsigned long nbNewHashes = FTI_Data[i].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
-                    unsigned long nbOldHashes = prevSize /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[i].size %FTI_Conf.dcpInfoPosix.BlockSize);
-                    CUDA_ERROR_CHECK(cudaMallocManaged((void**) &x, (nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth),cudaMemAttachGlobal));
-                    memcpy(x, FTI_Data[i].dcpInfoPosix.currentHashArray, MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
-                    CUDA_ERROR_CHECK(cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray ));
-                    FTI_Data[i].dcpInfoPosix.currentHashArray = x;
-
-                    CUDA_ERROR_CHECK(cudaMallocManaged((void **)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
-                    memcpy(x, FTI_Data[i].dcpInfoPosix.oldHashArray,  MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
-                    CUDA_ERROR_CHECK(cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray));
-                    FTI_Data[i].dcpInfoPosix.oldHashArray= x;
-
-                }
-#endif
-            }
-            return FTI_SCES;
+            data->isDevicePtr = false;
+            data->devicePtr= NULL;
+            data->ptr = ptr;
         }
+        else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
+            strcpy(memLocation,"GPU");
+            data->isDevicePtr = true;
+            data->devicePtr= ptr;
+            data->ptr = NULL; //(void *) malloc (type.size *count);
+        }
+        else{
+            FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
+            data->ptr = NULL; //(void *) malloc (type.size *count);
+            return FTI_NSCS;
+        }
+#else            
+        strcpy(memLocation,"CPU");
+        data->isDevicePtr = false;
+        data->devicePtr= NULL;
+        data->ptr = ptr;
+#endif  
+        data->count = count;
+        data->type = FTI_Exec.FTI_Type[type.id];
+        data->eleSize = type.size;
+        data->size = type.size * count;
+        data->dimLength[0] = count;
+        FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
+        if ( strlen(data->idChar) == 0 ){ 
+            sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+        }
+        else{
+            sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",data->idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+        }
+
+        FTI_Print(str, FTI_DBUG);
+        if ( prevSize != data->size &&  FTI_Conf.dcpPosix){
+            if (!(data->isDevicePtr)){
+                unsigned long nbHashes = data->size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
+                data->dcpInfoPosix.currentHashArray= (unsigned char*) realloc( data->dcpInfoPosix.currentHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+                data->dcpInfoPosix.oldHashArray= (unsigned char*) realloc( data->dcpInfoPosix.oldHashArray, sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+            }
+#ifdef GPUSUPPORT
+            else{
+                unsigned char *x;
+                unsigned long nbNewHashes = data->size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
+                unsigned long nbOldHashes = prevSize /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
+                CUDA_ERROR_CHECK(cudaMallocManaged((void**) &x, (nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth),cudaMemAttachGlobal));
+                memcpy(x, data->dcpInfoPosix.currentHashArray, MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
+                CUDA_ERROR_CHECK(cudaFree(data->dcpInfoPosix.currentHashArray ));
+                data->dcpInfoPosix.currentHashArray = x;
+
+                CUDA_ERROR_CHECK(cudaMallocManaged((void **)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
+                memcpy(x, data->dcpInfoPosix.oldHashArray,  MIN(nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth, nbOldHashes * FTI_Conf.dcpInfoPosix.digestWidth));
+                CUDA_ERROR_CHECK(cudaFree(data->dcpInfoPosix.oldHashArray));
+                data->dcpInfoPosix.oldHashArray= x;
+
+            }
+#endif
+        }
+        return FTI_SCES;
     }
     //Id could not be found in datasets
-
-    //If too many variables exit FTI.
-    if (FTI_Exec.nbVar >= FTI_BUFS) {
-        FTI_Print("Unable to register variable. Too many variables already registered.", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-
+    
+    data = talloc( FTIT_dataset, 1 );
+    
     //Adding new variable to protect
-    FTI_Data[FTI_Exec.nbVar].id = id;
+    data->id = id;
 #ifdef GPUSUPPORT
     if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
         strcpy(memLocation,"CPU");
-        FTI_Data[FTI_Exec.nbVar].isDevicePtr = false;
-        FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
-        FTI_Data[FTI_Exec.nbVar].ptr = ptr;
+        data->isDevicePtr = false;
+        data->devicePtr= NULL;
+        data->ptr = ptr;
     }
     else if( ptrInfo.type == FTIT_PTRTYPE_GPU ){
         strcpy(memLocation,"GPU");
-        FTI_Data[FTI_Exec.nbVar].isDevicePtr = true;
-        FTI_Data[FTI_Exec.nbVar].devicePtr= ptr;
-        FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
+        data->isDevicePtr = true;
+        data->devicePtr= ptr;
+        data->ptr = NULL; //(void *) malloc (type.size *count);
     }
     else{
         FTI_Print("ptr Should be either a device location or a cpu location\n",FTI_EROR);
-        FTI_Data[FTI_Exec.nbVar].ptr = NULL; //(void *) malloc (type.size *count);
+        data->ptr = NULL; //(void *) malloc (type.size *count);
         return FTI_NSCS;
     }
 #else            
     strcpy(memLocation,"CPU");
-    FTI_Data[FTI_Exec.nbVar].isDevicePtr = false;
-    FTI_Data[FTI_Exec.nbVar].devicePtr= NULL;
-    FTI_Data[FTI_Exec.nbVar].ptr = ptr;
+    data->isDevicePtr = false;
+    data->devicePtr= NULL;
+    data->ptr = ptr;
 #endif  
     // Important assignment, we use realloc!
-    FTI_Data[FTI_Exec.nbVar].sharedData.dataset = NULL;
-    FTI_Data[FTI_Exec.nbVar].count = count;
-    FTI_Data[FTI_Exec.nbVar].type = FTI_Exec.FTI_Type[type.id];
-    FTI_Data[FTI_Exec.nbVar].eleSize = type.size;
-    FTI_Data[FTI_Exec.nbVar].size = type.size * count;
-    FTI_Data[FTI_Exec.nbVar].rank = 1;
-    FTI_Data[FTI_Exec.nbVar].dimLength[0] = FTI_Data[FTI_Exec.nbVar].count;
-    FTI_Data[FTI_Exec.nbVar].h5group = FTI_Exec.H5groups[0];
-    sprintf(FTI_Data[FTI_Exec.nbVar].name, "Dataset_%d", id);
+    data->sharedData.dataset = NULL;
+    data->count = count;
+    data->type = FTI_Exec.FTI_Type[type.id];
+    data->eleSize = type.size;
+    data->size = type.size * count;
+    data->rank = 1;
+    data->dimLength[0] = data->count;
+    data->h5group = FTI_Exec.H5groups[0];
+    sprintf(data->name, "Dataset_%d", id);
     FTI_Exec.ckptSize = FTI_Exec.ckptSize + (type.size * count);
 
     if ( FTI_Conf.dcpPosix ){
-        if (!(FTI_Data[FTI_Exec.nbVar].isDevicePtr)){
-            unsigned long nbHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
-            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.hashDataSize = 0;
-            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
-            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+        if (!(data->isDevicePtr)){
+            unsigned long nbHashes = data->size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
+            data->dcpInfoPosix.hashDataSize = 0;
+            data->dcpInfoPosix.currentHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
+            data->dcpInfoPosix.oldHashArray= (unsigned char*) malloc( sizeof(unsigned char)*nbHashes*FTI_Conf.dcpInfoPosix.digestWidth );
         }
 #ifdef GPUSUPPORT        
         else{
             unsigned char *x;
-            unsigned long nbNewHashes = FTI_Data[FTI_Exec.nbVar].size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(FTI_Data[FTI_Exec.nbVar].size %FTI_Conf.dcpInfoPosix.BlockSize);
+            unsigned long nbNewHashes = data->size /FTI_Conf.dcpInfoPosix.BlockSize + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
             CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
-            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.currentHashArray = x;
+            data->dcpInfoPosix.currentHashArray = x;
             CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x, nbNewHashes * FTI_Conf.dcpInfoPosix.digestWidth,cudaMemAttachGlobal ));
-            FTI_Data[FTI_Exec.nbVar].dcpInfoPosix.oldHashArray= x;
+            data->dcpInfoPosix.oldHashArray= x;
         }
 #endif
     }
-    if ( strlen(FTI_Data[FTI_Exec.nbVar].idChar) == 0 ){ 
+    
+    // append dataset to protected variables
+    if( IdMapVar.push_back( &IdMapVar, data, id ) != FTI_SCES ) {
+        snprintf( str, FTI_BUFS, "failed to append variable with id = '%d' to protected variable map.", id );
+        FTI_Print(str, FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    void* dataptr = (void*)FTI_Data;
+    IdMapVar.data( &IdMapVar, &dataptr );
+    FTI_Data = (FTIT_dataset*)dataptr;
+
+    if ( strlen(data->idChar) == 0 ){ 
         sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     }
     else{
-        sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",FTI_Data[FTI_Exec.nbVar].idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+        sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",data->idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     }
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Print(str, FTI_INFO);

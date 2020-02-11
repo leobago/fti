@@ -269,7 +269,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
   'DCP_BLOCK_SIZE'.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
+int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
 {
     char str[FTI_BUFS];
 

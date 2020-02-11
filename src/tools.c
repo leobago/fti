@@ -486,19 +486,14 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec)
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates the basic datatypes and the dataset array.
-  @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
   This function creates the basic data types using FTIT_Type.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
+int FTI_InitBasicTypes()
 {
-    int i;
-    for (i = 0; i < FTI_BUFS; i++) {
-        FTI_Data[i].id = -1;
-    }
     FTI_InitType(&FTI_CHAR, sizeof(char));
     FTI_InitType(&FTI_SHRT, sizeof(short));
     FTI_InitType(&FTI_INTG, sizeof(int));

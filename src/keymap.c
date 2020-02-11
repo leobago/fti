@@ -61,8 +61,9 @@ int FTI_KeyMap( FTIT_keymap* self, size_t type_size, FTIT_configuration FTI_Conf
         self->_key[i] = -1;
 
     self->push_back = FTI_KeyMapPushBack;
-    self->data = FTI_KeyMapGet;
+    self->get = FTI_KeyMapGet;
     self->clear = FTI_KeyMapClear;
+    self->data = FTI_KeyMapData;
 }
 
 int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
@@ -82,8 +83,10 @@ int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
         return FTI_NSCS;
     }
 
-    if( id > self->_max_id ) { 
-        FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
+    if( id > self->_max_id ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "id is larger than 'max_id = %d' for keymap", self->_max_id );
+        FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
 
@@ -105,41 +108,59 @@ int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
     self->_key[id] = self->_used;
     self->_used = new_used;
     self->_size = new_size;
+
+    return FTI_SCES;
 }
 
-void* FTI_KeyMapGet( FTIT_keymap* self, int id )
+int FTI_KeyMapGet( FTIT_keymap* self, int id, void* data_item )
 {
     if( self == NULL ) {
         FTI_Print("Call to FTI_KeyMapGet with 'NULL' keymap",FTI_EROR);
-        return NULL;
+        return FTI_NSCS;
     }
 
     if( id < 0 ) {
         FTI_Print("ids have to be positive",FTI_EROR);
-        return NULL;
+        return FTI_NSCS;
     }
 
     if( id > self->_max_id ) { 
         FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
-        return NULL;
+        return FTI_NSCS;
     }
     
     size_t check_pos = self->_key[id];
     
     if( check_pos == -1 ) {
-        FTI_Print("id is invalid", FTI_EROR );
-        return NULL;
+        // id not in use
+        return FTI_NSCS;
+    }
+   
+    if( check_pos > (self->_used - 1) ) {
+        FTI_Print("data location out of bounds", FTI_EROR );
+        return FTI_NSCS;
     }
 
-    if( check_pos > (self->_size - 1) ) {
-        FTI_Print("data location out of bounds", FTI_EROR );
-        return NULL;
-    }
-    
-    return self->_data + check_pos * self->_type_size;
+    data_item = self->_data + check_pos * self->_type_size;
+
+    return FTI_SCES;
 }
 
-void* FTI_KeyMapClear( FTIT_keymap* self ) 
+int FTI_KeyMapData( FTIT_keymap* self, void** data ) 
+{
+    
+    if( self == NULL ) {
+        FTI_Print("Call to FTI_KeyMapData with 'NULL' keymap",FTI_EROR);
+        return FTI_NSCS;
+    }
+    
+    *data = self->_data; 
+
+    return FTI_SCES;
+
+}
+
+int FTI_KeyMapClear( FTIT_keymap* self ) 
 {
         self->_size = 0;
         self->_used = 0;
@@ -147,4 +168,5 @@ void* FTI_KeyMapClear( FTIT_keymap* self )
         self->_data = NULL;
         free(self->_key);
         self->_key = NULL;
+        return FTI_SCES;
 }

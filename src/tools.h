@@ -15,7 +15,7 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
-int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);
+int FTI_InitBasicTypes();
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje);

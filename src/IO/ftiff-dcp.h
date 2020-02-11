@@ -6,7 +6,7 @@
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
         FTIT_dataset *FTI_Data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
 
-int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int FTI_InitDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec );
 int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec ); 
 int FTI_InitNextHashData(FTIT_DataDiffHash *hashes);
 int FTI_FreeDataDiff( FTIT_DataDiffHash *dhash);
