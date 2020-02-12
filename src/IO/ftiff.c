@@ -1023,7 +1023,7 @@ int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd )
         }
     }
     if( pvar_idx == -1 ) {
-        FTI_Print("FTI_WriteFtiffVar: Illegal ID", FTI_WARN);
+        FTI_Print("FTI_WriteFtiffData: Illegal ID", FTI_WARN);
         return FTI_NSCS;
     }
 

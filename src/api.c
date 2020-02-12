@@ -57,10 +57,10 @@ static FTIT_execution FTI_Exec;
 static FTIT_topology FTI_Topo;
 
 /** id map that holds data for FTI_Data                                    */
-static FTIT_keymap IdMapVar;
+static FTIT_keymap FTI_Data;
 
 /** Array of datasets and all their internal information.                  */
-static FTIT_dataset* FTI_Data;
+//static FTIT_dataset* FTI_Data;
 
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
@@ -134,7 +134,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    FTI_KeyMap( &IdMapVar, sizeof(FTIT_dataset), FTI_Conf );
+    FTI_KeyMap( &FTI_Data, sizeof(FTIT_dataset), FTI_Conf );
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
@@ -142,7 +142,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
-    FTI_MallocMeta(&FTI_Exec, &FTI_Topo);
+    FTI_MallocMeta(&FTI_Exec, &FTI_Topo, &FTI_Conf);
     res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
     if (res == FTI_NSCS) {
         FTI_FreeMeta(&FTI_Exec);
@@ -684,12 +684,13 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 /*-------------------------------------------------------------------------*/
 int FTI_setIDFromString( char *name ){
     int i = 0;
+    FTIT_dataset* data = FTI_Data.data;
     for ( i = 0 ; i < FTI_Exec.nbVar; i++){
-        if (strcmp(name, FTI_Data[i].idChar) == 0){
+        if (strcmp(name, data[i].idChar) == 0){
             return i;
         }
     }
-    strncpy(FTI_Data[i].idChar, name, FTI_BUFS);
+    strncpy(data[i].idChar, name, FTI_BUFS);
     return i;
 }
 
@@ -769,8 +770,6 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         return FTI_NSCS;
     }
 
-    FTIT_dataset* data;
-
 #ifdef GPUSUPPORT 
     FTIT_ptrinfo ptrInfo;
     int res;
@@ -780,7 +779,9 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     int i;
     char memLocation[4];
-    if (IdMapVar.get(&IdMapVar, id, data) == FTI_SCES) { //Search for dataset with given id
+    FTIT_dataset* data = FTI_Data.get( id );
+    if( FTI_Data.check() ) return FTI_NSCS;
+    if (data != NULL) { //Search for dataset with given id
         long prevSize = data->size;
 #ifdef GPUSUPPORT
         if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
@@ -908,15 +909,11 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     }
     
     // append dataset to protected variables
-    if( IdMapVar.push_back( &IdMapVar, data, id ) != FTI_SCES ) {
+    if( FTI_Data.push_back( data, id ) != FTI_SCES ) {
         snprintf( str, FTI_BUFS, "failed to append variable with id = '%d' to protected variable map.", id );
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
-
-    void* dataptr = (void*)FTI_Data;
-    IdMapVar.data( &IdMapVar, &dataptr );
-    FTI_Data = (FTIT_dataset*)dataptr;
 
     if ( strlen(data->idChar) == 0 ){ 
         sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
@@ -1397,40 +1394,40 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
     }
 
     char str[FTI_BUFS]; //For console output
-
-    int i;
-    for (i = 0; i < FTI_BUFS; i++) {
-        if (id == FTI_Data[i].id) { //Search for dataset with given id
-            //check if size is correct
-            int expectedSize = 1;
-            int j;
-            for (j = 0; j < rank; j++) {
-                expectedSize *= dimLength[j]; //compute the number of elements
-            }
-
-            if (rank > 0) {
-                if (expectedSize != FTI_Data[i].count) {
-                    sprintf(str, "Trying to define datasize: number of elements %d, but the dataset count is %ld.", expectedSize, FTI_Data[i].count);
-                    FTI_Print(str, FTI_WARN);
-                    return FTI_NSCS;
-                }
-                FTI_Data[i].rank = rank;
-                for (j = 0; j < rank; j++) {
-                    FTI_Data[i].dimLength[j] = dimLength[j];
-                }
-            }
-
-            if (h5group != NULL) {
-                FTI_Data[i].h5group = FTI_Exec.H5groups[h5group->id];
-            }
-
-            if (name != NULL) {
-                memset(FTI_Data[i].name,'\0',FTI_BUFS);
-                strncpy(FTI_Data[i].name, name, FTI_BUFS);
-            }
-
-            return FTI_SCES;
+    
+    FTIT_dataset* data = FTI_Data.get( id );
+    if( FTI_Data.check() ) return FTI_NSCS;
+    
+    if (data != NULL) { //Search for dataset with given id
+        //check if size is correct
+        int expectedSize = 1;
+        int j;
+        for (j = 0; j < rank; j++) {
+            expectedSize *= dimLength[j]; //compute the number of elements
         }
+
+        if (rank > 0) {
+            if (expectedSize != data->count) {
+                sprintf(str, "Trying to define datasize: number of elements %d, but the dataset count is %ld.", expectedSize, data->count);
+                FTI_Print(str, FTI_WARN);
+                return FTI_NSCS;
+            }
+            data->rank = rank;
+            for (j = 0; j < rank; j++) {
+                data->dimLength[j] = dimLength[j];
+            }
+        }
+
+        if (h5group != NULL) {
+            data->h5group = FTI_Exec.H5groups[h5group->id];
+        }
+
+        if (name != NULL) {
+            memset(data->name,'\0',FTI_BUFS);
+            strncpy(data->name, name, FTI_BUFS);
+        }
+
+        return FTI_SCES;
     }
 
     sprintf(str, "The dataset #%d not initialized. Use FTI_Protect first.", id);
@@ -1495,30 +1492,28 @@ void* FTI_Realloc(int id, void* ptr)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
     }
-
+    FTIT_dataset* data;
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
     if (FTI_Exec.reco) {
         char str[FTI_BUFS];
-        int i;
-        for (i = 0; i < FTI_BUFS; i++) {
-            if (id == FTI_Data[i].id) {
-                long oldSize = FTI_Data[i].size;
-                FTI_Data[i].size = FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
-                sprintf(str, "Reallocated size: %ld", FTI_Data[i].size);
+        data = FTI_Data.get( id );
+        if( FTI_Data.check() ) return NULL;
+        if ( data != NULL) { //Search for dataset with given id
+            long oldSize = data->size;
+            data->size = FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[id];
+            sprintf(str, "Reallocated size: %ld", data->size);
+            FTI_Print(str, FTI_DBUG);
+            if (data->size == 0) {
+                sprintf(str, "Cannot allocate 0 size.");
                 FTI_Print(str, FTI_DBUG);
-                if (FTI_Data[i].size == 0) {
-                    sprintf(str, "Cannot allocate 0 size.");
-                    FTI_Print(str, FTI_DBUG);
-                    return ptr;
-                }
-                ptr = realloc (ptr, FTI_Data[i].size);
-                FTI_Data[i].ptr = ptr;
-                FTI_Data[i].count = FTI_Data[i].size / FTI_Data[i].eleSize;
-                FTI_Exec.ckptSize += FTI_Data[i].size - oldSize;
-                sprintf(str, "Dataset #%d reallocated.", FTI_Data[i].id);
-                FTI_Print(str, FTI_INFO);
-                break;
+                return ptr;
             }
+            ptr = realloc (ptr, data->size);
+            data->ptr = ptr;
+            data->count = data->size / data->eleSize;
+            FTI_Exec.ckptSize += data->size - oldSize;
+            sprintf(str, "Dataset #%d reallocated.", data->id);
+            FTI_Print(str, FTI_INFO);
         }
     }
     else {
@@ -1544,17 +1539,23 @@ int FTI_BitFlip(int datasetID)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+    
     if (FTI_Inje.rank == FTI_Topo.splitRank) {
         if (datasetID >= FTI_Exec.nbVar) {
             return FTI_NSCS;
         }
+        FTIT_dataset* data = FTI_Data.get( datasetID );
+        if( FTI_Data.check() ) return FTI_NSCS;
+        if( data == NULL ) {
+            FTI_Print("Dataset id to inject BitFlip is invalid", FTI_WARN);
+            return FTI_NSCS;
+        }
         if (FTI_Inje.counter < FTI_Inje.number) {
             if ((MPI_Wtime() - FTI_Inje.timer) > FTI_Inje.frequency) {
-                if (FTI_Inje.index < FTI_Data[datasetID].count) {
+                if (FTI_Inje.index < data->count) {
                     char str[FTI_BUFS];
-                    if (FTI_Data[datasetID].type->id == 9) { // If it is a double
-                        double* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
+                    if (data->type->id == 9) { // If it is a double
+                        double* target = data->ptr + FTI_Inje.index;
                         double ori = *target;
                         int res = FTI_DoubleBitFlip(target, FTI_Inje.position);
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
@@ -1564,8 +1565,8 @@ int FTI_BitFlip(int datasetID)
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
-                    if (FTI_Data[datasetID].type->id == 8) { // If it is a float
-                        float* target = FTI_Data[datasetID].ptr + FTI_Inje.index;
+                    if (data->type->id == 8) { // If it is a float
+                        float* target = data->ptr + FTI_Inje.index;
                         float ori = *target;
                         int res = FTI_FloatBitFlip(target, FTI_Inje.position);
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
@@ -1654,7 +1655,7 @@ int FTI_Checkpoint(int id, int level)
 
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
     FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
-    int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
+    int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
 
     // no postprocessing or meta data for h5 single file
@@ -1748,7 +1749,10 @@ int FTI_InitICP(int id, int level, bool activate)
 
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
-
+    
+#warning this is a hack. in this way we waste too much memory (include 'isWritten' member into FTIT_dataset)
+    FTI_Exec.iCPInfo.isWritten = (bool*) calloc( FTI_Conf.maxVarId, sizeof(bool) );
+    
     // init iCP status with failure
     FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
     FTI_Exec.iCPInfo.result = FTI_NSCS;
@@ -1818,7 +1822,7 @@ int FTI_InitICP(int id, int level, bool activate)
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[GLOBAL+offset]);
+        res = FTI_Exec.initICPFunc[GLOBAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data,&ftiIO[GLOBAL+offset]);
     }
     else {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
@@ -1826,7 +1830,7 @@ int FTI_InitICP(int id, int level, bool activate)
         } else if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[1].dcpDir,0777);
         }
-        res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[LOCAL+offset]);
+        res = FTI_Exec.initICPFunc[LOCAL](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data,&ftiIO[LOCAL+offset]);
     }
 
     if ( res == FTI_SCES ) 
@@ -1867,24 +1871,17 @@ int FTI_AddVarICP( int varID )
 
     char str[FTI_BUFS];
 
-    bool validID = false;
-
-    int i;
-    // check if dataset with 'varID' exists.
-    for(i=0; i<FTI_Exec.nbVar; ++i) {
-        validID |= (FTI_Data[i].id == varID);
-    }
-    if( !validID ) {
+    FTIT_dataset* data = FTI_Data.get( varID );
+    if( FTI_Data.check() ) return FTI_NSCS;
+    
+    if( data == NULL ) {
         snprintf( str, FTI_BUFS, "FTI_AddVarICP: dataset ID: %d is invalid!", varID );
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
     // check if dataset was not already written.
-    for(i=0; i<FTI_Exec.iCPInfo.countVar; ++i) {
-        validID &= !(FTI_Exec.iCPInfo.isWritten[i] == varID);
-    }
-    if( !validID ) {
+    if( FTI_Exec.iCPInfo.isWritten[varID] ) {
         snprintf( str, FTI_BUFS, "Dataset with ID: %d was already successfully written!", varID );
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
@@ -1893,10 +1890,10 @@ int FTI_AddVarICP( int varID )
     int res;
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
-    res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID+offset]);
+    res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data,&ftiIO[funcID+offset]);
 
     if ( res == FTI_SCES ) {
-        FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
+        FTI_Exec.iCPInfo.isWritten[varID] = true;
     }
     else{
         FTI_Print("Could not add variable to checkpoint",FTI_WARN);
@@ -1946,7 +1943,7 @@ int FTI_FinalizeICP()
 
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
-    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
+    resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data, &ftiIO[funcID+offset]);
 
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
@@ -1958,7 +1955,7 @@ int FTI_FinalizeICP()
     }
 
     if( resCP == FTI_SCES ) {
-        resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
+        resCP = FTI_Try(FTI_CreateMetadata(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data), "create metadata.");
     }
 
     if ( resCP != FTI_SCES ) {
@@ -2032,6 +2029,9 @@ int FTI_FinalizeICP()
         FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
     }
 
+    free( FTI_Exec.iCPInfo.isWritten );
+    FTI_Exec.iCPInfo.isWritten = NULL;
+
     FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
 
     return FTI_SCES;
@@ -2050,7 +2050,7 @@ int FTI_FinalizeICP()
 int FTI_Recover()
 {
     if ( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
-        int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
+        int ret = FTI_Try(FTIFF_Recover( &FTI_Exec, &FTI_Data, FTI_Ckpt ), "Recovering from Checkpoint");
         return ret;
     }
 
@@ -2066,6 +2066,9 @@ int FTI_Recover()
     int i;
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[2*FTI_BUFS]; //For console output
+    
+    FTIT_dataset* data = FTI_Data.data;
+    if( FTI_Data.check( &FTI_Data ) ) return FTI_NSCS;
 
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
@@ -2087,10 +2090,10 @@ int FTI_Recover()
         }
         //Check if sizes of protected variables matches
         for (i = 0; i < FTI_Exec.nbVar; i++) {
-            if (FTI_Data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i]) {
+            if ( data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[data[i].id]) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
-                        FTI_Data[i].size);
+                        data[i].size);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;
             }
@@ -2105,11 +2108,11 @@ int FTI_Recover()
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
         for (i = 0; i < FTI_Exec.nbVar; i++) {
-            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
-            if (FTI_Data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
+            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, &FTI_Data ); 
+            if (data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
-                        FTI_Data[vidx].size);
+                        data[vidx].size);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;
             }
@@ -2127,7 +2130,7 @@ int FTI_Recover()
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+            return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data);
         } else {
             //Try from L1
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
@@ -2171,9 +2174,9 @@ int FTI_Recover()
 #else
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
-        strncpy(FTI_Data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
+        strncpy(data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
-        fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
+        fread(data[i].ptr, 1, data[i].size, fd);
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
@@ -2293,18 +2296,21 @@ int FTI_Finalize()
 
     // Notice: The following code is only executed by the application procs
 
+    FTIT_dataset* data = FTI_Data.data;
+    if( FTI_Data.check( &FTI_Data ) ) return FTI_NSCS;
+    
     // free hashArray memory
     if( FTI_Conf.dcpPosix ) {
         int i = 0;
         for(; i<FTI_Exec.nbVar; i++) {
-            if (!( FTI_Data[i].isDevicePtr) ){
-                free(FTI_Data[i].dcpInfoPosix.currentHashArray);
-                free(FTI_Data[i].dcpInfoPosix.oldHashArray);
+            if (!( data[i].isDevicePtr) ){
+                free(data[i].dcpInfoPosix.currentHashArray);
+                free(data[i].dcpInfoPosix.oldHashArray);
             }
 #ifdef GPUSUPPORT
             else{
-                cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
-                cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
+                cudaFree(data[i].dcpInfoPosix.currentHashArray);
+                cudaFree(data[i].dcpInfoPosix.oldHashArray);
             }
 #endif
         }
@@ -2443,12 +2449,12 @@ int FTI_Finalize()
         }
 
         int activeID, oldID;
-        if ( FTI_FindVarInMeta(&FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_SCES){
+        if ( FTI_FindVarInMeta(&FTI_Exec, &FTI_Data, id, &activeID, &oldID) != FTI_SCES){
             return FTI_NREC;
         }
 
         if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-            return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+            return FTIFF_RecoverVar( id, &FTI_Exec, &FTI_Data, FTI_Ckpt );
         }
 
         sprintf(str, "Variable with id is stored in %d and information is stored in %d", activeID, oldID);
@@ -2466,7 +2472,7 @@ int FTI_Finalize()
         //Recovering from local for L4 case in FTI_Recover
         if (FTI_Exec.ckptLvel == 4) {
             if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-                return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+                return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data, id);
             } else {
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
             }
@@ -2486,14 +2492,16 @@ int FTI_Finalize()
             return FTI_NREC;
         }
 
-
+    
+        FTIT_dataset* data = FTI_Data.data;
+        if( FTI_Data.check( &FTI_Data ) ) return FTI_NREC;
         sprintf(str, "Recovering var %d ", id);
         FTI_Print(str, FTI_DBUG);
         long filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[oldID];
         fseek(fd,filePos, SEEK_SET);
-        fread(FTI_Data[activeID].ptr, 1, FTI_Data[activeID].size, fd);
+        fread(data[activeID].ptr, 1, data[activeID].size, fd);
 
-        strncpy(FTI_Data[activeID].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[oldID*FTI_BUFS]), FTI_BUFS);
+        strncpy(data[activeID].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[oldID*FTI_BUFS]), FTI_BUFS);
 
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);

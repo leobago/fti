@@ -38,9 +38,12 @@
 
 #include "interface.h"
 
-int FTI_KeyMap( FTIT_keymap* self, size_t type_size, FTIT_configuration FTI_Conf )
+// This class is meant to be a singleton
+static FTIT_keymap* self = NULL;
+
+int FTI_KeyMap( FTIT_keymap* instance, size_t type_size, FTIT_configuration FTI_Conf )
 {
-    if( self == NULL ) {
+    if( instance == NULL ) {
         FTI_Print("Call to FTI_KeyMap with 'NULL' keymap",FTI_EROR);
         return FTI_NSCS;
     }
@@ -50,10 +53,14 @@ int FTI_KeyMap( FTIT_keymap* self, size_t type_size, FTIT_configuration FTI_Conf
         return FTI_NSCS;
     }
 
+    assert( self == 0 && "Only one instance of FTIT_keymap is allowed!" );
+    self = instance;
+
     self->_type_size = type_size;
     self->_size = 0;
     self->_used = 0;
-    self->_data = NULL;
+    self->_error = false;
+    self->data = NULL;
     self->_max_id = FTI_Conf.maxVarId;
     self->_key = talloc( int, self->_max_id+1 );
 
@@ -63,10 +70,10 @@ int FTI_KeyMap( FTIT_keymap* self, size_t type_size, FTIT_configuration FTI_Conf
     self->push_back = FTI_KeyMapPushBack;
     self->get = FTI_KeyMapGet;
     self->clear = FTI_KeyMapClear;
-    self->data = FTI_KeyMapData;
+    self->check = FTI_KeyMapCheckError;
 }
 
-int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
+int FTI_KeyMapPushBack( void* new_item, int id )
 {
     if( self == NULL ) {
         FTI_Print("Call to FTI_PushBack with 'NULL' keymap",FTI_EROR);
@@ -96,15 +103,15 @@ int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
     if( new_used > self->_size ) {
         size_t new_block = (self->_size > 0) ? self->_size * self->_type_size : self->_type_size;
         new_size = (new_block > FTI_MAX_REALLOC) ? self->_size + FTI_MAX_REALLOC/self->_type_size : (self->_size > 0) ? self->_size*2 : 2;
-        void* alloc = realloc( self->_data, new_size * self->_type_size );
+        void* alloc = realloc( self->data, new_size * self->_type_size );
         if(!alloc) {
             FTI_Print("Failed to extent selftor size", FTI_EROR);
             return FTI_NSCS;
         }
-        self->_data = alloc;
+        self->data = alloc;
     }
     
-    memcpy(self->_data + self->_used*self->_type_size, new_item, self->_type_size);
+    memcpy(self->data + self->_used*self->_type_size, new_item, self->_type_size);
     self->_key[id] = self->_used;
     self->_used = new_used;
     self->_size = new_size;
@@ -112,60 +119,58 @@ int FTI_KeyMapPushBack( FTIT_keymap* self, void* new_item, int id )
     return FTI_SCES;
 }
 
-int FTI_KeyMapGet( FTIT_keymap* self, int id, void* data_item )
+void* FTI_KeyMapGet( int id )
 {
+    
+    self->_error=false;
     if( self == NULL ) {
         FTI_Print("Call to FTI_KeyMapGet with 'NULL' keymap",FTI_EROR);
-        return FTI_NSCS;
+        self->_error=true;
+        return NULL;
     }
 
     if( id < 0 ) {
         FTI_Print("ids have to be positive",FTI_EROR);
-        return FTI_NSCS;
+        self->_error=true;
+        return NULL;
     }
 
     if( id > self->_max_id ) { 
         FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
-        return FTI_NSCS;
+        self->_error=true;
+        return NULL;
     }
     
     size_t check_pos = self->_key[id];
     
     if( check_pos == -1 ) {
         // id not in use
-        return FTI_NSCS;
+        return NULL;
     }
    
     if( check_pos > (self->_used - 1) ) {
         FTI_Print("data location out of bounds", FTI_EROR );
-        return FTI_NSCS;
+        self->_error=true;
+        return NULL;
     }
 
-    data_item = self->_data + check_pos * self->_type_size;
+    return self->data + check_pos * self->_type_size;
 
-    return FTI_SCES;
 }
 
-int FTI_KeyMapData( FTIT_keymap* self, void** data ) 
+bool FTI_KeyMapCheckError()
 {
-    
-    if( self == NULL ) {
-        FTI_Print("Call to FTI_KeyMapData with 'NULL' keymap",FTI_EROR);
-        return FTI_NSCS;
-    }
-    
-    *data = self->_data; 
-
-    return FTI_SCES;
-
+    bool val = self->_error;
+    self->_error = false;
+    return val;
 }
 
-int FTI_KeyMapClear( FTIT_keymap* self ) 
+int FTI_KeyMapClear() 
 {
         self->_size = 0;
         self->_used = 0;
-        free(self->_data);
-        self->_data = NULL;
+        free(self->data);
+        self->data = NULL;
         free(self->_key);
         self->_key = NULL;
         return FTI_SCES;

@@ -44,6 +44,7 @@ extern "C"
 #endif
 #include "fti.h"
 
+#include "keymap.h"
 #include "meta.h"
 #include "api-cuda.h"
 #include "postreco.h"
@@ -66,7 +67,6 @@ extern "C"
 #include "icp.h"
 #include "macros.h"
 #include "utility.h"
-#include "keymap.h"
 
 #include "../deps/md5/md5.h"
 #include "../deps/iniparser/iniparser.h"

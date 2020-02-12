@@ -55,7 +55,7 @@
 /*-------------------------------------------------------------------------*/
 int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+        FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     void *ret = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     FTI_Exec->iCPInfo.fd = ret;
@@ -80,16 +80,16 @@ int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+        FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if ( FTI_Data[i].id == varID ) {
-            FTI_Data[i].filePos = io->getPos(write_info);
-            res = io->WriteData(&FTI_Data[i],write_info);
-        }
+    FTIT_dataset* data = FTI_Data->get( FTI_Data, varID );
+    if( FTI_Data->check( FTI_Data ) ) return FTI_NSCS;
+    if( data != NULL ) {
+        data->filePos = io->getPos(write_info);
+        res = io->WriteData(data,write_info);
     }
     FTI_Exec->iCPInfo.result = res;
     return res;
@@ -110,7 +110,7 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
  This functions Finalizes the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io)
+int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
@@ -147,7 +147,7 @@ int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
 /*-------------------------------------------------------------------------*/
 int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     int res;
     FTI_Print("I/O mode: SIONlib.", FTI_DBUG);
@@ -206,7 +206,7 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
 
     int sid;
@@ -268,7 +268,7 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
 
     int sid;

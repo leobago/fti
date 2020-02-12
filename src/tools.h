@@ -11,7 +11,7 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
       FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
-void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
+void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_configuration* FTI_Conf);
 void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
@@ -23,7 +23,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
 
-int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
+int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, 
         int id, int *currentIndex, int *oldIndex);
 #ifdef __cplusplus
 }

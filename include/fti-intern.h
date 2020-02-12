@@ -190,7 +190,7 @@ extern "C" {
         int  result;                /**< holds result of I/O specific write     */
         int lastCkptID;             /**< holds last successful cp ID            */
         int countVar;               /**< counts datasets written                */
-        int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
+        bool* isWritten;    /**< holds IDs of datasets in cp file       */
         double t0;                  /**< timing for CP statistics               */
         double t1;                  /**< timing for CP statistics               */
         char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
@@ -599,6 +599,8 @@ extern "C" {
     }FTIT_IO;
 
 
+    typedef struct FTIT_keymap FTIT_keymap;
+
     /** @typedef    FTIT_execution
      *  @brief      Execution metadata.
      *
@@ -655,7 +657,7 @@ extern "C" {
              struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
+             FTIT_keymap*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
 
         int (*initICPFunc[2]) 				/** A function pointer pointing to  */									
@@ -663,7 +665,7 @@ extern "C" {
              struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
+             FTIT_keymap*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
 
         int (*writeVarICPFunc[2]) 		    /** A function pointer pointing to  */
@@ -672,7 +674,7 @@ extern "C" {
              struct FTIT_execution* ,	/** writes the iCP. Noticeably		*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
+             FTIT_keymap*,				/** And one for the remaining cases	*/
              FTIT_IO*);					
 
         int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
@@ -680,7 +682,7 @@ extern "C" {
              struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_dataset*,				/** And one for the remaining cases	*/
+             FTIT_keymap*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
         
         int (*activateHeads) 			/** A function pointer pointing to  */									

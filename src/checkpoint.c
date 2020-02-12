@@ -123,7 +123,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 /*-------------------------------------------------------------------------*/
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     char str[FTI_BUFS]; //For console output
     snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
@@ -140,7 +140,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MKDIR(FTI_Ckpt[4].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
-        res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + GLOBAL]);
+        res = FTI_Exec->ckptFunc[GLOBAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &FTI_Data, &ftiIO[offset + GLOBAL]);
     }
     else {
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
@@ -149,7 +149,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             MKDIR(FTI_Ckpt[1].dcpDir, 0777);
         }
         //Actually call the respecitve function to store the checkpoint 
-        res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[offset + LOCAL] );
+        res = FTI_Exec->ckptFunc[LOCAL](FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &FTI_Data, &ftiIO[offset + LOCAL] );
     }
 
     //Check if all processes have written correctly (every process must succeed)
@@ -506,16 +506,17 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io){
+        FTIT_keymap* FTI_Data, FTIT_IO *io){
     int i;
-    void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
+    void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, &FTI_Data);
     if( !write_info ) {
         FTI_Print("unable to initialize checkpoint!", FTI_EROR);
         return FTI_NSCS;
     }
+    FTIT_dataset* data = FTI_Data->data(FTI_Data);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_Data[i].filePos = io->getPos(write_info);
-        int ret = io->WriteData(&FTI_Data[i], write_info);
+        data[i].filePos = io->getPos(write_info);
+        int ret = io->WriteData(&data[i], write_info);
         if (ret != FTI_SCES)
             return ret;
     }

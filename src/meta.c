@@ -858,10 +858,12 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
+    
+    FTIT_dataset* data = FTI_Data->data(FTI_Data);
 
     FTI_Exec->meta[0].fs[0] = (FTI_Ckpt[FTI_Exec->ckptLvel].isDcp) ? FTI_Exec->dcpInfoPosix.FileSize : FTI_Exec->ckptSize;
     FTI_Exec->meta[0].nbVar[0] = FTI_Exec->nbVar;
@@ -969,12 +971,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);
     long* myVarPositions = talloc(long, FTI_Exec->nbVar);
     char *ArrayOfStrings = ( char *) malloc (FTI_Exec->nbVar * sizeof(char*) *FTI_BUFS);
-
+    
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        myVarIDs[i] = FTI_Data[i].id;
-        myVarSizes[i] =  FTI_Data[i].size;
-        myVarPositions[i] = FTI_Data[i].filePos;
-        strncpy(&ArrayOfStrings[i*FTI_BUFS], FTI_Data[i].idChar, FTI_BUFS);
+        myVarIDs[i] = data[i].id;
+        myVarSizes[i] =  data[i].size;
+        myVarPositions[i] = data[i].filePos;
+        strncpy(&ArrayOfStrings[i*FTI_BUFS], data[i].idChar, FTI_BUFS);
     }
 
     //Gather variables IDs
@@ -1030,13 +1032,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     strncpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_Exec->meta[0].varID[i] = FTI_Data[i].id;
-        FTI_Exec->meta[0].varSize[i] = FTI_Data[i].size;
-        FTI_Exec->meta[0].filePos[i] = FTI_Data[i].filePos;
+        FTI_Exec->meta[0].varID[data[i].id] = data[i].id;
+        FTI_Exec->meta[0].varSize[data[i].id] = data[i].size;
+        FTI_Exec->meta[0].filePos[data[i].id] = data[i].filePos;
 
-        FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i] = FTI_Data[i].id;
-        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i] = FTI_Data[i].size;
-        FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[i] = FTI_Data[i].filePos;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].varID[data[i].id] = data[i].id;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[data[i].id] = data[i].size;
+        FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[data[i].id] = data[i].filePos;
     }
 
     return FTI_SCES;

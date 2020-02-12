@@ -358,8 +358,10 @@ int FTI_Try(int result, char* message)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
+void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_configuration* FTI_Conf)
 {
+#warning thats just a hack. We allocate too much memory that way
+    int maxVarId = FTI_Conf->maxVarId;
     int i;
     if (FTI_Topo->amIaHead) {
         for (i = 0; i < 5; i++) {
@@ -370,10 +372,10 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
-            FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
-            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
+            FTI_Exec->meta[i].varID = calloc(maxVarId * FTI_Topo->nodeSize, sizeof(int));
+            FTI_Exec->meta[i].varSize = calloc(maxVarId * FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].filePos = calloc(maxVarId * FTI_Topo->nodeSize, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(maxVarId*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
         }
     } else {
         for (i = 0; i < 5; i++) {
@@ -384,10 +386,10 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
             FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
             FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
-            FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
-            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
-            FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
-            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS, sizeof(char));
+            FTI_Exec->meta[i].varID = calloc(maxVarId, sizeof(int));
+            FTI_Exec->meta[i].varSize = calloc(maxVarId, sizeof(long));
+            FTI_Exec->meta[i].filePos= calloc(maxVarId, sizeof(long));
+            FTI_Exec->meta[i].idChar = calloc(maxVarId*FTI_BUFS, sizeof(char));
         }
     }
     FTI_Exec->metaAlloc = 1;
@@ -696,7 +698,7 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, int *currentIndex, int *oldIndex){
+int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, int id, int *currentIndex, int *oldIndex){
     int i,j;
     for (i = 0; i < FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0]; i++) {
         if (id == FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i]) {
