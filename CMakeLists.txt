@@ -164,6 +164,7 @@ SRC_FTI
     src/topo.c
     src/tools.c
     src/utility.c
+    src/util/ini.c
 )
 
 if (ENABLE_SIONLIB)

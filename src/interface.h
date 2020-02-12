@@ -44,6 +44,7 @@ extern "C"
 #endif
 #include "fti.h"
 
+#include "util/ini.h"
 #include "meta.h"
 #include "api-cuda.h"
 #include "postreco.h"
