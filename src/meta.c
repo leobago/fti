@@ -39,6 +39,7 @@
 #include "interface.h"
 #include <time.h>
 
+static FTIT_mqueue* mqueue;
 
 int FTI_MetadataQueue( FTIT_mqueue* q )
 {
@@ -53,43 +54,45 @@ int FTI_MetadataQueue( FTIT_mqueue* q )
     q->pop = FTI_MetadataQueuePop;
     q->empty = FTI_MetadataQueueEmpty;
     q->clear = FTI_MetadataQueueClear;
+
+    mqueue = q;
 }
 
-int FTI_MetadataQueuePush( FTIT_mqueue* q, FTIT_metadata_ data )
+int FTI_MetadataQueuePush( FTIT_metadata_ data )
 {
     
-    if( q == NULL ) {
+    if( mqueue == NULL ) {
         FTI_Print("metadata queue context is NULL", FTI_WARN);
         return FTI_NSCS;
     }
     
-    FTIT_mnode* old = q->_front;
+    FTIT_mnode* old = mqueue->_front;
     FTIT_mnode* new = malloc( sizeof(FTIT_mnode) );
     
     new->_data = malloc( sizeof(FTIT_metadata_) );
     memcpy( new->_data, &data, sizeof(FTIT_metadata_) );
     new->_next = NULL; 
 
-    q->_front = new;
-    q->_front->_next = old;
+    mqueue->_front = new;
+    mqueue->_front->_next = old;
 
     return FTI_SCES;
 
 }
 
-int FTI_MetadataQueuePop( FTIT_mqueue* q, FTIT_metadata_* data )
+int FTI_MetadataQueuePop( FTIT_metadata_* data )
 {
 
-    if( !q ) return FTI_NSCS;
-    if( !q->_front ) return FTI_NSCS;
-    if( !q->_front->_data ) return FTI_NSCS;
+    if( !mqueue ) return FTI_NSCS;
+    if( !mqueue->_front ) return FTI_NSCS;
+    if( !mqueue->_front->_data ) return FTI_NSCS;
     
     if( data )
-        memcpy( data, q->_front->_data, sizeof(FTIT_metadata_) );
+        memcpy( data, mqueue->_front->_data, sizeof(FTIT_metadata_) );
     
-    FTIT_mnode* pop = q->_front;
+    FTIT_mnode* pop = mqueue->_front;
 
-    q->_front = q->_front->_next;
+    mqueue->_front = mqueue->_front->_next;
     
     free(pop->_data);
     free(pop);
@@ -98,16 +101,16 @@ int FTI_MetadataQueuePop( FTIT_mqueue* q, FTIT_metadata_* data )
 
 }
 
-bool FTI_MetadataQueueEmpty( FTIT_mqueue* q )
+bool FTI_MetadataQueueEmpty()
 {
-    if( !q ) return true;
-    return (q->_front == NULL);
+    if( !mqueue ) return true;
+    return (mqueue->_front == NULL);
 }
 
-int FTI_MetadataQueueClear( FTIT_mqueue* q )
+int FTI_MetadataQueueClear()
 {
-    while( !q->empty(q) )
-        q->pop( q, NULL );
+    while( !mqueue->empty() )
+        mqueue->pop( NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -427,22 +430,18 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
                 //Variable exists
                 FTI_Exec->meta[i].varID[k] = id;
-                meta.varID[k] = id;
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
                 FTI_Exec->meta[i].varSize[k] = ini.getLong( &ini, str );
-                meta.varSize[k] = ini.getLong( &ini, str );
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
                 FTI_Exec->meta[i].filePos[k] = ini.getLong( &ini, str );
-                meta.filePos[k] = ini.getLong( &ini, str );
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
                 strncpy(&FTI_Exec->meta[i].idChar[k*FTI_BUFS], ini.getString( &ini, str ), FTI_BUFS);
             }
             //Save number of variables in metadata
             FTI_Exec->meta[i].nbVar[0] = k;
-            meta.nbVar[0] = k;
 
             for (k = 0; k < MAX_STACK_SIZE; k++) {
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
@@ -472,7 +471,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
             }
             
-            FTI_Exec->mqueue.push( &FTI_Exec->mqueue, meta );
+            FTI_Exec->mqueue.push( meta );
 
             ini.clear( &ini );
             

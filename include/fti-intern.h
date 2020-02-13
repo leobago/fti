@@ -442,11 +442,6 @@ extern "C" {
         long            pfs;                /**< Partner file size.                    */
         char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
         char            currentL4CkptFile[FTI_BUFS];  /**< Current Ckpt file name. [FTI_BUFS]    */        
-        int             nbVar[FTI_BUFS];              /**< Number of variables. [FTI_BUFS]       */
-        int             varID[FTI_BUFS];              /**< Variable id for size.[FTI_BUFS]       */
-        long            varSize[FTI_BUFS];            /**< Variable size. [FTI_BUFS]             */
-        long            filePos[FTI_BUFS];            /**< File Postion of each variable			*/
-        char            idChar[FTI_BUFS];
     } FTIT_metadata_;
     
     typedef struct FTIT_metadata {
@@ -615,10 +610,10 @@ extern "C" {
     typedef struct FTIT_mqueue
     {
         FTIT_mnode*     _front;
-        bool            (*empty)    ( struct FTIT_mqueue* );
-        int             (*push)     ( struct FTIT_mqueue*, FTIT_metadata_ );
-        int             (*pop)      ( struct FTIT_mqueue*, FTIT_metadata_* );
-        int             (*clear)    ( struct FTIT_mqueue* );
+        bool            (*empty)    ( void );
+        int             (*push)     ( FTIT_metadata_ );
+        int             (*pop)      ( FTIT_metadata_* );
+        int             (*clear)    ( void );
     } FTIT_mqueue;
     
     /** @typedef    FTIT_execution

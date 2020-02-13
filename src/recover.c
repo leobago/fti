@@ -239,113 +239,109 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
-        //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-        int level;
-        //for (level = 0; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-        while( !FTI_Exec->mqueue.empty( &FTI_Exec->mqueue ) ) {
-            //if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
-                //Get ckptID from checkpoint file name
-                
-                FTIT_metadata_ meta;
-                FTI_Exec->mqueue.pop( &FTI_Exec->mqueue, &meta );
+        
+        while( !FTI_Exec->mqueue.empty() ) 
+        {
 
-                level = meta.level;
+            FTIT_metadata_ meta;
+            FTI_Exec->mqueue.pop( &meta );
 
-                int ckptID;
-                if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-                    sscanf(FTI_Exec->meta[level].ckptFile, "Ckpt%d", &ckptID);
+            int level = meta.level;
 
-                    //Temporary for Recover functions
-                    FTI_Exec->ckptLvel = level;
-                    FTI_Exec->ckptID = ckptID;
-                } else {
-                    ckptID = FTI_Exec->ckptID;
-                    FTI_Exec->ckptLvel = level;
-                }
+            int ckptID;
+            if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
+                sscanf(meta.ckptFile, "Ckpt%d", &ckptID);
 
-                char str[FTI_BUFS];
-                snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
-                FTI_Print(str, FTI_DBUG);
+                //Temporary for Recover functions
+                FTI_Exec->ckptLvel = level;
+                FTI_Exec->ckptID = ckptID;
+            } else {
+                ckptID = FTI_Exec->ckptID;
+                FTI_Exec->ckptLvel = level;
+            }
 
-                int res;
-                switch (level) {
-                    case 0:
-                        if ( FTI_Ckpt[4].recoIsDcp ) {
-                            res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                            if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
-                            if (res == FTI_SCES ) {
-                                level = 4;
-                            } else {
-                                snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptID);
-                                FTI_Print(str, FTI_INFO);
-                            }
-                        } else {
-                            res = FTI_NSCS;
-                        }
-                        break;
-                    case 4:
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
+            FTI_Print(str, FTI_DBUG);
+
+            int res;
+            switch (level) {
+                case 0:
+                    if ( FTI_Ckpt[4].recoIsDcp ) {
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                        break;
-                    case 3:
-                        res = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                        break;
-                    case 2:
-                        res = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                        break;
-                    case 1:
-                        res = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                        break;
-                }
-                int allRes;
-
-                MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-                if (allRes == FTI_SCES) {
-                    //Inform heads that recovered successfully
-                    MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-
-                    // FTI-FF: ckptID is already set properly
-                    if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].recoIsDcp && FTI_Conf->dcpPosix) ) {
-                        ckptID = FTI_Exec->ckptID;
-                    }
-
-                    if( level == 4 && !FTI_Ckpt[4].recoIsDcp ) {
-                        FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
-                        MPI_Barrier(FTI_COMM_WORLD);
-                        if( !(FTI_Topo->nodeRank - FTI_Topo->nbHeads) ) {
-                            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
+                        if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
+                        if (res == FTI_SCES ) {
+                            level = 4;
+                        } else {
+                            snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptID);
+                            FTI_Print(str, FTI_INFO);
                         }
-                        MPI_Barrier(FTI_COMM_WORLD);
+                    } else {
+                        res = FTI_NSCS;
                     }
+                    break;
+                case 4:
+                    res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                    break;
+                case 3:
+                    res = FTI_RecoverL3(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                    break;
+                case 2:
+                    res = FTI_RecoverL2(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                    break;
+                case 1:
+                    res = FTI_RecoverL1(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+                    break;
+            }
+            int allRes;
 
-                    snprintf(str, FTI_BUFS, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
-                    FTI_Print(str, FTI_INFO);
+            MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
+            if (allRes == FTI_SCES) {
+                //Inform heads that recovered successfully
+                MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
 
-                    //Update ckptID and ckptLevel and lastCkptLvel
-                    FTI_Exec->ckptID = ckptID;
-                    FTI_Exec->ckptLvel = level;
-                    FTI_Exec->lastCkptLvel = level;
-                    if ( FTI_Conf->keepL4Ckpt ) {
-                        ckptID = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
-                        int hasL4Ckpt = ( ckptID >= 0 ) ? 1 : 0;
-                        if ( (FTI_Topo->nbHeads > 0 ) && (FTI_Topo->nodeRank == 1) ) {
-                            // send level and ckpt ID to head process in node
-                            int sendBuf[2] = { hasL4Ckpt, ckptID };
-                            MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm ); 
-                        }
-                        if( hasL4Ckpt ) {
-                            snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
-                                    FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
-                            FTI_Ckpt[4].hasCkpt = true;
-                            FTI_Ckpt[4].ckptID= ckptID;
-                        }
+                // FTI-FF: ckptID is already set properly
+                if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].recoIsDcp && FTI_Conf->dcpPosix) ) {
+                    ckptID = FTI_Exec->ckptID;
+                }
+
+                if( level == 4 && !FTI_Ckpt[4].recoIsDcp ) {
+                    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 1);
+                    MPI_Barrier(FTI_COMM_WORLD);
+                    if( !(FTI_Topo->nodeRank - FTI_Topo->nbHeads) ) {
+                        RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
                     }
-                    return FTI_SCES; //Recovered successfully
+                    MPI_Barrier(FTI_COMM_WORLD);
                 }
-                else {
-                    snprintf(str, FTI_BUFS, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
-                    FTI_Print(str, FTI_INFO);
+
+                snprintf(str, FTI_BUFS, "Recovering successfully from level %d with Ckpt. %d.", level, ckptID);
+                FTI_Print(str, FTI_INFO);
+
+                //Update ckptID and ckptLevel and lastCkptLvel
+                FTI_Exec->ckptID = ckptID;
+                FTI_Exec->ckptLvel = level;
+                FTI_Exec->lastCkptLvel = level;
+                if ( FTI_Conf->keepL4Ckpt ) {
+                    ckptID = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+                    int hasL4Ckpt = ( ckptID >= 0 ) ? 1 : 0;
+                    if ( (FTI_Topo->nbHeads > 0 ) && (FTI_Topo->nodeRank == 1) ) {
+                        // send level and ckpt ID to head process in node
+                        int sendBuf[2] = { hasL4Ckpt, ckptID };
+                        MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm ); 
+                    }
+                    if( hasL4Ckpt ) {
+                        snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
+                                FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
+                        FTI_Ckpt[4].hasCkpt = true;
+                        FTI_Ckpt[4].ckptID= ckptID;
+                    }
                 }
-            //}
+                return FTI_SCES; //Recovered successfully
+            }
+            else {
+                snprintf(str, FTI_BUFS, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
+                FTI_Print(str, FTI_INFO);
+            }
         }
         //Looped all levels with no success
         FTI_Print("Cannot recover from any checkpoint level.", FTI_INFO);
@@ -359,6 +355,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->ckptID = 0;
         return FTI_NSCS;
     }
+
     else { //Head processes
         int res = FTI_SCES, allRes;
         MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
