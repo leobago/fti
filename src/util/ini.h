@@ -6,17 +6,17 @@
 
 typedef struct FTIT_iniparser {
     dictionary* dict;
-    char*       (*getString)( const char* );
-    int         (*getInt)( const char* );
-    int         (*getLong)( const char* );
-    int         (*destroy)( void );
+    char*       (*getString)    ( struct FTIT_iniparser*, const char* );
+    int         (*getInt)       ( struct FTIT_iniparser*, const char* );
+    int         (*getLong)      ( struct FTIT_iniparser*, const char* );
+    int         (*clear)      ( struct FTIT_iniparser* );
 } FTIT_iniparser;
 
-int FTI_IniparserCreate( FTIT_iniparser*, const char* );
-char* FTI_IniparserGetString( const char* );
-int FTI_IniparserGetInt( const char* key );
-int FTI_IniparserGetLong( const char* key );
-int FTI_IniparserDestroy( void );
+int FTI_Iniparser( FTIT_iniparser*, const char* );
+char* FTI_IniparserGetString( FTIT_iniparser*, const char* );
+int FTI_IniparserGetInt( FTIT_iniparser*, const char* key );
+int FTI_IniparserGetLong( FTIT_iniparser*, const char* key );
+int FTI_IniparserClear( FTIT_iniparser* );
 
 #endif // FTI_INI_H
   

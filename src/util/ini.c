@@ -1,21 +1,19 @@
 #include "../interface.h"
 
-static FTIT_iniparser* self;
-
-int FTI_IniparserCreate( FTIT_iniparser* ini, const char* inifile )
+int FTI_Iniparser( FTIT_iniparser* self, const char* inifile )
 {
 
     char err[FTI_BUFS];
 
-    if( ini == NULL )
+    if( self == NULL )
     {
-        FTI_Print("ini is NULL.", FTI_EROR);
+        FTI_Print("iniparser context is NULL.", FTI_EROR);
         return FTI_NSCS;
     }
 
     if( inifile == NULL )
     {
-        FTI_Print("inifile is NULL.", FTI_EROR);
+        FTI_Print("iniparser file is NULL.", FTI_EROR);
         return FTI_NSCS;
     }
 
@@ -23,25 +21,24 @@ int FTI_IniparserCreate( FTIT_iniparser* ini, const char* inifile )
         return FTI_NSCS;
     }
  
-    ini->dict = iniparser_load( inifile );
+    self->dict = iniparser_load( inifile );
     
-    if (ini == NULL) {
+    if (self->dict == NULL) {
         snprintf( err, FTI_BUFS, "Iniparser failed to parse the file ('%s').", inifile );
         FTI_Print( err, FTI_WARN );
         return FTI_NSCS;
     }
     
-    self = ini;
     self->getString = FTI_IniparserGetString;
     self->getInt = FTI_IniparserGetInt;
     self->getLong = FTI_IniparserGetLong;
-    self->destroy = FTI_IniparserDestroy;
+    self->clear = FTI_IniparserClear;
 
     return FTI_SCES;
 
 }
 
-char* FTI_IniparserGetString( const char* key )
+char* FTI_IniparserGetString( FTIT_iniparser* self, const char* key )
 {   
     static char nullstr = '\0';
     
@@ -53,21 +50,21 @@ char* FTI_IniparserGetString( const char* key )
     
 }
 
-int FTI_IniparserGetInt( const char* key )
+int FTI_IniparserGetInt( FTIT_iniparser* self, const char* key )
 {   
 
     return iniparser_getint( self->dict, key, -1 );
     
 }
 
-int FTI_IniparserGetLong( const char* key )
+int FTI_IniparserGetLong( FTIT_iniparser* self, const char* key )
 {   
 
     return iniparser_getlint( self->dict, key, -1 );
     
 }
 
-int FTI_IniparserDestroy()
+int FTI_IniparserClear( FTIT_iniparser* self )
 {
     if( self == NULL ) return FTI_SCES;
     iniparser_freedict( self->dict );

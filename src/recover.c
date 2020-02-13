@@ -241,9 +241,15 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;
-        for (level = 0; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
-            if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
+        //for (level = 0; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+        while( !FTI_Exec->mqueue.empty( &FTI_Exec->mqueue ) ) {
+            //if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
                 //Get ckptID from checkpoint file name
+                
+                FTIT_metadata_ meta;
+                FTI_Exec->mqueue.pop( &FTI_Exec->mqueue, &meta );
+
+                level = meta.level;
 
                 int ckptID;
                 if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
@@ -339,7 +345,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     snprintf(str, FTI_BUFS, "Recover failed from level %d with Ckpt. %d.", level, ckptID);
                     FTI_Print(str, FTI_INFO);
                 }
-            }
+            //}
         }
         //Looped all levels with no success
         FTI_Print("Cannot recover from any checkpoint level.", FTI_INFO);

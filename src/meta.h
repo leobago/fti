@@ -1,6 +1,14 @@
 #ifndef __META_H__
 #define __META_H__
 
+// metadata queue methods
+
+int FTI_MetadataQueue( FTIT_mqueue* );
+bool FTI_MetadataQueueEmpty( FTIT_mqueue* );
+int FTI_MetadataQueuePush( FTIT_mqueue*, FTIT_metadata_ );
+int FTI_MetadataQueuePop( FTIT_mqueue*, FTIT_metadata_* );
+int FTI_MetadataQueueClear( FTIT_mqueue* );
+
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         char* checksum, char* ptnerChecksum, char* rsChecksum);

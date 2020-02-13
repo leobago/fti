@@ -38,6 +38,78 @@
 
 #include "interface.h"
 #include <time.h>
+
+
+int FTI_MetadataQueue( FTIT_mqueue* q )
+{
+    if( q == NULL ) {
+        FTI_Print("metadata queue context is NULL", FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    q->_front = NULL;
+    
+    q->push = FTI_MetadataQueuePush;
+    q->pop = FTI_MetadataQueuePop;
+    q->empty = FTI_MetadataQueueEmpty;
+    q->clear = FTI_MetadataQueueClear;
+}
+
+int FTI_MetadataQueuePush( FTIT_mqueue* q, FTIT_metadata_ data )
+{
+    
+    if( q == NULL ) {
+        FTI_Print("metadata queue context is NULL", FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    FTIT_mnode* old = q->_front;
+    FTIT_mnode* new = malloc( sizeof(FTIT_mnode) );
+    
+    new->_data = malloc( sizeof(FTIT_metadata_) );
+    memcpy( new->_data, &data, sizeof(FTIT_metadata_) );
+    new->_next = NULL; 
+
+    q->_front = new;
+    q->_front->_next = old;
+
+    return FTI_SCES;
+
+}
+
+int FTI_MetadataQueuePop( FTIT_mqueue* q, FTIT_metadata_* data )
+{
+
+    if( !q ) return FTI_NSCS;
+    if( !q->_front ) return FTI_NSCS;
+    if( !q->_front->_data ) return FTI_NSCS;
+    
+    if( data )
+        memcpy( data, q->_front->_data, sizeof(FTIT_metadata_) );
+    
+    FTIT_mnode* pop = q->_front;
+
+    q->_front = q->_front->_next;
+    
+    free(pop->_data);
+    free(pop);
+
+    return FTI_SCES;
+
+}
+
+bool FTI_MetadataQueueEmpty( FTIT_mqueue* q )
+{
+    if( !q ) return true;
+    return (q->_front == NULL);
+}
+
+int FTI_MetadataQueueClear( FTIT_mqueue* q )
+{
+    while( !q->empty(q) )
+        q->pop( q, NULL );
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It gets the checksums from metadata.
@@ -294,10 +366,15 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
     
     FTIT_iniparser ini;
-    
+    FTI_MetadataQueue( &FTI_Exec->mqueue ); 
+
     if (!FTI_Topo->amIaHead) {
 
-        int i; for (; i < 5; i++) { //for each level
+        int i=4; for (; i > -1; i--) { //for each level
+
+            FTIT_metadata_ meta;
+            
+            meta.level = i;
 
             char metaFileName[FTI_BUFS], str[FTI_BUFS];
 
@@ -307,7 +384,7 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
             FTI_Print(str, FTI_DBUG);
 
-            if( FTI_IniparserCreate( &ini, metaFileName ) != FTI_SCES ) continue;
+            if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) continue;
 
             snprintf(str, FTI_BUFS, "Meta for level %d exists.", i);
             FTI_Print(str, FTI_DBUG);
@@ -315,49 +392,61 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->meta[i].exists[0] = 1;
 
             // check for dcp
-            FTI_Ckpt[i].recoIsDcp = !strcmp( "dcp", ini.getString( "ckpt_info:ckpt_type" ) );
+            FTI_Ckpt[i].recoIsDcp = !strcmp( "dcp", ini.getString( &ini, "ckpt_info:ckpt_type" ) );
 
             // get ckptID
-            FTI_Exec->ckptID = ini.getInt( "ckpt_info:ckpt_id" );
+            FTI_Exec->ckptID = ini.getInt( &ini, "ckpt_info:ckpt_id" );
 
             snprintf(str, FTI_BUFS, "%d:Ckpt_file_name", FTI_Topo->groupRank);
-            snprintf( FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", ini.getString( str ) );
+            snprintf( FTI_Exec->meta[i].ckptFile, FTI_BUFS, "%s", ini.getString( &ini, str ) );
+            
+            snprintf( meta.ckptFile, FTI_BUFS, "%s", ini.getString( &ini, str ) );
 
             snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
-            FTI_Exec->meta[i].fs[0] = ini.getLong( str );
+            FTI_Exec->meta[i].fs[0] = ini.getLong( &ini, str );
             FTI_Exec->dcpInfoPosix.FileSize = FTI_Exec->meta[i].fs[0];
+        
+            meta.fs = ini.getLong( &ini, str );
 
             snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
-            FTI_Exec->meta[i].pfs[0] = ini.getLong( str );
+            FTI_Exec->meta[i].pfs[0] = ini.getLong( &ini, str );
+            
+            meta.pfs = ini.getLong( &ini, str );
 
-            FTI_Exec->meta[i].maxFs[0] = ini.getLong( "0:Ckpt_file_maxs" );
+            FTI_Exec->meta[i].maxFs[0] = ini.getLong( &ini, "0:Ckpt_file_maxs" );
+            
+            meta.maxFs = ini.getLong( &ini, str );
 
             int k,j;
             for (k = 0; k < FTI_BUFS; k++) {
                 snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
-                int id = ini.getInt( str );
+                int id = ini.getInt( &ini, str );
                 if (id == -1) {
                     //No more variables
                     break;
                 }
                 //Variable exists
                 FTI_Exec->meta[i].varID[k] = id;
+                meta.varID[k] = id;
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
-                FTI_Exec->meta[i].varSize[k] = ini.getLong( str );
+                FTI_Exec->meta[i].varSize[k] = ini.getLong( &ini, str );
+                meta.varSize[k] = ini.getLong( &ini, str );
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
-                FTI_Exec->meta[i].filePos[k] = ini.getLong( str );
+                FTI_Exec->meta[i].filePos[k] = ini.getLong( &ini, str );
+                meta.filePos[k] = ini.getLong( &ini, str );
 
                 snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
-                strncpy(&FTI_Exec->meta[i].idChar[k*FTI_BUFS], ini.getString( str ), FTI_BUFS);
+                strncpy(&FTI_Exec->meta[i].idChar[k*FTI_BUFS], ini.getString( &ini, str ), FTI_BUFS);
             }
             //Save number of variables in metadata
             FTI_Exec->meta[i].nbVar[0] = k;
+            meta.nbVar[0] = k;
 
             for (k = 0; k < MAX_STACK_SIZE; k++) {
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
-                unsigned long LayerSize = ini.getLong( str );
+                unsigned long LayerSize = ini.getLong( &ini, str );
                 if (LayerSize == -1) {
                     //No more variables
                     break;
@@ -365,25 +454,27 @@ int FTI_LoadMeta(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Exec->dcpInfoPosix.LayerSize[k] = LayerSize;
 
                 snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
-                snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", ini.getString( str ) );
+                snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", ini.getString( &ini, str ) );
                 for( j=0; j<FTI_Exec->meta[i].nbVar[0]; j++ )
                 {
                     snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", FTI_Topo->groupRank, k, j );
-                    int varID = ini.getInt( str );
+                    int varID = ini.getInt( &ini, str );
                     if( varID == -1 ) {
                         break;
                     }
                     FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varID = varID;
                     snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_size", FTI_Topo->groupRank, k, j );
-                    long varSize = ini.getLong( str );
+                    long varSize = ini.getLong( &ini, str );
                     if( varID < 0 ) {
                         break;
                     }
                     FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varSize = (unsigned long) varSize;
                 }
             }
+            
+            FTI_Exec->mqueue.push( &FTI_Exec->mqueue, meta );
 
-            ini.destroy();
+            ini.clear( &ini );
             
         }
     }

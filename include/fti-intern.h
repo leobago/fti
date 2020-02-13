@@ -435,6 +435,20 @@ extern "C" {
      *
      *  This type stores all the metadata necessary for the restart.
      */
+    typedef struct FTIT_metadata_ {
+        int             level;             /**< TRUE if metadata exists               */
+        long            maxFs;              /**< Maximum file size.                    */
+        long            fs;                 /**< File size.                            */
+        long            pfs;                /**< Partner file size.                    */
+        char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
+        char            currentL4CkptFile[FTI_BUFS];  /**< Current Ckpt file name. [FTI_BUFS]    */        
+        int             nbVar[FTI_BUFS];              /**< Number of variables. [FTI_BUFS]       */
+        int             varID[FTI_BUFS];              /**< Variable id for size.[FTI_BUFS]       */
+        long            varSize[FTI_BUFS];            /**< Variable size. [FTI_BUFS]             */
+        long            filePos[FTI_BUFS];            /**< File Postion of each variable			*/
+        char            idChar[FTI_BUFS];
+    } FTIT_metadata_;
+    
     typedef struct FTIT_metadata {
         int*             exists;             /**< TRUE if metadata exists               */
         long*            maxFs;              /**< Maximum file size.                    */
@@ -591,6 +605,22 @@ extern "C" {
     }FTIT_IO;
 
 
+
+    typedef struct FTIT_mnode
+    {
+        struct FTIT_mnode*  _next;
+        FTIT_metadata_*      _data;
+    } FTIT_mnode;
+
+    typedef struct FTIT_mqueue
+    {
+        FTIT_mnode*     _front;
+        bool            (*empty)    ( struct FTIT_mqueue* );
+        int             (*push)     ( struct FTIT_mqueue*, FTIT_metadata_ );
+        int             (*pop)      ( struct FTIT_mqueue*, FTIT_metadata_* );
+        int             (*clear)    ( struct FTIT_mqueue* );
+    } FTIT_mqueue;
+    
     /** @typedef    FTIT_execution
      *  @brief      Execution metadata.
      *
@@ -629,6 +659,7 @@ extern "C" {
         char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
         char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */
         unsigned char 	integrity[MD5_DIGEST_LENGTH];
+        FTIT_mqueue     mqueue;
         FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */

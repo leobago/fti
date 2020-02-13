@@ -141,6 +141,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* unsigned int  */ FTI_Exec->nbType                =0;
     /* int           */ FTI_Exec->metaAlloc             =0;
     /* int           */ FTI_Exec->initSCES              =0;
+    /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(&FTI_Exec->mqueue,0x0,sizeof(FTIT_mqueue));
     /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
     /* char[BUFS]       FTI_Exec->h5SingleFileReco */   memset(FTI_Exec->h5SingleFileReco,0x0,FTI_BUFS);
     /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
