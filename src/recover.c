@@ -112,11 +112,11 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int *erased)
 {
     int level = FTI_Exec->ckptLvel;
-    long fs = FTI_Exec->meta[level].fs[0];
-    long pfs = FTI_Exec->meta[level].pfs[0];
-    long maxFs = FTI_Exec->meta[level].maxFs[0];
+    long fs = FTI_Exec->ckptMeta.fs;
+    long pfs = FTI_Exec->ckptMeta.pfs;
+    long maxFs = FTI_Exec->ckptMeta.maxFs;
     char ckptFile[FTI_BUFS];
-    strncpy(ckptFile, FTI_Exec->meta[level].ckptFile, FTI_BUFS);
+    strncpy(ckptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
 
     char checksum[MD5_DIGEST_STRING_LENGTH], ptnerChecksum[MD5_DIGEST_STRING_LENGTH], rsChecksum[MD5_DIGEST_STRING_LENGTH];
     FTI_GetChecksums(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, checksum, ptnerChecksum, rsChecksum);
@@ -243,14 +243,13 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         while( !FTI_Exec->mqueue.empty() ) 
         {
 
-            FTIT_metadata_ meta;
-            FTI_Exec->mqueue.pop( &meta );
+            FTI_Exec->mqueue.pop( &FTI_Exec->ckptMeta );
 
-            int level = meta.level;
+            int level = FTI_Exec->ckptMeta.level;
 
             int ckptID;
             if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-                sscanf(meta.ckptFile, "Ckpt%d", &ckptID);
+                sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d", &ckptID);
 
                 //Temporary for Recover functions
                 FTI_Exec->ckptLvel = level;
@@ -330,12 +329,15 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         MPI_Send( sendBuf, 2, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm ); 
                     }
                     if( hasL4Ckpt ) {
-                        snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
+                        snprintf(FTI_Exec->ckptMeta.currentL4CkptFile, 
                                 FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
                         FTI_Ckpt[4].hasCkpt = true;
                         FTI_Ckpt[4].ckptID= ckptID;
                     }
                 }
+                FTI_Exec->mqueue.clear();
+                FTI_Exec->ckptLvelReco = level;
+
                 return FTI_SCES; //Recovered successfully
             }
             else {
@@ -373,7 +375,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Exec->ckptID = recvBuf[1];
                 int i; 
                 for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                    snprintf(&FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS], 
+# warning [FIXME] create a grouprank to global rank converter to name the l4 ckpt file directly and store only currentL4ID. NOW IT DOESNT WORK!!
+                    snprintf(FTI_Exec->ckptMeta.currentL4CkptFile, 
                             FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->body[i-1] ); 
                 }
             }

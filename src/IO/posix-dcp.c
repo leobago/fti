@@ -105,11 +105,11 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         }
     }
 
-    snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
+    snprintf( FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
     if (FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile );
     } else {
-        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->meta[0].ckptFile );
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->ckptMeta.ckptFile );
     }
 
     if( dcpLayer == 0 ) 
@@ -377,7 +377,7 @@ int FTI_RecoverDcpPosix
 
     void* ptr;
 
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
+    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
     // read base part of file
     FILE* fd = fopen( fn, "rb" );
@@ -657,7 +657,7 @@ int FTI_RecoverVarDcpPosix
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
 
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
+    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
     // read base part of file
     FILE* fd = fopen( fn, "rb" );
@@ -1045,7 +1045,7 @@ int FTI_RecoverVarDcpPosix
 
     // get dcpFileId from filename
     int dummy;
-    sscanf( exec->meta[4].ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
+    sscanf( exec->ckptMeta.ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
     counter = dcpFileId * stackSize;
 
     int i;

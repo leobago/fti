@@ -418,6 +418,7 @@ extern "C" {
         FTIT_type*          type;               /**< Data type for the dataset.                     */
         int                 eleSize;            /**< Element size for the dataset.                  */
         long                size;               /**< Total size of the dataset.                     */
+        long                storedSize;         /**< Total size of the dataset.                     */
         int                 rank;               /**< Rank of dataset (for HDF5).                    */
         int                 dimLength[32];      /**< Lenght of each dimention.                      */
         char                name[FTI_BUFS];     /**< Name of the dataset.                           */
@@ -428,6 +429,7 @@ extern "C" {
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
         char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
         size_t				filePos; 
+        size_t              storedFilePos;
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -435,28 +437,28 @@ extern "C" {
      *
      *  This type stores all the metadata necessary for the restart.
      */
-    typedef struct FTIT_metadata_ {
+    typedef struct FTIT_metadata {
         int             level;             /**< TRUE if metadata exists               */
         long            maxFs;              /**< Maximum file size.                    */
         long            fs;                 /**< File size.                            */
         long            pfs;                /**< Partner file size.                    */
         char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
         char            currentL4CkptFile[FTI_BUFS];  /**< Current Ckpt file name. [FTI_BUFS]    */        
-    } FTIT_metadata_;
-    
-    typedef struct FTIT_metadata {
-        int*             exists;             /**< TRUE if metadata exists               */
-        long*            maxFs;              /**< Maximum file size.                    */
-        long*            fs;                 /**< File size.                            */
-        long*            pfs;                /**< Partner file size.                    */
-        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
-        char*            currentL4CkptFile;  /**< Current Ckpt file name. [FTI_BUFS]    */        
-        int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
-        int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
-        long*            varSize;            /**< Variable size. [FTI_BUFS]             */
-        long*            filePos;            /**< File Postion of each variable			*/
-        char*            idChar;
     } FTIT_metadata;
+    
+    //typedef struct FTIT_metadata {
+    //    int*             exists;             /**< TRUE if metadata exists               */
+    //    long*            maxFs;              /**< Maximum file size.                    */
+    //    long*            fs;                 /**< File size.                            */
+    //    long*            pfs;                /**< Partner file size.                    */
+    //    char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
+    //    char*            currentL4CkptFile;  /**< Current Ckpt file name. [FTI_BUFS]    */        
+    //    //int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
+    //    //int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
+    //    //long*            varSize;            /**< Variable size. [FTI_BUFS]             */
+    //    //long*            filePos;            /**< File Postion of each variable			*/
+    //    //char*            idChar;
+    //} FTIT_metadata;
 
     /** @typedef    FTIT_configuration
      *  @brief      Configuration metadata.
@@ -604,15 +606,15 @@ extern "C" {
     typedef struct FTIT_mnode
     {
         struct FTIT_mnode*  _next;
-        FTIT_metadata_*      _data;
+        FTIT_metadata*      _data;
     } FTIT_mnode;
 
     typedef struct FTIT_mqueue
     {
         FTIT_mnode*     _front;
         bool            (*empty)    ( void );
-        int             (*push)     ( FTIT_metadata_ );
-        int             (*pop)      ( FTIT_metadata_* );
+        int             (*push)     ( FTIT_metadata );
+        int             (*pop)      ( FTIT_metadata* );
         int             (*clear)    ( void );
     } FTIT_mqueue;
     
@@ -626,6 +628,7 @@ extern "C" {
         int             ckpt;               /**< Checkpoint flag.               */
         int             reco;               /**< Recovery flag.                 */
         int             ckptLvel;           /**< Checkpoint level.              */
+        int             ckptLvelReco;           /**< Checkpoint level.              */
         int             ckptIntv;           /**< Ckpt. interval in minutes.     */
         int             lastCkptLvel;       /**< Last checkpoint level.         */
         int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
@@ -655,7 +658,8 @@ extern "C" {
         char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */
         unsigned char 	integrity[MD5_DIGEST_LENGTH];
         FTIT_mqueue     mqueue;
-        FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
+        FTIT_metadata   ckptMeta;            /**< Metadata for each ckpt level   */
+        //FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */

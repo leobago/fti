@@ -57,16 +57,16 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 
   int ckptID, rank;
-  sscanf(FTI_Exec->meta[3].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+  sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
   char fn[FTI_BUFS], efn[FTI_BUFS];
   snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
-  snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->meta[3].ckptFile);
+  snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptMeta.ckptFile);
 
   int bs = FTI_Conf->blockSize;
   int k = FTI_Topo->groupSize;
   int m = k;
 
-  long fs = FTI_Exec->meta[3].fs[0];
+  long fs = FTI_Exec->ckptMeta.fs;
 
   char** data = talloc(char*, k);
   char** coding = talloc(char*, m);
@@ -127,7 +127,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
 
   FILE *fd, *efd;
-  long maxFs = FTI_Exec->meta[3].maxFs[0];
+  long maxFs = FTI_Exec->ckptMeta.maxFs;
   long ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
   if (ps < maxFs) {
     ps = ps + FTI_Conf->blockSize; // Calculating padding size
@@ -371,7 +371,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     
     fs = (long) fs_;
-    FTI_Exec->meta[3].fs[0] = fs;
+    FTI_Exec->ckptMeta.fs = fs;
     
     close( ifd );
   }
@@ -528,12 +528,12 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   char filename[FTI_BUFS], str[FTI_BUFS];
   if (ptner) {    //if want to send Ptner file
     int ckptID, rank;
-    sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank); //do we need this from filename?
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank); //do we need this from filename?
     snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
-    toSend = FTI_Exec->meta[2].pfs[0];
+    toSend = FTI_Exec->ckptMeta.pfs;
   } else {    //if want to send Ckpt file
-    snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
-    toSend = FTI_Exec->meta[2].fs[0];
+    snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
+    toSend = FTI_Exec->ckptMeta.fs;
   }
 
   snprintf(str, FTI_BUFS, "Opening file (rb) (%s) (L2).", filename);
@@ -588,12 +588,12 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   char filename[FTI_BUFS], str[FTI_BUFS];
   if (ptner) { //if want to receive Ptner file
     int ckptID, rank;
-    sscanf(FTI_Exec->meta[2].ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
     snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
-    toRecv = FTI_Exec->meta[2].pfs[0];
+    toRecv = FTI_Exec->ckptMeta.pfs;
   } else { //if want to receive Ckpt file
-    snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->meta[2].ckptFile);
-    toRecv = FTI_Exec->meta[2].fs[0];
+    snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
+    toRecv = FTI_Exec->ckptMeta.fs;
   }
 
   snprintf(str, FTI_BUFS, "Opening file (wb) (%s) (L2).", filename);
@@ -962,25 +962,23 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_SCES;
     }
 
-    snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
 #ifdef ENABLE_HDF5
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-      snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
-      snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+      snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
     }
 #endif
   }
 
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
   
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
 
   if ( FTI_Ckpt[4].recoIsDcp ) {
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[4].ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile);
   } else {
-    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+    snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.ckptFile);
   }
 
   FILE* gfd = fopen(gfn, "rb");
@@ -999,7 +997,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   char *readData = talloc(char, FTI_Conf->transferSize);
   long bSize = FTI_Conf->transferSize;
-  long fs = FTI_Exec->meta[4].fs[0];
+  long fs = FTI_Exec->ckptMeta.fs;
 
   // Checkpoint files transfer from PFS
   long pos = 0;
@@ -1078,12 +1076,13 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // set stripping unit to 4MB
   MPI_Info_set(info, "stripping_unit", "4194304");
 
-  snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-  snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+#warning FIXME find solution to storte level 4 file name for MPIIO
+  snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+//  snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
   //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-  snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+  snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.ckptFile);
 
   // open parallel file
   MPI_File pfh;
@@ -1104,7 +1103,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   // collect chunksizes of other ranks
   MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-  MPI_Allgather(FTI_Exec->meta[4].fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+  MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
 
   MPI_Offset offset = 0;
   // set file offset
@@ -1122,7 +1121,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_NSCS;
   }
 
-  long fs = FTI_Exec->meta[4].fs[0];
+  long fs = FTI_Exec->ckptMeta.fs;
   char *readData = talloc(char, FTI_Conf->transferSize);
   long bSize = FTI_Conf->transferSize;
   long pos = 0;

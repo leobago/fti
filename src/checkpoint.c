@@ -246,11 +246,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         // store current ckpt file name in meta data.
         if ( !FTI_Topo->amIaHead ) {
-            strncpy(FTI_Exec->meta[0].currentL4CkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
+#warning currentL4CkptFile doesnt work now
+            strncpy(FTI_Exec->ckptMeta.currentL4CkptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
         } else {
             int i;
             for( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                strncpy(&FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS], &FTI_Exec->meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
+                strncpy(FTI_Exec->ckptMeta.currentL4CkptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
             }
         }
     }
@@ -430,25 +431,24 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
 
         // init headInfo
-        FTIFF_headInfo *headInfo;
-        headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
+        FTIFF_headInfo headInfo;
 
         int k;
         for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
             k = i+1;
-            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
-            FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
-            FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
-            FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
-            FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
-            isDcpCnt += headInfo[i].isDcp;
-            MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
-            sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
+#warning find solution for FTIFF maybe shared memory object
+            //MPI_Recv(&headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            //FTI_Exec->nbVar = headInfo.nbVar;
+            //FTI_Exec->ckptMeta.maxFs = headInfo.maxFs;
+            //FTI_Exec->ckptMeta.fs = headInfo.fs;
+            //FTI_Exec->ckptMeta.pfs = headInfo.pfs;
+            //isDcpCnt += headInfo.isDcp;
+            //MPI_Recv(&(FTI_Exec->ckptMeta.varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            //MPI_Recv(&(FTI_Exec->ckptMeta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            //strncpy(&(FTI_Exec->ckptMeta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
+            //sscanf(&(FTI_Exec->ckptMeta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
         }
-        strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
+        strcpy(FTI_Exec->ckptMeta.ckptFile, FTI_Exec->ckptMeta.ckptFile);
 
         if ( FTI_Conf->dcpFtiff ) {
             if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
@@ -457,8 +457,6 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         } else {
             isDcpCnt = 0;
         }
-
-        free(headInfo);
 
     }
 

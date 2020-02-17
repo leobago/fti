@@ -145,7 +145,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
     /* char[BUFS]       FTI_Exec->h5SingleFileReco */   memset(FTI_Exec->h5SingleFileReco,0x0,FTI_BUFS);
     /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
-    /* FTIT_metadata[5] FTI_Exec->meta */               memset(FTI_Exec->meta,0x0,5*sizeof(FTIT_metadata));
+    /* FTIT_metadata[5] FTI_Exec->meta */               memset(&FTI_Exec->ckptMeta,0x0,sizeof(FTIT_metadata));
     /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
     /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
     /* FTIT_globalDataset */ FTI_Exec->globalDatasets   =NULL;
@@ -361,36 +361,36 @@ int FTI_Try(int result, char* message)
 /*-------------------------------------------------------------------------*/
 void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 {
-    int i;
-    if (FTI_Topo->amIaHead) {
-        for (i = 0; i < 5; i++) {
-            FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
-            FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
-            FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
-            FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
-            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
-            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
-        }
-    } else {
-        for (i = 0; i < 5; i++) {
-            FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
-            FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
-            FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
-            FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
-            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
-            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
-            FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
-            FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
-            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
-            FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
-            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS, sizeof(char));
-        }
-    }
+//    int i;
+//    if (FTI_Topo->amIaHead) {
+//        for (i = 0; i < 5; i++) {
+//            FTI_Exec->meta[i].exists = calloc(FTI_Topo->nodeSize, sizeof(int));
+//            FTI_Exec->meta[i].maxFs = calloc(FTI_Topo->nodeSize, sizeof(long));
+//            FTI_Exec->meta[i].fs = calloc(FTI_Topo->nodeSize, sizeof(long));
+//            FTI_Exec->meta[i].pfs = calloc(FTI_Topo->nodeSize, sizeof(long));
+//            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+//            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(char));
+//            FTI_Exec->meta[i].nbVar = calloc(FTI_Topo->nodeSize, sizeof(int));
+//            FTI_Exec->meta[i].varID = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(int));
+//            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+//            FTI_Exec->meta[i].filePos = calloc(FTI_BUFS * FTI_Topo->nodeSize, sizeof(long));
+//            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS*FTI_Topo->nodeSize, sizeof(char));
+//        }
+//    } else {
+//        for (i = 0; i < 5; i++) {
+//            FTI_Exec->meta[i].exists = calloc(1, sizeof(int));
+//            FTI_Exec->meta[i].maxFs = calloc(1, sizeof(long));
+//            FTI_Exec->meta[i].fs = calloc(1, sizeof(long));
+//            FTI_Exec->meta[i].pfs = calloc(1, sizeof(long));
+//            FTI_Exec->meta[i].ckptFile = calloc(FTI_BUFS, sizeof(char));
+//            FTI_Exec->meta[i].currentL4CkptFile = calloc(FTI_BUFS, sizeof(char));
+//            FTI_Exec->meta[i].nbVar = calloc(1, sizeof(int));
+//            FTI_Exec->meta[i].varID = calloc(FTI_BUFS, sizeof(int));
+//            FTI_Exec->meta[i].varSize = calloc(FTI_BUFS, sizeof(long));
+//            FTI_Exec->meta[i].filePos= calloc(FTI_BUFS, sizeof(long));
+//            FTI_Exec->meta[i].idChar = calloc(FTI_BUFS*FTI_BUFS, sizeof(char));
+//        }
+//    }
     FTI_Exec->metaAlloc = 1;
 }
 
@@ -406,19 +406,19 @@ void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo)
 void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 {
     if (FTI_Exec->metaAlloc == 1) {
-        int i;
-        for (i = 0; i < 5; i++) {
-            free(FTI_Exec->meta[i].exists);
-            free(FTI_Exec->meta[i].maxFs);
-            free(FTI_Exec->meta[i].fs);
-            free(FTI_Exec->meta[i].pfs);
-            free(FTI_Exec->meta[i].ckptFile);
-            free(FTI_Exec->meta[i].nbVar);
-            free(FTI_Exec->meta[i].varID);
-            free(FTI_Exec->meta[i].varSize);
-            free(FTI_Exec->meta[i].filePos);
-            free(FTI_Exec->meta[i].idChar);
-        }
+    //    int i;
+    //    for (i = 0; i < 5; i++) {
+    //        free(FTI_Exec->meta[i].exists);
+    //        free(FTI_Exec->meta[i].maxFs);
+    //        free(FTI_Exec->meta[i].fs);
+    //        free(FTI_Exec->meta[i].pfs);
+    //        free(FTI_Exec->meta[i].ckptFile);
+    //        free(FTI_Exec->meta[i].nbVar);
+    //        free(FTI_Exec->meta[i].varID);
+    //        free(FTI_Exec->meta[i].varSize);
+    //        free(FTI_Exec->meta[i].filePos);
+    //        free(FTI_Exec->meta[i].idChar);
+    //    }
         FTI_Exec->metaAlloc = 0;
     }
 }
@@ -704,8 +704,8 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
 
 int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, int *currentIndex, int *oldIndex){
     int i,j;
-    for (i = 0; i < FTI_Exec->meta[FTI_Exec->ckptLvel].nbVar[0]; i++) {
-        if (id == FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i]) {
+    for (i = 0; i < FTI_Exec->nbVarStored; i++) {
+        if (id == FTI_Data[i].id) {
             *oldIndex = i;
             for ( j = 0 ; j < FTI_Exec->nbVar; j++){
                 if ( id == FTI_Data[j].id){
@@ -718,10 +718,10 @@ int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, 
                 return FTI_NREC;
             }
 
-            if (FTI_Data[j].size != FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i]) {
+            if (FTI_Data[j].size != FTI_Data[j].storedSize) {
                 char str[FTI_BUFS];
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                        FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[i], FTI_Exec->meta[FTI_Exec->ckptLvel].varID[i],
+                        FTI_Data[i].storedSize, FTI_Data[i].id,
                         FTI_Data[j].size);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;

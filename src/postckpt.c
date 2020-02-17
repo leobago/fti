@@ -77,7 +77,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
         int destination, int postFlag)
 {
     char lfn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS]);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
 
     //PostFlag is set to 0 if Post-processing is inline and set to processes nodeID if Post-processing done by head
     if (postFlag) {
@@ -95,7 +95,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_ch
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    long toSend = FTI_Exec->meta[0].fs[postFlag]; //remaining data to send
+    long toSend = FTI_Exec->ckptMeta.fs; //remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
         int bytes;
@@ -130,7 +130,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 {
     //heads need to use ckptFile to get ckptID and rank
     int ckptID, rank;
-    sscanf(&FTI_Exec->meta[0].ckptFile[postFlag * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
 
     char pfn[FTI_BUFS], str[FTI_BUFS];
     snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
@@ -144,7 +144,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    unsigned long toRecv = FTI_Exec->meta[0].pfs[postFlag]; //remaining data to receive
+    unsigned long toRecv = FTI_Exec->ckptMeta.pfs; //remaining data to receive
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
@@ -178,12 +178,6 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     FTI_Print("Starting checkpoint post-processing L2", FTI_DBUG);
-    if (FTI_Topo->amIaHead) {
-        int res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-    }
     int startProc, endProc;
     if (FTI_Topo->amIaHead) { //post-processing for every process in the node
         startProc = 1;
@@ -198,6 +192,12 @@ int FTI_Ptner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int destination = FTI_Topo->right; //send Ckpt file to this process
     int i;
     for (i = startProc; i < endProc; i++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, i), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         if (FTI_Topo->groupRank % 2) { //first send, then receive
             int res = FTI_SendCkpt(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, i);
             if (res != FTI_SCES) {
@@ -240,12 +240,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
     FTI_Print("Starting checkpoint post-processing L3", FTI_DBUG);
-    if (FTI_Topo->amIaHead) {
-        int res = FTI_Try(FTI_LoadTmpMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load temporary metadata.");
-        if (res != FTI_SCES) {
-            return FTI_NSCS;
-        }
-    }
     int startProc, endProc;
     if (FTI_Topo->amIaHead) {
         startProc = 1;
@@ -258,11 +252,17 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int proc;
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         int ckptID, rank;
-        sscanf(&FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
 
-        snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+        snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
         snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptID, rank);
 
         char str[FTI_BUFS];
@@ -270,7 +270,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print(str, FTI_DBUG);
 
         //all files in group must have the same size
-        long maxFs = FTI_Exec->meta[0].maxFs[proc]; //max file size in group
+        long maxFs = FTI_Exec->ckptMeta.maxFs; //max file size in group
        
         // determine file size in order to write at the end of the elongated file
         // (i.e. write at the end of file after 'truncate(..., maxFs)'.
@@ -443,7 +443,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTIFFMeta->ptFs = -1;
             FTIFFMeta->ckptID = FTI_Exec->ckptID;
             FTIFFMeta->maxFs = maxFs;
-            FTIFFMeta->ckptSize = FTI_Exec->meta[0].fs[proc];
+            FTIFFMeta->ckptSize = FTI_Exec->ckptMeta.fs;
             strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);
 
             // get hash of meta data
@@ -488,7 +488,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(lfd);
         fclose(efd);
 
-        long fs = FTI_Exec->meta[0].fs[proc]; //ckpt file size
+        long fs = FTI_Exec->ckptMeta.fs; //ckpt file size
        
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
@@ -544,10 +544,6 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if ( !FTI_Ckpt[4].hasDcp ) {
             MKDIR(FTI_Ckpt[4].dcpDir,0777);
         }
-    }
-    int res = FTI_Try(FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load metadata.");
-    if (res != FTI_SCES) {
-        return FTI_NSCS;
     }
 
     switch(FTI_Conf->ioMode) {
@@ -615,21 +611,22 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
     }
     if ( (FTI_Conf->ioMode == FTI_IO_POSIX) || (FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Conf->ioMode == FTI_IO_HDF5) ) {
         if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[0].currentL4CkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[0].currentL4CkptFile ); 
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
             RENAME(fn_from, fn_to);
         } else {
             int i;
             for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
-                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, &FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS] ); 
+# warning [FIXME] create a grouprank to global rank converter to name the l4 ckpt file directly and store only currentL4ID. NOW IT DOESNT WORK!!
+                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
                 RENAME(fn_from, fn_to);
             }
         }
     } else {
         if ( FTI_Topo->splitRank == 0 ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->meta[FTI_Exec->ckptLvel].currentL4CkptFile ); 
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
             RENAME(fn_from,fn_to);
         }
     }
@@ -670,14 +667,20 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "Post-processing for proc %d started.", proc);
         FTI_Print(str, FTI_DBUG);
         char lfn[FTI_BUFS], gfn[FTI_BUFS];
         if ( FTI_Ckpt[4].isDcp ) {
-            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile);
         } else {
-            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
         }
         snprintf(str, FTI_BUFS, "Global temporary file name for proc %d: %s", proc, gfn);
         FTI_Print(str, FTI_DBUG);
@@ -690,13 +693,13 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         if (level == 0) {
             if ( FTI_Ckpt[4].isDcp ) {
-                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->ckptMeta.ckptFile);
             } else {
-                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+                snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
             }
         }
         else {
-            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->ckptMeta.ckptFile);
         }
         snprintf(str, FTI_BUFS, "Local file name for proc %d: %s", proc, lfn);
         FTI_Print(str, FTI_DBUG);
@@ -710,7 +713,7 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         char *readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->meta[level].fs[proc];
+        long fs = FTI_Exec->ckptMeta.fs;
         snprintf(str, FTI_BUFS, "Local file size for proc %d: %ld", proc, fs);
         FTI_Print(str, FTI_DBUG);
         long pos = 0;
@@ -775,11 +778,17 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* localFileNames = talloc(char, FTI_BUFS * endProc);
     int* splitRanks = talloc(int, endProc); //rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         if (level == 0) {
-            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
         }
         else {
-            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[proc * FTI_BUFS]);
+            snprintf(&localFileNames[proc * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, FTI_Exec->ckptMeta.ckptFile);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //determine process splitRank if head
@@ -787,7 +796,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             splitRanks[proc] = FTI_Topo->splitRank;
         }
-        localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
+        localFileSizes[proc - startProc] = FTI_Exec->ckptMeta.fs; //[proc - startProc] to get index from 0
     }
 
     MPI_Offset* allFileSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs * FTI_Topo->nbNodes);
@@ -796,6 +805,12 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         int i;
         write_info.offset = 0;
         for (i = 0; i < splitRanks[proc]; i++) {
@@ -813,7 +828,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         char* readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->meta[level].fs[proc];
+        long fs = FTI_Exec->ckptMeta.fs;
 
         long pos = 0;
         // Checkpoint files exchange
