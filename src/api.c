@@ -2352,20 +2352,25 @@ int FTI_Finalize()
         }
         //Cleaning only local storage
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
-    } else if ( FTI_Conf.keepL4Ckpt && FTI_Ckpt[4].hasCkpt ) {
-        FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
-        MPI_Barrier( FTI_COMM_WORLD );
-        FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
-        MPI_Barrier( FTI_COMM_WORLD );
-        int globalFlag = !FTI_Topo.splitRank;
-        globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff) && (globalFlag != 0));
-        if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-            char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
-            RENAME(FTI_Ckpt[4].metaDir, str );
+    } else if ( FTI_Conf.keepL4Ckpt ) {
+        int ckptID = FTI_LoadL4CkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
+        DBG_MSG("ckptID for L4: %d", -1, ckptID);
+        if( ckptID > 0 ) {
+            FTI_Exec.ckptMeta.lastL4CkptId = ckptID;
+            FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
+            MPI_Barrier( FTI_COMM_WORLD );
+            FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
+            MPI_Barrier( FTI_COMM_WORLD );
+            //int globalFlag = !FTI_Topo.splitRank;
+            //globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff) && (globalFlag != 0));
+            //if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
+            //    char str[FTI_BUFS];
+            //    snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
+            //    RENAME(FTI_Ckpt[4].metaDir, str );
+            //}
+            //Cleaning only local storage
+            FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
         }
-        //Cleaning only local storage
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else {
         if (FTI_Conf.saveLastCkpt) { //if there was no saved checkpoint
             FTI_Print("No checkpoint to keep in PFS.", FTI_INFO);

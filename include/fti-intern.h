@@ -443,8 +443,8 @@ extern "C" {
         long            maxFs;              /**< Maximum file size.                    */
         long            fs;                 /**< File size.                            */
         long            pfs;                /**< Partner file size.                    */
+        int             lastL4CkptId;  /**< Current Ckpt file name. [FTI_BUFS]    */        
         char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
-        char            currentL4CkptFile[FTI_BUFS];  /**< Current Ckpt file name. [FTI_BUFS]    */        
     } FTIT_metadata;
     
     //typedef struct FTIT_metadata {

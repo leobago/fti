@@ -610,25 +610,37 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
             return FTI_NSCS;
     }
     if ( (FTI_Conf->ioMode == FTI_IO_POSIX) || (FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Conf->ioMode == FTI_IO_HDF5) ) {
-        if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+        //if ( (FTI_Topo->nbHeads == 0) || (FTI_Ckpt[4].isInline && (FTI_Topo->nbHeads > 0)) ) {
+        if ( !FTI_Topo->amIaHead ) {
+            char lastL4CkptFile[FTI_BUFS];
+            snprintf(lastL4CkptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.lastL4CkptId, FTI_Topo->myRank, FTI_Conf->suffix);
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, lastL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, lastL4CkptFile ); 
             RENAME(fn_from, fn_to);
         } else {
             int i;
             for ( i=1; i<FTI_Topo->nodeSize; ++i ) {
-# warning [FIXME] create a grouprank to global rank converter to name the l4 ckpt file directly and store only currentL4ID. NOW IT DOESNT WORK!!
-                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
-                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+                char lastL4CkptFile[FTI_BUFS];
+                snprintf(lastL4CkptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.lastL4CkptId, FTI_Topo->body[i-1], FTI_Conf->suffix);
+                snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, lastL4CkptFile ); 
+                snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, lastL4CkptFile ); 
                 RENAME(fn_from, fn_to);
             }
         }
     } else {
         if ( FTI_Topo->splitRank == 0 ) {
-            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
-            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, FTI_Exec->ckptMeta.currentL4CkptFile ); 
+            char lastL4CkptFile[FTI_BUFS];
+            snprintf(lastL4CkptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.lastL4CkptId, FTI_Topo->myRank, FTI_Conf->suffix);
+            snprintf(fn_from, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, lastL4CkptFile ); 
+            snprintf(fn_to, FTI_BUFS, "%s/%s", FTI_Ckpt[4].archDir, lastL4CkptFile ); 
             RENAME(fn_from,fn_to);
         }
+    }
+    
+    if (FTI_Topo->splitRank == 0) { //True only for one process in the FTI_COMM_WORLD.
+        char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Exec->ckptMeta.lastL4CkptId);
+        RENAME(FTI_Ckpt[4].metaDir, str );
     }
 
     // needed to avoid that the files get deleted before we can move them

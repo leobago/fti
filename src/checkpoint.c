@@ -129,6 +129,14 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
     FTI_Print(str, FTI_DBUG);
    
+    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
+        int ckptID = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        if( ckptID > 0 ) {
+            FTI_Exec->ckptMeta.lastL4CkptId = ckptID;
+            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+            MPI_Barrier( FTI_COMM_WORLD );
+        }
+    }
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
@@ -234,27 +242,19 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     double t2 = MPI_Wtime(); //Post-processing time
 
     // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
-    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
-        if ( FTI_Ckpt[4].hasCkpt ) {
-            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
-            int globalFlag = !FTI_Topo->splitRank;
-            globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
-            if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-                snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
-                RENAME(FTI_Ckpt[4].metaDir, str );
-            }
-        }
-        // store current ckpt file name in meta data.
-        if ( !FTI_Topo->amIaHead ) {
-#warning currentL4CkptFile doesnt work now
-            strncpy(FTI_Exec->ckptMeta.currentL4CkptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
-        } else {
-            int i;
-            for( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                strncpy(FTI_Exec->ckptMeta.currentL4CkptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
-            }
-        }
-    }
+    //if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
+    //    if ( FTI_Ckpt[4].hasCkpt ) {
+    //        FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+    //        //int globalFlag = !FTI_Topo->splitRank;
+    //        //globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
+    //        //if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
+    //        //    snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
+    //        //    RENAME(FTI_Ckpt[4].metaDir, str );
+    //        //}
+    //    }
+    //    // store current ckpt file name in meta data.
+    //    FTI_Exec->ckptMeta.lastL4CkptId = FTI_Exec->ckptID;
+    //}
 
     FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
