@@ -383,7 +383,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 
     // no metadata files for FTI-FF
@@ -391,7 +391,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     
     char metaFileName[FTI_BUFS], str[FTI_BUFS];
     
-    int level = FTI_Exec->ckptLvelReco;
+    int level = FTI_Exec->ckptLvel;
     
     if ( level == 0 ) snprintf(metaFileName, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
     
@@ -413,7 +413,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", FTI_Topo->groupRank, k);
         snprintf( &FTI_Exec->dcpInfoPosix.LayerHash[k*MD5_DIGEST_STRING_LENGTH], MD5_DIGEST_STRING_LENGTH, "%s", ini.getString( &ini, str ) );
-        int j; for( j=0; j<FTI_Exec->nbVarStored; j++ )
+        int j; for( j=0; j<FTI_BUFS; j++ )
         {
             snprintf( str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", FTI_Topo->groupRank, k, j );
             int varID = ini.getInt( &ini, str );
@@ -467,7 +467,7 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Data[k].id = id;
 
         snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
-        FTI_Data[k].size = ini.getLong( &ini, str );
+        FTI_Data[k].size = 0;//ini.getLong( &ini, str );
         FTI_Data[k].storedSize = ini.getLong( &ini, str );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);

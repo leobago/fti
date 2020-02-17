@@ -184,7 +184,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
         }
         if (FTI_Exec.reco) {
-            res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+            res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load checkpoint metadata");
             if (res == FTI_NSCS) {
                 return FTI_NSCS;
             }
@@ -201,7 +201,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 return FTI_NREC;
             }
             FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
-            res = FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load metadata");
+            res = FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -833,6 +833,19 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 #endif
             }
             if( FTI_Data[i].recovered ) {
+                if ( strlen(FTI_Data[i].idChar) == 0 ){ 
+                    sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", 
+                            id, 
+                            memLocation, 
+                            (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+                }
+                else{
+                    sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",
+                            FTI_Data[i].idChar, 
+                            id, memLocation, 
+                            (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+                }
+                FTI_Print(str, FTI_INFO);
                 FTI_Exec.nbVar++;
                 FTI_Data[i].recovered = false;
             }
@@ -2081,7 +2094,7 @@ int FTI_Recover()
         }
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
+        for (i = 0; i < FTI_Exec.nbVarStored; i++) {
             int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, FTI_Data ); 
             if (FTI_Data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
@@ -2117,7 +2130,7 @@ int FTI_Recover()
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
     }
-
+    
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 

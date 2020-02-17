@@ -561,9 +561,9 @@ int FTI_RecoverDcpPosix
         }
 
     }
-
+    
     // create hasharray
-    for(i=0; i<FTI_Exec->nbVar; i++) {
+    for(i=0; i<FTI_Exec->nbVarStored; i++) {
         FTIT_data_prefetch prefetcher;
         size_t totalBytes = 0;
         unsigned char * ptr = NULL,*startPtr = NULL;
@@ -606,7 +606,7 @@ int FTI_RecoverDcpPosix
                 return FTI_NSCS;
             }
         }
-
+        
         if( FTI_DataVar->size%blockSize ) {
             unsigned char* buffer = calloc( 1, blockSize );
             if( !buffer ) {
@@ -625,7 +625,7 @@ int FTI_RecoverDcpPosix
 
     free(buffer);
     fclose(fd);
-
+    
     return FTI_SCES;
 
 }
@@ -1290,10 +1290,10 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
 int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
     int i=0;
-    for(; i<FTI_Exec->nbVar; i++) {
+    for(; i<FTI_Exec->nbVarStored; i++) {
         if(FTI_Data[i].id == varId) break;
     }
-    if( i==FTI_Exec->nbVar ) {
+    if( i==FTI_Exec->nbVarStored ) {
         return -1;
     }
     return i;
