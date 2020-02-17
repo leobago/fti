@@ -2,6 +2,11 @@
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
  *
+ *  Copyright (c) 2020
+ *  DataDirect Networks
+ *
+ *  See the file COPYRIGHT in the package base directory for details
+ *
  *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
  *
  *  Revision 1.0 : Fault Tolerance Interface (FTI)
@@ -39,195 +44,166 @@
 
 #include "../interface.h"
 
-//int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
-//{
-//    FTI_Exec->wasLastOffline = 1;
-//    // Head needs ckpt. ID to determine ckpt file name.
-//    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
-//    if (status != FTI_SCES) { //If Writing checkpoint failed
-//        value = FTI_REJW; //Send reject checkpoint token to head
-//    }
-//    MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-//    int isDCP = (int)FTI_Ckpt[4].isDcp;
-//    MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-//    return FTI_SCES;
-//}
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Opens and POSIX file (Only for write).
-//  @param      fileDesc        The file descriptor.
-//  @return     integer         FTI_SCES on success.
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixOpen(char *fn, void *fileDesc)
-//{
-//    char str[FTI_BUFS];
-//    WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
-//    if ( fd->flag == 'w' )
-//        fd->f = fopen(fn,"wb");
-//    else if ( fd -> flag == 'r')
-//        fd->f = fopen(fn,"rb");
-//    else if ( fd -> flag == 'e' )
-//        fd->f = fopen(fn, "r+" );
-//    else if ( fd -> flag == 'a' )
-//        fd->f = fopen(fn, "a" );
-//    else{
-//        FTI_Print("Posix Open Should always indicated flag",FTI_WARN);
-//    }
-//
-//
-//    if ( fd->f == NULL ){
-//        snprintf(str, FTI_BUFS, "unable to create file [POSIX ERROR - %d] %s", errno, strerror(errno));
-//        FTI_Print(str,FTI_EROR);
-//        return FTI_NSCS;
-//    }
-//    MD5_Init(&(fd->integrity));
-//    return FTI_SCES;
-//}
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Closes the POSIX file  
-//  @param      fileDesc          The fileDescriptor 
-//  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixClose(void *fileDesc)
-//{
-//    WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
-//    FTI_PosixSync(fileDesc);
-//    fclose(fd->f);
-//    return FTI_SCES;
-//}
-//
-//
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Writes to the file  
-//  @param      src               pointer pointing to the data to be stored
-//  @param      size              size of the data to be written 
-//  @param      fileDesc          The fileDescriptor 
-//  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixWrite(void *src, size_t size, void *fileDesc)
-//{
-//    WritePosixInfo_t *fd = (WritePosixInfo_t *)fileDesc;
-//    size_t written = 0;
-//    int fwrite_errno = 0;
-//    char str[FTI_BUFS];
-//
-//    while (written < size && !ferror(fd->f)) {
-//        errno = 0;
-//        written += fwrite(((char *)src) + written, 1, size - written, fd->f);
-//        fwrite_errno = errno;
-//    }
-//
-//    MD5_Update (&(fd->integrity), src, size);
-//    if (ferror(fd->f)){
-//        char error_msg[FTI_BUFS];
-//        error_msg[0] = 0;
-//        strerror_r(fwrite_errno, error_msg, FTI_BUFS);
-//        snprintf(str, FTI_BUFS, "Unable to write : [POSIX ERROR - %s.]", error_msg);
-//        FTI_Print(str, FTI_EROR);
-//        fclose(fd->f);
-//        return FTI_NSCS;
-//    }
-//    else
-//        return FTI_SCES;
-//
-//}
-//
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Seeks into the file  
-//  @param      pos              The new file posisiton 
-//  @param      fileDesc          The fileDescriptor 
-//  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixSeek(size_t pos, void *fileDesc)
-//{
-//    WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
-//    if ( fseek( fd->f, pos, SEEK_SET ) == -1 ) {
-//        char error_msg[FTI_BUFS];
-//        sprintf(error_msg, "Unable to Seek : [POSIX ERROR -%s.]", strerror(errno));
-//        FTI_Print(error_msg, FTI_EROR );
-//        return FTI_NSCS;
-//    }
-//    return FTI_SCES;
-//}
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Return the current file postion 
-//  @param      fileDesc          The fileDescriptor 
-//  @return     size_t            Position of the file descriptor 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//size_t FTI_GetPosixFilePos(void *fileDesc)
-//{
-//    WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
-//    return ftell(fd->f);
-//}
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Reads from the file  
-//  @param      src               pointer pointing to the data to be read 
-//  @param      size              size of the data to be written 
-//  @param      fileDesc          The fileDescriptor 
-//  @return     integer         Return FTI_SCES  when successfuly read the data to the file 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixRead(void *dest, size_t size, void *fileDesc)
-//{
-//    return FTI_SCES;
-//}
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Synchornizes the current file 
-//  @param      fileDesc          The fileDescriptor 
-//  @return     int               FTI_SCES on success 
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_PosixSync(void *fileDesc)
-//{
-//    fsync(fileno(((WritePosixInfo_t *) fileDesc)->f));
-//    return FTI_SCES;
-//}
-//*/
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes the files for the upcoming checkpoint.  
-  @param      FTI_Conf          Configuration of FTI 
-  @param      FTI_Exec          Execution environment options 
+  @brief      Opens a file using IME native interface (Only for write).
+  @param      fileDesc        The file descriptor.
+  @return     integer         FTI_SCES on success.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_IMEOpen(char *fn, void *fileDesc)
+{
+    char str[FTI_BUFS];
+    WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
+    if ( fd->flag == O_WRONLY )
+        fd->f = ime_native_open(fn, O_CREAT | O_TRUNC | O_WRONLY, 0664);
+    else if ( fd -> flag == O_RDONLY )
+        fd->f = ime_native_open(fn,O_RDONLY, 0664);
+    else if ( fd -> flag == O_RDWR )
+        fd->f = ime_native_open(fn, O_RDWR, 0664);
+    else if ( fd -> flag == O_APPEND )
+        fd->f = ime_native_open(fn, O_APPEND, 0664);
+    else{
+        FTI_Print("IME native Open Should always indicated flag",FTI_WARN);
+    }
+
+
+    if ( fd->f == -1 ){
+        snprintf(str, FTI_BUFS, "unable to create file [IME native ERROR - %d] %s", errno, strerror(errno));
+        FTI_Print(str,FTI_EROR);
+        return FTI_NSCS;
+    }
+    MD5_Init(&(fd->integrity));
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Closes the IME native file
+  @param      fileDesc        The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_IMEClose(void *fileDesc)
+{
+    WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
+    FTI_IMESync(fileDesc);
+    ime_native_close(fd->f);
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes to the file
+  @param      src             pointer pointing to the data to be stored
+  @param      size            size of the data to be written
+  @param      fileDesc        The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_IMEWrite(void *src, size_t size, void *fileDesc)
+{
+    WriteIMEInfo_t *fd = (WriteIMEInfo_t *)fileDesc;
+    size_t written = 0;
+    int fwrite_errno = 0;
+    char str[FTI_BUFS];
+
+    while (written < size) { // KC FIXME && !ferror(fd->f)) {
+        errno = 0;
+        written += ime_native_write(fd->f, ((char *)src) + written, size - written);
+        fwrite_errno = errno;
+    }
+
+    MD5_Update (&(fd->integrity), src, size);
+/* KC FIXME *
+    if (ferror(fd->f)){
+        char error_msg[FTI_BUFS];
+        error_msg[0] = 0;
+        strerror_r(fwrite_errno, error_msg, FTI_BUFS);
+        snprintf(str, FTI_BUFS, "Unable to write : [IME native ERROR - %s.]", error_msg);
+        FTI_Print(str, FTI_EROR);
+        ime_native_close(fd->f);
+        return FTI_NSCS;
+    }
+    else
+*/
+        return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Seeks into the file
+  @param      pos             The new file posisiton
+  @param      fileDesc        The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_IMESeek(size_t pos, void *fileDesc)
+{
+    WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
+    if ( ime_native_lseek( fd->f, pos, SEEK_SET ) == -1 ) {
+        char error_msg[FTI_BUFS];
+        sprintf(error_msg, "Unable to Seek : [IME native ERROR -%s.]", strerror(errno));
+        FTI_Print(error_msg, FTI_EROR );
+        return FTI_NSCS;
+    }
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Return the current file postion
+  @param      fileDesc          The fileDescriptor
+  @return     size_t            Position of the file descriptor
+
+ **/
+/*-------------------------------------------------------------------------*/
+size_t FTI_GetIMEFilePos(void *fileDesc)
+{
+    WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
+    return ime_native_lseek(fd->f, 0, SEEK_CUR);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Synchornizes the current file
+  @param      fileDesc          The fileDescriptor
+  @return     int               FTI_SCES on success
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_IMESync(void *fileDesc)
+{
+    // KC FIXME ime_native_fsync(fileno(((WriteIMEInfo_t *) fileDesc)->f));
+    ime_native_fsync(((WriteIMEInfo_t *) fileDesc)->f);
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes the files for the upcoming checkpoint.
+  @param      FTI_Conf          Configuration of FTI
+  @param      FTI_Exec          Execution environment options
   @param      FTI_Topo          Topology of nodes
   @param      FTI_Ckpt          Checkpoint configurations
   @param      FTI_Data          Data to be stored
-  @return     void*             Return void pointer to file descriptor 
+  @return     void*             Return void pointer to file descriptor
 
  **/
 /*-------------------------------------------------------------------------*/
 void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
 {
-    
+
     FTI_Print("I/O mode: IME.", FTI_DBUG);
-    
-    DBG_MSG("IME init is called!", -1);
+
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
 
-    WritePosixInfo_t *write_info = (WritePosixInfo_t *) malloc (sizeof(WritePosixInfo_t));
+    WriteIMEInfo_t *write_info = (WriteIMEInfo_t *) malloc (sizeof(WriteIMEInfo_t));
 
     snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
@@ -238,66 +214,66 @@ void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
-    write_info->flag = 'w';
+    write_info->flag = O_WRONLY;
     write_info->offset = 0;
-    FTI_PosixOpen(fn,write_info);
+    FTI_IMEOpen(fn,write_info);
     return write_info;
 }
 
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Writes ckpt to using POSIX format.
-//  @param      FTI_Conf        Configuration metadata.
-//  @param      FTI_Exec        Execution metadata.
-//  @param      FTI_Topo        Topology metadata.
-//  @param      FTI_Ckpt        Checkpoint metadata.
-//  @param      FTI_Data        Dataset metadata.
-//  @return     integer         FTI_SCES if successful.
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
-//{
-//    WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
-//    char str[FTI_BUFS];
-//    int res;
-//
-//    if ( !(FTI_DataVar->isDevicePtr) ){
-//        if (( res = FTI_Try(FTI_PosixWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-//            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
-//            FTI_Print(str, FTI_EROR);
-//            FTI_PosixClose(write_info);
-//            return FTI_NSCS;
-//        }
-//    }
-//#ifdef GPUSUPPORT            
-//    // if data are stored to the GPU move them from device
-//    // memory to cpu memory and store them.
-//    else {
-//        if ((res = FTI_Try(
-//                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
-//                        "moving data from GPU to storage")) != FTI_SCES) {
-//            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
-//            FTI_Print(str, FTI_EROR);
-//            FTI_PosixClose(write_info);
-//            return FTI_NSCS;
-//        }
-//    }
-//#endif  
-//    return FTI_SCES;
-//}
-//
-///*-------------------------------------------------------------------------*/
-///**
-//  @brief      Finalizes the checksum of the file.
-//  @param      dest            Where to store the checksum.
-//  @param      md5             Md5 checksum up to now.
-//  @return     void.
-//
-// **/
-///*-------------------------------------------------------------------------*/
-//void FTI_PosixMD5(unsigned char *dest, void *md5)
-//{
-//    WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
-//    MD5_Final(dest,&(write_info->integrity));
-//}
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Writes ckpt to using IME native format.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     integer         FTI_SCES if successful.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd)
+{
+    WriteIMEInfo_t *write_info = (WriteIMEInfo_t*) fd;
+    char str[FTI_BUFS];
+    int res;
+
+    if ( !(FTI_DataVar->isDevicePtr) ){
+        if (( res = FTI_Try(FTI_IMEWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            FTI_Print(str, FTI_EROR);
+            FTI_IMEClose(write_info);
+            return FTI_NSCS;
+        }
+    }
+#ifdef GPUSUPPORT
+    // if data are stored to the GPU move them from device
+    // memory to cpu memory and store them.
+    else {
+        if ((res = FTI_Try(
+                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_IMEWrite, write_info),
+                        "moving data from GPU to storage")) != FTI_SCES) {
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            FTI_Print(str, FTI_EROR);
+            FTI_IMEClose(write_info);
+            return FTI_NSCS;
+        }
+    }
+#endif
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes the checksum of the file.
+  @param      dest            Where to store the checksum.
+  @param      md5             Md5 checksum up to now.
+  @return     void.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_IMEMD5(unsigned char *dest, void *md5)
+{
+    WriteIMEInfo_t *write_info =(WriteIMEInfo_t *) md5;
+    MD5_Final(dest,&(write_info->integrity));
+}

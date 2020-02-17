@@ -2,6 +2,11 @@
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
  *
+ *  Copyright (c) 2020
+ *  DataDirect Networks
+ *
+ *  See the file COPYRIGHT in the package base directory for details
+ *
  *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
  *
  *  Revision 1.0 : Fault Tolerance Interface (FTI)
@@ -77,6 +82,10 @@ extern "C"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 #   include <sion.h>
+#endif
+
+#ifdef ENABLE_IME_NATIVE // --> If IME native API is installed
+#   include <ime_native.h>
 #endif
 
 #ifdef LUSTRE

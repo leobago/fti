@@ -87,9 +87,9 @@ int FTI_PosixOpen(char *fn, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Closes the POSIX file  
-  @param      fileDesc          The fileDescriptor 
-  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+  @brief      Closes the POSIX file
+  @param      fileDesc          The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -105,11 +105,11 @@ int FTI_PosixClose(void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes to the file  
+  @brief      Writes to the file
   @param      src               pointer pointing to the data to be stored
-  @param      size              size of the data to be written 
-  @param      fileDesc          The fileDescriptor 
-  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+  @param      size              size of the data to be written
+  @param      fileDesc          The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -144,10 +144,10 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Seeks into the file  
-  @param      pos              The new file posisiton 
-  @param      fileDesc          The fileDescriptor 
-  @return     integer         Return FTI_SCES  when successfuly write the data to the file 
+  @brief      Seeks into the file
+  @param      pos              The new file posisiton
+  @param      fileDesc          The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly write the data to the file
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -165,9 +165,9 @@ int FTI_PosixSeek(size_t pos, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Return the current file postion 
-  @param      fileDesc          The fileDescriptor 
-  @return     size_t            Position of the file descriptor 
+  @brief      Return the current file postion
+  @param      fileDesc          The fileDescriptor
+  @return     size_t            Position of the file descriptor
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -179,11 +179,11 @@ size_t FTI_GetPosixFilePos(void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Reads from the file  
-  @param      src               pointer pointing to the data to be read 
-  @param      size              size of the data to be written 
-  @param      fileDesc          The fileDescriptor 
-  @return     integer         Return FTI_SCES  when successfuly read the data to the file 
+  @brief      Reads from the file
+  @param      src               pointer pointing to the data to be read
+  @param      size              size of the data to be written
+  @param      fileDesc          The fileDescriptor
+  @return     integer         Return FTI_SCES  when successfuly read the data to the file
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -194,9 +194,9 @@ int FTI_PosixRead(void *dest, size_t size, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Synchornizes the current file 
-  @param      fileDesc          The fileDescriptor 
-  @return     int               FTI_SCES on success 
+  @brief      Synchornizes the current file
+  @param      fileDesc          The fileDescriptor
+  @return     int               FTI_SCES on success
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -208,21 +208,21 @@ int FTI_PosixSync(void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes the files for the upcoming checkpoint.  
-  @param      FTI_Conf          Configuration of FTI 
-  @param      FTI_Exec          Execution environment options 
+  @brief      Initializes the files for the upcoming checkpoint.
+  @param      FTI_Conf          Configuration of FTI
+  @param      FTI_Exec          Execution environment options
   @param      FTI_Topo          Topology of nodes
   @param      FTI_Ckpt          Checkpoint configurations
   @param      FTI_Data          Data to be stored
-  @return     void*             Return void pointer to file descriptor 
+  @return     void*             Return void pointer to file descriptor
 
  **/
 /*-------------------------------------------------------------------------*/
 void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
 {
-    
+
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
-    
+
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptLvel;
 
@@ -269,7 +269,7 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
             return FTI_NSCS;
         }
     }
-#ifdef GPUSUPPORT            
+#ifdef GPUSUPPORT
     // if data are stored to the GPU move them from device
     // memory to cpu memory and store them.
     else {
@@ -282,7 +282,7 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
             return FTI_NSCS;
         }
     }
-#endif  
+#endif
     return FTI_SCES;
 }
 

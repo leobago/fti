@@ -2,6 +2,11 @@
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
  *
+ *  Copyright (c) 2020
+ *  DataDirect Networks
+ *
+ *  See the file COPYRIGHT in the package base directory for details
+ *
  *  FTI - A multi-level checkpointing library for C/C++/Fortran applications
  *
  *  Revision 1.0 : Fault Tolerance Interface (FTI)
@@ -52,7 +57,7 @@ FTIT_IO ftiIO[4];
   @param      a does not matter.
   @return     void.
 
-    THis function is passed as a reference when different file formats do not 
+    THis function is passed as a reference when different file formats do not
     actually compute an integrity checksum. It helps to avoid if statements in the
     code and provides a more stream line code format.
  **/
@@ -64,8 +69,8 @@ void FTI_dummy(unsigned char *data, void* a){
 /*-------------------------------------------------------------------------*/
 /**
   @brief      This function initializes the FTI_IO structure with the functions that write the ckpt file.
-  @param      ckptIO                File format selected by the user in the configuration file. 
-  @param      FTI_Exec              Execution environment of the FTI. 
+  @param      ckptIO                File format selected by the user in the configuration file.
+  @param      FTI_Exec              Execution environment of the FTI.
   @return     int                   On success FTI_SCES
 
     This function actually initializes the execution paths of the write checkpoint function.
@@ -75,36 +80,36 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
     //Initialize Local and Global writers
     switch (ckptIO) {
         case FTI_IO_POSIX:
-            ftiIO[LOCAL].initCKPT = FTI_InitPosix; 
-            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
-            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
-            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[LOCAL].initCKPT = FTI_InitPosix;
+            ftiIO[LOCAL].WriteData = FTI_WritePosixData;
+            ftiIO[LOCAL].finCKPT= FTI_PosixClose;
+            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5;
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitPosix; 
-            ftiIO[GLOBAL].WriteData = FTI_WritePosixData; 
-            ftiIO[GLOBAL].finCKPT= FTI_PosixClose; 
-            ftiIO[GLOBAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[GLOBAL].initCKPT = FTI_InitPosix;
+            ftiIO[GLOBAL].WriteData = FTI_WritePosixData;
+            ftiIO[GLOBAL].finCKPT= FTI_PosixClose;
+            ftiIO[GLOBAL].getPos	= FTI_GetPosixFilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_PosixMD5;
 
 
-            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix; 
-            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData; 
-            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose; 
-            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos; 
-            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix;
+            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData;
+            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose;
+            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos;
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy;
 
-            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix; 
-            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData; 
-            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose; 
-            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos; 
-            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix;
+            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData;
+            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose;
+            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos;
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy;
 
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -112,42 +117,43 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
-        
+
+#ifdef ENABLE_IME_NATIVE //If IME native API is installed
         case FTI_IO_IME:
-            ftiIO[LOCAL].initCKPT = FTI_InitIME; 
-            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
-            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
-            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[LOCAL].initCKPT     = FTI_InitPosix;
+            ftiIO[LOCAL].WriteData    = FTI_WritePosixData;
+            ftiIO[LOCAL].finCKPT      = FTI_PosixClose;
+            ftiIO[LOCAL].getPos	      = FTI_GetPosixFilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5;
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitPosix; 
-            ftiIO[GLOBAL].WriteData = FTI_WritePosixData; 
-            ftiIO[GLOBAL].finCKPT= FTI_PosixClose; 
-            ftiIO[GLOBAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[GLOBAL].initCKPT     = FTI_InitIME;
+            ftiIO[GLOBAL].WriteData    = FTI_WriteIMEData;
+            ftiIO[GLOBAL].finCKPT      = FTI_IMEClose;
+            ftiIO[GLOBAL].getPos	   = FTI_GetIMEFilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_IMEMD5;
 
 
-            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix; 
-            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData; 
-            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose; 
-            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos; 
-            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitDCPPosix;
+            ftiIO[2 + LOCAL].WriteData = FTI_WritePosixDCPData;
+            ftiIO[2 + LOCAL].finCKPT= FTI_PosixDCPClose;
+            ftiIO[2 + LOCAL].getPos	= FTI_GetDCPPosixFilePos;
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy;
 
-            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix; 
-            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData; 
-            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose; 
-            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos; 
-            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitDCPPosix;
+            ftiIO[2 + GLOBAL].WriteData = FTI_WritePosixDCPData;
+            ftiIO[2 + GLOBAL].finCKPT= FTI_PosixDCPClose;
+            ftiIO[2 + GLOBAL].getPos	= FTI_GetDCPPosixFilePos;
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy;
 
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -155,29 +161,30 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
+#endif
 
         case FTI_IO_MPI:
-            ftiIO[LOCAL].initCKPT = FTI_InitPosix; 
-            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
-            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
-            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[LOCAL].initCKPT = FTI_InitPosix;
+            ftiIO[LOCAL].WriteData = FTI_WritePosixData;
+            ftiIO[LOCAL].finCKPT= FTI_PosixClose;
+            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5;
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitMPIO; 
-            ftiIO[GLOBAL].WriteData = FTI_WriteMPIOData; 
-            ftiIO[GLOBAL].finCKPT= FTI_MPIOClose; 
-            ftiIO[GLOBAL].getPos	= FTI_GetMPIOFilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
+            ftiIO[GLOBAL].initCKPT = FTI_InitMPIO;
+            ftiIO[GLOBAL].WriteData = FTI_WriteMPIOData;
+            ftiIO[GLOBAL].finCKPT= FTI_MPIOClose;
+            ftiIO[GLOBAL].getPos	= FTI_GetMPIOFilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy;
 
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -185,29 +192,29 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
             break;
 
 #ifdef ENABLE_SIONLIB //If SIONlib is installed
         case FTI_IO_SIONLIB:
-            ftiIO[LOCAL].initCKPT = FTI_InitPosix; 
-            ftiIO[LOCAL].WriteData = FTI_WritePosixData; 
-            ftiIO[LOCAL].finCKPT= FTI_PosixClose; 
-            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5; 
+            ftiIO[LOCAL].initCKPT = FTI_InitPosix;
+            ftiIO[LOCAL].WriteData = FTI_WritePosixData;
+            ftiIO[LOCAL].finCKPT= FTI_PosixClose;
+            ftiIO[LOCAL].getPos	= FTI_GetPosixFilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_PosixMD5;
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitSion; 
-            ftiIO[GLOBAL].WriteData = FTI_WriteSionData; 
-            ftiIO[GLOBAL].finCKPT= FTI_SionClose; 
-            ftiIO[GLOBAL].getPos	= FTI_GetSionFilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
+            ftiIO[GLOBAL].initCKPT = FTI_InitSion;
+            ftiIO[GLOBAL].WriteData = FTI_WriteSionData;
+            ftiIO[GLOBAL].finCKPT= FTI_SionClose;
+            ftiIO[GLOBAL].getPos	= FTI_GetSionFilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy;
 
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -215,41 +222,41 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
 #endif
         case FTI_IO_FTIFF:
-            
-            ftiIO[LOCAL].initCKPT = FTI_InitFtiff; 
-            ftiIO[LOCAL].WriteData = FTI_WriteFtiffData; 
-            ftiIO[LOCAL].finCKPT= FTI_FinalizeFtiff; 
-            ftiIO[LOCAL].getPos	= FTI_DummyFilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_dummy; 
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitFtiff; 
-            ftiIO[GLOBAL].WriteData = FTI_WriteFtiffData; 
-            ftiIO[GLOBAL].finCKPT= FTI_FinalizeFtiff; 
-            ftiIO[GLOBAL].getPos	= FTI_DummyFilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
-            
-            ftiIO[2 + LOCAL].initCKPT = FTI_InitFtiff; 
-            ftiIO[2 + LOCAL].WriteData = FTI_WriteFtiffData; 
-            ftiIO[2 + LOCAL].finCKPT= FTI_FinalizeFtiff; 
-            ftiIO[2 + LOCAL].getPos	= FTI_DummyFilePos; 
-            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy; 
+            ftiIO[LOCAL].initCKPT = FTI_InitFtiff;
+            ftiIO[LOCAL].WriteData = FTI_WriteFtiffData;
+            ftiIO[LOCAL].finCKPT= FTI_FinalizeFtiff;
+            ftiIO[LOCAL].getPos	= FTI_DummyFilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_dummy;
 
-            ftiIO[2 + GLOBAL].initCKPT = FTI_InitFtiff; 
-            ftiIO[2 + GLOBAL].WriteData = FTI_WriteFtiffData; 
-            ftiIO[2 + GLOBAL].finCKPT= FTI_FinalizeFtiff; 
-            ftiIO[2 + GLOBAL].getPos	= FTI_DummyFilePos; 
-            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
-            
+            ftiIO[GLOBAL].initCKPT = FTI_InitFtiff;
+            ftiIO[GLOBAL].WriteData = FTI_WriteFtiffData;
+            ftiIO[GLOBAL].finCKPT= FTI_FinalizeFtiff;
+            ftiIO[GLOBAL].getPos	= FTI_DummyFilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy;
+
+            ftiIO[2 + LOCAL].initCKPT = FTI_InitFtiff;
+            ftiIO[2 + LOCAL].WriteData = FTI_WriteFtiffData;
+            ftiIO[2 + LOCAL].finCKPT= FTI_FinalizeFtiff;
+            ftiIO[2 + LOCAL].getPos	= FTI_DummyFilePos;
+            ftiIO[2 + LOCAL].finIntegrity = FTI_dummy;
+
+            ftiIO[2 + GLOBAL].initCKPT = FTI_InitFtiff;
+            ftiIO[2 + GLOBAL].WriteData = FTI_WriteFtiffData;
+            ftiIO[2 + GLOBAL].finCKPT= FTI_FinalizeFtiff;
+            ftiIO[2 + GLOBAL].getPos	= FTI_DummyFilePos;
+            ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy;
+
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -262,23 +269,23 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
         case FTI_IO_HDF5:
-            ftiIO[LOCAL].initCKPT = FTI_InitHDF5; 
-            ftiIO[LOCAL].WriteData = FTI_WriteHDF5Data; 
-            ftiIO[LOCAL].finCKPT= FTI_HDF5Close; 
-            ftiIO[LOCAL].getPos	= FTI_GetHDF5FilePos; 
-            ftiIO[LOCAL].finIntegrity = FTI_dummy; 
+            ftiIO[LOCAL].initCKPT = FTI_InitHDF5;
+            ftiIO[LOCAL].WriteData = FTI_WriteHDF5Data;
+            ftiIO[LOCAL].finCKPT= FTI_HDF5Close;
+            ftiIO[LOCAL].getPos	= FTI_GetHDF5FilePos;
+            ftiIO[LOCAL].finIntegrity = FTI_dummy;
 
-            ftiIO[GLOBAL].initCKPT = FTI_InitHDF5; 
-            ftiIO[GLOBAL].WriteData = FTI_WriteHDF5Data; 
-            ftiIO[GLOBAL].finCKPT= FTI_HDF5Close; 
-            ftiIO[GLOBAL].getPos	= FTI_GetHDF5FilePos; 
-            ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
+            ftiIO[GLOBAL].initCKPT = FTI_InitHDF5;
+            ftiIO[GLOBAL].WriteData = FTI_WriteHDF5Data;
+            ftiIO[GLOBAL].finCKPT= FTI_HDF5Close;
+            ftiIO[GLOBAL].getPos	= FTI_GetHDF5FilePos;
+            ftiIO[GLOBAL].finIntegrity = FTI_dummy;
 
 
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
-            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP; 
+            FTI_Exec->initICPFunc[LOCAL] = FTI_startICP;
             FTI_Exec->initICPFunc[GLOBAL] = FTI_startICP;
 
             FTI_Exec->writeVarICPFunc[LOCAL] = FTI_WriteVar;
@@ -286,7 +293,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
             break;
 #endif

@@ -432,7 +432,7 @@ void FTI_FreeMeta(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) 
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
 {
     FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
     if (FTI_Exec->FTI_Type == NULL) {
@@ -466,7 +466,7 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) 
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec)
 {
     int i;
     for (i = 0; i < FTI_Exec->nbType; i++) {
@@ -596,8 +596,8 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 
     nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
 
-    bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff); 
-    bool notDcp = !FTI_Ckpt[4].isDcp;   
+    bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff);
+    bool notDcp = !FTI_Ckpt[4].isDcp;
 
     if (level == 0) {
         FTI_RmDir(FTI_Conf->mTmpDir, globalFlag && notDcpFtiff );
@@ -666,13 +666,13 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      generates hex string representation of hash digest.
-  @param      char*             hash digest 
-  @param      int               digest width 
+  @param      char*             hash digest
+  @param      int               digest width
   @return     char*             hex string of hash
  **/
 /*-------------------------------------------------------------------------*/
 char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr )
-{       
+{
     static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
     if( hashHexStr == NULL ) {
         hashHexStr = hashHexStatic;
@@ -689,14 +689,14 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Finds the the id of a protected variable in the metadata file .
-  @param      FTI_Exec*         Checkpoint execution data 
+  @param      FTI_Exec*         Checkpoint execution data
   @param      FTIT_dataset      Information regarding the protected variables.
   @param      int id            Variable id we are searching for
   @param      int *currentIndex The variable index of the found variable in FTI_Data structure
   @param      int *oldIndex     The variable index of the found variable in FTI_metadata structure
-  @return     int               FTI_SCES on succefully finding a variable 
+  @return     int               FTI_SCES on succefully finding a variable
 
-  This function matches the index of a current protected variable with the index of a 
+  This function matches the index of a current protected variable with the index of a
   variable protected on the previous execution (Recovery)
  **/
 /*-------------------------------------------------------------------------*/
@@ -711,7 +711,7 @@ int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, 
                     *currentIndex = j;
                     break;
                 }
-            }		
+            }
             if ( j == FTI_Exec->nbVar){
                 FTI_Print("Variables must be protected before they can be revoered.", FTI_EROR);
                 return FTI_NREC;

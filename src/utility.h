@@ -23,8 +23,18 @@ typedef struct{
     MD5_CTX integrity;              // integrity of the file
 }WritePosixInfo_t;
 
+#ifdef ENABLE_IME_NATIVE
 typedef struct{
-    WritePosixInfo_t write_info;    // Posix Write info descriptor 
+    int f;                          // IME native file descriptor
+    size_t offset;                  // offset in the file
+    int flag;                       // flags to open the file
+    mode_t mode;                    // mode the file has been opened
+    MD5_CTX integrity;              // integrity of the file
+}WriteIMEInfo_t;
+#endif
+
+typedef struct{
+    WritePosixInfo_t write_info;    // Posix Write info descriptor
     FTIT_configuration *FTI_Conf;   // FTI Configuration
     FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
     FTIT_execution *FTI_Exec;       // FTI execution options
@@ -101,7 +111,7 @@ int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 
 
 
-#ifdef ENABLE_SIONLIB 
+#ifdef ENABLE_SIONLIB
 int write_sion(void *src, size_t size, void *opaque);
 #endif
 #endif

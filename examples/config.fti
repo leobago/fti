@@ -66,12 +66,13 @@ Group_size = 4
 # If you app has iterations of varying length set this value between (1 and 10)
 max_sync_intv               = 0
 
-# Set to: 
-# 1 -> POSIX 
+# Set to:
+# 1 -> POSIX
 # 2 -> MPI-IO
 # 3 -> FTI-FF
 # 4 -> SIONLib
-# 5 -> HDF5.
+# 5 -> HDF5
+# 6 -> IME_NATIVE API
 ckpt_io                     = 1
 
 # Enable staging feature
@@ -147,7 +148,7 @@ Transfer_size = 16
 
 # The tags for MPI communications done within the FTI library
 general_tag = 2612
-ckpt_tag = 711   
+ckpt_tag = 711
 stage_tag = 406
 final_tag = 3107
 
