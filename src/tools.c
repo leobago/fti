@@ -707,26 +707,27 @@ int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, 
     int i,j;
     for (i = 0; i < FTI_Exec->nbVarStored; i++) {
         if (id == FTI_Data[i].id) {
-            *oldIndex = i;
-            for ( j = 0 ; j < FTI_Exec->nbVar; j++){
-                if ( id == FTI_Data[j].id){
-                    *currentIndex = j;
-                    break;
-                }
-            }		
-            if ( j == FTI_Exec->nbVar){
-                FTI_Print("Variables must be protected before they can be revoered.", FTI_EROR);
-                return FTI_NREC;
-            }
+            *currentIndex = i;
+            //*oldIndex = i;
+            //for ( j = 0 ; j < FTI_Exec->nbVar; j++){
+            //    if ( id == FTI_Data[j].id){
+            //        *currentIndex = j;
+            //        break;
+            //    }
+            //}		
+            //if ( j == FTI_Exec->nbVar){
+            //    FTI_Print("Variables must be protected before they can be revoered.", FTI_EROR);
+            //    return FTI_NREC;
+            //}
 
-            if (FTI_Data[j].size != FTI_Data[j].storedSize) {
-                char str[FTI_BUFS];
-                sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                        FTI_Data[i].storedSize, FTI_Data[i].id,
-                        FTI_Data[j].size);
-                FTI_Print(str, FTI_WARN);
-                return FTI_NREC;
-            }
+            //if (FTI_Data[j].size != FTI_Data[j].storedSize) {
+            //    char str[FTI_BUFS];
+            //    sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+            //            FTI_Data[i].storedSize, FTI_Data[i].id,
+            //            FTI_Data[j].size);
+            //    FTI_Print(str, FTI_WARN);
+            //    return FTI_NREC;
+            //}
         }
     }
     return FTI_SCES;
