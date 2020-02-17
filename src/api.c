@@ -706,8 +706,8 @@ int FTI_getIDFromString( char *name ){
     
     int i = 0;
 
-    for ( i = 0 ; i < FTI_Exec.nbVar; i++){
-        if (strcmp(name, FTI_Data[i].name) == 0){
+    for ( i = 0 ; i < FTI_Exec.nbVarStored; i++){
+        if (strcmp(name, FTI_Data[i].idChar) == 0){
             return i;
         }
 
