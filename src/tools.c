@@ -499,6 +499,7 @@ int FTI_InitBasicTypes(FTIT_dataset* FTI_Data)
     int i;
     for (i = 0; i < FTI_BUFS; i++) {
         FTI_Data[i].id = -1;
+        FTI_Data[i].recovered = false;
     }
     FTI_InitType(&FTI_CHAR, sizeof(char));
     FTI_InitType(&FTI_SHRT, sizeof(short));

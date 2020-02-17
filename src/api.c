@@ -138,10 +138,6 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
-    res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
-    if (res == FTI_NSCS) {
-        return FTI_NSCS;
-    }
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
@@ -158,6 +154,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     FTI_Exec.initSCES = 1;
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
+            res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
@@ -184,6 +184,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
         }
         if (FTI_Exec.reco) {
+            res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
+            if (res == FTI_NSCS) {
+                return FTI_NSCS;
+            }
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
                 res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
@@ -197,6 +201,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 return FTI_NREC;
             }
             FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
+            res = FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -763,7 +768,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     int i;
     char memLocation[4];
     for (i = 0; i < FTI_BUFS; i++) {
-        if (id == FTI_Data[i].id) { //Search for dataset with given id
+        if ( id == FTI_Data[i].id ) { //Search for dataset with given id
             long prevSize = FTI_Data[i].size;
 #ifdef GPUSUPPORT
             if ( ptrInfo.type == FTIT_PTRTYPE_CPU) {
@@ -826,6 +831,10 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
                 }
 #endif
+            }
+            if( FTI_Data[i].recovered ) {
+                FTI_Exec.nbVar++;
+                FTI_Data[i].recovered = false;
             }
             return FTI_SCES;
         }
@@ -2491,7 +2500,7 @@ int FTI_Finalize()
 
      **/
     /*-------------------------------------------------------------------------*/
-    void FTI_Print(char* msg, int priority)
+    void FTI_Print_(char* msg, int priority)
     {
         if (priority >= FTI_Conf.verbosity) {
             if (msg != NULL) {

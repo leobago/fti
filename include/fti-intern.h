@@ -413,6 +413,7 @@ extern "C" {
      */
     typedef struct FTIT_dataset {
         int                 id;                 /**< ID to search/update dataset.                   */
+        bool                recovered;
         void                *ptr;               /**< Pointer to the dataset.                        */
         long                count;              /**< Number of elements in dataset.                 */
         FTIT_type*          type;               /**< Data type for the dataset.                     */

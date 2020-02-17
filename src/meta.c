@@ -475,7 +475,7 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Data[k].storedFilePos = ini.getLong( &ini, str );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
-        strncpy(&FTI_Data[k].idChar[k*FTI_BUFS], ini.getString( &ini, str ), FTI_BUFS);
+        strncpy(FTI_Data[k].idChar, ini.getString( &ini, str ), FTI_BUFS);
     
         // Important assignment, we use realloc!
         FTI_Data[k].sharedData.dataset = NULL;
@@ -489,9 +489,9 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Data[k].dcpInfoPosix.currentHashArray=NULL;
             FTI_Data[k].dcpInfoPosix.oldHashArray=NULL;
         }
+
+        FTI_Data[k].recovered = true;
         
-        FTI_Exec->nbVarStored = FTI_Exec->nbVarStored + 1;
-    
     }
 
     //Save number of variables in metadata
@@ -906,9 +906,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
 
-    FTIT_metadata meta;
-
-    meta.fs = (FTI_Ckpt[FTI_Exec->ckptLvel].isDcp) ? FTI_Exec->dcpInfoPosix.FileSize : FTI_Exec->ckptSize;
+    FTI_Exec->ckptMeta.fs = (FTI_Ckpt[FTI_Exec->ckptLvel].isDcp) ? FTI_Exec->dcpInfoPosix.FileSize : FTI_Exec->ckptSize;
 
 #ifdef ENABLE_HDF5
     if( FTI_Conf->ioMode == FTI_IO_HDF5 ) {
@@ -940,12 +938,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
 
     long fileSizes[FTI_BUFS];
-    MPI_Allgather(&meta.fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
+    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
 
     //update partner file size:
     if (FTI_Exec->ckptLvel == 2) {
         int ptnerGroupRank = (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize;
-        meta.pfs = fileSizes[ptnerGroupRank];
+        FTI_Exec->ckptMeta.pfs = fileSizes[ptnerGroupRank];
     }
 
     long mfs = 0; //Max file size in group
@@ -955,7 +953,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             mfs = fileSizes[i]; // Search max. size
         }
     }
-    meta.maxFs = mfs;
+    FTI_Exec->ckptMeta.maxFs = mfs;
     char str[FTI_BUFS]; //For console output
     snprintf(str, FTI_BUFS, "Max. file size in group %lu.", mfs);
     FTI_Print(str, FTI_DBUG);
@@ -964,7 +962,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Topo->groupRank == 0) {
         ckptFileNames = talloc(char, FTI_Topo->groupSize * FTI_BUFS);
     }
-    strncpy(str, meta.ckptFile, FTI_BUFS); // Gather all the file names
+    strncpy(str, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS); // Gather all the file names
     MPI_Gather(str, FTI_BUFS, MPI_CHAR, ckptFileNames, FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);
 
     char checksum[MD5_DIGEST_STRING_LENGTH];
@@ -1065,8 +1063,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_Data[i].storedSize =  FTI_Data[i].size;
     }
-
-    memcpy( &FTI_Exec->ckptMeta, &meta, sizeof(FTIT_metadata) );
 
     return FTI_SCES;
 }
