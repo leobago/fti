@@ -201,7 +201,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 return FTI_NREC;
             }
             FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
-            res = FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load dataset metadata");
+            if(FTI_Exec.reco != 3) FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
