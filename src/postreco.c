@@ -1077,16 +1077,16 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   MPI_Info_set(info, "stripping_unit", "4194304");
 
 #warning FIXME find solution to storte level 4 file name for MPIIO
+  char gfn[FTI_BUFS], lfn[FTI_BUFS], gfp[FTI_BUFS];
   snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-//  snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
-  char gfn[FTI_BUFS], lfn[FTI_BUFS];
+  snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
   //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
-  snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.ckptFile);
+  snprintf(gfp, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, gfn);
 
   // open parallel file
   MPI_File pfh;
-  int buf = MPI_File_open(FTI_COMM_WORLD, gfn, MPI_MODE_RDWR, info, &pfh);
+  int buf = MPI_File_open(FTI_COMM_WORLD, gfp, MPI_MODE_RDWR, info, &pfh);
   // check if successful
   if (buf != 0) {
     errno = 0;
