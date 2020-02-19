@@ -441,7 +441,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTIFFMeta->fs = maxFs;
             // although not needed, we have to assign value for unique hash.
             FTIFFMeta->ptFs = -1;
-            FTIFFMeta->ckptID = FTI_Exec->ckptID;
+            FTIFFMeta->ckptID = ckptID;
             FTIFFMeta->maxFs = maxFs;
             FTIFFMeta->ckptSize = FTI_Exec->ckptMeta.fs;
             strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);

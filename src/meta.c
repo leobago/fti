@@ -281,8 +281,8 @@ int FTI_LoadMetaPostprocessing(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int proc )
 {
     // no metadata files for FTI-FF
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) return FTI_SCES;
     if (!FTI_Topo->amIaHead) return FTI_SCES;
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) return FTIFF_LoadMetaPostprocessing( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf, proc );
 
     char metaFileName[FTI_BUFS], str[FTI_BUFS];
     snprintf(metaFileName, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, proc);
@@ -330,11 +330,23 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 
     // no metadata files for FTI-FF
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
+        
+        int i=4; for (; i > -1; i--) { //for each level
+
+            FTIT_metadata meta;
+
+            meta.level = i;
+        
+            FTI_Exec->mqueue.push( meta );
+            
+        }
+        
+        return FTI_SCES; 
+    
+    }
     
     FTIT_iniparser ini;
-    FTI_MetadataQueue( &FTI_Exec->mqueue ); 
-
 
     int i=4; for (; i > -1; i--) { //for each level
 

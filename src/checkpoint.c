@@ -434,6 +434,9 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         FTIFF_headInfo headInfo;
 
         int k;
+
+        FTI_Exec->mqueue.clear();
+
         for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
             k = i+1;
 #warning find solution for FTIFF maybe shared memory object

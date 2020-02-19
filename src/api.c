@@ -152,6 +152,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         strcpy(FTI_Conf.suffix,"fti");
     }
     FTI_Exec.initSCES = 1;
+    
+    // init metadata queue
+    FTI_MetadataQueue( &FTI_Exec.mqueue ); 
+    
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_LoadMetaRecovery(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
@@ -190,7 +194,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
             }
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
-                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
+                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data ), "Read FTIFF meta information" );
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptID;
             FTI_Exec.ckptCnt++;
