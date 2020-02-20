@@ -2466,7 +2466,7 @@ int FTI_Finalize()
             if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
                 return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
             } else {
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptMeta.ckptFile);
+                snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptID, FTI_Topo.myRank, FTI_Conf.suffix);
             }
         }
         else {

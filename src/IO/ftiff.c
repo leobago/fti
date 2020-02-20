@@ -255,7 +255,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             FTI_Data[currentdbvar->idx].id = currentdbvar->id;
 
             FTI_Data[currentdbvar->idx].size = 0;
-            FTI_Data[currentdbvar->idx].storedSize = currentdbvar->chunksize;
+            FTI_Data[currentdbvar->idx].storedSize += currentdbvar->chunksize;
 
             //FTI_Data[currentdbvar->idx].filePos = ini.getLong( &ini, str );
             //FTI_Data[currentdbvar->idx].storedFilePos = ini.getLong( &ini, str );
@@ -1444,13 +1444,13 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     }
     //Check if sizes of protected variables matches
     int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec->nbVarStored; i++) {
         if (FTI_Data[i].size != FTI_Data[i].storedSize) {
             snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                     FTI_Data[i].storedSize, FTI_Data[i].id,
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
-            return FTI_NREC;
+            //return FTI_NREC;
         }
     }
 
@@ -1915,7 +1915,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     int level = FTI_Exec->ckptLvel;
 
     if(FTI_Ckpt[level].isDcp)
-        strncpy( dir, FTI_Ckpt[level].dcpDir, FTI_BUFS);
+        strncpy( dir, FTI_Ckpt[1].dcpDir, FTI_BUFS);
     else
         strncpy( dir, FTI_Conf->lTmpDir, FTI_BUFS);
     
@@ -1935,6 +1935,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     
     int fd = FTIFF_OpenCkptFile( path, O_RDONLY ); 
     if (fd == -1) {
+        DBG_MSG("path: %s, rank: %d, level: %d, isdcp: %d",-1,path, FTI_Topo->body[proc-1], level, FTI_Ckpt[level].isDcp);
         free( FTIFFMeta );
         return FTI_NSCS;
     }
