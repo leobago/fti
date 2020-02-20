@@ -1094,6 +1094,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int reslen;
     MPI_Error_string(buf, mpi_err, &reslen);
     if (buf != MPI_ERR_NO_SUCH_FILE) {
+      DBG_MSG("filename: %s",-1,gfp);
       char str[FTI_BUFS];
       snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
       FTI_Print(str, FTI_EROR);

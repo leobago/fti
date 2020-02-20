@@ -279,7 +279,6 @@ int main(int argc, char* argv[]) {
     result += (asize_chk == asize) ? 0 : -1;
     MPI_Allreduce(&result, &tmp, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     result = tmp;
-    if(tmp) exit(120);
     free(B_chk);
   }
 

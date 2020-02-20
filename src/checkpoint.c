@@ -413,6 +413,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         int isDCP;
         MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         FTI_Ckpt[4].isDcp = isDCP;
+        MPI_Recv(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;

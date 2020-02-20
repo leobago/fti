@@ -770,6 +770,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char gfn[FTI_BUFS],  ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
+    DBG_MSG("ckptFile: %s|%s", -1, ckptFile,FTI_Exec->ckptMeta.ckptFile);
 
     write_info.FTI_Conf = FTI_Conf;
     write_info.FTI_Topo= FTI_Topo;
@@ -792,6 +793,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         if (FTI_Topo->amIaHead) {
             int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            DBG_MSG("ckptFile: %s|%s, ckpt->id: %d", -1, ckptFile,FTI_Exec->ckptMeta.ckptFile, FTI_Exec->ckptID);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }

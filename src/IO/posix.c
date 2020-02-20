@@ -50,6 +50,7 @@ int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
 /*-------------------------------------------------------------------------*/
