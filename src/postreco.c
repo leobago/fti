@@ -883,13 +883,12 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   switch(FTI_Conf->ioMode) {
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
     case FTI_IO_SIONLIB:
-      strncpy(lfback,FTI_Exec->meta[1].ckptFile,FTI_BUFS);
-      strncpy(gfback,FTI_Exec->meta[4].ckptFile,FTI_BUFS);
+      //snprintf(gfback, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
       if (FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt) == FTI_SCES ){
         return FTI_SCES;
       }
-      strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
-      strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
+      //strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
+      //strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
       return FTI_NSCS;
 #endif
 
@@ -1094,7 +1093,6 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int reslen;
     MPI_Error_string(buf, mpi_err, &reslen);
     if (buf != MPI_ERR_NO_SUCH_FILE) {
-      DBG_MSG("filename: %s",-1,gfp);
       char str[FTI_BUFS];
       snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
       FTI_Print(str, FTI_EROR);
@@ -1199,12 +1197,11 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
   }
 
-  snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-  snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
-  snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
-
+  snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->myRank);
+  snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptID);
+  //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
+  //snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
   int nTasks;
   MPI_Comm_size(FTI_COMM_WORLD, &nTasks);
   int numFiles = 1;
@@ -1280,7 +1277,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   // Checkpoint files transfer from PFS
   while (!sion_feof(sid)) {
-    long fs = FTI_Exec->meta[4].fs[0];
+    long fs = FTI_Exec->ckptMeta.fs;
     char *readData = talloc(char, FTI_Conf->transferSize);
     long bSize = FTI_Conf->transferSize;
     long pos = 0;

@@ -51,7 +51,7 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s",str);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s",str);
 
     write_info->sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &write_info->ranks, &write_info->chunkSizes, &write_info->file_map, &write_info->rank_map, &fsblksize, NULL);
 

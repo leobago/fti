@@ -903,12 +903,18 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* localFileNames = talloc(char, FTI_BUFS * nbProc);
     int* splitRanks = talloc(int, nbProc); //rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         // Open local file case 0:
         if (level == 0) {
-            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->meta[0].ckptFile[ (proc) * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, &FTI_Exec->ckptMeta.ckptFile);
         }
         else {
-            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->meta[level].ckptFile[(proc) * FTI_BUFS]);
+            snprintf(&localFileNames[(proc-startProc) * FTI_BUFS], FTI_BUFS, "%s/%s", FTI_Ckpt[level].dir, &FTI_Exec->ckptMeta.ckptFile);
         }
         if (FTI_Topo->amIaHead) {
             splitRanks[proc-startProc] = (FTI_Topo->nodeSize - 1) * FTI_Topo->nodeID + proc - 1; //determine process splitRank if head
@@ -916,7 +922,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         else {
             splitRanks[proc-startProc] = FTI_Topo->splitRank;
         }
-        localFileSizes[proc - startProc] = FTI_Exec->meta[level].fs[proc]; //[proc - startProc] to get index from 0
+        localFileSizes[proc - startProc] = FTI_Exec->ckptMeta.fs; //[proc - startProc] to get index from 0
     }
 
 //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptID, &rank);
@@ -950,6 +956,12 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     for (proc = startProc; proc < endProc; proc++) {
+        if (FTI_Topo->amIaHead) {
+            int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
+            if (res != FTI_SCES) {
+                return FTI_NSCS;
+            }
+        }
         FILE* lfd = fopen(&localFileNames[FTI_BUFS * (proc-startProc)], "rb");
         if (lfd == NULL) {
             char str[FTI_BUFS];
@@ -984,7 +996,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         char *readData = talloc(char, FTI_Conf->transferSize);
         long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->meta[level].fs[proc];
+        long fs = FTI_Exec->ckptMeta.fs;
 
         long pos = 0;
         // Checkpoint files exchange

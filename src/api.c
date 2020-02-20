@@ -2124,7 +2124,7 @@ int FTI_Recover()
             return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
         } else {
             //Try from L1
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptMeta.ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptID, FTI_Topo.myRank, FTI_Conf.suffix);
             if (access(fn, R_OK) != 0) {
                 //if no L1 files try from L4
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptMeta.ckptFile);
@@ -2358,7 +2358,6 @@ int FTI_Finalize()
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else if ( FTI_Conf.keepL4Ckpt ) {
         int ckptID = FTI_LoadL4CkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
-        DBG_MSG("ckptID for L4: %d", -1, ckptID);
         if( ckptID > 0 ) {
             FTI_Exec.ckptMeta.lastL4CkptId = ckptID;
             FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
