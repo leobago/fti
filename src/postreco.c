@@ -56,10 +56,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
 
-  int ckptID, rank;
-  sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
+  int ckptId, rank;
+  sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
   char fn[FTI_BUFS], efn[FTI_BUFS];
-  snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptID, rank);
+  snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptId, rank);
   snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptMeta.ckptFile);
 
   int bs = FTI_Conf->blockSize;
@@ -527,9 +527,9 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   long toSend ; // remaining data to send
   char filename[FTI_BUFS], str[FTI_BUFS];
   if (ptner) {    //if want to send Ptner file
-    int ckptID, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank); //do we need this from filename?
-    snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptID, rank);
+    int ckptId, rank;
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank); //do we need this from filename?
+    snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptId, rank);
     toSend = FTI_Exec->ckptMeta.pfs;
   } else {    //if want to send Ckpt file
     snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
@@ -587,9 +587,9 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   long toRecv;    //remaining data to receive
   char filename[FTI_BUFS], str[FTI_BUFS];
   if (ptner) { //if want to receive Ptner file
-    int ckptID, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptID, &rank);
-    snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptID, rank);
+    int ckptId, rank;
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+    snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptId, rank);
     toRecv = FTI_Exec->ckptMeta.pfs;
   } else { //if want to receive Ckpt file
     snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
@@ -947,15 +947,15 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       return FTI_NSCS;
     }
 
-    if( FTI_Ckpt[FTI_Exec->ckptLvel].recoIsDcp && FTI_Conf->dcpPosix ) {
+    if( FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp && FTI_Conf->dcpPosix ) {
         return FTI_SCES;
     }
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
 
 #ifdef ENABLE_HDF5
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-      snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptID, FTI_Topo->myRank);
+      snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptId, FTI_Topo->myRank);
     }
 #endif
   }
@@ -1066,8 +1066,8 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   MPI_Info_set(info, "stripping_unit", "4194304");
 
   char gfn[FTI_BUFS], lfn[FTI_BUFS], gfp[FTI_BUFS];
-  snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-  snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+  snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
+  snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
   snprintf(gfp, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, gfn);
 
@@ -1186,8 +1186,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
 
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->myRank);
-  snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptID);
+  snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->myRank);
+  snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptId);
 
   int nTasks;
   MPI_Comm_size(FTI_COMM_WORLD, &nTasks);

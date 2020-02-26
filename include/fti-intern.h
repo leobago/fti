@@ -201,7 +201,7 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
-        int ckptID;     /**< Checkpoint ID                                      */
+        int ckptId;     /**< Checkpoint ID                                      */
         long metaSize;  /**< size of ckpt data                                  */
         long ckptSize;  /**< also file size TODO remove                         */
         long dataSize;  /**< total size of protected data (excluding meta data) */
@@ -413,13 +413,13 @@ extern "C" {
      */
     typedef struct FTIT_dataset {
         int                 id;                 /**< ID to search/update dataset.                   */
-        bool                recovered;
+        bool                recovered;          /**< True if dataset metadata was restored.         */
         void                *ptr;               /**< Pointer to the dataset.                        */
         long                count;              /**< Number of elements in dataset.                 */
         FTIT_type*          type;               /**< Data type for the dataset.                     */
         int                 eleSize;            /**< Element size for the dataset.                  */
         long                size;               /**< Total size of the dataset.                     */
-        long                storedSize;         /**< Total size of the dataset.                     */
+        long                sizeStored;         /**< Total size of the dataset in last checkpoint.  */
         int                 rank;               /**< Rank of dataset (for HDF5).                    */
         int                 dimLength[32];      /**< Lenght of each dimention.                      */
         char                name[FTI_BUFS];     /**< Name of the dataset.                           */
@@ -430,20 +430,21 @@ extern "C" {
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
         char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
         size_t				filePos; 
-        size_t              storedFilePos;
+        size_t              filePosStored;
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
-     *  @brief      Metadata for restart.
+     *  @brief      Temporary checkpoint metadata.
      *
-     *  This type stores all the metadata necessary for the restart.
+     *  This type stores temporary checkpoint metadata.
      */
     typedef struct FTIT_metadata {
         int             level;             /**< TRUE if metadata exists               */
         long            maxFs;              /**< Maximum file size.                    */
         long            fs;                 /**< File size.                            */
         long            pfs;                /**< Partner file size.                    */
-        int             lastL4CkptId;  /**< Current Ckpt file name. [FTI_BUFS]    */        
+        int             ckptId;  /**< Current Ckpt file name. [FTI_BUFS]    */        
+        int             ckptIdL4;  /**< Current Ckpt file name. [FTI_BUFS]    */        
         char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
     } FTIT_metadata;
 
@@ -544,7 +545,6 @@ extern "C" {
         int             ckptCnt;            /**< Checkpoint counter.                    */
         int             ckptDcpIntv;        /**< Checkpoint interval.                   */
         int             ckptDcpCnt;         /**< Checkpoint counter.                    */
-        int             ckptID;             /**<Id of the checkpoint stored in this leve */
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection
@@ -610,10 +610,8 @@ extern "C" {
      */
     typedef struct FTIT_execution {
         char            id[FTI_BUFS];       /**< Execution ID.                  */
-        int             ckpt;               /**< Checkpoint flag.               */
         int             reco;               /**< Recovery flag.                 */
         int             ckptLvel;           /**< Checkpoint level.              */
-        int             ckptLvelReco;           /**< Checkpoint level.              */
         int             ckptIntv;           /**< Ckpt. interval in minutes.     */
         int             lastCkptLvel;       /**< Last checkpoint level.         */
         int             wasLastOffline;     /**< TRUE if last ckpt. offline.    */
@@ -629,7 +627,7 @@ extern "C" {
         bool            h5SingleFile;       /**< Indicator if HDF5 single file  */
         unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
         unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
-        unsigned int    ckptID;             /**< Checkpoint ID.                 */
+        unsigned int    ckptId;             /**< Checkpoint ID.                 */
         unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
         unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
         long            ckptSize;           /**< Checkpoint size.               */

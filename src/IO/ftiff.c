@@ -68,14 +68,14 @@ int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
     FTIFF_headInfo *headInfo;
     FTI_Exec->wasLastOffline = 1;
     // Head needs ckpt. ID to determine ckpt file name.
-    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
+    int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head
     if (status != FTI_SCES) { //If Writing checkpoint failed
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
 
     return FTI_SCES;
 }
@@ -239,7 +239,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             FTI_Data[currentdbvar->idx].id = currentdbvar->id;
 
             FTI_Data[currentdbvar->idx].size = 0;
-            FTI_Data[currentdbvar->idx].storedSize += currentdbvar->chunksize;
+            FTI_Data[currentdbvar->idx].sizeStored += currentdbvar->chunksize;
 
             // Important assignment, we use realloc!
             FTI_Data[currentdbvar->idx].sharedData.dataset = NULL;
@@ -947,10 +947,10 @@ void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->FTIFFMeta.pureDataSize = 0;
 
     //update ckpt file name
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
 
     //If inline L4 save directly to global directory
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec->ckptMeta.level;
     if (level == 4 && FTI_Ckpt[4].isInline) { 
         if( FTI_Conf->dcpFtiff&& FTI_Ckpt[4].isDcp ) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Ckpt[4].dcpName);
@@ -1099,7 +1099,7 @@ int FTI_FinalizeFtiff( void *fd )
         return FTI_NSCS;
     }
     
-    write_info->FTI_Exec->FTIFFMeta.ckptID = write_info->FTI_Exec->ckptID;
+    write_info->FTI_Exec->FTIFFMeta.ckptId = write_info->FTI_Exec->ckptId;
     
     FTIFF_writeMetaDataFTIFF( write_info->FTI_Exec, write_info );
 
@@ -1323,12 +1323,12 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTI_Exec->FTIFFMeta.fs = fs;
 
     // allgather not needed for L1 checkpoint
-    if( (FTI_Exec->ckptLvel == 2) || (FTI_Exec->ckptLvel == 3) ) { 
+    if( (FTI_Exec->ckptMeta.level == 2) || (FTI_Exec->ckptMeta.level == 3) ) { 
 
         long fileSizes[FTI_BUFS], mfs = 0;
         MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG, FTI_Exec->groupComm);
         int ptnerGroupRank, i;
-        switch(FTI_Exec->ckptLvel) {
+        switch(FTI_Exec->ckptMeta.level) {
 
             //get partner file size:
             case 2:
@@ -1420,9 +1420,9 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
     //Check if sizes of protected variables matches
     int i;
     for (i = 0; i < FTI_Exec->nbVarStored; i++) {
-        if (FTI_Data[i].size != FTI_Data[i].storedSize) {
+        if (FTI_Data[i].size != FTI_Data[i].sizeStored) {
             snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                    FTI_Data[i].storedSize, FTI_Data[i].id,
+                    FTI_Data[i].sizeStored, FTI_Data[i].id,
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
@@ -1769,7 +1769,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, char* fn )
 {
     char str[FTI_BUFS], strerr[FTI_BUFS];
-    int fileTarget, match, ckptID;
+    int fileTarget, match, ckptId;
     struct dirent *entry;
     struct stat ckptDIR;
 
@@ -1804,13 +1804,13 @@ int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, 
 
             if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) { 
 
-                match = sscanf(entry->d_name, CKPT_FN_FORMAT(level,backup), &ckptID, &fileTarget );
+                match = sscanf(entry->d_name, CKPT_FN_FORMAT(level,backup), &ckptId, &fileTarget );
 
                 if( match == 2 && fileTarget == rank ) {
                     
                     snprintf(str, FTI_BUFS, "FTI-FF: L%dRecoveryInit - found file with name: %s", level, entry->d_name);
                     FTI_Print(str, FTI_DBUG);
-                    snprintf( fn, FTI_BUFS, CKPT_FN_FORMAT(level,backup), ckptID, rank );
+                    snprintf( fn, FTI_BUFS, CKPT_FN_FORMAT(level,backup), ckptId, rank );
                     return FTI_SCES;
 
                 } 
@@ -1887,7 +1887,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     
     char strerr[FTI_BUFS], path[FTI_BUFS], file[FTI_BUFS], dir[FTI_BUFS];
 
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec->ckptMeta.level;
 
     if(FTI_Ckpt[level].isDcp)
         strncpy( dir, FTI_Ckpt[1].dcpDir, FTI_BUFS);
@@ -1926,7 +1926,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     FTI_Exec->ckptMeta.maxFs = FTIFFMeta->maxFs;              /**< Maximum file size.                    */
     FTI_Exec->ckptMeta.fs = FTIFFMeta->fs;                 /**< File size.                            */
     FTI_Exec->ckptMeta.pfs = FTIFFMeta->ptFs;                /**< Partner file size.                    */
-    FTI_Exec->ckptID = FTIFFMeta->ckptID;                /**< Partner file size.                    */
+    FTI_Exec->ckptId = FTIFFMeta->ckptId;                /**< Partner file size.                    */
     strncpy( FTI_Exec->ckptMeta.ckptFile, file, FTI_BUFS );           /**< Ckpt file name. [FTI_BUFS]            */
 
     return FTI_SCES;
@@ -2049,7 +2049,7 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
                 info->fs = FTIFFMeta->fs;
                 info->FileExists = 1;
             }
-            info->ckptID = FTIFFMeta->ckptID;
+            info->ckptId = FTIFFMeta->ckptId;
             info->maxFs = FTIFFMeta->maxFs;
         } 
         else {
@@ -2102,8 +2102,8 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     if( fcount == fneeded ) {
 	    FTI_Exec->ckptMeta.fs = info.fs;    
-	    FTI_Exec->ckptID = info.ckptID;
-	    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);        
+	    FTI_Exec->ckptId = info.ckptId;
+	    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);        
         return FTI_SCES;
     } else {
         return FTI_NSCS;
@@ -2154,7 +2154,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     FTIFF_RecoveryInfo* appProcsMetaInfo = calloc( appCommSize, sizeof(FTIFF_RecoveryInfo) );
 
-    int ckptID = -1, fcount = 0;
+    int ckptId = -1, fcount = 0;
     
     FTIFF_RecoveryInfo info = {0};
     
@@ -2165,7 +2165,7 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[2].dir, FTI_Topo->myRank, 2, 0, 1 );
 
     if(!(info.FileExists) && !(info.BackupExists)) {
-        info.ckptID = -1;
+        info.ckptId = -1;
     }
 
     // gather meta info
@@ -2183,18 +2183,18 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     // check if recovery possible
     int i, saneCkptID = 0;
-    ckptID = 0;
+    ckptId = 0;
     for(i=0; i<appCommSize; i++) { 
         fcount += ( appProcsMetaInfo[i].FileExists || appProcsMetaInfo[appProcsMetaInfo[i].rightIdx].BackupExists ) ? 1 : 0;
-        if (appProcsMetaInfo[i].ckptID > 0) {
+        if (appProcsMetaInfo[i].ckptId > 0) {
             saneCkptID++;
-            ckptID += appProcsMetaInfo[i].ckptID;
+            ckptId += appProcsMetaInfo[i].ckptId;
         }
     }
     int res = (fcount == fneeded) ? FTI_SCES : FTI_NSCS;
 
     if (res == FTI_SCES) {
-        FTI_Exec->ckptID = ckptID/saneCkptID;
+        FTI_Exec->ckptId = ckptId/saneCkptID;
         if (info.FileExists) {
             FTI_Exec->ckptMeta.fs = info.fs;    
         } else {
@@ -2206,11 +2206,11 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
             FTI_Exec->ckptMeta.pfs = appProcsMetaInfo[leftIdx].fs;    
         }
     }
-    snprintf(dbgstr, FTI_BUFS, "FTI-FF: L2-Recovery - rank: %i, left: %i, right: %i, fs: %ld, pfs: %ld, ckptID: %i",
-            FTI_Topo->myRank, leftIdx, rightIdx, FTI_Exec->ckptMeta.fs, FTI_Exec->ckptMeta.pfs, FTI_Exec->ckptID);
+    snprintf(dbgstr, FTI_BUFS, "FTI-FF: L2-Recovery - rank: %i, left: %i, right: %i, fs: %ld, pfs: %ld, ckptId: %i",
+            FTI_Topo->myRank, leftIdx, rightIdx, FTI_Exec->ckptMeta.fs, FTI_Exec->ckptMeta.pfs, FTI_Exec->ckptId);
     FTI_Print(dbgstr, FTI_DBUG);
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
 
     free(appProcsMetaInfo);
 
@@ -2234,7 +2234,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int* erased)
 {
 
-    int ckptID;
+    int ckptId;
 
     FTIFF_RecoveryInfo *groupInfo = calloc( FTI_Topo->groupSize, sizeof(FTIFF_RecoveryInfo) );
     FTIFF_RecoveryInfo info = {0};
@@ -2244,7 +2244,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[3].dir, FTI_Topo->myRank, 3, 0, 1 );
 
     if(!(info.FileExists) && !(info.BackupExists)) {
-        info.ckptID = -1;
+        info.ckptId = -1;
     }
 
     if(!(info.BackupExists)) {
@@ -2257,14 +2257,14 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     // check if recovery possible
     int i, saneCkptID = 0, saneMaxFs = 0, erasures = 0;
     long maxFs = 0;
-    ckptID = 0;
+    ckptId = 0;
     for(i=0; i<FTI_Topo->groupSize; i++) { 
         erased[i]=!groupInfo[i].FileExists;
         erased[i+FTI_Topo->groupSize]=!groupInfo[i].BackupExists;
         erasures += erased[i] + erased[i+FTI_Topo->groupSize];
-        if (groupInfo[i].ckptID > 0) {
+        if (groupInfo[i].ckptId > 0) {
             saneCkptID++;
-            ckptID += groupInfo[i].ckptID;
+            ckptId += groupInfo[i].ckptId;
         }
         if (groupInfo[i].bfs > 0) {
             saneMaxFs++;
@@ -2272,7 +2272,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         }
     }
     if( saneCkptID != 0 ) {
-        FTI_Exec->ckptID = ckptID/saneCkptID;
+        FTI_Exec->ckptId = ckptId/saneCkptID;
     }
     if( saneMaxFs != 0 ) {
         FTI_Exec->ckptMeta.maxFs = maxFs/saneMaxFs;
@@ -2285,7 +2285,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     FTI_Exec->ckptMeta.fs = (info.FileExists) ? info.fs : 0;
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
 
     free(groupInfo);
 
@@ -2318,7 +2318,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         snprintf( fn, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank );
     } else {
         FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[4].dir, FTI_Topo->myRank, 4, 0, 0 );
-        snprintf( fn, FTI_BUFS, "Ckpt%d-Rank%d.fti", info.ckptID, FTI_Topo->myRank );
+        snprintf( fn, FTI_BUFS, "Ckpt%d-Rank%d.fti", info.ckptId, FTI_Topo->myRank );
     }
 	
     MPI_Allreduce(&info.FileExists, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
@@ -2327,8 +2327,8 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     
     if( fcount == fneeded ) {
         FTI_Exec->ckptMeta.fs = info.fs;    
-        FTI_Exec->ckptID = info.ckptID;
-        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank );
+        FTI_Exec->ckptId = info.ckptId;
+        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank );
         strncpy(FTI_Exec->ckptMeta.ckptFile, fn, NAME_MAX);
         return FTI_SCES;
     }
@@ -2446,7 +2446,7 @@ void FTIFF_InitMpiTypes()
     MBR_DISP( RecoInfo ) = {  
         offsetof( FTIFF_RecoveryInfo, FileExists), 
         offsetof( FTIFF_RecoveryInfo, BackupExists), 
-        offsetof( FTIFF_RecoveryInfo, ckptID), 
+        offsetof( FTIFF_RecoveryInfo, ckptId), 
         offsetof( FTIFF_RecoveryInfo, rightIdx), 
         offsetof( FTIFF_RecoveryInfo, fs), 
         offsetof( FTIFF_RecoveryInfo, bfs), 
@@ -2500,7 +2500,7 @@ int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
     pos += MD5_DIGEST_STRING_LENGTH;
     memcpy( meta->myHash          , buffer_ser + pos, MD5_DIGEST_LENGTH );
     pos += MD5_DIGEST_LENGTH;
-    memcpy( &(meta->ckptID)       , buffer_ser + pos, sizeof(int) );
+    memcpy( &(meta->ckptId)       , buffer_ser + pos, sizeof(int) );
     pos += sizeof(int);
     memcpy( &(meta->ckptSize)     , buffer_ser + pos, sizeof(long) );
     pos += sizeof(long);
@@ -2604,7 +2604,7 @@ int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser )
     pos += MD5_DIGEST_STRING_LENGTH;
     memcpy( buffer_ser + pos, meta->myHash          , MD5_DIGEST_LENGTH );
     pos += MD5_DIGEST_LENGTH;
-    memcpy( buffer_ser + pos, &(meta->ckptID)       , sizeof(int) );
+    memcpy( buffer_ser + pos, &(meta->ckptId)       , sizeof(int) );
     pos += sizeof(int);
     memcpy( buffer_ser + pos, &(meta->ckptSize)     , sizeof(long) );
     pos += sizeof(long);

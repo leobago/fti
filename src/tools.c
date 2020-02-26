@@ -115,7 +115,6 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // +--------- +
 
     /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);
-    /* int           */ FTI_Exec->ckpt                  =0;
     /* int           */ FTI_Exec->reco                  =0;
     /* int           */ FTI_Exec->ckptLvel              =0;
     /* int           */ FTI_Exec->ckptIntv              =0;
@@ -132,7 +131,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     /* bool          */ FTI_Exec->hasCkpt               =false;
     /* unsigned int  */ FTI_Exec->ckptCnt               =0;
     /* unsigned int  */ FTI_Exec->ckptIcnt              =0;
-    /* unsigned int  */ FTI_Exec->ckptID                =0;
+    /* unsigned int  */ FTI_Exec->ckptId                =0;
     /* unsigned int  */ FTI_Exec->ckptNext              =0;
     /* unsigned int  */ FTI_Exec->ckptLast              =0;
     /* long          */ FTI_Exec->ckptSize              =0;

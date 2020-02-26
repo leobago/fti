@@ -102,7 +102,7 @@ typedef struct FTIFF_headInfo {
 typedef struct FTIFF_RecoveryInfo {
     int FileExists;
     int BackupExists;
-    int ckptID;
+    int ckptId;
     int rightIdx;
     long maxFs;
     long fs;
