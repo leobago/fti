@@ -2490,46 +2490,95 @@ int FTI_Finalize()
         return FTI_SCES;
     }
 
-    /*-------------------------------------------------------------------------*/
-    /**
-      @brief      Prints FTI messages.
-      @param      msg             Message to print.
-      @param      priority        Priority of the message to be printed.
-      @return     void
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Prints FTI messages.
+  @param      msg             Message to print.
+  @param      priority        Priority of the message to be printed.
+  @return     void
 
-      This function prints messages depending on their priority and the
-      verbosity level set by the user. DEBUG messages are printed by all
-      processes with their rank. INFO messages are printed by one process.
-      ERROR messages are printed with errno.
+  This function prints messages depending on their priority and the
+  verbosity level set by the user. DEBUG messages are printed by all
+  processes with their rank. INFO messages are printed by one process.
+  ERROR messages are printed with errno.
 
-     **/
-    /*-------------------------------------------------------------------------*/
-    void FTI_Print(char* msg, int priority)
-    {
-        if (priority >= FTI_Conf.verbosity) {
-            if (msg != NULL) {
-                switch (priority) {
-                    case FTI_EROR:
-                        fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
-                        break;
-                    case FTI_WARN:
-                        fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                    case FTI_INFO:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_IDCP:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_DBUG:
-                        fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                }
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Print(char* msg, int priority)
+{
+    if (priority >= FTI_Conf.verbosity) {
+        if (msg != NULL) {
+            switch (priority) {
+                case FTI_EROR:
+                    fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    break;
+                case FTI_WARN:
+                    fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+                case FTI_INFO:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_IDCP:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_DBUG:
+                    fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
+                    break;
             }
         }
-        fflush(stdout);
     }
+    fflush(stdout);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Returns all configuration info as a structure.
+
+  @param      configFile                    Configuration metadata.
+  @param      globalComm                    MPI Global Communicator
+  @param      FTIT_allConfiguration         All configuration data structure
+  @return     int                           FTI_SCES if successful
+                                            FTI_NSCS if not.         
+
+  This function returns all the configuration settings of the execution 
+  in the form of a structure FTIT_allConfiguration
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_GetConfig(const char* configFile, MPI_Comm globalComm, FTIT_allConfiguration FTI_allconf)
+{
+    int res; 
+
+    if(FTI_Exec.initSCES == 0){//FTI NOT initialized
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        res = FTI_InitExecVars(&(FTI_allconf.configuration), &(FTI_allconf.execution), &(FTI_allconf.topology), 
+            FTI_allconf.checkpoint, &(FTI_allconf.injection));
+        if (res == FTI_NSCS) {
+            return FTI_NSCS;
+        }
+        FTI_allconf.execution.globalComm = globalComm;
+        MPI_Comm_rank(FTI_allconf.execution.globalComm, &FTI_allconf.topology.myRank);
+        MPI_Comm_size(FTI_allconf.execution.globalComm, &FTI_allconf.topology.nbProc);
+        snprintf(FTI_allconf.configuration.cfgFile, FTI_BUFS, "%s", configFile);
+        
+        res = FTI_Try(FTI_ReadConf(&(FTI_allconf.configuration), &(FTI_allconf.execution), &(FTI_allconf.topology), 
+            FTI_allconf.checkpoint, &(FTI_allconf.injection)), "read configuration.");
+        return res; 
+        
+    }else{//FTI initialized
+        FTI_Print("FTI has been initialized.", FTI_WARN);
+        //append the existing structures to FTI_allconf
+        FTI_allconf.configuration = FTI_Conf;  
+        FTI_allconf.execution = FTI_Exec;
+        FTI_allconf.topology = FTI_Topo;
+        for(int level=1; level<5; level++){
+            FTI_allconf.checkpoint[level] = FTI_Ckpt[level];
+        }
+        FTI_allconf.injection = FTI_Inje;
+        FTI_Print("FTI configuration returned.", FTI_INFO);
+        return FTI_SCES;
+    }
+}
