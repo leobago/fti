@@ -770,7 +770,6 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char gfn[FTI_BUFS],  ckptFile[FTI_BUFS];
     snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
-    DBG_MSG("ckptFile: %s|%s", -1, ckptFile,FTI_Exec->ckptMeta.ckptFile);
 
     write_info.FTI_Conf = FTI_Conf;
     write_info.FTI_Topo= FTI_Topo;

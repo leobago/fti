@@ -54,7 +54,9 @@
 /*-------------------------------------------------------------------------*/
 void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
-    if(!ftiType) return;
+    
+  if(!ftiType) return;
+  
   char str[FTI_BUFS];
   if (ftiType->h5datatype > -1) {
     //This type already created
@@ -135,8 +137,9 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
-
-    if(!ftiType) return;
+    
+  if(!ftiType) return;
+  
   char str[FTI_BUFS];
   if (ftiType->h5datatype == -1 || ftiType->id < 11) {
     //This type already closed or build-in type

@@ -446,20 +446,6 @@ extern "C" {
         int             lastL4CkptId;  /**< Current Ckpt file name. [FTI_BUFS]    */        
         char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
     } FTIT_metadata;
-    
-    //typedef struct FTIT_metadata {
-    //    int*             exists;             /**< TRUE if metadata exists               */
-    //    long*            maxFs;              /**< Maximum file size.                    */
-    //    long*            fs;                 /**< File size.                            */
-    //    long*            pfs;                /**< Partner file size.                    */
-    //    char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
-    //    char*            currentL4CkptFile;  /**< Current Ckpt file name. [FTI_BUFS]    */        
-    //    //int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
-    //    //int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
-    //    //long*            varSize;            /**< Variable size. [FTI_BUFS]             */
-    //    //long*            filePos;            /**< File Postion of each variable			*/
-    //    //char*            idChar;
-    //} FTIT_metadata;
 
     /** @typedef    FTIT_configuration
      *  @brief      Configuration metadata.
@@ -602,8 +588,6 @@ extern "C" {
 
     }FTIT_IO;
 
-
-
     typedef struct FTIT_mnode
     {
         struct FTIT_mnode*  _next;
@@ -660,7 +644,6 @@ extern "C" {
         unsigned char 	integrity[MD5_DIGEST_LENGTH];
         FTIT_mqueue     mqueue;
         FTIT_metadata   ckptMeta;            /**< Metadata for each ckpt level   */
-        //FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */

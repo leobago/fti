@@ -876,33 +876,23 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-  char lfback[FTI_BUFS], gfback[FTI_BUFS];
-#endif
 
   switch(FTI_Conf->ioMode) {
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    case FTI_IO_SIONLIB:
-      //snprintf(gfback, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-      if (FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt) == FTI_SCES ){
-        return FTI_SCES;
-      }
-      //strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
-      //strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
-      return FTI_NSCS;
-#endif
-
     case FTI_IO_FTIFF:
     case FTI_IO_HDF5:
     case FTI_IO_POSIX:
       return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
     case FTI_IO_MPI:
       return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+#ifdef ENABLE_SIONLIB
+    case FTI_IO_SIONLIB:
+      return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+#endif
     default:
       FTI_Print("unknown I/O mode",FTI_WARN);
       return FTI_NSCS;
   }
-  //}
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1075,12 +1065,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   // set stripping unit to 4MB
   MPI_Info_set(info, "stripping_unit", "4194304");
 
-#warning FIXME find solution to storte level 4 file name for MPIIO
   char gfn[FTI_BUFS], lfn[FTI_BUFS], gfp[FTI_BUFS];
   snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
   snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
-  //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfp, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, gfn);
 
   // open parallel file
@@ -1200,8 +1188,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   char gfn[FTI_BUFS], lfn[FTI_BUFS];
   snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptID);
-  //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
-  //snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+
   int nTasks;
   MPI_Comm_size(FTI_COMM_WORLD, &nTasks);
   int numFiles = 1;

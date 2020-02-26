@@ -1,23 +1,16 @@
 #ifndef __TOOLS_H__
 #define __TOOLS_H__
 
-#define FTI_Print(MSG, PRIO) \
-    if(PRIO==FTI_WARN || PRIO==FTI_EROR) \
-        printf("%s:%d", __FILE__, __LINE__); \
-    FTI_Print_(MSG,PRIO)
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-void FTI_Print_(char *msg, int priority);
+void FTI_Print(char *msg, int priority);
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
       FTIT_configuration* FTI_Conf, char* checksum);
 int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
-void FTI_MallocMeta(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo);
-void FTI_FreeMeta(FTIT_execution* FTI_Exec);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
 int FTI_InitBasicTypes(FTIT_dataset* FTI_Data);

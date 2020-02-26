@@ -76,23 +76,7 @@ int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     MPI_Send(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    // FTIFF: send meta info to the heads
-    if( value != FTI_REJW ) {
-        //headInfo = malloc(sizeof(FTIFF_headInfo));
-        //headInfo->maxFs =   FTI_Exec->ckptMeta.maxFs;
-        //headInfo->fs =      FTI_Exec->ckptMeta.fs;
-        //headInfo->pfs =     FTI_Exec->ckptMeta.pfs;
-        //headInfo->isDcp = (FTI_Ckpt[4].isDcp) ? 1 : 0;
-        ////if( FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp ) {
-        ////    strncpy(headInfo->ckptFile, FTI_Ckpt[4].dcpName, FTI_BUFS);
-        ////} else {
-        ////    strncpy(headInfo->ckptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
-        ////}            
-        //MPI_Send(headInfo, 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
-        ////MPI_Send(FTI_Exec->meta[0].varID, headInfo->nbVar, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
-        ////MPI_Send(FTI_Exec->meta[0].varSize, headInfo->nbVar, MPI_LONG, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
-        //free(headInfo);
-    }
+
     return FTI_SCES;
 }
 
@@ -257,16 +241,10 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             FTI_Data[currentdbvar->idx].size = 0;
             FTI_Data[currentdbvar->idx].storedSize += currentdbvar->chunksize;
 
-            //FTI_Data[currentdbvar->idx].filePos = ini.getLong( &ini, str );
-            //FTI_Data[currentdbvar->idx].storedFilePos = ini.getLong( &ini, str );
-
-            //strncpy(FTI_Data[currentdbvar->idx].idChar, ini.getString( &ini, str ), FTI_BUFS);
-
             // Important assignment, we use realloc!
             FTI_Data[currentdbvar->idx].sharedData.dataset = NULL;
             FTI_Data[currentdbvar->idx].rank = 1;
-            //FTI_Data[currentdbvar->idx].h5group = FTI_Exec->H5groups[0];
-            //sprintf(FTI_Data[currentdbvar->idx].name, "Dataset_%d", id);
+
             FTI_Exec->ckptSize = FTI_Exec->ckptSize + FTI_Data[currentdbvar->idx].size;
 
             if ( FTI_Conf->dcpPosix ){
@@ -276,9 +254,6 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             }
 
             FTI_Data[currentdbvar->idx].recovered = true;
-
-            //FTI_Exec->meta[FTI_Exec->ckptLvel].varID[currentdbvar->idx] = currentdbvar->id;
-            //FTI_Exec->meta[FTI_Exec->ckptLvel].varSize[currentdbvar->idx] += currentdbvar->chunksize;            //// init FTI meta data structure
 
             if ( varCnt == 0 ) { 
                 varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );
@@ -1450,7 +1425,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
                     FTI_Data[i].storedSize, FTI_Data[i].id,
                     FTI_Data[i].size);
             FTI_Print(str, FTI_WARN);
-            //return FTI_NREC;
+            return FTI_NREC;
         }
     }
 
@@ -2267,7 +2242,6 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[3].dir, FTI_Topo->myRank, 3, 0, 0 );
     
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[3].dir, FTI_Topo->myRank, 3, 0, 1 );
-    
 
     if(!(info.FileExists) && !(info.BackupExists)) {
         info.ckptID = -1;
