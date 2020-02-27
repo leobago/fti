@@ -7,7 +7,7 @@ int FTI_MetadataQueue( FTIT_mqueue* );
 bool FTI_MetadataQueueEmpty( void );
 int FTI_MetadataQueuePush( FTIT_metadata );
 int FTI_MetadataQueuePop( FTIT_metadata* );
-int FTI_MetadataQueueClear( void );
+void FTI_MetadataQueueClear( void );
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,

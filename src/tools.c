@@ -95,6 +95,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         + MD5_DIGEST_LENGTH
         + 7*sizeof(long)
         + sizeof(int);
+    
     // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
     // This is to fix.
     FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
@@ -110,127 +111,22 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         + 2*sizeof(long)
         + MD5_DIGEST_LENGTH;
 
-    // +--------- +
-    // | FTI_Exec |
-    // +--------- +
+    // 
+    //  init meta data variables 
+    // 
 
-    /* char[BUFS]       FTI_Exec->id */                 memset(FTI_Exec->id,0x0,FTI_BUFS);
-    /* int           */ FTI_Exec->reco                  =0;
-    /* int           */ FTI_Exec->ckptLvel              =0;
-    /* int           */ FTI_Exec->ckptIntv              =0;
-    /* int           */ FTI_Exec->lastCkptLvel          =0;
-    /* int           */ FTI_Exec->wasLastOffline        =0;
-    /* double        */ FTI_Exec->iterTime              =0;
-    /* double        */ FTI_Exec->lastIterTime          =0;
-    /* double        */ FTI_Exec->meanIterTime          =0;
-    /* double        */ FTI_Exec->globMeanIter          =0;
-    /* double        */ FTI_Exec->totalIterTime         =0;
-    /* unsigned int  */ FTI_Exec->syncIter              =0;
-    /* int           */ FTI_Exec->syncIterMax           =0;
-    /* unsigned int  */ FTI_Exec->minuteCnt             =0;
-    /* bool          */ FTI_Exec->hasCkpt               =false;
-    /* unsigned int  */ FTI_Exec->ckptCnt               =0;
-    /* unsigned int  */ FTI_Exec->ckptIcnt              =0;
-    /* unsigned int  */ FTI_Exec->ckptId                =0;
-    /* unsigned int  */ FTI_Exec->ckptNext              =0;
-    /* unsigned int  */ FTI_Exec->ckptLast              =0;
-    /* long          */ FTI_Exec->ckptSize              =0;
-    /* unsigned int  */ FTI_Exec->nbVar                 =0;
-    /* unsigned int  */ FTI_Exec->nbVarStored           =0;
-    /* unsigned int  */ FTI_Exec->nbType                =0;
-    /* int           */ FTI_Exec->metaAlloc             =0;
-    /* int           */ FTI_Exec->initSCES              =0;
-    /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(&FTI_Exec->mqueue,0x0,sizeof(FTIT_mqueue));
-    /* char[BUFS]       FTI_Exec->h5SingleFileLast */   memset(FTI_Exec->h5SingleFileLast,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Exec->h5SingleFileReco */   memset(FTI_Exec->h5SingleFileReco,0x0,FTI_BUFS);
-    /* FTIT_iCPInfo     FTI_Exec->iCPInfo */            memset(&(FTI_Exec->iCPInfo),0x0,sizeof(FTIT_iCPInfo));
-    /* FTIT_metadata[5] FTI_Exec->meta */               memset(&FTI_Exec->ckptMeta,0x0,sizeof(FTIT_metadata));
-    /* FTIFF_db      */ FTI_Exec->firstdb               =NULL;
-    /* FTIFF_db      */ FTI_Exec->lastdb                =NULL;
-    /* FTIT_globalDataset */ FTI_Exec->globalDatasets   =NULL;
-    FTI_Exec->stageInfo             =NULL;
-    /* FTIFF_metaInfo   FTI_Exec->FTIFFMeta */          memset(&(FTI_Exec->FTIFFMeta),0x0,sizeof(FTIFF_metaInfo));
-    FTI_Exec->FTIFFMeta.metaSize                        = FTI_filemetastructsize;
-    /* MPI_Comm      */ FTI_Exec->globalComm            =0;
-    /* MPI_Comm      */ FTI_Exec->groupComm             =0;
-    /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.Counter  =0;
-    /* MPI_Comm      */ FTI_Exec->dcpInfoPosix.FileSize =0;
-    memset(FTI_Exec->dcpInfoPosix.LayerSize, 0x0, MAX_STACK_SIZE*sizeof(unsigned long));
-    memset(FTI_Exec->dcpInfoPosix.LayerHash, 0x0, MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH);
-
-    // +--------- +
-    // | FTI_Conf |
-    // +--------- +
-
-    /* char[BUFS]       FTI_Conf->cfgFile */            memset(FTI_Conf->cfgFile,0x0,FTI_BUFS);
-    /* int           */ FTI_Conf->saveLastCkpt          =0;
-    /* int           */ FTI_Conf->verbosity             =0;
-    /* int           */ FTI_Conf->blockSize             =0;
-    /* int           */ FTI_Conf->transferSize          =0;
-#ifdef LUSTRE
-    /* int           */ FTI_Conf->stripeUnit            =0;
-    /* int           */ FTI_Conf->stripeOffset          =0;
-    /* int           */ FTI_Conf->stripeFactor          =0;
-#endif
-    /* bool          */ FTI_Conf->keepL4Ckpt            =0;
-    /* bool          */ FTI_Conf->h5SingleFileEnable    =0;
-    /* int           */ FTI_Conf->ckptTag               =0;
-    /* int           */ FTI_Conf->stageTag              =0;
-    /* int           */ FTI_Conf->finalTag              =0;
-    /* int           */ FTI_Conf->generalTag            =0;
-    /* int           */ FTI_Conf->test                  =0;
-    /* int           */ FTI_Conf->l3WordSize            =0;
-    /* int           */ FTI_Conf->ioMode                =0;
-    /* char[BUFS]       FTI_Conf->localDir */           memset(FTI_Conf->localDir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Conf->glbalDir */           memset(FTI_Conf->glbalDir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Conf->metadDir */           memset(FTI_Conf->metadDir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Conf->lTmpDir */            memset(FTI_Conf->lTmpDir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Conf->gTmpDir */            memset(FTI_Conf->gTmpDir,0x0,FTI_BUFS);
-    /* char[BUFS]       FTI_Conf->mTmpDir */            memset(FTI_Conf->mTmpDir,0x0,FTI_BUFS);
-
-    // +--------- +
-    // | FTI_Topo |
-    // +--------- +
-
-    /* int           */ FTI_Topo->nbProc                =0;
-    /* int           */ FTI_Topo->nbNodes               =0;
-    /* int           */ FTI_Topo->myRank                =0;
-    /* int           */ FTI_Topo->splitRank             =0;
-    /* int           */ FTI_Topo->nodeSize              =0;
-    /* int           */ FTI_Topo->nbHeads               =0;
-    /* int           */ FTI_Topo->nbApprocs             =0;
-    /* int           */ FTI_Topo->groupSize             =0;
-    /* int           */ FTI_Topo->sectorID              =0;
-    /* int           */ FTI_Topo->nodeID                =0;
-    /* int           */ FTI_Topo->groupID               =0;
-    /* int           */ FTI_Topo->amIaHead              =0;
-    /* int           */ FTI_Topo->headRank              =0;
-    /* int           */ FTI_Topo->nodeRank              =0;
-    /* int           */ FTI_Topo->groupRank             =0;
-    /* int           */ FTI_Topo->right                 =0;
-    /* int           */ FTI_Topo->left                  =0;
-    /* int[BUFS]        FTI_Topo->body */               memset(FTI_Topo->body,0x0,FTI_BUFS*sizeof(int));
-
-    // +--------- +
-    // | FTI_Ckpt |
-    // +--------- +
-
-    /* FTIT_Ckpt[5]     FTI_Ckpt Array */               memset(FTI_Ckpt,0x0,sizeof(FTIT_checkpoint)*5);
-    /* int           */ FTI_Ckpt[4].isDcp               =false;
-    /* int           */ FTI_Ckpt[4].hasDcp              =false;
-
-    // +--------- +
-    // | FTI_Injc |
-    // +--------- +
-
-    //* int           */ FTI_Injc->rank                  =0;
-    //* int           */ FTI_Injc->index                 =0;
-    //* int           */ FTI_Injc->position              =0;
-    //* int           */ FTI_Injc->number                =0;
-    //* int           */ FTI_Injc->frequency             =0;
-    //* int           */ FTI_Injc->counter               =0;
-    //* double        */ FTI_Injc->timer                 =0;
-
+    FTIT_execution      initExec = {0};
+    FTIT_configuration  initConf = {0};
+    FTIT_topology       initTopo = {0};
+    FTIT_injection      initInje = {0};
+    FTIT_checkpoint     initCkpt = {0};
+    
+    *FTI_Exec = initExec;
+    *FTI_Conf = initConf;
+    *FTI_Topo = initTopo;
+    *FTI_Inje = initInje;
+    
+    int i=0; for(; i<5; i++) FTI_Ckpt[i] = initCkpt;
     return FTI_SCES;
 
 }
@@ -629,7 +525,7 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
 /*-------------------------------------------------------------------------*/
 
 int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, int *currentIndex, int *oldIndex){
-    int i,j;
+    int i;
     for (i = 0; i < FTI_Exec->nbVarStored; i++) {
         if (id == FTI_Data[i].id) {
             *currentIndex = i;

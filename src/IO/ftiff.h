@@ -142,7 +142,6 @@ typedef struct FTIFF_MPITypeInfo {
   +-------------------------------------------------------------------------+
 
  **/
-int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 int FTI_FinalizeFtiff( void *fd );
 size_t FTI_DummyFilePos(void *ignore);
 int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd );

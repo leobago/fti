@@ -56,6 +56,8 @@ int FTI_MetadataQueue( FTIT_mqueue* q )
     q->clear = FTI_MetadataQueueClear;
 
     mqueue = q;
+
+    return FTI_SCES;
 }
 
 int FTI_MetadataQueuePush( FTIT_metadata data )
@@ -107,7 +109,7 @@ bool FTI_MetadataQueueEmpty()
     return (mqueue->_front == NULL);
 }
 
-int FTI_MetadataQueueClear()
+void FTI_MetadataQueueClear()
 {
     while( !mqueue->empty() )
         mqueue->pop( NULL );
@@ -332,6 +334,10 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
         
+        if( FTI_Conf->dcpFtiff ) {
+            FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        }
+        
         int i=4; for (; i > -1; i--) { //for each level
 
             FTIT_metadata meta;
@@ -468,7 +474,7 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) return FTI_NSCS;
 
-    int k,j; for (k = 0; k < FTI_BUFS; k++) {
+    int k; for (k = 0; k < FTI_BUFS; k++) {
         snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
         int id = ini.getInt( &ini, str );
         if (id == -1) {

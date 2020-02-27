@@ -600,7 +600,7 @@ extern "C" {
         bool            (*empty)    ( void );
         int             (*push)     ( FTIT_metadata );
         int             (*pop)      ( FTIT_metadata* );
-        int             (*clear)    ( void );
+        void             (*clear)    ( void );
     } FTIT_mqueue;
     
     /** @typedef    FTIT_execution
@@ -635,7 +635,6 @@ extern "C" {
         unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;             /**< Number of data types.          */
         int             nbGroup;            /**< Number of protected groups.    */
-        int             metaAlloc;          /**< TRUE if meta allocated.        */
         int             initSCES;           /**< TRUE if FTI initialized.       */
         char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
         char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */

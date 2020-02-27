@@ -1004,8 +1004,6 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 bSize = fs - pos;
 
             size_t bytes;
-#warning I need to also close sion file
-            //sion_parclose_mapped_mpi(sid);
             FREAD(FTI_NSCS, bytes,readData, sizeof(char), bSize, lfd,"pppppppp",localFileNames,splitRanks,readData,file_map,ranks,rank_map,chunkSizes);
 
 

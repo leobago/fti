@@ -62,23 +62,6 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
    +-------------------------------------------------------------------------+
 
  */
-int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
-{
-
-    FTIFF_headInfo *headInfo;
-    FTI_Exec->wasLastOffline = 1;
-    // Head needs ckpt. ID to determine ckpt file name.
-    int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head
-    if (status != FTI_SCES) { //If Writing checkpoint failed
-        value = FTI_REJW; //Send reject checkpoint token to head
-    }
-    MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    int isDCP = (int)FTI_Ckpt[4].isDcp;
-    MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-
-    return FTI_SCES;
-}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1311,8 +1294,6 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd )
 int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf )
 {
-
-    int i;
 
     // determine meta data size and finalize meta data blocks
     FTIFF_finalizeDatastructFTIFF( FTI_Exec, FTI_Data );

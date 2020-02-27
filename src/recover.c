@@ -203,8 +203,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
 
-    if( FTI_Conf->dcpFtiff ) {
-        FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+    int res = FTI_Try(FTI_LoadMetaRecovery(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load checkpoint metadata");
+    if (res == FTI_NSCS) {
+        return FTI_NSCS;
     }
 
     if (!FTI_Topo->amIaHead) {

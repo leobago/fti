@@ -214,7 +214,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            FTI_Exec->activateHeads = FTI_ActivateHeadsFTIFF;
+            FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
