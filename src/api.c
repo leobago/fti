@@ -182,7 +182,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpFtiff ) {
-            FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
+            FTI_InitDcp( &FTI_Conf, &FTI_Exec );
         }
         if (FTI_Conf.dcpPosix  ){
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
@@ -190,7 +190,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
-                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data ), "Read FTIFF meta information" );
+                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data ), "Read FTIFF meta information" );
             }
             FTI_Exec.ckptCnt = FTI_Exec.ckptId;
             FTI_Exec.ckptCnt++;
@@ -201,7 +201,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 return FTI_NREC;
             }
             FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
-            if(FTI_Exec.reco != 3) FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load dataset metadata");
+            if(FTI_Exec.reco != 3) FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data), "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -707,9 +707,10 @@ int FTI_getIDFromString( char *name ){
     
     int i = 0;
 
+    FTIT_dataset* data = FTI_Data.data;
     for ( i = 0 ; i < FTI_Exec.nbVarStored; i++){
-        if (strcmp(name, FTI_Data[i].idChar) == 0){
-            return i;
+        if (strcmp(name, data[i].idChar) == 0){
+            return data[i].id;
         }
 
     }
@@ -1470,16 +1471,10 @@ long FTI_GetStoredSize(int id)
         return 0;
     }
 
-    int i;
+    FTIT_dataset* data = FTI_Data.get(id);
+    if( FTI_Data.check() || !data ) return 0;
     
-    // returns 0 if no checkpoint has been performed yet
-    // and we have not recovered from checkpoint yet.
-    for (i = 0; i < FTI_BUFS; i++) {
-        if (FTI_Data[i].id == id) {
-            return FTI_Data[i].sizeStored;
-        }
-    }
-    return 0;
+    return data->sizeStored;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1494,38 +1489,52 @@ long FTI_GetStoredSize(int id)
 /*-------------------------------------------------------------------------*/
 void* FTI_Realloc(int id, void* ptr)
 {
+    
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
     }
-    FTIT_dataset* data;
+    
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
+
     if (FTI_Exec.reco) {
+        
         char str[FTI_BUFS];
-        data = FTI_Data.get( id );
-        if( FTI_Data.check() ) return NULL;
-        if ( data != NULL) { //Search for dataset with given id
-            long oldSize = data->size;
-            data->size = FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[id];
-            sprintf(str, "Reallocated size: %ld", data->size);
+        FTIT_dataset* data = FTI_Data.get( id );
+        if( FTI_Data.check() || !data ) return ptr;
+        
+        if (data->sizeStored == 0) {
+            sprintf(str, "Cannot allocate 0 size.");
             FTI_Print(str, FTI_DBUG);
-            if (data->size == 0) {
-                sprintf(str, "Cannot allocate 0 size.");
-                FTI_Print(str, FTI_DBUG);
-                return ptr;
-            }
-            ptr = realloc (ptr, data->size);
-            data->ptr = ptr;
-            data->count = data->size / data->eleSize;
-            FTI_Exec.ckptSize += data->size - oldSize;
-            sprintf(str, "Dataset #%d reallocated.", data->id);
-            FTI_Print(str, FTI_INFO);
+            return ptr;
         }
+        
+        void* tmp = realloc (ptr, data->sizeStored);
+        if( !tmp ) return ptr;
+
+        ptr = tmp;
+        
+        sprintf(str, "Reallocated size: %ld", data->sizeStored);
+        FTI_Print(str, FTI_DBUG);
+        
+        FTI_Exec.ckptSize += data->sizeStored - data->size;
+        data->size = data->sizeStored;
+        data->ptr = ptr;
+        data->count = data->size / data->eleSize;
+
+        sprintf(str, "Dataset #%d reallocated.", data->id);
+        FTI_Print(str, FTI_INFO);
+    
     }
+    
     else {
+
         FTI_Print("This is not a recovery. Couldn't reallocate memory.", FTI_WARN);
+
     }
+    
     return ptr;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2114,11 +2123,19 @@ int FTI_Recover()
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
         for (i = 0; i < FTI_Exec.nbVarStored; i++) {
-            int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, &FTI_Data ); 
-            if (data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
+            int varId = FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID;
+            data = FTI_Data.get( varId );
+            if( FTI_Data.check() ) return FTI_NSCS;
+            if( !data ) {
+                char errstr[FTI_BUFS];
+                snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
+                FTI_Print( errstr, FTI_EROR );
+                return FTI_NSCS;
+            }
+            if (data->size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
-                        data[vidx].size);
+                        data->size);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;
             }
@@ -2449,17 +2466,9 @@ int FTI_Finalize()
             return FTI_NSCS;
         }
 
-        int activeID, oldID;
-        if ( FTI_FindVarInMeta(&FTI_Exec, &FTI_Data, id, &activeID, &oldID) != FTI_SCES){
-            return FTI_NREC;
-        }
-
         if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
             return FTIFF_RecoverVar( id, &FTI_Exec, &FTI_Data, FTI_Ckpt );
         }
-
-        sprintf(str, "Variable with id is stored in %d and information is stored in %d", activeID, oldID);
-        FTI_Print(str,FTI_DBUG);
 
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
@@ -2494,15 +2503,17 @@ int FTI_Finalize()
         }
 
     
-        FTIT_dataset* data = FTI_Data.data;
-        if( FTI_Data.check( &FTI_Data ) ) return FTI_NREC;
+        FTIT_dataset* data = FTI_Data.get(id);
+        if( FTI_Data.check( &FTI_Data ) || !data ) return FTI_NREC;
+        
         sprintf(str, "Recovering var %d ", id);
         FTI_Print(str, FTI_DBUG);
-        long filePos = data[activeID].filePosStored;
+        
+        long filePos = data->filePosStored;
         fseek(fd,filePos, SEEK_SET);
-        fread(data[activeID].ptr, 1, data[activeID].size, fd);
+        fread(data->ptr, 1, data->size, fd);
 
-        strncpy(data[activeID].idChar, data[activeID].idChar, FTI_BUFS);
+        strncpy(data->idChar, data->idChar, FTI_BUFS);
 
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);

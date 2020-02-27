@@ -455,7 +455,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 }
 
 int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data)
 {
 
     // no metadata files for FTI-FF
@@ -474,41 +474,35 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) return FTI_NSCS;
 
-    int k; for (k = 0; k < FTI_BUFS; k++) {
+    int k; for (k = 0; k < FTI_Conf->maxVarId; k++) {
         snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
         int id = ini.getInt( &ini, str );
         if (id == -1) {
             //No more variables
             break;
         }
+
+        FTIT_dataset data = {0};
+        
         //Variable exists
-        FTI_Data[k].id = id;
+        data.id = id;
 
         snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
-        FTI_Data[k].size = 0;//ini.getLong( &ini, str );
-        FTI_Data[k].sizeStored = ini.getLong( &ini, str );
+        data.sizeStored = ini.getLong( &ini, str );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
-        FTI_Data[k].filePos = ini.getLong( &ini, str );
-        FTI_Data[k].filePosStored = ini.getLong( &ini, str );
+        data.filePos = ini.getLong( &ini, str );
+        data.filePosStored = ini.getLong( &ini, str );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
-        strncpy(FTI_Data[k].idChar, ini.getString( &ini, str ), FTI_BUFS);
+        strncpy(data.idChar, ini.getString( &ini, str ), FTI_BUFS);
     
-        // Important assignment, we use realloc!
-        FTI_Data[k].sharedData.dataset = NULL;
-        FTI_Data[k].rank = 1;
-        FTI_Data[k].h5group = FTI_Exec->H5groups[0];
-        sprintf(FTI_Data[k].name, "Dataset_%d", id);
-        FTI_Exec->ckptSize = FTI_Exec->ckptSize + FTI_Data[k].size;
+        data.rank = 1;
+        data.h5group = FTI_Exec->H5groups[0];
+        sprintf(data.name, "Dataset_%d", id);
+        FTI_Exec->ckptSize = FTI_Exec->ckptSize + data.size;
 
-        if ( FTI_Conf->dcpPosix ){
-            FTI_Data[k].dcpInfoPosix.hashDataSize = 0;
-            FTI_Data[k].dcpInfoPosix.currentHashArray=NULL;
-            FTI_Data[k].dcpInfoPosix.oldHashArray=NULL;
-        }
-
-        FTI_Data[k].recovered = true;
+        data.recovered = true;
         
     }
 
@@ -919,7 +913,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     // metadata is created before for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
@@ -1028,12 +1022,15 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long* myVarSizes = talloc(long, FTI_Exec->nbVar);
     long* myVarPositions = talloc(long, FTI_Exec->nbVar);
     char *ArrayOfStrings = ( char *) malloc (FTI_Exec->nbVar * sizeof(char*) *FTI_BUFS);
+    
+    FTIT_dataset* data = FTI_Data->data;
+    if( !data ) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        myVarIDs[i] = FTI_Data[i].id;
-        myVarSizes[i] =  FTI_Data[i].size;
-        myVarPositions[i] = FTI_Data[i].filePos;
-        strncpy(&ArrayOfStrings[i*FTI_BUFS], FTI_Data[i].idChar, FTI_BUFS);
+        myVarIDs[i] = data[i].id;
+        myVarSizes[i] =  data[i].size;
+        myVarPositions[i] = data[i].filePos;
+        strncpy(&ArrayOfStrings[i*FTI_BUFS], data[i].idChar, FTI_BUFS);
     }
 
     //Gather variables IDs
@@ -1080,7 +1077,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_Data[i].sizeStored =  FTI_Data[i].size;
+        data[i].sizeStored =  data[i].size;
     }
 
     return FTI_SCES;

@@ -75,7 +75,7 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
  **/
 /*-------------------------------------------------------------------------*/
 int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, 
-        FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data ) 
+        FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data ) 
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[FTI_BUFS]; //For console output
@@ -192,7 +192,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
         int dbvar_idx;
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-
+            
             FTIFF_dbvar *currentdbvar = &(currentdb->dbvars[dbvar_idx]);
 
             // get dbvar meta data
@@ -219,24 +219,28 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
             currentdbvar->hasCkpt = true;
             
-            FTI_Data[currentdbvar->idx].id = currentdbvar->id;
+            FTIT_dataset data;
 
-            FTI_Data[currentdbvar->idx].size = 0;
-            FTI_Data[currentdbvar->idx].sizeStored += currentdbvar->chunksize;
+            data.id = currentdbvar->id;
+
+            data.size = 0;
+            data.sizeStored += currentdbvar->chunksize;
 
             // Important assignment, we use realloc!
-            FTI_Data[currentdbvar->idx].sharedData.dataset = NULL;
-            FTI_Data[currentdbvar->idx].rank = 1;
+            data.sharedData.dataset = NULL;
+            data.rank = 1;
 
-            FTI_Exec->ckptSize = FTI_Exec->ckptSize + FTI_Data[currentdbvar->idx].size;
+            FTI_Exec->ckptSize = FTI_Exec->ckptSize + data.size;
 
             if ( FTI_Conf->dcpPosix ){
-                FTI_Data[currentdbvar->idx].dcpInfoPosix.hashDataSize = 0;
-                FTI_Data[currentdbvar->idx].dcpInfoPosix.currentHashArray=NULL;
-                FTI_Data[currentdbvar->idx].dcpInfoPosix.oldHashArray=NULL;
+                data.dcpInfoPosix.hashDataSize = 0;
+                data.dcpInfoPosix.currentHashArray=NULL;
+                data.dcpInfoPosix.oldHashArray=NULL;
             }
 
-            FTI_Data[currentdbvar->idx].recovered = true;
+            data.recovered = true;
+            
+            FTI_Data->push_back( &data, currentdbvar->id );
 
             if ( varCnt == 0 ) { 
                 varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );
@@ -1376,7 +1380,7 @@ int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt ) 
+int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt ) 
 {
     //FTIFF_PrintDataStructure( 0, FTI_Exec, FTI_Data );
     if (FTI_Exec->initSCES == 0) {
@@ -1398,13 +1402,16 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }
+
     //Check if sizes of protected variables matches
-    int i;
-    for (i = 0; i < FTI_Exec->nbVarStored; i++) {
-        if (FTI_Data[i].size != FTI_Data[i].sizeStored) {
+    FTIT_dataset* data = FTI_Data->data;
+    if( !data ) return FTI_NSCS;
+
+    int i = 0; for (; i < FTI_Exec->nbVar; i++) {
+        if (data[i].size != data[i].sizeStored) {
             snprintf(str, FTI_BUFS, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                    FTI_Data[i].sizeStored, FTI_Data[i].id,
-                    FTI_Data[i].size);
+                    data[i].sizeStored, data[i].id,
+                    data[i].size);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
         }
@@ -1478,21 +1485,23 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+            
+            data = FTI_Data->get(currentdbvar->id);
 
             if(!(currentdbvar->hascontent)) {
                 continue;
             }
 #ifdef GPUSUPPORT
-            bool  isDevice = FTI_Data[currentdbvar->idx].isDevicePtr; 
+            bool  isDevice = data->isDevicePtr; 
 
             if ( isDevice ){
-                destptr = (char*) FTI_Data[currentdbvar->idx].devicePtr+ currentdbvar->dptr;
+                destptr = (char*) data->devicePtr+ currentdbvar->dptr;
             }
             else{
-                destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+                destptr = (char*) data->ptr + currentdbvar->dptr;
             }
 #else      
-            destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+            destptr = (char*) data->ptr + currentdbvar->dptr;
 #endif
 
             snprintf(str, FTI_BUFS, "[var-id:%d|cont-id:%d] destptr: %p\n", currentdbvar->id, currentdbvar->containerid, (void*) destptr);
@@ -1526,7 +1535,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
                     dbcounter, dbvar_idx,  
                     currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                     currentdbvar->fptr, currentdbvar->chunksize,
-                    (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)destptr);
+                    (uintptr_t)data->ptr, (uintptr_t)destptr);
             FTI_Print(str, FTI_DBUG);
 
             MD5_Final( hash, &mdContext );
@@ -1596,7 +1605,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkp
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
+int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
@@ -1675,8 +1684,9 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
 
             if (currentdbvar->id == id) {
                 // get source and destination pointer
-                FTI_FindVarInMeta(FTI_Exec, FTI_Data, id, &(currentdbvar->idx), &oldIndex);
-                destptr = (char*) FTI_Data[currentdbvar->idx].ptr + currentdbvar->dptr;
+                
+                FTIT_dataset* data = FTI_Data->get(id);
+                destptr = (char*) data->ptr + currentdbvar->dptr;
                 srcptr = (char*) fmmap + currentdbvar->fptr;
                 
                 MD5_Init( &mdContext );
@@ -1698,7 +1708,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, 
                         dbcounter, dbvar_idx,  
                         currentdbvar->id, currentdbvar->idx, currentdbvar->dptr,
                         currentdbvar->fptr, currentdbvar->chunksize,
-                        (uintptr_t)FTI_Data[currentdbvar->idx].ptr, (uintptr_t)destptr);
+                        (uintptr_t)data->ptr, (uintptr_t)destptr);
                 FTI_Print(str, FTI_DBUG);
 
                 MD5_Final( hash, &mdContext );

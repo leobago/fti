@@ -363,7 +363,7 @@ int FTI_RecoverDcpPosix
  FTIT_configuration* FTI_Conf, 
  FTIT_execution* FTI_Exec, 
  FTIT_checkpoint* FTI_Ckpt, 
- FTIT_dataset* FTI_Data 
+ FTIT_keymap* FTI_Data 
  )
 
 {
@@ -376,6 +376,8 @@ int FTI_RecoverDcpPosix
     char fn[FTI_BUFS];
 
     void* ptr;
+
+    FTIT_dataset* data;
 
     snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
@@ -446,18 +448,20 @@ int FTI_RecoverDcpPosix
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
-        int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
-        if( idx < 0 ) {
+
+        data = FTI_Data->get(varId);
+        if( FTI_Data->check() ) return FTI_NSCS;
+        if( !data ) {
             snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
 #ifdef GPUSUPPORT
-        if (FTI_Data[idx].isDevicePtr){
-            FTI_TransferFileToDeviceAsync(fd,FTI_Data[idx].devicePtr, FTI_Data[i].size); 
+        if (data->isDevicePtr){
+            FTI_TransferFileToDeviceAsync(fd,data->devicePtr, data->size); 
         }
         else{ 
-            fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
+            fread( data->ptr, locDataSize, 1, fd );
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
                 FTI_Print( errstr, FTI_EROR );
@@ -466,7 +470,7 @@ int FTI_RecoverDcpPosix
         }
 
 #else            
-        fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
+        fread( data->ptr, locDataSize, 1, fd );
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
             FTI_Print( errstr, FTI_EROR );
@@ -520,29 +524,29 @@ int FTI_RecoverDcpPosix
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            int idx = FTI_DataGetIdx(blockMeta.varId, FTI_Exec, FTI_Data);
-            if( idx < 0 ) {
+            data = FTI_Data->get(blockMeta.varId);
+            if( FTI_Data->check() ) return FTI_NSCS;
+            if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
 
-
             offset = blockMeta.blockId * blockSize;
-            unsigned int chunkSize = ( (FTI_Data[idx].size-offset) < blockSize ) ? FTI_Data[idx].size-offset : blockSize; 
+            unsigned int chunkSize = ( (data->size-offset) < blockSize ) ? data->size-offset : blockSize; 
 
 #ifdef GPUSUPPORT
-            if ( FTI_Data[idx].isDevicePtr){
+            if ( data->isDevicePtr){
                 FTI_device_sync();
                 fread( block, 1, chunkSize, fd );
-                FTI_copy_to_device_async(FTI_Data[idx].devicePtr + offset ,block, chunkSize); 
+                FTI_copy_to_device_async(data->devicePtr + offset ,block, chunkSize); 
             }
             else{
-                ptr = FTI_Data[idx].ptr + offset;
+                ptr = data->ptr + offset;
                 fread( ptr, 1, chunkSize, fd );
             }
 #else
-            ptr = FTI_Data[idx].ptr + offset;
+            ptr = data->ptr + offset;
             fread( ptr, 1, chunkSize, fd );
 #endif
             if(ferror(fd)) {
@@ -563,11 +567,14 @@ int FTI_RecoverDcpPosix
     }
     
     // create hasharray
+    data = FTI_Data->data;
+    if(!data) return FTI_NSCS;
+
     for(i=0; i<FTI_Exec->nbVarStored; i++) {
         FTIT_data_prefetch prefetcher;
         size_t totalBytes = 0;
         unsigned char * ptr = NULL,*startPtr = NULL;
-        FTIT_dataset *FTI_DataVar = &FTI_Data[i];
+        FTIT_dataset *FTI_DataVar = data+i;
 
 #ifdef GPUSUPPORT    
         prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
@@ -644,7 +651,7 @@ int FTI_RecoverVarDcpPosix
  FTIT_configuration* FTI_Conf, 
  FTIT_execution* FTI_Exec, 
  FTIT_checkpoint* FTI_Ckpt, 
- FTIT_dataset* FTI_Data,
+ FTIT_keymap* FTI_Data,
  int id
  )
 
@@ -656,6 +663,8 @@ int FTI_RecoverVarDcpPosix
 
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
+
+    FTIT_dataset* data;
 
     snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
@@ -729,13 +738,15 @@ int FTI_RecoverVarDcpPosix
         }
         // if requested id load else skip dataSize
         if( varId == id ) {
-            int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
-            if( idx < 0 ) {
+            data = FTI_Data->get(varId);
+            if( FTI_Data->check() ) return FTI_NSCS;
+            if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            fread( FTI_Data[idx].ptr, locDataSize, 1, fd );
+            
+            fread( data->ptr, locDataSize, 1, fd );
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
                 FTI_Print( errstr, FTI_EROR );
@@ -797,17 +808,17 @@ int FTI_RecoverVarDcpPosix
                 return FTI_NSCS;
             }
             if( blockMeta.varId == id ) {
-                int idx = FTI_DataGetIdx(blockMeta.varId, FTI_Exec, FTI_Data);
-                if( idx < 0 ) {
+                data = FTI_Data->get(blockMeta.varId);
+                if( FTI_Data->check() ) return FTI_NSCS;
+                if( !data ) {
                     snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }
 
-
                 offset = blockMeta.blockId * blockSize;
-                void* ptr = FTI_Data[idx].ptr + offset;
-                unsigned int chunkSize = ( (FTI_Data[idx].size-offset) < blockSize ) ? FTI_Data[idx].size-offset : blockSize; 
+                void* ptr = data->ptr + offset;
+                unsigned int chunkSize = ( (data->size-offset) < blockSize ) ? data->size-offset : blockSize; 
 
                 fread( ptr, 1, chunkSize, fd );
                 if(ferror(fd)) {
@@ -834,9 +845,14 @@ int FTI_RecoverVarDcpPosix
 
     }
 
+    data = FTI_Data->get( id );
+    if( FTI_Data->check() ) return FTI_NSCS;
+    if( !data ) {
+        snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
+        FTI_Print( errstr, FTI_EROR );
+        return FTI_NSCS;
+    }
 
-    i = FTI_DataGetIdx( id, FTI_Exec, FTI_Data );
-    FTIT_dataset *FTI_DataVar = &FTI_Data[i];
     FTIT_data_prefetch prefetcher;
     size_t totalBytes = 0;
     unsigned char * ptr = NULL,*startPtr = NULL;
@@ -844,16 +860,16 @@ int FTI_RecoverVarDcpPosix
 #ifdef GPUSUPPORT    
     prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
 #else
-    prefetcher.fetchSize =  FTI_DataVar->size;
+    prefetcher.fetchSize =  data->size;
 #endif
-    prefetcher.totalBytesToFetch = FTI_DataVar->size;
-    prefetcher.isDevice = FTI_DataVar->isDevicePtr;
+    prefetcher.totalBytesToFetch = data->size;
+    prefetcher.isDevice = data->isDevicePtr;
 
     if ( prefetcher.isDevice ){ 
-        prefetcher.dptr = FTI_DataVar->devicePtr;
+        prefetcher.dptr = data->devicePtr;
     }
     else{
-        prefetcher.dptr = FTI_DataVar->ptr;
+        prefetcher.dptr = data->ptr;
     }
 
     FTI_InitPrefetcher(&prefetcher);
@@ -861,8 +877,8 @@ int FTI_RecoverVarDcpPosix
         return FTI_NSCS;
     }
 
-    unsigned long nbBlocks = (FTI_DataVar->size % blockSize) ? FTI_DataVar->size/blockSize + 1 : FTI_DataVar->size/blockSize;
-    FTI_DataVar->dcpInfoPosix.hashDataSize = FTI_DataVar->size;
+    unsigned long nbBlocks = (data->size % blockSize) ? data->size/blockSize + 1 : data->size/blockSize;
+    data->dcpInfoPosix.hashDataSize = data->size;
     int j =0 ;
     while (startPtr){
         ptr = startPtr;
@@ -870,7 +886,7 @@ int FTI_RecoverVarDcpPosix
         int k;
         for ( k = 0 ; k < currentBlocks && j<nbBlocks-1; k++){
             unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
-            FTI_Conf->dcpInfoPosix.hashFunc( ptr, blockSize, &FTI_DataVar->dcpInfoPosix.oldHashArray[hashIdx] );
+            FTI_Conf->dcpInfoPosix.hashFunc( ptr, blockSize, &data->dcpInfoPosix.oldHashArray[hashIdx] );
             ptr = ptr+blockSize;
             j++;
         }
@@ -879,16 +895,16 @@ int FTI_RecoverVarDcpPosix
         }
     }
 
-    if( FTI_DataVar->size%blockSize ) {
+    if( data->size%blockSize ) {
         unsigned char* buffer = calloc( 1, blockSize );
         if( !buffer ) {
             FTI_Print("unable to allocate memory!", FTI_EROR);
             return FTI_NSCS;
         }
         unsigned long dataOffset = blockSize * (nbBlocks - 1);
-        unsigned long dataSize = FTI_DataVar->size - dataOffset;
+        unsigned long dataSize = data->size - dataOffset;
         memcpy( buffer, ptr , dataSize ); 
-        FTI_Conf->dcpInfoPosix.hashFunc( buffer, blockSize, &FTI_DataVar->dcpInfoPosix.oldHashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
+        FTI_Conf->dcpInfoPosix.hashFunc( buffer, blockSize, &data->dcpInfoPosix.oldHashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
     }
 
     /*
@@ -1286,17 +1302,4 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
 
     return hash;
 }
-
-int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
-{
-    int i=0;
-    for(; i<FTI_Exec->nbVarStored; i++) {
-        if(FTI_Data[i].id == varId) break;
-    }
-    if( i==FTI_Exec->nbVarStored ) {
-        return -1;
-    }
-    return i;
-}
-
 

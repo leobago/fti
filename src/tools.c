@@ -145,7 +145,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data,
+int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data,
         FTIT_configuration* FTI_Conf, char* checksum)
 {
     int i;
@@ -504,27 +504,3 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
     return hashHexStr;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Finds the the id of a protected variable in the metadata file .
-  @param      FTI_Exec*         Checkpoint execution data 
-  @param      FTIT_dataset      Information regarding the protected variables.
-  @param      int id            Variable id we are searching for
-  @param      int *currentIndex The variable index of the found variable in FTI_Data structure
-  @param      int *oldIndex     The variable index of the found variable in FTI_metadata structure
-  @return     int               FTI_SCES on succefully finding a variable 
-
-  This function matches the index of a current protected variable with the index of a 
-  variable protected on the previous execution (Recovery)
- **/
-/*-------------------------------------------------------------------------*/
-
-int FTI_FindVarInMeta(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_Data, int id, int *currentIndex, int *oldIndex){
-    int i;
-    for (i = 0; i < FTI_Exec->nbVarStored; i++) {
-        if (id == FTI_Data[i].id) {
-            *currentIndex = i;
-        }
-    }
-    return FTI_SCES;
-}

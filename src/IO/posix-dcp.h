@@ -23,7 +23,6 @@ int FTI_VerifyChecksumDcpPosix(char* fileName);
 void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
 int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data );
 int FTI_RecoverVarDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data, int id );
-int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data );
 char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr );
 // wrapper for CRC32 hash algorithm
 unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned char *hash );

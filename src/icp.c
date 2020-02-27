@@ -85,7 +85,7 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
     int i;
-    FTIT_dataset* data = FTI_Data->get( FTI_Data, varID );
+    FTIT_dataset* data = FTI_Data->get( varID );
     if( FTI_Data->check( FTI_Data ) ) return FTI_NSCS;
     if( data != NULL ) {
         data->filePos = io->getPos(write_info);

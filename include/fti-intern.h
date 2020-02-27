@@ -104,6 +104,8 @@
 extern "C" {
 #endif
 
+    typedef struct FTIT_keymap FTIT_keymap;
+
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
     typedef hsize_t FTIT_hsize_t;
 #else
@@ -585,7 +587,7 @@ extern "C" {
                 FTIT_execution*  ,
                 FTIT_topology*   ,
                 FTIT_checkpoint* , 
-                FTIT_dataset *);
+                FTIT_keymap *);
 
         int (*WriteData) (	FTIT_dataset * ,
                 void *write_info);
@@ -610,8 +612,6 @@ extern "C" {
         int             (*pop)      ( FTIT_metadata* );
         void             (*clear)    ( void );
     } FTIT_mqueue;
-
-    typedef struct FTIT_keymap FTIT_keymap;
 
     /** @typedef    FTIT_execution
      *  @brief      Execution metadata.
