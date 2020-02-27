@@ -53,7 +53,7 @@
  **/
 /*-------------------------------------------------------------------------*/
 
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
+int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data){
 #ifdef GPUSUPPORT
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {

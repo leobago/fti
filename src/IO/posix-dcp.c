@@ -69,7 +69,7 @@ size_t FTI_GetDCPPosixFilePos(void *fileDesc){
   protected variables may be added to the checkpoint files.
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data)
+void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data)
 {
 
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
@@ -97,11 +97,14 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 
     // if first layer, make sure that we write all data by setting hashdatasize = 0
     if( dcpLayer == 0 ) {
-        int i = 0;
-        for(; i<FTI_Exec->nbVar; i++) {
+        FTIT_dataset* data = FTI_Data->data;
+        
+        if(!data) write_DCPinfo;
+
+        int i = 0; for(; i<FTI_Exec->nbVar; i++) {
             //            free(FTI_Data[i].dcpInfoPosix.hashArray);
             //            FTI_Data[i].dcpInfoPosix.hashArray = NULL;
-            FTI_Data[i].dcpInfoPosix.hashDataSize = 0;
+            data[i].dcpInfoPosix.hashDataSize = 0;
         }
     }
 

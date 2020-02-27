@@ -41,13 +41,13 @@ typedef struct{
     FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
     FTIT_execution *FTI_Exec;       // FTI execution options
     FTIT_topology *FTI_Topo;        // FTI node topology
-    FTIT_dataset *FTI_Data;
+    FTIT_keymap *FTI_Data;
 }WriteFTIFFInfo_t;
 
 #ifdef ENABLE_HDF5
 typedef struct{
     FTIT_execution *FTI_Exec;       // Execution environment
-    FTIT_dataset *FTI_Data;         // FTI Data
+    FTIT_keymap *FTI_Data;         // FTI Data
     FTIT_topology *FTI_Topo;         // FTI Data
     FTIT_configuration *FTI_Conf;         // FTI Data
     hid_t file_id;                  // File Id
@@ -55,11 +55,11 @@ typedef struct{
 
 int FTI_HDF5Open(char *fn, void *fileDesc);
 int FTI_HDF5Close(void *fileDesc);
-void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
+void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_WriteHDF5Data(FTIT_dataset * FTI_DataVar, void *write_info);
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
+        FTIT_keymap* FTI_Data);
 size_t FTI_GetHDF5FilePos(void *);
 #endif
 
@@ -75,7 +75,7 @@ typedef struct{
 }WriteSionInfo_t;
 
 int FTI_WriteSionData(FTIT_dataset * FTI_DataVar, void *fd);
-void* FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
+void* FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_SionClose(void *fileDesc);
 size_t FTI_GetSionFilePos(void *fileDesc);
 #endif
@@ -87,17 +87,17 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc);
 int FTI_MPIORead(void *src, size_t size, void *fileDesc);
 size_t FTI_GetMPIOFilePos(void *fileDesc);
 
-void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data);
+void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *write_info);
 
 //Wrappers around dcp POSIX
 
 size_t FTI_GetDCPPosixFilePos(void *fileDesc);
-void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data);
+void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data);
 int FTI_WritePosixDCPData(FTIT_dataset *FTI_DataVar, void *fd);
 int FTI_PosixDCPClose(void *fileDesc);
 
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
+int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data);
 
 
 

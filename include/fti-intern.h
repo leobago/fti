@@ -253,7 +253,6 @@ extern "C" {
      */
     typedef struct FTIFF_dbvar {
         int id;             /**< id of protected variable                         */
-        int idx;            /**< index to corresponding id in pvar array          */
         int containerid;    /**< container index (first container -> 0)           */
         bool hascontent;    /**< indicates if container holds ckpt data           */
         bool hasCkpt;       /**< indicates if container is stored in ckpt         */

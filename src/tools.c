@@ -105,7 +105,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         + sizeof(long);             /* dbsize */
 
     FTI_dbvarstructsize
-        = 3*sizeof(int)               /* numvars */
+        = 2*sizeof(int)               /* numvars */
         + 2*sizeof(bool)
         + 2*sizeof(uintptr_t)
         + 2*sizeof(long)
