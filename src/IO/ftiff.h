@@ -102,7 +102,7 @@ typedef struct FTIFF_headInfo {
 typedef struct FTIFF_RecoveryInfo {
     int FileExists;
     int BackupExists;
-    int ckptID;
+    int ckptId;
     int rightIdx;
     long maxFs;
     long fs;
@@ -142,7 +142,6 @@ typedef struct FTIFF_MPITypeInfo {
   +-------------------------------------------------------------------------+
 
  **/
-int FTI_ActivateHeadsFTIFF(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 int FTI_FinalizeFtiff( void *fd );
 size_t FTI_DummyFilePos(void *ignore);
 int FTI_WriteFtiffData( FTIT_dataset* FTI_Data, void *fd );
@@ -162,7 +161,8 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
 int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec, 
         FTIT_dataset* FTI_Data, FTIT_configuration* FTI_Conf, 
         int pvar_idx );
-int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt );
+int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data );
+int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf, int proc );
 int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum );
 int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );
 int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data );

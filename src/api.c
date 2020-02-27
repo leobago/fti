@@ -142,12 +142,6 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart), "update configuration file.");
     }
     MPI_Barrier(FTI_Exec.globalComm); //wait for myRank == 0 process to save config file
-    FTI_MallocMeta(&FTI_Exec, &FTI_Topo, &FTI_Conf);
-    res = FTI_Try(FTI_LoadMeta(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "load metadata");
-    if (res == FTI_NSCS) {
-        FTI_FreeMeta(&FTI_Exec);
-        return FTI_NSCS;
-    }
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_InitMpiTypes();
     }
@@ -162,6 +156,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         strcpy(FTI_Conf.suffix,"fti");
     }
     FTI_Exec.initSCES = 1;
+    
+    // init metadata queue
+    FTI_MetadataQueue( &FTI_Exec.mqueue ); 
+    
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -184,7 +182,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
 
         // call in any case. treatment for diffCkpt disabled inside initializer.
         if( FTI_Conf.dcpFtiff ) {
-            FTI_InitDcp( &FTI_Conf, &FTI_Exec );
+            FTI_InitDcp( &FTI_Conf, &FTI_Exec, FTI_Data );
         }
         if (FTI_Conf.dcpPosix  ){
             FTI_initMD5(FTI_Conf.dcpInfoPosix.BlockSize, 32*1024*1024, &FTI_Conf); 
@@ -192,9 +190,9 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
             if (FTI_Conf.ioMode == FTI_IO_FTIFF && res == FTI_SCES) {
-                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt ), "Read FTIFF meta information" );
+                res += FTI_Try( FTIFF_ReadDbFTIFF( &FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data ), "Read FTIFF meta information" );
             }
-            FTI_Exec.ckptCnt = FTI_Exec.ckptID;
+            FTI_Exec.ckptCnt = FTI_Exec.ckptId;
             FTI_Exec.ckptCnt++;
             if (res != FTI_SCES) {
                 FTI_Exec.reco = 0;
@@ -203,6 +201,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
                 return FTI_NREC;
             }
             FTI_Exec.hasCkpt = (FTI_Exec.reco == 3) ? false : true;
+            if(FTI_Exec.reco != 3) FTI_Try(FTI_LoadMetaDataset(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
@@ -705,13 +704,11 @@ int FTI_setIDFromString( char *name ){
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_getIDFromString( char *name ){
+    
     int i = 0;
-    int ckptLvL = FTI_Exec.ckptLvel;
-    int numVars = FTI_Exec.meta[ckptLvL].nbVar[0];
-    char *varNames = FTI_Exec.meta[ckptLvL].idChar;
 
-    for ( i = 0 ; i < numVars; i++){
-        if (strcmp(name, &varNames[i*FTI_BUFS]) == 0){
+    for ( i = 0 ; i < FTI_Exec.nbVarStored; i++){
+        if (strcmp(name, FTI_Data[i].idChar) == 0){
             return i;
         }
 
@@ -844,6 +841,23 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
             }
 #endif
+        }
+        if( data->recovered ) {
+            if ( strlen(data->idChar) == 0 ){ 
+                sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", 
+                        id, 
+                        memLocation, 
+                        (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            }
+            else{
+                sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",
+                        data->idChar, 
+                        id, memLocation, 
+                        (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            }
+            FTI_Print(str, FTI_INFO);
+            FTI_Exec.nbVar++;
+            data->recovered = false;
         }
         return FTI_SCES;
     }
@@ -1457,20 +1471,12 @@ long FTI_GetStoredSize(int id)
     }
 
     int i;
-    //Search first in temporary metadata (always the newest)
+    
+    // returns 0 if no checkpoint has been performed yet
+    // and we have not recovered from checkpoint yet.
     for (i = 0; i < FTI_BUFS; i++) {
-        if (FTI_Exec.meta[0].varID[i] == id) {
-            if (FTI_Exec.meta[0].varSize[i] != 0) {
-                return FTI_Exec.meta[0].varSize[i];
-            }
-            break;
-        }
-    }
-    //If couldn't find in temporary metadata, search in last level checkpoint
-    //(this means no checkpoint was taken in current execution)
-    for (i = 0; i < FTI_BUFS; i++) {
-        if (FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i] == id) {
-            return FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i];
+        if (FTI_Data[i].id == id) {
+            return FTI_Data[i].sizeStored;
         }
     }
     return 0;
@@ -1619,7 +1625,7 @@ int FTI_Checkpoint(int id, int level)
 
     double t1, t2;
 
-    FTI_Exec.ckptID = id;
+    FTI_Exec.ckptId = id;
 
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
@@ -1645,7 +1651,7 @@ int FTI_Checkpoint(int id, int level)
         int lastLevel;
         MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
-            FTI_Exec.lastCkptLvel = lastLevel; //Store last successful post-processing checkpoint level
+            FTI_Exec.ckptLvel = lastLevel; //Store last successful post-processing checkpoint level
             sprintf(str, "LastCkptLvel received from head: %d", lastLevel);
             FTI_Print(str, FTI_DBUG);
         } else {
@@ -1654,7 +1660,7 @@ int FTI_Checkpoint(int id, int level)
     }
 
     t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
-    FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
+    FTI_Exec.ckptMeta.level = level; // assign to temporary metadata
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
 
@@ -1662,23 +1668,23 @@ int FTI_Checkpoint(int id, int level)
     if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
         char str[FTI_BUFS];
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
+                FTI_Exec.ckptId, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
         FTI_Print(str, FTI_INFO);
         return FTI_SCES;
     }
 
-    if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
+    if (!FTI_Ckpt[FTI_Exec.ckptMeta.level].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, res );
     }
 
     else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
         if (res != FTI_SCES) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
+            FTI_Exec.ckptMeta.level = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
         }
         res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
-        if (res == FTI_SCES) { //If post-processing succeed
-            FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
+        if( res==FTI_SCES ) {
+            FTI_Exec.ckptLvel = FTI_Exec.ckptMeta.level; // Update level
         }
     }
     double t3;
@@ -1697,13 +1703,13 @@ int FTI_Checkpoint(int id, int level)
     t3 = MPI_Wtime(); //Time after post-processing
 
     if (res != FTI_SCES) {
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-
+            
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
-            FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
+            FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
 
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
@@ -1776,9 +1782,9 @@ int FTI_InitICP(int id, int level, bool activate)
         level -= 4; 
     }
 
-    FTI_Exec.iCPInfo.lastCkptID = FTI_Exec.ckptID;
-    FTI_Exec.iCPInfo.isFirstCp = !FTI_Exec.ckptID; //ckptID = 0 if first checkpoint
-    FTI_Exec.ckptID = id;
+    FTI_Exec.iCPInfo.lastCkptID = FTI_Exec.ckptId;
+    FTI_Exec.iCPInfo.isFirstCp = !FTI_Exec.ckptId; //ckptId = 0 if first checkpoint
+    FTI_Exec.ckptId = id;
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1800,7 +1806,7 @@ int FTI_InitICP(int id, int level, bool activate)
         int lastLevel;
         MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
-            FTI_Exec.lastCkptLvel = lastLevel; //Store last successful post-processing checkpoint level
+            FTI_Exec.ckptLvel = lastLevel; //Store last successful post-processing checkpoint level
             sprintf(str, "LastCkptLvel received from head: %d", lastLevel);
             FTI_Print(str, FTI_DBUG);
         } else {
@@ -1809,14 +1815,14 @@ int FTI_InitICP(int id, int level, bool activate)
     }
 
     FTI_Exec.iCPInfo.t1 = MPI_Wtime(); //Time after waiting for head to done previous post-processing
-    FTI_Exec.ckptLvel = level; //For FTI_WriteCkpt
+    FTI_Exec.ckptMeta.level = level; //For FTI_WriteCkpt
 
     // Name of the  CKPT file.
-    snprintf(FTI_Exec.meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptID, FTI_Topo.myRank,FTI_Conf.suffix);
+    snprintf(FTI_Exec.ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptId, FTI_Topo.myRank,FTI_Conf.suffix);
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix);
-    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4) {
+    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptMeta.level == 4) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -1941,7 +1947,7 @@ int FTI_FinalizeICP()
     int resCP;
     int resPP = FTI_SCES;
 
-    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
+    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptMeta.level == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
     resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data, &ftiIO[funcID+offset]);
 
@@ -1949,7 +1955,7 @@ int FTI_FinalizeICP()
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
         char str[FTI_BUFS];
         sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptID, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
+                FTI_Exec.ckptId, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
         FTI_Print(str, FTI_INFO);
         return FTI_SCES;
     }
@@ -1960,7 +1966,7 @@ int FTI_FinalizeICP()
 
     if ( resCP != FTI_SCES ) {
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptID, FTI_Exec.ckptLvel);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
     }
 
@@ -1985,16 +1991,16 @@ int FTI_FinalizeICP()
     }
 
     int status = (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) ? FTI_NSCS : FTI_SCES;
-    if (!FTI_Ckpt[FTI_Exec.ckptLvel].isInline) { // If postCkpt. work is Async. then send message
+    if (!FTI_Ckpt[FTI_Exec.ckptMeta.level].isInline) { // If postCkpt. work is Async. then send message
         FTI_Exec.activateHeads( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, status);
     } else { //If post-processing is inline
         FTI_Exec.wasLastOffline = 0;
         if (FTI_Exec.iCPInfo.status == FTI_ICP_FAIL) { //If Writing checkpoint failed
-            FTI_Exec.ckptLvel = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
+            FTI_Exec.ckptMeta.level = FTI_REJW - FTI_BASE; //The same as head call FTI_PostCkpt with reject ckptLvel if not success
         }
         resPP = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
-        if (resPP == FTI_SCES) { //If post-processing succeed
-            FTI_Exec.lastCkptLvel = FTI_Exec.ckptLvel; //Store last successful post-processing checkpoint level
+        if(resPP==FTI_SCES) {
+            FTI_Exec.ckptLvel = FTI_Exec.ckptMeta.level; //Store last successful post-processing checkpoint level
         }
     }
 
@@ -2013,7 +2019,7 @@ int FTI_FinalizeICP()
 
     if( resCP == FTI_SCES ) {
         sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
-                FTI_Exec.ckptID, FTI_Exec.ckptLvel, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
+                FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
 
         if ( (FTI_Conf.dcpFtiff||FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
@@ -2026,7 +2032,7 @@ int FTI_FinalizeICP()
             FTI_Exec.initSCES = 1; //in case FTI couldn't recover all ckpt files in FTI_Init
         }
     } else {
-        FTI_Exec.ckptID = FTI_Exec.iCPInfo.lastCkptID;
+        FTI_Exec.ckptId = FTI_Exec.iCPInfo.lastCkptID;
     }
 
     free( FTI_Exec.iCPInfo.isWritten );
@@ -2082,17 +2088,17 @@ int FTI_Recover()
         return FTI_NSCS;
 #endif
     } else if( !(FTI_Ckpt[FTI_Exec.ckptLvel].recoIsDcp && FTI_Conf.dcpPosix) ) {
-        if( FTI_Exec.nbVar != FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0] ) {
+        if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
             sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-                    FTI_Exec.meta[FTI_Exec.ckptLvel].nbVar[0], FTI_Exec.nbVar);
+                    FTI_Exec.nbVarStored, FTI_Exec.nbVar);
             FTI_Print(str, FTI_WARN);
             return FTI_NREC;
         }
         //Check if sizes of protected variables matches
         for (i = 0; i < FTI_Exec.nbVar; i++) {
-            if ( data[i].size != FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[data[i].id]) {
+            if (data[i].size != data[i].sizeStored) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                        FTI_Exec.meta[FTI_Exec.ckptLvel].varSize[i], FTI_Exec.meta[FTI_Exec.ckptLvel].varID[i],
+                        data[i].sizeStored, data[i].id,
                         data[i].size);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;
@@ -2107,7 +2113,7 @@ int FTI_Recover()
         }
         //Check if sizes of protected variables matches
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
+        for (i = 0; i < FTI_Exec.nbVarStored; i++) {
             int vidx = FTI_DataGetIdx( FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID, &FTI_Exec, &FTI_Data ); 
             if (data[vidx].size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
@@ -2133,17 +2139,17 @@ int FTI_Recover()
             return FTI_RecoverDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data);
         } else {
             //Try from L1
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
             if (access(fn, R_OK) != 0) {
                 //if no L1 files try from L4
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.meta[4].ckptFile);
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec.ckptMeta.ckptFile);
             }
         }
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
     }
-
+    
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -2173,8 +2179,8 @@ int FTI_Recover()
 
 #else
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
-        strncpy(data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
+        size_t filePos = data[i].filePosStored;
+        strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         fread(data[i].ptr, 1, data[i].size, fd);
         if (ferror(fd)) {
@@ -2281,7 +2287,6 @@ int FTI_Finalize()
     }
 
     if (FTI_Topo.amIaHead) {
-        FTI_FreeMeta(&FTI_Exec);
         if ( FTI_Conf.stagingEnabled ) {
             FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
         }
@@ -2326,7 +2331,7 @@ int FTI_Finalize()
         int lastLevel;
         MPI_Recv(&lastLevel, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.generalTag, FTI_Exec.globalComm, MPI_STATUS_IGNORE);
         if (lastLevel != FTI_NSCS) { //Head sends level of checkpoint if post-processing succeed, FTI_NSCS Otherwise
-            FTI_Exec.lastCkptLvel = lastLevel;
+            FTI_Exec.ckptLvel = lastLevel;
         }
     }
 
@@ -2345,9 +2350,9 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
-        //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptID > 0) {
-        if (FTI_Exec.lastCkptLvel != 4) {
-            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.lastCkptLvel), "save the last ckpt. in the PFS.");
+        //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptId > 0) {
+        if (FTI_Exec.ckptLvel != 4) {
+            FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.ckptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
             if (FTI_Topo.splitRank == 0) {
                 if (access(FTI_Ckpt[4].dir, 0) == 0) {
@@ -2368,20 +2373,17 @@ int FTI_Finalize()
         }
         //Cleaning only local storage
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
-    } else if ( FTI_Conf.keepL4Ckpt && FTI_Ckpt[4].hasCkpt ) {
-        FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
-        MPI_Barrier( FTI_COMM_WORLD );
-        FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
-        MPI_Barrier( FTI_COMM_WORLD );
-        int globalFlag = !FTI_Topo.splitRank;
-        globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff) && (globalFlag != 0));
-        if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-            char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
-            RENAME(FTI_Ckpt[4].metaDir, str );
+    } else if ( FTI_Conf.keepL4Ckpt ) {
+        int ckptId = FTI_LoadL4CkptMetaData( &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt );
+        if( ckptId > 0 ) {
+            FTI_Exec.ckptMeta.ckptIdL4 = ckptId;
+            FTI_ArchiveL4Ckpt( &FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Topo );
+            MPI_Barrier( FTI_COMM_WORLD );
+            FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
+            MPI_Barrier( FTI_COMM_WORLD );
+            //Cleaning only local storage
+            FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
         }
-        //Cleaning only local storage
-        FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else {
         if (FTI_Conf.saveLastCkpt) { //if there was no saved checkpoint
             FTI_Print("No checkpoint to keep in PFS.", FTI_INFO);
@@ -2398,7 +2400,6 @@ int FTI_Finalize()
         FTI_FinalizeDcp( &FTI_Conf, &FTI_Exec );
     }
 
-    FTI_FreeMeta(&FTI_Exec);
     FTI_FreeTypesAndGroups(&FTI_Exec);
     if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
         FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
@@ -2474,11 +2475,11 @@ int FTI_Finalize()
             if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
                 return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data, id);
             } else {
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+                snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
             }
         }
         else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
         }
 
 
@@ -2497,11 +2498,11 @@ int FTI_Finalize()
         if( FTI_Data.check( &FTI_Data ) ) return FTI_NREC;
         sprintf(str, "Recovering var %d ", id);
         FTI_Print(str, FTI_DBUG);
-        long filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[oldID];
+        long filePos = data[activeID].filePosStored;
         fseek(fd,filePos, SEEK_SET);
         fread(data[activeID].ptr, 1, data[activeID].size, fd);
 
-        strncpy(data[activeID].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[oldID*FTI_BUFS]), FTI_BUFS);
+        strncpy(data[activeID].idChar, data[activeID].idChar, FTI_BUFS);
 
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
@@ -2560,33 +2561,3 @@ int FTI_Finalize()
         }
         fflush(stdout);
     }
-
-
-//int testkeymap()
-//{
-//    size_t NUM = 1024L*1024L*1024L;
-//    size_t* arr = NULL;
-//    FTIT_keymap kmap;
-//    FTI_KeyMap( &kmap, sizeof(size_t), FTI_Conf );
-//    //size_t ids[NUM];
-//    double t0 = MPI_Wtime();
-//    size_t i=0; for(; i<NUM; i++) {
-//        kmap.push_back( &kmap, &i, 2*i );
-//    }
-//    double t1 = MPI_Wtime();
-//    free(kmap._data);
-//    double t2 = MPI_Wtime();
-//    for(i=0; i<NUM; i++) {
-//        arr = realloc( arr, (i+1) * sizeof(size_t) );
-//        arr[i] = 2*i;
-//    }
-//    double t3 = MPI_Wtime();
-//    printf("type_size: %lu\n", kmap._type_size);
-//    printf("size: %lu\n", kmap._size);
-//    printf("used: %lu\n", kmap._used);
-//    printf("allocated total: %lf Gb\n", ((double)(NUM*sizeof(size_t)))/(1024*1024*1024) );
-//    printf("realloc: %lf seconds, push_back: %lf seconds\n", t3-t2, t1-t0 ); 
-//    //printf("insertations: %d\n", kmap._nadds);
-//    //for(i=0; i<kmap._used; i++)
-//    //    printf("    id: %d, value: %d\n", ids[i], *(int*)kmap.data(&kmap, ids[i]));
-//}

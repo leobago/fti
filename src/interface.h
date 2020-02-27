@@ -44,6 +44,7 @@ extern "C"
 #endif
 #include "fti.h"
 
+#include "util/ini.h"
 #include "keymap.h"
 #include "meta.h"
 #include "api-cuda.h"

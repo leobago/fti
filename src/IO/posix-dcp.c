@@ -105,11 +105,11 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         }
     }
 
-    snprintf( FTI_Exec->meta[0].ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
+    snprintf( FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "dcp-id%d-rank%d.fti", dcpFileId, FTI_Topo->myRank );
     if (FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->meta[0].ckptFile );
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile );
     } else {
-        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->meta[0].ckptFile );
+        snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir, FTI_Exec->ckptMeta.ckptFile );
     }
 
     if( dcpLayer == 0 ) 
@@ -132,7 +132,7 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     }
 
     // write actual amount of variables at the beginning of each layer
-    FWRITE(NULL, bytes, &FTI_Exec->ckptID, sizeof(int), 1, write_info->f, "p", write_info);
+    FWRITE(NULL, bytes, &FTI_Exec->ckptId, sizeof(int), 1, write_info->f, "p", write_info);
     FWRITE(NULL, bytes, &FTI_Exec->nbVar, sizeof(int), 1, write_info->f, "p", write_info);
     FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);// + sizeof(unsigned int);
     write_DCPinfo->layerSize += 2*sizeof(int);// + sizeof(unsigned int);
@@ -370,14 +370,14 @@ int FTI_RecoverDcpPosix
     unsigned long blockSize;
     unsigned int stackSize;
     int nbVarLayer;
-    int ckptID;
+    int ckptId;
 
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
 
     void* ptr;
 
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
+    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
     // read base part of file
     FILE* fd = fopen( fn, "rb" );
@@ -419,7 +419,7 @@ int FTI_RecoverDcpPosix
 
     int i;
     // treat Layer 0 first
-    fread( &ckptID, 1, sizeof(int), fd );
+    fread( &ckptId, 1, sizeof(int), fd );
     if(ferror(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
         FTI_Print( errstr, FTI_EROR );
@@ -499,7 +499,7 @@ int FTI_RecoverDcpPosix
     for( i=1; i<nbLayer; i++) {
 
         unsigned long pos = 0;
-        pos += fread( &ckptID, 1, sizeof(int), fd );
+        pos += fread( &ckptId, 1, sizeof(int), fd );
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
             FTI_Print( errstr, FTI_EROR );
@@ -561,9 +561,9 @@ int FTI_RecoverDcpPosix
         }
 
     }
-
+    
     // create hasharray
-    for(i=0; i<FTI_Exec->nbVar; i++) {
+    for(i=0; i<FTI_Exec->nbVarStored; i++) {
         FTIT_data_prefetch prefetcher;
         size_t totalBytes = 0;
         unsigned char * ptr = NULL,*startPtr = NULL;
@@ -606,7 +606,7 @@ int FTI_RecoverDcpPosix
                 return FTI_NSCS;
             }
         }
-
+        
         if( FTI_DataVar->size%blockSize ) {
             unsigned char* buffer = calloc( 1, blockSize );
             if( !buffer ) {
@@ -625,7 +625,7 @@ int FTI_RecoverDcpPosix
 
     free(buffer);
     fclose(fd);
-
+    
     return FTI_SCES;
 
 }
@@ -652,12 +652,12 @@ int FTI_RecoverVarDcpPosix
     unsigned long blockSize;
     unsigned int stackSize;
     int nbVarLayer;
-    int ckptID;
+    int ckptId;
 
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
 
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->meta[4].ckptFile );
+    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
 
     // read base part of file
     FILE* fd = fopen( fn, "rb" );
@@ -700,7 +700,7 @@ int FTI_RecoverVarDcpPosix
     int i;
 
     // treat Layer 0 first
-    fread( &ckptID, 1, sizeof(int), fd );
+    fread( &ckptId, 1, sizeof(int), fd );
     if(ferror(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
         FTI_Print( errstr, FTI_EROR );
@@ -775,7 +775,7 @@ int FTI_RecoverVarDcpPosix
     for( i=1; i<nbLayer; i++) {
 
         unsigned long pos = 0;
-        pos += fread( &ckptID, 1, sizeof(int), fd );
+        pos += fread( &ckptId, 1, sizeof(int), fd );
         if(ferror(fd)) {
             snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
             FTI_Print( errstr, FTI_EROR );
@@ -988,7 +988,7 @@ int FTI_RecoverVarDcpPosix
     FTIT_configuration* conf = FTI_DcpPosixRecoverRuntimeInfo( DCP_POSIX_CONF_TAG, NULL, NULL ); 
     int *nbVarLayers = NULL;
     size_t *layerSizes = NULL;
-    int *ckptIDs  = NULL;
+    int *ckptIds  = NULL;
     char errstr[FTI_BUFS];
     char dummyBuffer[FTI_BUFS];
     unsigned long blockSize;
@@ -1045,13 +1045,13 @@ int FTI_RecoverVarDcpPosix
 
     // get dcpFileId from filename
     int dummy;
-    sscanf( exec->meta[4].ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
+    sscanf( exec->ckptMeta.ckptFile, "dcp-id%d-rank%d.fti", &dcpFileId, &dummy );
     counter = dcpFileId * stackSize;
 
     int i;
     int layer = 0;
     int nbVarLayer;
-    int ckptID;
+    int ckptId;
 
     // set number of recovered layers to 0
     exec->dcpInfoPosix.nbLayerReco = 0;
@@ -1066,7 +1066,7 @@ int FTI_RecoverVarDcpPosix
     // check layer 0 first
     // get number of variables stored in layer
     MD5_Init( &mdContext );
-    fs += fread( &ckptID, 1, sizeof(int), fd );
+    fs += fread( &ckptId, 1, sizeof(int), fd );
     if(ferror(fd)|| feof(fd)) {
         snprintf( errstr, FTI_BUFS, "unable to read in file %s", fileName );
         FTI_Print( errstr, FTI_EROR );
@@ -1112,18 +1112,18 @@ int FTI_RecoverVarDcpPosix
         goto FINALIZE;
     }
     layerSizes = (size_t*) malloc (sizeof(size_t)*stackSize);
-    ckptIDs  = (int*) malloc (sizeof(int)*stackSize);
+    ckptIds  = (int*) malloc (sizeof(int)*stackSize);
     nbVarLayers = (int *) malloc (sizeof(int)*stackSize);
 
     layerSizes[layer] = fs;
-    ckptIDs[layer] = ckptID;
+    ckptIds[layer] = ckptId;
     nbVarLayers[layer] = nbVarLayer;
 
     lastCorrectLayer++;
     layer++;
     exec->dcpInfoPosix.nbLayerReco = layer;
     exec->dcpInfoPosix.nbVarReco = nbVarLayer;
-    exec->ckptID = ckptID;
+    exec->ckptId = ckptId;
 
     //exec->dcpInfoPosix.Counter = counter;
     bool readLayer = true;
@@ -1135,7 +1135,7 @@ int FTI_RecoverVarDcpPosix
         readLayer = true;
         layerSize = 0;
         MD5_Init( &mdContext );
-        bytes = fread( &ckptID, 1, sizeof(int), fd );
+        bytes = fread( &ckptId, 1, sizeof(int), fd );
         if (feof(fd) ){
             readLayer = false;
             break;
@@ -1202,7 +1202,7 @@ int FTI_RecoverVarDcpPosix
         if (readLayer){
             fs += layerSize;
             layerSizes[layer] = fs;
-            ckptIDs[layer] = ckptID;
+            ckptIds[layer] = ckptId;
             nbVarLayers[layer] = nbVarLayer;
             exec->dcpInfoPosix.nbLayerReco = layer+1;
             exec->dcpInfoPosix.nbVarReco = nbVarLayer;
@@ -1225,14 +1225,14 @@ FINALIZE:;
              exec->dcpInfoPosix.nbVarReco = nbVarLayers[minLayer];
              exec->dcpInfoPosix.Counter= minLayer +counter + 1;
              fclose (fd);
-             exec->ckptID = ckptIDs[minLayer];
+             exec->ckptId = ckptIds[minLayer];
              if ( truncate(fileName, layerSizes[minLayer]) != 0 ){
                  FTI_Print("Error On Truncating the file",FTI_EROR);
                  return FTI_EROR;
              }
 
              free(layerSizes);
-             free(ckptIDs);
+             free(ckptIds);
              free(nbVarLayers);
              return FTI_SCES;
          }
@@ -1290,10 +1290,10 @@ unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned cha
 int FTI_DataGetIdx( int varId, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
     int i=0;
-    for(; i<FTI_Exec->nbVar; i++) {
+    for(; i<FTI_Exec->nbVarStored; i++) {
         if(FTI_Data[i].id == varId) break;
     }
-    if( i==FTI_Exec->nbVar ) {
+    if( i==FTI_Exec->nbVarStored ) {
         return -1;
     }
     return i;

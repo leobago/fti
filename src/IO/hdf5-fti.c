@@ -54,6 +54,9 @@
 /*-------------------------------------------------------------------------*/
 void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
+    
+  if(!ftiType) return;
+  
   char str[FTI_BUFS];
   if (ftiType->h5datatype > -1) {
     //This type already created
@@ -134,6 +137,9 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 /*-------------------------------------------------------------------------*/
 void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type)
 {
+    
+  if(!ftiType) return;
+  
   char str[FTI_BUFS];
   if (ftiType->h5datatype == -1 || ftiType->id < 11) {
     //This type already closed or build-in type
@@ -1050,7 +1056,7 @@ int  FTI_HDF5Close(void *fileDesc)
         }
         if( status == FTI_SCES ) {
             snprintf( fd->FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", fd->FTI_Conf->h5SingleFileDir, 
-                    fd->FTI_Conf->h5SingleFilePrefix, fd->FTI_Exec->ckptID );
+                    fd->FTI_Conf->h5SingleFilePrefix, fd->FTI_Exec->ckptId );
         }
     }
 
@@ -1076,7 +1082,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
     
-    if ( FTI_Exec->ckptLvel == FTI_L4_H5_SINGLE ) {
+    if ( FTI_Exec->ckptMeta.level == FTI_L4_H5_SINGLE ) {
         if( FTI_Conf->h5SingleFileEnable ) {
             FTI_Exec->h5SingleFile = true;
         } else {
@@ -1092,23 +1098,23 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         //    FTI_Print( "Dimension missmatch in VPR file. Checkpoint failed!", FTI_WARN );
         //    return NULL;
         //}
-        FTI_Exec->ckptLvel = 4;
+        FTI_Exec->ckptMeta.level = 4;
     }
     
     char  fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec->ckptMeta.level;
 
     //update ckpt file name
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptID, FTI_Topo->myRank,FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
     
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
     if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
     }
 
     int i;
@@ -1172,9 +1178,9 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTIT_dataset* FTI_Data)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
     if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
     }
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
@@ -1265,15 +1271,16 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         FTIT_dataset* FTI_Data, int id)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
 
     if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
     }
 
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
+    int nbVar = (FTI_Exec->h5SingleFile) ? FTI_Exec->nbVar : FTI_Exec->nbVarStored;
     hid_t file_id;    
     //Open hdf5 file
     if( FTI_Exec->h5SingleFile ) { 
@@ -1298,11 +1305,11 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < nbVar; i++) {
         FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < nbVar; i++) {
         if (FTI_Data[i].id == id) {
             break;
         }
@@ -1330,7 +1337,7 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         return FTI_NREC;
     }
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < nbVar; i++) {
         FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
     }
 
@@ -1657,7 +1664,7 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
 /**
   @brief      Checks if VPR file on restart
   @param      FTI_Conf        Configuration metadata.
-  @param      ckptID          Checkpoint ID.
+  @param      ckptId          Checkpoint ID.
   @return     integer         FTI_SCES if successful.
 
   Checks if restart is possible for VPR file. 
@@ -1666,11 +1673,11 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
   3) Checks if groups and datasets can be accessed and if datasets can be 
   read
 
-  If file found and sane, ckptID is set and FTI_SCES is returned.
+  If file found and sane, ckptId is set and FTI_SCES is returned.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID ) 
+int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId ) 
 {
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
@@ -1687,7 +1694,7 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
         return FTI_NSCS;
     }
 
-    *ckptID = -1;
+    *ckptId = -1;
 
     bool found = false;
     while((entry = readdir(dir)) != NULL) {   
@@ -1702,9 +1709,9 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
                 if( strncmp( fileRootExpected, fileRoot, FTI_BUFS ) == 0 ) {
                     int id_tmp;
                     sscanf( entry->d_name + len - 14 + 3, "%08d.h5", &id_tmp );
-                    if( id_tmp > *ckptID ) {
-                        *ckptID = id_tmp;
-                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                    if( id_tmp > *ckptId ) {
+                        *ckptId = id_tmp;
+                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptId ); 
                     }
                     found = true;
                 }
