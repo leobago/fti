@@ -130,7 +130,6 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[GLOBAL].getPos	= FTI_GetMPIOFilePos; 
             ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
 
-
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 

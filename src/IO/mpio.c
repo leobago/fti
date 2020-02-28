@@ -197,7 +197,6 @@ int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data){
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     int i;
-
     MPI_Offset offset = 0;
     MPI_Offset chunkSize = FTI_Exec->ckptSize;
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) malloc (sizeof(WriteMPIInfo_t));

@@ -1905,7 +1905,7 @@ int FTI_AddVarICP( int varID )
     }
 
     int res;
-    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
+    int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptMeta.level == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
     res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Data,&ftiIO[funcID+offset]);
 
