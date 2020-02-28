@@ -503,6 +503,8 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->ckptSize = FTI_Exec->ckptSize + data.size;
 
         data.recovered = true;
+
+        FTI_Data->push_back( &data, data.id ); 
         
     }
 

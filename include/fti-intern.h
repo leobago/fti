@@ -192,7 +192,7 @@ extern "C" {
         int  result;                /**< holds result of I/O specific write     */
         int lastCkptID;             /**< holds last successful cp ID            */
         int countVar;               /**< counts datasets written                */
-        bool* isWritten;    /**< holds IDs of datasets in cp file       */
+        int* isWritten;    /**< holds IDs of datasets in cp file       */
         double t0;                  /**< timing for CP statistics               */
         double t1;                  /**< timing for CP statistics               */
         char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
