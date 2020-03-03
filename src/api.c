@@ -2240,6 +2240,74 @@ int FTI_Snapshot()
     return res;
 }
 
+int FTI_Finalize_ReInit(){
+
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if (FTI_Topo.amIaHead) {
+        FTI_FreeMeta(&FTI_Exec);
+        if ( FTI_Conf.stagingEnabled ) {
+            FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
+        }
+    }
+    else{
+        if( FTI_Conf.dcpPosix ) {
+            int i = 0;
+            for(; i<FTI_Exec.nbVar; i++) {
+                if (!( FTI_Data[i].isDevicePtr) ){
+                    free(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                    free(FTI_Data[i].dcpInfoPosix.oldHashArray);
+                }
+#ifdef GPUSUPPORT
+                else{
+                    cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                    cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
+                }
+#endif
+            }
+        }
+
+        if( FTI_Conf.dcpPosix ) {
+            int i = 0;
+            for(; i<FTI_Exec.nbVar; i++) {
+                if (!( FTI_Data[i].isDevicePtr) ){
+                    free(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                    free(FTI_Data[i].dcpInfoPosix.oldHashArray);
+                }
+#ifdef GPUSUPPORT
+                else{
+                    cudaFree(FTI_Data[i].dcpInfoPosix.currentHashArray);
+                    cudaFree(FTI_Data[i].dcpInfoPosix.oldHashArray);
+                }
+#endif
+            }
+        }
+
+        FTI_Try(FTI_DestroyDevices(), "Destroying accelerator allocated memory");
+        if (FTI_Conf.dcpInfoPosix.cachedCkpt){ 
+            FTI_destroyMD5();
+        }
+
+        FTI_FreeMeta(&FTI_Exec);
+        FTI_FreeTypesAndGroups(&FTI_Exec);
+        if( FTI_Conf.ioMode == FTI_IO_FTIFF ) {
+            FTIFF_FreeDbFTIFF(FTI_Exec.lastdb);
+        }
+#ifdef ENABLE_HDF5
+        if( FTI_Conf.h5SingleFileEnable ) {
+            FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
+        }
+#endif
+        MPI_Barrier(FTI_Exec.globalComm);
+        FTI_Print("FTI has been finalized.", FTI_INFO);
+        return FTI_SCES;
+    }
+    return FTI_SCES;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It closes FTI properly on the application processes.
