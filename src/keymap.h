@@ -13,6 +13,7 @@ extern "C" {
         void*   data;
         int*    _key;
         bool    (*check)();
+        bool    (*check_range)( int );
         int     (*push_back)( void*, int );
         void*   (*get)( int );
         int     (*clear)();
@@ -23,6 +24,7 @@ extern "C" {
     void* FTI_KeyMapGet( int );
     int FTI_KeyMapClear( void ); 
     bool FTI_KeyMapCheckError( void ); 
+    bool FTI_KeyMapCheckRange( int ); 
 
 #ifdef __cplusplus
 }

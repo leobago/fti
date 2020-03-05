@@ -37,6 +37,20 @@
  */
 
 #include "interface.h"
+#include <stdio.h>
+#include <execinfo.h>
+void print_trace(void) {
+    char **strings;
+    size_t i, size;
+    enum Constexpr { MAX_SIZE = 1024 };
+    void *array[MAX_SIZE];
+    size = backtrace(array, MAX_SIZE);
+    strings = backtrace_symbols(array, size);
+    for (i = 0; i < size; i++)
+        printf("%s\n", strings[i]);
+    puts("");
+    free(strings);
+}
 
 // This class is meant to be a singleton
 static FTIT_keymap* self = NULL;
@@ -71,6 +85,7 @@ int FTI_KeyMap( FTIT_keymap* instance, size_t type_size, FTIT_configuration FTI_
     self->get = FTI_KeyMapGet;
     self->clear = FTI_KeyMapClear;
     self->check = FTI_KeyMapCheckError;
+    self->check_range = FTI_KeyMapCheckRange;
 }
 
 int FTI_KeyMapPushBack( void* new_item, int id )
@@ -96,7 +111,14 @@ int FTI_KeyMapPushBack( void* new_item, int id )
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
-
+    
+    if( self->_key[id] != -1 ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "Requested ID='%d' is already in use (key value: %lu)", id, self->_key[id] );
+        FTI_Print( str, FTI_EROR);
+        return FTI_NSCS;
+    }
+        
     size_t new_size = self->_size;
     size_t new_used = self->_used + 1;
 
@@ -153,7 +175,7 @@ void* FTI_KeyMapGet( int id )
         self->_error=true;
         return NULL;
     }
-
+    
     return self->data + check_pos * self->_type_size;
 
 }
@@ -163,6 +185,11 @@ bool FTI_KeyMapCheckError()
     bool val = self->_error;
     self->_error = false;
     return val;
+}
+
+bool FTI_KeyMapCheckRange( int max )
+{
+    return (self->_used <= max);
 }
 
 int FTI_KeyMapClear() 

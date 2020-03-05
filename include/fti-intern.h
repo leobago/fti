@@ -367,8 +367,8 @@ extern "C" {
         bool                        initialized;    /**< Dataset is initialized         */
         int                         rank;           /**< Rank of dataset                */
         int                         id;             /**< ID of dataset.                 */
+        int*                        varId;          /**< ID of subset variable          */
         int                         numSubSets;     /**< Number of assigned sub-sets    */
-        int*                        varIdx;         /**< FTI_Data index of subset var   */
         FTIT_H5Group*               location;       /**< Dataset location in file.      */
 #ifdef ENABLE_HDF5
         hid_t                       hid;            /**< HDF5 id datset.                */

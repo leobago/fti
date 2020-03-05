@@ -218,29 +218,26 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             seek_ptr += (FTI_ADDRVAL) FTI_dbvarstructsize;
 
             currentdbvar->hasCkpt = true;
-            
-            FTIT_dataset data = {0};
+           
+            FTIT_dataset* data = FTI_Data->get(currentdbvar->id);
+            if(FTI_Data->check()) return FTI_NSCS;
+            if(!data) {
+                FTIT_dataset dataInit = {0};
+                dataInit.id = currentdbvar->id;
+                dataInit.size = 0;
+                dataInit.sizeStored += currentdbvar->chunksize;
 
-            data.id = currentdbvar->id;
-
-            data.size = 0;
-            data.sizeStored += currentdbvar->chunksize;
-
-            // Important assignment, we use realloc!
-            data.sharedData.dataset = NULL;
-            data.rank = 1;
-
-            FTI_Exec->ckptSize = FTI_Exec->ckptSize + data.size;
-
-            if ( FTI_Conf->dcpPosix ){
-                data.dcpInfoPosix.hashDataSize = 0;
-                data.dcpInfoPosix.currentHashArray=NULL;
-                data.dcpInfoPosix.oldHashArray=NULL;
+                // Important assignment, we use realloc!
+                dataInit.sharedData.dataset = NULL;
+                dataInit.rank = 1;
+                dataInit.recovered = true;
+                
+                FTI_Data->push_back( &dataInit, currentdbvar->id );
+            } else {
+                data->sizeStored += currentdbvar->chunksize;
             }
-
-            data.recovered = true;
             
-            FTI_Data->push_back( &data, currentdbvar->id );
+           // FTI_Exec->ckptSize = FTI_Exec->ckptSize + currentdbvar->chunksize;
 
             if ( varCnt == 0 ) { 
                 varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );
@@ -1888,7 +1885,6 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     
     int fd = FTIFF_OpenCkptFile( path, O_RDONLY ); 
     if (fd == -1) {
-        DBG_MSG("path: %s, rank: %d, level: %d, isdcp: %d",-1,path, FTI_Topo->body[proc-1], level, FTI_Ckpt[level].isDcp);
         free( FTIFFMeta );
         return FTI_NSCS;
     }

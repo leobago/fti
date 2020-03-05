@@ -1020,12 +1020,15 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info)
 /*-------------------------------------------------------------------------*/
 int  FTI_HDF5Close(void *fileDesc)
 {
+
     int i,j,status = FTI_SCES;
     WriteHDF5Info_t *fd = (WriteHDF5Info_t *)fileDesc;
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
+    FTIT_keymap* FTI_Data = fd->FTI_Data; 
 
+    FTIT_dataset* data; FTI_DATA_P(data, fd->FTI_Exec->nbVar, "FTI_Data overflow detected!", FTI_NSCS);
     for (i = 0; i < fd->FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(fd->FTI_Data[i].type, fd->FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type, fd->FTI_Exec->FTI_Type);
     }
 
     for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
@@ -1077,7 +1080,7 @@ int  FTI_HDF5Close(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
+void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
 {
     
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
@@ -1127,8 +1130,9 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     FTI_HDF5Open(fn, fd); 
 
     if (FTI_Exec->h5SingleFile){
+        FTIT_dataset* data; FTI_DATA_P( data, FTI_Exec->nbVar, "FTI_Data overflow detected!", NULL );
         for (i = 0; i < FTI_Exec->nbVar; i++) {
-            FTI_CommitDataType(FTI_Exec,&FTI_Data[i]);
+            FTI_CommitDataType(FTI_Exec,&data[i]);
         }
         FTI_CreateGlobalDatasets( FTI_Exec );
     }
@@ -1152,10 +1156,11 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_keymap* FTI_Data)
 {
     // write data
-    int i;
     WriteHDF5Info_t *fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_WriteHDF5Data(&FTI_Data[i], fd);
+    FTIT_dataset* data;
+    FTI_DATA_P( data, FTI_Exec->nbVar, "FTI_Data overflow detected!", FTI_NSCS );
+    int i= 0; for (; i < FTI_Exec->nbVar; i++) {
+        FTI_WriteHDF5Data(&data[i], fd);
     }
     FTI_HDF5Close(fd);
     free(fd);
@@ -1175,7 +1180,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
@@ -1209,8 +1214,9 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
     }
 
+    FTIT_dataset* data; FTI_DATA_P( data, FTI_Exec->nbVar, "FTI_Data overflow detected!", FTI_NSCS);
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+        FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
     if( FTI_Exec->h5SingleFile ) { 
@@ -1220,9 +1226,9 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         herr_t res;
         if( FTI_Exec->h5SingleFile ) { 
-            res = FTI_ReadSharedFileData( FTI_Data[i] );
+            res = FTI_ReadSharedFileData( data[i] );
         } else {
-            res = FTI_ReadHDF5Var(&FTI_Data[i]);
+            res = FTI_ReadHDF5Var(&data[i]);
         }
         if (res < 0) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
@@ -1235,7 +1241,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         }
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
     int j;
@@ -1268,8 +1274,9 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, int id)
+        FTIT_keymap* FTI_Data, int id)
 {
+    FTIT_dataset* data;
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
 
@@ -1304,16 +1311,12 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
     }
-
+    
+    FTI_DATA_P( data, nbVar, "FTI_Data overflow detected!", FTI_NSCS );
     for (i = 0; i < nbVar; i++) {
-        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+        FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
-    for (i = 0; i < nbVar; i++) {
-        if (FTI_Data[i].id == id) {
-            break;
-        }
-    }
     
     if( FTI_Exec->h5SingleFile ) { 
         FTI_OpenGlobalDatasets( FTI_Exec );
@@ -1321,10 +1324,11 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     
     herr_t res;
 
+    FTI_DATA_GET_P( data, id, "Invalid ID!", FTI_NSCS );
     if( FTI_Exec->h5SingleFile ) {
-        res = FTI_ReadSharedFileData( FTI_Data[i] );
+        res = FTI_ReadSharedFileData( *data );
     } else {
-        res = FTI_ReadHDF5Var(&FTI_Data[i]);
+        res = FTI_ReadHDF5Var(data);
     }
     
     if (res < 0) {
@@ -1337,8 +1341,9 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         return FTI_NREC;
     }
 
+    FTI_DATA_P( data, nbVar, "FTI_Data overflow detected!", FTI_NSCS );
     for (i = 0; i < nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
     for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
@@ -1625,7 +1630,7 @@ int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span )
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec ) 
+int FTI_CheckDimensions( FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec ) 
 {   
 
     // NOTE checking for overlap is complicated and likely expensive
@@ -1637,9 +1642,11 @@ int FTI_CheckDimensions( FTIT_dataset * FTI_Data, FTIT_execution * FTI_Exec )
         // sum of local elements
         hsize_t numElemLocal = 0, numElemGlobal;
         for( i=0; i<dataset->numSubSets; ++i ) {
+            FTIT_dataset* data;
+            FTI_DATA_GET_P(data, dataset->varId[i], "variable id not found!", FTI_NSCS);
             hsize_t numElemSubSet = 1;
             for( j=0; j<dataset->rank; j++ ) {
-                numElemSubSet *= FTI_Data[dataset->varIdx[i]].sharedData.count[j];
+                numElemSubSet *= data->sharedData.count[j];
             }
             numElemLocal += numElemSubSet;
         }
@@ -1752,24 +1759,28 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
     return res;
 }
 
-void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data ) 
+void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data ) 
 {
     FTIT_globalDataset * dataset = FTI_Exec->globalDatasets;
     while( dataset ) {
-        if( dataset->dimension ) { free( dataset->dimension ); }
-        if( dataset->varIdx ) { free( dataset->varIdx ); }
+        free( dataset->dimension );
+        free( dataset->varId );
+        dataset->dimension = NULL;
+        dataset->varId = NULL;
         FTIT_globalDataset * curr = dataset;
         dataset = dataset->next;
         free( curr );
     }
+    
+    FTIT_dataset* data = FTI_Data->data;
+    if(!data) return;
 
-    int i=0;
-    for( ; i<FTI_Exec->nbVar; i++ ) {
-        if( FTI_Data[i].sharedData.offset ) {
-            free( FTI_Data[i].sharedData.offset );
+    int i=0; for( ; i<FTI_Exec->nbVar; i++ ) {
+        if( data[i].sharedData.offset ) {
+            free( data[i].sharedData.offset );
         }
-        if( FTI_Data[i].sharedData.count ) {
-            free( FTI_Data[i].sharedData.count );
+        if( data[i].sharedData.count ) {
+            free( data[i].sharedData.count );
         }
     }
 }

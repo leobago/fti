@@ -683,13 +683,21 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 /*-------------------------------------------------------------------------*/
 int FTI_setIDFromString( char *name ){
     int i = 0;
-    FTIT_dataset* data = FTI_Data.data;
+    FTIT_dataset* data; FTI_DATA_I(data, FTI_Exec.nbVar, "FTI_Data overflow detected!", FTI_NSCS);
     for ( i = 0 ; i < FTI_Exec.nbVar; i++){
         if (strcmp(name, data[i].idChar) == 0){
-            return i;
+            return data[i].id;
         }
     }
-    strncpy(data[i].idChar, name, FTI_BUFS);
+#warning provide a function that returns an initialized dataset
+    FTIT_dataset dataNew = {0};
+    dataNew.rank = 1;
+    dataNew.h5group = FTI_Exec.H5groups[0];
+    strncpy(dataNew.idChar, name, FTI_BUFS);
+    dataNew.id = i;
+    sprintf(dataNew.name, "Dataset_%d", i);
+    FTI_Data.push_back( &dataNew, i );
+    FTI_Exec.nbVar++;
     return i;
 }
 
@@ -996,7 +1004,7 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const cha
     strncpy( last->name, name, FTI_BUFS );
     last->name[FTI_BUFS-1] = '\0';
     last->numSubSets = 0;
-    last->varIdx = NULL;
+    last->varId = NULL;
     last->type = type;
     last->location = (h5group) ? FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
 
@@ -1033,31 +1041,20 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const cha
 int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
-    int i, found=0, pvar_idx;
-
-    for(i=0; i<FTI_Exec.nbVar; i++) {
-        if( FTI_Data[i].id == id ) {
-            found = 1;
-            pvar_idx = i;
-            break;
-        }
-    }
-
-    if( !found ) {
-        FTI_Print( "variable id could not be found!", FTI_EROR );
-        return FTI_NSCS;
-    }
+    
+    FTIT_dataset* data;
+    FTI_DATA_GET_I( data, id, "variable id could not be found!", FTI_NSCS);
 
 #ifdef GPUSUPPORT    
-    if ( !FTI_Data[pvar_idx].isDevicePtr ){
+    if ( !data->isDevicePtr ){
 #endif
 
-        found = 0;
+        bool found = false;
 
         FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
         while( dataset ) {
             if( dataset->id == did ) {
-                found = 1;
+                found = true;
                 break;
             }
             dataset = dataset->next;
@@ -1074,15 +1071,15 @@ int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, 
         }
 
         dataset->numSubSets++;
-        dataset->varIdx = (int*) realloc( dataset->varIdx, dataset->numSubSets*sizeof(int) );
-        dataset->varIdx[dataset->numSubSets-1] = pvar_idx;
+        dataset->varId = (int*) realloc( dataset->varId, dataset->numSubSets*sizeof(int) );
+        dataset->varId[dataset->numSubSets-1] = id;
 
-        FTI_Data[pvar_idx].sharedData.dataset = dataset;
-        FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
-        FTI_Data[pvar_idx].sharedData.count = (hsize_t*) malloc( sizeof(hsize_t) * rank );
-        for(i=0; i<rank; i++) {
-            FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
-            FTI_Data[pvar_idx].sharedData.count[i] = count[i];
+        data->sharedData.dataset = dataset;
+        data->sharedData.offset = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+        data->sharedData.count = (hsize_t*) malloc( sizeof(hsize_t) * rank );
+        int i=0; for(; i<rank; i++) {
+            data->sharedData.offset[i] = offset[i];
+            data->sharedData.count[i] = count[i];
         }
 
         return FTI_SCES;
@@ -1162,23 +1159,12 @@ int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength )
 int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
-    int i, found=0, pvar_idx;
-
-    for(i=0; i<FTI_Exec.nbVar; i++) {
-        if( FTI_Data[i].id == id ) {
-            found = 1;
-            pvar_idx = i;
-            break;
-        }
-    }
-
-    if( !found ) {
-        FTI_Print( "variable id could not be found!", FTI_EROR );
-        return FTI_NSCS;
-    }
+    
+    FTIT_dataset* data;
+    FTI_DATA_GET_I( data, id, "variable id could not be found!", FTI_NSCS );
 
 #ifdef GPUSUPPORT    
-    if ( !FTI_Data[pvar_idx].isDevicePtr ){
+    if ( !data->isDevicePtr ){
 #endif
 
         FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
@@ -1199,8 +1185,8 @@ int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* coun
             return FTI_NSCS;
         }
 
-        for( i=0; i<dataset->numSubSets; i++ ) {
-            if( dataset->varIdx[i] == pvar_idx ) {
+        int i=0; for(; i<dataset->numSubSets; i++ ) {
+            if( dataset->varId[i] == id ) {
                 break;
             }
         }
@@ -1210,11 +1196,11 @@ int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* coun
             return FTI_NSCS;
         }
 
-        FTI_Data[pvar_idx].sharedData.offset = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.offset, sizeof(hsize_t) * rank );
-        FTI_Data[pvar_idx].sharedData.count = (hsize_t*) realloc( FTI_Data[pvar_idx].sharedData.count, sizeof(hsize_t) * rank );
+        data->sharedData.offset = (hsize_t*) realloc( data->sharedData.offset, sizeof(hsize_t) * rank );
+        data->sharedData.count = (hsize_t*) realloc( data->sharedData.count, sizeof(hsize_t) * rank );
         for(i=0; i<rank; i++) {
-            FTI_Data[pvar_idx].sharedData.offset[i] = offset[i];
-            FTI_Data[pvar_idx].sharedData.count[i] = count[i];
+            data->sharedData.offset[i] = offset[i];
+            data->sharedData.count[i] = count[i];
         }
 
         return FTI_SCES;
@@ -2090,7 +2076,7 @@ int FTI_Recover()
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
 #ifdef ENABLE_HDF5
-        if( FTI_CheckDimensions( FTI_Data, &FTI_Exec ) != FTI_SCES ) {
+        if( FTI_CheckDimensions( &FTI_Data, &FTI_Exec ) != FTI_SCES ) {
             FTI_Print( "Dimension missmatch in VPR file. Recovery failed!", FTI_WARN );
             return FTI_NREC;
         }
@@ -2147,7 +2133,7 @@ int FTI_Recover()
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+        int ret = FTI_RecoverHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data);
         return ret; 
     }
 #endif
@@ -2425,7 +2411,7 @@ int FTI_Finalize()
     }
 #ifdef ENABLE_HDF5
     if( FTI_Conf.h5SingleFileEnable ) {
-        FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
+        FTI_FreeVPRMem( &FTI_Exec, &FTI_Data ); 
     }
 #endif
     MPI_Barrier(FTI_Exec.globalComm);
@@ -2475,7 +2461,7 @@ int FTI_Finalize()
 
 #ifdef ENABLE_HDF5 //If HDF5 is installed
         if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-            return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+            return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, &FTI_Data, id);
         }
 #endif
 

@@ -31,7 +31,7 @@ int FTI_SionClose(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
+void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
 {
     WriteSionInfo_t *write_info = (WriteSionInfo_t *) malloc (sizeof(WriteSionInfo_t));
 
