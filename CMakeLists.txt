@@ -165,6 +165,7 @@ SRC_FTI
     src/tools.c
     src/utility.c
     src/keymap.c
+    src/dataset.c
     src/util/ini.c
 )
 

@@ -219,25 +219,15 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
             currentdbvar->hasCkpt = true;
            
-            FTIT_dataset* data = FTI_Data->get(currentdbvar->id);
-            if(FTI_Data->check()) return FTI_NSCS;
+            FTIT_dataset* data; FTI_DATA_GET( data, currentdbvar->id, FTI_NSCS );
             if(!data) {
-                FTIT_dataset dataInit = {0};
-                dataInit.id = currentdbvar->id;
-                dataInit.size = 0;
-                dataInit.sizeStored += currentdbvar->chunksize;
-
-                // Important assignment, we use realloc!
-                dataInit.sharedData.dataset = NULL;
-                dataInit.rank = 1;
-                dataInit.recovered = true;
-                
-                FTI_Data->push_back( &dataInit, currentdbvar->id );
+                FTIT_dataset dataNew;
+                FTI_InitDataset( FTI_Exec, &dataNew, currentdbvar->id );
+                dataNew.sizeStored = currentdbvar->chunksize;
+                FTI_Data->push_back( &dataNew, currentdbvar->id );
             } else {
                 data->sizeStored += currentdbvar->chunksize;
             }
-            
-           // FTI_Exec->ckptSize = FTI_Exec->ckptSize + currentdbvar->chunksize;
 
             if ( varCnt == 0 ) { 
                 varsFound = realloc( varsFound, sizeof(int) * (varCnt+1) );

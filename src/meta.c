@@ -481,11 +481,8 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             //No more variables
             break;
         }
-
-        FTIT_dataset data = {0};
         
-        //Variable exists
-        data.id = id;
+        FTIT_dataset data; FTI_InitDataset( FTI_Exec, &data, id );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
         data.sizeStored = ini.getLong( &ini, str );
@@ -497,9 +494,6 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
         strncpy(data.idChar, ini.getString( &ini, str ), FTI_BUFS);
     
-        data.rank = 1;
-        data.h5group = FTI_Exec->H5groups[0];
-        sprintf(data.name, "Dataset_%d", id);
         FTI_Exec->ckptSize = FTI_Exec->ckptSize + data.size;
 
         data.recovered = true;

@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
     typedef struct FTIT_keymap {
+        bool    initialized;
         size_t  _type_size;
         size_t  _size;
         size_t  _used;
@@ -19,7 +20,7 @@ extern "C" {
         int     (*clear)();
     } FTIT_keymap;
 
-    int FTI_KeyMap( FTIT_keymap*, size_t, FTIT_configuration );
+    int FTI_KeyMap( FTIT_keymap**, size_t, size_t );
     int FTI_KeyMapPushBack( void*, int );
     void* FTI_KeyMapGet( int );
     int FTI_KeyMapClear( void ); 

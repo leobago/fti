@@ -45,6 +45,7 @@ extern "C"
 #include "fti.h"
 
 #include "util/ini.h"
+#include "dataset.h"
 #include "keymap.h"
 #include "meta.h"
 #include "api-cuda.h"

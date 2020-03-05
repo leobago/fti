@@ -43,42 +43,6 @@
 
 void cleanup(char* pattern, ...);
 
-#define FTI_DATA_I( INSTANCE, MAX_RANGE, FAILURE_MESSAGE, FAILURE_RETURN )         \
-    do { \
-        INSTANCE = FTI_Data.data;                                 \
-        if( !INSTANCE && !FTI_Data.check_range(MAX_RANGE) ) {                                                           \
-            FTI_Print( FAILURE_MESSAGE, FTI_EROR );                                 \
-            return FAILURE_RETURN;                                                  \
-        }                                                                           \
-    } while(0)
-#define FTI_DATA_P( INSTANCE, MAX_RANGE, FAILURE_MESSAGE, FAILURE_RETURN )         \
-    do { \
-        INSTANCE = FTI_Data->data;                                 \
-        if( !INSTANCE && !FTI_Data->check_range(MAX_RANGE) ) {                                                           \
-            FTI_Print( FAILURE_MESSAGE, FTI_EROR );                                 \
-            return FAILURE_RETURN;                                                  \
-        }                                                                           \
-    } while(0)
-#define FTI_DATA_GET_P( INSTANCE, ID, FAILURE_MESSAGE, FAILURE_RETURN )         \
-    do { \
-        INSTANCE = FTI_Data->get(ID);                                 \
-        if( FTI_Data->check() ) return FAILURE_RETURN;                              \
-        if( !INSTANCE ) {                                                           \
-            FTI_Print( FAILURE_MESSAGE, FTI_EROR );                                 \
-            return FAILURE_RETURN;                                                  \
-        }                                                                           \
-    } while(0)
-#define FTI_DATA_GET_I( INSTANCE, ID, FAILURE_MESSAGE, FAILURE_RETURN )         \
-    do { \
-        INSTANCE = FTI_Data.get(ID);                                  \
-        if( FTI_Data.check() ) return FAILURE_RETURN;                               \
-        if( !INSTANCE ) {                                                           \
-            FTI_Print( FAILURE_MESSAGE, FTI_EROR );                                 \
-            return FAILURE_RETURN;                                                  \
-        }                                                               \
-    } while(0)
-
-
 #define MKDIR(a,b) \
     do{				\
         if (mkdir(a,b) == -1) { 																\
