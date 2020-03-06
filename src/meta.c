@@ -148,33 +148,26 @@ int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", mfn);
-    FTI_Print(str, FTI_DBUG);
-    if (access(mfn, R_OK) != 0) {
-        FTI_Print("FTI metadata file NOT accessible.", FTI_WARN);
-        return FTI_NSCS;
-    }
-    dictionary* ini = iniparser_load(mfn);
-    if (ini == NULL) {
+    FTI_Print(str, FTI_DBUG); 
+    
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, mfn, FTI_INI_OPEN ) != FTI_SCES ) {
         FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
         return FTI_NSCS;
     }
 
     //Get checksum of checkpoint file
     snprintf(str, FTI_BUFS, "%d:Ckpt_checksum", FTI_Topo->groupRank);
-    char* checksumTemp = iniparser_getstring(ini, str, "");
-    strncpy(checksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
+    strncpy(checksum, ini.getString( &ini, str ), MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of partner checkpoint file
     snprintf(str, FTI_BUFS, "%d:Ckpt_checksum", (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) % FTI_Topo->groupSize);
-    checksumTemp = iniparser_getstring(ini, str, "");
-    strncpy(ptnerChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
+    strncpy(ptnerChecksum, ini.getString( &ini, str ), MD5_DIGEST_STRING_LENGTH);
 
     //Get checksum of Reed-Salomon file
     snprintf(str, FTI_BUFS, "%d:RSed_checksum", FTI_Topo->groupRank);
-    checksumTemp = iniparser_getstring(ini, str, "");
-    strncpy(rsChecksum, checksumTemp, MD5_DIGEST_STRING_LENGTH);
+    strncpy(rsChecksum, ini.getString( &ini, str ), MD5_DIGEST_STRING_LENGTH);
 
-    iniparser_freedict(ini);
+    ini.clear( &ini );
 
     return FTI_SCES;
 }
@@ -220,8 +213,8 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     }
 
     snprintf(fileName, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, groupID);
-    dictionary* ini = iniparser_load(fileName);
-    if (ini == NULL) {
+    
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, fileName, FTI_INI_OPEN ) != FTI_SCES ) {
         FTI_Print("Temporary metadata file could NOT be parsed", FTI_WARN);
         free(checksums);
         return FTI_NSCS;
@@ -232,34 +225,15 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         char buf[FTI_BUFS];
         strncpy(buf, checksums + (i * MD5_DIGEST_STRING_LENGTH), MD5_DIGEST_STRING_LENGTH);
         snprintf(str, FTI_BUFS, "%d:RSed_checksum", i);
-        iniparser_set(ini, str, buf);
+        ini.set( &ini, str, buf );
     }
     free(checksums);
 
     snprintf(str, FTI_BUFS, "Recreating metadata file (%s)...", fileName);
     FTI_Print(str, FTI_DBUG);
 
-    FILE* fd = fopen(fileName, "w");
-    if (fd == NULL) {
-        FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    // Write metadata
-    iniparser_dump_ini(ini, fd);
-
-    if (fclose(fd) != 0) {
-        FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    iniparser_freedict(ini);
+    ini.dump( &ini );
+    ini.clear( &ini );
 
     return FTI_SCES;
 }
@@ -291,7 +265,7 @@ int FTI_LoadMetaPostprocessing(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
     snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
     FTI_Print(str, FTI_DBUG);
 
-    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) return FTI_NSCS;
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName, FTI_INI_OPEN ) != FTI_SCES ) return FTI_NSCS;
 
     snprintf(str, FTI_BUFS, "%d:Ckpt_file_name", FTI_Topo->groupRank);
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s", ini.getString(&ini, str));
@@ -368,7 +342,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
         FTI_Print(str, FTI_DBUG);
 
-        if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) continue;
+        if( FTI_Iniparser( &ini, metaFileName, FTI_INI_OPEN ) != FTI_SCES ) continue;
 
         snprintf(str, FTI_BUFS, "Meta for level %d exists.", i);
         FTI_Print(str, FTI_DBUG);
@@ -418,7 +392,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
     FTI_Print(str, FTI_DBUG);
 
-    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) return FTI_NSCS;
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName, FTI_INI_OPEN ) != FTI_SCES ) return FTI_NSCS;
 
     int k; for (k = 0; k < MAX_STACK_SIZE; k++) {
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
@@ -472,7 +446,7 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(str, FTI_BUFS, "Getting FTI metadata file (%s)...", metaFileName);
     FTI_Print(str, FTI_DBUG);
 
-    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName ) != FTI_SCES ) return FTI_NSCS;
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, metaFileName, FTI_INI_OPEN ) != FTI_SCES ) return FTI_NSCS;
 
     int k; for (k = 0; k < FTI_Conf->maxVarId; k++) {
         snprintf(str, FTI_BUFS, "%d:Var%d_id", FTI_Topo->groupRank, k);
@@ -527,19 +501,12 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
     
-    dictionary* ini;
-
-    if ( access( fn, F_OK ) != 0 ) { 
-        snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
-        FTI_Print(str, FTI_EROR);
-    }     
-
-    // initialize dictionary
-    ini = iniparser_load(fn);
-    if ( ini == NULL ) {
-        FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
+    FTIT_iniparser ctx_ini; if( FTI_Iniparser( &ctx_ini, fn, FTI_INI_OPEN ) != FTI_SCES ) {
+        FTI_Print("Failed to parse checkpoint meta data file.", FTI_EROR);
         return FTI_NSCS;
     }
+
+    dictionary* ini = ctx_ini.dict;
 
     if ( ((int)(ini->n)-6) < 0 ) {
         FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
@@ -563,6 +530,8 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         }
     }
 
+    ctx_ini.clear( &ctx_ini );
+
     // if we find a level 4 checkpoint return the id if not return -1
     return (hasL4Ckpt) ? ckptId : -1;    
 
@@ -584,25 +553,19 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
 
-    dictionary* ini;
-
-    if ( access( fn, F_OK ) != 0 ) { 
-        snprintf(str, FTI_BUFS, "Could not access checkpoint metadata file (%s)...", fn);
-        FTI_Print(str, FTI_EROR);
-    }     
-
-    // initialize dictionary
-    ini = iniparser_load(fn);
-    if ( ini == NULL ) {
-        FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
+    FTIT_iniparser ctx_ini; if( FTI_Iniparser( &ctx_ini, fn, FTI_INI_OPEN ) != FTI_SCES ) {
+        FTI_Print("Failed to parse checkpoint meta data file.", FTI_EROR);
         return FTI_NSCS;
     }
 
-    char lastCkpt[FTI_BUFS];
+    dictionary* ini = ctx_ini.dict;
+    
     if ( ((int)(ini->n)-6) < 0 ) {
         FTI_Print("Unexpected checkpoint meta data file structure.", FTI_EROR);
         return FTI_NSCS;
     }
+
+    char lastCkpt[FTI_BUFS];
 
     memset( lastCkpt, 0x0, FTI_BUFS );
     strncpy( lastCkpt, ini->key[ini->n-6], FTI_BUFS-1);
@@ -632,8 +595,9 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
 
-    //FTI_Exec->ckptLvel = ckptLvel;
     FTI_Exec->ckptId = ckptId;
+
+    ctx_ini.clear( &ctx_ini );
 
     return FTI_SCES;
 
@@ -663,33 +627,14 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
 
-    FILE* fstream;
-    dictionary* ini;
-
-    // initialize dictionary
-    // [A] - create empty if no ckpt meta file exists
-    if ( access( fn, F_OK ) != 0 ) { 
-        snprintf(str, FTI_BUFS, "Creating checkpoint metadata file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-        ini = dictionary_new(0);
-        if ( ini == NULL ) {
-            FTI_Print("Failed to allocate dictionary for checkpoint meta data file.", FTI_EROR);
-            return FTI_NSCS;
-        }
-        // [B] - initialize with data from ckpt meta file
-    } else {
-        snprintf(str, FTI_BUFS, "Updating checkpoint metadata file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-        ini = iniparser_load(fn);
-        if ( ini == NULL ) {
-            FTI_Print("Failed to load dictionary for checkpoint meta data file.", FTI_EROR);
-            return FTI_NSCS;
-        }
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, fn, FTI_INI_APPEND ) != FTI_SCES ) {
+        FTI_Print( "FTI failed to load the checkpoint meta data", FTI_WARN );
+        return FTI_NSCS;
     }
 
     char section[FTI_BUFS], key[FTI_BUFS], value[FTI_BUFS];
     snprintf( section, FTI_BUFS, "checkpoint_id.%d", FTI_Exec->ckptId );
-    iniparser_set( ini, section, NULL ); 
+    ini.set( &ini, section, NULL ); 
     time_t time_ctx;
     struct tm * time_info;
     time( &time_ctx );
@@ -698,35 +643,22 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     strftime(timestr,FTI_BUFS,"%A %x - %H:%M:%S", time_info);
     snprintf( key, FTI_BUFS, "%s:timestamp", section );
     snprintf( value, FTI_BUFS, "%s", timestr );
-    iniparser_set( ini, key, value ); 
+    ini.set( &ini, key, value ); 
     snprintf( key, FTI_BUFS, "%s:level", section );
     snprintf( value, FTI_BUFS, "%d", FTI_Exec->ckptMeta.level );
-    iniparser_set( ini, key, value ); 
+    ini.set( &ini, key, value ); 
     snprintf( key, FTI_BUFS, "%s:nb_procs", section );
     snprintf( value, FTI_BUFS, "%d", FTI_Topo->nbApprocs * FTI_Topo->nbNodes );
-    iniparser_set( ini, key, value ); 
+    ini.set( &ini, key, value ); 
     snprintf( key, FTI_BUFS, "%s:io_mode", section );
     snprintf( value, FTI_BUFS, "%d", FTI_Conf->ioMode );
-    iniparser_set( ini, key, value ); 
+    ini.set( &ini, key, value ); 
     snprintf( key, FTI_BUFS, "%s:is_dcp", section );
     snprintf( value, FTI_BUFS, "%s", (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) ? "true" : "false" );
-    iniparser_set( ini, key, value ); 
+    ini.set( &ini, key, value ); 
 
-    fstream = fopen( fn, "w" );
-    if ( fstream == NULL ) {
-        snprintf( strErr, FTI_BUFS, "Failed to write checkpoint meta data to file (%s).",fn );
-        FTI_Print( strErr, FTI_EROR );
-        dictionary_del(ini);
-    }
-
-    iniparser_dump_ini( ini, fstream );
-
-    if ( fclose( fstream ) != 0 ) {
-        snprintf( strErr, FTI_BUFS, "Failed to close checkpoint meta data file (%s)", fn );
-        FTI_Print( strErr, FTI_WARN );
-    }
-
-    dictionary_del(ini);
+    ini.dump( &ini );
+    ini.clear( &ini );
 
     return FTI_SCES;
 
@@ -763,131 +695,99 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // no metadata files for FTI-FF
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF ) { return FTI_SCES; }
 
-    char str[FTI_BUFS], buf[FTI_BUFS];
-    snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
-    snprintf(str, FTI_BUFS, "Temporary load of topology file (%s)...", buf);
-    FTI_Print(str, FTI_DBUG);
+    char fn[FTI_BUFS], key[FTI_BUFS], val[FTI_BUFS];
 
+    snprintf(fn, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
+    
     // To bypass iniparser bug while empty dict.
-    dictionary* ini = iniparser_load(buf);
-    if (ini == NULL) {
-        FTI_Print("Temporary topology file could NOT be parsed", FTI_WARN);
+    FTIT_iniparser ini; if( FTI_Iniparser( &ini, fn, FTI_INI_CREATE ) != FTI_SCES ) {
+        FTI_Print( "failed to write the metadata", FTI_WARN );
         return FTI_NSCS;
     }
 
     // Add dcp POSIX meta data
-    iniparser_set( ini, "ckpt_info", NULL );
+    ini.set( &ini, "ckpt_info", NULL );
     switch( FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp ) {
         case 0:
-            iniparser_set( ini, "ckpt_info:ckpt_type", "full" );
+            ini.set( &ini, "ckpt_info:ckpt_type", "full" );
             break;
         case 1:
-            iniparser_set( ini, "ckpt_info:ckpt_type", "dcp" );
+            ini.set( &ini, "ckpt_info:ckpt_type", "dcp" );
             break;
     } 
 
     // add checkpoint id
-    snprintf( buf, FTI_BUFS, "%d", FTI_Exec->ckptId );
-    iniparser_set( ini, "ckpt_info:ckpt_id", buf ); 
+    snprintf( val, FTI_BUFS, "%d", FTI_Exec->ckptId );
+    ini.set( &ini, "ckpt_info:ckpt_id", val ); 
 
     // Add metadata to dictionary
     int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
-        strncpy(buf, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
-        snprintf(str, FTI_BUFS, "%d", i);
-        iniparser_set(ini, str, NULL);
-        snprintf(str, FTI_BUFS, "%d:Ckpt_file_name", i);
-        iniparser_set(ini, str, buf);
-        snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", i);
-        snprintf(buf, FTI_BUFS, "%lu", fs[i]);
-        iniparser_set(ini, str, buf);
-        snprintf(str, FTI_BUFS, "%d:Ckpt_file_maxs", i);
-        snprintf(buf, FTI_BUFS, "%lu", mfs);
-        iniparser_set(ini, str, buf);
-        strncpy(buf, checksums + (i * MD5_DIGEST_STRING_LENGTH), MD5_DIGEST_STRING_LENGTH);
-        snprintf(str, FTI_BUFS, "%d:Ckpt_checksum", i);
-        iniparser_set(ini, str, buf);
+        strncpy(val, fnl + (i * FTI_BUFS), FTI_BUFS - 1);
+        snprintf(key, FTI_BUFS, "%d", i);
+        ini.set(&ini, key, NULL);
+        snprintf(key, FTI_BUFS, "%d:Ckpt_file_name", i);
+        ini.set(&ini, key, val);
+        snprintf(key, FTI_BUFS, "%d:Ckpt_file_size", i);
+        snprintf(val, FTI_BUFS, "%lu", fs[i]);
+        ini.set(&ini, key, val);
+        snprintf(key, FTI_BUFS, "%d:Ckpt_file_maxs", i);
+        snprintf(val, FTI_BUFS, "%lu", mfs);
+        ini.set(&ini, key, val);
+        strncpy(val, checksums + (i * MD5_DIGEST_STRING_LENGTH), MD5_DIGEST_STRING_LENGTH);
+        snprintf(key, FTI_BUFS, "%d:Ckpt_checksum", i);
+        ini.set(&ini, key, val);
         int j;
         for (j = 0; j < FTI_Exec->nbVar; j++) {
             //Save id of variable
-            snprintf(str, FTI_BUFS, "%d:Var%d_id", i, j);
-            snprintf(buf, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + j]);
-            iniparser_set(ini, str, buf);
+            snprintf(key, FTI_BUFS, "%d:Var%d_id", i, j);
+            snprintf(val, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
 
             //Save size of variable
-            snprintf(str, FTI_BUFS, "%d:Var%d_size", i, j);
-            snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + j]);
-            iniparser_set(ini, str, buf);
+            snprintf(key, FTI_BUFS, "%d:Var%d_size", i, j);
+            snprintf(val, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
 
-            snprintf(str, FTI_BUFS, "%d:Var%d_pos", i, j);
-            snprintf(buf, FTI_BUFS, "%ld", allVarPositions[i * FTI_Exec->nbVar + j]);
-            iniparser_set(ini, str, buf);
+            snprintf(key, FTI_BUFS, "%d:Var%d_pos", i, j);
+            snprintf(val, FTI_BUFS, "%ld", allVarPositions[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
 
-            snprintf(str, FTI_BUFS, "%d:Var%d_name", i,j);
-            snprintf(buf, FTI_BUFS, "%s", &allCharIds[ (i*FTI_Exec->nbVar*FTI_BUFS) +j*FTI_BUFS]);
-            iniparser_set(ini,str,buf);
+            snprintf(key, FTI_BUFS, "%d:Var%d_name", i,j);
+            snprintf(val, FTI_BUFS, "%s", &allCharIds[ (i*FTI_Exec->nbVar*FTI_BUFS) +j*FTI_BUFS]);
+            ini.set(&ini,key,val);
         }
         if( FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp ) {
             int nbLayer = ((FTI_Exec->dcpInfoPosix.Counter-1) % FTI_Conf->dcpInfoPosix.StackSize) + 1;
             for( j=0; j<nbLayer; j++ ) {
-                snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
-                snprintf(buf, FTI_BUFS, "%lu", allLayerSizes[i * nbLayer + j]);
-                iniparser_set(ini, str, buf);
+                snprintf(key, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
+                snprintf(val, FTI_BUFS, "%lu", allLayerSizes[i * nbLayer + j]);
+                ini.set(&ini, key, val);
 
-                snprintf(str, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
-                iniparser_set(ini, str, &allLayerHashes[i*nbLayer*MD5_DIGEST_STRING_LENGTH + j*MD5_DIGEST_STRING_LENGTH]);
+                snprintf(key, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
+                ini.set(&ini, key, &allLayerHashes[i*nbLayer*MD5_DIGEST_STRING_LENGTH + j*MD5_DIGEST_STRING_LENGTH]);
                 int k;
                 for (k = 0; k < FTI_Exec->nbVar; k++) {
                     //Save id of variable
-                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_id", i, j, k);
-                    snprintf(buf, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + k]);
-                    iniparser_set(ini, str, buf);
+                    snprintf(key, FTI_BUFS, "%d:dcp_layer%d_var%d_id", i, j, k);
+                    snprintf(val, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + k]);
+                    ini.set(&ini, key, val);
 
                     //Save size of variable
-                    snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size", i, j, k);
-                    snprintf(buf, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + k]);
-                    iniparser_set(ini, str, buf);
+                    snprintf(key, FTI_BUFS, "%d:dcp_layer%d_var%d_size", i, j, k);
+                    snprintf(val, FTI_BUFS, "%ld", allVarSizes[i * FTI_Exec->nbVar + k]);
+                    ini.set(&ini, key, val);
                 }
             }
         }
     }
 
     // Remove topology section
-    iniparser_unset(ini, "topology");
     MKDIR(FTI_Conf->mTmpDir,0777);
 
-    snprintf(buf, FTI_BUFS, "%s/sector%d-group%d.fti", FTI_Conf->mTmpDir, FTI_Topo->sectorID, FTI_Topo->groupID);
-    if (remove(buf) == -1) {
-        if (errno != ENOENT) {
-            FTI_Print("Cannot remove sector-group.fti", FTI_EROR);
-        }
-    }
-
-    snprintf(str, FTI_BUFS, "Creating metadata file (%s)...", buf);
-    FTI_Print(str, FTI_DBUG);
-
-    FILE* fd = fopen(buf, "w");
-    if (fd == NULL) {
-        FTI_Print("Metadata file could NOT be opened.", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    // Write metadata
-    iniparser_dump_ini(ini, fd);
-
-    if (fclose(fd) != 0) {
-        FTI_Print("Metadata file could NOT be closed.", FTI_WARN);
-
-        iniparser_freedict(ini);
-
-        return FTI_NSCS;
-    }
-
-    iniparser_freedict(ini);
-
+    ini.dump( &ini );
+    ini.clear( &ini );
+    
     return FTI_SCES;
 }
 

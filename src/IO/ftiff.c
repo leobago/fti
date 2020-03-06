@@ -224,6 +224,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
                 FTIT_dataset dataNew;
                 FTI_InitDataset( FTI_Exec, &dataNew, currentdbvar->id );
                 dataNew.sizeStored = currentdbvar->chunksize;
+                dataNew.recovered = true;
                 FTI_Data->push_back( &dataNew, currentdbvar->id );
             } else {
                 data->sizeStored += currentdbvar->chunksize;
