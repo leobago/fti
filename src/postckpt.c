@@ -271,7 +271,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         //all files in group must have the same size
         long maxFs = FTI_Exec->ckptMeta.maxFs; //max file size in group
-       
+
         // determine file size in order to write at the end of the elongated file
         // (i.e. write at the end of file after 'truncate(..., maxFs)'.
         struct stat st_;
@@ -312,7 +312,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print("FTI failed to open L3 checkpoint file.", FTI_EROR);
             return FTI_NSCS;
         }
-        
+
         FILE* efd = fopen(efn, "wb");
         if (efd == NULL) {
             FTI_Print("FTI failed to open encoded ckpt. file.", FTI_EROR);
@@ -489,7 +489,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(efd);
 
         long fs = FTI_Exec->ckptMeta.fs; //ckpt file size
-       
+
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
             return FTI_NSCS;
@@ -499,9 +499,9 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (res != FTI_SCES) {
             return FTI_NSCS;
         }
-}
+    }
 
-return FTI_SCES;
+    return FTI_SCES;
 }
 
 
@@ -562,7 +562,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
     }
     //}
-    return FTI_SCES;
+return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -636,7 +636,7 @@ int FTI_ArchiveL4Ckpt( FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec, F
             RENAME(fn_from,fn_to);
         }
     }
-    
+
     if (FTI_Topo->splitRank == 0) { //True only for one process in the FTI_COMM_WORLD.
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Exec->ckptMeta.ckptIdL4);
@@ -851,7 +851,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
 
             size_t bytes;
-//#warning I also need to close pfh file but this marcro is not yet ready
+            //#warning I also need to close pfh file but this marcro is not yet ready
             //                MPI_File_close(&pfh);
             FREAD(FTI_NSCS, bytes,readData, sizeof(char), bSize, lfd,"pppp",localFileNames,allFileSizes,splitRanks,readData);
 
@@ -924,10 +924,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         localFileSizes[proc - startProc] = FTI_Exec->ckptMeta.fs; //[proc - startProc] to get index from 0
     }
 
-//  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
-//  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptId);
-  snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
+    //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
+    //  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptId);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
     int numFiles = 1;
     int nlocaltasks = nbProc;

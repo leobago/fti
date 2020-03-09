@@ -48,9 +48,9 @@
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-    
- This function initializes all the necessary data structures and files
- required to perform incremental checkpoint. 
+
+  This function initializes all the necessary data structures and files
+  required to perform incremental checkpoint. 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -74,8 +74,8 @@ int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
- 
- This functions writes the varid data on the checkpoint file
+
+  This functions writes the varid data on the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -84,11 +84,11 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
 {
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
-    
+
     FTIT_dataset* data;
-    
+
     if( FTI_Data->get( &data, varID ) != FTI_SCES ) return FTI_NSCS;
-    
+
     if( data == NULL ) {
         char str[FTI_BUFS];
         snprintf( str, FTI_BUFS, "variable id = '%d' does not exist", varID );
@@ -113,8 +113,8 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
- 
- This functions Finalizes the checkpoint file
+
+  This functions Finalizes the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data, FTIT_IO *io)

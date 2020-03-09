@@ -51,7 +51,7 @@
     |   STATIC TYPE DECLARATIONS                                              |
     +-------------------------------------------------------------------------+
 
- */
+*/
 
 MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
 
@@ -61,7 +61,7 @@ MPI_Datatype FTIFF_MpiTypes[FTIFF_NUM_MPI_TYPES];
    |   FUNCTION DEFINITIONS                                                  |
    +-------------------------------------------------------------------------+
 
- */
+*/
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -192,7 +192,7 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
         int dbvar_idx;
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
-            
+
             FTIFF_dbvar *currentdbvar = &(currentdb->dbvars[dbvar_idx]);
 
             // get dbvar meta data
@@ -218,10 +218,10 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
             seek_ptr += (FTI_ADDRVAL) FTI_dbvarstructsize;
 
             currentdbvar->hasCkpt = true;
-           
+
             FTIT_dataset* data;
             if( FTI_Data->get( &data, currentdbvar->id ) != FTI_SCES ) return FTI_NSCS;
-            
+
             if(!data) {
                 FTIT_dataset dataNew;
                 FTI_InitDataset( FTI_Exec, &dataNew, currentdbvar->id );
@@ -745,14 +745,14 @@ int FTI_WriteMemFTIFFChunk(FTIT_execution *FTI_Exec, FTIFF_dbvar *currentdbvar,
 
         chunk_offset = chunk_addr - dptr;
         fptr = fptrTemp + chunk_offset;
-//#warning handle error of seek
+        //#warning handle error of seek
         FTI_PosixSeek(fptr, fd);
 
         cpycnt = 0;
         while ( cpycnt < chunk_size ) {
             cpybuf = chunk_size - cpycnt;
             cpynow = ( cpybuf > membs ) ? membs : cpybuf;
-//#warning We need to also fault inject the writes etc.
+            //#warning We need to also fault inject the writes etc.
             FTI_PosixWrite(&chunk_addr[cpycnt], cpynow, fd);
             cpycnt += cpynow;
         }
@@ -873,36 +873,36 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTI
   actual data of the variables protected by FTI. 
 
   |<------------------------------------ VB ------------------------------------>|
-#                                                                              #
-|<------------ VCB_1--------------->|      |<------------ VCB_n--------------->|
-#                                   #      #                                   #       
-+-----------------------------------+      +-----------------------------------+
-| +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
-| |       ||       |      |       | |      | |       ||       |      |       | |
-| | VC_11 || VC_12 | ---- | VC_1k | | ---- | | VC_n1 || VC_n2 | ---- | VC_nl | |
-| |       ||       |      |       | |      | |       ||       |      |       | |
-| +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
-+-----------------------------------+      +-----------------------------------+
-
-VCB_i - short for 'Variable Chunk Block' 
-VC_ij - are the data chunks.
-
-|<------------------------------------ MB ---------------------------------->|
-#                                                                            #
-|<------------ MD_1------------->|    |<------------ MD_n------------->|
-#                                #    #                                #       
-+--------------------------------+    +--------------------------------++----+
-| +------++-------+    +-------+ |    | +------++-------+    +-------+ ||    |
-| |      ||       |    |       | |    | |      ||       |    |       | ||    |
-| | MI_1 || MV_11 | -- | MV_1k | | -- | | MI_1 || MV_n1 | -- | MV_nl | || MF |
-| |      ||       |    |       | |    | |      ||       |    |       | ||    |
-| +------++-------+    +-------+ |    | +------++-------+    +-------+ ||    |
-+--------------------------------+    +--------------------------------++----+
-
-MD_i  - Meta data block
-MI_i  - Meta data for block (number variables blocksize)
-MV_ij - Variable chunk meta data (id, location in file, ptr offset, etc...)
-MF    - File meta data
+  #                                                                              #
+  |<------------ VCB_1--------------->|      |<------------ VCB_n--------------->|
+  #                                   #      #                                   #       
+  +-----------------------------------+      +-----------------------------------+
+  | +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
+  | |       ||       |      |       | |      | |       ||       |      |       | |
+  | | VC_11 || VC_12 | ---- | VC_1k | | ---- | | VC_n1 || VC_n2 | ---- | VC_nl | |
+  | |       ||       |      |       | |      | |       ||       |      |       | |
+  | +-------++-------+      +-------+ |      | +-------++-------+      +-------+ |
+  +-----------------------------------+      +-----------------------------------+
+  
+  VCB_i - short for 'Variable Chunk Block' 
+  VC_ij - are the data chunks.
+  
+  |<------------------------------------ MB ---------------------------------->|
+  #                                                                            #
+  |<------------ MD_1------------->|    |<------------ MD_n------------->|
+  #                                #    #                                #       
+  +--------------------------------+    +--------------------------------++----+
+  | +------++-------+    +-------+ |    | +------++-------+    +-------+ ||    |
+  | |      ||       |    |       | |    | |      ||       |    |       | ||    |
+  | | MI_1 || MV_11 | -- | MV_1k | | -- | | MI_1 || MV_n1 | -- | MV_nl | || MF |
+  | |      ||       |    |       | |    | |      ||       |    |       | ||    |
+  | +------++-------+    +-------+ |    | +------++-------+    +-------+ ||    |
+  +--------------------------------+    +--------------------------------++----+
+  
+  MD_i  - Meta data block
+  MI_i  - Meta data for block (number variables blocksize)
+  MV_ij - Variable chunk meta data (id, location in file, ptr offset, etc...)
+  MF    - File meta data
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -971,11 +971,11 @@ void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   FTI_Data here is a particular element from the global protected dataset 
   array FTI_Data.
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteFtiffData( FTIT_dataset* data, void *fd )
 {
-    
+
     WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) fd;
 
     FTIFF_db *db = write_info->FTI_Exec->firstdb;
@@ -1050,24 +1050,24 @@ int FTI_WriteFtiffData( FTIT_dataset* data, void *fd )
   @brief      Finalizes the ckpt file.
   @param      fd              Pointer to filedescriptor.
   @return     integer         FTI_SCES if successful.
-**/
+ **/
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeFtiff( void *fd )
 {   
-    
+
     WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*) fd;
 
     if ( FTI_Try( FTIFF_CreateMetadata( write_info->FTI_Exec, write_info->FTI_Topo, write_info->FTI_Conf ), "Create FTI-FF meta data" ) != FTI_SCES ) {
         return FTI_NSCS;
     }
-    
+
     write_info->FTI_Exec->FTIFFMeta.ckptId = write_info->FTI_Exec->ckptId;
-    
+
     FTIFF_writeMetaDataFTIFF( write_info->FTI_Exec, write_info );
 
     FTI_PosixSync(write_info);
     FTI_PosixClose(write_info);
-    
+
     // set hasCkpt flags true
     if ( write_info->FTI_Ckpt[4].isDcp ) {
         FTIFF_db* currentDB = write_info->FTI_Exec->firstdb;
@@ -1243,10 +1243,10 @@ int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd )
     FTIFF_GetHashMetaInfo( FTI_Exec->FTIFFMeta.myHash, &(FTI_Exec->FTIFFMeta) ); 
     FTIFF_SerializeFileMeta( &FTI_Exec->FTIFFMeta, (FTI_ADDRPTR) mbuf_pos );
 
-//#warning handle error of seek
+    //#warning handle error of seek
     FTI_PosixSeek(FTI_Exec->FTIFFMeta.dataSize,fd);
 
-//#warning handle error of write
+    //#warning handle error of write
     FTI_PosixWrite( mbuf, FTI_Exec->FTIFFMeta.metaSize, fd );
 
     free( mbuf );
@@ -1460,9 +1460,9 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
         for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
-            
+
             if( FTI_Data->get( &data, currentdbvar->id ) != FTI_SCES ) return FTI_NSCS;
-            
+
             if( !data ) {
                 snprintf(str, FTI_BUFS, "id '%d' does not exist!", currentdbvar->id);
                 FTI_Print( str, FTI_EROR );
@@ -1664,9 +1664,9 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
 
             if (currentdbvar->id == id) {
                 // get source and destination pointer
-                
+
                 FTIT_dataset* data;
-                
+
                 if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
 
                 if( !data ) {
@@ -1677,7 +1677,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
 
                 destptr = (char*) data->ptr + currentdbvar->dptr;
                 srcptr = (char*) fmmap + currentdbvar->fptr;
-                
+
                 MD5_Init( &mdContext );
                 cpycnt = 0;
                 while ( cpycnt < currentdbvar->chunksize ) {
@@ -1787,7 +1787,7 @@ int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, 
                 match = sscanf(entry->d_name, CKPT_FN_FORMAT(level,backup), &ckptId, &fileTarget );
 
                 if( match == 2 && fileTarget == rank ) {
-                    
+
                     snprintf(str, FTI_BUFS, "FTI-FF: L%dRecoveryInit - found file with name: %s", level, entry->d_name);
                     FTI_Print(str, FTI_DBUG);
                     snprintf( fn, FTI_BUFS, CKPT_FN_FORMAT(level,backup), ckptId, rank );
@@ -1796,9 +1796,9 @@ int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, 
                 } 
 
             }
-        
+
         }
-    
+
     }
 
     return FTI_NSCS;	
@@ -1828,7 +1828,7 @@ int FTIFF_LoadFileMeta(int fd, FTIFF_metaInfo* fm )
         FTI_Print("unable to read in file.", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     int res = FTIFF_DeserializeFileMeta( fm, buffer );
     free(buffer);
     return res;
@@ -1864,7 +1864,7 @@ int FTIFF_OpenCkptFile(char* fn, int oflag)
 
 int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf, int proc )
 {
-    
+
     char strerr[FTI_BUFS], path[FTI_BUFS], file[FTI_BUFS], dir[FTI_BUFS];
 
     int level = FTI_Exec->ckptMeta.level;
@@ -1873,11 +1873,11 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
         strncpy( dir, FTI_Ckpt[1].dcpDir, FTI_BUFS);
     else
         strncpy( dir, FTI_Conf->lTmpDir, FTI_BUFS);
-    
+
     if( FTIFF_RequestFileName( dir, FTI_Topo->body[proc-1], level, FTI_Ckpt[level].isDcp, 0, file ) != FTI_SCES ) {
         return FTI_NSCS;
     }
-    
+
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
     if ( FTIFFMeta == NULL ) {
         snprintf( strerr, FTI_BUFS, "failed to allocate %ld bytes", sizeof(FTIFF_metaInfo));
@@ -1887,7 +1887,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     }
 
     snprintf( path, FTI_BUFS, "%s/%s", dir, file );
-    
+
     int fd = FTIFF_OpenCkptFile( path, O_RDONLY ); 
     if (fd == -1) {
         free( FTIFFMeta );
@@ -1900,7 +1900,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
         free( FTIFFMeta );
         return FTI_NSCS;
     }
-        
+
     FTI_Exec->ckptMeta.level = level;             /**< TRUE if metadata exists               */
     FTI_Exec->ckptMeta.maxFs = FTIFFMeta->maxFs;              /**< Maximum file size.                    */
     FTI_Exec->ckptMeta.fs = FTIFFMeta->fs;                 /**< File size.                            */
@@ -1980,7 +1980,7 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
     if( FTIFF_RequestFileName( dir, rank, level, dcp, backup, file ) != FTI_SCES ) {
         return FTI_NSCS;
     }
-    
+
     FTIFF_metaInfo *FTIFFMeta = calloc( 1, sizeof(FTIFF_metaInfo) );
     if ( FTIFFMeta == NULL ) {
         snprintf( strerr, FTI_BUFS, "failed to allocate %ld bytes", sizeof(FTIFF_metaInfo));
@@ -1990,7 +1990,7 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
     }
 
     snprintf( path, FTI_BUFS, "%s/%s", dir, file );
-    
+
     int fd = FTIFF_OpenCkptFile( path, O_RDONLY ); 
     if (fd == -1) {
         free( FTIFFMeta );
@@ -2012,7 +2012,7 @@ int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, in
     if ( memcmp( FTIFFMeta->myHash, hash, MD5_DIGEST_LENGTH ) == 0 ) {
 
         char checksum[MD5_DIGEST_STRING_LENGTH];
-        
+
         if ( (level==3) && backup ) {
             FTIFF_GetEncodedFileChecksum( FTIFFMeta, fd, checksum );
         } else {
@@ -2070,19 +2070,19 @@ int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration *FTI_Conf )
 {
     int fcount, fneeded;
-    
+
     FTIFF_RecoveryInfo info;
-    
+
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[1].dir, FTI_Topo->myRank, 1, 0, 0 );
-	
+
     MPI_Allreduce(&info.FileExists, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    
+
     fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
 
     if( fcount == fneeded ) {
-	    FTI_Exec->ckptMeta.fs = info.fs;    
-	    FTI_Exec->ckptId = info.ckptId;
-	    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);        
+        FTI_Exec->ckptMeta.fs = info.fs;    
+        FTI_Exec->ckptId = info.ckptId;
+        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);        
         return FTI_SCES;
     } else {
         return FTI_NSCS;
@@ -2134,13 +2134,13 @@ int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_RecoveryInfo* appProcsMetaInfo = calloc( appCommSize, sizeof(FTIFF_RecoveryInfo) );
 
     int ckptId = -1, fcount = 0;
-    
+
     FTIFF_RecoveryInfo info = {0};
-    
+
     info.rightIdx = rightIdx;
-    
+
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[2].dir, FTI_Topo->myRank, 2, 0, 0 );
-    
+
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[2].dir, FTI_Topo->myRank, 2, 0, 1 );
 
     if(!(info.FileExists) && !(info.BackupExists)) {
@@ -2219,7 +2219,7 @@ int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     FTIFF_RecoveryInfo info = {0};
 
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[3].dir, FTI_Topo->myRank, 3, 0, 0 );
-    
+
     FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[3].dir, FTI_Topo->myRank, 3, 0, 1 );
 
     if(!(info.FileExists) && !(info.BackupExists)) {
@@ -2291,7 +2291,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     int fcount, fneeded;
 
     FTIFF_RecoveryInfo info;
-    
+
     if ( FTI_Ckpt[4].recoIsDcp ) {
         FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[4].dcpDir, FTI_Topo->myRank, 4, 1, 0 );
         snprintf( fn, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank );
@@ -2299,11 +2299,11 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIFF_RequestRecoveryInfo( &info, FTI_Ckpt[4].dir, FTI_Topo->myRank, 4, 0, 0 );
         snprintf( fn, FTI_BUFS, "Ckpt%d-Rank%d.fti", info.ckptId, FTI_Topo->myRank );
     }
-	
+
     MPI_Allreduce(&info.FileExists, &fcount, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
-    
+
     fneeded = FTI_Topo->nbNodes*FTI_Topo->nbApprocs;
-    
+
     if( fcount == fneeded ) {
         FTI_Exec->ckptMeta.fs = info.fs;    
         FTI_Exec->ckptId = info.ckptId;
@@ -2311,7 +2311,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         strncpy(FTI_Exec->ckptMeta.ckptFile, fn, NAME_MAX);
         return FTI_SCES;
     }
-    
+
     return FTI_NSCS;
 
 }
@@ -2319,7 +2319,7 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data ) 
 {
     if( dbvar->hascontent ) {
-        
+
         FTIT_dataset* data;
 
         if( FTI_Data->get( &data, dbvar->id ) != FTI_SCES ) return;

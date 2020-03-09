@@ -527,9 +527,9 @@ int FTI_RecoverDcpPosix
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            
+
             if( FTI_Data->get( &data, blockMeta.varId ) != FTI_SCES ) return FTI_NSCS;
-            
+
             if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -569,7 +569,7 @@ int FTI_RecoverDcpPosix
         }
 
     }
-    
+
     // create hasharray
     if( (FTI_Data->data( &data, FTI_Exec->nbVarStored) != FTI_SCES) || !data) return FTI_NSCS;
 
@@ -615,7 +615,7 @@ int FTI_RecoverDcpPosix
                 return FTI_NSCS;
             }
         }
-        
+
         if( data[i].size%blockSize ) {
             unsigned char* buffer = calloc( 1, blockSize );
             if( !buffer ) {
@@ -634,7 +634,7 @@ int FTI_RecoverDcpPosix
 
     free(buffer);
     fclose(fd);
-    
+
     return FTI_SCES;
 
 }
@@ -740,15 +740,15 @@ int FTI_RecoverVarDcpPosix
         }
         // if requested id load else skip dataSize
         if( varId == id ) {
-            
+
             if( FTI_Data->get( &data, varId ) != FTI_SCES ) return FTI_NSCS;
-            
+
             if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            
+
             fread( data->ptr, locDataSize, 1, fd );
             if(ferror(fd)) {
                 snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
@@ -811,9 +811,9 @@ int FTI_RecoverVarDcpPosix
                 return FTI_NSCS;
             }
             if( blockMeta.varId == id ) {
-                
+
                 if( FTI_Data->get( &data, blockMeta.varId ) != FTI_SCES ) return FTI_NSCS;
-                
+
                 if( !data ) {
                     snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                     FTI_Print( errstr, FTI_EROR );
@@ -850,7 +850,7 @@ int FTI_RecoverVarDcpPosix
     }
 
     if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
-    
+
     if( !data ) {
         snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
         FTI_Print( errstr, FTI_EROR );
@@ -935,7 +935,7 @@ int FTI_RecoverVarDcpPosix
     MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
     free(buffer);
     }
-     */
+    */
     free(buffer);
     fclose(fd);
 

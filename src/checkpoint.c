@@ -128,7 +128,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS]; //For console output
     snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptId, FTI_Exec->ckptMeta.level);
     FTI_Print(str, FTI_DBUG);
-   
+
     if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptMeta.level == 4 ) {
         int ckptId = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
         if( ckptId > 0 ) {
@@ -141,7 +141,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int res; //response from writing funcitons
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
     if (FTI_Ckpt[4].isInline && FTI_Exec->ckptMeta.level == 4) {
-        
+
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) && !FTI_Exec->h5SingleFile ) {
             MKDIR(FTI_Conf->gTmpDir, 0777);
         } else if ( !FTI_Ckpt[4].hasDcp && !FTI_Exec->h5SingleFile ) {
@@ -182,7 +182,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
-    
+
     if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
@@ -322,7 +322,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } 
 
         if ( stage_flag ) {
-            
+
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
@@ -335,10 +335,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.
         if ( finalize_flag ) {
-            
+
             char str[FTI_BUFS];
             FTI_Print("Head waits for message...", FTI_DBUG);
-            
+
             int val = 0, i;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
@@ -353,7 +353,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( val != FTI_ENDW) { // If we were asked to finalize
                 FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
             }
-            
+
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
@@ -449,23 +449,23 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-    
-    This function performs a normal checkpoint by calling the respective file format procedures,
-    initalize ckpt, write data, compute integrity and finalize files.
+
+  This function performs a normal checkpoint by calling the respective file format procedures,
+  initalize ckpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
-    
+
     int i;
     void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     if( !write_info ) {
         FTI_Print("unable to initialize checkpoint!", FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     FTIT_dataset* data;
     if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
 
@@ -475,13 +475,10 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (ret != FTI_SCES)
             return ret;
     }
-    
+
     io->finIntegrity(FTI_Exec->integrity, write_info);
     io->finCKPT(write_info);
     free (write_info);
     return FTI_SCES;
 
 }
-
-
-

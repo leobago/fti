@@ -240,14 +240,14 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
         }
-        
+
         while( !FTI_Exec->mqueue.empty() ) 
         {
 
             FTI_Exec->mqueue.pop( &FTI_Exec->ckptMeta );
 
             int level = FTI_Exec->ckptMeta.level;
-             
+
             int ckptId;
             if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
                 sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d", &ckptId);
@@ -263,7 +263,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             char str[FTI_BUFS];
             snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptId, level);
             FTI_Print(str, FTI_DBUG);
-            
+
             FTI_Try(FTI_LoadMetaDcp(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "load dcp metadata");
 
             int res;
@@ -333,7 +333,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     }
                 }
                 FTI_Exec->mqueue.clear();
-                
+
                 //Update ckptId and ckptLevel and lastCkptLvel
                 FTI_Exec->ckptId = ckptId;
                 FTI_Exec->ckptLvel = level;

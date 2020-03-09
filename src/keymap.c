@@ -43,7 +43,7 @@ static FTIT_keymap self = {0};
 
 int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 {
-    
+
     if( type_size == 0 ) {
         FTI_Print("Call to FTI_KeyMap with typesize '0' is invalid",FTI_EROR);
         return FTI_NSCS;
@@ -71,11 +71,12 @@ int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 
 int FTI_KeyMapPushBack( void* new_item, int id )
 {
+
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     if( new_item == NULL ) {
         FTI_Print("Call to FTI_PushBack with 'NULL' data",FTI_EROR);
         return FTI_NSCS;
@@ -92,14 +93,14 @@ int FTI_KeyMapPushBack( void* new_item, int id )
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     if( self._key[id] != -1 ) {
         char str[FTI_BUFS];
         snprintf( str, FTI_BUFS, "Requested ID='%d' is already in use", id );
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
-        
+
     long new_size = self._size;
     long new_used = self._used + 1;
 
@@ -113,18 +114,19 @@ int FTI_KeyMapPushBack( void* new_item, int id )
         }
         self._data = alloc;
     }
-    
+
     memcpy(self._data + self._used*self._type_size, new_item, self._type_size);
     self._key[id] = self._used;
     self._used = new_used;
     self._size = new_size;
 
     return FTI_SCES;
+
 }
 
 int FTI_KeyMapData( FTIT_dataset** data, int n )
 {
-    
+
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
         return FTI_NSCS;
@@ -143,7 +145,7 @@ int FTI_KeyMapData( FTIT_dataset** data, int n )
 
 int FTI_KeyMapGet( FTIT_dataset** data, int id )
 {
-    
+
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
         return FTI_NSCS;
@@ -158,29 +160,30 @@ int FTI_KeyMapGet( FTIT_dataset** data, int id )
         FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
         return FTI_NSCS;
     }
-    
+
     long check_pos = self._key[id];
-    
+
     if( check_pos > (self._used - 1) ) {
         FTI_Print("data location out of bounds", FTI_EROR );
         FTI_Backtrace( 0 );
-    	return FTI_NSCS;
+        return FTI_NSCS;
     }
-    
+
     if( check_pos == -1 ) {
         // id not in use
         *data = NULL;
         return FTI_SCES;
     }
-   
+
     *data = self._data + check_pos * self._type_size;
-    
+
     return FTI_SCES;
 
 }
 
 int FTI_KeyMapClear() 
 {
+
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
         return FTI_NSCS;
@@ -193,4 +196,5 @@ int FTI_KeyMapClear()
     free(self._key);
     self._key = NULL;
     return FTI_SCES;
+
 }

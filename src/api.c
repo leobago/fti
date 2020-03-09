@@ -152,10 +152,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         strcpy(FTI_Conf.suffix,"fti");
     }
     FTI_Exec.initSCES = 1;
-    
+
     // init metadata queue
     FTI_MetadataQueue( &FTI_Exec.mqueue ); 
-    
+
     if (FTI_Topo.amIaHead) { // If I am a FTI dedicated process
         if (FTI_Exec.reco) {
             res = FTI_Try(FTI_RecoverFiles(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt), "recover the checkpoint files.");
@@ -675,7 +675,7 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_setIDFromString( char *name ){
-    
+
     int i = 0;
 
     FTIT_dataset* data;
@@ -683,7 +683,7 @@ int FTI_setIDFromString( char *name ){
         FTI_Print( "failed to set ID from string", FTI_WARN );
         return FTI_NSCS;
     }
-    
+
     for ( i = 0 ; i < FTI_Exec.nbVar; i++){
         if (strcmp(name, data[i].idChar) == 0){
             return data[i].id;
@@ -708,7 +708,7 @@ int FTI_setIDFromString( char *name ){
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_getIDFromString( char *name ){
-    
+
     int i = 0;
 
     FTIT_dataset* data;
@@ -769,9 +769,9 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-    
+
     char str[5*FTI_BUFS]; //For console output
-    
+
     // Id out of bounds.
     if (id > FTI_Conf.maxVarId) {
         snprintf( str, FTI_BUFS, "Id out of bounds ('Basic:max_var_id = %d').", FTI_Conf.maxVarId );
@@ -787,7 +787,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 #endif
 
     char memLocation[4];
-    
+
     FTIT_dataset* data;
     if( FTI_Data->get( &data, id ) != FTI_SCES ) {
         FTI_Print( "failed to protect variable", FTI_WARN );
@@ -878,9 +878,9 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         return FTI_SCES;
     }
     //Id could not be found in datasets
-    
+
     data = calloc( 1, sizeof(FTIT_dataset) );
-    
+
     //Adding new variable to protect
     data->id = id;
 #ifdef GPUSUPPORT
@@ -937,7 +937,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         }
 #endif
     }
-    
+
     // append dataset to protected variables
     if( FTI_Data->push_back( data, id ) != FTI_SCES ) {
         snprintf( str, FTI_BUFS, "failed to append variable with id = '%d' to protected variable map.", id );
@@ -1048,7 +1048,7 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const cha
 int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
-    
+
     FTIT_dataset* data;
     if( FTI_Data->get( &data, id ) != FTI_SCES ) {
         FTI_Print( "failed to add subset", FTI_WARN );
@@ -1169,7 +1169,7 @@ int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength )
 int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
-    
+
     FTIT_dataset* data;
     if( FTI_Data->get( &data, id ) != FTI_SCES ) {
         FTI_Print( "failed to update subset", FTI_WARN );
@@ -1408,13 +1408,13 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
     }
 
     char str[FTI_BUFS]; //For console output
-    
+
     FTIT_dataset* data;
     if( FTI_Data->get( &data, id ) != FTI_SCES ) {
         FTI_Print("failed to define dataset", FTI_WARN);
         return FTI_NSCS;
     }
-    
+
     if( !data ) {
         sprintf(str, "The dataset #%d not initialized. Use FTI_Protect first.", id);
         FTI_Print(str, FTI_WARN);
@@ -1479,7 +1479,7 @@ long FTI_GetStoredSize(int id)
         FTI_Print("Unable to determine the stored variable size!", FTI_WARN);
         return 0;
     }
-    
+
     return data->sizeStored;
 }
 
@@ -1495,38 +1495,38 @@ long FTI_GetStoredSize(int id)
 /*-------------------------------------------------------------------------*/
 void* FTI_Realloc(int id, void* ptr)
 {
-    
+
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
     }
-        
+
     char str[FTI_BUFS];
-    
+
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
 
     if (FTI_Exec.reco) {
-        
+
         FTIT_dataset* data;
         if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
             FTI_Print("Unable to reallocate variable buffer to stored size!", FTI_WARN);
             return ptr;
         }
-        
+
         if (data->sizeStored == 0) {
             sprintf(str, "Cannot allocate 0 size.");
             FTI_Print(str, FTI_DBUG);
             return ptr;
         }
-        
+
         void* tmp = realloc (ptr, data->sizeStored);
         if( !tmp ) return ptr;
 
         ptr = tmp;
-        
+
         sprintf(str, "Reallocated size: %ld", data->sizeStored);
         FTI_Print(str, FTI_DBUG);
-        
+
         FTI_Exec.ckptSize += data->sizeStored - data->size;
         data->size = data->sizeStored;
         data->ptr = ptr;
@@ -1534,15 +1534,15 @@ void* FTI_Realloc(int id, void* ptr)
 
         sprintf(str, "Dataset #%d reallocated.", data->id);
         FTI_Print(str, FTI_INFO);
-    
+
     }
-    
+
     else {
 
         FTI_Print("This is not a recovery. Couldn't reallocate memory.", FTI_WARN);
 
     }
-    
+
     return ptr;
 
 }
@@ -1564,13 +1564,13 @@ int FTI_BitFlip(int id)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-    
+
     if (FTI_Inje.rank == FTI_Topo.splitRank) {
-        
+
         if (id >= FTI_Exec.nbVar) {
             return FTI_NSCS;
         }
-        
+
         FTIT_dataset* data;
         if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
             FTI_Print("Dataset id to inject BitFlip is invalid", FTI_WARN);
@@ -1728,7 +1728,7 @@ int FTI_Checkpoint(int id, int level)
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-            
+
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
             FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
@@ -1776,9 +1776,9 @@ int FTI_InitICP(int id, int level, bool activate)
 
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
-    
+
     FTI_Exec.iCPInfo.isWritten = (bool*) calloc( FTI_Conf.maxVarId, sizeof(bool) );
-    
+
     // init iCP status with failure
     FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
     FTI_Exec.iCPInfo.result = FTI_NSCS;
@@ -2093,7 +2093,7 @@ int FTI_Recover()
     int i;
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[2*FTI_BUFS]; //For console output
-    
+
     FTIT_dataset* data;
     if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
         FTI_Print( "failed to recover", FTI_WARN );
@@ -2179,7 +2179,7 @@ int FTI_Recover()
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
     }
-    
+
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
@@ -2191,7 +2191,7 @@ int FTI_Recover()
     }
 
 #ifdef GPUSUPPORT
-    
+
     if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
         FTI_Print( "failed to recover", FTI_WARN);
         return FTI_NREC;
@@ -2342,7 +2342,7 @@ int FTI_Finalize()
         FTI_Print( "failed to finalize FTI", FTI_WARN );
         return FTI_NSCS;
     }
-    
+
     // free hashArray memory
     if( FTI_Conf.dcpPosix ) {
         int i = 0;
@@ -2451,149 +2451,149 @@ int FTI_Finalize()
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      During the restart, recovers the given variable
+  @param      id              Variable to recover
+  @return     int             FTI_SCES if successful.
+
+  During a restart process, this function recovers the variable specified
+  by the given id. No effect during a regular execution.
+  The variable must have already been protected, otherwise, FTI_NSCS is returned.
+  Improvements to be done:
+  - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
+  - Maintain a variable accumulating the offset as variable are protected during
+  the restart to avoid doing the loop to calculate the offset in the
+  checkpoint file.
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVar(int id)
+{
+    char str[2*FTI_BUFS];
+
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
     }
 
-    /*-------------------------------------------------------------------------*/
-    /**
-      @brief      During the restart, recovers the given variable
-      @param      id              Variable to recover
-      @return     int             FTI_SCES if successful.
-
-      During a restart process, this function recovers the variable specified
-      by the given id. No effect during a regular execution.
-      The variable must have already been protected, otherwise, FTI_NSCS is returned.
-      Improvements to be done:
-      - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
-      - Maintain a variable accumulating the offset as variable are protected during
-      the restart to avoid doing the loop to calculate the offset in the
-      checkpoint file.
-     **/
-    /*-------------------------------------------------------------------------*/
-    int FTI_RecoverVar(int id)
-    {
-        char str[2*FTI_BUFS];
-
-        if (FTI_Exec.initSCES == 0) {
-            FTI_Print("FTI is not initialized.", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        if(FTI_Exec.reco==0){
-            /* This is not a restart: no actions performed */
-            return FTI_SCES;
-        }
-
-        if (FTI_Exec.initSCES == 2) {
-            FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
-            return FTI_NSCS;
-        }
-
-        if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-            return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
-        }
-
-
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-        if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-            return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
-        }
-#endif
-
-        char fn[FTI_BUFS]; //Path to the checkpoint file
-
-        //Recovering from local for L4 case in FTI_Recover
-        if (FTI_Exec.ckptLvel == 4) {
-            if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-                return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
-            } else {
-                snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
-            }
-        }
-        else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
-        }
-
-
-
-        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-        FTI_Print(str, FTI_DBUG);
-
-        FILE* fd = fopen(fn, "rb");
-        if (fd == NULL) {
-            FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
-    
-        FTIT_dataset* data;
-        if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
-            FTI_Print("failed to recover", FTI_EROR);
-            return FTI_NREC;
-        }
-        
-        sprintf(str, "Recovering var %d ", id);
-        FTI_Print(str, FTI_DBUG);
-        
-        long filePos = data->filePosStored;
-        fseek(fd,filePos, SEEK_SET);
-        fread(data->ptr, 1, data->size, fd);
-
-        strncpy(data->idChar, data->idChar, FTI_BUFS);
-
-        if (ferror(fd)) {
-            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            fclose(fd);
-            return FTI_NREC;
-        }
-
-        if (fclose(fd) != 0) {
-            FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-            return FTI_NREC;
-        }
-
+    if(FTI_Exec.reco==0){
+        /* This is not a restart: no actions performed */
         return FTI_SCES;
     }
 
-    /*-------------------------------------------------------------------------*/
-    /**
-      @brief      Prints FTI messages.
-      @param      msg             Message to print.
-      @param      priority        Priority of the message to be printed.
-      @return     void
+    if (FTI_Exec.initSCES == 2) {
+        FTI_Print("No checkpoint files to make recovery.", FTI_WARN);
+        return FTI_NSCS;
+    }
 
-      This function prints messages depending on their priority and the
-      verbosity level set by the user. DEBUG messages are printed by all
-      processes with their rank. INFO messages are printed by one process.
-      ERROR messages are printed with errno.
+    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    }
 
-     **/
-    /*-------------------------------------------------------------------------*/
-    void FTI_Print(char* msg, int priority)
-    {
-        if (priority >= FTI_Conf.verbosity) {
-            if (msg != NULL) {
-                switch (priority) {
-                    case FTI_EROR:
-                        fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
-                        break;
-                    case FTI_WARN:
-                        fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                    case FTI_INFO:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_IDCP:
-                        if (FTI_Topo.splitRank == 0) {
-                            fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
-                        }
-                        break;
-                    case FTI_DBUG:
-                        fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
-                        break;
-                }
+
+#ifdef ENABLE_HDF5 //If HDF5 is installed
+    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
+        return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+    }
+#endif
+
+    char fn[FTI_BUFS]; //Path to the checkpoint file
+
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
+            return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
+        }
+    }
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
+    }
+
+
+
+    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    FTI_Print(str, FTI_DBUG);
+
+    FILE* fd = fopen(fn, "rb");
+    if (fd == NULL) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+
+    FTIT_dataset* data;
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
+        FTI_Print("failed to recover", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    sprintf(str, "Recovering var %d ", id);
+    FTI_Print(str, FTI_DBUG);
+
+    long filePos = data->filePosStored;
+    fseek(fd,filePos, SEEK_SET);
+    fread(data->ptr, 1, data->size, fd);
+
+    strncpy(data->idChar, data->idChar, FTI_BUFS);
+
+    if (ferror(fd)) {
+        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+        fclose(fd);
+        return FTI_NREC;
+    }
+
+    if (fclose(fd) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+        return FTI_NREC;
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Prints FTI messages.
+  @param      msg             Message to print.
+  @param      priority        Priority of the message to be printed.
+  @return     void
+
+  This function prints messages depending on their priority and the
+  verbosity level set by the user. DEBUG messages are printed by all
+  processes with their rank. INFO messages are printed by one process.
+  ERROR messages are printed with errno.
+
+ **/
+/*-------------------------------------------------------------------------*/
+void FTI_Print(char* msg, int priority)
+{
+    if (priority >= FTI_Conf.verbosity) {
+        if (msg != NULL) {
+            switch (priority) {
+                case FTI_EROR:
+                    fprintf(stderr, "[ " FTI_COLOR_RED "FTI Error - %06d" FTI_COLOR_RESET " ] : %s : %s \n", FTI_Topo.myRank, msg, strerror(errno));
+                    break;
+                case FTI_WARN:
+                    fprintf(stdout, "[ " FTI_COLOR_ORG "FTI Warning %06d" FTI_COLOR_RESET " ] : %s \n", FTI_Topo.myRank, msg);
+                    break;
+                case FTI_INFO:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " FTI_COLOR_GRN "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_IDCP:
+                    if (FTI_Topo.splitRank == 0) {
+                        fprintf(stdout, "[ " FTI_COLOR_BLU "FTI  dCP Message" FTI_COLOR_RESET " ] : %s \n", msg);
+                    }
+                    break;
+                case FTI_DBUG:
+                    fprintf(stdout, "[FTI Debug - %06d] : %s \n", FTI_Topo.myRank, msg);
+                    break;
             }
         }
-        fflush(stdout);
     }
+    fflush(stdout);
+}

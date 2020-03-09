@@ -46,34 +46,34 @@ int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
 
 #ifdef ENABLE_HDF5
 int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
-	ssize_t cnt;
-	int howmany;
-	int i;
-	H5I_type_t ot;
-	hid_t anobj;
-	hid_t *objs;
-	char name[1024];
+    ssize_t cnt;
+    int howmany;
+    int i;
+    H5I_type_t ot;
+    hid_t anobj;
+    hid_t *objs;
+    char name[1024];
 
-	cnt = H5Fget_obj_count(fid, H5F_OBJ_ALL);
+    cnt = H5Fget_obj_count(fid, H5F_OBJ_ALL);
 
-	if (cnt <= 0) return cnt;
+    if (cnt <= 0) return cnt;
 
-	DBG_MSG("%ld object(s) open", rank, cnt);
+    DBG_MSG("%ld object(s) open", rank, cnt);
 
-	objs = malloc(cnt * sizeof(hid_t));
+    objs = malloc(cnt * sizeof(hid_t));
 
-	howmany = H5Fget_obj_ids(fid, H5F_OBJ_ALL, cnt, objs);
+    howmany = H5Fget_obj_ids(fid, H5F_OBJ_ALL, cnt, objs);
 
-	DBG_MSG("open objects:", rank);
+    DBG_MSG("open objects:", rank);
 
-	for (i = 0; i < howmany; i++ ) {
-		anobj = *objs++;
-		ot = H5Iget_type(anobj);
-		H5Iget_name(anobj, name, 1024);
-		DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
-	}
+    for (i = 0; i < howmany; i++ ) {
+        anobj = *objs++;
+        ot = H5Iget_type(anobj);
+        H5Iget_name(anobj, name, 1024);
+        DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
+    }
 
-	return howmany;
+    return howmany;
 }
 #endif
 
@@ -111,7 +111,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         + MD5_DIGEST_LENGTH
         + 7*sizeof(long)
         + sizeof(int);
-    
+
     // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
     // This is to fix.
     FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
@@ -136,12 +136,12 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_topology       initTopo = {0};
     FTIT_injection      initInje = {0};
     FTIT_checkpoint     initCkpt = {0};
-    
+
     *FTI_Exec = initExec;
     *FTI_Conf = initConf;
     *FTI_Topo = initTopo;
     *FTI_Inje = initInje;
-    
+
     int i=0; for(; i<5; i++) FTI_Ckpt[i] = initCkpt;
     return FTI_SCES;
 
