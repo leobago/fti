@@ -466,8 +466,8 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     
-    FTIT_dataset* data = FTI_Data->data;
-    if( !data ) return FTI_NSCS;
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         data[i].filePos = io->getPos(write_info);

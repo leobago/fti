@@ -1026,7 +1026,9 @@ int  FTI_HDF5Close(void *fileDesc)
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
     FTIT_keymap* FTI_Data = fd->FTI_Data; 
 
-    FTIT_dataset* data; FTI_DATA(data, fd->FTI_Exec->nbVar, FTI_NSCS);
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, fd->FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
+
     for (i = 0; i < fd->FTI_Exec->nbVar; i++) {
         FTI_CloseComplexType(data[i].type, fd->FTI_Exec->FTI_Type);
     }
@@ -1130,7 +1132,8 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     FTI_HDF5Open(fn, fd); 
 
     if (FTI_Exec->h5SingleFile){
-        FTIT_dataset* data; FTI_DATA( data, FTI_Exec->nbVar, NULL );
+        FTIT_dataset* data; 
+        if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return NULL;
         for (i = 0; i < FTI_Exec->nbVar; i++) {
             FTI_CommitDataType(FTI_Exec,&data[i]);
         }
@@ -1158,7 +1161,7 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // write data
     WriteHDF5Info_t *fd = FTI_InitHDF5(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     FTIT_dataset* data;
-    FTI_DATA( data, FTI_Exec->nbVar, FTI_NSCS );
+    if( FTI_Data->data( &data, FTI_Exec->nbVar) != FTI_SCES ) return FTI_NSCS;
     int i= 0; for (; i < FTI_Exec->nbVar; i++) {
         FTI_WriteHDF5Data(&data[i], fd);
     }
@@ -1214,7 +1217,10 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
     }
 
-    FTIT_dataset* data; FTI_DATA( data, FTI_Exec->nbVar, FTI_NSCS);
+    FTIT_dataset* data;
+
+    if( FTI_Data->data( &data, FTI_Exec->nbVar) != FTI_SCES ) return FTI_NSCS;
+    
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
@@ -1312,7 +1318,8 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
     }
     
-    FTI_DATA( data, nbVar, FTI_NSCS );
+    if( FTI_Data->data( &data, nbVar ) != FTI_SCES ) return FTI_NSCS;
+
     for (i = 0; i < nbVar; i++) {
         FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
@@ -1324,7 +1331,8 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     
     herr_t res;
 
-    FTI_DATA_GET( data, id, FTI_NSCS );
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
+
     if(!data) {
         FTI_Print("could not find ID!", FTI_WARN);
         return FTI_NSCS;
@@ -1346,7 +1354,7 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         return FTI_NREC;
     }
 
-    FTI_DATA( data, nbVar, FTI_NSCS );
+    if( FTI_Data->data( &data, nbVar) != FTI_SCES ) return FTI_NSCS;
     for (i = 0; i < nbVar; i++) {
         FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
@@ -1648,7 +1656,9 @@ int FTI_CheckDimensions( FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec )
         hsize_t numElemLocal = 0, numElemGlobal;
         for( i=0; i<dataset->numSubSets; ++i ) {
             FTIT_dataset* data;
-            FTI_DATA_GET(data, dataset->varId[i], FTI_NSCS);
+            
+            if( FTI_Data->get( &data, dataset->varId[i] ) != FTI_SCES ) return FTI_NSCS;
+            
             if( !data ) {
                 FTI_Print("could not find ID!", FTI_WARN);
                 return FTI_NSCS;
@@ -1781,8 +1791,8 @@ void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data )
         free( curr );
     }
     
-    FTIT_dataset* data = FTI_Data->data;
-    if(!data) return;
+    FTIT_dataset* data;
+    if( (FTI_Data->data( &data, FTI_Exec->nbVar) != FTI_SCES) || !data ) return;
 
     int i=0; for( ; i<FTI_Exec->nbVar; i++ ) {
         if( data[i].sharedData.offset ) {

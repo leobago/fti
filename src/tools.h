@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 
+void FTI_Backtrace( int );
 void FTI_Print(char *msg, int priority);
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data,
       FTIT_configuration* FTI_Conf, char* checksum);

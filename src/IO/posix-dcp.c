@@ -97,9 +97,9 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 
     // if first layer, make sure that we write all data by setting hashdatasize = 0
     if( dcpLayer == 0 ) {
-        FTIT_dataset* data = FTI_Data->data;
-        
-        if(!data) write_DCPinfo;
+
+        FTIT_dataset* data; 
+        if((FTI_Data->data( &data, FTI_Exec->nbVar) != FTI_SCES) || !data) return write_DCPinfo;
 
         int i = 0; for(; i<FTI_Exec->nbVar; i++) {
             //            free(FTI_Data[i].dcpInfoPosix.hashArray);
@@ -452,8 +452,8 @@ int FTI_RecoverDcpPosix
             return FTI_NSCS;
         }
 
-        data = FTI_Data->get(varId);
-        if( FTI_Data->check() ) return FTI_NSCS;
+        if( FTI_Data->get( &data, varId ) != FTI_SCES ) return FTI_NSCS;
+
         if( !data ) {
             snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
             FTI_Print( errstr, FTI_EROR );
@@ -527,8 +527,9 @@ int FTI_RecoverDcpPosix
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
-            data = FTI_Data->get(blockMeta.varId);
-            if( FTI_Data->check() ) return FTI_NSCS;
+            
+            if( FTI_Data->get( &data, blockMeta.varId ) != FTI_SCES ) return FTI_NSCS;
+            
             if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -570,8 +571,7 @@ int FTI_RecoverDcpPosix
     }
     
     // create hasharray
-    data = FTI_Data->data;
-    if(!data) return FTI_NSCS;
+    if( (FTI_Data->data( &data, FTI_Exec->nbVarStored) != FTI_SCES) || !data) return FTI_NSCS;
 
     for(i=0; i<FTI_Exec->nbVarStored; i++) {
         FTIT_data_prefetch prefetcher;
@@ -741,8 +741,9 @@ int FTI_RecoverVarDcpPosix
         }
         // if requested id load else skip dataSize
         if( varId == id ) {
-            data = FTI_Data->get(varId);
-            if( FTI_Data->check() ) return FTI_NSCS;
+            
+            if( FTI_Data->get( &data, varId ) != FTI_SCES ) return FTI_NSCS;
+            
             if( !data ) {
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -811,8 +812,9 @@ int FTI_RecoverVarDcpPosix
                 return FTI_NSCS;
             }
             if( blockMeta.varId == id ) {
-                data = FTI_Data->get(blockMeta.varId);
-                if( FTI_Data->check() ) return FTI_NSCS;
+                
+                if( FTI_Data->get( &data, blockMeta.varId ) != FTI_SCES ) return FTI_NSCS;
+                
                 if( !data ) {
                     snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
                     FTI_Print( errstr, FTI_EROR );
@@ -848,8 +850,8 @@ int FTI_RecoverVarDcpPosix
 
     }
 
-    data = FTI_Data->get( id );
-    if( FTI_Data->check() ) return FTI_NSCS;
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
+    
     if( !data ) {
         snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
         FTI_Print( errstr, FTI_EROR );

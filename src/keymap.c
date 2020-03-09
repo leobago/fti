@@ -41,7 +41,7 @@
 // This class is meant to be a singleton
 static FTIT_keymap self = {0};
 
-int FTI_KeyMap( FTIT_keymap** instance, size_t type_size, size_t max_key )
+int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 {
     
     if( type_size == 0 ) {
@@ -60,10 +60,9 @@ int FTI_KeyMap( FTIT_keymap** instance, size_t type_size, size_t max_key )
         self._key[i] = -1;
 
     self.push_back = FTI_KeyMapPushBack;
+    self.data = FTI_KeyMapData;
     self.get = FTI_KeyMapGet;
     self.clear = FTI_KeyMapClear;
-    self.check = FTI_KeyMapCheckError;
-    self.check_range = FTI_KeyMapCheckRange;
     self.initialized = true;
 }
 
@@ -98,21 +97,21 @@ int FTI_KeyMapPushBack( void* new_item, int id )
         return FTI_NSCS;
     }
         
-    size_t new_size = self._size;
-    size_t new_used = self._used + 1;
+    long new_size = self._size;
+    long new_used = self._used + 1;
 
     if( new_used > self._size ) {
-        size_t new_block = (self._size > 0) ? self._size * self._type_size : self._type_size;
+        long new_block = (self._size > 0) ? self._size * self._type_size : self._type_size;
         new_size = (new_block > FTI_MAX_REALLOC) ? self._size + FTI_MAX_REALLOC/self._type_size : (self._size > 0) ? self._size*2 : 2;
-        void* alloc = realloc( self.data, new_size * self._type_size );
+        void* alloc = realloc( self._data, new_size * self._type_size );
         if(!alloc) {
             FTI_Print("Failed to extent keymap size", FTI_EROR);
             return FTI_NSCS;
         }
-        self.data = alloc;
+        self._data = alloc;
     }
     
-    memcpy(self.data + self._used*self._type_size, new_item, self._type_size);
+    memcpy(self._data + self._used*self._type_size, new_item, self._type_size);
     self._key[id] = self._used;
     self._used = new_used;
     self._size = new_size;
@@ -120,65 +119,61 @@ int FTI_KeyMapPushBack( void* new_item, int id )
     return FTI_SCES;
 }
 
-void* FTI_KeyMapGet( int id )
+int FTI_KeyMapData( FTIT_dataset** data, int n )
 {
     
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
-        return NULL;
+        return FTI_NSCS;
     }
 
-    self._error=false;
+    if( n > self._used ) {
+        FTI_Print("keymap out of bounds",FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    *data = self._data;
+
+    return FTI_SCES;
+
+}
+
+int FTI_KeyMapGet( FTIT_dataset** data, int id )
+{
+    
+    if( !self.initialized ) {
+        FTI_Print("keymap not initialized",FTI_EROR);
+        return FTI_NSCS;
+    }
 
     if( id < 0 ) {
         FTI_Print("id has to be positive",FTI_EROR);
-        self._error=true;
-        return NULL;
+        return FTI_NSCS;
     }
 
     if( id > self._max_id ) { 
         FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
-        self._error=true;
-        return NULL;
+        return FTI_NSCS;
     }
     
-    size_t check_pos = self._key[id];
+    long check_pos = self._key[id];
+    
+    if( check_pos > (self._used - 1) ) {
+        FTI_Print("data location out of bounds", FTI_EROR );
+        FTI_Backtrace( 0 );
+    	return FTI_NSCS;
+    }
     
     if( check_pos == -1 ) {
         // id not in use
-        return NULL;
+        *data = NULL;
+        return FTI_SCES;
     }
    
-    if( check_pos > (self._used - 1) ) {
-        FTI_Print("data location out of bounds", FTI_EROR );
-        self._error=true;
-        return NULL;
-    }
+    *data = self._data + check_pos * self._type_size;
     
-    return self.data + check_pos * self._type_size;
+    return FTI_SCES;
 
-}
-
-bool FTI_KeyMapCheckError()
-{
-    if( !self.initialized ) {
-        FTI_Print("keymap not initialized",FTI_EROR);
-        return true;
-    }
-
-    bool val = self._error;
-    self._error = false;
-    return val;
-}
-
-bool FTI_KeyMapCheckRange( int max )
-{
-    if( !self.initialized ) {
-        FTI_Print("keymap not initialized",FTI_EROR);
-        return false;
-    }
-
-    return (self._used <= max);
 }
 
 int FTI_KeyMapClear() 
@@ -190,8 +185,8 @@ int FTI_KeyMapClear()
 
     self._size = 0;
     self._used = 0;
-    free(self.data);
-    self.data = NULL;
+    free(self._data);
+    self._data = NULL;
     free(self._key);
     self._key = NULL;
     return FTI_SCES;

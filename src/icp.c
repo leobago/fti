@@ -85,12 +85,20 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
     int i;
-    FTIT_dataset* data = FTI_Data->get( varID );
-    if( FTI_Data->check( FTI_Data ) ) return FTI_NSCS;
-    if( data != NULL ) {
-        data->filePos = io->getPos(write_info);
-        res = io->WriteData(data,write_info);
+    
+    FTIT_dataset* data;
+    
+    if( FTI_Data->get( &data, varID ) != FTI_SCES ) return FTI_NSCS;
+    
+    if( data == NULL ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "variable id = '%d' does not exist", varID );
+        FTI_Print( str, FTI_WARN );
+        return FTI_NSCS;
     }
+
+    data->filePos = io->getPos(write_info);
+    res = io->WriteData(data,write_info);
     FTI_Exec->iCPInfo.result = res;
     return res;
 }

@@ -679,16 +679,24 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_setIDFromString( char *name ){
+    
     int i = 0;
-    FTIT_dataset* data; FTI_DATA(data, FTI_Exec.nbVar, FTI_NSCS);
+
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to set ID from string", FTI_WARN );
+        return FTI_NSCS;
+    }
+    
     for ( i = 0 ; i < FTI_Exec.nbVar; i++){
         if (strcmp(name, data[i].idChar) == 0){
             return data[i].id;
         }
     }
-    FTIT_dataset dataNew; FTI_InitDataset( &FTI_Exec, &dataNew, i );
-    strncpy(dataNew.idChar, name, FTI_BUFS);
-    FTI_Data->push_back( &dataNew, i );
+
+    FTIT_dataset dataAdd; FTI_InitDataset( &FTI_Exec, &dataAdd, i );
+    strncpy(dataAdd.idChar, name, FTI_BUFS);
+    FTI_Data->push_back( &dataAdd, i );
     FTI_Exec.nbVar++;
     return i;
 }
@@ -707,14 +715,21 @@ int FTI_getIDFromString( char *name ){
     
     int i = 0;
 
-    FTIT_dataset* data; FTI_DATA(data, FTI_Exec.nbVar, FTI_NSCS);
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to get ID from string", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     for ( i = 0 ; i < FTI_Exec.nbVarStored; i++){
         if (strcmp(name, data[i].idChar) == 0){
             return data[i].id;
         }
 
     }
+
     return -1;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -777,7 +792,13 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
     int i;
     char memLocation[4];
-    FTIT_dataset* data; FTI_DATA_GET( data, id, FTI_NSCS);
+    
+    FTIT_dataset* data;
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) {
+        FTI_Print( "failed to protect variable", FTI_WARN );
+        return FTI_NSCS;
+    }
+
     if (data != NULL) { //Search for dataset with given id
         long prevSize = data->size;
 #ifdef GPUSUPPORT
@@ -1034,7 +1055,10 @@ int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, 
 #ifdef ENABLE_HDF5
     
     FTIT_dataset* data;
-    FTI_DATA_GET( data, id, FTI_NSCS);
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) {
+        FTI_Print( "failed to add subset", FTI_WARN );
+        return FTI_NSCS;
+    }
 
 #ifdef GPUSUPPORT    
     if ( !data->isDevicePtr ){
@@ -1152,7 +1176,10 @@ int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* coun
 #ifdef ENABLE_HDF5
     
     FTIT_dataset* data;
-    FTI_DATA_GET( data, id, FTI_NSCS );
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) {
+        FTI_Print( "failed to update subset", FTI_WARN );
+        return FTI_NSCS;
+    }
 
 #ifdef GPUSUPPORT    
     if ( !data->isDevicePtr ){
@@ -1387,42 +1414,48 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
 
     char str[FTI_BUFS]; //For console output
     
-    FTIT_dataset* data; FTI_DATA_GET( data, id, FTI_NSCS ); 
-    if (data != NULL) { //Search for dataset with given id
-        //check if size is correct
-        int expectedSize = 1;
-        int j;
-        for (j = 0; j < rank; j++) {
-            expectedSize *= dimLength[j]; //compute the number of elements
-        }
-
-        if (rank > 0) {
-            if (expectedSize != data->count) {
-                sprintf(str, "Trying to define datasize: number of elements %d, but the dataset count is %ld.", expectedSize, data->count);
-                FTI_Print(str, FTI_WARN);
-                return FTI_NSCS;
-            }
-            data->rank = rank;
-            for (j = 0; j < rank; j++) {
-                data->dimLength[j] = dimLength[j];
-            }
-        }
-
-        if (h5group != NULL) {
-            data->h5group = FTI_Exec.H5groups[h5group->id];
-        }
-
-        if (name != NULL) {
-            memset(data->name,'\0',FTI_BUFS);
-            strncpy(data->name, name, FTI_BUFS);
-        }
-
-        return FTI_SCES;
+    FTIT_dataset* data;
+    if( FTI_Data->get( &data, id ) != FTI_SCES ) {
+        FTI_Print("failed to define dataset", FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    if( !data ) {
+        sprintf(str, "The dataset #%d not initialized. Use FTI_Protect first.", id);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
     }
 
-    sprintf(str, "The dataset #%d not initialized. Use FTI_Protect first.", id);
-    FTI_Print(str, FTI_WARN);
-    return FTI_NSCS;
+    //check if size is correct
+    int expectedSize = 1;
+    int j;
+    for (j = 0; j < rank; j++) {
+        expectedSize *= dimLength[j]; //compute the number of elements
+    }
+
+    if (rank > 0) {
+        if (expectedSize != data->count) {
+            sprintf(str, "Trying to define datasize: number of elements %d, but the dataset count is %ld.", expectedSize, data->count);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NSCS;
+        }
+        data->rank = rank;
+        for (j = 0; j < rank; j++) {
+            data->dimLength[j] = dimLength[j];
+        }
+    }
+
+    if (h5group != NULL) {
+        data->h5group = FTI_Exec.H5groups[h5group->id];
+    }
+
+    if (name != NULL) {
+        memset(data->name,'\0',FTI_BUFS);
+        strncpy(data->name, name, FTI_BUFS);
+    }
+
+    return FTI_SCES;
+
 }
 
 
@@ -1446,8 +1479,8 @@ long FTI_GetStoredSize(int id)
         return 0;
     }
 
-    FTIT_dataset* data = FTI_Data->get(id);
-    if( FTI_Data->check() || !data ) {
+    FTIT_dataset* data;
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
         FTI_Print("Unable to determine the stored variable size!", FTI_WARN);
         return 0;
     }
@@ -1472,14 +1505,15 @@ void* FTI_Realloc(int id, void* ptr)
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
     }
+        
+    char str[FTI_BUFS];
     
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
 
     if (FTI_Exec.reco) {
         
-        char str[FTI_BUFS];
-        FTIT_dataset* data = FTI_Data->get( id );
-        if( FTI_Data->check() || !data ) {
+        FTIT_dataset* data;
+        if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
             FTI_Print("Unable to reallocate variable buffer to stored size!", FTI_WARN);
             return ptr;
         }
@@ -1529,7 +1563,7 @@ void* FTI_Realloc(int id, void* ptr)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_BitFlip(int datasetID)
+int FTI_BitFlip(int id)
 {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -1537,14 +1571,17 @@ int FTI_BitFlip(int datasetID)
     }
     
     if (FTI_Inje.rank == FTI_Topo.splitRank) {
-        if (datasetID >= FTI_Exec.nbVar) {
+        
+        if (id >= FTI_Exec.nbVar) {
             return FTI_NSCS;
         }
-        FTIT_dataset* data = FTI_Data->get( datasetID );
-        if( FTI_Data->check() || !data ) {
+        
+        FTIT_dataset* data;
+        if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
             FTI_Print("Dataset id to inject BitFlip is invalid", FTI_WARN);
             return FTI_NSCS;
         }
+
         if (FTI_Inje.counter < FTI_Inje.number) {
             if ((MPI_Wtime() - FTI_Inje.timer) > FTI_Inje.frequency) {
                 if (FTI_Inje.index < data->count) {
@@ -1556,7 +1593,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
                         FTI_Inje.timer = (res == FTI_SCES) ? MPI_Wtime() : FTI_Inje.timer;
                         sprintf(str, "Injecting bit-flip in dataset %d, index %d, bit %d : %f => %f",
-                                datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
+                                id, FTI_Inje.index, FTI_Inje.position, ori, *target);
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
@@ -1567,7 +1604,7 @@ int FTI_BitFlip(int datasetID)
                         FTI_Inje.counter = (res == FTI_SCES) ? FTI_Inje.counter + 1 : FTI_Inje.counter;
                         FTI_Inje.timer = (res == FTI_SCES) ? MPI_Wtime() : FTI_Inje.timer;
                         sprintf(str, "Injecting bit-flip in dataset %d, index %d, bit %d : %f => %f",
-                                datasetID, FTI_Inje.index, FTI_Inje.position, ori, *target);
+                                id, FTI_Inje.index, FTI_Inje.position, ori, *target);
                         FTI_Print(str, FTI_WARN);
                         return res;
                     }
@@ -1866,8 +1903,8 @@ int FTI_AddVarICP( int varID )
 
     char str[FTI_BUFS];
 
-    FTIT_dataset* data = FTI_Data->get( varID );
-    if( data == NULL || FTI_Data->check() ) {
+    FTIT_dataset* data;
+    if( (FTI_Data->get( &data, varID ) != FTI_SCES) || !data ) {
         snprintf( str, FTI_BUFS, "FTI_AddVarICP: dataset ID: %d is invalid!", varID );
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
@@ -2062,7 +2099,11 @@ int FTI_Recover()
     char fn[FTI_BUFS]; //Path to the checkpoint file
     char str[2*FTI_BUFS]; //For console output
     
-    FTIT_dataset* data; FTI_DATA(data, FTI_Exec.nbVar, FTI_NREC);
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to recover", FTI_WARN );
+        return FTI_NREC;
+    }
 
     //Check if number of protected variables matches
     if( FTI_Exec.h5SingleFile ) {
@@ -2103,8 +2144,7 @@ int FTI_Recover()
         int lidx = FTI_Exec.dcpInfoPosix.nbLayerReco - 1;
         for (i = 0; i < FTI_Exec.nbVarStored; i++) {
             int varId = FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID;
-            FTI_DATA_GET( data, varId, FTI_NREC );
-            if( !data ) {
+            if( (FTI_Data->get( &data, varId ) != FTI_SCES) || !data ) {
                 char errstr[FTI_BUFS];
                 snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
                 FTI_Print( errstr, FTI_EROR );
@@ -2156,7 +2196,12 @@ int FTI_Recover()
     }
 
 #ifdef GPUSUPPORT
-    FTI_DATA( data, FTI_Exec.nbVar, FTI_NREC );
+    
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to recover", FTI_WARN);
+        return FTI_NREC;
+    }
+
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
         strncpy(data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
@@ -2297,7 +2342,11 @@ int FTI_Finalize()
 
     // Notice: The following code is only executed by the application procs
 
-    FTIT_dataset* data; FTI_DATA( data, FTI_Exec.nbVar, FTI_NSCS );
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to finalize FTI", FTI_WARN );
+        return FTI_NSCS;
+    }
     
     // free hashArray memory
     if( FTI_Conf.dcpPosix ) {
@@ -2481,9 +2530,9 @@ int FTI_Finalize()
         }
 
     
-        FTIT_dataset* data = FTI_Data->get(id);
-        if( FTI_Data->check( FTI_Data ) || !data ) {
-            FTI_Print("Recovery failed", FTI_EROR);
+        FTIT_dataset* data;
+        if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
+            FTI_Print("failed to recover", FTI_EROR);
             return FTI_NREC;
         }
         

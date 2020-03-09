@@ -6,26 +6,23 @@ extern "C" {
 
     typedef struct FTIT_keymap {
         bool    initialized;
-        size_t  _type_size;
-        size_t  _size;
-        size_t  _used;
+        long  _type_size;
+        long  _size;
+        long  _used;
         int     _max_id;
-        bool    _error;
-        void*   data;
+        void*   _data;
         int*    _key;
-        bool    (*check)();
-        bool    (*check_range)( int );
-        int     (*push_back)( void*, int );
-        void*   (*get)( int );
-        int     (*clear)();
+        int     (*push_back)    ( void*, int );
+        int     (*data)         ( FTIT_dataset**, int );
+        int     (*get)          ( FTIT_dataset**, int );
+        int     (*clear)        ( void );
     } FTIT_keymap;
 
-    int FTI_KeyMap( FTIT_keymap**, size_t, size_t );
-    int FTI_KeyMapPushBack( void*, int );
-    void* FTI_KeyMapGet( int );
-    int FTI_KeyMapClear( void ); 
-    bool FTI_KeyMapCheckError( void ); 
-    bool FTI_KeyMapCheckRange( int ); 
+    int     FTI_KeyMap              ( FTIT_keymap**, long, long );
+    int     FTI_KeyMapPushBack      ( void*, int );
+    int     FTI_KeyMapData          ( FTIT_dataset**, int );
+    int     FTI_KeyMapGet           ( FTIT_dataset**, int );
+    int     FTI_KeyMapClear         ( void ); 
 
 #ifdef __cplusplus
 }

@@ -219,7 +219,9 @@ int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
             currentdbvar->hasCkpt = true;
            
-            FTIT_dataset* data; FTI_DATA_GET( data, currentdbvar->id, FTI_NSCS );
+            FTIT_dataset* data;
+            if( FTI_Data->get( &data, currentdbvar->id ) != FTI_SCES ) return FTI_NSCS;
+            
             if(!data) {
                 FTIT_dataset dataNew;
                 FTI_InitDataset( FTI_Exec, &dataNew, currentdbvar->id );
@@ -1379,8 +1381,8 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
     }
 
     //Check if sizes of protected variables matches
-    FTIT_dataset* data = FTI_Data->data;
-    if( !data ) return FTI_NSCS;
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
 
     int i = 0; for (; i < FTI_Exec->nbVar; i++) {
         if (data[i].size != data[i].sizeStored) {
@@ -1461,7 +1463,13 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
 
             currentdbvar = &(currentdb->dbvars[dbvar_idx]);
             
-            data = FTI_Data->get(currentdbvar->id);
+            if( FTI_Data->get( &data, currentdbvar->id ) != FTI_SCES ) return FTI_NSCS;
+            
+            if( !data ) {
+                snprintf(str, FTI_BUFS, "id '%d' does not exist!", currentdbvar->id);
+                FTI_Print( str, FTI_EROR );
+                return FTI_NSCS;
+            }
 
             if(!(currentdbvar->hascontent)) {
                 continue;
@@ -1660,7 +1668,16 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
             if (currentdbvar->id == id) {
                 // get source and destination pointer
                 
-                FTIT_dataset* data = FTI_Data->get(id);
+                FTIT_dataset* data;
+                
+                if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
+
+                if( !data ) {
+                    snprintf(str, FTI_BUFS, "id '%d' does not exist!", id);
+                    FTI_Print( str, FTI_EROR );
+                    return FTI_NSCS;
+                }
+
                 destptr = (char*) data->ptr + currentdbvar->dptr;
                 srcptr = (char*) fmmap + currentdbvar->fptr;
                 
@@ -2305,8 +2322,18 @@ int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data ) 
 {
     if( dbvar->hascontent ) {
-        FTIT_dataset* data = FTI_Data->get(dbvar->id);
-        if( FTI_Data->check() || !data ) return;
+        
+        FTIT_dataset* data;
+
+        if( FTI_Data->get( &data, dbvar->id ) != FTI_SCES ) return;
+
+        if( !data ) {
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "id '%d' does not exist!", dbvar->id);
+            FTI_Print( str, FTI_EROR );
+            return;
+        }
+
         void * ptr = data->ptr + dbvar->dptr;
         unsigned long size = dbvar->chunksize;
         MD5( ptr, size, dbvar->hash );

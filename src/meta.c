@@ -919,8 +919,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     long* myVarPositions = talloc(long, FTI_Exec->nbVar);
     char *ArrayOfStrings = ( char *) malloc (FTI_Exec->nbVar * sizeof(char*) *FTI_BUFS);
     
-    FTIT_dataset* data = FTI_Data->data;
-    if( !data ) return FTI_NSCS;
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         myVarIDs[i] = data[i].id;
