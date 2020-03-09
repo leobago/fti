@@ -705,8 +705,6 @@ extern "C" {
 
     } FTIT_execution;
 
-
-
 #ifdef __cplusplus
 }
 #endif

@@ -53,15 +53,23 @@
  **/
 /*-------------------------------------------------------------------------*/
 
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data){
+int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data)
+{
+
 #ifdef GPUSUPPORT
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if ( FTI_Data[i].isDevicePtr ){
-            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
+    
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
+
+    int i; for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if ( data[i].isDevicePtr ){
+            FTI_copy_from_device( data[i].ptr, data[i].devicePtr, data[i].size, FTI_Exec);
         }
     }
+
 #endif
+    
     return FTI_SCES;
+
 }
 

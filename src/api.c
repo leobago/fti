@@ -2198,8 +2198,8 @@ int FTI_Recover()
     }
 
     for (i = 0; i < FTI_Exec.nbVar; i++) {
-        size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
-        strncpy(data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
+        size_t filePos = data[i].filePosStored;
+        strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         if (data[i].isDevicePtr)
             FTI_TransferFileToDeviceAsync(fd,data[i].devicePtr, data[i].size); 
