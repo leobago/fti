@@ -10,10 +10,10 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
                     FTIT_keymap* FTI_Data);
 int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
                         FTIT_keymap* FTI_Data, int id);
-int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar);
+int FTI_ReadHDF5Var(FTIT_dataset *data);
 int FTI_GetDatasetRankReco( hid_t did );
 int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span );
-int FTI_WriteHDF5Var(FTIT_dataset* FTI_DataVar);
+int FTI_WriteHDF5Var(FTIT_dataset* data);
 int FTI_CheckHDF5File(char* fn, long fs, char* checksum);
 int FTI_OpenGlobalDatasets( FTIT_execution* FTI_Exec );
 herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data );

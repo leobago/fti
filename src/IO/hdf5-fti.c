@@ -388,32 +388,32 @@ int FTI_HDF5Open(char *fn, void *fileDesc)
 /**
   @brief      Commits a datatype in the hdf5 file format.
   @param      FTI_Exec          Execution environment parameters.
-  @param FTI_DataVar       Variable metadata to commit.
+  @param data       Variable metadata to commit.
   @return   integer         FTI_SCES on success;
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *FTI_DataVar)
+int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data)
 {
     char str[FTI_BUFS];
     int toCommit = 0;
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-    if (FTI_DataVar->type->h5datatype < 0) {
+    if (data->type->h5datatype < 0) {
         toCommit = 1;
     }
-    sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", FTI_DataVar->type->id, (long)FTI_DataVar->type->h5datatype);
+    sprintf(str, "Calling CreateComplexType [%d] with hid_t %ld", data->type->id, (long)data->type->h5datatype);
     FTI_Print(str, FTI_DBUG);
-    FTI_CreateComplexType(FTI_DataVar->type, FTI_Exec->FTI_Type);
+    FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
     if (toCommit == 1) {
         char name[FTI_BUFS];
-        if (FTI_DataVar->type->structure == NULL) {
+        if (data->type->structure == NULL) {
             //this is the array of bytes with no name
-            sprintf(name, "Type%d", FTI_DataVar->type->id);
+            sprintf(name, "Type%d", data->type->id);
         } else {
-            strncpy(name, FTI_DataVar->type->structure->name, FTI_BUFS);
+            strncpy(name, data->type->structure->name, FTI_BUFS);
         }
-        herr_t res = H5Tcommit(FTI_DataVar->type->h5group->h5groupID, name, FTI_DataVar->type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        herr_t res = H5Tcommit(data->type->h5group->h5groupID, name, data->type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         if (res < 0) {
-            sprintf(str, "Datatype #%d could not be commited", FTI_DataVar->id);
+            sprintf(str, "Datatype #%d could not be commited", data->id);
             FTI_Print(str, FTI_EROR);
             int j;
             for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
@@ -681,7 +681,7 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes a  protected variable to the checkpoint file.
-  @param      FTI_DataVar     The protected variable to be written. 
+  @param      data     The protected variable to be written. 
   @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
   The function Write the data of a single FTI_Protect variable to the HDF5 file. 
@@ -691,7 +691,7 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
+int FTI_WriteHDF5Var(FTIT_dataset *data)
 {
     int j;
     hsize_t dimLength[32];
@@ -699,45 +699,45 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
     int res;
     hid_t dcpl;
 
-    for (j = 0; j < FTI_DataVar->rank; j++) {
-        dimLength[j] = FTI_DataVar->dimLength[j];
+    for (j = 0; j < data->rank; j++) {
+        dimLength[j] = data->dimLength[j];
     }
 
     dcpl = H5Pcreate (H5P_DATASET_CREATE);
     res = H5Pset_fletcher32 (dcpl);
-    res = H5Pset_chunk (dcpl, FTI_DataVar->rank, dimLength);
+    res = H5Pset_chunk (dcpl, data->rank, dimLength);
 
-    hid_t dataspace = H5Screate_simple( FTI_DataVar->rank, dimLength, NULL);
-    hid_t dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+    hid_t dataspace = H5Screate_simple( data->rank, dimLength, NULL);
+    hid_t dataset = H5Dcreate2 ( data->h5group->h5groupID, data->name,data->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
 
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
 #ifdef GPUSUPPORT    
-    if ( !FTI_DataVar->isDevicePtr ){
+    if ( !data->isDevicePtr ){
 #endif
-        res = H5Dwrite(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
+        res = H5Dwrite(dataset,data->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data->ptr);  
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
 
         res = H5Pclose (dcpl);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
 
         res = H5Dclose(dataset);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
         res = H5Sclose(dataspace);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
@@ -747,8 +747,8 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
 
     // This code is only executed in the GPU case.
 
-    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
-    hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
+    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*data->rank); 
+    hsize_t *offset= (hsize_t*) calloc (data->rank,sizeof(hsize_t)); 
 
     if ( !count|| !offset){
         sprintf(str, "Could Not allocate count and offset regions");
@@ -759,16 +759,16 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
 
     hsize_t seperator;
     hsize_t fetchBytes = FTI_getHostBuffSize();
-    fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, fetchBytes ,count, FTI_DataVar->rank, dimLength, &seperator);
+    fetchBytes = FTI_calculateCountDim(data->eleSize, fetchBytes ,count, data->rank, dimLength, &seperator);
     sprintf(str,"GPU-Device Message: I Will Fetch %lld Bytes Per Stream Request", fetchBytes);
     FTI_Print(str,FTI_DBUG);
 
 
     FTIT_data_prefetch prefetcher;
     prefetcher.fetchSize = fetchBytes;
-    prefetcher.totalBytesToFetch = FTI_DataVar->size;
-    prefetcher.isDevice = FTI_DataVar->isDevicePtr;
-    prefetcher.dptr = FTI_DataVar->devicePtr;
+    prefetcher.totalBytesToFetch = data->size;
+    prefetcher.isDevice = data->isDevicePtr;
+    prefetcher.dptr = data->devicePtr;
     size_t bytesToWrite;
     FTI_InitPrefetcher(&prefetcher);
     unsigned char *basePtr = NULL;
@@ -779,15 +779,15 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
     }
 
     while( basePtr  ){
-        res = FTI_WriteElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
+        res = FTI_WriteElements( dataspace, data->type->h5datatype, dataset, count, offset, data->rank , basePtr);
         if (res != FTI_SCES ) {
             free(offset);
             free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
-        FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
+        FTI_AdvanceOffset(seperator, offset,count, dimLength, data->rank);
 
         if ( FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr), 
                     "Fetch next memory block from GPU to write to HDF5") !=  FTI_SCES){
@@ -801,7 +801,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
     if (res < 0) {
         free(offset);
         free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+        sprintf(str, "Dataset #%d could not be written", data->id);
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -809,7 +809,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
     if (res < 0) {
         free(offset);
         free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+        sprintf(str, "Dataset #%d could not be written", data->id);
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -822,7 +822,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Reads a  protected variable to the checkpoint file.
-  @param      FTI_DataVar     The Var we will read from the  to the Checkpoint file 
+  @param      data     The Var we will read from the  to the Checkpoint file 
   @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
   The function reads the data of a single FTI_Protect variable to the HDF5 file. 
@@ -831,35 +831,35 @@ int FTI_WriteHDF5Var(FTIT_dataset *FTI_DataVar)
   move data from the File to the CPU and then to GPU side.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
+int FTI_ReadHDF5Var(FTIT_dataset *data)
 {
     char str[FTI_BUFS];
     int res;
 
-    hid_t dataset = H5Dopen(FTI_DataVar->h5group->h5groupID, FTI_DataVar->name, H5P_DEFAULT);
+    hid_t dataset = H5Dopen(data->h5group->h5groupID, data->name, H5P_DEFAULT);
     hid_t dataspace = H5Dget_space(dataset);
 
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
 #ifdef GPUSUPPORT    
-    if ( !FTI_DataVar->isDevicePtr ){
+    if ( !data->isDevicePtr ){
 #endif
-        res = H5Dread(dataset,FTI_DataVar->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, FTI_DataVar->ptr);  
+        res = H5Dread(dataset,data->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data->ptr);  
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
 
         res = H5Dclose(dataset);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
         res = H5Sclose(dataspace);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
@@ -869,15 +869,15 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
 
     hsize_t dimLength[32];
     int j;
-    for (j = 0; j < FTI_DataVar->rank; j++) {
-        dimLength[j] = FTI_DataVar->dimLength[j];
+    for (j = 0; j < data->rank; j++) {
+        dimLength[j] = data->dimLength[j];
     }
 
     // This code is only executed in the GPU case.
 
 
-    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*FTI_DataVar->rank); 
-    hsize_t *offset= (hsize_t*) calloc (FTI_DataVar->rank,sizeof(hsize_t)); 
+    hsize_t *count = (hsize_t*) malloc (sizeof(hsize_t)*data->rank); 
+    hsize_t *offset= (hsize_t*) calloc (data->rank,sizeof(hsize_t)); 
 
     if ( !count|| !offset){
         sprintf(str, "Could Not allocate count and offset regions");
@@ -892,7 +892,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
     //Calculate How many dimension I can compute each time 
     //and how bug should the HOST-GPU communication buffer should be
 
-    fetchBytes = FTI_calculateCountDim(FTI_DataVar->eleSize, hostBufSize ,count, FTI_DataVar->rank, dimLength, &seperator);
+    fetchBytes = FTI_calculateCountDim(data->eleSize, hostBufSize ,count, data->rank, dimLength, &seperator);
 
     //If the buffer is smaller than the minimum amount 
     //then I need to allocate a bigger one.
@@ -900,7 +900,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
         if ( FTI_Try( FTI_DestroyDevices(), "Deleting host buffers" ) != FTI_SCES){
             free(offset);
             free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
@@ -908,7 +908,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
         if ( FTI_Try (FTI_InitDevices( fetchBytes ), "Allocating host buffers")!= FTI_SCES) {
             free(offset);
             free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
@@ -917,28 +917,28 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
     unsigned char *basePtr = NULL;
     int id = 0;
     int prevId = 1;
-    hsize_t totalBytes = FTI_DataVar->size;
+    hsize_t totalBytes = data->size;
     cudaStream_t streams[2]; 
     //Create the streams for the asynchronous data movement.
     CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[0])));
     CUDA_ERROR_CHECK(cudaStreamCreate(&(streams[1])));
-    unsigned char *dPtr = FTI_DataVar->devicePtr;
+    unsigned char *dPtr = data->devicePtr;
     // Perform the while loop until all data
     // are processed.
     while( totalBytes  ){
         basePtr = FTI_getHostBuffer(id); 
         //Read file 
-        res = FTI_ReadElements( dataspace, FTI_DataVar->type->h5datatype, dataset, count, offset, FTI_DataVar->rank , basePtr);
+        res = FTI_ReadElements( dataspace, data->type->h5datatype, dataset, count, offset, data->rank , basePtr);
         CUDA_ERROR_CHECK(cudaMemcpyAsync( dPtr , basePtr, fetchBytes, cudaMemcpyHostToDevice, streams[id]));
         if (res != FTI_SCES ) {
             free(offset);
             free(count);
-            sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+            sprintf(str, "Dataset #%d could not be written", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
         //Increase accordingly the file offset
-        FTI_AdvanceOffset(seperator, offset,count, dimLength, FTI_DataVar->rank);
+        FTI_AdvanceOffset(seperator, offset,count, dimLength, data->rank);
         //Syncing the cuda stream.
         CUDA_ERROR_CHECK(cudaStreamSynchronize(streams[prevId]));   
         prevId = id;
@@ -954,7 +954,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
     if (res < 0) {
         free(offset);
         free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+        sprintf(str, "Dataset #%d could not be written", data->id);
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -962,7 +962,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
     if (res < 0) {
         free(offset);
         free(count);
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+        sprintf(str, "Dataset #%d could not be written", data->id);
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -976,13 +976,13 @@ int FTI_ReadHDF5Var(FTIT_dataset *FTI_DataVar)
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes the specific variable in the file.
-  @param      FTI_DataVar     The Var we will write to the Checkpoint file 
+  @param      data     The Var we will write to the Checkpoint file 
   @param      write_info      The fileDescriptor 
   @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info)
+int FTI_WriteHDF5Data(FTIT_dataset *data, void *write_info)
 {
     WriteHDF5Info_t *fd= (WriteHDF5Info_t *) write_info;
     char str[FTI_BUFS];
@@ -990,16 +990,16 @@ int FTI_WriteHDF5Data(FTIT_dataset *FTI_DataVar, void *write_info)
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
 
     if (!(fd->FTI_Exec->h5SingleFile))
-        FTI_CommitDataType(fd->FTI_Exec,FTI_DataVar);
+        FTI_CommitDataType(fd->FTI_Exec,data);
 
     if( fd->FTI_Exec->h5SingleFile ) { 
-        res = FTI_WriteSharedFileData( *FTI_DataVar );
+        res = FTI_WriteSharedFileData( *data );
     } else {
-        res = FTI_WriteHDF5Var(FTI_DataVar); 
+        res = FTI_WriteHDF5Var(data); 
     }
     if ( res != FTI_SCES ) {
         int j;
-        sprintf(str, "Dataset #%d could not be written", FTI_DataVar->id);
+        sprintf(str, "Dataset #%d could not be written", data->id);
         FTI_Print(str, FTI_EROR);
         for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
             FTI_CloseGroup(fd->FTI_Exec->H5groups[rootGroup->childrenID[j]], fd->FTI_Exec->H5groups);

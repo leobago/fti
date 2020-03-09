@@ -256,15 +256,15 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
+int FTI_WritePosixData(FTIT_dataset * data, void *fd)
 {
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
     char str[FTI_BUFS];
     int res;
 
-    if ( !(FTI_DataVar->isDevicePtr) ){
-        if (( res = FTI_Try(FTI_PosixWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+    if ( !(data->isDevicePtr) ){
+        if (( res = FTI_Try(FTI_PosixWrite(data->ptr, data->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;
@@ -275,9 +275,9 @@ int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(data,  FTI_PosixWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;

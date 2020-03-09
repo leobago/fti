@@ -41,8 +41,8 @@
 #define FTI_MAX_REALLOC 10L*1024L*1024L // 10 Mb
 
 /** highest value for id of protected variable                             */
-#define FTI_DEFAULT_MAX_VAR_ID 100L*1024L // about 100K
-#define FTI_LIMIT_MAX_VAR_ID 10L*1024L*1024L // about 10 million
+#define FTI_DEFAULT_MAX_VAR_ID 100*1024 // about 100K
+#define FTI_LIMIT_MAX_VAR_ID 10*1024*1024 // about 10 million
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -192,7 +192,7 @@ extern "C" {
         int  result;                /**< holds result of I/O specific write     */
         int lastCkptID;             /**< holds last successful cp ID            */
         int countVar;               /**< counts datasets written                */
-        int* isWritten;    /**< holds IDs of datasets in cp file       */
+        bool* isWritten;            /**< holds IDs of datasets in cp file       */
         double t0;                  /**< timing for CP statistics               */
         double t1;                  /**< timing for CP statistics               */
         char fn[FTI_BUFS];          /**< Name of the checkpoint file            */

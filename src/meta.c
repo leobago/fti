@@ -498,7 +498,7 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
-    char str[FTI_BUFS], fn[FTI_BUFS];
+    char fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
     
     FTIT_iniparser ctx_ini; if( FTI_Iniparser( &ctx_ini, fn, FTI_INI_OPEN ) != FTI_SCES ) {
@@ -550,7 +550,7 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
-    char str[FTI_BUFS], fn[FTI_BUFS];
+    char fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
 
     FTIT_iniparser ctx_ini; if( FTI_Iniparser( &ctx_ini, fn, FTI_INI_OPEN ) != FTI_SCES ) {
@@ -624,7 +624,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt )
 {
 
-    char str[FTI_BUFS], fn[FTI_BUFS], strErr[FTI_BUFS];
+    char fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/Checkpoint.fti", FTI_Conf->metadDir);
 
     FTIT_iniparser ini; if( FTI_Iniparser( &ini, fn, FTI_INI_APPEND ) != FTI_SCES ) {

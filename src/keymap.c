@@ -64,6 +64,9 @@ int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
     self.get = FTI_KeyMapGet;
     self.clear = FTI_KeyMapClear;
     self.initialized = true;
+
+    return FTI_SCES;
+
 }
 
 int FTI_KeyMapPushBack( void* new_item, int id )

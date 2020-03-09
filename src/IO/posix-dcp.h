@@ -15,9 +15,6 @@
 #define DCP_POSIX_CONF_TAG 1
 #define DCP_POSIX_INIT_TAG -1
 
-int FTI_WritePosixDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
 int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
 void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );

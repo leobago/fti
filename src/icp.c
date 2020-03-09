@@ -84,7 +84,6 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
 {
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
-    int i;
     
     FTIT_dataset* data;
     

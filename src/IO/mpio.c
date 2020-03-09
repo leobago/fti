@@ -240,16 +240,16 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
+int FTI_WriteMPIOData(FTIT_dataset * data, void *fd){
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t *) fd;
 
     char str[FTI_BUFS];
     int res;
-    if ( !(FTI_DataVar->isDevicePtr) ){
+    if ( !(data->isDevicePtr) ){
         FTI_Print(str,FTI_INFO);
-        res = FTI_MPIOWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info);
+        res = FTI_MPIOWrite(data->ptr, data->size, write_info);
         if (res != FTI_SCES ){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
             return res;
@@ -259,18 +259,18 @@ int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
     // dowload data from the GPU if necessary
     // Data are stored in the GPU side.
     else {
-        snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_DataVar->id);
+        snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", data->id);
         FTI_Print(str,FTI_INFO);
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar, FTI_MPIOWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(data, FTI_MPIOWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
             return res;
         }
     }
 #endif
-    write_info->loffset+= FTI_DataVar->size;
+    write_info->loffset+= data->size;
     return FTI_SCES;
 }

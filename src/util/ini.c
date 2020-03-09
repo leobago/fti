@@ -43,8 +43,8 @@ int FTI_Iniparser( FTIT_iniparser* self, const char* inifile, FTIT_inimode mode 
         if( mode == FTI_INI_OPEN ) {
             snprintf( err, FTI_BUFS, "Iniparser failed to parse the file ('%s').", inifile );
         }
-        else if( mode = FTI_INI_APPEND ) {
-            snprintf( err, FTI_BUFS, "Iniparser failed create dictionary.", inifile );
+        else if( mode == FTI_INI_APPEND ) {
+            snprintf( err, FTI_BUFS, "Iniparser failed to parse the file ('%s').", inifile );
         } 
         else {
             snprintf( err, FTI_BUFS, "Unknown iniparser mode." );
@@ -154,6 +154,8 @@ int FTI_IniparserDump( FTIT_iniparser* self )
 
         return FTI_NSCS;
     }
+
+    return FTI_SCES;
 
 }
 

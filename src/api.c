@@ -56,11 +56,8 @@ static FTIT_execution FTI_Exec;
 /** Topology of the system.                                                */
 static FTIT_topology FTI_Topo;
 
-/** id map that holds data for FTI_Data                                    */
+/** id map that holds metadata for protected datasets                      */
 static FTIT_keymap* FTI_Data;
-
-/** Array of datasets and all their internal information.                  */
-//static FTIT_dataset* FTI_Data;
 
 /** SDC injection model and all the required information.                  */
 static FTIT_injection FTI_Inje;
@@ -109,7 +106,6 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
-    int i;
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
 #endif
@@ -790,7 +786,6 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         return res;
 #endif
 
-    int i;
     char memLocation[4];
     
     FTIT_dataset* data;
@@ -1782,8 +1777,7 @@ int FTI_InitICP(int id, int level, bool activate)
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
     
-#warning this is a hack. in this way we waste too much memory (include 'isWritten' member into FTIT_dataset)
-    FTI_Exec.iCPInfo.isWritten = (int*) calloc( FTI_Conf.maxVarId, sizeof(int) );
+    FTI_Exec.iCPInfo.isWritten = (bool*) calloc( FTI_Conf.maxVarId, sizeof(bool) );
     
     // init iCP status with failure
     FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
@@ -1912,7 +1906,7 @@ int FTI_AddVarICP( int varID )
 
     // check if dataset was not already written.
     int i=0; for(; i<FTI_Exec.iCPInfo.countVar; ++i) {
-        if(FTI_Exec.iCPInfo.isWritten[i] == varID) {
+        if(FTI_Exec.iCPInfo.isWritten[varID]) {
             snprintf( str, FTI_BUFS, "Dataset with ID: %d was already successfully written!", varID );
             FTI_Print(str, FTI_WARN);
             return FTI_NSCS;
@@ -1925,7 +1919,8 @@ int FTI_AddVarICP( int varID )
     res=FTI_Exec.writeVarICPFunc[funcID](varID, &FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data,&ftiIO[funcID+offset]);
 
     if ( res == FTI_SCES ) {
-        FTI_Exec.iCPInfo.isWritten[FTI_Exec.iCPInfo.countVar++] = varID;
+        FTI_Exec.iCPInfo.isWritten[varID] = true;
+        FTI_Exec.iCPInfo.countVar++;
     }
     else{
         FTI_Print("Could not add variable to checkpoint",FTI_WARN);
