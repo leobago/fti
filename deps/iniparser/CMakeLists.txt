@@ -1,8 +1,5 @@
-set(SRC_iniparser
-    dictionary.h dictionary.c
-    iniparser.h iniparser.c)
-
-append_property(SOURCE ${SRC_iniparser}
-    PROPERTY COMPILE_FLAGS "-fPIC")
-
-add_library(iniparser OBJECT ${SRC_iniparser})
+add_library(iniparser OBJECT 
+    dictionary.c
+    iniparser.c
+)
+set_property(TARGET iniparser PROPERTY POSITION_INDEPENDENT_CODE True)

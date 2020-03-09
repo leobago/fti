@@ -1,7 +1,4 @@
-set(SRC_md5
-    md5.h md5.c)
-
-append_property(SOURCE ${SRC_md5}
-    PROPERTY COMPILE_FLAGS "-fPIC")
-
-add_library(md5 OBJECT ${SRC_md5})
+add_library(md5 OBJECT
+    md5.c
+)
+set_property(TARGET md5 PROPERTY POSITION_INDEPENDENT_CODE True)
