@@ -416,7 +416,7 @@ install(FILES CMakeScripts/FTIConfig.cmake DESTINATION "${INSTALL_CMAKEDIR}")
 
 # in tree config (most likely useless...)
 
-export(EXPORT FTI_EXPORT "${PROJECT_BINARY_DIR}/FTILib.cmake")
+export(EXPORT FTI_EXPORT FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
 configure_file(CMakeScripts/FTIConfig.cmake "${PROJECT_BINARY_DIR}/FTIConfig.cmake" COPYONLY)
 
 
