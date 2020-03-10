@@ -1495,7 +1495,6 @@ long FTI_GetStoredSize(int id)
 /*-------------------------------------------------------------------------*/
 void* FTI_Realloc(int id, void* ptr)
 {
-
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return ptr;
@@ -1506,7 +1505,7 @@ void* FTI_Realloc(int id, void* ptr)
     FTI_Print("Trying to reallocate dataset.", FTI_DBUG);
 
     if (FTI_Exec.reco) {
-
+        
         FTIT_dataset* data;
         if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
             FTI_Print("Unable to reallocate variable buffer to stored size!", FTI_WARN);
@@ -1515,7 +1514,7 @@ void* FTI_Realloc(int id, void* ptr)
 
         if (data->sizeStored == 0) {
             sprintf(str, "Cannot allocate 0 size.");
-            FTI_Print(str, FTI_DBUG);
+            FTI_Print(str, FTI_WARN);
             return ptr;
         }
 
@@ -1525,12 +1524,14 @@ void* FTI_Realloc(int id, void* ptr)
         ptr = tmp;
 
         sprintf(str, "Reallocated size: %ld", data->sizeStored);
-        FTI_Print(str, FTI_DBUG);
+        FTI_Print(str, FTI_INFO);
 
         FTI_Exec.ckptSize += data->sizeStored - data->size;
         data->size = data->sizeStored;
         data->ptr = ptr;
         data->count = data->size / data->eleSize;
+        
+        DBG_MSG("size: %lu, storedSize: %lu",-1, data->size, data->sizeStored);
 
         sprintf(str, "Dataset #%d reallocated.", data->id);
         FTI_Print(str, FTI_INFO);
@@ -2189,17 +2190,17 @@ int FTI_Recover()
         FTI_Print(str, FTI_EROR);
         return FTI_NREC;
     }
-
-#ifdef GPUSUPPORT
-
+    
     if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
         FTI_Print( "failed to recover", FTI_WARN);
         return FTI_NREC;
     }
 
+#ifdef GPUSUPPORT
+
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = data[i].filePosStored;
-        strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
+        //strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         if (data[i].isDevicePtr)
             FTI_TransferFileToDeviceAsync(fd,data[i].devicePtr, data[i].size); 
@@ -2216,9 +2217,9 @@ int FTI_Recover()
 #else
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = data[i].filePosStored;
-        strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
+        //strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
-        fread(data[i].ptr, 1, data[i].size, fd);
+        fread(data[i].ptr, 1, data[i].sizeStored, fd);
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);
@@ -2531,14 +2532,28 @@ int FTI_RecoverVar(int id)
         return FTI_NREC;
     }
 
+    if( data->size != data->sizeStored ) {
+        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                data->sizeStored, id, data->size);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+    
+    if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
+        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                FTI_Exec.nbVarStored, FTI_Exec.nbVar);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+
     sprintf(str, "Recovering var %d ", id);
     FTI_Print(str, FTI_DBUG);
 
     long filePos = data->filePosStored;
     fseek(fd,filePos, SEEK_SET);
-    fread(data->ptr, 1, data->size, fd);
+    fread(data->ptr, 1, data->sizeStored, fd);
 
-    strncpy(data->idChar, data->idChar, FTI_BUFS);
+    //strncpy(data->idChar, data->idChar, FTI_BUFS);
 
     if (ferror(fd)) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
