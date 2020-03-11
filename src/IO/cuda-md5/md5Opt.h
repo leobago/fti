@@ -2,7 +2,6 @@
 #define __MD5GPU__
 
 #include <fti.h>
-#include "../../tools.h"
 #include "../../interface.h"
 #ifdef __cplusplus
 extern "C"

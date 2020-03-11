@@ -107,7 +107,7 @@ int FTI_KeyMapPushBack( void* new_item, int id )
     if( new_used > self._size ) {
         
         // double container size each time limit is reached except 
-        // new extra chunk would be larger than FTI_MAX_REALLOC
+        // new extra chunk would be larger than FTI_MAX_REALLOC * self._type_size
 
         if( self._size == 0 ) {
 
