@@ -409,7 +409,7 @@ endif()
 
 # Installable config
 
-set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/CMake/FTI" CACHE PATH "cmake modules directory (LIBDIR/CMake/FTI)")
+set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH "cmake modules directory (DATADIR/FTI/cmake)")
 install(EXPORT FTI_EXPORT DESTINATION "${INSTALL_CMAKEDIR}" FILE "FTILib.cmake")
 install(FILES CMakeScripts/FTIConfig.cmake DESTINATION "${INSTALL_CMAKEDIR}")
 
