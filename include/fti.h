@@ -111,7 +111,6 @@ extern "C" {
   int FTI_setIDFromString( char *name );
   int FTI_getIDFromString( char *name );
 
-  int testvector();
 #ifdef __cplusplus
 }
 #endif

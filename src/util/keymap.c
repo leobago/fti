@@ -181,7 +181,6 @@ int FTI_KeyMapGet( FTIT_dataset** data, int id )
 
     if( check_pos > (self._used - 1) ) {
         FTI_Print("data location out of bounds", FTI_EROR );
-        FTI_Backtrace( 0 );
         return FTI_NSCS;
     }
 

@@ -77,21 +77,6 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 }
 #endif
 
-void FTI_Backtrace( int r ) {
-    int rank; MPI_Comm_rank( FTI_COMM_WORLD, &rank );
-    if( rank == r ) {
-        char **strings;
-        size_t i, size;
-        enum Constexpr { MAX_SIZE = 1024 };
-        void *array[MAX_SIZE];
-        size = backtrace(array, MAX_SIZE);
-        strings = backtrace_symbols(array, size);
-        for (i = 0; i < size; i++)
-            printf("%s\n", strings[i]);
-        puts("");
-        free(strings);
-    }
-}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Init of the static variables
