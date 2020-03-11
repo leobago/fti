@@ -189,12 +189,13 @@ int FTI_KeyMapClear()
         return FTI_NSCS;
     }
 
-    self._size = 0;
-    self._used = 0;
     free(self._data);
-    self._data = NULL;
     free(self._key);
-    self._key = NULL;
+    
+    FTIT_keymap reset = {0};
+    
+    self = reset;
+    
     return FTI_SCES;
 
 }

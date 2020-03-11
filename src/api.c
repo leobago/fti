@@ -1737,6 +1737,20 @@ int FTI_Checkpoint(int id, int level)
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
         FTI_PrintDcpStats( FTI_Conf, FTI_Exec, FTI_Topo );   
     }
+    
+    
+    // update stored values to allow recovery online.
+    // FIXME in such a way, we don't cover the case !inline since at this point we cannot know if the 
+    // postprocessing has been successfully. One way could be to convert tmp checkpoint into
+    // L1 checkpoint and update lateron.
+   
+    FTI_Exec.nbVarStored = FTI_Exec.nbVar;
+    
+    FTIT_dataset* data; FTI_Data->data( &data, FTI_Exec.nbVar );
+    int k; for(;k<FTI_Exec.nbVar;k++) {
+        data->sizeStored = data->size;
+        data->filePosStored = data->filePos;
+    }
 
     return FTI_DONE;
 }
@@ -2096,7 +2110,7 @@ int FTI_Recover()
     char str[2*FTI_BUFS]; //For console output
 
     FTIT_dataset* data;
-    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+    if( FTI_Data->data( &data, FTI_Exec.nbVarStored ) != FTI_SCES ) {
         FTI_Print( "failed to recover", FTI_WARN );
         return FTI_NREC;
     }
@@ -2120,7 +2134,7 @@ int FTI_Recover()
             return FTI_NREC;
         }
         //Check if sizes of protected variables matches
-        for (i = 0; i < FTI_Exec.nbVar; i++) {
+        for (i = 0; i < FTI_Exec.nbVarStored; i++) {
             if (data[i].size != data[i].sizeStored) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         data[i].sizeStored, data[i].id,
@@ -2146,10 +2160,10 @@ int FTI_Recover()
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NREC;
             }
-            if (data->size != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
+            if (data->sizeStored != FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize ) {
                 sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
-                        data->size);
+                        data->sizeStored);
                 FTI_Print(str, FTI_WARN);
                 return FTI_NREC;
             }
@@ -2191,21 +2205,21 @@ int FTI_Recover()
         return FTI_NREC;
     }
     
-    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+    if( FTI_Data->data( &data, FTI_Exec.nbVarStored ) != FTI_SCES ) {
         FTI_Print( "failed to recover", FTI_WARN);
         return FTI_NREC;
     }
 
 #ifdef GPUSUPPORT
 
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVarStored; i++) {
         size_t filePos = data[i].filePosStored;
         //strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         if (data[i].isDevicePtr)
-            FTI_TransferFileToDeviceAsync(fd,data[i].devicePtr, data[i].size); 
+            FTI_TransferFileToDeviceAsync(fd,data[i].devicePtr, data[i].sizeStored); 
         else
-            fread(data[i].ptr, 1, data[i].size, fd);
+            fread(data[i].ptr, 1, data[i].sizeStored, fd);
 
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
@@ -2215,7 +2229,7 @@ int FTI_Recover()
     }   
 
 #else
-    for (i = 0; i < FTI_Exec.nbVar; i++) {
+    for (i = 0; i < FTI_Exec.nbVarStored; i++) {
         size_t filePos = data[i].filePosStored;
         //strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
@@ -2328,6 +2342,7 @@ int FTI_Finalize()
             FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
         }
         MPI_Barrier(FTI_Exec.globalComm);
+        FTI_Data->clear();
         if ( !FTI_Conf.keepHeadsAlive ) { 
             MPI_Finalize();
             exit(0);
@@ -2449,6 +2464,7 @@ int FTI_Finalize()
         FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
     }
 #endif
+    FTI_Data->clear();
     MPI_Barrier(FTI_Exec.globalComm);
     FTI_Print("FTI has been finalized.", FTI_INFO);
     return FTI_SCES;
@@ -2527,10 +2543,17 @@ int FTI_RecoverVar(int id)
 
 
     FTIT_dataset* data;
-    if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
         FTI_Print("failed to recover", FTI_EROR);
         return FTI_NREC;
     }
+
+    if( !data ) {
+        snprintf( str, FTI_BUFS, "id = '%d' not found, recovery failed", id );
+        FTI_Print( str, FTI_WARN);
+        return FTI_NREC;
+    }
+
 
     if( data->size != data->sizeStored ) {
         sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
@@ -2539,12 +2562,12 @@ int FTI_RecoverVar(int id)
         return FTI_NREC;
     }
     
-    if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
-        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-                FTI_Exec.nbVarStored, FTI_Exec.nbVar);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
+    //if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
+    //    sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+    //            FTI_Exec.nbVarStored, FTI_Exec.nbVar);
+    //    FTI_Print(str, FTI_WARN);
+    //    return FTI_NREC;
+    //}
 
     sprintf(str, "Recovering var %d ", id);
     FTI_Print(str, FTI_DBUG);
