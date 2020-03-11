@@ -306,11 +306,11 @@ int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, in
         h5group = FTI_Exec.H5groups[0];
     }
     if (length < 1) {
-        FTI_Print("Type can't conain less than 1 type.", FTI_WARN);
+        FTI_Print("Type can't contain less than 1 type.", FTI_WARN);
         return FTI_NSCS;
     }
     if (length > 255) {
-        FTI_Print("Type can't conain more than 255 types.", FTI_WARN);
+        FTI_Print("Type can't contain more than 255 types.", FTI_WARN);
         return FTI_NSCS;
     }
     int i;
@@ -662,8 +662,6 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     return FTI_SCES;
 }
 
-
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Searches in the protected variables for a name. If not found it allocates and returns the ID 
@@ -674,7 +672,8 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_setIDFromString( char *name ){
+int FTI_setIDFromString( char *name )
+{
 
     int i = 0;
 
@@ -690,10 +689,15 @@ int FTI_setIDFromString( char *name ){
         }
     }
 
+    // initialize blank dataset
     FTIT_dataset dataAdd; FTI_InitDataset( &FTI_Exec, &dataAdd, i );
+    
+    // set id to i+1 and assign name
     strncpy(dataAdd.idChar, name, FTI_BUFS);
+    
     FTI_Data->push_back( &dataAdd, i );
     FTI_Exec.nbVar++;
+    
     return i;
 }
 
@@ -707,17 +711,21 @@ int FTI_setIDFromString( char *name ){
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_getIDFromString( char *name ){
+int FTI_getIDFromString( char *name )
+{
 
-    int i = 0;
+    // after restart and before fully recovered, nbVarStored may be
+    // larger than nbVar. In that case, the idchar may be in the recovered
+    // set of protected variables.
+    int n = (FTI_Exec.nbVarStored > FTI_Exec.nbVar) ? FTI_Exec.nbVarStored : FTI_Exec.nbVar;
 
     FTIT_dataset* data;
-    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+    if( FTI_Data->data( &data, n ) != FTI_SCES ) {
         FTI_Print( "failed to get ID from string", FTI_WARN );
         return FTI_NSCS;
     }
 
-    for ( i = 0 ; i < FTI_Exec.nbVarStored; i++){
+    int i=0; for (; i < n; i++){
         if (strcmp(name, data[i].idChar) == 0){
             return data[i].id;
         }
@@ -951,9 +959,12 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
     else{
         sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",data->idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
     }
+
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Print(str, FTI_INFO);
+    
     return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1453,7 +1464,6 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group
 
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Returns size saved in metadata of variable
@@ -1475,8 +1485,15 @@ long FTI_GetStoredSize(int id)
     }
 
     FTIT_dataset* data;
-    if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
         FTI_Print("Unable to determine the stored variable size!", FTI_WARN);
+        return 0;
+    }
+
+    if( !data ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "variable id='%d' does not exist, failed to get stored size", id );
+        FTI_Print( str, FTI_WARN );
         return 0;
     }
 
@@ -1507,8 +1524,15 @@ void* FTI_Realloc(int id, void* ptr)
     if (FTI_Exec.reco) {
         
         FTIT_dataset* data;
-        if( (FTI_Data->get( &data, id ) != FTI_SCES) || !data ) {
+        if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
             FTI_Print("Unable to reallocate variable buffer to stored size!", FTI_WARN);
+            return ptr;
+        }
+    
+        if( !data ) {
+            char str[FTI_BUFS];
+            snprintf( str, FTI_BUFS, "variable id='%d' does not exist, failed to reallocate buffer", id );
+            FTI_Print( str, FTI_WARN );
             return ptr;
         }
 
@@ -1530,8 +1554,6 @@ void* FTI_Realloc(int id, void* ptr)
         data->size = data->sizeStored;
         data->ptr = ptr;
         data->count = data->size / data->eleSize;
-        
-        DBG_MSG("size: %lu, storedSize: %lu",-1, data->size, data->sizeStored);
 
         sprintf(str, "Dataset #%d reallocated.", data->id);
         FTI_Print(str, FTI_INFO);
@@ -1737,7 +1759,6 @@ int FTI_Checkpoint(int id, int level)
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
         FTI_PrintDcpStats( FTI_Conf, FTI_Exec, FTI_Topo );   
     }
-    
     
     // update stored values to allow recovery online.
     // FIXME in such a way, we don't cover the case !inline since at this point we cannot know if the 
@@ -2075,6 +2096,19 @@ int FTI_FinalizeICP()
     FTI_Exec.iCPInfo.isWritten = NULL;
 
     FTI_Exec.iCPInfo.status = FTI_ICP_NINI;
+   
+    // update stored values to allow recovery online.
+    // FIXME in such a way, we don't cover the case !inline since at this point we cannot know if the 
+    // postprocessing has been successfully. One way could be to convert tmp checkpoint into
+    // L1 checkpoint and update lateron.
+   
+    FTI_Exec.nbVarStored = FTI_Exec.nbVar;
+    
+    FTIT_dataset* data; FTI_Data->data( &data, FTI_Exec.nbVar );
+    int k; for(;k<FTI_Exec.nbVar;k++) {
+        data->sizeStored = data->size;
+        data->filePosStored = data->filePos;
+    }
 
     return FTI_SCES;
 }
@@ -2561,13 +2595,6 @@ int FTI_RecoverVar(int id)
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }
-    
-    //if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
-    //    sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
-    //            FTI_Exec.nbVarStored, FTI_Exec.nbVar);
-    //    FTI_Print(str, FTI_WARN);
-    //    return FTI_NREC;
-    //}
 
     sprintf(str, "Recovering var %d ", id);
     FTI_Print(str, FTI_DBUG);
@@ -2575,8 +2602,6 @@ int FTI_RecoverVar(int id)
     long filePos = data->filePosStored;
     fseek(fd,filePos, SEEK_SET);
     fread(data->ptr, 1, data->sizeStored, fd);
-
-    //strncpy(data->idChar, data->idChar, FTI_BUFS);
 
     if (ferror(fd)) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);

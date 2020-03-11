@@ -72,6 +72,8 @@ int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 int FTI_KeyMapPushBack( void* new_item, int id )
 {
 
+    char str[FTI_BUFS];
+    
     if( !self.initialized ) {
         FTI_Print("keymap not initialized",FTI_EROR);
         return FTI_NSCS;
@@ -88,14 +90,12 @@ int FTI_KeyMapPushBack( void* new_item, int id )
     }
 
     if( id > self._max_id ) {
-        char str[FTI_BUFS];
         snprintf( str, FTI_BUFS, "id is larger than 'max_id = %d' for keymap", self._max_id );
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
 
     if( self._key[id] != -1 ) {
-        char str[FTI_BUFS];
         snprintf( str, FTI_BUFS, "Requested ID='%d' is already in use", id );
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
@@ -105,17 +105,33 @@ int FTI_KeyMapPushBack( void* new_item, int id )
     long new_used = self._used + 1;
 
     if( new_used > self._size ) {
-        long new_block = (self._size > 0) ? self._size * self._type_size : self._type_size;
-        new_size = (new_block > FTI_MAX_REALLOC) ? self._size + FTI_MAX_REALLOC/self._type_size : (self._size > 0) ? self._size*2 : 2;
+        
+        // double container size each time limit is reached except 
+        // new extra chunk would be larger than FTI_MAX_REALLOC
+
+        if( self._size == 0 ) {
+
+            new_size = FTI_MIN_REALLOC;
+        
+        } else {
+
+            new_size = ( self._size > FTI_MAX_REALLOC ) ? self._size + FTI_MAX_REALLOC : self._size * 2;
+
+        }
+
         void* alloc = realloc( self._data, new_size * self._type_size );
+        
         if(!alloc) {
             FTI_Print("Failed to extent keymap size", FTI_EROR);
             return FTI_NSCS;
         }
+
         self._data = alloc;
+    
     }
 
     memcpy(self._data + self._used*self._type_size, new_item, self._type_size);
+    
     self._key[id] = self._used;
     self._used = new_used;
     self._size = new_size;

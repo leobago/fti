@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+    const static int FTI_MIN_REALLOC = 32;
+
     typedef struct FTIT_keymap {
         bool    initialized;
         long  _type_size;
