@@ -1,0 +1,37 @@
+#!/bin/bash
+
+execute_suite()
+{
+    # Execute a suite of tests with behavior defined in a fixture
+    #
+    # Parameters:
+    # $1: The script file with the fixture functions
+    # $2: The suite file with the test case parameters
+    
+    source $1
+    while IFS= read -r line
+    do
+        let ntests=$ntests+1
+        test_case $line
+        if [ ! $? -eq 0 ]; then
+            let nfailures=$nfailures+1
+        fi
+    done < $2
+}
+
+execute_multiple_suites()
+{
+    while [ $# -gt 0 ];
+    do
+        print_color $COLOR_WHITEBOLD "Executing Suite $1\n"
+        execute_suite "$1.fixture" "$1.suite"
+        shift
+    done
+}
+
+ntests=0
+nfailures=0
+source testengine
+
+execute_multiple_suites $@
+print_summary $ntests $nfailures

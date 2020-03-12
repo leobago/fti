@@ -1,0 +1,43 @@
+#!/bin/bash
+
+shortname()
+{
+    echo "recover-var"
+}
+
+name()
+{
+    echo "$(shortname) ($(iolib_id_to_name $iolib)): L$level, head=$head, keep=$keep, inline=($l2,$l3,$l4)"
+}
+
+setup()
+{
+    head=0
+    keep=0
+    l2=1
+    l3=1
+    l4=1
+    cfgfile="/tmp/configfile"
+
+    iolib=$1
+    level=$2
+    diffsize=$3
+
+    fti_config_new "$cfgfile"
+    fti_config_set "$cfgfile" "ckpt_io" "$iolib"
+    fti_config_set "$cfgfile" "keep_last_ckpt" "0"
+}
+
+teardown()
+{
+    rm -rf "$cfgfile"
+}
+
+runtest()
+{
+    app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
+    run_id=$(fti_config_get "$cfgfile" "exec_id")
+
+    app_run_interrupt ./recoverVar/recoverVar.exe $cfgfile 0 $level $diffsize
+    assert_app_success $?
+}
