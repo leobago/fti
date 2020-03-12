@@ -1,0 +1,303 @@
+#!/bin/bash
+# ----------------------------- Engine Variables ------------------------------
+
+COLOR_RESET='\033[0m'
+COLOR_WHITEBOLD='\033[1m\033[37m'
+COLOR_GREENBOLD='\033[1m\033[32m'
+COLOR_REDBOLD='\033[1m\033[31m'
+
+# PROCS: the rank count for the FTI test application
+if [ -z $PROCS ]; then
+    PROCS=16
+fi
+
+# MPIRUN: command to run an FTI test application
+if [ -z $MPIRUN ]; then
+    MPIRUN="mpirun --oversubscribe $MPIRUN_ARGS -n $PROCS"
+fi
+
+# TIMEOUT: timeout to interrupt a test running with 'test_interrupt'
+if [ -z $TIMEOUT ]; then
+    TIMEOUT=30
+fi
+
+# STDOUT: standard output for FTI test applications
+if [ -z $STDOUT ]; then
+    STDOUT="/tmp/fti-test.log"
+fi
+
+# -------------------------- Fixture Setup Helpers ----------------------------
+
+iolib_name_to_id()
+{
+    # Echo the FTI id associated to a IO library name
+    #
+    # Parameters:
+    # $1: The IO library name
+    #
+    # Returns:
+    # 1 if the name is not recognized by FTI
+
+    if [ "$1" = "POSIX" ]; then
+        echo '1'
+    elif [ "$1" = "MPIIO" ]; then 
+        echo '2'
+    elif [ "$1" = "FTIFF" ]; then 
+        echo '3'
+    elif [ "$1" = "SIONLIB" ]; then 
+        echo '4'
+    elif [ "$1" = "HDF5" ]; then 
+        echo '5'
+    else
+        return 1
+    fi
+}
+
+iolib_id_to_name()
+{
+    # Echo the IO library name associated to an FTI id
+    #
+    # Parameters:
+    # $1: The FTI id for the IO library
+    #
+    # Returns:
+    # 1 if the id is not recognized by FTI
+
+    if [ "$1" = 1 ]; then
+        echo 'POSIX'
+    elif [ "$1" = 2 ]; then 
+        echo 'MPIIO'
+    elif [ "$1" = 3 ]; then 
+        echo 'FTIFF'
+    elif [ "$1" = 4 ]; then 
+        echo 'SIONLIB'
+    elif [ "$1" = 5 ]; then 
+        echo 'HDF5'
+    else
+        return 1
+    fi
+}
+
+fti_config_new()
+{
+    # Creates a default FTI config file for the test cases
+    #
+    # Parameters:
+    # $1: The path of the created FTI config file
+    #
+    # Warning:
+    # I know it is ugly, but do not remove the identation on this function.
+    # cat prints to a file and it does not ignore the tabular character (\t).
+    cat <<EOF >$1
+[basic]
+head                           = 0
+node_size                      = 4
+ckpt_dir                       = Local
+glbl_dir                       = Global
+meta_dir                       = Meta
+ckpt_io                        = 1
+ckpt_l1                        = 0
+ckpt_l2                        = 0
+ckpt_l3                        = 0
+ckpt_l4                        = 0
+inline_l2                      = 1
+inline_l3                      = 1
+inline_l4                      = 1
+keep_last_ckpt = 0
+group_size                     = 4
+verbosity                      = 2
+
+
+[restart]
+failure                        = 0
+exec_id                        = 2017-05-18_13-35-26
+
+
+[injection]
+rank                           = 0
+number                         = 0
+position                       = 0
+frequency                      = 0
+
+
+[advanced]
+block_size                     = 1024
+transfer_size                  = 16
+mpi_tag                        = 2612
+local_test                     = 1
+EOF
+}
+
+fti_config_get()
+{
+    # Echo the value of an FTI config field
+    #
+    # Parameters:
+    # $1: The path to the configuration file
+    # $2: The field name in the configuration file
+
+    local __configfile=$1
+    local __field=$2
+
+    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' < $__configfile)"
+}
+
+fti_config_set()
+{
+    # Set the value of an FTI config field
+    #
+    # Parameters:
+    # $1: The path to the configuration file
+    # $2: The field name in the configuration file
+    # $3: The new value for the field
+
+    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $1)" > $1
+}
+
+# --------------------------- Fixture Test Helpers ----------------------------
+
+app_run_normal()
+{
+    # Executes an MPI application until its completion
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+    
+    ( set -x $MPIRUN $@ &>> $STDOUT )
+}
+
+app_run_interrupt()
+{
+    # Executes an MPI application and kill it after TIMEOUT seconds
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+
+    local __pid=$BASHPID
+    (sleep $TIMEOUT; kill $__pid > /dev/null 2>&1 ) &
+    app_run_normal $@
+}
+
+assert_app_success() {
+    # Checks the return of an FTI test application and asserts its success
+    #
+    # Parameters:
+    # $1: The FTI test application return value
+    #
+    # Returns:
+    # 0 if the test succeeded
+
+    local __status=$(print_test_status $1)
+    
+    local __msg="$COLOR_REDBOLD Failed"
+    if [ $1 = 0 ]; then
+        __msg="$COLOR_GREENBOLD Passed"
+    fi
+
+    print_color "$__msg $__status\n"
+    return $1
+}
+
+assert_app_failure() {
+    # Checks the return of an FTI test application and asserts its failure
+    #
+    # Parameters:
+    # $1: The FTI test application return value
+    #
+    # Returns:
+    # 0 if the test succeeded
+
+    local __status=$(print_test_status $1)
+    if [ $1 = 0 ]; then
+        print_color "$COLOR_REDBOLD Failed $__status\n"
+        return 1
+    fi
+    print_color "$COLOR_REDBOLD Passed $__status\n"
+}
+
+# -------------------------- Test Runner Functions ----------------------------
+
+test_case()
+{
+    # Run a test defined in a fixture with a set of input data
+    #
+    # Parameters:
+    # $@ The parameters to be passed to the fixture setup
+    #
+    # Returns:
+    # Non-zero values if the test fails
+
+    setup $@
+    print_color $COLOR_WHITEBOLD "[ *** $(name) *** ]\n"
+    runtest
+
+    local __exitcode=$?    
+    if [ $__exitcode -ne 0 ]; then
+        echo "$(name)" >> "$(shortname)"
+        cat $STDOUT >> "$(shortname)"
+    fi
+    teardown
+    rm -rf $STDOUT
+    return $__exitcode
+}
+
+# ------------------------ Helpers for pretty printing ------------------------
+
+print_color()
+{
+    # Prints a string in a different color
+    #
+    # Parameters:
+    # $1: The color to use
+    # $2: The string to be printed
+    #
+    # Warning:
+    # If the string has spaces, the caller must use double quotes.
+    # ex.: print_color "This is my testname"
+
+    printf "$1$2$COLOR_RESET"
+}
+
+print_test_status()
+{
+    # Pretty string for the exit status of an FTI test application
+    #
+    # Parameters:
+    # $1: The integer return value of an FTI test application
+
+    if [ $1 = 0 ]; then
+	    echo "(Success)"
+	elif [ $1 = 255 ]; then
+        echo "(FTI Abort)"
+	elif [ $1 = 30 ]; then
+		echo "(Checkpoint Data Corrupted)"
+	elif [ $1 = 20 ]; then
+        echo "(Recovery Failed)"
+	elif [ $1 = 143 ]; then
+        echo "(Process Killed, Timeout)"
+	elif [ $1 = 40 ]; then
+        echo "(Test Data Corrupted)"
+	elif [ $1 = 50 ]; then
+        echo "(Wrong Environment)"
+	else
+		echo "(Unknown: $1)"
+	fi
+}
+
+print_summary()
+{
+    # Prints the test summary
+    #
+    # Parameters:
+    # $1: The amount of tests executed
+    # $2: The amount of tests failed
+
+    let local __passed=$1-$2
+
+    print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
+    print_color $COLOR_WHITEBOLD "EXECUTED:\t$1\n"
+    print_color $COLOR_GREENBOLD "PASSED:\t\t$__passed\n"
+    print_color $COLOR_REDBOLD "FAILED:\t\t$2\n"
+}
