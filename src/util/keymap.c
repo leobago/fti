@@ -31,15 +31,21 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   tools.c
- *  @date   October, 2017
- *  @brief  Utility functions for the FTI library.
+ *  @file   keymap.c
+ *  @date   March, 2020
+ *  @author Kai Keller (kellekai@gmx.de)
+ *  @brief  methods for key-value container.
  */
 
-#include "interface.h"
+#include "../interface.h"
 
-// This class is meant to be a singleton
-static FTIT_keymap self = {0};
+/*-------------------------------------------------------------------------*/
+/** 
+    @var static FTIT_keymap self  
+    Singleton instance of the key value container.
+**/
+/*-------------------------------------------------------------------------*/
+static FTIT_keymap self;
 
 int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 {
@@ -53,7 +59,7 @@ int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
     *instance = &self;
 
     self._type_size = type_size;
-    self._max_id = max_key;
+    self._max_key = max_key;
     self._key = talloc( int, max_key+1 );
 
     int i=0; for(; i<max_key+1; i++)
@@ -69,7 +75,7 @@ int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
 
 }
 
-int FTI_KeyMapPushBack( void* new_item, int id )
+int FTI_KeyMapPushBack( void* new_item, int key )
 {
 
     char str[FTI_BUFS];
@@ -84,19 +90,19 @@ int FTI_KeyMapPushBack( void* new_item, int id )
         return FTI_NSCS;
     }
 
-    if( id < 0 ) {
-        FTI_Print("id for FTIT_keymap has to be positive",FTI_EROR);
+    if( key < 0 ) {
+        FTI_Print("key for FTIT_keymap has to be positive",FTI_EROR);
         return FTI_NSCS;
     }
 
-    if( id > self._max_id ) {
-        snprintf( str, FTI_BUFS, "id is larger than 'max_id = %d' for keymap", self._max_id );
+    if( key > self._max_key ) {
+        snprintf( str, FTI_BUFS, "key is larger than 'max_key = %d' for keymap", self._max_key );
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
 
-    if( self._key[id] != -1 ) {
-        snprintf( str, FTI_BUFS, "Requested ID='%d' is already in use", id );
+    if( self._key[key] != -1 ) {
+        snprintf( str, FTI_BUFS, "Requested key='%d' is already in use", key );
         FTI_Print( str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -132,7 +138,7 @@ int FTI_KeyMapPushBack( void* new_item, int id )
 
     memcpy(self._data + self._used*self._type_size, new_item, self._type_size);
     
-    self._key[id] = self._used;
+    self._key[key] = self._used;
     self._used = new_used;
     self._size = new_size;
 
@@ -159,7 +165,7 @@ int FTI_KeyMapData( FTIT_dataset** data, int n )
 
 }
 
-int FTI_KeyMapGet( FTIT_dataset** data, int id )
+int FTI_KeyMapGet( FTIT_dataset** data, int key )
 {
 
     if( !self.initialized ) {
@@ -167,17 +173,17 @@ int FTI_KeyMapGet( FTIT_dataset** data, int id )
         return FTI_NSCS;
     }
 
-    if( id < 0 ) {
-        FTI_Print("id has to be positive",FTI_EROR);
+    if( key < 0 ) {
+        FTI_Print("key has to be positive",FTI_EROR);
         return FTI_NSCS;
     }
 
-    if( id > self._max_id ) { 
-        FTI_Print("id is larger than 'max_id' for keymap",FTI_EROR);
+    if( key > self._max_key ) { 
+        FTI_Print("key is larger than 'max_key' for keymap",FTI_EROR);
         return FTI_NSCS;
     }
 
-    long check_pos = self._key[id];
+    long check_pos = self._key[key];
 
     if( check_pos > (self._used - 1) ) {
         FTI_Print("data location out of bounds", FTI_EROR );
@@ -185,7 +191,7 @@ int FTI_KeyMapGet( FTIT_dataset** data, int id )
     }
 
     if( check_pos == -1 ) {
-        // id not in use
+        // key not in use
         *data = NULL;
         return FTI_SCES;
     }

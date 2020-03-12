@@ -36,7 +36,7 @@
  *  @brief  Utility functions for the FTI library.
  */
 
-#include "interface.h"
+#include "../interface.h"
 #include <dirent.h>
 #include <execinfo.h>
 

@@ -36,7 +36,7 @@
  *  @brief  Utility functions for the FTI library.
  */
 
-#include "interface.h"
+#include "../interface.h"
 
 int FTI_InitDataset( FTIT_execution* FTI_Exec, FTIT_dataset* data , int id )
 {

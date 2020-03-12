@@ -37,9 +37,6 @@
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
 
-/** Maximum size for dynamic reallocation (in number of elements) ~ 10 Mb for FTIT_dataset */
-#define FTI_MAX_REALLOC 10L*1024L  
-
 /** highest value for id of protected variable                             */
 #define FTI_DEFAULT_MAX_VAR_ID 100*1024 // about 100K
 #define FTI_LIMIT_MAX_VAR_ID 10*1024*1024 // about 10 million
