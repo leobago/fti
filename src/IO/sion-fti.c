@@ -125,7 +125,7 @@ int FTI_WriteSionData(FTIT_dataset *data, void *fd){
     WriteSionInfo_t *write_info = (WriteSionInfo_t*) fd;
     int res;
     char str[FTI_BUFS];
-    FTI_Print("Writing Sion Data",FTI_INFO);
+    FTI_Print("Writing Sion Data",FTI_DBUG);
     if ( !data->isDevicePtr) {
         res = FTI_SionWrite(data->ptr, data->size, &write_info->sid);
         if (res != FTI_SCES){

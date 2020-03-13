@@ -246,7 +246,8 @@ int FTI_WriteMPIOData(FTIT_dataset * data, void *fd){
     char str[FTI_BUFS];
     int res;
     if ( !(data->isDevicePtr) ){
-        FTI_Print(str,FTI_INFO);
+        snprintf(str, FTI_BUFS, "Dataset #%d Writing CPU Data.", data->id);
+        FTI_Print(str,FTI_DBUG);
         res = FTI_MPIOWrite(data->ptr, data->size, write_info);
         if (res != FTI_SCES ){
             snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
@@ -260,7 +261,7 @@ int FTI_WriteMPIOData(FTIT_dataset * data, void *fd){
     // Data are stored in the GPU side.
     else {
         snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", data->id);
-        FTI_Print(str,FTI_INFO);
+        FTI_Print(str,FTI_DBUG);
         if ((res = FTI_Try(
                         FTI_TransferDeviceMemToFileAsync(data, FTI_MPIOWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {

@@ -164,16 +164,20 @@ int FTI_WriteRSedChecksum(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It gets the temporary metadata.
+  @brief      Loads metadata from current checkpoint for the postprocessing.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function reads the temporary metadata file created during checkpointing and
-  recovers the checkpoint file name, file size, partner file size and the size
-  of the largest file in the group (for padding if necessary during decoding).
+  This function loads the metadata file created during the preprocessing
+  of a checkpoint if the postprocessing is not performed inline. The function
+  is only called by the FTI head processes. The heads load the checkpoint 
+  file name, file size, partner file size and the size of the largest file 
+  in the group (for padding if necessary during decoding). That is, the 
+  information needed to perform the postprocessing from the plain checkpoint
+  files.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -212,16 +216,21 @@ int FTI_LoadMetaPostprocessing(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It gets the metadata to recover the data after a failure.
+  @brief      Loads the metadata from the meta data files that are needed to
+  perform the recovery on a restart.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
   @param      FTI_Ckpt        Checkpoint metadata.
   @return     integer         FTI_SCES if successful.
 
-  This function reads the metadata file created during checkpointing and
-  recovers the checkpoint file name, file size, partner file size and the size
-  of the largest file in the group (for padding if necessary during decoding).
+  This function reads the metadata file that corresponds to the available
+  checkpoints and loads all nessecary information into the checkpoint 
+  runtime metadata. The metadata is stored inside a fifo queue in increasing
+  order of reliability levels. That is because the lower the reliability, the 
+  more recent the checkpoint creation. On a restart, FTI tries to recover from 
+  the most recent checkpoint. If the recovery failes, the first element of 
+  the queue is removed and the next checkpoint i used for the recovery.
 
  **/
 /*-------------------------------------------------------------------------*/
@@ -298,6 +307,21 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Loads the metadata needed to recover from a posix dCP 
+  checkpoint file.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function reads the metadata which is necessary to restart from a dCP 
+  checkpoint file.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
@@ -352,6 +376,21 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Loads the metadata for the protected datasets.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function loads the metadata from the checkpoint file of the last 
+  successful recovery and loads the data corresponding to FTI protected
+  buffers.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data)
 {

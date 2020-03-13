@@ -33,7 +33,7 @@
  *
  *  @file   utility.c
  *  @date   October, 2017
- *  @brief  API functions for the FTI library.
+ *  @brief  Utility functions for the FTI library.
  */
 
 #include "../interface.h"

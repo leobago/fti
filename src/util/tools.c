@@ -128,6 +128,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     *FTI_Inje = initInje;
 
     int i=0; for(; i<5; i++) FTI_Ckpt[i] = initCkpt;
+    
     return FTI_SCES;
 
 }

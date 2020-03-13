@@ -31,9 +31,10 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   tools.c
+ *  @file   dataset.c
+ *  @author Kai Keller (kellekai@gmx.de)
  *  @date   October, 2017
- *  @brief  Utility functions for the FTI library.
+ *  @brief  Utility functions for FTIT_dataset.
  */
 
 #include "../interface.h"
