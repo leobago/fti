@@ -59,12 +59,13 @@ extern "C" {
       the static instance of the key value container.
       @param        type_size[in]     <b> long          </b>  Element size of container.
       @param        max_key[in]       <b> long          </b>  Maximum value for Key.
+      @param        reset[in]         <b> bool          </b>  if true reset key map.
       @return                       \ref FTI_SCES if successful.  
                                     \ref FTI_NSCS on failure.
 
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMap              ( FTIT_keymap**, long, long );
+    int     FTI_KeyMap              ( FTIT_keymap**, long, long, bool );
     
     /**--------------------------------------------------------------------------
       

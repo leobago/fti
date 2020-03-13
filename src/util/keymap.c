@@ -47,12 +47,16 @@
 /*-------------------------------------------------------------------------*/
 static FTIT_keymap self;
 
-int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key )
+int FTI_KeyMap( FTIT_keymap** instance, long type_size, long max_key, bool reset )
 {
 
     if( type_size == 0 ) {
         FTI_Print("Call to FTI_KeyMap with typesize '0' is invalid",FTI_EROR);
         return FTI_NSCS;
+    }
+    
+    if ( reset && self.initialized ) {
+        self.clear();
     }
 
     assert( self.initialized == false && "Only one instance of FTIT_keymap is allowed!" );

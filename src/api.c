@@ -130,7 +130,6 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     if (res == FTI_NSCS) {
         return FTI_NSCS;
     }
-    FTI_KeyMap( &FTI_Data, sizeof(FTIT_dataset), FTI_Conf.maxVarId );
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec), "malloc arrays for groups and types.");
     FTI_Try(FTI_InitBasicTypes(), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
@@ -151,6 +150,9 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
     else{
         strcpy(FTI_Conf.suffix,"fti");
     }
+    
+    FTI_KeyMap( &FTI_Data, sizeof(FTIT_dataset), FTI_Conf.maxVarId, true );
+    
     FTI_Exec.initSCES = 1;
 
     // init metadata queue
@@ -1554,6 +1556,8 @@ void* FTI_Realloc(int id, void* ptr)
         data->size = data->sizeStored;
         data->ptr = ptr;
         data->count = data->size / data->eleSize;
+        
+        DBG_MSG("size: %lu, filePos: %lu, filePosStored: %lu", -1, data->size, data->filePos, data->filePosStored);
 
         sprintf(str, "Dataset #%d reallocated.", data->id);
         FTI_Print(str, FTI_INFO);
@@ -1766,11 +1770,16 @@ int FTI_Checkpoint(int id, int level)
     // L1 checkpoint and update lateron.
    
     FTI_Exec.nbVarStored = FTI_Exec.nbVar;
-    
-    FTIT_dataset* data; FTI_Data->data( &data, FTI_Exec.nbVar );
-    int k; for(;k<FTI_Exec.nbVar;k++) {
-        data->sizeStored = data->size;
-        data->filePosStored = data->filePos;
+   
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to finalize FTI", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int k=0; for(;k<FTI_Exec.nbVar;k++) {
+        data[k].sizeStored = data[k].size;
+        data[k].filePosStored = data[k].filePos;
     }
 
     return FTI_DONE;
@@ -2104,10 +2113,15 @@ int FTI_FinalizeICP()
    
     FTI_Exec.nbVarStored = FTI_Exec.nbVar;
     
-    FTIT_dataset* data; FTI_Data->data( &data, FTI_Exec.nbVar );
-    int k; for(;k<FTI_Exec.nbVar;k++) {
-        data->sizeStored = data->size;
-        data->filePosStored = data->filePos;
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
+        FTI_Print( "failed to finalize FTI", FTI_WARN );
+        return FTI_NSCS;
+    }
+
+    int k=0; for(;k<FTI_Exec.nbVar;k++) {
+        data[k].sizeStored = data[k].size;
+        data[k].filePosStored = data[k].filePos;
     }
 
     return FTI_SCES;
