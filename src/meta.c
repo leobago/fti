@@ -242,7 +242,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             meta.level = i;
 
-            FTI_Exec->mqueue.push( meta );
+            FTI_Exec->mqueue.push( &FTI_Exec->mqueue, meta );
 
         }
 
@@ -289,7 +289,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         meta.maxFs = ini.getLong( &ini, "0:Ckpt_file_maxs" );
 
-        FTI_Exec->mqueue.push( meta );
+        FTI_Exec->mqueue.push( &FTI_Exec->mqueue, meta );
 
         ini.clear( &ini );
 

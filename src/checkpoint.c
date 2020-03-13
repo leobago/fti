@@ -413,7 +413,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
 
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptMeta.level != 6 &&  FTI_Exec->ckptMeta.level != 5 ) {
 
-        FTI_Exec->mqueue.clear();
+        FTI_Exec->mqueue.clear( &FTI_Exec->mqueue );
 
     }
 

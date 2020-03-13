@@ -594,19 +594,22 @@ extern "C" {
 
     }FTIT_IO;
 
+    typedef struct FTIT_mqueue FTIT_mqueue;
+
     typedef struct FTIT_mnode
     {
         struct FTIT_mnode*  _next;
         FTIT_metadata*      _data;
     } FTIT_mnode;
-
+    
     typedef struct FTIT_mqueue
     {
         FTIT_mnode*     _front;
-        bool            (*empty)    ( void );
-        int             (*push)     ( FTIT_metadata );
-        int             (*pop)      ( FTIT_metadata* );
-        void             (*clear)    ( void );
+        bool            _initialized;
+        bool            (*empty)    ( FTIT_mqueue* );
+        int             (*push)     ( FTIT_mqueue*, FTIT_metadata );
+        int             (*pop)      ( FTIT_mqueue*, FTIT_metadata* );
+        int             (*clear)    ( FTIT_mqueue* );
     } FTIT_mqueue;
 
     /** @typedef    FTIT_execution

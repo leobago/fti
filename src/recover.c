@@ -241,10 +241,10 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
-        while( !FTI_Exec->mqueue.empty() ) 
+        while( !FTI_Exec->mqueue.empty(&FTI_Exec->mqueue) ) 
         {
 
-            FTI_Exec->mqueue.pop( &FTI_Exec->ckptMeta );
+            FTI_Exec->mqueue.pop( &FTI_Exec->mqueue, &FTI_Exec->ckptMeta );
 
             int level = FTI_Exec->ckptMeta.level;
 
@@ -332,7 +332,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         FTI_Ckpt[4].hasCkpt = true;
                     }
                 }
-                FTI_Exec->mqueue.clear();
+                FTI_Exec->mqueue.clear( &FTI_Exec->mqueue );
 
                 //Update ckptId and ckptLevel and lastCkptLvel
                 FTI_Exec->ckptId = ckptId;
