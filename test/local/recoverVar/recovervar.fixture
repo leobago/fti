@@ -2,21 +2,16 @@
 
 shortname()
 {
-    echo "recover-var"
+    echo "recovervar"
 }
 
 name()
 {
-    echo "$(shortname) ($(iolib_id_to_name $iolib)): L$level, head=$head, keep=$keep, inline=($l2,$l3,$l4)"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level head=0 keep=0 inline=(1,1,1)"
 }
 
 setup()
 {
-    head=0
-    keep=0
-    l2=1
-    l3=1
-    l4=1
     cfgfile="/tmp/configfile"
 
     iolib=$1
@@ -30,12 +25,16 @@ setup()
 
 teardown()
 {
+    unset cfgfile
+    unset iolib
+    unset level
     rm -rf "$cfgfile"
 }
 
 runtest()
 {
     app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
+    
     run_id=$(fti_config_get "$cfgfile" "exec_id")
 
     app_run_interrupt ./recoverVar/recoverVar.exe $cfgfile 0 $level $diffsize

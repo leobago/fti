@@ -1,10 +1,10 @@
 #!/bin/bash
 # ----------------------------- Engine Variables ------------------------------
 
-COLOR_RESET='\033[0m'
-COLOR_WHITEBOLD='\033[1m\033[37m'
-COLOR_GREENBOLD='\033[1m\033[32m'
-COLOR_REDBOLD='\033[1m\033[31m'
+declare -r COLOR_RESET='\033[0m'
+declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
+declare -r COLOR_GREENBOLD='\033[1m\033[32m'
+declare -r COLOR_REDBOLD='\033[1m\033[31m'
 
 # PROCS: the rank count for the FTI test application
 if [ -z $PROCS ]; then
@@ -13,12 +13,12 @@ fi
 
 # MPIRUN: command to run an FTI test application
 if [ -z $MPIRUN ]; then
-    MPIRUN="mpirun --oversubscribe $MPIRUN_ARGS -n $PROCS"
+    MPIRUN="mpirun $MPIRUN_ARGS -n $PROCS"
 fi
 
-# TIMEOUT: timeout to interrupt a test running with 'test_interrupt'
-if [ -z $TIMEOUT ]; then
-    TIMEOUT=30
+# timeout: timeout to interrupt a test running with 'test_interrupt'
+if [ -z $timeout ]; then
+    timeout=30
 fi
 
 # STDOUT: standard output for FTI test applications
@@ -26,10 +26,29 @@ if [ -z $STDOUT ]; then
     STDOUT="/tmp/fti-test.log"
 fi
 
+# -------------------------- Engine Variable Setters --------------------------
+
+engine_set_timeout() {
+    # Set the timeout variable for the test engine
+    #
+    # Parameters:
+    # $1: An integer representing the timeout in seconds
+    #
+    # Exception:
+    # The value in seconds must be greater or equal to 10
+    
+    if [[ $1 -lt "10" ]] || [[ $1 == -* ]]; then
+        echo -e "Wrong argument for timeout: "$1
+        echo -e "usage: [command] -t <integer -ge 10>"
+        exit 0
+    fi
+    timeout="$1"
+    echo "[OPTION] Set timeout -> "$timeout
+}
+
 # -------------------------- Fixture Setup Helpers ----------------------------
 
-iolib_name_to_id()
-{
+iolib_name_to_id() {
     # Echo the FTI id associated to a IO library name
     #
     # Parameters:
@@ -40,21 +59,20 @@ iolib_name_to_id()
 
     if [ "$1" = "POSIX" ]; then
         echo '1'
-    elif [ "$1" = "MPIIO" ]; then 
+    elif [ "$1" = "MPIIO" ]; then
         echo '2'
-    elif [ "$1" = "FTIFF" ]; then 
+    elif [ "$1" = "FTIFF" ]; then
         echo '3'
-    elif [ "$1" = "SIONLIB" ]; then 
+    elif [ "$1" = "SIONLIB" ]; then
         echo '4'
-    elif [ "$1" = "HDF5" ]; then 
+    elif [ "$1" = "HDF5" ]; then
         echo '5'
     else
         return 1
     fi
 }
 
-iolib_id_to_name()
-{
+iolib_id_to_name() {
     # Echo the IO library name associated to an FTI id
     #
     # Parameters:
@@ -65,21 +83,20 @@ iolib_id_to_name()
 
     if [ "$1" = 1 ]; then
         echo 'POSIX'
-    elif [ "$1" = 2 ]; then 
+    elif [ "$1" = 2 ]; then
         echo 'MPIIO'
-    elif [ "$1" = 3 ]; then 
+    elif [ "$1" = 3 ]; then
         echo 'FTIFF'
-    elif [ "$1" = 4 ]; then 
+    elif [ "$1" = 4 ]; then
         echo 'SIONLIB'
-    elif [ "$1" = 5 ]; then 
+    elif [ "$1" = 5 ]; then
         echo 'HDF5'
     else
         return 1
     fi
 }
 
-fti_config_new()
-{
+fti_config_new() {
     # Creates a default FTI config file for the test cases
     #
     # Parameters:
@@ -92,9 +109,9 @@ fti_config_new()
 [basic]
 head                           = 0
 node_size                      = 4
-ckpt_dir                       = Local
-glbl_dir                       = Global
-meta_dir                       = Meta
+ckpt_dir                       = /tmp/Local
+glbl_dir                       = /tmp/Global
+meta_dir                       = /tmp/Meta
 ckpt_io                        = 1
 ckpt_l1                        = 0
 ckpt_l2                        = 0
@@ -103,7 +120,7 @@ ckpt_l4                        = 0
 inline_l2                      = 1
 inline_l3                      = 1
 inline_l4                      = 1
-keep_last_ckpt = 0
+keep_last_ckpt                 = 0
 group_size                     = 4
 verbosity                      = 2
 
@@ -128,8 +145,7 @@ local_test                     = 1
 EOF
 }
 
-fti_config_get()
-{
+fti_config_get() {
     # Echo the value of an FTI config field
     #
     # Parameters:
@@ -139,11 +155,10 @@ fti_config_get()
     local __configfile=$1
     local __field=$2
 
-    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' < $__configfile)"
+    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' <$__configfile)"
 }
 
-fti_config_set()
-{
+fti_config_set() {
     # Set the value of an FTI config field
     #
     # Parameters:
@@ -151,33 +166,39 @@ fti_config_set()
     # $2: The field name in the configuration file
     # $3: The new value for the field
 
-    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $1)" > $1
+    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $1)" >$1
 }
 
 # --------------------------- Fixture Test Helpers ----------------------------
 
-app_run_normal()
-{
+app_run_normal() {
     # Executes an MPI application until its completion
     #
     # Parameters:
     # $1: The path to the application binary
     # $@: The application's parameters
+    #
+    # Warning:
+    # mpirun reads from stdin.
+    # It makes it impossible to run mpirun in a while loop reading a file.
+    # This breaks the loop as mpirun consumes the whole file contents as input.
+    # To circunvent this, we redirect stdin to /dev/null
+    # If this ever needs to be changed, modify the behavior of the testrunner.
+    # Otherwise, only the first test case will be executed from a suite.
     
-    ( set -x $MPIRUN $@ &>> $STDOUT )
+    ( set -x; $MPIRUN $@ &>>$STDOUT < /dev/null )
 }
 
-app_run_interrupt()
-{
-    # Executes an MPI application and kill it after TIMEOUT seconds
+app_run_interrupt() {
+    # Executes an MPI application and kill it after timeout seconds
     #
     # Parameters:
     # $1: The path to the application binary
     # $@: The application's parameters
 
-    local __pid=$BASHPID
-    (sleep $TIMEOUT; kill $__pid > /dev/null 2>&1 ) &
-    app_run_normal $@
+    ( local __pid=$BASHPID
+    ( sleep $timeout; kill $__pid >/dev/null 2>&1; ) &
+    app_run_normal $@ )
 }
 
 assert_app_success() {
@@ -190,7 +211,7 @@ assert_app_success() {
     # 0 if the test succeeded
 
     local __status=$(print_test_status $1)
-    
+
     local __msg="$COLOR_REDBOLD Failed"
     if [ $1 = 0 ]; then
         __msg="$COLOR_GREENBOLD Passed"
@@ -219,8 +240,7 @@ assert_app_failure() {
 
 # -------------------------- Test Runner Functions ----------------------------
 
-test_case()
-{
+test_case() {
     # Run a test defined in a fixture with a set of input data
     #
     # Parameters:
@@ -228,15 +248,19 @@ test_case()
     #
     # Returns:
     # Non-zero values if the test fails
+    #
+    # Detailed:
+    # Run a test case until completion and checks if it failed.
+    # If it fails, append the log into a file named after the test suite.
 
     setup $@
-    print_color $COLOR_WHITEBOLD "[ *** $(name) *** ]\n"
+    print_color $COLOR_WHITEBOLD "$(name)\n"
     runtest
 
-    local __exitcode=$?    
+    local __exitcode=$?
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >> "$(shortname)"
-        cat $STDOUT >> "$(shortname)"
+        echo "$(name)" >> "$(shortname)-failed.log"
+        cat $STDOUT >> "$(shortname)-failed.log"
     fi
     teardown
     rm -rf $STDOUT
@@ -245,8 +269,7 @@ test_case()
 
 # ------------------------ Helpers for pretty printing ------------------------
 
-print_color()
-{
+print_color() {
     # Prints a string in a different color
     #
     # Parameters:
@@ -260,44 +283,27 @@ print_color()
     printf "$1$2$COLOR_RESET"
 }
 
-print_test_status()
-{
+print_test_status() {
     # Pretty string for the exit status of an FTI test application
     #
     # Parameters:
     # $1: The integer return value of an FTI test application
 
     if [ $1 = 0 ]; then
-	    echo "(Success)"
-	elif [ $1 = 255 ]; then
+        echo "(Success)"
+    elif [ $1 = 255 ]; then
         echo "(FTI Abort)"
-	elif [ $1 = 30 ]; then
-		echo "(Checkpoint Data Corrupted)"
-	elif [ $1 = 20 ]; then
+    elif [ $1 = 30 ]; then
+        echo "(Checkpoint Data Corrupted)"
+    elif [ $1 = 20 ]; then
         echo "(Recovery Failed)"
-	elif [ $1 = 143 ]; then
+    elif [ $1 = 143 ]; then
         echo "(Process Killed, Timeout)"
-	elif [ $1 = 40 ]; then
+    elif [ $1 = 40 ]; then
         echo "(Test Data Corrupted)"
-	elif [ $1 = 50 ]; then
+    elif [ $1 = 50 ]; then
         echo "(Wrong Environment)"
-	else
-		echo "(Unknown: $1)"
-	fi
-}
-
-print_summary()
-{
-    # Prints the test summary
-    #
-    # Parameters:
-    # $1: The amount of tests executed
-    # $2: The amount of tests failed
-
-    let local __passed=$1-$2
-
-    print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
-    print_color $COLOR_WHITEBOLD "EXECUTED:\t$1\n"
-    print_color $COLOR_GREENBOLD "PASSED:\t\t$__passed\n"
-    print_color $COLOR_REDBOLD "FAILED:\t\t$2\n"
+    else
+        echo "(Unknown: $1)"
+    fi
 }
