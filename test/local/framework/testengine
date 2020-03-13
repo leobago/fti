@@ -6,6 +6,8 @@ declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
 declare -r COLOR_GREENBOLD='\033[1m\033[32m'
 declare -r COLOR_REDBOLD='\033[1m\033[31m'
 
+declare -r ENGINEDIR="$(dirname $0)/framework"
+
 # PROCS: the rank count for the FTI test application
 if [ -z $PROCS ]; then
     PROCS=16
@@ -105,44 +107,7 @@ fti_config_new() {
     # Warning:
     # I know it is ugly, but do not remove the identation on this function.
     # cat prints to a file and it does not ignore the tabular character (\t).
-    cat <<EOF >$1
-[basic]
-head                           = 0
-node_size                      = 4
-ckpt_dir                       = /tmp/Local
-glbl_dir                       = /tmp/Global
-meta_dir                       = /tmp/Meta
-ckpt_io                        = 1
-ckpt_l1                        = 0
-ckpt_l2                        = 0
-ckpt_l3                        = 0
-ckpt_l4                        = 0
-inline_l2                      = 1
-inline_l3                      = 1
-inline_l4                      = 1
-keep_last_ckpt                 = 0
-group_size                     = 4
-verbosity                      = 2
-
-
-[restart]
-failure                        = 0
-exec_id                        = 2017-05-18_13-35-26
-
-
-[injection]
-rank                           = 0
-number                         = 0
-position                       = 0
-frequency                      = 0
-
-
-[advanced]
-block_size                     = 1024
-transfer_size                  = 16
-mpi_tag                        = 2612
-local_test                     = 1
-EOF
+    cat "$ENGINEDIR/mock.cfg" > "$1"
 }
 
 fti_config_get() {
