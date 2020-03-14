@@ -426,7 +426,6 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
         data.filePos = ini.getLong( &ini, str );
-        data.filePosStored = ini.getLong( &ini, str );
 
         snprintf(str, FTI_BUFS, "%d:Var%d_name", FTI_Topo->groupRank, k);
         strncpy(data.idChar, ini.getString( &ini, str ), FTI_BUFS);

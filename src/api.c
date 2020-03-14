@@ -1556,8 +1556,6 @@ void* FTI_Realloc(int id, void* ptr)
         data->size = data->sizeStored;
         data->ptr = ptr;
         data->count = data->size / data->eleSize;
-        
-        DBG_MSG("size: %lu, filePos: %lu, filePosStored: %lu", -1, data->size, data->filePos, data->filePosStored);
 
         sprintf(str, "Dataset #%d reallocated.", data->id);
         FTI_Print(str, FTI_INFO);
@@ -1779,7 +1777,6 @@ int FTI_Checkpoint(int id, int level)
 
     int k=0; for(;k<FTI_Exec.nbVar;k++) {
         data[k].sizeStored = data[k].size;
-        data[k].filePosStored = data[k].filePos;
     }
 
     return FTI_DONE;
@@ -2121,7 +2118,6 @@ int FTI_FinalizeICP()
 
     int k=0; for(;k<FTI_Exec.nbVar;k++) {
         data[k].sizeStored = data[k].size;
-        data[k].filePosStored = data[k].filePos;
     }
 
     return FTI_SCES;
@@ -2278,7 +2274,7 @@ int FTI_Recover()
 
 #else
     for (i = 0; i < FTI_Exec.nbVarStored; i++) {
-        size_t filePos = data[i].filePosStored;
+        size_t filePos = data[i].filePos;
         //strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         fread(data[i].ptr, 1, data[i].sizeStored, fd);
@@ -2613,7 +2609,7 @@ int FTI_RecoverVar(int id)
     sprintf(str, "Recovering var %d ", id);
     FTI_Print(str, FTI_DBUG);
 
-    long filePos = data->filePosStored;
+    long filePos = data->filePos;
     fseek(fd,filePos, SEEK_SET);
     fread(data->ptr, 1, data->sizeStored, fd);
 

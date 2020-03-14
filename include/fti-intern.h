@@ -39,7 +39,7 @@
 
 /** highest value for id of protected variable                             */
 #define FTI_DEFAULT_MAX_VAR_ID 100*1024 // about 100K
-#define FTI_LIMIT_MAX_VAR_ID 10*1024*1024 // about 10 million
+#define FTI_LIMIT_MAX_VAR_ID INT_MAX // about 10 million
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -434,8 +434,7 @@ extern "C" {
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
         char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
-        size_t				filePos; 
-        size_t              filePosStored;
+        size_t				filePos;            /**< offset of buffer in ckpt file                  */ 
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -443,16 +442,16 @@ extern "C" {
      *
      *  This type stores temporary checkpoint metadata.
      */
-    typedef struct FTIT_metadata {
-        int             level;             /**< TRUE if metadata exists               */
-        long            maxFs;              /**< Maximum file size.                    */
-        long            fs;                 /**< File size.                            */
-        long            pfs;                /**< Partner file size.                    */
-        int             ckptId;  /**< Current Ckpt file name. [FTI_BUFS]    */        
-        int             ckptIdL4;  /**< Current Ckpt file name. [FTI_BUFS]    */        
-        char            ckptFile[FTI_BUFS];           /**< Ckpt file name. [FTI_BUFS]            */
-    } FTIT_metadata;
-
+ 	typedef struct FTIT_metadata {
+ 	    int             level;              /**< checkpoint level                      */
+ 	    long            maxFs;              /**< Maximum file size.                    */
+ 	    long            fs;                 /**< File size.                            */
+ 	    long            pfs;                /**< Partner file size.                    */
+ 	    int             ckptId;             /**< Current Ckpt ID                       */        
+ 	    int             ckptIdL4;           /**< Current L4 Ckpt ID                    */        
+ 	    char            ckptFile[FTI_BUFS]; /**< Ckpt file name. [FTI_BUFS]            */
+ 	} FTIT_metadata;
+ 
     /** @typedef    FTIT_configuration
      *  @brief      Configuration metadata.
      *
