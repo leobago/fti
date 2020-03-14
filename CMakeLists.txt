@@ -409,9 +409,18 @@ endif()
 
 # Installable config
 
+include(CMakePackageConfigHelpers)
 set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH "cmake modules directory (DATADIR/FTI/cmake)")
+write_basic_package_version_file("${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
+		VERSION "1.3"
+		COMPATIBILITY AnyNewerVersion
+)
 install(EXPORT FTI_EXPORT DESTINATION "${INSTALL_CMAKEDIR}" FILE "FTILib.cmake")
-install(FILES CMakeScripts/FTIConfig.cmake DESTINATION "${INSTALL_CMAKEDIR}")
+install(FILES 
+	"${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
+	CMakeScripts/FTIConfig.cmake
+	DESTINATION "${INSTALL_CMAKEDIR}"
+)
 
 
 # in tree config (most likely useless...)
