@@ -7,7 +7,7 @@ shortname()
 
 name()
 {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level head=0 keep=0 inline=(1,1,1)"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level diffsize=$diffsize head=0 keep=0 inline=(1,1,1)"
 }
 
 setup()
@@ -17,7 +17,6 @@ setup()
     iolib=$1
     level=$2
     diffsize=$3
-
     fti_config_new "$cfgfile"
     fti_config_set "$cfgfile" "ckpt_io" "$iolib"
     fti_config_set "$cfgfile" "keep_last_ckpt" "0"

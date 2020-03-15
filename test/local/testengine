@@ -6,7 +6,7 @@ declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
 declare -r COLOR_GREENBOLD='\033[1m\033[32m'
 declare -r COLOR_REDBOLD='\033[1m\033[31m'
 
-declare -r ENGINEDIR="$(dirname $0)/framework"
+declare -r CFG_MOCK='fti_cfg_mock.cfg'
 
 # PROCS: the rank count for the FTI test application
 if [ -z $PROCS ]; then
@@ -21,6 +21,12 @@ fi
 # timeout: timeout to interrupt a test running with 'test_interrupt'
 if [ -z $timeout ]; then
     timeout=30
+fi
+
+# maintain_app_logs: flag to keep the application logs despite test result
+# Defaults to False (not 0)
+if [ -z $maintain_app_logs ]; then
+    maintain_app_logs=1
 fi
 
 # STDOUT: standard output for FTI test applications
@@ -46,6 +52,13 @@ engine_set_timeout() {
     fi
     timeout="$1"
     echo "[OPTION] Set timeout -> "$timeout
+}
+
+engine_set_keep_logs()
+{
+    # Set the flag to keep test application logs even when they are successful
+
+    maintain_app_logs=0
 }
 
 # -------------------------- Fixture Setup Helpers ----------------------------
@@ -107,7 +120,7 @@ fti_config_new() {
     # Warning:
     # I know it is ugly, but do not remove the identation on this function.
     # cat prints to a file and it does not ignore the tabular character (\t).
-    cat "$ENGINEDIR/mock.cfg" > "$1"
+    cat "$CFG_MOCK" > "$1"
 }
 
 fti_config_get() {
@@ -205,6 +218,26 @@ assert_app_failure() {
 
 # -------------------------- Test Runner Functions ----------------------------
 
+get_fixture_fail_log_name()
+{
+    # Get the log filename to store the stdout of failure cases
+    #
+    # Warning:
+    # This function will only work after sourcing a fixture script
+
+    echo "$(shortname)-failed.log"
+}
+
+get_fixture_log_name()
+{
+    # Get the log filename to store the stdout when maintaining logs
+    #
+    # Warning:
+    # This function will only work after sourcing a fixture script
+
+    echo "$(shortname).log"
+}
+
 test_case() {
     # Run a test defined in a fixture with a set of input data
     #
@@ -224,8 +257,11 @@ test_case() {
 
     local __exitcode=$?
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >> "$(shortname)-failed.log"
-        cat $STDOUT >> "$(shortname)-failed.log"
+        echo "$(name)" >> "$(get_fixture_fail_log_name)"
+        cat $STDOUT >> "$(get_fixture_fail_log_name)"
+    elif [ $maintain_app_logs -eq 0 ]; then
+        echo "$(name)" >> "$(get_fixture_log_name)"
+        cat $STDOUT >> "$(get_fixture_log_name)"
     fi
     teardown
     rm -rf $STDOUT

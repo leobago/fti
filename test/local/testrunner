@@ -1,0 +1,114 @@
+#!/bin/bash
+
+execute_case() {
+    # Execute a single test case from a suite/fixture pair
+    #
+    # Parameters:
+    # $@ The fixture's parameters for the setup function
+
+    let ntests=$ntests+1
+    test_case $@
+    if [ ! $? -eq 0 ]; then
+        let nfailures=$nfailures+1
+    fi
+}
+
+print_fixture_feedback() {
+    # Print some fixture-related feedback after running all cases
+    #
+    # Parameters:
+    # $1: The number of failures in the given suite for the fixture
+
+    if [ $maintain_app_logs -eq 0 ]; then
+        print_color $COLOR_WHITEBOLD "Completed application logs stored in $(get_fixture_log_name)\n"
+    fi
+    if [ $1 -ne 0 ]; then
+        print_color $COLOR_WHITEBOLD "Failed application logs stored in $(get_fixture_fail_log_name)\n"
+    fi
+}
+
+execute_suites() {
+    # Execute a set of suites for each argument value
+    #
+    # Parameters
+    # $@: A sequence of test suite names
+
+    while [ $# -gt 0 ]; do
+        # add/overwrite the test fixture function definitions
+        source "$1.fixture"
+
+        local __local_failures=$nfailures
+        # Erase the old logs so reports contain only the most recent data
+        rm -rf "$(get_fixture_fail_log_name)"
+        if [ $maintain_app_logs -eq 0 ]; then
+            rm -rf "$(get_fixture_log_name)"
+        fi
+
+        # Get the amount of tests in the suite
+        nlines=$(grep -c "^" "$1.suite")
+        print_color $COLOR_WHITEBOLD "Executing Suite $1\n"
+
+        # Execute each test case
+        while IFS= read -r line; do
+            print_color $COLOR_WHITEBOLD "Test ($(($ntests + 1))/$nlines) "
+            execute_case $line
+        done <"$1.suite"
+
+        # Textual feedback
+        print_fixture_feedback $(( nfailures-$__local_failures ))
+        shift
+    done
+}
+
+source testengine
+declare -a arguments=()
+
+# Parse the command line outputs, extracts the relevant and maintain the rest
+nargs=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    -t | --set-timeout)
+        engine_set_timeout $2
+        shift
+        shift
+        ;;
+    -c | --custom-params)
+        custom=0
+        shift
+        ;;
+    -m | --maintain-logs)
+        engine_set_keep_logs
+        shift
+        ;;
+    -h | --help)
+        #display_usage
+        exit 0
+        ;;
+    *)
+        arguments[$nargs]="$1"
+        let nargs=$nargs+1
+        shift
+        ;;
+    esac
+done
+
+ntests=0
+nfailures=0
+
+if [ -z $custom ]; then
+    # Execute a sequence of suites if not a custom test
+    execute_suites "${arguments[@]}"
+else
+    # Executes a test from a fixture with custom parameters
+    source "${arguments[0]}.fixture"
+    unset 'arguments[0]'
+    execute_case "${arguments[@]}"
+    print_fixture_feedback $nfailures
+fi
+
+# Print the summary of tests executed
+let npassed=$ntests-$nfailures
+print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
+print_color $COLOR_WHITEBOLD "EXECUTED:\t$ntests\n"
+print_color $COLOR_GREENBOLD "PASSED:\t\t$npassed\n"
+print_color $COLOR_REDBOLD "FAILED:\t\t$nfailures\n"
