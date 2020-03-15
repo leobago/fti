@@ -8,14 +8,14 @@ declare -r COLOR_REDBOLD='\033[1m\033[31m'
 
 declare -r CFG_MOCK='fti_cfg_mock.cfg'
 
-# PROCS: the rank count for the FTI test application
-if [ -z $PROCS ]; then
-    PROCS=16
+# nranks: the rank count for the FTI test application
+if [ -z $nranks ]; then
+    nranks=16
 fi
 
 # MPIRUN: command to run an FTI test application
 if [ -z $MPIRUN ]; then
-    MPIRUN="mpirun $MPIRUN_ARGS -n $PROCS"
+    MPIRUN="mpirun $MPIRUN_ARGS -n $nranks"
 fi
 
 # timeout: timeout to interrupt a test running with 'test_interrupt'
@@ -29,9 +29,14 @@ if [ -z $maintain_app_logs ]; then
     maintain_app_logs=1
 fi
 
-# STDOUT: standard output for FTI test applications
-if [ -z $STDOUT ]; then
-    STDOUT="/tmp/fti-test.log"
+# cfgfile: the name of the config file used for every FTI test case
+if [ -z $cfgfile ]; then
+    cfgfile="/tmp/configfile"
+fi
+
+# tstdout: standard output for FTI test applications
+if [ -z $tstdout ]; then
+    tstdout="/tmp/fti-test.log"
 fi
 
 # -------------------------- Engine Variable Setters --------------------------
@@ -111,40 +116,24 @@ iolib_id_to_name() {
     fi
 }
 
-fti_config_new() {
-    # Creates a default FTI config file for the test cases
-    #
-    # Parameters:
-    # $1: The path of the created FTI config file
-    #
-    # Warning:
-    # I know it is ugly, but do not remove the identation on this function.
-    # cat prints to a file and it does not ignore the tabular character (\t).
-    cat "$CFG_MOCK" > "$1"
-}
-
 fti_config_get() {
-    # Echo the value of an FTI config field
+    # Get the value of an FTI config field
     #
     # Parameters:
-    # $1: The path to the configuration file
-    # $2: The field name in the configuration file
+    # $1: The field name in the configuration file
 
-    local __configfile=$1
-    local __field=$2
-
-    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' <$__configfile)"
+    local __field=$1
+    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' <$cfgfile)"
 }
 
 fti_config_set() {
     # Set the value of an FTI config field
     #
     # Parameters:
-    # $1: The path to the configuration file
-    # $2: The field name in the configuration file
-    # $3: The new value for the field
+    # $1: The field name in the configuration file
+    # $2: The new value for the field
 
-    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $1)" >$1
+    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $cfgfile)" >$cfgfile
 }
 
 # --------------------------- Fixture Test Helpers ----------------------------
@@ -164,7 +153,7 @@ app_run_normal() {
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
     
-    ( set -x; $MPIRUN $@ &>>$STDOUT < /dev/null )
+    ( set -x; $MPIRUN $@ &>>$tstdout < /dev/null )
 }
 
 app_run_interrupt() {
@@ -179,41 +168,60 @@ app_run_interrupt() {
     app_run_normal $@ )
 }
 
-assert_app_success() {
-    # Checks the return of an FTI test application and asserts its success
-    #
-    # Parameters:
-    # $1: The FTI test application return value
-    #
-    # Returns:
-    # 0 if the test succeeded
+pass()
+{
+    # Force success in a test
 
-    local __status=$(print_test_status $1)
-
-    local __msg="$COLOR_REDBOLD Failed"
-    if [ $1 = 0 ]; then
-        __msg="$COLOR_GREENBOLD Passed"
-    fi
-
-    print_color "$__msg $__status\n"
-    return $1
+    print_color "$COLOR_GREENBOLD Passed\n"
+    return 0
 }
 
-assert_app_failure() {
-    # Checks the return of an FTI test application and asserts its failure
+fail()
+{
+    # Force failure in a test
     #
     # Parameters:
-    # $1: The FTI test application return value
-    #
-    # Returns:
-    # 0 if the test succeeded
-
-    local __status=$(print_test_status $1)
-    if [ $1 = 0 ]; then
-        print_color "$COLOR_REDBOLD Failed $__status\n"
-        return 1
+    # $1: An optional message to be printed
+    
+    if [ $# -eq 1 ]; then
+        print_color "$COLOR_REDBOLD Failed because: $1\n"
+    else
+        print_color "$COLOR_REDBOLD Failed\n"
     fi
-    print_color "$COLOR_REDBOLD Passed $__status\n"
+    return 1
+}
+
+assert_equals()
+{
+    # Check if a numerical value is equal to another numerical value
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+    if [ $1 -eq $2 ]; then
+        pass
+        return $?
+    fi
+    fail "$3"
+    return $?
+}
+
+assert_not_equals()
+{
+    # Check if a numerical value is different to another
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ $1 -ne $2 ]; then
+        pass
+        return $?
+    fi
+    fail "$3"
+    return $?
 }
 
 # -------------------------- Test Runner Functions ----------------------------
@@ -251,6 +259,7 @@ test_case() {
     # Run a test case until completion and checks if it failed.
     # If it fails, append the log into a file named after the test suite.
 
+    cat "$CFG_MOCK" > $cfgfile # create the configfile
     setup $@
     print_color $COLOR_WHITEBOLD "$(name)\n"
     runtest
@@ -258,13 +267,14 @@ test_case() {
     local __exitcode=$?
     if [ $__exitcode -ne 0 ]; then
         echo "$(name)" >> "$(get_fixture_fail_log_name)"
-        cat $STDOUT >> "$(get_fixture_fail_log_name)"
+        cat $tstdout >> "$(get_fixture_fail_log_name)"
     elif [ $maintain_app_logs -eq 0 ]; then
         echo "$(name)" >> "$(get_fixture_log_name)"
-        cat $STDOUT >> "$(get_fixture_log_name)"
+        cat $tstdout >> "$(get_fixture_log_name)"
     fi
     teardown
-    rm -rf $STDOUT
+    rm -rf $cfgfile
+    rm -rf $tstdout
     return $__exitcode
 }
 
@@ -282,29 +292,4 @@ print_color() {
     # ex.: print_color "This is my testname"
 
     printf "$1$2$COLOR_RESET"
-}
-
-print_test_status() {
-    # Pretty string for the exit status of an FTI test application
-    #
-    # Parameters:
-    # $1: The integer return value of an FTI test application
-
-    if [ $1 = 0 ]; then
-        echo "(Success)"
-    elif [ $1 = 255 ]; then
-        echo "(FTI Abort)"
-    elif [ $1 = 30 ]; then
-        echo "(Checkpoint Data Corrupted)"
-    elif [ $1 = 20 ]; then
-        echo "(Recovery Failed)"
-    elif [ $1 = 143 ]; then
-        echo "(Process Killed, Timeout)"
-    elif [ $1 = 40 ]; then
-        echo "(Test Data Corrupted)"
-    elif [ $1 = 50 ]; then
-        echo "(Wrong Environment)"
-    else
-        echo "(Unknown: $1)"
-    fi
 }

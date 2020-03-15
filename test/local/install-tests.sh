@@ -1,10 +1,10 @@
 #!/bin/bash
 
-origin='/home/alexandre/Documents/git/contrib/fti/test/local'
-dest='/home/alexandre/Documents/git/contrib/fti/build/test/local'
+dest='../../build/test/local'
 
-cp $origin/testrunner $dest/
-cp $origin/testengine $dest/
-cp $origin/fti_cfg_mock.cfg $dest/
+cp testrunner $dest/
+cp testengine $dest/
+cp fti_cfg_mock.cfg $dest/
 
-cp $origin/recovervar.* $dest/
+cp recovervar.* $dest/
+cp dCP.* $dest/
