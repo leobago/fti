@@ -43,19 +43,18 @@ int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
 {
     FTI_Exec->wasLastOffline = 1;
     // Head needs ckpt. ID to determine ckpt file name.
-    int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head
+    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
     if (status != FTI_SCES) { //If Writing checkpoint failed
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Opens and POSIX file (Only for write).
+  @brief      Opens and HDF5 file (Only for write).
   @param      fileDesc        The file descriptor.
   @return     integer         FTI_SCES on success.
  **/
@@ -88,7 +87,7 @@ int FTI_PosixOpen(char *fn, void *fileDesc)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Closes the POSIX file  
+  @brief      Closes the HDF5 file  
   @param      fileDesc          The fileDescriptor 
   @return     integer         Return FTI_SCES  when successfuly write the data to the file 
 
@@ -219,23 +218,23 @@ int FTI_PosixSync(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
+void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
 {
-
+    
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
-
+    
     char fn[FTI_BUFS];
-    int level = FTI_Exec->ckptMeta.level;
+    int level = FTI_Exec->ckptLvel;
 
     WritePosixInfo_t *write_info = (WritePosixInfo_t *) malloc (sizeof(WritePosixInfo_t));
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     write_info->flag = 'w';
@@ -246,7 +245,7 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to using POSIX format.
+  @brief      Writes ckpt to using MPIIO file format.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -256,15 +255,15 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosixData(FTIT_dataset * data, void *fd)
+int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
 {
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
     char str[FTI_BUFS];
     int res;
 
-    if ( !(data->isDevicePtr) ){
-        if (( res = FTI_Try(FTI_PosixWrite(data->ptr, data->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+    if ( !(FTI_DataVar->isDevicePtr) ){
+        if (( res = FTI_Try(FTI_PosixWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;
@@ -275,9 +274,9 @@ int FTI_WritePosixData(FTIT_dataset * data, void *fd)
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(data,  FTI_PosixWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;

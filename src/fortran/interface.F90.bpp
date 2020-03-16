@@ -49,8 +49,7 @@ module FTI
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
 			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
       FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
-      FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP, FTI_setIDFromString, &
-      FTI_getIDFromString
+      FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP
 
 
 
@@ -69,31 +68,6 @@ module FTI
 
   endinterface
 
-  interface 
-
-    function FTI_setIDFromString_impl(name) &
-              bind(c, name='FTI_setIDFromString')
-
-      use ISO_C_BINDING
-      integer (c_int) :: FTI_setIDFromString_impl
-      character(c_char), intent(IN) :: name(*)
-
-    endfunction FTI_setIDFromString_impl
-
-  endinterface
-
-  interface 
-
-    function FTI_getIDFromString_impl(name) &
-              bind(c, name='FTI_getIDFromString')
-
-      use ISO_C_BINDING
-      integer (c_int) :: FTI_getIDFromString_impl
-      character(c_char), intent(IN) :: name(*)
-
-    endfunction FTI_getIDFromString_impl
-
-  endinterface
 
 
   interface
@@ -415,37 +389,6 @@ contains
     status = int(FTI_Status_impl())
 
   endsubroutine FTI_Status
-
-  subroutine FTI_setIDFromString(name, id)
-
-    character(len=*), intent(IN)  ::name
-    integer, intent(OUT) :: id
-    character, target, dimension(1:len_trim(name)+1) :: name_c
-    integer :: ii, ll
-    ll = len_trim(name)
-    do ii = 1, ll
-      name_c(ii) = name(ii:ii)
-    enddo
-    name_c(ll+1) = c_null_char
-  
-    id = FTI_setIDFromString_impl(name_c)
-  end subroutine FTI_setIDFromString
-
-  subroutine FTI_getIDFromString(name, id)
-
-    character(len=*), intent(IN)  ::name
-    integer, intent(OUT) :: id
-    character, target, dimension(1:len_trim(name)+1) :: name_c
-    integer :: ii, ll
-    ll = len_trim(name)
-    do ii = 1, ll
-      name_c(ii) = name(ii:ii)
-    enddo
-    name_c(ll+1) = c_null_char
-  
-    id = FTI_getIDFromString_impl(name_c)
-  end subroutine FTI_getIDFromString
-
 
   !>  This function initalizes a data type. the only information needed is the
   !!  size of the data type, the rest is black box for FTI.

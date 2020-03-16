@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fti.h>
+#include <interface-paper.h>
 
 
 #define PRECISION   0.005
@@ -85,6 +86,7 @@ int main(int argc, char *argv[])
 
     MPI_Init(&argc, &argv);
     FTI_Init(argv[2], MPI_COMM_WORLD);
+    XFTI_CreateHostfile( 3, NULL, "my_host_file" );
 
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);

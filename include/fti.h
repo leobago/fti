@@ -9,7 +9,7 @@
 #define __FTI_H__
 
 /** Standard size of buffer and max node size.                             */
-#define FTI_BUFS 256
+#define FTI_BUFS 16384
 /** Word size used during RS encoding.                                     */
 #define FTI_WORD 16
 /** Token returned when FTI performs a checkpoint.                         */
@@ -87,13 +87,13 @@ extern "C" {
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
-  int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
-  int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
+  int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
+  int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
   int FTI_RecoverDatasetDimension( int did ); 
-  FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank );
+  hsize_t* FTI_GetDatasetSpan( int did, int rank );
   int FTI_GetDatasetRank( int did );
-  int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength );
-  int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
+  int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength );
+  int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did );
   long FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
@@ -105,11 +105,11 @@ extern "C" {
   int FTI_Snapshot();
   int FTI_Finalize();
   int FTI_RecoverVar(int id);
+  int FTI_RecoverVarInit();
+  int FTI_RecoverVarFinalize();
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
   int FTI_FinalizeICP(); 
-  int FTI_setIDFromString( char *name );
-  int FTI_getIDFromString( char *name );
 
 #ifdef __cplusplus
 }

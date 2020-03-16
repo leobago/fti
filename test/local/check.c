@@ -33,7 +33,7 @@
  *    FTI_Finalize
  *
  */
-
+#include <signal.h>
 #include "mpi.h"
 #include "fti.h"
 #include <stdio.h>
@@ -128,6 +128,7 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
 
 int main(int argc, char* argv[]) {
 
+  sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;

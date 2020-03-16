@@ -14,6 +14,8 @@
 
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
 #include "hdf5.h"
+#else
+typedef unsigned long long hsize_t;
 #endif
 
 #ifdef GPUSUPPORT
@@ -22,6 +24,9 @@
 
 /** Malloc macro.                                                          */
 #define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+
+typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
+typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
 #define LOCAL 0
 #define GLOBAL 1
@@ -36,10 +41,6 @@
     if ( RANK == -1 ) \
         printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__,__LINE__,rank, ##__VA_ARGS__); \
 } while (0)
-
-/** highest value for id of protected variable                             */
-#define FTI_DEFAULT_MAX_VAR_ID 100*1024 // about 100K
-#define FTI_LIMIT_MAX_VAR_ID INT_MAX // about 10 million
 
 /** MD5-hash: unsigned char digest length.                                 */
 #define MD5_DIGEST_LENGTH 16
@@ -100,17 +101,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-    typedef struct FTIT_keymap FTIT_keymap;
-
-#ifdef ENABLE_HDF5 // --> If HDF5 is installed
-    typedef hsize_t FTIT_hsize_t;
-#else
-    typedef unsigned long long FTIT_hsize_t;
-#endif
-    
-    typedef uintptr_t           FTI_ADDRVAL;        /**< for ptr manipulation       */
-    typedef void*               FTI_ADDRPTR;        /**< void ptr type              */ 
 
     typedef struct FTIT_datasetInfo {
         int varID;
@@ -189,7 +179,7 @@ extern "C" {
         int  result;                /**< holds result of I/O specific write     */
         int lastCkptID;             /**< holds last successful cp ID            */
         int countVar;               /**< counts datasets written                */
-        bool* isWritten;            /**< holds IDs of datasets in cp file       */
+        int isWritten[FTI_BUFS];    /**< holds IDs of datasets in cp file       */
         double t0;                  /**< timing for CP statistics               */
         double t1;                  /**< timing for CP statistics               */
         char fn[FTI_BUFS];          /**< Name of the checkpoint file            */
@@ -207,7 +197,7 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< hash of file without meta */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct       */
-        int ckptId;     /**< Checkpoint ID                                      */
+        int ckptID;     /**< Checkpoint ID                                      */
         long metaSize;  /**< size of ckpt data                                  */
         long ckptSize;  /**< also file size TODO remove                         */
         long dataSize;  /**< total size of protected data (excluding meta data) */
@@ -250,6 +240,7 @@ extern "C" {
      */
     typedef struct FTIFF_dbvar {
         int id;             /**< id of protected variable                         */
+        int idx;            /**< index to corresponding id in pvar array          */
         int containerid;    /**< container index (first container -> 0)           */
         bool hascontent;    /**< indicates if container holds ckpt data           */
         bool hasCkpt;       /**< indicates if container is stored in ckpt         */
@@ -364,8 +355,8 @@ extern "C" {
         bool                        initialized;    /**< Dataset is initialized         */
         int                         rank;           /**< Rank of dataset                */
         int                         id;             /**< ID of dataset.                 */
-        int*                        varId;          /**< ID of subset variable          */
         int                         numSubSets;     /**< Number of assigned sub-sets    */
+        int*                        varIdx;         /**< FTI_Data index of subset var   */
         FTIT_H5Group*               location;       /**< Dataset location in file.      */
 #ifdef ENABLE_HDF5
         hid_t                       hid;            /**< HDF5 id datset.                */
@@ -418,13 +409,11 @@ extern "C" {
      */
     typedef struct FTIT_dataset {
         int                 id;                 /**< ID to search/update dataset.                   */
-        bool                recovered;          /**< True if dataset metadata was restored.         */
         void                *ptr;               /**< Pointer to the dataset.                        */
         long                count;              /**< Number of elements in dataset.                 */
         FTIT_type*          type;               /**< Data type for the dataset.                     */
         int                 eleSize;            /**< Element size for the dataset.                  */
         long                size;               /**< Total size of the dataset.                     */
-        long                sizeStored;         /**< Total size of the dataset in last checkpoint.  */
         int                 rank;               /**< Rank of dataset (for HDF5).                    */
         int                 dimLength[32];      /**< Lenght of each dimention.                      */
         char                name[FTI_BUFS];     /**< Name of the dataset.                           */
@@ -433,25 +422,27 @@ extern "C" {
         void                *devicePtr;         /**< Pointer to data in the device                  */
         FTIT_sharedData     sharedData;         /**< Info if dataset is sub-set (VPR)               */
         FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O                         */
-        char                idChar[FTI_BUFS];   /**< THis is glue for ALYA                          */
-        size_t				filePos;            /**< offset of buffer in ckpt file                  */ 
+        size_t				filePos; 
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
-     *  @brief      Temporary checkpoint metadata.
+     *  @brief      Metadata for restart.
      *
-     *  This type stores temporary checkpoint metadata.
+     *  This type stores all the metadata necessary for the restart.
      */
- 	typedef struct FTIT_metadata {
- 	    int             level;              /**< checkpoint level                      */
- 	    long            maxFs;              /**< Maximum file size.                    */
- 	    long            fs;                 /**< File size.                            */
- 	    long            pfs;                /**< Partner file size.                    */
- 	    int             ckptId;             /**< Current Ckpt ID                       */        
- 	    int             ckptIdL4;           /**< Current L4 Ckpt ID                    */        
- 	    char            ckptFile[FTI_BUFS]; /**< Ckpt file name. [FTI_BUFS]            */
- 	} FTIT_metadata;
- 
+    typedef struct FTIT_metadata {
+        int*             exists;             /**< TRUE if metadata exists               */
+        long*            maxFs;              /**< Maximum file size.                    */
+        long*            fs;                 /**< File size.                            */
+        long*            pfs;                /**< Partner file size.                    */
+        char*            ckptFile;           /**< Ckpt file name. [FTI_BUFS]            */
+        char*            currentL4CkptFile;  /**< Current Ckpt file name. [FTI_BUFS]    */        
+        int*             nbVar;              /**< Number of variables. [FTI_BUFS]       */
+        int*             varID;              /**< Variable id for size.[FTI_BUFS]       */
+        long*            varSize;            /**< Variable size. [FTI_BUFS]             */
+        long*            filePos;            /**< File Postion of each variable			*/
+    } FTIT_metadata;
+
     /** @typedef    FTIT_configuration
      *  @brief      Configuration metadata.
      *
@@ -470,7 +461,6 @@ extern "C" {
         int             verbosity;          /**< Verbosity level.               */
         int             blockSize;          /**< Communication block size.      */
         int             transferSize;       /**< Transfer size local to PFS     */
-        int             maxVarId;
 #ifdef LUSTRE
         int             stripeUnit;         /**< Striping Unit for Lustre FS    */
         int             stripeOffset;       /**< Striping Offset for Lustre FS  */
@@ -479,12 +469,15 @@ extern "C" {
         int             ckptTag;            /**< MPI tag for ckpt requests.         */
         int             stageTag;           /**< MPI tag for staging comm.          */
         int             finalTag;           /**< MPI tag for finalize comm.         */
+        int             failedTag;           /**< MPI tag for finalize comm.         */
+        int             killTag;           /**< MPI tag for finalize comm.         */
         int             generalTag;         /**< MPI tag for general comm.          */
         int             test;               /**< TRUE if local test.                */
         int             l3WordSize;         /**< RS encoding word size.             */
         int             ioMode;             /**< IO mode for L4 ckpt.               */
         bool            h5SingleFileEnable; /**< TRUE if VPR enabled                */
         bool            h5SingleFileKeep;   /**< TRUE if VPR files to keep          */
+        bool            h5SingleFileIsInline;       /**< Indicator if HDF5 single file  */
         char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir        */
         char            h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix  */
         char            stageDir[FTI_BUFS]; /**< Staging directory.                 */
@@ -538,7 +531,6 @@ extern "C" {
         char            dir[FTI_BUFS];      /**< Checkpoint directory.                  */
         char            dcpDir[FTI_BUFS];   /**< dCP directory.                         */
         char            archDir[FTI_BUFS];  /**< Checkpoint directory.                  */        
-        char            archMeta[FTI_BUFS]; /**< .Directory storing archieved meta      */        
         char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
         char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
         bool            isDcp;              /**< TRUE if dCP requested                  */
@@ -550,6 +542,7 @@ extern "C" {
         int             ckptCnt;            /**< Checkpoint counter.                    */
         int             ckptDcpIntv;        /**< Checkpoint interval.                   */
         int             ckptDcpCnt;         /**< Checkpoint counter.                    */
+
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection
@@ -582,7 +575,7 @@ extern "C" {
                 FTIT_execution*  ,
                 FTIT_topology*   ,
                 FTIT_checkpoint* , 
-                FTIT_keymap *);
+                FTIT_dataset *);
 
         int (*WriteData) (	FTIT_dataset * ,
                 void *write_info);
@@ -593,23 +586,6 @@ extern "C" {
 
     }FTIT_IO;
 
-    typedef struct FTIT_mqueue FTIT_mqueue;
-
-    typedef struct FTIT_mnode
-    {
-        struct FTIT_mnode*  _next;
-        FTIT_metadata*      _data;
-    } FTIT_mnode;
-    
-    typedef struct FTIT_mqueue
-    {
-        FTIT_mnode*     _front;
-        bool            _initialized;
-        bool            (*empty)    ( FTIT_mqueue* );
-        int             (*push)     ( FTIT_mqueue*, FTIT_metadata );
-        int             (*pop)      ( FTIT_mqueue*, FTIT_metadata* );
-        int             (*clear)    ( FTIT_mqueue* );
-    } FTIT_mqueue;
 
     /** @typedef    FTIT_execution
      *  @brief      Execution metadata.
@@ -618,6 +594,7 @@ extern "C" {
      */
     typedef struct FTIT_execution {
         char            id[FTI_BUFS];       /**< Execution ID.                  */
+        int             ckpt;               /**< Checkpoint flag.               */
         int             reco;               /**< Recovery flag.                 */
         int             ckptLvel;           /**< Checkpoint level.              */
         int             ckptIntv;           /**< Ckpt. interval in minutes.     */
@@ -635,7 +612,7 @@ extern "C" {
         bool            h5SingleFile;       /**< Indicator if HDF5 single file  */
         unsigned int    ckptCnt;            /**< Checkpoint number counter.     */
         unsigned int    ckptIcnt;           /**< Iteration loop counter.        */
-        unsigned int    ckptId;             /**< Checkpoint ID.                 */
+        unsigned int    ckptID;             /**< Checkpoint ID.                 */
         unsigned int    ckptNext;           /**< Iteration for next checkpoint. */
         unsigned int    ckptLast;           /**< Iteration for last checkpoint. */
         long            ckptSize;           /**< Checkpoint size.               */
@@ -643,12 +620,12 @@ extern "C" {
         unsigned int    nbVarStored;        /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;             /**< Number of data types.          */
         int             nbGroup;            /**< Number of protected groups.    */
+        int             metaAlloc;          /**< TRUE if meta allocated.        */
         int             initSCES;           /**< TRUE if FTI initialized.       */
         char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name     */
         char    h5SingleFileReco[FTI_BUFS]; /**< HDF5 single fn from recovery   */
         unsigned char 	integrity[MD5_DIGEST_LENGTH];
-        FTIT_mqueue     mqueue;
-        FTIT_metadata   ckptMeta;            /**< Metadata for each ckpt level   */
+        FTIT_metadata   meta[5];            /**< Metadata for each ckpt level   */
         FTIFF_db         *firstdb;          /**< Pointer to first datablock     */
         FTIFF_db         *lastdb;           /**< Pointer to first datablock     */
         FTIFF_metaInfo  FTIFFMeta;          /**< File meta data for FTI-FF      */
@@ -666,7 +643,7 @@ extern "C" {
              struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_keymap*,				/** And one for the remaining cases	*/
+             FTIT_dataset*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
 
         int (*initICPFunc[2]) 				/** A function pointer pointing to  */									
@@ -674,7 +651,7 @@ extern "C" {
              struct FTIT_execution* ,	/** initializes the iCP. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_keymap*,				/** And one for the remaining cases	*/
+             FTIT_dataset*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
 
         int (*writeVarICPFunc[2]) 		    /** A function pointer pointing to  */
@@ -683,7 +660,7 @@ extern "C" {
              struct FTIT_execution* ,	/** writes the iCP. Noticeably		*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_keymap*,				/** And one for the remaining cases	*/
+             FTIT_dataset*,				/** And one for the remaining cases	*/
              FTIT_IO*);					
 
         int (*finalizeICPFunc[2]) 			/** A function pointer pointing to  */									
@@ -691,7 +668,7 @@ extern "C" {
              struct FTIT_execution* ,	/** finalize the iCP. Noticeably	*/ 
              FTIT_topology* ,			/** We need 2 function pointers,	*/ 
              FTIT_checkpoint* , 			/** One for the Level 4 checkpoint  */
-             FTIT_keymap*,				/** And one for the remaining cases	*/
+             FTIT_dataset*,				/** And one for the remaining cases	*/
              FTIT_IO *);					
         
         int (*activateHeads) 			/** A function pointer pointing to  */									

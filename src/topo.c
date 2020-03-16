@@ -300,6 +300,58 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      Creates the group topology.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      nodeList        The list of the nodes.
+  @param      group           The list of neighboring nodes.
+  @param      distProcList    The list of the distributed processes.
+  @return     integer         FTI_SCES if successful.
+    
+  This function deduces the actual groupsize from the value set in the
+  configuration file. The number of groups will be nbNodes/groupSize, where
+  groupSize here is the value from the configuration file. All residual
+  nodes will be evenly distributed to the available groups.
+
+  EXAMPLE:
+  
+  groupSize = 4, nbNodes = 19 -> nbGroups = 4 [3 residual nodes]
+
+  |0000|0000|0000|0000|  000 -> |00000|00000|00000|0000|
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_CreateGroupTopology( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+        int * nodeList, int * group, int * distProcList )
+{
+    FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
+    
+    int nbGroups = FTI_Topo->nbNodes / FTI_Topo->groupSize;
+    int residue = FTI_Topo->nbNodes % FTI_Topo->groupSize;
+    
+    FTI_Topo->groupSize += residue / nbGroups;
+
+    int offset;
+    if( FTI_Topo->nodeID < (FTI_Topo->groupSize + 1)*(residue%nbGroups) ) {
+        FTI_Topo->groupSize++;
+        FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
+        offset = FTI_Topo->sectorID * FTI_Topo->groupSize;
+    } else {
+        FTI_Topo->sectorID = (nbGroups-1) + ( FTI_Topo->nodeID - (FTI_Topo->nbNodes-1) ) / FTI_Topo->groupSize;
+        offset = FTI_Topo->nbNodes - ( nbGroups - FTI_Topo->sectorID ) * FTI_Topo->groupSize;
+    }
+    
+    int i;
+    for (i = 0; i < FTI_Topo->groupSize; i++) { // Group of node-distributed processes (Topology-aware).
+        group[i] = distProcList[offset + i];
+    }
+
+    return FTI_SCES;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      It builds the list of nodes in the current execution.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
@@ -317,7 +369,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, int* userProcList,
-        int* distProcList, int* nodeList)
+        int* distProcList, int* nodeList, int* group)
 {
     MPI_Group newGroup, origGroup;
     MPI_Comm_group(FTI_Exec->globalComm, &origGroup);
@@ -342,12 +394,6 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     MPI_Comm_rank(FTI_COMM_WORLD, &FTI_Topo->splitRank);
-    int buf = FTI_Topo->sectorID * FTI_Topo->groupSize;
-    int group[FTI_BUFS]; // FTI_BUFS > Max. group size
-    int i;
-    for (i = 0; i < FTI_Topo->groupSize; i++) { // Group of node-distributed processes (Topology-aware).
-        group[i] = distProcList[buf + i];
-    }
     MPI_Comm_group(FTI_Exec->globalComm, &origGroup);
     MPI_Group_incl(origGroup, FTI_Topo->groupSize, group, &newGroup);
     MPI_Comm_create(FTI_Exec->globalComm, newGroup, &FTI_Exec->groupComm);
@@ -445,14 +491,25 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     FTI_Topo->nodeID = mypos / FTI_Topo->nodeSize;
     FTI_Topo->headRank = nodeList[(mypos / FTI_Topo->nodeSize) * FTI_Topo->nodeSize];
-    FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
     int posInNode = mypos % FTI_Topo->nodeSize;
     FTI_Topo->groupID = posInNode;
     for (i = 0; i < FTI_Topo->nbNodes; i++) {
         distProcList[i] = nodeList[(FTI_Topo->nodeSize * i) + posInNode];
     }
+    
+    int group[FTI_BUFS]; // FTI_BUFS > Max. group size
+    
+    res = FTI_Try( FTI_CreateGroupTopology( FTI_Conf, FTI_Exec, FTI_Topo, nodeList, group, distProcList ), "create group topology." );
+    if (res == FTI_NSCS) {
+        free(userProcList);
+        free(distProcList);
+        free(nameList);
+        free(nodeList);
 
-    res = FTI_Try(FTI_CreateComms(FTI_Conf, FTI_Exec, FTI_Topo, userProcList, distProcList, nodeList), "create communicators.");
+        return FTI_NSCS;
+    }
+
+    res = FTI_Try(FTI_CreateComms(FTI_Conf, FTI_Exec, FTI_Topo, userProcList, distProcList, nodeList, group), "create communicators.");
     if (res == FTI_NSCS) {
         free(userProcList);
         free(distProcList);

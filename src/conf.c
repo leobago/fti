@@ -151,6 +151,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
     FTI_Ckpt[3].isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
     FTI_Ckpt[4].isInline = (int)iniparser_getint(ini, "Basic:inline_l4", 1);
+    FTI_Conf->h5SingleFileIsInline = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_inline", 1);
     FTI_Ckpt[1].ckptCnt  = 1;
     FTI_Ckpt[2].ckptCnt  = 1;
     FTI_Ckpt[3].ckptCnt  = 1;
@@ -166,17 +167,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->dcpInfoPosix.StackSize = (int)iniparser_getint(ini, "Basic:dcp_stack_size", 5);
 
-    long long maxVarId = (long long)iniparser_getlint(ini, "Basic:max_var_id", (long long)FTI_DEFAULT_MAX_VAR_ID); 
-    if( maxVarId > (long long)FTI_LIMIT_MAX_VAR_ID ) {
-        char err[FTI_BUFS];
-        snprintf(err,FTI_BUFS,"Value of 'Basic:max_var_id' cannot be higher than 'FTI_LIMIT_MAX_VAR_ID' ('%lld > %d')", maxVarId, FTI_LIMIT_MAX_VAR_ID); 
-        FTI_Print(err, FTI_WARN);
-        FTI_Conf->maxVarId = FTI_DEFAULT_MAX_VAR_ID;
-    } else {
-        FTI_Conf->maxVarId = maxVarId;
-    }
-
-
     FTI_Conf->dcpInfoPosix.cachedCkpt = (int)iniparser_getint(ini, "Basic:CachedDCP", 0);
 
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
@@ -187,6 +177,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->ckptTag = (int)iniparser_getint(ini, "Advanced:ckpt_tag", 711);
     FTI_Conf->stageTag = (int)iniparser_getint(ini, "Advanced:stage_tag", 406);
     FTI_Conf->finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
+    FTI_Conf->failedTag = (int)iniparser_getint(ini, "Advanced:failed_tag", 31070);
+    FTI_Conf->killTag = (int)iniparser_getint(ini, "Advanced:kill_tag", 310700);
     FTI_Conf->generalTag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
     FTI_Conf->test = (int)iniparser_getint(ini, "Advanced:local_test", -1);
     FTI_Conf->l3WordSize = FTI_WORD;
@@ -199,8 +191,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         //FTI_Exec->dcpInfoPosix.LayerHash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * FTI_Conf->dcpInfoPosix.StackSize );
         switch( FTI_Conf->dcpMode ) {
             case FTI_DCP_MODE_MD5:
-                FTI_Conf->dcpInfoPosix.hashFunc = MD5;
-                FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
+                    FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                    FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
                 break;
             case FTI_DCP_MODE_CRC32:
                 FTI_Conf->dcpInfoPosix.hashFunc = CRC32;
@@ -216,37 +208,15 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->stripeFactor = (int)iniparser_getint(ini, "Advanced:lustre_stiping_factor", -1);
     FTI_Conf->stripeOffset = (int)iniparser_getint(ini, "Advanced:lustre_stiping_offset", -1);
 #endif
-    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
-    if( h5SingleFileDir ) {
-        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
-            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
-        } else {
-            strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
-        }
-    } else {
-        strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
-    }
-
-    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
-    if( h5SingleFilePrefix ) {
-        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
-            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
-        } else {
-            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
-        }
-    } else {
-        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
-    }
-    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
-    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
+    FTI_Exec->ckpt = 0;
     FTI_Exec->minuteCnt = 0;
     FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;
-    FTI_Exec->ckptId = 0;
+    FTI_Exec->ckptID = 0;
     FTI_Exec->ckptLvel = 0;
     FTI_Exec->ckptIntv = 1;
     FTI_Exec->wasLastOffline = 0;
@@ -257,8 +227,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
+    FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
-    if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
+    if ( FTI_Exec->reco == 0 ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
@@ -273,6 +244,30 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "This is a restart. The execution ID is: %s", FTI_Exec->id);
         FTI_Print(str, FTI_INFO);
     }
+    
+    char *h5SingleFileDir = iniparser_getstring(ini, "basic:h5_single_file_dir", NULL);
+    if( h5SingleFileDir ) {
+        if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
+        } else {
+            snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+    }
+
+    char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);
+    if( h5SingleFilePrefix ) {
+        if( strncmp( h5SingleFilePrefix, "", 1 ) != 0 ) {
+            snprintf(FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "%s", h5SingleFilePrefix);
+        } else {
+            snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+        }
+    } else {
+        snprintf( FTI_Conf->h5SingleFilePrefix, FTI_BUFS, "VPR-h5" );
+    }
+    FTI_Conf->h5SingleFileKeep = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_keep", 0);
+    FTI_Conf->h5SingleFileEnable = (bool)iniparser_getboolean(ini, "Basic:h5_single_file_enable", 0);
 
     // Reading/setting topology metadata
     FTI_Topo->nbHeads = (int)iniparser_getint(ini, "Basic:head", 0);
@@ -322,15 +317,19 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Number of ranks is not a multiple of the node size.", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
-        FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
-        return FTI_NSCS;
-    }
+    //if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
+    //    FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
+    //    return FTI_NSCS;
+    //}
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
-    if (FTI_Topo->groupSize < 2 && (L2req || RSreq)) {
-        FTI_Print("The group size must be at least 2", FTI_WARN);
+    if ( FTI_Topo->groupSize < 2 && (L2req || RSreq) ) {
+        FTI_Print("The group size must be at least 2 for reliability level 2 and 3", FTI_WARN);
+        return FTI_NSCS;
+    }
+    if ( FTI_Topo->nbProc < 2 && (L2req || RSreq) ) {
+        FTI_Print("The number of processes must be at least 2 for reliability level 2 and 3", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Topo->groupSize >= 32 && RSreq) {
@@ -405,6 +404,10 @@ CHECK_DCP_SETTING_END:
             FTI_Print("If inline is set to 0 then head should be set to 1.", FTI_WARN);
             return FTI_NSCS;
         }
+    }
+    if (FTI_Conf->h5SingleFileIsInline == 0 && FTI_Topo->nbHeads != 1) {
+        FTI_Print("If h5_single_file_inline is set to 0 then head must be set to 1.", FTI_WARN);
+        return FTI_NSCS;
     }
     if (FTI_Exec->syncIterMax < 0) {
         FTI_Exec->syncIterMax = 512;
@@ -486,7 +489,6 @@ CHECK_DCP_SETTING_END:
 int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
 {
     char str[FTI_BUFS]; //For console output
-    int h5DirFailed = 0;
 
     // Checking local directory
     snprintf(str, FTI_BUFS, "Checking the local directory (%s)...", FTI_Conf->localDir);
@@ -503,22 +505,6 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo)
         snprintf(str,FTI_BUFS,  "Checking the global directory (%s)...", FTI_Conf->glbalDir);
         FTI_Print(str, FTI_DBUG);
         MKDIR(FTI_Conf->glbalDir, 0777);
-
-        // Checking metadata directory
-        if( FTI_Conf->h5SingleFileEnable ) {
-            snprintf(str, FTI_BUFS, "Checking the VPR directory (%s)...", FTI_Conf->metadDir);
-            FTI_Print(str, FTI_DBUG);
-            MKDIR(FTI_Conf->h5SingleFileDir,0777);
-        }
-    }
-
-    if( FTI_Conf->h5SingleFileEnable ) {
-        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
-        MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
-        if( h5DirFailed ) { 
-            FTI_Conf->h5SingleFileEnable = false; 
-            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
-        }
     }
 
     //Waiting for metadDir being created
@@ -546,6 +532,7 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
     char strerr[FTI_BUFS];
     char fn[FTI_BUFS]; //Path of metadata directory
+    int h5DirFailed = 0;
 
     // Create metadata timestamp directory
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->metadDir, FTI_Exec->id);
@@ -556,7 +543,6 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[2].metaDir, FTI_BUFS, "%s/l2", fn);
     snprintf(FTI_Ckpt[3].metaDir, FTI_BUFS, "%s/l3", fn);
     snprintf(FTI_Ckpt[4].metaDir, FTI_BUFS, "%s/l4", fn);
-    snprintf(FTI_Ckpt[4].archMeta, FTI_BUFS, "%s/l4_archive", fn);
 
     // Create global checkpoint timestamp directory
     snprintf(fn, FTI_BUFS, "%s", FTI_Conf->glbalDir);
@@ -567,15 +553,13 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[4].dcpName, FTI_BUFS, "dCPFile-Rank%d.fti", FTI_Topo->myRank);
     snprintf(FTI_Ckpt[4].dir, FTI_BUFS, "%s/l4", FTI_Conf->glbalDir);
     snprintf(FTI_Ckpt[4].archDir, FTI_BUFS, "%s/l4_archive", FTI_Conf->glbalDir);
-
     if ( FTI_Conf->keepL4Ckpt ) {
         MKDIR(FTI_Ckpt[4].archDir,0777);
-        MKDIR(FTI_Ckpt[4].archMeta,0777);
     }
     if ( FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff ) {
         if (mkdir(FTI_Ckpt[4].dcpDir, (mode_t) 0777) == -1) {
             if (errno != EEXIST) {
-                snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].dcpDir);
+                snprintf(strerr, FTI_BUFS, "failed to create dCP directory '%s'.", FTI_Ckpt[4].archDir);
                 FTI_Print(strerr, FTI_EROR);
                 FTI_Conf->dcpPosix = false;
                 FTI_Conf->dcpFtiff = false;
@@ -599,6 +583,23 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
+        
+    // Checking metadata directory
+    if( FTI_Conf->h5SingleFileEnable && FTI_Topo->myRank == 0 ) {
+        char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS, "Creating the VPR directory (%s)...", FTI_Conf->h5SingleFileDir);
+        FTI_Print(str, FTI_DBUG);
+        MKDIR(FTI_Conf->h5SingleFileDir,0777);
+    }
+
+    if( FTI_Conf->h5SingleFileEnable ) {
+        MPI_Bcast( &h5DirFailed, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        MPI_Bcast( &errno, 1, MPI_INT, 0, FTI_COMM_WORLD );
+        if( h5DirFailed ) { 
+            FTI_Conf->h5SingleFileEnable = false; 
+            FTI_Print("The VPR directory could NOT be created. Feature will be disabled!", FTI_EROR);
+        }
+    }
     return FTI_SCES;
 }
 

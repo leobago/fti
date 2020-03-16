@@ -36,17 +36,6 @@ run-nohead: test Makefile
 	$(MPIRUN) -n 8 ./$<
 #	sleep 1
 
-run-keepnohead: test Makefile
-	cp cfg/NOHEADKEEPLAST config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
-
-run-keephead: test Makefile
-	cp cfg/HEADKEEPLAST config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
-
-
 clean:
 	rm -rf *.o test Global Local Meta config.fti
 

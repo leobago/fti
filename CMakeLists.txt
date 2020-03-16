@@ -16,13 +16,12 @@ if (ENABLE_GPU)
 else ()
   if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
       if( ${ENABLE_FORTRAN} )
-        project(FTI C Fortran)
+          project(FTI C CXX Fortran)
       else()
-        project(FTI C)
+          project(FTI C CXX)
       endif()
   endif()
 endif()  
-
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
@@ -91,14 +90,14 @@ endif()
 ## [END] DETERMINE COMPILER MAJOR VERSIONS
 
 option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_EXAMPLES "Enables the generation of examples" OFF)
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
-option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
-option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" ON)
+option(ENABLE_TESTS "Enables the generation of tests" OFF)
 option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
-option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
+option(ENABLE_ULFM "Generates examples using ULFM" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
@@ -118,9 +117,8 @@ if(NOT ZLIB_FOUND)
 endif()
 
 find_package(MPI REQUIRED)
-if(NOT DEFINED NO_OPENSSL)
+if(NOT NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
-    include_directories( ${OPENSSL_INCLUDE_DIR} )
 else()
 	set(OPENSSL_FOUND false)
 endif()
@@ -140,41 +138,33 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(
 SRC_FTI
-    src/fortran/ftif.c
-    src/util/tools.c
-    src/util/utility.c
-    src/util/keymap.c
-    src/util/dataset.c
-    src/util/ini.c
-    src/util/macros.c
-    src/util/failure-injection.c
-    src/util/metaqueue.c
+    src/postckpt.c
+    src/conf.c
+    src/fti-io.c
+    src/recover.c
+    src/postreco.c
+    src/failure-injection.c
+    src/api-cuda.c
+    src/api.c
+    src/checkpoint.c
+    src/dcp.c
     src/IO/posix-dcp.c
     src/IO/hdf5-fti.c
     src/IO/ftiff.c
     src/IO/mpio.c
     src/IO/posix.c
     src/IO/ftiff-dcp.c
-    src/postckpt.c
-    src/conf.c
-    src/fti-io.c
-    src/recover.c
-    src/postreco.c
-    src/api-cuda.c
-    src/api.c
-    src/checkpoint.c
-    src/dcp.c
+    src/macros.c
     src/stage.c
     src/meta.c
     src/icp.c
+    src/fortran/ftif.c
     src/topo.c
+    src/tools.c
+    src/utility.c
+    src/paper/create_hostfile.c
+    src/paper/init.c
 )
-
-if (ENABLE_SIONLIB)
-    list(APPEND SRC_FTI "src/IO/sion-fti.c")
-    message("${SRC_FTI}")
-endif()
-
 
 if (ENABLE_GPU)
 set(
@@ -237,6 +227,9 @@ else()
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
+append_property(SOURCE ${SRC_FTI}
+    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
+
 if( NOT ZLIB_FOUND )
 append_property(SOURCE ${SRC_CUDA_FTI}
     PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
@@ -280,7 +273,6 @@ if(ENABLE_LUSTRE)
     endif()
 endif()
 
-
 if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
@@ -295,7 +287,6 @@ if(ENABLE_SIONLIB)
     target_link_libraries(fti.shared "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     add_definitions(-DENABLE_SIONLIB)
 endif()
-
 
 if(ENABLE_HDF5)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
@@ -320,14 +311,13 @@ if(ENABLE_FI_IO)
     add_definitions(-DENABLE_FTI_FI_IO)
 endif()
 
-append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
-
 set(FTI_TARGETS fti.static fti.shared)
 install(TARGETS fti.static fti.shared DESTINATION lib)
 install(FILES "include/fti.h"
 	DESTINATION include)
 install(FILES "include/fti-intern.h"
+	DESTINATION include)
+install(FILES "include/interface-paper.h"
 	DESTINATION include)
 configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 
@@ -391,10 +381,6 @@ endif()
 
 if(ENABLE_TESTS)
 	add_subdirectory(test)
-endif()
-
-if(ENABLE_TUTORIAL)
-	add_subdirectory(tutorial)
 endif()
 
 if(ENABLE_DOCU)
