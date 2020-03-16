@@ -332,6 +332,7 @@ install(TARGETS fti.static fti.shared DESTINATION "${CMAKE_INSTALL_LIBDIR}" EXPO
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
+
 install(FILES
     "include/fti.h"
     "include/fti-intern.h"
