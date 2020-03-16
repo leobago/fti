@@ -38,7 +38,7 @@
 
 
 
-#include "interface.h"
+#include "../interface.h"
 
 
 /*-------------------------------------------------------------------------*/
@@ -48,7 +48,7 @@
   @param      ....            Pointers corresponding to files or pointers.
   @return     integer         FTI_SCES if successful.
 
-    This functions cleans up the local environment after an error occurs.
+  This functions cleans up the local environment after an error occurs.
  **/
 /*-------------------------------------------------------------------------*/
 __attribute__ ((sentinel))
