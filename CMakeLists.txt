@@ -355,7 +355,7 @@ if(ENABLE_FORTRAN)
 
 	endif()
 
-    add_subdirectory(deps/bpp-v0.3.0/ bpp/ EXCLUDE_FROM_ALL)
+    add_subdirectory(deps/bpp-0.3.0/ bpp/ EXCLUDE_FROM_ALL)
 
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
