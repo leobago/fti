@@ -508,6 +508,7 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_dataset* FTI_Data, FTIT_IO *io){
     int i;
+    char msg[FTI_BUFS];
     void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     if( !write_info ) {
         FTI_Print("unable to initialize checkpoint!", FTI_EROR);
@@ -521,6 +522,31 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     io->finIntegrity(FTI_Exec->integrity, write_info);
     io->finCKPT(write_info);
+    /*
+    char checksum[4*MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+    unsigned char checksum1[MD5_DIGEST_LENGTH];
+
+    MD5( (unsigned char *) FTI_Data[0].ptr, FTI_Data[0].size, checksum1);
+
+    int ii = 0;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
+        ii += 2;
+    }
+    
+    strcpy(&checksum[ii]," : ");
+    ii+=3;
+
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&checksum[ii], "%02x", checksum1[i]);
+        ii += 2;
+    }
+    
+    sprintf(&checksum[ii]," Size is %ld ptr is %p", FTI_Data[0].size,FTI_Data[0].ptr);
+
+    sprintf(msg, "CKSM is %s",checksum); 
+    FTI_Print(msg,FTI_WARN);
+    */
     free (write_info);
     return FTI_SCES;
 }

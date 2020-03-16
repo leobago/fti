@@ -2249,9 +2249,6 @@ int FTI_Finalize_ReInit(){
 
     if (FTI_Topo.amIaHead) {
         FTI_FreeMeta(&FTI_Exec);
-        if ( FTI_Conf.stagingEnabled ) {
-            FTI_FinalizeStage( &FTI_Exec, &FTI_Topo, &FTI_Conf );
-        }
     }
     else{
         if( FTI_Conf.dcpPosix ) {
@@ -2301,7 +2298,7 @@ int FTI_Finalize_ReInit(){
             FTI_FreeVPRMem( &FTI_Exec, FTI_Data ); 
         }
 #endif
-        MPI_Barrier(FTI_Exec.globalComm);
+//        MPI_Barrier(FTI_Exec.globalComm);
         FTI_Print("FTI has been finalized.", FTI_INFO);
         return FTI_SCES;
     }

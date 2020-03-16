@@ -207,6 +207,108 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
+    int didIFail = 0;
+    FILE *dead = fopen("killed", "r");
+
+    if (dead != NULL ){
+        int numFailed;
+        int numElements = fscanf(dead, "%d ", &numFailed);
+        if ( numElements != 1 ){
+            FTI_Print("I could not read erroneous Values\n",FTI_EROR);
+            exit(-1);
+        }
+        size_t *failedRanks = (size_t*) malloc (sizeof(size_t)*numFailed);
+        if (!failedRanks ){
+            FTI_Print("I could not allocate space for fast recovery, I exit",FTI_EROR);
+            exit(-1);
+        }
+        int i;
+        for ( i = 0 ; i < numFailed; i++){
+            fscanf(dead,"%ld ", &failedRanks[i]);
+        }
+        //I need to transform now MPI_COMM_WORLD rank to current rank id
+        if ( FTI_Topo->nbHeads != 0 ){
+            for ( i = 0; i < numFailed; i++){
+                if (failedRanks[i] % FTI_Topo->nodeSize == 0 ){
+                    printf("I was head, I just need to set to -1\n");
+                    failedRanks[i] = -1;
+                }
+                else{
+                    failedRanks[i] -= (failedRanks[i] / FTI_Topo->nodeSize); 
+                }
+            }
+        }
+
+        // Search whether I failed in previous run. 
+
+
+        for ( i = 0; i < numFailed; i++){
+            if ( failedRanks[i] == FTI_Topo->splitRank){
+                didIFail = 1;
+                break;
+            }
+        }
+        if ( didIFail == 1) {
+            // I need to check whether my buddy failed.
+            int numSectors = FTI_Topo->nbNodes / FTI_Topo->groupSize;
+            int sectorSize = FTI_Topo->nbNodes / numSectors;
+            int buddyOffset =  FTI_Topo->sectorID * sectorSize;
+            buddyOffset *= FTI_Topo->nodeSize;
+            int actualGroupSize = FTI_Topo->groupSize*FTI_Topo->nodeSize;
+            int shiftedRank = FTI_Topo->splitRank - buddyOffset;
+            int buddyRank  = (shiftedRank + FTI_Topo->nodeSize) % actualGroupSize;
+            buddyRank = buddyOffset + buddyRank;
+            printf("I am %d and my buddy rank is %d SID %d BUDDY OFFSET %d\n", FTI_Topo->splitRank, buddyRank, sectorSize,buddyOffset);
+
+            for ( i = 0; i < numFailed; i++){
+                if ( failedRanks[i] == buddyRank){
+                    didIFail = 2;
+                    break;
+                }
+
+            }
+
+            if ( didIFail == 2) {
+                int *groupRanks = (int*) malloc (sizeof(int)*FTI_Topo->groupSize);
+                int numSectors = FTI_Topo->nbNodes / FTI_Topo->groupSize;
+                int sectorSize = FTI_Topo->nbNodes / numSectors;
+                int nodeOffset = FTI_Topo->sectorID * sectorSize;
+                int myOffset = FTI_Topo->splitRank % FTI_Topo->nodeSize;
+                int j;
+                for ( j = 0 ; j < FTI_Topo->groupSize; j++){
+                    groupRanks[j] = myOffset + (nodeOffset * FTI_Topo-> nodeSize ) + j*FTI_Topo->nodeSize;
+                }
+                printf("I am %d and my group is ", FTI_Topo->splitRank);
+                for ( j = 0 ; j < FTI_Topo->groupSize; j++){
+                    printf("%d,",groupRanks[j]);
+                }
+
+                int groupFailed = 0;
+                for ( i = 0 ; i < FTI_Topo->groupSize; i++){
+                    for ( j = 0 ; j < numFailed; j++){
+                        if ( failedRanks[j] == groupRanks[i] ){
+                            groupFailed++;
+                            break;
+                        }
+                    }
+
+                    if ( groupFailed > FTI_Topo->groupSize/2 ){
+                        didIFail = 3;        
+                        break;
+                    }
+
+                }
+                printf("\n");
+                free(groupRanks);
+            }
+            fclose(dead);
+        }
+    }
+
+    int myMinLvL = didIFail + 1;
+    int startLvl = 0;
+    MPI_Allreduce(&myMinLvL, &startLvl, 1, MPI_INT, MPI_MAX, FTI_Exec->globalComm);
+
     if (!FTI_Topo->amIaHead) {
         if( FTI_Exec->reco == 3 ) {
             if( FTI_Conf->h5SingleFileEnable ) {

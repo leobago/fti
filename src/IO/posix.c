@@ -126,7 +126,13 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc)
         fwrite_errno = errno;
     }
 
-    MD5_Update (&(fd->integrity), src, size);
+    int error = MD5_Update (&(fd->integrity), src, size);
+   
+    if (error == 0 ){
+        FTI_Print("MD5_Update returned error code",FTI_EROR);
+        fclose(fd->f);
+        return FTI_NSCS;
+    }
     if (ferror(fd->f)){
         char error_msg[FTI_BUFS];
         error_msg[0] = 0;
