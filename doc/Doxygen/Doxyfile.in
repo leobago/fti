@@ -416,7 +416,7 @@ EXTRACT_PACKAGE        = NO
 # included in the documentation.
 # The default value is: NO.
 
-EXTRACT_STATIC         = NO
+EXTRACT_STATIC         = YES
 
 # If the EXTRACT_LOCAL_CLASSES tag is set to YES classes (and structs) defined
 # locally in source files will be included in the documentation. If set to NO
@@ -746,6 +746,8 @@ WARN_LOGFILE           =
 INPUT                  = @CMAKE_SOURCE_DIR@/README.md \
                          @CMAKE_SOURCE_DIR@/include/ \
                          @CMAKE_SOURCE_DIR@/src \
+                         @CMAKE_SOURCE_DIR@/src/IO \
+                         @CMAKE_SOURCE_DIR@/src/util \
                          @CMAKE_BINARY_DIR@/interface.F90 \
                          @CMAKE_CURRENT_SOURCE_DIR@/cmake.md \
                          @CMAKE_CURRENT_SOURCE_DIR@/config.md \   

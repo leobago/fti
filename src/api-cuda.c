@@ -113,20 +113,20 @@ int FTI_copy_to_device(void *dst, const void *src, size_t count, FTIT_execution 
   The actual writes to the storage are performed by fwritefunc.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_TransferDeviceMemToFileAsync(FTIT_dataset *FTI_Data,  FTIT_fwritefunc fwritefunc, void *opaque)
+int FTI_TransferDeviceMemToFileAsync(FTIT_dataset *data,  FTIT_fwritefunc fwritefunc, void *opaque)
 {
 #ifdef GPUSUPPORT
     FTI_Print("Piplining GPU -> Storage", FTI_DBUG);
-    if (FTI_Data->size == 0)
+    if (data->size == 0)
         return FTI_SCES;
 
     int res;
 
     FTIT_data_prefetch prefetcher;
     prefetcher.fetchSize = bufferSize; 
-    prefetcher.totalBytesToFetch = FTI_Data->size;
-    prefetcher.isDevice = FTI_Data->isDevicePtr;
-    prefetcher.dptr = FTI_Data->devicePtr;
+    prefetcher.totalBytesToFetch = data->size;
+    prefetcher.isDevice = data->isDevicePtr;
+    prefetcher.dptr = data->devicePtr;
     FTI_InitPrefetcher(&prefetcher);
     size_t bytesToWrite;
     unsigned char *basePtr = NULL;
