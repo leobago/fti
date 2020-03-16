@@ -704,6 +704,22 @@ extern "C" {
 
     } FTIT_execution;
 
+    /** @typedef    FTIT_allConfiguration
+     *  @brief      Execution metadata.
+     *
+     *  This type stores all the configuration data in the config file
+
+     */
+    typedef struct {
+        FTIT_configuration configuration;
+        FTIT_execution execution;
+        FTIT_topology topology;
+        FTIT_checkpoint checkpoint[5];
+        FTIT_injection injection;
+
+    } FTIT_allConfiguration;
+
+
 #ifdef __cplusplus
 }
 #endif
