@@ -31,37 +31,34 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   utility.c
+ *  @file   dataset.c
+ *  @author Kai Keller (kellekai@gmx.de)
  *  @date   October, 2017
- *  @brief  API functions for the FTI library.
+ *  @brief  Utility functions for FTIT_dataset.
  */
 
-#include "interface.h"
+#ifndef FTI_DATASET_H
+#define FTI_DATASET_H
 
-#ifdef ENABLE_SIONLIB 
+/**--------------------------------------------------------------------------
+  
+  
+  @brief        Initializes instance of FTIT_dataset.
+
+  This function initializes the dataset to 0 and all the members with non-zero
+  default values to the respective ones.
+
+  @param        FTI_Exec[in]    <b> FTIT_execution* </b>    FTI execution
+  metadata.
+  @param        data[out]       <b> FTIT_dataset* </b>      Pointer to dataset
+  to be initialized.
+  @param        id[in]          <b> int </b>                id of dataset to
+  be initialized.
+  
+  @return                       \ref FTI_SCES  
+ 
+
+--------------------------------------------------------------------------**/
+int FTI_InitDataset( FTIT_execution* FTI_Exec, FTIT_dataset* data , int id );
+
 #endif
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief     copies all data of GPU variables to a CPU memory location 
-  @param     FTI_Exec Execution Meta data. 
-  @param     FTI_Data        Dataset metadata.
-  @return    integer FTI_SCES if successful.
-
-  Copis data from the GPU side to the CPU memory  
-
- **/
-/*-------------------------------------------------------------------------*/
-
-int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data){
-#ifdef GPUSUPPORT
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if ( FTI_Data[i].isDevicePtr ){
-            FTI_copy_from_device( FTI_Data[i].ptr, FTI_Data[i].devicePtr,FTI_Data[i].size,FTI_Exec);
-        }
-    }
-#endif
-    return FTI_SCES;
-}
-

@@ -31,64 +31,45 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   interface.h
+ *  @file   utility.c
  *  @date   October, 2017
- *  @brief  Header file for the FTI library private functions.
+ *  @brief  Utility functions for the FTI library.
  */
 
-#ifndef _FTI_INTERFACE_H
-#define _FTI_INTERFACE_H
-#ifdef __cplusplus
-extern "C"
+#include "../interface.h"
+
+#ifdef ENABLE_SIONLIB 
+#endif
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief     copies all data of GPU variables to a CPU memory location 
+  @param     FTI_Exec Execution Meta data. 
+  @param     FTI_Data        Dataset metadata.
+  @return    integer FTI_SCES if successful.
+
+  Copis data from the GPU side to the CPU memory  
+
+ **/
+/*-------------------------------------------------------------------------*/
+
+int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data)
 {
+
+#ifdef GPUSUPPORT
+    
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
+
+    int i; for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if ( data[i].isDevicePtr ){
+            FTI_copy_from_device( data[i].ptr, data[i].devicePtr, data[i].size, FTI_Exec);
+        }
+    }
+
 #endif
-#include "fti.h"
+    
+    return FTI_SCES;
 
-#include "fortran/ftif.h"
-
-#include "util/ini.h"
-#include "util/dataset.h"
-#include "util/keymap.h"
-#include "util/metaqueue.h"
-#include "util/macros.h"
-#include "util/utility.h"
-#include "util/failure-injection.h"
-
-#include "IO/posix.h"
-#include "IO/posix-dcp.h"
-#include "IO/hdf5-fti.h"
-#include "IO/ftiff.h"
-#include "IO/ftiff-dcp.h"
-
-#include "meta.h"
-#include "api-cuda.h"
-#include "postreco.h"
-#include "util/tools.h"
-#include "dcp.h"
-#include "conf.h"
-#include "checkpoint.h"
-#include "stage.h"
-#include "fti-io.h"
-#include "topo.h"
-#include "postckpt.h"
-#include "recover.h"
-#include "icp.h"
-
-#include "../deps/md5/md5.h"
-#include "../deps/iniparser/iniparser.h"
-#include "../deps/iniparser/dictionary.h"
-
-#include "../deps/jerasure/include/galois.h"
-#include "../deps/jerasure/include/jerasure.h"
-
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-#   include <sion.h>
-#endif
-
-#ifdef LUSTRE
-#   include "lustreapi.h"
-#endif
-#ifdef __cplusplus
 }
-#endif
-#endif
+

@@ -1,4 +1,4 @@
-#include "interface.h"
+#include "../interface.h"
 
 static float _PROBABILITY ;
 static char _FUNCTION[FTI_BUFS];

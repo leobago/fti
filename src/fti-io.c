@@ -52,9 +52,9 @@ FTIT_IO ftiIO[4];
   @param      a does not matter.
   @return     void.
 
-    THis function is passed as a reference when different file formats do not 
-    actually compute an integrity checksum. It helps to avoid if statements in the
-    code and provides a more stream line code format.
+  THis function is passed as a reference when different file formats do not 
+  actually compute an integrity checksum. It helps to avoid if statements in the
+  code and provides a more stream line code format.
  **/
 /*-------------------------------------------------------------------------*/
 void FTI_dummy(unsigned char *data, void* a){
@@ -68,7 +68,7 @@ void FTI_dummy(unsigned char *data, void* a){
   @param      FTI_Exec              Execution environment of the FTI. 
   @return     int                   On success FTI_SCES
 
-    This function actually initializes the execution paths of the write checkpoint function.
+  This function actually initializes the execution paths of the write checkpoint function.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
@@ -112,7 +112,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
@@ -130,7 +130,6 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[GLOBAL].getPos	= FTI_GetMPIOFilePos; 
             ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
 
-
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
@@ -142,7 +141,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
             break;
 
@@ -172,13 +171,13 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
 #endif
         case FTI_IO_FTIFF:
-            
+
             ftiIO[LOCAL].initCKPT = FTI_InitFtiff; 
             ftiIO[LOCAL].WriteData = FTI_WriteFtiffData; 
             ftiIO[LOCAL].finCKPT= FTI_FinalizeFtiff; 
@@ -190,7 +189,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[GLOBAL].finCKPT= FTI_FinalizeFtiff; 
             ftiIO[GLOBAL].getPos	= FTI_DummyFilePos; 
             ftiIO[GLOBAL].finIntegrity = FTI_dummy; 
-            
+
             ftiIO[2 + LOCAL].initCKPT = FTI_InitFtiff; 
             ftiIO[2 + LOCAL].WriteData = FTI_WriteFtiffData; 
             ftiIO[2 + LOCAL].finCKPT= FTI_FinalizeFtiff; 
@@ -202,7 +201,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             ftiIO[2 + GLOBAL].finCKPT= FTI_FinalizeFtiff; 
             ftiIO[2 + GLOBAL].getPos	= FTI_DummyFilePos; 
             ftiIO[2 + GLOBAL].finIntegrity = FTI_dummy; 
-            
+
             FTI_Exec->ckptFunc[GLOBAL] = FTI_Write;
             FTI_Exec->ckptFunc[LOCAL] = FTI_Write;
 
@@ -214,7 +213,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            FTI_Exec->activateHeads = FTI_ActivateHeadsFTIFF;
+            FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
 
             break;
 #ifdef ENABLE_HDF5 //If HDF5 is installed
@@ -243,7 +242,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
 
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
-            
+
             FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
             break;
 #endif
