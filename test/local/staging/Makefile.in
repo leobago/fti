@@ -26,11 +26,11 @@ massive: massive.c fti
 
 run-test-head: massive Makefile
 	cp cfg/H1 ./config.fti
-	$(MPIRUN) -n 12 ./$<
+	$(MPIRUN) -n 12 ./$< config.fti
 
 run-test-nohead: massive Makefile
 	cp cfg/H0 ./config.fti
-	$(MPIRUN) -n 12 ./$<
+	$(MPIRUN) -n 12 ./$< config.fti
 
 clean:
 	rm -rf *.o massive rdir Global Local Meta config.fti

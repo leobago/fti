@@ -32,10 +32,16 @@ bool check_status( int request_counter, int *reqID, bool printout );
 int rank, size;
 unsigned long num_files;
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    if (argc < 1)
+    {
+        printf("This test requires an FTI config file path as the first argument.");
+        exit(1);
+    }
 
     MPI_Init( NULL, NULL );
-    FTI_Init( "config.fti", MPI_COMM_WORLD );
+    FTI_Init( argv[1], MPI_COMM_WORLD );
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     MPI_Comm_size( FTI_COMM_WORLD, &size );
 
