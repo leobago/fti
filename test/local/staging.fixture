@@ -1,0 +1,43 @@
+#!/bin/bash
+
+shortname() {
+    echo "staging"
+}
+
+name() {
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head, test_mode=$TEST_MODE"
+}
+
+setup() {
+    # Constants
+    app='diffckpt/diff_test.exe'
+
+    # Input
+    iolib=$1
+    head=$2
+    local mode=$3
+
+    # Config file manipulation
+    fti_config_set "ckpt_io" "$iolib"
+    fti_config_set "head" "$head"
+
+    fti_config_set "enable_dcp" '1'
+    fti_config_set "dcp_mode" '1'
+    fti_config_set 'ckpt_l1' '2'
+
+    fti_config_set 'inline_l2' '1'
+    fti_config_set 'inline_l3' '1'
+    fti_config_set 'inline_l4' '1'
+    
+    fti_config_set "dcp_block_size" '4096'
+    fti_config_set "dcp_stack_size" '10'
+}
+
+teardown() {
+    unset iolib
+    unset head
+    unset app
+}
+
+runtest() {
+}
