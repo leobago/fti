@@ -1,35 +1,26 @@
 #!/bin/bash
 
-# var = 0 | 1
-
-# echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer : [nothing | Recover Var] ***\033[m ]"
-# (
-#     set -x
-#     bash run.sh $var &>>check.log
-# )
-# check_return_val $?
-# if [ $testFailed = 1 ]; then
-#     echo -e "DCP Posix Corrupt Layer  failed" >>failed.log
-#     echo -e "DCP Posix Corrupt Layer with Recover Var" >>failed.log # either up or this
-#     testFailed=0
-# fi
-
 shortname() {
-    echo "dCP"
+    echo "dCP Corrupt Layer"
 }
 
 name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head, test_mode=$TEST_MODE"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) recovery=$recovery_pretty"
 }
 
 setup() {
+    # Constants
     iolib=$(iolib_name_to_id 'POSIX')
+    head=0
 
-    head=$1
-    if [ $2 -eq 0 ]; then
-        export TEST_MODE='NOICP'
+    # Variables
+    recovery=$1 # Accepts 0 or 1 (fifth argument on test application)
+    recovery_pretty='FTI_Recover'
+    if [ $recovery -ne 0 ]; then
+        recovery_pretty='FTI_RecoverVar'
     fi
 
+    # Config file settings
     fti_config_set "ckpt_io" "$iolib"
     fti_config_set "head" "$head"
 
@@ -48,26 +39,16 @@ setup() {
 teardown() {
     unset iolib
     unset head
-    unset TEST_MODE
+    unset recovery
+    unset recovery_pretty
 }
 
 runtest() {
-    app_run_normal diffckpt/diff_test.exe $cfgfile
-    app_run_normal diffckpt/diff_test.exe $cfgfile
+    local app='./checkDCPPosix.exe'
+    local simulate_crash=1
+    local diffsizes=0
 
-    awk '
-            BEGIN {VAL=100; dcpEnabled=0};
-            /L4 dCP requested, but dCP is disabled!/ {exit(-1)}
-            /FTI  dCP Message/ {dcpEnabled=1};
-            /DEBUG/ {VAL=$10}; 
-            /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
-            /Ckpt. ID 7/ {VAL=0}
-            END { if ( !dcpEnabled ) {exit(-1)} } 
-        ' $tstdout # tstdout is an engine variable which holds the test stdout
-    if [ $? -eq 0 ]; then
-        # nranks is an engine variable which holds the test MPI rank count
-        assert_equals $(grep $TEST_MODE $tstdout | wc -l) $nranks 'There should be dCP messages for every rank'
-    else
-        fail 'Application log could not be validated in awk'
-    fi
+    app_run $app $cfgfile $simulate_crash $diffsizes $recovery
+    # Missing the run.sh contents here
+    assert_equals $? 0 'FTI should recover from corrupted data'
 }

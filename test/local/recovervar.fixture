@@ -31,7 +31,7 @@ teardown()
 
 runtest()
 {
-    app_run_normal $app $itf_cfgfile 1 $level 1
+    app_run $app $itf_cfgfile 1 $level 1
     
     run_id="$(fti_config_get 'exec_id')"
 
