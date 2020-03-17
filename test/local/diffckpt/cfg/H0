@@ -1,4 +1,3 @@
-
 [basic]
 head                           = 0
 node_size                      = 2
@@ -20,6 +19,7 @@ verbosity                      = 2
 enable_dcp                     = 1
 dcp_mode                       = 1
 dcp_block_size                 = 4096
+dcp_stack_size                 = 10
 
 
 [restart]

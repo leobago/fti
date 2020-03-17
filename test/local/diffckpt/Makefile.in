@@ -35,23 +35,23 @@ diff_test: diff_test_func.o diff_test.c diff_test.h Makefile fti
 
 run-test-nohead: diff_test Makefile
 	cp cfg/H0 ./config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$< config.fti
+	$(MPIRUN) -n 8 ./$< config.fti
 
 run-test-head: diff_test Makefile
 	cp cfg/H1 ./config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$< config.fti
+	$(MPIRUN) -n 8 ./$< config.fti
 
 run-test-nohead-posix: diff_test Makefile
 	cp cfg/H0POSIX ./config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$< config.fti
+	$(MPIRUN) -n 8 ./$< config.fti
 
 run-test-head-posix: diff_test Makefile
 	cp cfg/H1POSIX ./config.fti
-	$(MPIRUN) -n 8 ./$<
-	$(MPIRUN) -n 8 ./$<
+	$(MPIRUN) -n 8 ./$< config.fti
+	$(MPIRUN) -n 8 ./$< config.fti
 
 clean:
 	rm -rf *.o diff_test Global Local Meta config.fti
