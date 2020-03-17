@@ -45,7 +45,7 @@ runtest() {
     for i in 0 1
     do
         app_run $app $itf_cfgfile
-        if [ $? -ne 0]; then
+        if [ $? -ne 0 ]; then
             fail "Test application $app failed to execute until completion"
             return $?
         fi

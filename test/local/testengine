@@ -13,11 +13,6 @@ if [ -z $itf_nranks ]; then
     itf_nranks=16
 fi
 
-# MPIRUN: command to run an FTI test application
-if [ -z $MPIRUN ]; then
-    MPIRUN="mpirun $MPIRUN_ARGS -n $itf_nranks"
-fi
-
 # itf_timeout: timeout to interrupt a test running with 'test_interrupt'
 if [ -z $itf_timeout ]; then
     itf_timeout=30
@@ -150,8 +145,7 @@ app_run() {
     # To circunvent this, we redirect stdin to /dev/null
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
-    
-    ( set -x; $MPIRUN $@ &>>$itf_tstdout < /dev/null )
+    ( set -x; mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout < /dev/null )
 }
 
 app_run_interrupt() {

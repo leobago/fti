@@ -1,7 +1,7 @@
 #!/bin/bash
 
 shortname() {
-    echo "dCP Corrupt Layer"
+    echo "dCP-corrupt-layer"
 }
 
 name() {
@@ -14,7 +14,8 @@ setup() {
     head=0
 
     # Variables
-    recovery=$1 # Accepts 0 or 1 (fifth argument on test application)
+    recovery=$1 # Accepts 0 or 1
+    
     recovery_pretty='FTI_Recover'
     if [ $recovery -ne 0 ]; then
         recovery_pretty='FTI_RecoverVar'
@@ -44,11 +45,22 @@ teardown() {
 }
 
 runtest() {
-    local app='./checkDCPPosix.exe'
-    local simulate_crash=1
+    local app='diffckpt/checkDCPPosix.exe'
+    local crash_on_iter=1
     local diffsizes=0
-
-    app_run $app $cfgfile $simulate_crash $diffsizes $recovery
-    # Missing the run.sh contents here
+    app_run $app $itf_cfgfile $crash_on_iter $diffsizes $recovery
+    
+    for i in $(seq 1 6); do
+        app_run $app $itf_cfgfile $i $diffsizes $recovery
+        local exec_id="$(fti_config_get 'exec_id')"
+        local global_dir="$(fti_config_get 'glbl_dir')"
+        if [ "$i" -ne "6" ]; then 
+            local rank=$(echo $((RANDOM % $itf_nranks)))
+            local bytesToRemove=$(echo $((RANDOM % (10*1024*1024))))
+            local corruptedFile="$global_dir/$exec_id/dCP/dcp-id0-rank$rank.fti"
+            truncate -s -$bytesToRemove $corruptedFile 
+        fi
+    done
+    grep -q "\[SUCCESSFUL\]" $itf_tstdout
     assert_equals $? 0 'FTI should recover from corrupted data'
 }
