@@ -97,9 +97,15 @@ setup() {
 
     fti_config_set "ckpt_io" "$iolib"
     fti_config_set "head" "$head"
+
     fti_config_set "enable_dcp" '1'
     fti_config_set "dcp_mode" '1'
     fti_config_set 'ckpt_l1' '2'
+
+    fti_config_set 'inline_l2' '1'
+    fti_config_set 'inline_l3' '1'
+    fti_config_set 'inline_l4' '1'
+    
     fti_config_set "dcp_block_size" '4096'
     fti_config_set "dcp_stack_size" '10'
 }
@@ -111,8 +117,8 @@ teardown() {
 }
 
 runtest() {
-    app_run_normal diffckpt/diff_test.exe
-    app_run_normal diffckpt/diff_test.exe
+    app_run_normal diffckpt/diff_test.exe $cfgfile
+    app_run_normal diffckpt/diff_test.exe $cfgfile
 
     awk '
             BEGIN {VAL=100; dcpEnabled=0};

@@ -122,8 +122,7 @@ fti_config_get() {
     # Parameters:
     # $1: The field name in the configuration file
 
-    local __field=$1
-    echo "$(awk -v f="$__field" '$1 ~ f {print $3}' <$cfgfile)"
+    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <$cfgfile)"
 }
 
 fti_config_set() {
@@ -133,7 +132,7 @@ fti_config_set() {
     # $1: The field name in the configuration file
     # $2: The new value for the field
 
-    echo "$(awk -v find="$2" -v swap="$3" '$1 ~ find {$3 = swap}1' $cfgfile)" >$cfgfile
+    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $cfgfile)" >$cfgfile
 }
 
 # --------------------------- Fixture Test Helpers ----------------------------
