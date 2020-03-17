@@ -49,7 +49,7 @@ double get_share_ratio() {
     return ((double)(rand()%10000+1))/10000;
 }
 
-void init( dcp_info_t * info, unsigned long alloc_size ) {
+void init( char *fti_cfgfile, dcp_info_t * info, unsigned long alloc_size ) {
 
     int wsize;
     MPI_Comm_size(MPI_COMM_WORLD, &wsize);
@@ -57,8 +57,8 @@ void init( dcp_info_t * info, unsigned long alloc_size ) {
     
     dictionary* ini;
 
-    if (access("config.fti", R_OK) == 0) {
-        ini = iniparser_load("config.fti");
+    if (access(fti_cfgfile, R_OK) == 0) {
+        ini = iniparser_load(fti_cfgfile);
         if (ini == NULL) {
             WARN_MSG("failed to parse FTI config file!");
             exit(EXIT_FAILURE);

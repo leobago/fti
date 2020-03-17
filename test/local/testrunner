@@ -19,7 +19,7 @@ print_fixture_feedback() {
     # Parameters:
     # $1: The number of failures in the given suite for the fixture
 
-    if [ $maintain_app_logs -eq 0 ]; then
+    if [ $itf_maintain_app_logs -eq 0 ]; then
         print_color $COLOR_WHITEBOLD "Completed application logs stored in $(get_fixture_log_name)\n"
     fi
     if [ $1 -ne 0 ]; then
@@ -40,7 +40,7 @@ execute_suites() {
         local __local_failures=$nfailures
         # Erase the old logs so reports contain only the most recent data
         rm -rf "$(get_fixture_fail_log_name)"
-        if [ $maintain_app_logs -eq 0 ]; then
+        if [ $itf_maintain_app_logs -eq 0 ]; then
             rm -rf "$(get_fixture_log_name)"
         fi
 
