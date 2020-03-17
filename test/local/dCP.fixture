@@ -1,84 +1,5 @@
 #!/bin/bash
 
-#echo -e "[ \033[1m*** Testing dCP POSIX: head=0 ***\033[m ]"
-#( set -x; bash checkDCPposix.sh 0 NOICP &>>check.log )
-# cd @CMAKE_SOURCE_DIR@/test/local/diffckpt
-# N=16
-# export TEST_MODE=NOICP# alex
-
-#cp cfg/H0POSIX ./config.fti
-#$(MPIRUN) -n 8 ./$<
-#$(MPIRUN) -n 8 ./$< >out
-# MKE=$?
-# awk '
-#             BEGIN {VAL=100; dcpEnabled=0};
-#             /L4 dCP requested, but dCP is disabled!/ {print "dCP is disabled!"; exit(-1)}
-#             /FTI  dCP Message/ {dcpEnabled=1};
-#             {print}; 
-#             /DEBUG/ {VAL=$10}; 
-#             /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
-#             /Ckpt. ID 7/ {VAL=0}
-#             END { if ( !dcpEnabled ) { print "dCP is disabled!"; exit(-1) } } 
-#         ' out
-# AWK=$?
-# if [[ $AWK -eq 0 ]] && [[ $MKE -eq 0 ]]; then
-#     GRP=$(grep $2 out | wc -l)
-#     RTN=$((GRP - N))
-# else
-#     RTN=255
-# fi
-# cd @CMAKE_BINARY_DIR@/test/local
-# exit $RTN
-
-# echo -e "[ \033[1m*** Testing dCP POSIX: head=1 ***\033[m ]"
-# (
-#     set -x
-#     bash checkDCPposix.sh 1 NOICP &>>check.log
-# )
-# TEST_MODE=$2 make run-test-head-posix >out
-# MKE=$?
-# awk '
-#             BEGIN {VAL=100; dcpEnabled=0};
-#             /L4 dCP requested, but dCP is disabled!/ {print "dCP is disabled!"; exit(-1)}
-#             /FTI  dCP Message/ {dcpEnabled=1};
-#             {print}; 
-#             /DEBUG/ {VAL=$10}; 
-#             /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
-#             /Ckpt. ID 7/ {VAL=0}
-#             END { if ( !dcpEnabled ) { print "dCP is disabled!"; exit(-1) } } 
-#         ' out
-# AWK=$?
-# if [[ $AWK -eq 0 ]] && [[ $MKE -eq 0 ]]; then
-#     GRP=$(grep $2 out | wc -l)
-#     RTN=$((GRP - N))
-# else
-#     RTN=255
-# fi
-
-# echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer :  ***\033[m ]"
-# cd diffckpt
-# (
-#     set -x
-#     bash run.sh 0 &>>check.log
-# )
-# check_return_val $?
-# if [ $testFailed = 1 ]; then
-#     echo -e "DCP Posix Corrupt Layer  failed" >>failed.log
-#     testFailed=0
-# fi
-
-# echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer : Recover Var ***\033[m ]"
-# (
-#     set -x
-#     bash run.sh 1 &>>check.log
-# )
-# check_return_val $?
-# if [ $testFailed = 1 ]; then
-#     echo -e "DCP Posix Corrupt Layer with Recover Var" >>failed.log
-#     testFailed=0
-# fi
-# cd ..
-
 shortname() {
     echo "dCP"
 }
@@ -89,10 +10,13 @@ name() {
 
 setup() {
     iolib=$(iolib_name_to_id 'POSIX')
+    app='diffckpt/diff_test.exe'
 
     head=$1
     if [ $2 -eq 0 ]; then
         export TEST_MODE='NOICP'
+    else
+        export TEST_MODE='ICP'
     fi
 
     fti_config_set "ckpt_io" "$iolib"
@@ -113,25 +37,32 @@ setup() {
 teardown() {
     unset iolib
     unset head
+    unset app
     unset TEST_MODE
 }
 
 runtest() {
-    app_run_normal diffckpt/diff_test.exe $cfgfile
-    app_run_normal diffckpt/diff_test.exe $cfgfile
+    for i in 0 1
+    do
+        app_run $app $itf_cfgfile
+        if [ $? -ne 0]; then
+            fail "Test application $app failed to execute until completion"
+            return $?
+        fi
+    done
 
     awk '
-            BEGIN {VAL=100; dcpEnabled=0};
-            /L4 dCP requested, but dCP is disabled!/ {exit(-1)}
-            /FTI  dCP Message/ {dcpEnabled=1};
-            /DEBUG/ {VAL=$10}; 
-            /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
-            /Ckpt. ID 7/ {VAL=0}
-            END { if ( !dcpEnabled ) {exit(-1)} } 
-        ' $tstdout # tstdout is an engine variable which holds the test stdout
+        BEGIN {VAL=100; dcpEnabled=0};
+        /L4 dCP requested, but dCP is disabled!/ {exit(-1)}
+        /FTI  dCP Message/ {dcpEnabled=1};
+        /DEBUG/ {VAL=$10}; 
+        /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
+        /Ckpt. ID 7/ {VAL=0}
+        END { if ( !dcpEnabled ) {exit(-1)} } 
+        ' $itf_tstdout
     if [ $? -eq 0 ]; then
-        # nranks is an engine variable which holds the test MPI rank count
-        assert_equals $(grep $TEST_MODE $tstdout | wc -l) $nranks 'There should be dCP messages for every rank'
+        assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $itf_nranks \
+        'There should be dCP messages for every rank'
     else
         fail 'Application log could not be validated in awk'
     fi

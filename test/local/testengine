@@ -8,35 +8,34 @@ declare -r COLOR_REDBOLD='\033[1m\033[31m'
 
 declare -r CFG_MOCK='fti_cfg_mock.cfg'
 
-# nranks: the rank count for the FTI test application
-if [ -z $nranks ]; then
-    nranks=16
+# itf_nranks: the rank count for the FTI test application
+if [ -z $itf_nranks ]; then
+    itf_nranks=16
 fi
 
 # MPIRUN: command to run an FTI test application
 if [ -z $MPIRUN ]; then
-    MPIRUN="mpirun $MPIRUN_ARGS -n $nranks"
+    MPIRUN="mpirun $MPIRUN_ARGS -n $itf_nranks"
 fi
 
-# timeout: timeout to interrupt a test running with 'test_interrupt'
-if [ -z $timeout ]; then
-    timeout=30
+# itf_timeout: timeout to interrupt a test running with 'test_interrupt'
+if [ -z $itf_timeout ]; then
+    itf_timeout=30
 fi
 
-# maintain_app_logs: flag to keep the application logs despite test result
-# Defaults to False (not 0)
-if [ -z $maintain_app_logs ]; then
-    maintain_app_logs=1
+# itf_maintain_app_logs: flag to keep the application logs despite test result
+if [ -z $itf_maintain_app_logs ]; then
+    itf_maintain_app_logs=1
 fi
 
-# cfgfile: the name of the config file used for every FTI test case
-if [ -z $cfgfile ]; then
-    cfgfile="/tmp/configfile"
+# itf_cfgfile: the name of the config file used for every FTI test case
+if [ -z $itf_cfgfile ]; then
+    itf_cfgfile="/tmp/configfile"
 fi
 
-# tstdout: standard output for FTI test applications
-if [ -z $tstdout ]; then
-    tstdout="/tmp/fti-test.log"
+# itf_tstdout: standard output for FTI test applications
+if [ -z $itf_tstdout ]; then
+    itf_tstdout="/tmp/fti-test.log"
 fi
 
 # -------------------------- Engine Variable Setters --------------------------
@@ -55,15 +54,15 @@ engine_set_timeout() {
         echo -e "usage: [command] -t <integer -ge 10>"
         exit 0
     fi
-    timeout="$1"
-    echo "[OPTION] Set timeout -> "$timeout
+    itf_timeout="$1"
+    echo "[OPTION] Set timeout -> "$itf_timeout
 }
 
 engine_set_keep_logs()
 {
     # Set the flag to keep test application logs even when they are successful
 
-    maintain_app_logs=0
+    itf_maintain_app_logs=0
 }
 
 # -------------------------- Fixture Setup Helpers ----------------------------
@@ -122,7 +121,7 @@ fti_config_get() {
     # Parameters:
     # $1: The field name in the configuration file
 
-    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <$cfgfile)"
+    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <$itf_cfgfile)"
 }
 
 fti_config_set() {
@@ -132,13 +131,13 @@ fti_config_set() {
     # $1: The field name in the configuration file
     # $2: The new value for the field
 
-    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $cfgfile)" >$cfgfile
+    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
 }
 
 # --------------------------- Fixture Test Helpers ----------------------------
 
-app_run_normal() {
-    # Executes an MPI application until its completion
+app_run() {
+    # Executes an MPI application
     #
     # Parameters:
     # $1: The path to the application binary
@@ -152,7 +151,7 @@ app_run_normal() {
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
     
-    ( set -x; $MPIRUN $@ &>>$tstdout < /dev/null )
+    ( set -x; $MPIRUN $@ &>>$itf_tstdout < /dev/null )
 }
 
 app_run_interrupt() {
@@ -163,8 +162,8 @@ app_run_interrupt() {
     # $@: The application's parameters
 
     ( local __pid=$BASHPID
-    ( sleep $timeout; kill $__pid >/dev/null 2>&1; ) &
-    app_run_normal $@ )
+    ( sleep $itf_timeout; kill $__pid >/dev/null 2>&1; ) &
+    app_run $@ )
 }
 
 pass()
@@ -258,7 +257,7 @@ test_case() {
     # Run a test case until completion and checks if it failed.
     # If it fails, append the log into a file named after the test suite.
 
-    cat "$CFG_MOCK" > $cfgfile # create the configfile
+    cat "$CFG_MOCK" > $itf_cfgfile # create the configfile
     setup $@
     print_color $COLOR_WHITEBOLD "$(name)\n"
     runtest
@@ -266,14 +265,14 @@ test_case() {
     local __exitcode=$?
     if [ $__exitcode -ne 0 ]; then
         echo "$(name)" >> "$(get_fixture_fail_log_name)"
-        cat $tstdout >> "$(get_fixture_fail_log_name)"
-    elif [ $maintain_app_logs -eq 0 ]; then
+        cat $itf_tstdout >> "$(get_fixture_fail_log_name)"
+    elif [ $itf_maintain_app_logs -eq 0 ]; then
         echo "$(name)" >> "$(get_fixture_log_name)"
-        cat $tstdout >> "$(get_fixture_log_name)"
+        cat $itf_tstdout >> "$(get_fixture_log_name)"
     fi
     teardown
-    rm -rf $cfgfile
-    rm -rf $tstdout
+    rm -rf $itf_cfgfile
+    rm -rf $itf_tstdout
     return $__exitcode
 }
 

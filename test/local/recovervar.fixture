@@ -12,6 +12,7 @@ name()
 
 setup()
 {
+    app='./recoverVar/recoverVar.exe'
     iolib=$1
     level=$2
     diffsize=$3
@@ -22,6 +23,7 @@ setup()
 
 teardown()
 {
+    unset app
     unset iolib
     unset level
     unset diffsize
@@ -29,11 +31,11 @@ teardown()
 
 runtest()
 {
-    app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
+    app_run_normal $app $itf_cfgfile 1 $level 1
     
     run_id="$(fti_config_get 'exec_id')"
 
-    app_run_interrupt ./recoverVar/recoverVar.exe $cfgfile 0 $level $diffsize
+    app_run_interrupt $app $itf_cfgfile 0 $level $diffsize
     assert_equals $? 0 "$(print_test_status $?)"
 }
 
