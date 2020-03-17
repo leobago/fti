@@ -413,7 +413,7 @@ if [ ! -z "$CFG_FILE" ]; then
     TESTRECOVERVAR=$(grep -E "^RECOVERVAR" $CFG_FILE)
     TESTRECOVERNAME=$(grep -E "^RECOVERNAME" $CFG_FILE)
     TESTVPR=$(grep -E "^VPR" $CFG_FILE)
-    TESTICP=$(grep -E "^VPR" $CFG_FILE)
+    TESTICP=$(grep -E "^ICP" $CFG_FILE)
     TESTDCPPOSIX=$(grep -E "^DCPPOSIX" $CFG_FILE)
     TESTDCPFTIFF=$(grep -E "^DCPFTIFF" $CFG_FILE)
     TESTSTAGING=$(grep -E "^STAGING" $CFG_FILE)
@@ -593,7 +593,7 @@ fi
 #                     #
 # ---- Check iCP ---- #
 #                     #
-if [ ! -z $TESTDCPFTIFF ]; then
+if [ ! -z $TESTICP ]; then
 echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=0 ***\033[m ]"
 ( set -x; bash checkDCPposix.sh 0 ICP &>> check.log )
 check_return_val $?

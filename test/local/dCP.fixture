@@ -9,16 +9,22 @@ name() {
 }
 
 setup() {
-    iolib=$(iolib_name_to_id 'POSIX')
+    # Constants
     app='diffckpt/diff_test.exe'
 
-    head=$1
-    if [ $2 -eq 0 ]; then
+    # Input
+    iolib=$1
+    head=$2
+    local mode=$3
+
+    # Pretty names
+    if [ $mode -eq 0 ]; then
         export TEST_MODE='NOICP'
     else
         export TEST_MODE='ICP'
     fi
 
+    # Config file manipulation
     fti_config_set "ckpt_io" "$iolib"
     fti_config_set "head" "$head"
 
