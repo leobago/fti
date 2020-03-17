@@ -21,6 +21,9 @@ test/local/diffckpt/config.fti
 test/local/diffckpt/out
 test/local/diffckpt/diff_test
 test/local/diffckpt/run.sh
+test/local/staging/config.fti 
+test/local/staging/massive
+
 
 # IDE ignore
 .vscode

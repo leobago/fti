@@ -5,32 +5,26 @@ shortname() {
 }
 
 name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head, test_mode=$TEST_MODE"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head"
 }
 
 setup() {
     # Constants
-    app='diffckpt/diff_test.exe'
+    app='staging/massive.exe'
+    iolib="$(iolib_name_to_id 'POSIX')"
 
     # Input
-    iolib=$1
-    head=$2
-    local mode=$3
+    head=$1
 
     # Config file manipulation
     fti_config_set "ckpt_io" "$iolib"
     fti_config_set "head" "$head"
 
-    fti_config_set "enable_dcp" '1'
-    fti_config_set "dcp_mode" '1'
-    fti_config_set 'ckpt_l1' '2'
-
-    fti_config_set 'inline_l2' '1'
-    fti_config_set 'inline_l3' '1'
-    fti_config_set 'inline_l4' '1'
-    
-    fti_config_set "dcp_block_size" '4096'
-    fti_config_set "dcp_stack_size" '10'
+    fti_config_set 'enable_staging' '1'
+    fti_config_set 'ckpt_l1' '0'
+    fti_config_set 'ckpt_l2' '1'
+    fti_config_set 'ckpt_l3' '3'
+    fti_config_set 'ckpt_l4' '0'
 }
 
 teardown() {
@@ -40,4 +34,23 @@ teardown() {
 }
 
 runtest() {
+    app_run $app $itf_cfgfile
+    
+    awk '/of staging completed/ { PROGRESS=$2*1.0; }
+        END { if ( PROGRESS != 100.00 ) {print "!"; exit(-1)} }
+    ' $itf_tstdout
+    if [ $? -ne 0 ]; then
+        fail 'staging incomplete'
+        return $?
+    fi
+
+    awk '/of staging completed/ { FILES_DONE=$7; FILES_TODO=$9; }
+        END { if ( FILES_DONE != FILES_TODO ) { exit(-1) }
+        } 
+    ' $itf_tstdout
+    if [ $? -ne 0 ]; then
+        fail 'number of files differ!'
+        return $?
+    fi
+    pass
 }

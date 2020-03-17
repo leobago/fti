@@ -1,4 +1,3 @@
-
 [basic]
 head                           = 0
 node_size                      = 3
@@ -6,6 +5,7 @@ enable_staging                 = 1
 ckpt_dir                       = ./Local
 glbl_dir                       = ./Global
 meta_dir                       = ./Meta
+ckpt_io                        = 1
 ckpt_l1                        = 0
 ckpt_l2                        = 1
 ckpt_l3                        = 3
@@ -16,7 +16,6 @@ inline_l4                      = 1
 keep_last_ckpt                 = 0
 group_size                     = 4
 max_sync_intv                  = 0
-ckpt_io                        = 1
 verbosity                      = 2
 
 
