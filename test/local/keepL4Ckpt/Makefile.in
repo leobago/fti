@@ -4,8 +4,8 @@ FTI_HOME ?= @CMAKE_SOURCE_DIR@
 FTI_BUILD ?= @CMAKE_BINARY_DIR@
 # SET TO FTI RELEASE DIRECTORY
 FTI_RELEASE ?= @CMAKE_INSTALL_PREFIX@
-FTI_INC_DIR := $(FTI_RELEASE)/include
-FTI_LIB_DIR := $(FTI_RELEASE)/lib
+FTI_INC_DIR := $(FTI_RELEASE)/@CMAKE_INSTALL_INCLUDEDIR@
+FTI_LIB_DIR := $(FTI_RELEASE)/@CMAKE_INSTALL_LIBDIR@
 FTI_SRC := $(FTI_HOME)/src/*.h $(FTI_HOME)/src/*.c $(FTI_HOME)/include/fti.h
 WORK_DIR := $(FTI_HOME)/test/local/diffckpt
 
@@ -15,7 +15,7 @@ MPIRUN := mpirun ${MPIRUN_ARGS}
 
 all: run-nohead run-head
 
-export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(FTI_RELEASE)/lib
+export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(FTI_LIB_DIR)
 
 fti: $(FTI_SRC) clean
 	cd $(FTI_BUILD) && $(MAKE) all install
