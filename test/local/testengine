@@ -43,7 +43,7 @@ engine_set_timeout() {
     #
     # Exception:
     # The value in seconds must be greater or equal to 10
-    
+
     if [[ $1 -lt "10" ]] || [[ $1 == -* ]]; then
         echo -e "Wrong argument for timeout: "$1
         echo -e "usage: [command] -t <integer -ge 10>"
@@ -53,8 +53,7 @@ engine_set_timeout() {
     echo "[OPTION] Set timeout -> "$itf_timeout
 }
 
-engine_set_keep_logs()
-{
+engine_set_keep_logs() {
     # Set the flag to keep test application logs even when they are successful
 
     itf_maintain_app_logs=0
@@ -129,6 +128,19 @@ fti_config_set() {
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
 }
 
+fti_config_set_inline() {
+    # Set FTI to operate fully on inline mode
+    #
+    # Details:
+    # The head field dictates if the postprocessing is taken async.
+    # The inline fields states which checkpoints are synchronous.
+
+    fti_config_set 'head' '0'
+    fti_config_set 'inline_l2' '1'
+    fti_config_set 'inline_l3' '1'
+    fti_config_set 'inline_l4' '1'
+}
+
 # --------------------------- Fixture Test Helpers ----------------------------
 
 app_run() {
@@ -145,7 +157,10 @@ app_run() {
     # To circunvent this, we redirect stdin to /dev/null
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
-    ( set -x; mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout < /dev/null )
+    (
+        set -x
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+    )
 }
 
 app_run_interrupt() {
@@ -155,26 +170,53 @@ app_run_interrupt() {
     # $1: The path to the application binary
     # $@: The application's parameters
 
-    ( local __pid=$BASHPID
-    ( sleep $itf_timeout; kill $__pid >/dev/null 2>&1; ) &
-    app_run $@ )
+    (
+        local __pid=$BASHPID
+        (
+            sleep $itf_timeout
+            kill $__pid >/dev/null 2>&1
+        ) &
+        app_run $@
+    )
 }
 
-pass()
-{
-    # Force success in a test
+ckpt_delete_global() {
+    # Delete N checkpoint files from the current config file global directory
+    #
+    # Parameters:
+    # $1: The amount of files to destroy
+    # $2: The checkpoint level prepended with 'l'
+    (
+        IFS='
+'
+        local __global_dir="$(fti_config_get 'glbl_dir')"
+        local __check_id="$(fti_config_get 'exec_id')"
+        local __folder=$__global_dir/$__check_id/$1
+        for f in $(ls $__folder | grep 'Rank\|mpiio\|sionlib' | head -n $2); do
+            (
+                set -x;
+                rm -rf "$__folder/$f"
+            )
+        done
+    )
+}
 
-    print_color "$COLOR_GREENBOLD Passed\n"
+pass() {
+    # Force success in a test
+    #
+    # Parameters:
+    # $1: An optional message to show
+
+    print_color "$COLOR_GREENBOLD Passed ($1)\n"
     return 0
 }
 
-fail()
-{
+fail() {
     # Force failure in a test
     #
     # Parameters:
     # $1: An optional message to be printed
-    
+
     if [ $# -eq 1 ]; then
         print_color "$COLOR_REDBOLD Failed because: $1\n"
     else
@@ -183,8 +225,7 @@ fail()
     return 1
 }
 
-assert_equals()
-{
+assert_equals() {
     # Check if a numerical value is equal to another numerical value
     #
     # Parameters:
@@ -199,8 +240,7 @@ assert_equals()
     return $?
 }
 
-assert_not_equals()
-{
+assert_not_equals() {
     # Check if a numerical value is different to another
     #
     # Parameters:
@@ -218,8 +258,7 @@ assert_not_equals()
 
 # -------------------------- Test Runner Functions ----------------------------
 
-get_fixture_fail_log_name()
-{
+get_fixture_fail_log_name() {
     # Get the log filename to store the stdout of failure cases
     #
     # Warning:
@@ -228,8 +267,7 @@ get_fixture_fail_log_name()
     echo "$(shortname)-failed.log"
 }
 
-get_fixture_log_name()
-{
+get_fixture_log_name() {
     # Get the log filename to store the stdout when maintaining logs
     #
     # Warning:
@@ -251,18 +289,18 @@ test_case() {
     # Run a test case until completion and checks if it failed.
     # If it fails, append the log into a file named after the test suite.
 
-    cat "$CFG_MOCK" > $itf_cfgfile # create the configfile
+    cat "$CFG_MOCK" >$itf_cfgfile # create the configfile
     setup $@
     print_color $COLOR_WHITEBOLD "$(name)\n"
     runtest
 
     local __exitcode=$?
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >> "$(get_fixture_fail_log_name)"
-        cat $itf_tstdout >> "$(get_fixture_fail_log_name)"
+        echo "$(name)" >>"$(get_fixture_fail_log_name)"
+        cat $itf_tstdout >>"$(get_fixture_fail_log_name)"
     elif [ $itf_maintain_app_logs -eq 0 ]; then
-        echo "$(name)" >> "$(get_fixture_log_name)"
-        cat $itf_tstdout >> "$(get_fixture_log_name)"
+        echo "$(name)" >>"$(get_fixture_log_name)"
+        cat $itf_tstdout >>"$(get_fixture_log_name)"
     fi
     teardown
     rm -rf $itf_cfgfile

@@ -38,6 +38,7 @@ execute_suites() {
         source "$1.fixture"
 
         local __local_failures=$nfailures
+        local __local_test_count=0
         # Erase the old logs so reports contain only the most recent data
         rm -rf "$(get_fixture_fail_log_name)"
         if [ $itf_maintain_app_logs -eq 0 ]; then
@@ -50,7 +51,8 @@ execute_suites() {
 
         # Execute each test case
         while IFS= read -r line; do
-            print_color $COLOR_WHITEBOLD "Test ($(($ntests + 1))/$nlines) "
+            print_color $COLOR_WHITEBOLD "Test ($(($__local_test_count + 1))/$nlines) "
+            let __local_test_count=$__local_test_count+1
             execute_case $line
         done <"$1.suite"
 
