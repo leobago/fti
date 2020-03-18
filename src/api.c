@@ -1061,7 +1061,6 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const cha
 int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
-    int i, found=0, pvar_idx;
 
     FTIT_dataset* data;
     if( FTI_Data->get( &data, id ) != FTI_SCES ) {
@@ -2521,7 +2520,7 @@ int FTI_RecoverVarInit()
 #ifdef ENABLE_HDF5 //If HDF5 is installed
     if (FTI_Conf.ioMode == FTI_IO_HDF5) {
         //DBG_MSG("I GET CALLED",-1);
-        return FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
+        return FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt);
     }
 #endif
 }

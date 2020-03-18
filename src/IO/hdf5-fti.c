@@ -52,7 +52,7 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptMeta.ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     MPI_Send(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
@@ -706,7 +706,7 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteHDF5Var(FTIT_dataset *data)
+int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec)
 {
     int j;
     hsize_t dimLength[32];
@@ -725,19 +725,19 @@ int FTI_WriteHDF5Var(FTIT_dataset *data)
     hid_t dataspace = H5Screate_simple( data->rank, dimLength, NULL);
     hid_t dataset;
     if( FTI_Exec->h5SingleFile ) {  
-        hid_t globalDataset = FTI_DataVar->sharedData.dataset->hid;
-        dataset = H5Dcreate2 ( globalDataset, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+        hid_t globalDataset = data->sharedData.dataset->hid;
+        dataset = H5Dcreate2 ( globalDataset, data->name,data->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
         int rank = 1;
-        hsize_t att_dims = FTI_DataVar->sharedData.dataset->rank;
+        hsize_t att_dims = data->sharedData.dataset->rank;
         hid_t att_space = H5Screate_simple( rank, &att_dims, NULL);
         hid_t att_offset = H5Acreate( dataset, "offset", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
         hid_t att_count = H5Acreate( dataset, "count", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
-        H5Awrite( att_offset, H5T_NATIVE_HSIZE, FTI_DataVar->sharedData.offset );
-        H5Awrite( att_count, H5T_NATIVE_HSIZE, FTI_DataVar->sharedData.count );
+        H5Awrite( att_offset, H5T_NATIVE_HSIZE, data->sharedData.offset );
+        H5Awrite( att_count, H5T_NATIVE_HSIZE, data->sharedData.count );
         H5Aclose( att_offset );
         H5Aclose( att_count );
     } else {
-        dataset = H5Dcreate2 ( FTI_DataVar->h5group->h5groupID, FTI_DataVar->name,FTI_DataVar->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
+        dataset = H5Dcreate2 ( data->h5group->h5groupID, data->name,data->type->h5datatype, dataspace,  H5P_DEFAULT, dcpl , H5P_DEFAULT);
     }
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
@@ -1019,10 +1019,10 @@ int FTI_WriteHDF5Data(FTIT_dataset *data, void *write_info)
     FTIT_H5Group* rootGroup = fd->FTI_Exec->H5groups[0];
 
     if( fd->FTI_Exec->h5SingleFile && fd->FTI_Conf->h5SingleFileIsInline ) { 
-        res = FTI_WriteSharedFileData( data );
+        res = FTI_WriteSharedFileData( *data );
     } else {
         FTI_CommitDataType(fd->FTI_Exec,data);
-        res = FTI_WriteHDF5Var(data); 
+        res = FTI_WriteHDF5Var(data, fd->FTI_Exec); 
     }
     if ( res != FTI_SCES ) {
         int j;
@@ -1146,7 +1146,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
     else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
     }
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
@@ -1302,14 +1302,13 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     return FTI_SCES;
 }
 
-int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
 
     if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
     }
     if( FTI_Exec->h5SingleFile ) { 
         hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
@@ -1336,11 +1335,15 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 }
 
 int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     int i;
+    FTIT_dataset* data; 
+    
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
+    
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
     FTI_Exec->H5groups[0]->h5groupID = _file_id;
@@ -1399,7 +1402,7 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     //}
 
     int i;
-
+    int nbVar = FTI_Exec->nbVar;
     if( FTI_Data->data( &data, nbVar ) != FTI_SCES ) return FTI_NSCS;
 
     for (i = 0; i < nbVar; i++) {
@@ -2166,8 +2169,8 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     char fn[FTI_BUFS], tmpfn[FTI_BUFS], lfn[FTI_BUFS];
     hid_t fid, lfid, gid;
 
-    snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
-    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID ); 
+    snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId ); 
+    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId ); 
     if( FTI_Topo->splitRank == 0 ) {
         MKDIR(FTI_Conf->gTmpDir,0777);	
     }
@@ -2186,7 +2189,7 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     int b;
     for( b=0; b<FTI_Topo->nbApprocs; b++ ) {
 
-        snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptID, FTI_Topo->body[b] ); 
+        snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->body[b] ); 
 
         lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
 
@@ -2221,7 +2224,7 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
         }
         if( status == FTI_SCES ) {
             snprintf( FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, 
-                    FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+                    FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
         }
     }
 
@@ -2235,15 +2238,15 @@ int FTI_FinalizeH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_
 {
     char str[FTI_BUFS];
     sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-            FTI_Exec->ckptID, FTI_Exec->ckptSize / (1024.0 * 1024.0), t );
+            FTI_Exec->ckptId, FTI_Exec->ckptSize / (1024.0 * 1024.0), t );
     FTI_Print(str, FTI_INFO);
     if( !FTI_Conf->h5SingleFileIsInline ) {
         FTI_Exec->activateHeads( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_SCES);
     } else {
         char tmpfn[FTI_BUFS];
         char fn[FTI_BUFS];
-        snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
         if( FTI_Topo->splitRank == 0 ) {
             if( rename( tmpfn, fn ) == 0 ) {
                 if( rmdir( FTI_Conf->gTmpDir ) < 0 ) {

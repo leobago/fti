@@ -409,7 +409,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         int buf;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         if( FTI_Conf->ioMode == FTI_IO_HDF5 ) {
-            MPI_Recv(&FTI_Exec->ckptID, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             MPI_Recv(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         } else {
             int isDCP;
