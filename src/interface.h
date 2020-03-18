@@ -43,7 +43,6 @@ extern "C"
 {
 #endif
 #include "fti.h"
-#include "interface-paper.h"
 
 #include "meta.h"
 #include "api-cuda.h"

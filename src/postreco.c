@@ -890,6 +890,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       }
       strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
       strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
+      return FTI_NSCS;
 #endif
 
     case FTI_IO_FTIFF:
@@ -1200,30 +1201,62 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
   snprintf(FTI_Exec->meta[1].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
   snprintf(FTI_Exec->meta[4].ckptFile, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
-  char gfn[FTI_BUFS], lfn[FTI_BUFS], str[FTI_BUFS];
-  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec->meta[1].ckptFile);
+  char gfn[FTI_BUFS], lfn[FTI_BUFS];
+  snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[1].ckptFile);
   snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->meta[4].ckptFile);
+
+  int nTasks;
+  MPI_Comm_size(FTI_COMM_WORLD, &nTasks);
+  int numFiles = 1;
+  int sid;
+  int nlocaltasks = 1;
+  int* file_map = calloc(nTasks, sizeof(int));
+  int* ranks = talloc(int, nTasks);
+  int* rank_map = talloc(int, nTasks);
+  sion_int64* chunkSizes = talloc(sion_int64, nTasks);
+  sion_int32 fsblksize = -1;
+
+  for (int i = 0; i < nTasks; i++){
+      chunkSizes[i] = 1000; 
+      ranks[i] = FTI_Topo->splitRank;
+      rank_map[i] = FTI_Topo->splitRank;
+  }
+
+
 
   // this is done, since sionlib aborts if the file is not readable.
   if (access(gfn, F_OK) != 0) {
     return FTI_NSCS;
   }
+  else{
+    sid = sion_open(gfn, "rb,posix",&nlocaltasks , &numFiles, &chunkSizes, &fsblksize, &ranks, NULL);   
+    int correct  = 1;
+    int globalcorrect = 1;
+    if ( sid < 0 ){
+        correct =0;
+    }
+    MPI_Allreduce(&correct,&globalcorrect,1, MPI_INT, MPI_BAND, FTI_COMM_WORLD);
+    if ( globalcorrect == 0 ){
+        return FTI_NSCS;
+    }
+  }
 
-  int numFiles = 1;
-  int nlocaltasks = 1;
-  int* file_map = calloc(1, sizeof(int));
-  int* ranks = talloc(int, 1);
-  int* rank_map = talloc(int, 1);
-  sion_int64* chunkSizes = talloc(sion_int64, 1);
-  int fsblksize = -1;
-  chunkSizes[0] = FTI_Exec->meta[4].fs[0];
-  ranks[0] = FTI_Topo->splitRank;
-  rank_map[0] = FTI_Topo->splitRank;
-  int sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
 
+  sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+
+  if ( sid < 0 ){
+    FTI_Print("R4 cannot open the Global ckpt. file.", FTI_WARN);
+    free(file_map);
+    free(ranks);
+    free(rank_map);
+    free(chunkSizes);
+    return FTI_NSCS;
+  }
+
+  MKDIR(FTI_Conf->lTmpDir,0777);
   FILE* lfd = fopen(lfn, "wb");
   if (lfd == NULL) {
-    FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
+    FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
     sion_parclose_mapped_mpi(sid);
     free(file_map);
     free(ranks);
@@ -1273,7 +1306,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
       fwrite(readData, sizeof(char), bSize, lfd);
       if (ferror(lfd)) {
-        FTI_Print("R4 cannot write to the local ckpt. file.", FTI_DBUG);
+        FTI_Print("R4 cannot write to the local ckpt. file.", FTI_WARN);
         free(readData);
         fclose(lfd);
         sion_parclose_mapped_mpi(sid);
@@ -1290,7 +1323,6 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
 
   fclose(lfd);
-
   sion_parclose_mapped_mpi(sid);
   free(file_map);
   free(ranks);

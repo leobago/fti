@@ -53,6 +53,7 @@
 /*-------------------------------------------------------------------------*/
 int FTI_CheckFile(char* fn, long fs, char* checksum)
 {
+    char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
@@ -60,6 +61,9 @@ int FTI_CheckFile(char* fn, long fs, char* checksum)
                 if (strlen(checksum)) {
                     int res = FTI_VerifyChecksum(fn, checksum);
                     if (res != FTI_SCES) {
+                        sprintf(str, "Missing file: \"%s\"", fn);
+                        FTI_Print(str, FTI_WARN);
+
                         return 1;
                     }
                     return 0;
@@ -67,10 +71,15 @@ int FTI_CheckFile(char* fn, long fs, char* checksum)
                 return 0;
             }
             else {
+                sprintf(str, "Missing file: \"%s\"", fn);
+                FTI_Print(str, FTI_WARN);
+
                 return 1;
             }
         }
         else {
+            sprintf(str, "Missing file: \"%s\"", fn);
+            FTI_Print(str, FTI_WARN);
             return 1;
         }
     }
@@ -201,7 +210,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (!FTI_Topo->amIaHead) {
         if( FTI_Exec->reco == 3 ) {
             if( FTI_Conf->h5SingleFileEnable ) {
-            int allRes = FTI_NSCS;
+                int allRes = FTI_NSCS;
 #ifdef ENABLE_HDF5
                 int ckptID, res = FTI_SCES;
                 if( FTI_Topo->splitRank == 0 ) {
@@ -251,7 +260,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "Trying recovery with Ckpt. %d at level %d.", ckptID, level);
                 FTI_Print(str, FTI_DBUG);
-     
+
                 int res;
                 switch (level) {
                     case 0:
@@ -287,7 +296,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 if (allRes == FTI_SCES) {
                     //Inform heads that recovered successfully
                     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_Exec->globalComm);
-                     
+
                     // FTI-FF: ckptID is already set properly
                     if((FTI_Conf->ioMode == FTI_IO_FTIFF) || (FTI_Ckpt[4].recoIsDcp && FTI_Conf->dcpPosix) ) {
                         ckptID = FTI_Exec->ckptID;
@@ -319,8 +328,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         }
                         if( hasL4Ckpt ) {
                             snprintf(FTI_Exec->meta[0].currentL4CkptFile, 
-                                FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
+                                    FTI_BUFS, "Ckpt%d-Rank%d.fti", ckptID, FTI_Topo->myRank );
                             FTI_Ckpt[4].hasCkpt = true;
+                            FTI_Ckpt[4].ckptID= ckptID;
                         }
                     }
                     return FTI_SCES; //Recovered successfully

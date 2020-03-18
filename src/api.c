@@ -106,14 +106,14 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
-    XFTI_Init( &FTI_Topo, &FTI_Exec, &FTI_Conf, FTI_Data, FTI_Ckpt );
+    int i;
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
 #endif
 #ifdef ENABLE_HDF5
     H5Eset_auto2(0,0, NULL);
 #endif
-    FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &FTI_Inje);
+    FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;
     MPI_Comm_rank(FTI_Exec.globalComm, &FTI_Topo.myRank);
     MPI_Comm_size(FTI_Exec.globalComm, &FTI_Topo.nbProc);
@@ -202,6 +202,10 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm)
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
         return FTI_SCES;
+    }
+
+    for ( i = 0; i < FTI_BUFS; i++){
+        memset(FTI_Data[i].idChar,'\0',FTI_BUFS);
     }
 }
 
@@ -662,6 +666,54 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent)
     return FTI_SCES;
 }
 
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Searches in the protected variables for a name. If not found it allocates and returns the ID 
+  @param      name            Name of the protected variable to search 
+  @return     integer         id of the variable.
+
+  This function searches for a given name in the protected variables and returns the respective id for it.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_setIDFromString( char *name ){
+    int i = 0;
+    for ( i = 0 ; i < FTI_Exec.nbVar; i++){
+        if (strcmp(name, FTI_Data[i].idChar) == 0){
+            return i;
+        }
+    }
+    strncpy(FTI_Data[i].idChar, name, FTI_BUFS);
+    return i;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Searches in the protected variables for a name. If not found it allocates and returns the ID 
+  @param      name            Name of the protected variable to search 
+  @return     integer         id of the variable.
+
+  This function searches for a given name in the protected variables and returns the respective id for it.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_getIDFromString( char *name ){
+    int i = 0;
+    int ckptLvL = FTI_Exec.ckptLvel;
+    int numVars = FTI_Exec.meta[ckptLvL].nbVar[0];
+    char *varNames = FTI_Exec.meta[ckptLvL].idChar;
+
+    for ( i = 0 ; i < numVars; i++){
+        if (strcmp(name, &varNames[i*FTI_BUFS]) == 0){
+            return i;
+        }
+
+    }
+    return -1;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Renames a HDF5 group
@@ -704,7 +756,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         return FTI_NSCS;
     }
 
-    char str[FTI_BUFS]; //For console output
+    char str[5*FTI_BUFS]; //For console output
 #ifdef GPUSUPPORT 
     FTIT_ptrinfo ptrInfo;
     int res;
@@ -747,7 +799,13 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
             FTI_Data[i].size = type.size * count;
             FTI_Data[i].dimLength[0] = count;
             FTI_Exec.ckptSize = FTI_Exec.ckptSize + ((type.size * count) - prevSize);
-            sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            if ( strlen(FTI_Data[i].idChar) == 0 ){ 
+                sprintf(str, "Variable ID %d reseted. (Stored In %s).  Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            }
+            else{
+                sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",FTI_Data[i].idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+            }
+
             FTI_Print(str, FTI_DBUG);
             if ( prevSize != FTI_Data[i].size &&  FTI_Conf.dcpPosix){
                 if (!(FTI_Data[i].isDevicePtr)){
@@ -841,8 +899,12 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
         }
 #endif
     }
-
-    sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+    if ( strlen(FTI_Data[FTI_Exec.nbVar].idChar) == 0 ){ 
+        sprintf(str, "Variable ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.", id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+    }
+    else{
+        sprintf(str, "Variable Named %s with ID %d to protect (Stored in %s). Current ckpt. size per rank is %.2fMB.",FTI_Data[FTI_Exec.nbVar].idChar, id, memLocation, (float) FTI_Exec.ckptSize / (1024.0 * 1024.0));
+    }
     FTI_Exec.nbVar = FTI_Exec.nbVar + 1;
     FTI_Print(str, FTI_INFO);
     return FTI_SCES;
@@ -866,7 +928,7 @@ int FTI_Protect(int id, void* ptr, long count, FTIT_type type)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type)
+int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type)
 {
 #ifdef ENABLE_HDF5
     FTIT_globalDataset* last = FTI_Exec.globalDatasets;
@@ -937,7 +999,7 @@ int FTI_DefineGlobalDataset(int id, int rank, hsize_t* dimLength, const char* na
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
     int i, found=0, pvar_idx;
@@ -1016,7 +1078,7 @@ int FTI_AddSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
   direction. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength )
+int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength )
 {
 #ifdef ENABLE_HDF5
     FTIT_globalDataset* dataset = FTI_Exec.globalDatasets;
@@ -1066,7 +1128,7 @@ int FTI_UpdateGlobalDataset(int id, int rank, hsize_t* dimLength )
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateSubset( int id, int rank, hsize_t* offset, hsize_t* count, int did )
+int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did )
 {
 #ifdef ENABLE_HDF5
     int i, found=0, pvar_idx;
@@ -1180,7 +1242,7 @@ int FTI_GetDatasetRank( int did )
 
  **/
 /*-------------------------------------------------------------------------*/
-hsize_t* FTI_GetDatasetSpan( int did, int rank ) 
+FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank ) 
 {
 #ifdef ENABLE_HDF5 
 
@@ -1861,10 +1923,10 @@ int FTI_FinalizeICP()
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
         FTI_Print("Not all variables were successfully written!.", FTI_EROR);
     }
-    //if (allRes[1] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
-    //    FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-    //    FTI_Print("Not all datasets were added to the CP file!.", FTI_EROR);
-    //}
+    if (allRes[1] != FTI_Topo.nbNodes*FTI_Topo.nbApprocs) {
+        FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
+        FTI_Print("Not all datasets were added to the CP file!.", FTI_EROR);
+    }
 
     char str[FTI_BUFS];
     int resCP;
@@ -1873,7 +1935,7 @@ int FTI_FinalizeICP()
     int funcID = FTI_Ckpt[4].isInline && FTI_Exec.ckptLvel == 4;
     int offset = 2*(FTI_Conf.dcpPosix);
     resCP=FTI_Exec.finalizeICPFunc[funcID](&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, &ftiIO[funcID+offset]);
-    
+
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
         return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, MPI_Wtime() - FTI_Exec.iCPInfo.t0 ); 
@@ -2076,8 +2138,8 @@ int FTI_Recover()
 #ifdef GPUSUPPORT
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
+        strncpy(FTI_Data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
-
         if (FTI_Data[i].isDevicePtr)
             FTI_TransferFileToDeviceAsync(fd,FTI_Data[i].devicePtr, FTI_Data[i].size); 
         else
@@ -2093,6 +2155,7 @@ int FTI_Recover()
 #else
     for (i = 0; i < FTI_Exec.nbVar; i++) {
         size_t filePos = FTI_Exec.meta[FTI_Exec.ckptLvel].filePos[i];
+        strncpy(FTI_Data[i].idChar, &(FTI_Exec.meta[FTI_Exec.ckptLvel].idChar[i*FTI_BUFS]), FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         fread(FTI_Data[i].ptr, 1, FTI_Data[i].size, fd);
         if (ferror(fd)) {
@@ -2288,6 +2351,13 @@ int FTI_Finalize()
         MPI_Barrier( FTI_COMM_WORLD );
         FTI_RmDir( FTI_Ckpt[4].dir, FTI_Topo.splitRank == 0 ); 
         MPI_Barrier( FTI_COMM_WORLD );
+        int globalFlag = !FTI_Topo.splitRank;
+        globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf.dcpFtiff) && (globalFlag != 0));
+        if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
+            char str[FTI_BUFS];
+            snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
+            RENAME(FTI_Ckpt[4].metaDir, str );
+        }
         //Cleaning only local storage
         FTI_Try(FTI_Clean(&FTI_Conf, &FTI_Topo, FTI_Ckpt, 6), "clean local directories");
     } else {
