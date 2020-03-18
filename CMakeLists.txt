@@ -144,30 +144,34 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(
 SRC_FTI
-    src/postckpt.c
-    src/conf.c
-    src/fti-io.c
-    src/recover.c
-    src/postreco.c
-    src/failure-injection.c
-    src/api-cuda.c
-    src/api.c
-    src/checkpoint.c
-    src/dcp.c
+    src/fortran/ftif.c
+    src/util/tools.c
+    src/util/utility.c
+    src/util/keymap.c
+    src/util/dataset.c
+    src/util/ini.c
+    src/util/macros.c
+    src/util/failure-injection.c
+    src/util/metaqueue.c
     src/IO/posix-dcp.c
     src/IO/hdf5-fti.c
     src/IO/ftiff.c
     src/IO/mpio.c
     src/IO/posix.c
     src/IO/ftiff-dcp.c
-    src/macros.c
+    src/postckpt.c
+    src/conf.c
+    src/fti-io.c
+    src/recover.c
+    src/postreco.c
+    src/api-cuda.c
+    src/api.c
+    src/checkpoint.c
+    src/dcp.c
     src/stage.c
     src/meta.c
     src/icp.c
-    src/fortran/ftif.c
     src/topo.c
-    src/tools.c
-    src/utility.c
 )
 
 if (ENABLE_SIONLIB)

@@ -44,7 +44,7 @@
 #include "md5Opt.h"
 #include <pthread.h>
 #include <fti.h>
-#include <interface.h>
+#include "../../interface.h"
 #define CPU 1
 #define GPU 2
 #define CFILE 3
@@ -90,27 +90,27 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
 /*-------------------------------------------------------------------------*/
 /**
   @brief     This function computes the checksums of an Protected Variable 
-  @param     FTI_DataVar Variable We need to compute the checksums
+  @param     data Variable We need to compute the checksums
   @return     integer         FTI_SCES if successfu.
 
   This function computes the checksums of a specific variable 
  **/
 /*-------------------------------------------------------------------------*/
-int MD5CPU(FTIT_dataset *FTI_DataVar){
-    unsigned long dataSize = FTI_DataVar->size;
+int MD5CPU(FTIT_dataset *data){
+    unsigned long dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
-    unsigned char *ptr = (unsigned char *) FTI_DataVar->ptr;
-    for ( i = 0 ; i < FTI_DataVar->size; i+=md5ChunkSize){
+    unsigned char *ptr = (unsigned char *) data->ptr;
+    for ( i = 0 ; i < data->size; i+=md5ChunkSize){
         unsigned int blockId = i/md5ChunkSize;
         unsigned int hashIdx = blockId*16;
         unsigned int chunkSize = ( (dataSize-i) < md5ChunkSize ) ? dataSize-i: md5ChunkSize;
         if( chunkSize < md5ChunkSize ) {
             memset( block, 0x0, md5ChunkSize );
             memcpy( block, &ptr[i], chunkSize );
-            cpuHash( block, md5ChunkSize , &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+            cpuHash( block, md5ChunkSize , &data->dcpInfoPosix.currentHashArray[hashIdx] );
         } else {
-            cpuHash( &ptr[i], md5ChunkSize , &FTI_DataVar->dcpInfoPosix.currentHashArray[hashIdx] );
+            cpuHash( &ptr[i], md5ChunkSize , &data->dcpInfoPosix.currentHashArray[hashIdx] );
         }
     }
     return FTI_SCES;
@@ -119,29 +119,29 @@ int MD5CPU(FTIT_dataset *FTI_DataVar){
 /*-------------------------------------------------------------------------*/
 /**
   @brief     This function computes the checksums of a Protected Variable 
-  @param     FTI_DataVar Variable We need to compute the checksums
+  @param     data Variable We need to compute the checksums
   @return     integer         FTI_SCES if successfu.
 
   This function performs the computation of DCP MD5 checksums
   it is actually an interface between the FTI and the async methods
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MD5CPU(FTIT_dataset *FTI_DataVar){
-    return MD5CPU(FTI_DataVar);
+int FTI_MD5CPU(FTIT_dataset *data){
+    return MD5CPU(data);
 }
 
 
 /*-------------------------------------------------------------------------*/
 /**
   @brief     This function computes the checksums of a Protected Variable (GPU) 
-  @param     FTI_DataVar Variable We need to compute the checksums
+  @param     data Variable We need to compute the checksums
   @return     integer         FTI_SCES if successfu.
 
   This function initializes parameters for the computation of DCP MD5 checksums
   it is actually an interface between the FTI and the async methods
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MD5GPU(FTIT_dataset *FTI_DataVar){
+int FTI_MD5GPU(FTIT_dataset *data){
     return 1;
 }
 

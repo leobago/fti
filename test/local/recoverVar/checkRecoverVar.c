@@ -53,12 +53,10 @@
 
 
 void printArray(int *array[], int *sizes, int *order ,int N){
-    int k;
-    for (k = 0; k < N; k++){
+    for (int k = 0; k < N; k++){
         int i=k;
         printf("%d) ", i);
-        int j;
-        for ( j = 0 ; j < sizes[i]; j++){
+        for ( int j = 0 ; j < sizes[i]; j++){
             printf ("%d ",array[i][j]);
         }
         printf("\n");
@@ -68,9 +66,9 @@ void printArray(int *array[], int *sizes, int *order ,int N){
 }
 
 void initArray(int *array[], int *sizes, int N){
-    int i,j;
+    int i;
     for ( i = 0; i < N; i++){
-        for ( j = 0 ; j < sizes[i]; j++)
+        for ( int j = 0 ; j < sizes[i]; j++)
             array[i][j] = i;
     }
 }
@@ -98,8 +96,7 @@ void shuffle(int *array, size_t n)
 }
 
 int checkCorrectness( int *array, int size, int val){
-    int i;
-    for ( i = 0 ; i < size; i++)
+    for ( int i = 0 ; i < size; i++)
         if (array[i]!= val)
             return 0;
     return 1;            
@@ -147,8 +144,7 @@ int main(int argc, char* argv[]) {
     state = FTI_Status();
     if (state == INIT) {
         initArray(array,sizes,10);
-        int i;
-        for ( i = 0 ; i < 10; i++){
+        for ( int i = 0 ; i < 10; i++){
             FTI_Protect(i,array[i], sizes[i], FTI_INTG); 
         }
         FTI_Checkpoint(executionTimes,level);
@@ -164,8 +160,7 @@ int main(int argc, char* argv[]) {
     }
     else if ( state == RESTART || state == KEEP ) {
         shuffle(order,10);
-        int i;
-        for ( i = 0; i < 10 ; i++){
+        for ( int i = 0; i < 10 ; i++){
             int index = order[i];
             FTI_Protect(index,array[index], sizes[index], FTI_INTG); 
             int res = FTI_RecoverVar(index);
@@ -175,7 +170,7 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        for ( i = 0; i < 10 ; i++){
+        for ( int i = 0; i < 10 ; i++){
             correct &= checkCorrectness(array[i],sizes[i],i);
         }
         MPI_Barrier(FTI_COMM_WORLD);

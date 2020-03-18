@@ -31,7 +31,7 @@ int FTI_SionClose(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
+void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
 {
     WriteSionInfo_t *write_info = (WriteSionInfo_t *) malloc (sizeof(WriteSionInfo_t));
 
@@ -48,10 +48,10 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     write_info->rank_map[0] = FTI_Topo->splitRank;
     // open parallel file
     char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptID);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "%s",str);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s",str);
 
     write_info->sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &write_info->ranks, &write_info->chunkSizes, &write_info->file_map, &write_info->rank_map, &fsblksize, NULL);
 
@@ -121,15 +121,15 @@ int FTI_SionWrite (void *src, size_t size, void *opaque)
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteSionData(FTIT_dataset *FTI_DataVar, void *fd){
+int FTI_WriteSionData(FTIT_dataset *data, void *fd){
     WriteSionInfo_t *write_info = (WriteSionInfo_t*) fd;
     int res;
     char str[FTI_BUFS];
-    FTI_Print("Writing Sion Data",FTI_INFO);
-    if ( !FTI_DataVar->isDevicePtr) {
-        res = FTI_SionWrite(FTI_DataVar->ptr, FTI_DataVar->size, &write_info->sid);
+    FTI_Print("Writing Sion Data",FTI_DBUG);
+    if ( !data->isDevicePtr) {
+        res = FTI_SionWrite(data->ptr, data->size, &write_info->sid);
         if (res != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             errno = 0;
             FTI_Print("SIONlib: Data could not be written", FTI_EROR);
@@ -146,9 +146,9 @@ int FTI_WriteSionData(FTIT_dataset *FTI_DataVar, void *fd){
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        TransferDeviceMemToFileAsync(&FTI_Data[i], FTI_SionWrite, &write_info->sid),
+                        FTI_TransferDeviceMemToFileAsync(data, FTI_SionWrite, &write_info->sid),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             errno = 0;
             FTI_Print("SIONlib: Data could not be written", FTI_EROR);
@@ -161,7 +161,7 @@ int FTI_WriteSionData(FTIT_dataset *FTI_DataVar, void *fd){
         }
     }
 #endif            
-    write_info->loffset+= FTI_DataVar->size;
+    write_info->loffset+= data->size;
     return FTI_SCES;
 
 }
@@ -171,6 +171,3 @@ size_t FTI_GetSionFilePos(void *fileDesc){
     WriteSionInfo_t *fd  = (WriteSionInfo_t *) fileDesc;
     return fd->loffset;
 }
-
-
-
