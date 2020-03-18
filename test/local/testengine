@@ -129,13 +129,8 @@ fti_config_set() {
 }
 
 fti_config_set_inline() {
-    # Set FTI to operate fully on inline mode
-    #
-    # Details:
-    # The head field dictates if the postprocessing is taken async.
-    # The inline fields states which checkpoints are synchronous.
+    # Set FTI to perform the checkpoints inline
 
-    fti_config_set 'head' '0'
     fti_config_set 'inline_l2' '1'
     fti_config_set 'inline_l3' '1'
     fti_config_set 'inline_l4' '1'

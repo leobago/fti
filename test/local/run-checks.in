@@ -406,25 +406,17 @@ run_normal() {
 }
 
 set_inline() {
+    let l2=1
+    let l3=1
+    let l4=1
     case $1 in
-    1)
-        let l2=1
-        let l3=1
-        let l4=1
-        ;;
     2)
         let l2=$2
-        let l3=1
-        let l4=1
         ;;
     3)
-        let l2=1
         let l3=$2
-        let l4=1
         ;;
     4)
-        let l2=1
-        let l3=1
         let l4=$2
         ;;
     esac

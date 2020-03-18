@@ -1,11 +1,11 @@
 #!/bin/bash
 
 shortname() {
-    echo "standard-h0k1"
+    echo "standard-keeplast"
 }
 
 name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize erase_ckpt=$erase head=0 keep=1 inline=(1,1,1)"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize erase_ckpt=$erase head=$head keep=1 inline=(1,1,1)"
 }
 
 setup() {
@@ -13,16 +13,22 @@ setup() {
     app='check.exe'
 
     # Input
-    iolib=$1
-    level=$2
-    icp=$3
-    erase=$4
-    diffsize=$5
+    iolib=$1 # values 1-5
+    level=$2 # values 1-4
+    icp=$3 $ # values 0-1
+    erase=$4 # values 0-1
+    diffsize=$5 # values 0-1
+    head=$6 # values 0-1
 
     # Configuration file manipulation
     fti_config_set 'ckpt_io' "$iolib"
     fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set 'head' $head
     fti_config_set_inline
+    
+    if [ $head -ne 1 ]; then
+        fti_config_set "inline_l$level" '0'
+    fi
 }
 
 teardown() {
@@ -33,6 +39,7 @@ teardown() {
     unset icp
     unset erase
     unset diffsize
+    unset head
 }
 
 runtest() {
