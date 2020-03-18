@@ -53,6 +53,7 @@
 /*-------------------------------------------------------------------------*/
 int FTI_IMEOpen(char *fn, void *fileDesc)
 {
+     
     char str[FTI_BUFS];
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
     if ( fd->flag == O_WRONLY )
@@ -201,18 +202,20 @@ void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
     FTI_Print("I/O mode: IME.", FTI_DBUG);
 
     char fn[FTI_BUFS];
-    int level = FTI_Exec->ckptLvel;
+    int level = FTI_Exec->ckptMeta.level;
 
     WriteIMEInfo_t *write_info = (WriteIMEInfo_t *) malloc (sizeof(WriteIMEInfo_t));
 
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
 
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
+    
+    DBG_MSG("WRITING WITH IME: fn -> '%s'", -1, fn);
 
     write_info->flag = O_WRONLY;
     write_info->offset = 0;
