@@ -34,7 +34,7 @@ typedef struct{
 #endif
 
 typedef struct{
-    WritePosixInfo_t write_info;    // Posix Write info descriptor
+    WritePosixInfo_t write_info;    // Posix Write info descriptor 
     FTIT_configuration *FTI_Conf;   // FTI Configuration
     FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
     FTIT_execution *FTI_Exec;       // FTI execution options
@@ -111,7 +111,7 @@ int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data);
 
 
 
-#ifdef ENABLE_SIONLIB
+#ifdef ENABLE_SIONLIB 
 int write_sion(void *src, size_t size, void *opaque);
 #endif
 #endif

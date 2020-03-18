@@ -36,9 +36,9 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *  @file   posix.c
+ *  @file   ime.c
  *  @date   May, 2019
- *  @brief  Funtions to support posix checkpointing.
+ *  @brief  Funtions to support IME checkpointing.
  */
 
 
