@@ -123,16 +123,24 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec)
 /*-------------------------------------------------------------------------*/
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     char str[FTI_BUFS]; //For console output
-    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptID, FTI_Exec->ckptLvel);
+    snprintf(str, FTI_BUFS, "Starting writing checkpoint (ID: %d, Lvl: %d)", FTI_Exec->ckptId, FTI_Exec->ckptMeta.level);
     FTI_Print(str, FTI_DBUG);
-   
+
+    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptMeta.level == 4 ) {
+        int ckptId = FTI_LoadL4CkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
+        if( ckptId > 0 ) {
+            FTI_Exec->ckptMeta.ckptIdL4 = ckptId;
+            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
+            MPI_Barrier( FTI_COMM_WORLD );
+        }
+    }
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
-    if ( (FTI_Ckpt[4].isInline && (FTI_Exec->ckptLvel == 4)) || (FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline) ) {
+    if ( (FTI_Ckpt[4].isInline && (FTI_Exec->ckptMeta.level == 4)) || (FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline) ) {
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf->gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -173,7 +181,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data), "create metadata.");
-    
+
     if ( (FTI_Conf->dcpFtiff || FTI_Conf->keepL4Ckpt) && (FTI_Topo->splitRank == 0) ) {
         FTI_WriteCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
@@ -206,7 +214,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     double t1 = MPI_Wtime(); //Start time
 
     int res; //Response from post-processing functions
-    switch (FTI_Exec->ckptLvel) {
+    switch (FTI_Exec->ckptMeta.level) {
         case 4:
             res = FTI_Flush(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, 0);
             break;
@@ -230,7 +238,6 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-
     double t2 = MPI_Wtime(); //Post-processing time
     
     if( FTI_Exec->h5SingleFile ) {
@@ -247,50 +254,29 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_SCES;
     }
     
-    // rename l4 checkpoint file before deleting l4 folder if keepL4Ckpt enabled
-    if ( FTI_Conf->keepL4Ckpt && FTI_Exec->ckptLvel == 4 ) {
-        if ( FTI_Ckpt[4].hasCkpt ) {
-            FTI_ArchiveL4Ckpt( FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Topo );
-            int globalFlag = !FTI_Topo->splitRank;
-            globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
-            if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-                snprintf(str, FTI_BUFS, "%s/Ckpt_%d/",FTI_Ckpt[4].archMeta,FTI_Ckpt[4].ckptID);
-                RENAME(FTI_Ckpt[4].metaDir, str );
-            }
-        }
-        // store current ckpt file name in meta data.
-        if ( !FTI_Topo->amIaHead ) {
-            strncpy(FTI_Exec->meta[0].currentL4CkptFile, FTI_Exec->meta[0].ckptFile, FTI_BUFS);
-        } else {
-            int i;
-            for( i=1; i<FTI_Topo->nodeSize; ++i ) {
-                strncpy(&FTI_Exec->meta[0].currentL4CkptFile[i * FTI_BUFS], &FTI_Exec->meta[0].ckptFile[i * FTI_BUFS], FTI_BUFS);
-            }
-        }
-    }
 
-    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptLvel); //delete previous files on this checkpoint level
+    FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, FTI_Exec->ckptMeta.level); //delete previous files on this checkpoint level
     int nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
     nodeFlag = (!FTI_Ckpt[4].isDcp && (nodeFlag != 0));
     if (nodeFlag) { //True only for one process in the node.
         //Debug message needed to test nodeFlag (./tests/nodeFlag/nodeFlag.c)
-        snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptLvel);
+        snprintf(str, FTI_BUFS, "Has nodeFlag = 1 and nodeID = %d. CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptMeta.level);
         FTI_Print(str, FTI_DBUG);
-        if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptLvel == 4)) {
+        if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptMeta.level == 4)) {
             //checkpoint was not saved in global temporary directory
-            int level = (FTI_Exec->ckptLvel != 4) ? FTI_Exec->ckptLvel : 1; //if level 4: head moves local ckpt files to PFS
+            int level = (FTI_Exec->ckptMeta.level != 4) ? FTI_Exec->ckptMeta.level : 1; //if level 4: head moves local ckpt files to PFS
             RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
     globalFlag = (!(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff) && (globalFlag != 0));
     if (globalFlag) { //True only for one process in the FTI_COMM_WORLD.
-        if ((FTI_Exec->ckptLvel == 4) && !(FTI_Ckpt[4].isDcp)) {
+        if ((FTI_Exec->ckptMeta.level == 4) && !(FTI_Ckpt[4].isDcp)) {
             RENAME(FTI_Conf->gTmpDir, FTI_Ckpt[4].dir);
         }
         // there is no temp meta data folder for FTI-FF
         if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
-            RENAME(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptLvel].metaDir);
+            RENAME(FTI_Conf->mTmpDir, FTI_Ckpt[FTI_Exec->ckptMeta.level].metaDir);
         }
     }
     MPI_Barrier(FTI_COMM_WORLD); //barrier needed to wait for process to rename directories (new temporary could be needed in next checkpoint)
@@ -302,8 +288,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print(str, FTI_INFO);
 
     // expose to FTI that a checkpoint exists for level
-    FTI_Ckpt[FTI_Exec->ckptLvel].hasCkpt = true;
-    FTI_Ckpt[FTI_Exec->ckptLvel].ckptID= FTI_Exec->ckptID;
+    FTI_Ckpt[FTI_Exec->ckptMeta.level].hasCkpt = true;
 
     return FTI_SCES;
 }
@@ -351,7 +336,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } 
 
         if ( stage_flag ) {
-            
+
             // head will process each unstage request on its own
             // [A MAYBE: we could interrupt the unstageing process if 
             // we receive a checkpoint request.]
@@ -364,10 +349,10 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.
         if ( finalize_flag ) {
-            
+
             char str[FTI_BUFS];
             FTI_Print("Head waits for message...", FTI_DBUG);
-            
+
             int val = 0, i;
             for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
                 int buf;
@@ -382,7 +367,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( val != FTI_ENDW) { // If we were asked to finalize
                 FTI_Print( "Inconsistency in Finalize request.", FTI_WARN );
             }
-            
+
             FTI_Print("Head stopped listening.", FTI_DBUG);
             FTI_Finalize();
 
@@ -430,6 +415,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
             int isDCP;
             MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             FTI_Ckpt[4].isDcp = isDCP;
+	    MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         }
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);
@@ -437,64 +423,28 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     }
     for (i = 1; i < 7; i++) {
         if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
-            FTI_Exec->ckptLvel = i;
+            FTI_Exec->ckptMeta.level = i;
         }
     }
     if (flags[6] > 0) {
-        FTI_Exec->ckptLvel = 6;
+        FTI_Exec->ckptMeta.level = 6;
     }
 
-    int isDcpCnt = 0;
-    // FTI-FF: receive meta data information from the application ranks.
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptLvel != 6 &&  FTI_Exec->ckptLvel != 5 ) {
+    if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptMeta.level != 6 &&  FTI_Exec->ckptMeta.level != 5 ) {
 
-        // init headInfo
-        FTIFF_headInfo *headInfo;
-        headInfo = malloc(FTI_Topo->nbApprocs * sizeof(FTIFF_headInfo));
-
-        int k;
-        for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
-            k = i+1;
-            MPI_Recv(&(headInfo[i]), 1, FTIFF_MpiTypes[FTIFF_HEAD_INFO], FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            FTI_Exec->meta[0].exists[k] = headInfo[i].exists;
-            FTI_Exec->meta[0].nbVar[k] = headInfo[i].nbVar;
-            FTI_Exec->meta[0].maxFs[k] = headInfo[i].maxFs;
-            FTI_Exec->meta[0].fs[k] = headInfo[i].fs;
-            FTI_Exec->meta[0].pfs[k] = headInfo[i].pfs;
-            isDcpCnt += headInfo[i].isDcp;
-            MPI_Recv(&(FTI_Exec->meta[0].varID[k * FTI_BUFS]), headInfo[i].nbVar, MPI_INT, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Recv(&(FTI_Exec->meta[0].varSize[k * FTI_BUFS]), headInfo[i].nbVar, MPI_LONG, FTI_Topo->body[i], FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            strncpy(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), headInfo[i].ckptFile , FTI_BUFS);
-            sscanf(&(FTI_Exec->meta[0].ckptFile[k * FTI_BUFS]), "Ckpt%d", &FTI_Exec->ckptID);
-        }
-        strcpy(FTI_Exec->meta[FTI_Exec->ckptLvel].ckptFile, FTI_Exec->meta[0].ckptFile);
-
-        if ( FTI_Conf->dcpFtiff ) {
-            if ( (isDcpCnt == FTI_Topo->nbApprocs) && FTI_Conf->dcpFtiff ) {
-                FTI_Ckpt[4].isDcp = true;
-            }
-        } else {
-            isDcpCnt = 0;
-        }
-
-        free(headInfo);
+        FTI_Exec->mqueue.clear( &FTI_Exec->mqueue );
 
     }
 
     //Check if checkpoint was written correctly by all processes
-    int res = (FTI_Exec->ckptLvel == 6) ? FTI_NSCS : FTI_SCES;
+    int res = (FTI_Exec->ckptMeta.level == 6) ? FTI_NSCS : FTI_SCES;
 
-    // check for consistency of dCP request (isDcpCnt is 0 if dCP is disabled)
-    if ( (isDcpCnt > 0) && (isDcpCnt < FTI_Topo->nbApprocs) ) {
-        FTI_Print( "dCP was requested by some but not all ranks, discarding checkpoint request!", FTI_WARN );
-        res = FTI_NSCS;
-    }
     int allRes;
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes == FTI_SCES) { //If checkpoint was written correctly do post-processing
         res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt), "postprocess the checkpoint.");
         if (res == FTI_SCES) {
-            res = FTI_Exec->ckptLvel; //return ckptLvel if post-processing succeeds
+            res = FTI_Exec->ckptMeta.level; // send checkpoint level if post-processing succeeds
         }
     }
     else {  //If checkpoint wasn't written correctly
@@ -518,31 +468,36 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-    
-    This function performs a normal checkpoint by calling the respective file format procedures,
-    initalize ckpt, write data, compute integrity and finalize files.
+
+  This function performs a normal checkpoint by calling the respective file format procedures,
+  initalize ckpt, write data, compute integrity and finalize files.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io){
+        FTIT_keymap* FTI_Data, FTIT_IO *io)
+{
+
     int i;
     void *write_info = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     if( !write_info ) {
         FTI_Print("unable to initialize checkpoint!", FTI_EROR);
         return FTI_NSCS;
     }
+
+    FTIT_dataset* data;
+    if( FTI_Data->data( &data, FTI_Exec->nbVar ) != FTI_SCES ) return FTI_NSCS;
+
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_Data[i].filePos = io->getPos(write_info);
-        int ret = io->WriteData(&FTI_Data[i], write_info);
+        data[i].filePos = io->getPos(write_info);
+        int ret = io->WriteData(&data[i], write_info);
         if (ret != FTI_SCES)
             return ret;
     }
+
     io->finIntegrity(FTI_Exec->integrity, write_info);
     io->finCKPT(write_info);
     free (write_info);
     return FTI_SCES;
+
 }
-
-
-

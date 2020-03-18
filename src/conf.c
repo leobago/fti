@@ -167,6 +167,17 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini, "Basic:dcp_block_size", -1);
     FTI_Conf->dcpInfoPosix.StackSize = (int)iniparser_getint(ini, "Basic:dcp_stack_size", 5);
 
+    long long maxVarId = (long long)iniparser_getlint(ini, "Basic:max_var_id", (long long)FTI_DEFAULT_MAX_VAR_ID); 
+    if( maxVarId > (long long)FTI_LIMIT_MAX_VAR_ID ) {
+        char err[FTI_BUFS];
+        snprintf(err,FTI_BUFS,"Value of 'Basic:max_var_id' cannot be higher than 'FTI_LIMIT_MAX_VAR_ID' ('%lld > %d')", maxVarId, FTI_LIMIT_MAX_VAR_ID); 
+        FTI_Print(err, FTI_WARN);
+        FTI_Conf->maxVarId = FTI_DEFAULT_MAX_VAR_ID;
+    } else {
+        FTI_Conf->maxVarId = maxVarId;
+    }
+
+
     FTI_Conf->dcpInfoPosix.cachedCkpt = (int)iniparser_getint(ini, "Basic:CachedDCP", 0);
 
     FTI_Conf->verbosity = (int)iniparser_getint(ini, "Basic:verbosity", -1);
@@ -189,8 +200,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         //FTI_Exec->dcpInfoPosix.LayerHash = (unsigned char*) malloc( MD5_DIGEST_LENGTH * FTI_Conf->dcpInfoPosix.StackSize );
         switch( FTI_Conf->dcpMode ) {
             case FTI_DCP_MODE_MD5:
-                    FTI_Conf->dcpInfoPosix.hashFunc = MD5;
-                    FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
+                FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
                 break;
             case FTI_DCP_MODE_CRC32:
                 FTI_Conf->dcpInfoPosix.hashFunc = CRC32;
@@ -210,11 +221,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
     FTI_Exec->nbType = 0;
-    FTI_Exec->ckpt = 0;
     FTI_Exec->minuteCnt = 0;
     FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;
-    FTI_Exec->ckptID = 0;
+    FTI_Exec->ckptId = 0;
     FTI_Exec->ckptLvel = 0;
     FTI_Exec->ckptIntv = 1;
     FTI_Exec->wasLastOffline = 0;
@@ -225,9 +235,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->lastIterTime = 0;
     FTI_Exec->totalIterTime = 0;
     FTI_Exec->meanIterTime = 0;
-    FTI_Exec->metaAlloc = 0;
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
-    if ( FTI_Exec->reco == 0 ) {
+    if ( (FTI_Exec->reco == 0) || (FTI_Exec->reco == 3) ) {
         time_t tim = time(NULL);
         struct tm* n = localtime(&tim);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
