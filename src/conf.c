@@ -257,10 +257,10 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if( strncmp( h5SingleFileDir, "", 1 ) != 0 ) {
             snprintf(FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s", h5SingleFileDir);
         } else {
-            snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+            strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
         }
     } else {
-        snprintf( FTI_Conf->h5SingleFileDir, FTI_BUFS, "%s/%s/vpr", FTI_Conf->glbalDir, FTI_Exec->id );
+        strncpy( FTI_Conf->h5SingleFileDir, FTI_Conf->glbalDir, FTI_BUFS );
     }
 
     char *h5SingleFilePrefix = iniparser_getstring(ini, "basic:h5_single_file_prefix", NULL);

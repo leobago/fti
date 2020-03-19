@@ -1818,7 +1818,7 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
 
     struct dirent *entry;
     DIR *dir = opendir( FTI_Conf->h5SingleFileDir );
-
+    
     if ( dir == NULL ) {
         snprintf( errstr, FTI_BUFS, "VPR directory '%s' could not be accessed.", FTI_Conf->h5SingleFileDir );
         FTI_Print(errstr, FTI_EROR);
@@ -1827,7 +1827,6 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
     }
 
     *ckptId = -1;
-
     bool found = false;
     while((entry = readdir(dir)) != NULL) {   
         if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) {

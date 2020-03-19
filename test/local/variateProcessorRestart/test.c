@@ -344,12 +344,12 @@ int recover( int* ids, int nids )
     if( RECOVERVAR ) {
         shuffle( ids, nids );
         int i;
+        FTI_RecoverVarInit();
         for(i=0; i<nids; i++) {
             // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
-            FTI_RecoverVarInit();
             FTI_RecoverVar( ids[i] );
-            FTI_RecoverVarFinalize();
         }
+        FTI_RecoverVarFinalize();
     } else {
         FTI_Recover();
     }
