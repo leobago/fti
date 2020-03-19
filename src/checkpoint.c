@@ -212,7 +212,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS]; //For console output
 
     double t1 = MPI_Wtime(); //Start time
-
+        
     int res; //Response from post-processing functions
     switch (FTI_Exec->ckptMeta.level) {
         case 4:
@@ -407,15 +407,16 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     FTI_Print("Head waits for message...", FTI_DBUG);
     for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
         int buf;
-        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+        MPI_Status status;
+        MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, &status);
         if( FTI_Conf->ioMode == FTI_IO_HDF5 ) {
-            MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
-            MPI_Recv(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, &status);
+            MPI_Recv(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, &status);
         } else {
             int isDCP;
             MPI_Recv(&isDCP, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             FTI_Ckpt[4].isDcp = isDCP;
-	    MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
+	        MPI_Recv(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
         }
         snprintf(str, FTI_BUFS, "The head received a %d message", buf);
         FTI_Print(str, FTI_DBUG);

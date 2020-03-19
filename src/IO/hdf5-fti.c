@@ -47,12 +47,12 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,
 {
     FTI_Exec->wasLastOffline = 1;
     // Head needs ckpt. ID to determine ckpt file name.
-    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
+    int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head
     if (status != FTI_SCES) { //If Writing checkpoint failed
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptMeta.ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     MPI_Send(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
@@ -633,7 +633,7 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *cou
     if (status < 0) {
         free(offset);
         free(count);
-        sprintf(str, "Dataset could not be written");
+        sprintf(str, "Unable to read dataset");
         FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
@@ -863,7 +863,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec)
 int FTI_ReadHDF5Var(FTIT_dataset *data)
 {
     char str[FTI_BUFS];
-    int res;
+    herr_t res;
 
     hid_t dataset = H5Dopen(data->h5group->h5groupID, data->name, H5P_DEFAULT);
     hid_t dataspace = H5Dget_space(dataset);
@@ -875,20 +875,20 @@ int FTI_ReadHDF5Var(FTIT_dataset *data)
 #endif
         res = H5Dread(dataset,data->type->h5datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data->ptr);  
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", data->id);
+            sprintf(str, "Dataset #%d could not be read", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
 
         res = H5Dclose(dataset);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", data->id);
+            sprintf(str, "Dataset #%d could not be closed", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
         res = H5Sclose(dataspace);
         if (res < 0) {
-            sprintf(str, "Dataset #%d could not be written", data->id);
+            sprintf(str, "Dataset #%d dataspace could not be closed", data->id);
             FTI_Print(str, FTI_EROR);
             return FTI_NSCS;
         }
@@ -1319,7 +1319,6 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     }
 
-    //DBG_MSG("file_id: %lld", -1, _file_id);
     if (_file_id < 0) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;

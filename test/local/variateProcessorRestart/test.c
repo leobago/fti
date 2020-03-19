@@ -346,7 +346,9 @@ int recover( int* ids, int nids )
         int i;
         for(i=0; i<nids; i++) {
             // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
+            FTI_RecoverVarInit();
             FTI_RecoverVar( ids[i] );
+            FTI_RecoverVarFinalize();
         }
     } else {
         FTI_Recover();

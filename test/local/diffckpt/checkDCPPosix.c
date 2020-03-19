@@ -264,7 +264,9 @@ int main(int argc, char* argv[]) {
                 if  ( lrank == 0 ){
                     printf("Recovering Var %d\n", order[i]);
                 }
+                FTI_RecoverVarInit();
                 result = FTI_RecoverVar(order[i]);
+                FTI_RecoverVarFinalize();
                 if (result != FTI_SCES) {
                     exit(RECOVERY_FAILED);
                 }

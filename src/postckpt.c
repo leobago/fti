@@ -130,7 +130,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 {
     //heads need to use ckptFile to get ckptId and rank
     int ckptId, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
 
     char pfn[FTI_BUFS], str[FTI_BUFS];
     snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptId, rank);
@@ -259,11 +259,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
 
         snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
-        snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptId, rank);
+        snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Conf->lTmpDir, ckptId, rank, FTI_Conf->suffix);
 
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "L3 trying to access local ckpt. file (%s).", lfn);
@@ -487,6 +487,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         free(myData);
         fclose(lfd);
         fclose(efd);
+        
 
         long fs = FTI_Exec->ckptMeta.fs; //ckpt file size
 
@@ -798,7 +799,6 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         if (FTI_Topo->amIaHead) {
             int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
-            DBG_MSG("ckptFile: %s|%s, ckpt->id: %d", -1, ckptFile,FTI_Exec->ckptMeta.ckptFile, FTI_Exec->ckptId);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
