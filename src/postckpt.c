@@ -133,7 +133,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
     sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
 
     char pfn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptId, rank);
+    snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Conf->lTmpDir, ckptId, rank, FTI_Conf->suffix);
     snprintf(str, FTI_BUFS, "L2 trying to access Ptner file (%s).", pfn);
     FTI_Print(str, FTI_DBUG);
 
