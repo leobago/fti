@@ -775,7 +775,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     WriteMPIInfo_t write_info;
     // enable collective buffer optimization
     char gfn[FTI_BUFS],  ckptFile[FTI_BUFS];
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptMeta.ckptId);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 
     write_info.FTI_Conf = FTI_Conf;
@@ -931,7 +931,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptMeta.ckptId);
     //  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptId);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 

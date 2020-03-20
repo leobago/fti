@@ -1671,13 +1671,14 @@ int FTI_Checkpoint(int id, int level)
 
     double t1, t2;
 
-    FTI_Exec.ckptId = id;
+    FTI_Exec.ckptMeta.ckptId = id;
 
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
     if ( level == FTI_L4_H5_SINGLE ) {
         if( FTI_Conf.h5SingleFileEnable ) {
             FTI_Exec.h5SingleFile = true;
+            level = 4;
         } 
     }
 
@@ -1750,13 +1751,13 @@ int FTI_Checkpoint(int id, int level)
     t3 = MPI_Wtime(); //Time after post-processing
 
     if (res != FTI_SCES) {
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
-            FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
+            FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
 
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
@@ -1769,7 +1770,8 @@ int FTI_Checkpoint(int id, int level)
     // L1 checkpoint and update lateron.
    
     FTI_Exec.nbVarStored = FTI_Exec.nbVar;
-   
+    FTI_Exec.ckptId = FTI_Exec.ckptMeta.ckptId;
+
     FTIT_dataset* data;
     if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
         FTI_Print( "failed to finalize FTI", FTI_WARN );

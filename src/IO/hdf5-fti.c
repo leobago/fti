@@ -52,7 +52,7 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptMeta.ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     MPI_Send(&FTI_Exec->h5SingleFile, 1, MPI_C_BOOL, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
@@ -1092,7 +1092,7 @@ int  FTI_HDF5Close(void *fileDesc)
         }
         if( status == FTI_SCES ) {
             snprintf( fd->FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", fd->FTI_Conf->h5SingleFileDir, 
-                    fd->FTI_Conf->h5SingleFilePrefix, fd->FTI_Exec->ckptId );
+                    fd->FTI_Conf->h5SingleFilePrefix, fd->FTI_Exec->ckptMeta.ckptId );
         }
     }
 
@@ -1118,10 +1118,8 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
     FTI_Print("I/O mode: HDF5.", FTI_DBUG);
 
-    if ( FTI_Exec->ckptMeta.level == FTI_L4_H5_SINGLE ) {
-        if( FTI_Conf->h5SingleFileEnable ) {
-            FTI_Exec->ckptLvel = 4;
-        } else {
+    if ( FTI_Exec->h5SingleFile ) {
+        if( !FTI_Conf->h5SingleFileEnable ) {
             FTI_Print("VPR is disabled. Please enable with 'h5_single_file_enable=1'!", FTI_WARN);
             return NULL;
         }
@@ -1140,13 +1138,13 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     int level = FTI_Exec->ckptMeta.level;
 
     //update ckpt file name
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
 
     if ( level == 4 && FTI_Ckpt[4].isInline && !FTI_Exec->h5SingleFile ) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
     }
     else if( FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId );
     }
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
@@ -1240,7 +1238,8 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
         file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     if (file_id < 0) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        snprintf( str, FTI_BUFS, "Could not open FTI checkpoint file '%s'.", fn);
+        FTI_Print( str, FTI_EROR );
         return FTI_NREC;
     }
     FTI_Exec->H5groups[0]->h5groupID = file_id;
@@ -1320,7 +1319,8 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     }
 
     if (_file_id < 0) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        snprintf( str, FTI_BUFS, "Could not open FTI checkpoint file '%s'.", fn);
+        FTI_Print( str, FTI_EROR );
         return FTI_NREC;
     }
     FTI_Exec->H5groups[0]->h5groupID = _file_id;
@@ -2166,9 +2166,8 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 {
     char fn[FTI_BUFS], tmpfn[FTI_BUFS], lfn[FTI_BUFS];
     hid_t fid, lfid, gid;
-
-    snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId ); 
-    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId ); 
+    snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId ); 
+    snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId ); 
     if( FTI_Topo->splitRank == 0 ) {
         MKDIR(FTI_Conf->gTmpDir,0777);	
     }
@@ -2186,8 +2185,8 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
     int b;
     for( b=0; b<FTI_Topo->nbApprocs; b++ ) {
-
-        snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->body[b] ); 
+        
+        snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptId, FTI_Topo->body[b] ); 
 
         lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
 
@@ -2222,7 +2221,7 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
         }
         if( status == FTI_SCES ) {
             snprintf( FTI_Exec->h5SingleFileLast, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, 
-                    FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
+                    FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId );
         }
     }
 
@@ -2236,15 +2235,15 @@ int FTI_FinalizeH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_
 {
     char str[FTI_BUFS];
     sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-            FTI_Exec->ckptId, FTI_Exec->ckptSize / (1024.0 * 1024.0), t );
+            FTI_Exec->ckptMeta.ckptId, FTI_Exec->ckptSize / (1024.0 * 1024.0), t );
     FTI_Print(str, FTI_INFO);
     if( !FTI_Conf->h5SingleFileIsInline ) {
         FTI_Exec->activateHeads( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_SCES);
     } else {
         char tmpfn[FTI_BUFS];
         char fn[FTI_BUFS];
-        snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
+        snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId );
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId );
         if( FTI_Topo->splitRank == 0 ) {
             if( rename( tmpfn, fn ) == 0 ) {
                 if( rmdir( FTI_Conf->gTmpDir ) < 0 ) {

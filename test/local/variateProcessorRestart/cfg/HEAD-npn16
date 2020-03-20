@@ -27,6 +27,7 @@ h5_single_file_dir             =
 h5_single_file_prefix          = 
 h5_single_file_keep            = 0
 h5_single_file_enable          = 1
+h5_single_file_inline          = 0
 
 
 [restart]
