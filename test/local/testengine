@@ -20,7 +20,12 @@ fi
 
 # itf_maintain_app_logs: flag to keep the application logs despite test result
 if [ -z $itf_maintain_app_logs ]; then
-    itf_maintain_app_logs=1
+    itf_maintain_app_logs=0
+fi
+
+# itf_maintain_ckpt: flag to keep the application checkpoint files after execution
+if [ -z $itf_maintain_ckpt ]; then
+    itf_maintain_ckpt=0
 fi
 
 # itf_cfgfile: the name of the config file used for every FTI test case
@@ -53,10 +58,16 @@ engine_set_timeout() {
     echo "[OPTION] Set timeout -> "$itf_timeout
 }
 
+engine_set_keep_ckpt() {
+    # Set an engine to maintain all checkpoint files after test execution
+
+    itf_maintain_ckpt=1
+}
+
 engine_set_keep_logs() {
     # Set the flag to keep test application logs even when they are successful
 
-    itf_maintain_app_logs=0
+    itf_maintain_app_logs=1
 }
 
 # -------------------------- Fixture Setup Helpers ----------------------------
@@ -316,20 +327,14 @@ assert_not_equals() {
 
 # -------------------------- Test Runner Functions ----------------------------
 
-get_fixture_fail_log_name() {
-    # Get the log filename to store the stdout of failure cases
-    #
-    # Warning:
-    # This function will only work after sourcing a fixture script
+get_fixture_failure_log() {
+    # Get the failure log filename for the current fixture
 
     echo "$(shortname)-failed.log"
 }
 
-get_fixture_log_name() {
-    # Get the log filename to store the stdout when maintaining logs
-    #
-    # Warning:
-    # This function will only work after sourcing a fixture script
+get_fixture_log() {
+    # Get the log filename for the current fixture
 
     echo "$(shortname).log"
 }
@@ -347,22 +352,45 @@ test_case() {
     # Run a test case until completion and checks if it failed.
     # If it fails, append the log into a file named after the test suite.
 
-    cat "$CFG_MOCK" >$itf_cfgfile # create the configfile
-    setup $@
-    print_color $COLOR_WHITEBOLD "$(name)\n"
-    runtest
+    # Create the FTI configfile based on the mock
+    cat "$CFG_MOCK" >$itf_cfgfile
 
+    # Call the test case setup
+    setup $@
+    # Print feedback
+    print_color $COLOR_WHITEBOLD "$(name)\n"
+    
+    # Execute the test fixture
+    ( runtest )
+ 
+    # Save logs if needed
     local __exitcode=$?
+    local faillog="$(get_fixture_failure_log)"
+    local normallog="$(get_fixture_log)"
+
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >>"$(get_fixture_fail_log_name)"
-        cat $itf_tstdout >>"$(get_fixture_fail_log_name)"
-    elif [ $itf_maintain_app_logs -eq 0 ]; then
-        echo "$(name)" >>"$(get_fixture_log_name)"
-        cat $itf_tstdout >>"$(get_fixture_log_name)"
+        echo "$(name)" >> $faillog
+        cat $itf_tstdout >> $faillog
+    elif [ $itf_maintain_app_logs -eq 1 ]; then
+        echo "$(name)" >> $normallog
+        cat $itf_tstdout >> $normallog
     fi
+    
+    # Call the test case teardown
     teardown
+    
+    # Remove the global, local and meta directories
+    if [ $itf_maintain_ckpt -eq 0]; then
+        local _locdir="$(fti_config_get 'ckpt_dir')"
+        local _globaldir="$(fti_config_get 'glbl_dir')"
+        local _metadir="$(fti_config_get 'meta_dir')"
+        rm -rf $_locdir $globaldir $metadir
+    fi
+
+    # Remove the config files and test stdout
     rm -rf $itf_cfgfile
     rm -rf $itf_tstdout
+
     return $__exitcode
 }
 

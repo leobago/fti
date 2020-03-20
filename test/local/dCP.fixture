@@ -27,15 +27,12 @@ setup() {
     # Config file manipulation
     fti_config_set "ckpt_io" "$iolib"
     fti_config_set "head" "$head"
+    fti_config_set_inline
 
     fti_config_set "enable_dcp" '1'
     fti_config_set "dcp_mode" '1'
     fti_config_set 'ckpt_l1' '2'
 
-    fti_config_set 'inline_l2' '1'
-    fti_config_set 'inline_l3' '1'
-    fti_config_set 'inline_l4' '1'
-    
     fti_config_set "dcp_block_size" '4096'
     fti_config_set "dcp_stack_size" '10'
 }
@@ -50,26 +47,25 @@ teardown() {
 runtest() {
     for i in 0 1
     do
-        app_run $app $itf_cfgfile
-        if [ $? -ne 0 ]; then
-            fail "Test application $app failed to execute until completion"
-            return $?
-        fi
+        app_run_success $app $itf_cfgfile
     done
 
     awk '
-        BEGIN {VAL=100; dcpEnabled=0};
+        BEGIN {dcpEnabled=0};
         /L4 dCP requested, but dCP is disabled!/ {exit(-1)}
         /FTI  dCP Message/ {dcpEnabled=1};
+        END { if ( !dcpEnabled ) {exit(-1)} } 
+        ' $itf_tstdout
+    check_is_zero $? 'dCP is disabled'
+
+    awk '
+        BEGIN {VAL=100;};
         /DEBUG/ {VAL=$10}; 
         /Total CP data/ && (($19*1.0)<VAL || ($19*1.0)>(VAL+2)) {exit(-1)}; 
         /Ckpt. ID 7/ {VAL=0}
-        END { if ( !dcpEnabled ) {exit(-1)} } 
         ' $itf_tstdout
-    if [ $? -eq 0 ]; then
-        assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $itf_nranks \
+    check_is_zero $? 'dCP encoded size differ'
+
+    assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $itf_nranks \
         'There should be dCP messages for every rank'
-    else
-        fail 'Application log could not be validated in awk'
-    fi
 }
