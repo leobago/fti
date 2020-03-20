@@ -19,11 +19,11 @@ print_fixture_feedback() {
     # Parameters:
     # $1: The number of failures in the given suite for the fixture
 
-    if [ $itf_maintain_app_logs -eq 0 ]; then
-        print_color $COLOR_WHITEBOLD "Completed application logs stored in $(get_fixture_log_name)\n"
+    if [ $itf_maintain_app_logs -eq 1 ]; then
+        print_color $COLOR_WHITEBOLD "Completed application logs stored in $(get_fixture_log)\n"
     fi
     if [ $1 -ne 0 ]; then
-        print_color $COLOR_WHITEBOLD "Failed application logs stored in $(get_fixture_fail_log_name)\n"
+        print_color $COLOR_WHITEBOLD "Failed application logs stored in $(get_fixture_failure_log)\n"
     fi
 }
 
@@ -40,9 +40,9 @@ execute_suites() {
         local __local_failures=$nfailures
         local __local_test_count=0
         # Erase the old logs so reports contain only the most recent data
-        rm -rf "$(get_fixture_fail_log_name)"
-        if [ $itf_maintain_app_logs -eq 0 ]; then
-            rm -rf "$(get_fixture_log_name)"
+        rm -rf "$(get_fixture_failure_log)"
+        if [ $itf_maintain_app_logs -eq 1 ]; then
+            rm -rf "$(get_fixture_log)"
         fi
 
         # Get the amount of tests in the suite
@@ -57,7 +57,7 @@ execute_suites() {
         done <"$1.suite"
 
         # Textual feedback
-        print_fixture_feedback $(( nfailures-$__local_failures ))
+        print_fixture_feedback $((nfailures - $__local_failures))
         shift
     done
 }
@@ -80,6 +80,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     -m | --maintain-logs)
         engine_set_keep_logs
+        shift
+        ;;
+    -d | --maintain-ckpt-dir)
+        engine_set_keep_ckpt
         shift
         ;;
     -h | --help)
