@@ -2,7 +2,7 @@
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
  *
- *  Copyright (c) 2020
+ould not open FTI checkpoint file
  *  DataDirect Networks
  *
  *  See the file COPYRIGHT in the package base directory for details
