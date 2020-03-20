@@ -1,0 +1,99 @@
+#!/bin/bash
+
+shortname() {
+    echo "standard"
+}
+
+name() {
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) " \
+        "ICP=$icp L=$level diffsize=$diffsize head=$head keep=1" \
+        " inline=(1,1,1)"
+}
+
+desc() {
+    echo \
+        "Tests the main feature of FTI, the multi-level checkpointing. " \
+        "The fixture support tests for different IO libs and checkpoint levels. " \
+        "It can generate checkpoints with different sizes inline or async. " \
+        "However, it assumes that checkpoints are not tampered after execution."
+}
+
+setup() {
+    # Constants
+    app='check.exe'
+
+    # Input
+    iolib=$1    # values 1-5
+    level=$2    # values 1-4
+    icp=$3      # values 0-1
+    diffsize=$4 # values 0-1
+    head=$5     # values 0-1
+    keep=$6     # values 0-1
+
+    # Configuration file manipulation
+    fti_config_set 'ckpt_io' "$iolib"
+    fti_config_set 'keep_last_ckpt' "$keep"
+    fti_config_set 'head' $head
+    fti_config_set_inline
+
+    # inline_l1 does no exist in config file
+    if [ $head -ne 1 ] && [ $level -ne 1 ]; then
+        fti_config_set "inline_l$level" '0'
+    fi
+}
+
+teardown() {
+    unset app
+
+    unset iolib
+    unset level
+    unset icp
+    unset diffsize
+    unset head
+    unset keep
+}
+
+blorg() {
+    return 1
+}
+
+runtest() {
+    if [ $keep -eq 0 ]
+    then
+        # we simulate a crash when keep=0 to test standard behavior
+        local crash=1
+    else
+        # we do not crash on keep=1 to test flushing the last checkpoint
+        local crash=0
+    fi
+
+    app_run_success $app $itf_cfgfile $crash $level $diffsize $icp
+
+    # When keep=1, FTI flushes the last checkpoint to global
+    # It also writes 2 into 'failure' as to notify this behavior
+    if [ $keep -eq 1 ]
+    then
+        check_equals $(fti_config_get 'failure') '2'
+    fi
+
+    # This run should succeed and be a restart in both keep scenarios
+    # On keep=1, it should restart from the ckpt pushed to global
+    # On keep=0, it should restart from the last ckpt in local
+    app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
+    pass
+}
+
+# app_run $app $itf_cfgfile $crash $level $diffsize $icp
+
+# assert_equals $(fti_config_get 'failure') '2'
+# if [ $? -ne 0 ]; then
+#     fail 'FTI should assign 2 to failure in config when success and keep=1'
+#     return $?
+# fi
+
+# if [ $erase -ne 0 ]; then
+#     ckpt_delete_global 'l4' '1'
+# fi
+
+# app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
+#assert_not_equals $? 0 'FTI should fail when checkpoint files are deleted'

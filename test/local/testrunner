@@ -7,7 +7,7 @@ execute_case() {
     # $@ The fixture's parameters for the setup function
 
     let ntests=$ntests+1
-    test_case $@
+    ( test_case $@ )
     if [ ! $? -eq 0 ]; then
         let nfailures=$nfailures+1
     fi
@@ -57,7 +57,7 @@ execute_suites() {
         done <"$1.suite"
 
         # Textual feedback
-        print_fixture_feedback $(( nfailures-$__local_failures ))
+        print_fixture_feedback $((nfailures - $__local_failures))
         shift
     done
 }

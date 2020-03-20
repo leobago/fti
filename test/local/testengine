@@ -152,14 +152,26 @@ app_run() {
     # To circunvent this, we redirect stdin to /dev/null
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
+   
     (
         set -x
         mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
     )
 }
 
-app_run_interrupt() {
-    # Executes an MPI application and kill it after timeout seconds
+app_run_success() {
+    # Run an application and finalize the test case on failure if it fails
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+
+    app_run $@
+    check_is_zero $? "Test app failure exitcode=$?"
+}
+
+app_run_timeout() {
+    # Executes an MPI application and kill if it exceeds $itf_timeout seconds
     #
     # Parameters:
     # $1: The path to the application binary
@@ -197,58 +209,109 @@ ckpt_delete_global() {
 }
 
 pass() {
-    # Force success in a test
+    # Exit a test case successfully
     #
     # Parameters:
-    # $1: An optional message to show
+    # $1: An optional feedback message
 
-    print_color "$COLOR_GREENBOLD Passed ($1)\n"
-    return 0
+    print_color $COLOR_GREENBOLD "Passed"
+    if [ $# -eq 1 ]; then
+        print_color $COLOR_GREENBOLD ": $1"
+    fi
+    printf '\n'
+    exit 0
 }
 
 fail() {
-    # Force failure in a test
+    # Exit a test case in failure
     #
     # Parameters:
-    # $1: An optional message to be printed
+    # $1: An optional feedback message
 
+    print_color $COLOR_REDBOLD "Failed"
     if [ $# -eq 1 ]; then
-        print_color "$COLOR_REDBOLD Failed because: $1\n"
-    else
-        print_color "$COLOR_REDBOLD Failed\n"
+        print_color $COLOR_REDBOLD ": $1"
     fi
-    return 1
+    printf '\n'
+    exit 1
+}
+
+check_equals() {
+    # Check if a value is equal to another and finalize test case if not equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ $1 -ne $2 ]
+    then
+        fail "$3"
+    fi
+}
+
+check_not_equals() {
+    # Check if a value is not equal to another and finalize test case if equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ $1 -eq $2 ]
+    then
+        fail "$3"
+    fi
+}
+
+check_is_zero() {
+    # Check if a value is equal to zero and finalize test case if different
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ $1 -ne 0 ]
+    then
+        fail "$2"
+    fi
+}
+
+check_non_zero() {
+    # Check if a value is different to zero and finalize test case if equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ $1 -eq 0 ]
+    then
+        fail "$2"
+    fi
 }
 
 assert_equals() {
-    # Check if a numerical value is equal to another numerical value
+    # Assert if a value is equal to another and finalize test case
     #
     # Parameters:
     # $1: The first numerical value
     # $2: Another numerical value
     # $3: An optional message in case of failure
-    if [ $1 -eq $2 ]; then
-        pass
-        return $?
-    fi
-    fail "$3"
-    return $?
+    
+    check_equals $1 $2 $3
+    pass
 }
 
 assert_not_equals() {
-    # Check if a numerical value is different to another
+    # Assert if a value is equal to another and finalize test case
     #
     # Parameters:
-    # $1: The first numerical value
-    # $2: Another numerical value
+    # $1: The first value
+    # $2: Another value
     # $3: An optional message in case of failure
 
-    if [ $1 -ne $2 ]; then
-        pass
-        return $?
-    fi
-    fail "$3"
-    return $?
+    check_not_equals $1 $2 $3
+    pass
 }
 
 # -------------------------- Test Runner Functions ----------------------------

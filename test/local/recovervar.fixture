@@ -18,7 +18,9 @@ setup()
     diffsize=$3
     
     fti_config_set "ckpt_io" "$iolib"
+    fti_config_set "head" "0"
     fti_config_set "keep_last_ckpt" "0"
+    fti_config_set_inline
 }
 
 teardown()
@@ -31,11 +33,11 @@ teardown()
 
 runtest()
 {
-    app_run $app $itf_cfgfile 1 $level 1
+    app_run_success $app $itf_cfgfile 1 $level 1
     
     run_id="$(fti_config_get 'exec_id')"
 
-    app_run_interrupt $app $itf_cfgfile 0 $level $diffsize
+    app_run_timeout $app $itf_cfgfile 0 $level $diffsize
     assert_equals $? 0 "$(print_test_status $?)"
 }
 
@@ -45,19 +47,27 @@ print_test_status() {
     # Parameters:
     # $1: The integer return value of a recovervar run
 
-    if [ $1 = 255 ]; then
+    case $1 in
+    255)
         echo "FTI Abort"
-    elif [ $1 = 30 ]; then
+    ;;
+    30)
         echo "Checkpoint Data Corrupted"
-    elif [ $1 = 20 ]; then
+    ;;
+    20)
         echo "Recovery Failed"
-    elif [ $1 = 143 ]; then
+    ;;
+    143)
         echo "Process Killed, Timeout"
-    elif [ $1 = 40 ]; then
+    ;;
+    40)
         echo "Test Data Corrupted"
-    elif [ $1 = 50 ]; then
+    ;;
+    50)
         echo "Wrong Environment"
-    else
+    ;;
+    *)
         echo "Unknown Return Value ($1)"
-    fi
+    ;;
+    esac
 }

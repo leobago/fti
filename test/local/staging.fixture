@@ -34,23 +34,18 @@ teardown() {
 }
 
 runtest() {
-    app_run $app $itf_cfgfile
+    app_run_success $app $itf_cfgfile
     
     awk '/of staging completed/ { PROGRESS=$2*1.0; }
         END { if ( PROGRESS != 100.00 ) {print "!"; exit(-1)} }
     ' $itf_tstdout
-    if [ $? -ne 0 ]; then
-        fail 'staging incomplete'
-        return $?
-    fi
+    
+    check_is_zero $? 'Staging incomplete'
 
     awk '/of staging completed/ { FILES_DONE=$7; FILES_TODO=$9; }
         END { if ( FILES_DONE != FILES_TODO ) { exit(-1) }
         } 
     ' $itf_tstdout
-    if [ $? -ne 0 ]; then
-        fail 'number of files differ!'
-        return $?
-    fi
-    pass
+
+    assert_equals $? 0 'Number of files differ'
 }

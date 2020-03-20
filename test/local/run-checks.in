@@ -281,9 +281,10 @@ check_return_val() {
     fi
 }
 
-# arg 1 -> 'GLOBAL' or 'LOCAL'
 # arg 1 -> 'CORRUPT' or 'ERASE'
-# arg 3 -> 'CKPT', 'PTR', 'ENC', 'CONSECUTIVE_NODE' 'NONCONSECUTIVE_NODE'
+# arg 2 -> 'CKPT', 'PTR', 'ENC', 'CONSECUTIVE_NODE' 'NONCONSECUTIVE_NODE'
+# arg 3 -> ??
+# arg 4 -> 'GLOBAL' or 'LOCAL'
 run_failure() {
 
     if [ $4 = "GLOBAL" ]; then

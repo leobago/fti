@@ -1,0 +1,107 @@
+#!/bin/bash
+
+shortname() {
+    echo "standard-nokeep"
+}
+
+name() {
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize ckpt_disruption=$disr_name head=$head keep=0 inline=($l2,$l3,$l4)"
+}
+
+setup() {
+    # Constants
+    app='check.exe'
+    disr_none=0
+    disr_erase=1
+    disr_corrupt=2
+
+    # Input
+    iolib=$1   # values 1-5
+    level=$2   # values 1-4
+    icp=$3 $   # values 0-1
+    disrupt=$4 # values 0-2
+    diffsize=$5 # values 0-1
+    head=$6 # values 0-1
+    
+    # Pretty printing
+    case $disrupt in
+    $disr_erase)
+        disr_name='Erase'
+        ;;
+    $disr_corrupt)
+        disr_name='Corrupt'
+        ;;
+    *)
+        disr_name='None'
+        disrupt=$disr_none
+    esac
+
+    l2=1
+    l3=1
+    l4=1
+    case $level in
+    2)
+        l2=0
+        ;;
+    3)
+        l3=0
+        ;;
+    4)
+        l4=0
+        ;;
+    esac
+
+    # Configuration file manipulation
+    fti_config_set 'ckpt_io' "$iolib"
+    fti_config_set 'keep_last_ckpt' '0'
+    fti_config_set 'head' $head
+    fti_config_set_inline
+
+    if [ $head -ne 1 ]; then
+        fti_config_set "inline_l$level" '0'
+    fi
+}
+
+teardown() {
+    unset app
+
+    unset iolib
+    unset level
+    unset icp
+    unset disrupt
+    unset diffsize
+    unset head
+
+    unset disr_name
+    unset disr_none
+    unset disr_erase
+    unset disr_corrupt
+    unset l2
+    unset l3
+    unset l4
+}
+
+runtest() {
+    # We simulate a crash here so that we can check the standard behavior
+    # when keep_last_ckpt = 0
+    app_run $app $itf_cfgfile 1 $level $diffsize $icp
+
+    case $disrupt in
+    $disr_erase)
+        ;;
+    $disr_corrupt)
+        ;;
+    esac
+    if [ $erase -ne 0 ]; then
+        ckpt_delete_global 'l4' '1'
+    fi
+
+    app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
+
+    local retv=$?
+    if [ $erase -eq 0 ]; then
+        assert_equals $retv 0 'FTI should recover when files are not touched'
+    else
+        assert_not_equals $retv 0 'FTI should fail when checkpoint files are deleted'
+    fi
+}
