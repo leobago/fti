@@ -920,7 +920,7 @@ void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->FTIFFMeta.pureDataSize = 0;
 
     //update ckpt file name
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.ckptId, FTI_Topo->myRank,FTI_Conf->suffix);
 
     //If inline L4 save directly to global directory
     int level = FTI_Exec->ckptMeta.level;
@@ -1061,7 +1061,7 @@ int FTI_FinalizeFtiff( void *fd )
         return FTI_NSCS;
     }
 
-    write_info->FTI_Exec->FTIFFMeta.ckptId = write_info->FTI_Exec->ckptId;
+    write_info->FTI_Exec->FTIFFMeta.ckptId = write_info->FTI_Exec->ckptMeta.ckptId;
 
     FTIFF_writeMetaDataFTIFF( write_info->FTI_Exec, write_info );
 
@@ -1905,7 +1905,7 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
     FTI_Exec->ckptMeta.maxFs = FTIFFMeta->maxFs;              /**< Maximum file size.                    */
     FTI_Exec->ckptMeta.fs = FTIFFMeta->fs;                 /**< File size.                            */
     FTI_Exec->ckptMeta.pfs = FTIFFMeta->ptFs;                /**< Partner file size.                    */
-    FTI_Exec->ckptId = FTIFFMeta->ckptId;                /**< Partner file size.                    */
+    FTI_Exec->ckptMeta.ckptId = FTIFFMeta->ckptId;                /**< Partner file size.                    */
     strncpy( FTI_Exec->ckptMeta.ckptFile, file, FTI_BUFS );           /**< Ckpt file name. [FTI_BUFS]            */
 
     return FTI_SCES;

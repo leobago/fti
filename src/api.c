@@ -1820,6 +1820,7 @@ int FTI_InitICP(int id, int level, bool activate)
     if ( level == FTI_L4_H5_SINGLE ) {
         if( FTI_Conf.h5SingleFileEnable ) {
             FTI_Exec.h5SingleFile = true;
+            level = 4;
         } 
     }
 
@@ -1853,7 +1854,7 @@ int FTI_InitICP(int id, int level, bool activate)
 
     FTI_Exec.iCPInfo.lastCkptID = FTI_Exec.ckptId;
     FTI_Exec.iCPInfo.isFirstCp = !FTI_Exec.ckptId; //ckptId = 0 if first checkpoint
-    FTI_Exec.ckptId = id;
+    FTI_Exec.ckptMeta.ckptId = id;
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1887,11 +1888,11 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Exec.ckptMeta.level = level; //For FTI_WriteCkpt
 
     // Name of the  CKPT file.
-    snprintf(FTI_Exec.ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptId, FTI_Topo.myRank,FTI_Conf.suffix);
+    snprintf(FTI_Exec.ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptMeta.ckptId, FTI_Topo.myRank,FTI_Conf.suffix);
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix);
-    if ( (FTI_Ckpt[4].isInline && (FTI_Exec.ckptMeta.level == 4)) || (FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
+    if ( (FTI_Ckpt[4].isInline && (FTI_Exec.ckptMeta.level == 4))&&!FTI_Exec.h5SingleFile || (FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -2032,7 +2033,7 @@ int FTI_FinalizeICP()
 
     if ( resCP != FTI_SCES ) {
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
     }
 
@@ -2084,6 +2085,7 @@ int FTI_FinalizeICP()
     double t3 = MPI_Wtime(); //Time after post-processing
 
     if( resCP == FTI_SCES ) {
+        FTI_Exec.ckptId = FTI_Exec.ckptMeta.ckptId;
         sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
                 FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
         FTI_Print(str, FTI_INFO);

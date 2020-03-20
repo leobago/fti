@@ -135,7 +135,7 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     }
 
     // write actual amount of variables at the beginning of each layer
-    FWRITE(NULL, bytes, &FTI_Exec->ckptId, sizeof(int), 1, write_info->f, "p", write_info);
+    FWRITE(NULL, bytes, &FTI_Exec->ckptMeta.ckptId, sizeof(int), 1, write_info->f, "p", write_info);
     FWRITE(NULL, bytes, &FTI_Exec->nbVar, sizeof(int), 1, write_info->f, "p", write_info);
     FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);// + sizeof(unsigned int);
     write_DCPinfo->layerSize += 2*sizeof(int);// + sizeof(unsigned int);
