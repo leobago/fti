@@ -380,16 +380,15 @@ test_case() {
     teardown
     
     # Remove the global, local and meta directories
-    if [ $itf_maintain_ckpt -eq 0]; then
+    if [ $itf_maintain_ckpt -eq 0 ]; then
         local _locdir="$(fti_config_get 'ckpt_dir')"
         local _globaldir="$(fti_config_get 'glbl_dir')"
         local _metadir="$(fti_config_get 'meta_dir')"
-        rm -rf $_locdir $globaldir $metadir
+        rm -rf $_locdir $_globaldir $_metadir
     fi
 
     # Remove the config files and test stdout
-    rm -rf $itf_cfgfile
-    rm -rf $itf_tstdout
+    rm -rf $itf_cfgfile $itf_tstdout
 
     return $__exitcode
 }
