@@ -82,18 +82,3 @@ runtest() {
     app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
     pass
 }
-
-# app_run $app $itf_cfgfile $crash $level $diffsize $icp
-
-# assert_equals $(fti_config_get 'failure') '2'
-# if [ $? -ne 0 ]; then
-#     fail 'FTI should assign 2 to failure in config when success and keep=1'
-#     return $?
-# fi
-
-# if [ $erase -ne 0 ]; then
-#     ckpt_delete_global 'l4' '1'
-# fi
-
-# app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
-#assert_not_equals $? 0 'FTI should fail when checkpoint files are deleted'
