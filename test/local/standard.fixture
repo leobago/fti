@@ -7,7 +7,7 @@ shortname() {
 name() {
     echo "$(shortname) io=$(iolib_id_to_name $iolib) " \
         "ICP=$icp L=$level diffsize=$diffsize head=$head keep=1" \
-        " inline=(1,1,1)"
+        " async=($inline_txt)"
 }
 
 desc() {
@@ -36,14 +36,27 @@ setup() {
     fti_config_set 'head' $head
     fti_config_set_inline
 
-    # inline_l1 does no exist in config file
-    if [ $head -ne 1 ] && [ $level -ne 1 ]; then
+    if [ $head -eq 0 ] || [ $level -eq 1 ]; then
+        inline_txt='1,1,1'
+    else
         fti_config_set "inline_l$level" '0'
+        case $level in
+        2)
+            inline_txt='0,1,1'
+            ;;
+        3)
+            inline_txt='1,0,1'
+            ;;
+        4)
+            inline_txt='1,1,0'
+            ;;
+        esac
     fi
 }
 
 teardown() {
     unset app
+    unset inline_txt
 
     unset iolib
     unset level
@@ -51,10 +64,6 @@ teardown() {
     unset diffsize
     unset head
     unset keep
-}
-
-blorg() {
-    return 1
 }
 
 runtest() {

@@ -135,17 +135,118 @@ fti_config_set() {
     # Parameters:
     # $1: The field name in the configuration file
     # $2: The new value for the field
+    # $3: If a third parameter is passed, this operation is verbose
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
+    if [ $# -gt 2 ]; then
+        print_color $COLOR_WHITEBOLD "[CFG] $1=$2\n"
+    fi
 }
 
 fti_config_set_inline() {
     # Set FTI to perform the checkpoints inline
+    #
+    # Parameter:
+    # $1: Any value passed will make the operation vervose
 
-    fti_config_set 'inline_l2' '1'
-    fti_config_set 'inline_l3' '1'
-    fti_config_set 'inline_l4' '1'
+    fti_config_set 'inline_l2' '1' $1
+    fti_config_set 'inline_l3' '1' $1
+    fti_config_set 'inline_l4' '1' $1
 }
+
+# ----------------------- Fixture Parameter handling --------------------------
+
+itf_manage_config_file() {
+    # Set up the config file using ITF-standard variables
+    #
+    # This method can be called manually but will always be called when
+    # a fixture contains a 'parameter' function definition
+    
+    if [ ! -z $iolib ]; then
+        fti_config_set 'ckpt_io' "$iolib" 'verbose'
+    fi
+    if [ ! -z $head ]; then
+        fti_config_set 'head' "$head" 'verbose'
+    fi
+    if [ ! -z $keep ]; then
+        fti_config_set 'keep_last_ckpt' "$keep" 'verbose'
+    fi
+    if [ ! -z $level ] && [ $level -gt 1 ] && [ ! -z $head ] && [ $head -eq 0 ]; then
+        fti_config_set "inline_l$level" '0' 'verbose'
+    fi
+}
+
+itf_param_parse() {
+    # Parse the parameters passed against the ones registered in ITF
+    #
+    # Parametes:
+    # $@ The parameters to be parsed
+    #
+    # Usage:
+    # Use this function after registering the parameters with either:
+    # - param_register_itf
+    # - param_register_custom
+    #
+    # This function will parse the parameters and setup variables acordingly
+    #
+    # Example:
+    # param_register_itf 'iolib' 'head'
+    # param_parse --iolib 1 --head 0
+    # echo $iolib # should output 1
+    # echo $head # should output 0
+
+    while [ $# -gt 1 ]; do
+        def_var_if_in_array $1 $2 ${itf_paramv[@]}
+        if [ $? -ne 0 ]; then
+            def_var_if_in_array $1 $2 ${custom_paramv[@]} 
+            if [ $? -ne 0 ]; then
+                fail "Invalid argument $1"
+            fi
+        fi
+        shift
+        shift
+    done
+}
+
+param_register_itf() {
+    # Register ITF-standard parameters as requirements for the fixture
+    #
+    # Parameters:
+    # $@: Names recognized as ITF standard variables
+    #
+    # Details:
+    # Check the ITF standard variables in the case clausules of function:
+    # check_valid_itf_parameter
+    #
+    # Usage:
+    # parameter_register_itf 'iolib' 'head' 'icp'
+
+    while [ $# -gt 0 ]; do
+        itf_paramv[$itf_paramc]=$1
+        let itf_paramc=$itf_paramc+1
+        shift
+    done
+}
+
+# param_register_custom() {
+#     # Register ITF-standard parameters as requirements for the fixture
+#     #
+#     # Parameters:
+#     # $@: Names recognized as ITF standard variables
+#     #
+#     # Details:
+#     # Check the ITF standard variables in the case clausules of function:
+#     # check_valid_itf_parameter
+#     #
+#     # Usage:
+#     # parameter_register_itf 'iolib' 'head' 'icp'
+
+#     while [ $# -gt 0 ]; do
+#         itf_paramv[$itf_paramc]=$1
+#         let itf_paramc=$itf_paramc+1
+#         shift
+#     done
+# }
 
 # --------------------------- Fixture Test Helpers ----------------------------
 
@@ -163,7 +264,7 @@ app_run() {
     # To circunvent this, we redirect stdin to /dev/null
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
-   
+
     (
         set -x
         mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
@@ -212,7 +313,7 @@ ckpt_delete_global() {
         local __folder=$__global_dir/$__check_id/$1
         for f in $(ls $__folder | grep 'Rank\|mpiio\|sionlib' | head -n $2); do
             (
-                set -x;
+                set -x
                 rm -rf "$__folder/$f"
             )
         done
@@ -255,8 +356,7 @@ check_equals() {
     # $2: Another numerical value
     # $3: An optional message in case of failure
 
-    if [ $1 -ne $2 ]
-    then
+    if [ $1 -ne $2 ]; then
         fail "$3"
     fi
 }
@@ -269,8 +369,7 @@ check_not_equals() {
     # $2: Another numerical value
     # $3: An optional message in case of failure
 
-    if [ $1 -eq $2 ]
-    then
+    if [ $1 -eq $2 ]; then
         fail "$3"
     fi
 }
@@ -282,8 +381,7 @@ check_is_zero() {
     # $1: The first numerical value
     # $2: An optional message in case of failure
 
-    if [ $1 -ne 0 ]
-    then
+    if [ $1 -ne 0 ]; then
         fail "$2"
     fi
 }
@@ -295,8 +393,7 @@ check_non_zero() {
     # $1: The first numerical value
     # $2: An optional message in case of failure
 
-    if [ $1 -eq 0 ]
-    then
+    if [ $1 -eq 0 ]; then
         fail "$2"
     fi
 }
@@ -308,7 +405,7 @@ assert_equals() {
     # $1: The first numerical value
     # $2: Another numerical value
     # $3: An optional message in case of failure
-    
+
     check_equals $1 $2 $3
     pass
 }
@@ -339,6 +436,30 @@ get_fixture_log() {
     echo "$(shortname).log"
 }
 
+itf_load_fixture() {
+    # Loads the function definitions in a fixture to the current context
+    #
+    # Parameters:
+    # $1: The fixture name without the .fixture extension
+
+    source "$1.fixture"
+}
+
+itf_unload_fixture() {
+    # Removes all definitions declared in a fixture
+    # This should be called if the runner will execute another fixture
+
+    unset parameters
+    unset desc
+    unset shortname
+    unset name
+    unset runtest
+    unset teardown
+
+    type on_fixture_teardown &>/dev/null && on_fixture_teardown
+    unset on_fixture_teardown
+}
+
 test_case() {
     # Run a test defined in a fixture with a set of input data
     #
@@ -355,29 +476,39 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$CFG_MOCK" >$itf_cfgfile
 
+    # Checks if the fixture declared ITF-managed parameters
+    itf_param_clear
+    type parameters &>/dev/null && parameters
     # Call the test case setup
     setup $@
+    # If ITF is managing input parameters, parse them
+    type parameters &>/dev/null && itf_param_parse $@
     # Print feedback
     print_color $COLOR_WHITEBOLD "$(name)\n"
-    
+
+    # If ITF is managing input parameters, setup the config file
+    type parameters &>/dev/null && itf_manage_config_file
+
     # Execute the test fixture
-    ( runtest )
- 
+    (runtest)
+
     # Save logs if needed
     local __exitcode=$?
     local faillog="$(get_fixture_failure_log)"
     local normallog="$(get_fixture_log)"
 
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >> $faillog
-        cat $itf_tstdout >> $faillog
+        echo "$(name)" >>$faillog
+        cat $itf_tstdout >>$faillog
     elif [ $itf_maintain_app_logs -eq 1 ]; then
-        echo "$(name)" >> $normallog
-        cat $itf_tstdout >> $normallog
+        echo "$(name)" >>$normallog
+        cat $itf_tstdout >>$normallog
     fi
-    
+
     # Call the test case teardown
     teardown
+    # Releases any ITF-managed parameter variable names
+    itf_param_unset
     
     # Remove the global, local and meta directories
     if [ $itf_maintain_ckpt -eq 0 ]; then
@@ -408,3 +539,86 @@ print_color() {
 
     printf "$1$2$COLOR_RESET"
 }
+
+# --------------------------- ITF Interal functions ---------------------------
+
+check_valid_itf_parameter() {
+    # Checks if a variable and value are valid ITF name-value pair
+    #
+    # Parameters:
+    # $1: The variable name
+    # $2: The variable value
+    #
+    # Details:
+    # check_* function that kills the test if it fails validating the parameter
+
+    local __valid=0
+
+    case $1 in
+    iolib)
+        if [ $2 -gt 0 ] && [ $2 -lt 6 ]; then
+            local __valid=1
+        fi
+        ;;
+    level)
+        if [ $2 -gt 0 ] && [ $2 -lt 5 ]; then
+            local __valid=1
+        fi
+        ;;
+    head | keep | icp | diffsize )
+        if [ $2 -eq 0 ] || [ $2 -eq 1 ]; then
+            local __valid=1
+        fi
+        ;;
+    *)
+        fail "Invalid ITF argument $1"
+        ;;
+    esac
+
+    if [ $__valid -eq 0 ]; then
+        fail "Invalid argument value $1 -> $2"
+    fi
+}
+
+def_var_if_in_array() {
+    # Define a variable with a given value if the name is found within a set
+    #
+    # Parameters:
+    # $1: A parameter given to the test fixture setup method
+    # $2: The value given to the parameter
+    # $3+: A set of valid parameters names without the leading '--'
+
+    for p in ${@:3}; do
+        if [ $1 == "--$p" ]; then
+            check_valid_itf_parameter $p $2
+            eval $p=$2
+            return 0
+        fi
+    done
+    return 1
+}
+
+itf_param_clear() {
+    # Clear the set of parameters managed by ITF
+
+    paramc_itf=0
+    paramv_itf=()
+    paramc_custom=0
+    paramv_custom=()
+}
+
+itf_param_unset() {
+    # Unsets any parameter registered in the fixture as ITF-managed
+
+    for i in ${paramv_itf[@]}
+    do
+        unset $i
+    done
+    for i in ${paramv_custom[@]}
+    do
+        unset $i
+    done
+}
+
+# Declare the list of managed parameters
+itf_param_clear
