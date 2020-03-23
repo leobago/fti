@@ -5,14 +5,6 @@
 
 #ifdef ENABLE_HDF5
 
-typedef struct FTIT_h5GroupInfo {
-    
-    char name[FTI_BUFS];
-    int rank;
-    hsize_t* dimension;
-
-} FTIT_h5GroupInfo;
-
 int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status);
 void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,

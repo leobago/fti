@@ -324,19 +324,15 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTI_Print("Number of ranks is not a multiple of the node size.", FTI_WARN);
         return FTI_NSCS;
     }
-    //if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
-    //    FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
-    //    return FTI_NSCS;
-    //}
+    if (FTI_Topo->nbNodes % FTI_Topo->groupSize != 0) {
+        FTI_Print("The number of nodes is not multiple of the group size.", FTI_WARN);
+        return FTI_NSCS;
+    }
     // Check if Reed-Salomon and L2 checkpointing is requested.
     int L2req = (FTI_Ckpt[2].ckptIntv > 0) ? 1 : 0;
     int RSreq = (FTI_Ckpt[3].ckptIntv > 0) ? 1 : 0;
-    if ( FTI_Topo->groupSize < 2 && (L2req || RSreq) ) {
-        FTI_Print("The group size must be at least 2 for reliability level 2 and 3", FTI_WARN);
-        return FTI_NSCS;
-    }
-    if ( FTI_Topo->nbProc < 2 && (L2req || RSreq) ) {
-        FTI_Print("The number of processes must be at least 2 for reliability level 2 and 3", FTI_WARN);
+    if (FTI_Topo->groupSize < 2 && (L2req || RSreq)) {
+        FTI_Print("The group size must be at least 2", FTI_WARN);
         return FTI_NSCS;
     }
     if (FTI_Topo->groupSize >= 32 && RSreq) {

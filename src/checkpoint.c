@@ -241,9 +241,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     double t2 = MPI_Wtime(); //Post-processing time
     
     if( FTI_Exec->h5SingleFile ) {
-        
-        //FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0); //delete previous files on this checkpoint level
-    
+            
         double t3 = MPI_Wtime(); //Post-processing time
         
         if(FTI_Topo->amIaHead) FTI_RmDir(FTI_Conf->lTmpDir, true );

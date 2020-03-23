@@ -1382,24 +1382,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
     FTI_Print(str, FTI_DBUG);
 
-    //hid_t file_id;    
-    //Open hdf5 file
-    //if( FTI_Exec->h5SingleFile ) { 
-    //    if( status == 1 ) {
-    //        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-    //        H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
-    //        _file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
-    //        H5Pclose( plid );
-    //    }
-    //} else {
-    //    _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
-    //}
-
-    //if (_file_id < 0) {
-    //    FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-    //    return FTI_NREC;
-    //}
-
     int i;
     int nbVar = FTI_Exec->nbVar;
     if( FTI_Data->data( &data, nbVar ) != FTI_SCES ) return FTI_NSCS;
@@ -1430,12 +1412,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 
     if (res < 0) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-        //int j;
-        //for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-        //    FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-        //}
-        //H5Fclose(_file_id);
-        //return FTI_NREC;
     }
 
     if( FTI_Data->data( &data, nbVar) != FTI_SCES ) return FTI_NSCS;
@@ -1447,13 +1423,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         FTI_CloseGlobalDatasets( FTI_Exec );
     }
 
-
-    //if( status == -1 ) {
-    //    if (H5Fclose(_file_id) < 0) {
-    //        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-    //        return FTI_NREC;
-    //    }
-    //}   
     return FTI_SCES;
 }
 
@@ -1572,7 +1541,7 @@ herr_t FTI_ReadSharedFileData( FTIT_dataset FTI_Data )
     H5Pset_dxpl_mpio(plid, H5FD_MPIO_COLLECTIVE);
 
     // write data in file
-    herr_t status = H5Dread(did, tid, msid, fsid, H5P_DEFAULT, FTI_Data.ptr);
+    herr_t status = H5Dread(did, tid, msid, fsid, plid, FTI_Data.ptr);
     if(status < 0) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to read var-id %d from dataset #%d", FTI_Data.id, FTI_Data.sharedData.dataset->id );
@@ -1782,10 +1751,10 @@ int FTI_CheckDimensions( FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec )
         }
         MPI_Allreduce( &numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, FTI_COMM_WORLD );
         if( numElem != numElemGlobal ) {
-            //char errstr[FTI_BUFS];
-            //snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
-            //FTI_Print( errstr, FTI_WARN);
-            //return FTI_NSCS;
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Number of elements of subsets (accumulated) do not match number of elements defined for global dataset #%d!", dataset->id ); 
+            FTI_Print( errstr, FTI_WARN);
+            return FTI_NSCS;
         }
         dataset = dataset->next;
     }
@@ -1818,7 +1787,7 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
 
     struct dirent *entry;
     DIR *dir = opendir( FTI_Conf->h5SingleFileDir );
-    
+
     if ( dir == NULL ) {
         snprintf( errstr, FTI_BUFS, "VPR directory '%s' could not be accessed.", FTI_Conf->h5SingleFileDir );
         FTI_Print(errstr, FTI_EROR);
@@ -1827,6 +1796,7 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
     }
 
     *ckptId = -1;
+
     bool found = false;
     while((entry = readdir(dir)) != NULL) {   
         if(strcmp(entry->d_name,".") && strcmp(entry->d_name,"..")) {
