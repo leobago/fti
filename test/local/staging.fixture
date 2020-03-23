@@ -1,36 +1,18 @@
 #!/bin/bash
 
-shortname() {
-    echo "staging"
-}
-
-name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head"
-}
-
 setup() {
-    # Constants
+    itf_param_register_std 'head'
+
     app='staging/massive.exe'
     iolib="$(iolib_name_to_id 'POSIX')"
+}
 
-    # Input
-    head=$1
-
-    # Config file manipulation
-    fti_config_set "ckpt_io" "$iolib"
-    fti_config_set "head" "$head"
-
+prepare_fti() {
     fti_config_set 'enable_staging' '1'
     fti_config_set 'ckpt_l1' '0'
     fti_config_set 'ckpt_l2' '1'
     fti_config_set 'ckpt_l3' '3'
     fti_config_set 'ckpt_l4' '0'
-}
-
-teardown() {
-    unset iolib
-    unset head
-    unset app
 }
 
 runtest() {
@@ -48,4 +30,8 @@ runtest() {
     ' $itf_tstdout
 
     assert_equals $? 0 'Number of files differ'
+}
+
+teardown() {
+    unset app
 }

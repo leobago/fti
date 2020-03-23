@@ -156,23 +156,17 @@ fti_config_set() {
     # Parameters:
     # $1: The field name in the configuration file
     # $2: The new value for the field
-    # $3: If a third parameter is passed, this operation is verbose
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
-    if [ $# -gt 2 ]; then
-        echo "+ fti_config_set $1=$2" | tee -a $itf_tstdout
-    fi
+    echo "+ fti_config_set $1=$2" | tee -a $itf_tstdout
 }
 
 fti_config_set_inline() {
     # Set FTI to perform the checkpoints inline
-    #
-    # Parameter:
-    # $1: Any value passed will make the operation vervose
 
-    fti_config_set 'inline_l2' '1' $1
-    fti_config_set 'inline_l3' '1' $1
-    fti_config_set 'inline_l4' '1' $1
+    fti_config_set 'inline_l2' '1'
+    fti_config_set 'inline_l3' '1'
+    fti_config_set 'inline_l4' '1'
 }
 
 # ----------------------- Fixture Parameter handling --------------------------
@@ -539,8 +533,8 @@ itf_unload_fixture() {
     # Removes all definitions declared in a fixture
     # This should be called if the runner will execute another fixture
 
-    unset declare_arguments
     unset setup
+    unset prepare_fti
     unset runtest
     unset teardown
 
@@ -564,20 +558,17 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$CFG_MOCK" >$itf_cfgfile
 
-    # Clear parameters from previous test case
-    itf_param_clear
-    # Get the arguments from the test fixture
-    declare_arguments
-    # Parse the test case arguments an ddefine variables
-    itf_param_parse $@
-    # Call the test case setup
-    setup $@
+    itf_param_clear # Clear parameters from previous test case
+    setup $@ # Call setup to declare arguments and other data
+    itf_param_parse $@ # Parse the test case arguments an ddefine variables
+        
     # Print feedback
     print_color $COLOR_YELLOWBOLD "$itf_testname\n"
     echo "$(itf_describe_test_case)"
     echo "$itf_testname" >> $itf_tstdout
     echo $(itf_describe_test_case_colorless) >> $itf_tstdout
 
+    prepare_fti # Prepare the FTI config file
     # Execute the test fixture
     (
         # Test if ITF has any error stored
