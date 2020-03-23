@@ -1,69 +1,15 @@
 #!/bin/bash
 
-shortname() {
-    echo "standard"
-}
-
-name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) " \
-        "ICP=$icp L=$level diffsize=$diffsize head=$head keep=1" \
-        " async=($inline_txt)"
-}
-
-desc() {
-    echo \
-        "Tests the main feature of FTI, the multi-level checkpointing. " \
-        "The fixture support tests for different IO libs and checkpoint levels. " \
-        "It can generate checkpoints with different sizes inline or async. " \
-        "However, it assumes that checkpoints are not tampered after execution."
-}
-
 setup() {
+    # Input arguments
+    itf_param_register_std 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
+
     # Constants
     app='check.exe'
-
-    # Input
-    iolib=$1    # values 1-5
-    level=$2    # values 1-4
-    icp=$3      # values 0-1
-    diffsize=$4 # values 0-1
-    head=$5     # values 0-1
-    keep=$6     # values 0-1
-
-    # Configuration file manipulation
-    fti_config_set 'ckpt_io' "$iolib"
-    fti_config_set 'keep_last_ckpt' "$keep"
-    fti_config_set 'head' $head
-    fti_config_set_inline
-
-    if [ $head -eq 0 ] || [ $level -eq 1 ]; then
-        inline_txt='1,1,1'
-    else
-        fti_config_set "inline_l$level" '0'
-        case $level in
-        2)
-            inline_txt='0,1,1'
-            ;;
-        3)
-            inline_txt='1,0,1'
-            ;;
-        4)
-            inline_txt='1,1,0'
-            ;;
-        esac
-    fi
 }
 
-teardown() {
-    unset app
-    unset inline_txt
-
-    unset iolib
-    unset level
-    unset icp
-    unset diffsize
-    unset head
-    unset keep
+prepare_fti() {
+    fti_config_set_inline
 }
 
 runtest() {
@@ -90,4 +36,8 @@ runtest() {
     # On keep=0, it should restart from the last ckpt in local
     app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
     pass
+}
+
+teardown() {
+    unset app
 }

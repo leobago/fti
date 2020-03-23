@@ -45,15 +45,12 @@ execute_suites() {
 
         # Get the amount of tests in the suite
         nlines=$(grep -c "^" "$1.suite")
-        let nlines=$nlines/2
 
         # Execute each test case
-        while IFS= read -r name; do
-            read -r params
+        while IFS= read -r params; do
             let __local_test_count=$__local_test_count+1
 
             print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
-            itf_set_testcase_name "$name"
             execute_case $params
         done <"$1.suite"
 

@@ -1,32 +1,15 @@
 #!/bin/bash
 
-shortname() {
-    echo "dCP"
-}
-
-name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) head=$head, test_mode=$TEST_MODE"
-}
-
 setup() {
     # Constants
     app='diffckpt/diff_test.exe'
 
     # Input
-    iolib=$1
-    head=$2
-    local mode=$3
+    itf_param_register_std 'iolib' 'head'
+    itf_param_register_fxt 'mode'
+}
 
-    # Pretty names
-    if [ $mode -eq 0 ]; then
-        export TEST_MODE='NOICP'
-    else
-        export TEST_MODE='ICP'
-    fi
-
-    # Config file manipulation
-    fti_config_set "ckpt_io" "$iolib"
-    fti_config_set "head" "$head"
+prepare_fti() {
     fti_config_set_inline
 
     fti_config_set "enable_dcp" '1'
@@ -37,14 +20,9 @@ setup() {
     fti_config_set "dcp_stack_size" '10'
 }
 
-teardown() {
-    unset iolib
-    unset head
-    unset app
-    unset TEST_MODE
-}
-
 runtest() {
+    export TEST_MODE=$mode
+
     for i in 0 1
     do
         app_run_success $app $itf_cfgfile
@@ -68,4 +46,9 @@ runtest() {
 
     assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $itf_nranks \
         'There should be dCP messages for every rank'
+}
+
+teardown() {
+    unset app
+    unset TEST_MODE
 }

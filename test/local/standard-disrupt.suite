@@ -1,2 +1,1 @@
-Delete local checkpoint files while checkpointing locally
 --iolib 1 --level 1 --icp 1 --diffsize 0 --head 0 --keep 0 --tamper erase --target ckpt --consecutive false --expected failure

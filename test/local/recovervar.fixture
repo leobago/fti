@@ -1,44 +1,26 @@
 #!/bin/bash
 
-shortname()
-{
-    echo "recovervar"
-}
-
-name()
-{
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level diffsize=$diffsize head=0 keep=0 inline=(1,1,1)"
-}
-
 setup()
 {
     app='./recoverVar/recoverVar.exe'
-    iolib=$1
-    level=$2
-    diffsize=$3
-    
-    fti_config_set "ckpt_io" "$iolib"
-    fti_config_set "head" "0"
-    fti_config_set "keep_last_ckpt" "0"
-    fti_config_set_inline
+    head=0
+    keep=0
+    itf_param_register_std 'iolib' 'level' 'diffsize'
 }
 
-teardown()
-{
-    unset app
-    unset iolib
-    unset level
-    unset diffsize
+prepare_fti() {
+    fti_config_set_inline
 }
 
 runtest()
 {
     app_run_success $app $itf_cfgfile 1 $level 1
-    
-    run_id="$(fti_config_get 'exec_id')"
-
     app_run_timeout $app $itf_cfgfile 0 $level $diffsize
     assert_equals $? 0 "$(print_test_status $?)"
+}
+
+on_fixture_teardown() {
+    unset print_test_status
 }
 
 print_test_status() {

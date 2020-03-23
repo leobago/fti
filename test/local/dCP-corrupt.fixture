@@ -1,31 +1,16 @@
 #!/bin/bash
 
-shortname() {
-    echo "dCP-corrupt-layer"
-}
-
-name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) recovery=$recovery_pretty"
-}
-
 setup() {
     # Constants
     iolib=$(iolib_name_to_id 'POSIX')
     head=0
 
-    # Variables
-    recovery=$1 # Accepts 0 or 1
-    
-    recovery_pretty='FTI_Recover'
-    if [ $recovery -ne 0 ]; then
-        recovery_pretty='FTI_RecoverVar'
-    fi
+    # Input
+    itf_param_register_fxt 'recovery'
+}
 
-    # Config file settings
-    fti_config_set "ckpt_io" "$iolib"
-    fti_config_set "head" "$head"
+prepare_fti() {
     fti_config_set_inline
-
     fti_config_set "enable_dcp" '1'
     fti_config_set "dcp_mode" '1'
     fti_config_set 'ckpt_l1' '2'
@@ -34,19 +19,19 @@ setup() {
     fti_config_set "dcp_stack_size" '10'
 }
 
-teardown() {
-    unset iolib
-    unset head
-    unset recovery
-    unset recovery_pretty
-}
-
 runtest() {
     local app='diffckpt/checkDCPPosix.exe'
     local crash_on_iter=1
     local diffsizes=0
-    app_run_success $app $itf_cfgfile $crash_on_iter $diffsizes $recovery
     
+    if [ $recovery == 'FTI_Recover' ]; then
+        recovery=0
+    else 
+        recovery=1
+    fi
+    
+    app_run_success $app $itf_cfgfile $crash_on_iter $diffsizes $recovery
+
     for i in $(seq 1 6); do
         app_run_success $app $itf_cfgfile $i $diffsizes $recovery
         local exec_id="$(fti_config_get 'exec_id')"
