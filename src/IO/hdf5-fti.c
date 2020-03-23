@@ -2097,10 +2097,7 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
 
         H5Dread( subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data );
 
-        // write data in file
-        //DBG_MSG("write '%llu' Bytes", -1, typesize*H5Sget_simple_extent_npoints( msid ));
         H5Dwrite( did, tid, msid, sid, plid, data );
-#warning ADDED, TO BE CHECKED        
         H5Sclose( msid );
         H5Dclose( subset );
         free( data );
@@ -2190,20 +2187,13 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
         lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
 
-        //gid = H5Gopen( lfid, "/", H5P_DEFAULT );
-
         FTI_MergeObjectsSingleFile( lfid, fid );
 
-        //FTI_DebugCheckOpenObjects( lfid, 0 );
-
-        //H5Gclose( gid );
         H5Fclose( lfid );
 
     }
 
     H5Fclose( fid );
-
-#warning ERROR HANDLING HERE + ALLREDUCE IFF ALL HEADS SUCCESSFUL
 
     if( FTI_Topo->splitRank == 0 ) {
         int status = rename( tmpfn, fn );
