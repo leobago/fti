@@ -36,24 +36,25 @@ execute_suites() {
     while [ $# -gt 0 ]; do
         # add/overwrite the test fixture function definitions
         itf_load_fixture "$1"
+        print_color $COLOR_WHITEBOLD "Fixture loaded: "
+        print_color $COLOR_MAGENTABOLD "$1\n"
 
+        # Set up fixture-relative test counters
         local __local_failures=$nfailures
         local __local_test_count=0
-        # Erase the old logs so reports contain only the most recent data
-        rm -rf "$(get_fixture_failure_log)"
-        if [ $itf_maintain_app_logs -eq 1 ]; then
-            rm -rf "$(get_fixture_log)"
-        fi
 
         # Get the amount of tests in the suite
         nlines=$(grep -c "^" "$1.suite")
-        print_color $COLOR_WHITEBOLD "Executing Suite $1\n"
+        let nlines=$nlines/2
 
         # Execute each test case
-        while IFS= read -r line; do
-            print_color $COLOR_WHITEBOLD "Test ($(($__local_test_count + 1))/$nlines) "
+        while IFS= read -r name; do
+            read -r params
             let __local_test_count=$__local_test_count+1
-            execute_case $line
+
+            print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
+            itf_set_testcase_name "$name"
+            execute_case $params
         done <"$1.suite"
 
         # Textual feedback
@@ -71,7 +72,7 @@ nargs=0
 while [[ $# -gt 0 ]]; do
     case $1 in
     -t | --set-timeout)
-        engine_set_timeout $2
+        itf_set_timeout $2
         shift
         shift
         ;;
@@ -80,11 +81,11 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     -m | --maintain-logs)
-        engine_set_keep_logs
+        itf_set_keep_logs
         shift
         ;;
     -d | --maintain-ckpt-dir)
-        engine_set_keep_ckpt
+        itf_set_keep_ckpt
         shift
         ;;
     -h | --help)

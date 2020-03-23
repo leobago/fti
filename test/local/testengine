@@ -5,6 +5,9 @@ declare -r COLOR_RESET='\033[0m'
 declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
 declare -r COLOR_GREENBOLD='\033[1m\033[32m'
 declare -r COLOR_REDBOLD='\033[1m\033[31m'
+declare -r COLOR_BLUEBOLD="\033[1m\033[36m"
+declare -r COLOR_MAGENTABOLD="\033[1m\033[35m"
+declare -r COLOR_YELLOWBOLD="\033[1m\033[33m"
 
 declare -r CFG_MOCK='fti_cfg_mock.cfg'
 
@@ -38,12 +41,27 @@ if [ -z $itf_tstdout ]; then
     itf_tstdout="/tmp/fti-test.log"
 fi
 
+# -------------------------- Runtime Variables --------------------------------
+
 # itf_error: a buffer for error messages
 itf_error=""
+# itf_loaded_fixture: the currently loaded fixture in ITF
+itf_loaded_fixture=""
+# itf_testname: the current test case name
+itf_testname=""
 
 # -------------------------- Engine Variable Setters --------------------------
 
-engine_set_timeout() {
+itf_set_testcase_name() {
+    # Set the current test case name so that ITF can log it when executing
+    #
+    # Parameters:
+    # $1: The test case name
+
+    itf_testname="$1"
+}
+
+itf_set_timeout() {
     # Set the timeout variable for the test engine
     #
     # Parameters:
@@ -61,13 +79,13 @@ engine_set_timeout() {
     echo "[OPTION] Set timeout -> "$itf_timeout
 }
 
-engine_set_keep_ckpt() {
+itf_set_keep_ckpt() {
     # Set an engine to maintain all checkpoint files after test execution
 
     itf_maintain_ckpt=1
 }
 
-engine_set_keep_logs() {
+itf_set_keep_logs() {
     # Set the flag to keep test application logs even when they are successful
 
     itf_maintain_app_logs=1
@@ -142,7 +160,7 @@ fti_config_set() {
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
     if [ $# -gt 2 ]; then
-        print_color $COLOR_WHITEBOLD "[CFG] $1=$2\n"
+        echo "+ fti_config_set $1=$2" | tee -a $itf_tstdout
     fi
 }
 
@@ -165,7 +183,7 @@ itf_manage_config_file() {
     # Details:
     # This method can be called manually but will always be called when
     # a fixture contains a 'parameter' function definition
-    
+
     if [ ! -z $iolib ]; then
         fti_config_set 'ckpt_io' "$iolib" 'verbose'
     fi
@@ -201,11 +219,12 @@ itf_param_parse() {
 
     # Define all variables from input parameters
     while [ $# -gt 1 ]; do
-        def_var_if_in_array $1 $2 ${itf_std_paramv[@]}
+        itf_def_var_if_in_array $1 $2 ${itf_std_paramv[@]}
         if [ $? -ne 0 ]; then
-            def_var_if_in_array $1 $2 ${itf_usr_paramv[@]} 
+            itf_def_var_if_in_array $1 $2 ${itf_fixt_paramv[@]}
             if [ $? -ne 0 ]; then
-                fail "Invalid argument $1"
+                itf_error="Invalid argument $1"
+                return 1
             fi
         fi
         shift
@@ -213,25 +232,23 @@ itf_param_parse() {
     done
 
     # Check if all required standard variables were defined
-    for p in "${itf_std_paramv[@]}"
-    do
+    for p in "${itf_std_paramv[@]}"; do
         if [ -z ${!p} ]; then
-            itf_error="Standard variable $p not found in test case: add [--$p val] to the suite"
+            itf_error="Standard variable '$p' not found in test case: add [--$p val] to the suite"
             return 1
         fi
     done
     # Check if all required user variables were defined
-    for p in "${itf_usr_paramv[@]}"
-    do
+    for p in "${itf_fixt_paramv[@]}"; do
         if [ -z ${!p} ]; then
-            itf_error="User variable $p not assigned in test case: add [--$p val] to the suite"
+            itf_error="User variable '$p' not assigned in test case: add [--$p val] to the suite"
             return 1
         fi
     done
 }
 
 itf_param_register_std() {
-    # Register ITF-standard parameters as requirements for the fixture
+    # Register ITF-standard fixture parameters to be managed by ITF
     #
     # Parameters:
     # $@: Names recognized as ITF standard variables
@@ -252,20 +269,20 @@ itf_param_register_std() {
     done
 }
 
-itf_param_register_usr() {
-    # Register non ITF-standard parameters as requirements for the fixture
+itf_param_register_fxt() {
+    # Register non ITF-standard fixture parameters to be managed by ITF
     #
     # Parameters:
     # $@: Names for the parameter variables
     #
     # Usage:
-    # itf_param_register_usr 'myparam' 'otherparam'
+    # itf_param_register_fxt 'myparam' 'otherparam'
     # itf_param_parse --myparam 2 --otherparam 5
     # echo $myparam
 
     while [ $# -gt 0 ]; do
-        itf_usr_paramv[$itf_usr_paramc]=$1
-        let itf_usr_paramc=$itf_usr_paramc+1
+        itf_fixt_paramv[$itf_fixt_paramc]=$1
+        let itf_fixt_paramc=$itf_fixt_paramc+1
         shift
     done
 }
@@ -319,6 +336,50 @@ app_run_timeout() {
         ) &
         app_run $@
     )
+}
+
+ckpt_erase_last() {
+    # Erase checkpoint objects from last ITF-managed execution (app_run*)
+    #
+    # Parameters:
+    #
+    # $1: Which checkpoint object to erase
+    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
+    # $@: which nodes to delete, only used for local objects if IO is not MPIIO or SIONLIB
+    #       values: integers
+    #
+    # Usage Details:
+    #
+    # See 'itf_find_fti_objects' usage details to see which files are deleted.
+
+    for f in "$(itf_find_fti_objects $@)"; do
+        (
+            set -x
+            rm -rf $f
+        )
+    done
+}
+
+ckpt_corrupt_last() {
+    # Corrupt checkpoint objects from last ITF-managed execution (app_run*)
+    #
+    # Parameters:
+    #
+    # $1: Which checkpoint object to corrupt
+    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
+    # $@: which nodes to delete, only used for local objects if IO is not MPIIO or SIONLIB
+    #       values: integers
+    #
+    # Usage Details:
+    #
+    # See 'itf_find_fti_objects' usage details to see which files are deleted.
+
+    for f in "$(itf_find_fti_objects $@)"; do
+        (
+            set -x
+            printf "corruption" | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
+        )
+    done
 }
 
 ckpt_delete_global() {
@@ -449,13 +510,13 @@ assert_not_equals() {
 get_fixture_failure_log() {
     # Get the failure log filename for the current fixture
 
-    echo "$(shortname)-failed.log"
+    echo "$itf_loaded_fixture-failed.log"
 }
 
 get_fixture_log() {
     # Get the log filename for the current fixture
 
-    echo "$(shortname).log"
+    echo "$itf_loaded_fixture.log"
 }
 
 itf_load_fixture() {
@@ -464,17 +525,22 @@ itf_load_fixture() {
     # Parameters:
     # $1: The fixture name without the .fixture extension
 
+    itf_loaded_fixture="$1"
     source "$1.fixture"
+
+    # Erase the old logs so reports contain only the most recent data
+    rm -rf "$(get_fixture_failure_log)"
+    if [ $itf_maintain_app_logs -eq 1 ]; then
+        rm -rf "$(get_fixture_log)"
+    fi
 }
 
 itf_unload_fixture() {
     # Removes all definitions declared in a fixture
     # This should be called if the runner will execute another fixture
 
-    unset parameters
-    unset desc
-    unset shortname
-    unset name
+    unset declare_arguments
+    unset setup
     unset runtest
     unset teardown
 
@@ -498,25 +564,29 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$CFG_MOCK" >$itf_cfgfile
 
-    # Checks if the fixture declared ITF-managed parameters
+    # Clear parameters from previous test case
     itf_param_clear
-    type parameters &>/dev/null && parameters
+    # Get the arguments from the test fixture
+    declare_arguments
+    # Parse the test case arguments an ddefine variables
+    itf_param_parse $@
     # Call the test case setup
     setup $@
-    # If ITF is managing input parameters, parse them
-    type parameters &>/dev/null && itf_param_parse $@
     # Print feedback
-    print_color $COLOR_WHITEBOLD "$(name)\n"
-    
+    print_color $COLOR_YELLOWBOLD "$itf_testname\n"
+    echo "$(itf_describe_test_case)"
+    echo "$itf_testname" >> $itf_tstdout
+    echo $(itf_describe_test_case_colorless) >> $itf_tstdout
+
     # Execute the test fixture
     (
         # Test if ITF has any error stored
         if [ ! -z "$itf_error" ]; then
-            echo "$itf_error" >> $itf_tstdout
+            echo "$itf_error" >>$itf_tstdout
             fail "$itf_error"
         fi
         # If ITF is managing input parameters, setup the config file
-        type parameters &>/dev/null && itf_manage_config_file
+        itf_manage_config_file
         # Run the test
         runtest
     )
@@ -527,18 +597,16 @@ test_case() {
     local normallog="$(get_fixture_log)"
 
     if [ $__exitcode -ne 0 ]; then
-        echo "$(name)" >>$faillog
-        cat $itf_tstdout >>$faillog
+        cat $itf_tstdout >> $faillog
     elif [ $itf_maintain_app_logs -eq 1 ]; then
-        echo "$(name)" >>$normallog
-        cat $itf_tstdout >>$normallog
+        cat $itf_tstdout >> $normallog
     fi
 
     # Call the test case teardown
     teardown
     # Releases any ITF-managed parameter variable names
     itf_param_unset
-    
+
     # Remove the global, local and meta directories
     if [ $itf_maintain_ckpt -eq 0 ]; then
         local _locdir="$(fti_config_get 'ckpt_dir')"
@@ -571,7 +639,109 @@ print_color() {
 
 # --------------------------- ITF Interal functions ---------------------------
 
-def_var_if_in_array() {
+itf_describe_test_case() {
+    # Describe the current test case in terms of its arguments and values
+
+    for p in "${itf_std_paramv[@]}"; do
+        print_color $COLOR_BLUEBOLD "$p="
+        if [ $p == 'iolib' ]; then
+            print_color $COLOR_WHITEBOLD "$(iolib_id_to_name $iolib) "
+        else
+            print_color $COLOR_WHITEBOLD "${!p} "
+        fi
+    done
+    for p in "${itf_fixt_paramv[@]}"; do
+        print_color $COLOR_BLUEBOLD "$p="
+        print_color $COLOR_WHITEBOLD "${!p} "
+    done
+}
+
+itf_describe_test_case_colorless() {
+    # Same as itf_describe_test_case but without colors
+
+    for p in "${itf_std_paramv[@]}"; do
+        printf "$p="
+        if [ $p == 'iolib' ]; then
+            printf "$(iolib_id_to_name $iolib) "
+        else
+            printf "${!p} "
+        fi
+    done
+    for p in "${itf_fixt_paramv[@]}"; do
+        printf "$p=${!p} "
+    done
+}
+
+itf_find_fti_objects() {
+    # Find checkpoint objects from last ITF-managed execution (app_run*)
+    #
+    # Parameters:
+    #
+    # $1: Which checkpoint object to find
+    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
+    # $@: which nodes to delete, only used for local objects if IO is not MPIIO or SIONLIB
+    #       values: integers
+    #
+    # Usage Details:
+    #
+    # When the object is 'global'
+    # - List every file, in the global directory, in a given level
+    # When the object is 'ckpt'
+    # - Find the first local checkpoint file, in a given level, for every supplied node
+    # When the object is 'partner'
+    # - Find the first local partner checkpoint file, in a given level, for every supplied node
+    # When the object is 'rs-encoding'
+    # - Find the first RS encoding file in the local directory, in a given level, for every supplied node
+    # When the object is 'node'
+    # - Find the node directory in the local directory for every supplied node
+
+    if [ -z $level ]; then
+        fail '$level variable must be set for ITF to delete checkpoint files'
+    fi
+
+    local _id=$(fti_config_get 'exec_id')
+    local _erase_all='false'
+
+    # Switch action depending on the checkpoint object suppllied
+    case $1 in
+    global)
+        # When deleting from global, delete everything
+        echo "$(fti_config_get 'glbl_dir')/$_id/l$level/*"
+        return 0
+        ;;
+    ckpt)
+        local _what='Rank'
+        ;;
+    partner)
+        local _what='Pcof'
+        ;;
+    rs-encoding)
+        local _what='RSed'
+        ;;
+    node)
+        # When erasing the node, we delete all local information
+        _erase_all='true'
+        ;;
+    *)
+        fail "checkpoint object type malformed $1, try one of the following: " \
+            "'global', 'ckpt', 'partner' or 'rs-encoding', 'node'"
+        ;;
+    esac
+    shift
+
+    local _where="$(fti_config_get 'ckpt_dir')"
+    local _files=""
+    for i in $@; do
+        if [ $_erase_all == 'true' ]; then
+            _files="$_files $_where/$i"
+        else
+            _files="$_files $(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
+        fi
+    done
+    echo "$_files"
+}
+
+itf_def_var_if_in_array() {
     # Define a variable with a given value if the name is found within a set
     #
     # Parameters:
@@ -595,19 +765,17 @@ itf_param_clear() {
     itf_error=""
     itf_std_paramc=0
     itf_std_paramv=()
-    itf_usr_paramc=0
-    itf_usr_paramv=()
+    itf_fixt_paramc=0
+    itf_fixt_paramv=()
 }
 
 itf_param_unset() {
     # Unsets any parameter registered in the fixture as ITF-managed
 
-    for i in ${itf_std_paramv[@]}
-    do
+    for i in ${itf_std_paramv[@]}; do
         unset $i
     done
-    for i in ${itf_usr_paramv[@]}
-    do
+    for i in ${itf_fixt_paramv[@]}; do
         unset $i
     done
 }
