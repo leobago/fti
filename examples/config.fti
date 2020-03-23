@@ -71,7 +71,8 @@ max_sync_intv               = 0
 # 2 -> MPI-IO
 # 3 -> FTI-FF
 # 4 -> SIONLib
-# 5 -> HDF5.
+# 5 -> HDF5
+# 6 -> IME_NATIVE API
 ckpt_io                     = 1
 
 # Enable staging feature

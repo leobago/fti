@@ -59,6 +59,7 @@ extern "C"
 #include "IO/hdf5-fti.h"
 #include "IO/ftiff.h"
 #include "IO/ftiff-dcp.h"
+#include "IO/ime.h"
 
 #include "meta.h"
 #include "api-cuda.h"
@@ -83,6 +84,10 @@ extern "C"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 #   include <sion.h>
+#endif
+
+#ifdef ENABLE_IME_NATIVE // --> If IME native API is installed
+#   include <ime_native.h>
 #endif
 
 #ifdef LUSTRE

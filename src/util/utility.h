@@ -61,6 +61,16 @@ typedef struct{
     MD5_CTX integrity;              // integrity of the file
 }WritePosixInfo_t;
 
+#ifdef ENABLE_IME_NATIVE
+typedef struct{
+    int f;                          // IME native file descriptor
+    size_t offset;                  // offset in the file
+    int flag;                       // flags to open the file
+    mode_t mode;                    // mode the file has been opened
+    MD5_CTX integrity;              // integrity of the file
+}WriteIMEInfo_t;
+#endif
+
 typedef struct{
     WritePosixInfo_t write_info;    // Posix Write info descriptor 
     FTIT_configuration *FTI_Conf;   // FTI Configuration

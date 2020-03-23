@@ -549,6 +549,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     switch(FTI_Conf->ioMode) {
         case FTI_IO_FTIFF:
         case FTI_IO_HDF5:
+        case FTI_IO_IME:
         case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;
