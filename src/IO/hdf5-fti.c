@@ -363,7 +363,6 @@ size_t FTI_GetHDF5FilePos(void *fileDesc)
     return 0;
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Opens and HDF5 file (Only for write).
@@ -564,7 +563,6 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *c
     return bytesToFetch;
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes the elements to the HDF5 file.
@@ -580,7 +578,6 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes, hsize_t *c
   to the checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_WriteElements(hid_t dataspace, hid_t dataType, hid_t dataset, hsize_t *count, hsize_t *offset, hsize_t ranks, void *ptr)
 {
     char str[FTI_BUFS];
@@ -619,7 +616,6 @@ int FTI_WriteElements(hid_t dataspace, hid_t dataType, hid_t dataset, hsize_t *c
   from the checkpoint file.
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *count, hsize_t *offset, hsize_t ranks, void *ptr)
 {
     char str[FTI_BUFS];
@@ -661,7 +657,6 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset, hsize_t *cou
   ones are ALWAYS completely tranfered from/to the host.
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims, hsize_t rank)
 {
     int i;
@@ -692,7 +687,6 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
     return carryOut;
 }
 
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Writes a  protected variable to the checkpoint file.
@@ -705,7 +699,6 @@ int FTI_AdvanceOffset(hsize_t sep,  hsize_t *start, hsize_t *add, hsize_t *dims,
   move data from the GPU side to the host side and then to the filesytem.
  **/
 /*-------------------------------------------------------------------------*/
-
 int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec)
 {
     int j;
@@ -1201,8 +1194,6 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(fd);
     return FTI_SCES;
 }
-
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1976,7 +1967,14 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
         hsize_t att_dims = dataset->rank;
         hid_t att_space = H5Screate_simple( rank, &att_dims, NULL);
         hid_t aid = H5Acreate( dataset->hid, "global_dimension", H5T_NATIVE_HSIZE, att_space, H5P_DEFAULT, H5P_DEFAULT );
-        H5Awrite( aid, H5T_NATIVE_HSIZE, dataset->dimension );
+        herr_t err = H5Awrite( aid, H5T_NATIVE_HSIZE, dataset->dimension );
+        if( err ) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to add attributes to dataset #%d", dataset->id );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
+
         H5Aclose( aid );
 
         dataset->initialized = true;
@@ -1995,9 +1993,21 @@ int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer )
     hid_t aid, sid;
     hsize_t rank; 
     aid = H5Aopen( oid, name, H5P_DEFAULT );
+    if(aid < 0) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to access attributes from '%s'", name );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
     sid = H5Aget_space( aid );
     H5Sget_simple_extent_dims( sid, &rank, NULL );
-    H5Aread( aid, H5T_NATIVE_HSIZE, buffer );
+    herr_t err = H5Aread( aid, H5T_NATIVE_HSIZE, buffer );
+    if( err ) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to read attributes from '%s'", name );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
     H5Sclose( sid );
     H5Aclose( aid );
     
@@ -2010,6 +2020,12 @@ int FTI_GetDatasetRankFlush( hid_t oid )
     hid_t aid, sid;
     hsize_t rank;
     aid = H5Aopen_idx( oid, 0 );
+    if(aid < 0) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to access dataset attributes" );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
     sid = H5Aget_space( aid );
     H5Sget_simple_extent_dims( sid, &rank, NULL );
     H5Sclose( sid );
@@ -2023,6 +2039,12 @@ hid_t FTI_GetDatasetTypeFlush( hid_t gid )
     char objname[FTI_BUFS];
     H5Gget_objname_by_idx( gid, 0, objname, FTI_BUFS );
     hid_t did = H5Dopen( gid, objname, H5P_DEFAULT );
+    if(did < 0) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to access dataset '%s'", objname );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
     hid_t tid = H5Dget_type( did );
     H5Dclose(did);
     return tid;
@@ -2057,6 +2079,12 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
     } else {
         did = H5Dcreate( loc, datasetname, tid, sid, H5P_DEFAULT, dcplid, H5P_DEFAULT );
     }
+    if(did < 0) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to access global dataset '%s'", datasetname );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
 
     H5Pclose(dcplid);
     hid_t plid = H5Pcreate( H5P_DATASET_XFER );
@@ -2066,17 +2094,42 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
     for( i=0; i<n; i++ ) {
         H5Gget_objname_by_idx( gid, i, subsetname, FTI_BUFS ); 
         subset = H5Dopen( gid, subsetname, H5P_DEFAULT );  
+        if(subset < 0) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to access subset '%s' of global dataset '%s'",subsetname, datasetname);
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
         size_t typesize = H5Tget_size( tid );
         FTI_ReadAttributeHDF5( subset, "offset", offset );
         FTI_ReadAttributeHDF5( subset, "count", count );
         hid_t msid = H5Screate_simple( datasetrank, count, NULL );
         H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
-        data = malloc( typesize*H5Sget_simple_extent_npoints( msid ) );
+        size_t memsize = typesize*H5Sget_simple_extent_npoints( msid );
+        data = malloc( memsize );
+        if(!data) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to allocate %lu bytes to merge subset '%s' to global dataset '%s'",memsize,subsetname, datasetname);
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
 
-        H5Dread( subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data );
+        herr_t err = H5Dread( subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data );
+        if( err ) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to read from subset '%s' of global dataset '%s'",subsetname, datasetname );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
 
-        H5Dwrite( did, tid, msid, sid, plid, data );
+        err = H5Dwrite( did, tid, msid, sid, plid, data );
+        if( err ) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to write subset '%s' to global dataset '%s'",subsetname, datasetname );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
         H5Sclose( msid );
         H5Dclose( subset );
         free( data );
@@ -2114,14 +2167,32 @@ int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
         switch( h5objtype ) {
             case H5G_GROUP:
                 childorig = H5Gopen( orig, childname, H5P_DEFAULT );
+                if( childorig < 0 ) {
+                    char errstr[FTI_BUFS];
+                    snprintf( errstr, FTI_BUFS, "Unable to open '%s'", childname );
+                    FTI_Print(errstr,FTI_EROR);
+                    return FTI_NSCS;
+                }
                 na = H5Aget_num_attrs(childorig );
                 if( na > 0 ) {
                     FTI_MergeDatasetSingleFile( childorig, copy, childname ); 
                 } else {
                     if( H5Lexists( copy, childname, H5P_DEFAULT ) ) {
                         childcopy = H5Gopen( copy, childname, H5P_DEFAULT );
+                        if( childcopy < 0 ) {
+                            char errstr[FTI_BUFS];
+                            snprintf( errstr, FTI_BUFS, "Unable to open '%s'", childname );
+                            FTI_Print(errstr,FTI_EROR);
+                            return FTI_NSCS;
+                        }
                     } else {
                         childcopy = H5Gcreate( copy, childname, 0, H5P_DEFAULT, H5P_DEFAULT );
+                        if( childcopy < 0 ) {
+                            char errstr[FTI_BUFS];
+                            snprintf( errstr, FTI_BUFS, "Unable to create '%s'", childname );
+                            FTI_Print(errstr,FTI_EROR);
+                            return FTI_NSCS;
+                        }
                     }
                     FTI_MergeObjectsSingleFile( childorig, childcopy );
                     H5Gclose( childcopy );
@@ -2155,6 +2226,12 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
     hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
     H5Pset_fapl_mpio(plid, FTI_COMM_WORLD, info);
     fid = H5Fcreate(tmpfn, H5F_ACC_TRUNC, H5P_DEFAULT, plid);       
+    if( fid < 0 ) {
+        char errstr[FTI_BUFS];
+        snprintf( errstr, FTI_BUFS, "Unable to create '%s'", tmpfn );
+        FTI_Print(errstr,FTI_EROR);
+        return FTI_NSCS;
+    }
     H5Pclose( plid );
 
     int b;
@@ -2163,6 +2240,12 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
         snprintf( lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.h5", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptId, FTI_Topo->body[b] ); 
 
         lfid = H5Fopen( lfn, H5F_ACC_RDWR, H5P_DEFAULT );
+        if( lfid < 0 ) {
+            char errstr[FTI_BUFS];
+            snprintf( errstr, FTI_BUFS, "Unable to open '%s'", lfn );
+            FTI_Print(errstr,FTI_EROR);
+            return FTI_NSCS;
+        }
 
         FTI_MergeObjectsSingleFile( lfid, fid );
 
