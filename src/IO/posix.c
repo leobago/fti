@@ -39,18 +39,30 @@
 
 #include "../interface.h"
 
+FILE* fileposix;
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Activates Head for POSIX IO mode
+  @param      FTI_Conf        FTI Configuration
+  @param      FTI_Exec        FTI Execution
+  @param      FTI_Topo        FTI Topology
+  @param      FTI_Ckpt        FTI Checkpoint
+  @param      status          FTI status
+  @return     integer         FTI_SCES on success.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
 {
     FTI_Exec->wasLastOffline = 1;
     // Head needs ckpt. ID to determine ckpt file name.
-    int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head
+    int value = FTI_BASE + FTI_Exec->ckptLvel; //Token to send to head
     if (status != FTI_SCES) { //If Writing checkpoint failed
         value = FTI_REJW; //Send reject checkpoint token to head
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
 /*-------------------------------------------------------------------------*/
@@ -219,23 +231,23 @@ int FTI_PosixSync(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
+void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
 {
-
+    
     FTI_Print("I/O mode: Posix.", FTI_DBUG);
-
+    
     char fn[FTI_BUFS];
-    int level = FTI_Exec->ckptMeta.level;
+    int level = FTI_Exec->ckptLvel;
 
     WritePosixInfo_t *write_info = (WritePosixInfo_t *) malloc (sizeof(WritePosixInfo_t));
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
 
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->meta[0].ckptFile);
     }
     else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->meta[0].ckptFile);
     }
 
     write_info->flag = 'w';
@@ -256,15 +268,15 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WritePosixData(FTIT_dataset * data, void *fd)
+int FTI_WritePosixData(FTIT_dataset * FTI_DataVar, void *fd)
 {
     WritePosixInfo_t *write_info = (WritePosixInfo_t*) fd;
     char str[FTI_BUFS];
     int res;
 
-    if ( !(data->isDevicePtr) ){
-        if (( res = FTI_Try(FTI_PosixWrite(data->ptr, data->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+    if ( !(FTI_DataVar->isDevicePtr) ){
+        if (( res = FTI_Try(FTI_PosixWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;
@@ -275,9 +287,9 @@ int FTI_WritePosixData(FTIT_dataset * data, void *fd)
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(data,  FTI_PosixWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_PosixWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_PosixClose(write_info);
             return FTI_NSCS;
@@ -300,4 +312,71 @@ void FTI_PosixMD5(unsigned char *dest, void *md5)
 {
     WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
     MD5_Final(dest,&(write_info->integrity));
+}
+
+/**
+  @brief      Initializes variable recovery for POSIX mode
+  @param      fn                        ckpt file                 
+  @return     Integer                   FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarInitPOSIX(char* fn)
+{
+    int res = FTI_NSCS;
+    fileposix = fopen(fn, "rb");
+    if (fileposix == NULL) {
+      FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+    }else{
+      res = FTI_SCES;
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes variable recovery for MPI-Io mode
+  @param      id                  variable id                
+  @param      FILE*               file handle
+  @return     Integer             FTI_SCES if successful
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data, int id, FILE* fileposix)
+{
+    int res = FTI_NSCS; 
+    int activeID, oldID;
+
+    if (FTI_FindVarInMeta(FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_NSCS){
+        long filePos = FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[oldID];
+        if(fseek(fileposix, filePos, SEEK_SET) == 0){
+            fread(FTI_Data[activeID].ptr, 1, FTI_Data[activeID].size, fileposix);
+            if (ferror(fileposix)) {
+                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+            }else{
+                res = FTI_SCES;
+            }
+        }
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes variable recovery for POSIX mode
+  @param      FILE*                     File handle                
+  @return     Integer                   FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarFinalizePOSIX(FILE* fileposix)
+{
+    int res = FTI_NSCS;
+    if (fclose(fileposix) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+    }else{
+        res = FTI_SCES;
+    }
+    return res;
 }

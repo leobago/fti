@@ -269,7 +269,7 @@ int FTI_FinalizeDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
   'DCP_BLOCK_SIZE'.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec )
+int FTI_InitDcp( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_dataset* FTI_Data )
 {
     char str[FTI_BUFS];
 
@@ -620,6 +620,17 @@ long FTI_CalcNumHashes( long chunkSize )
     }
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Prints hash information for data
+  @param      dataHash          FTI data diff hash
+  @param      chunksize         size of data chunk
+  @param      id                index id   
+
+  This function computes the number of hash blocks according to the set dCP
+  block size corresponding to chunkSize.
+ **/
+/*-------------------------------------------------------------------------*/
 void PrintDataHashInfo( FTIT_DataDiffHash* dataHash, long chunkSize, int id){
     char str[FTI_BUFS];
     FTI_Print("+++++++++++++++ INFO IS  +++++++++++++++",FTI_INFO);
@@ -739,7 +750,7 @@ int FTI_HashCmp( long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr )
   dirty and initializes the hashes for data blocks that are invalid.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec) 
+int FTI_UpdateDcpChanges(FTIT_dataset* FTI_Data, FTIT_execution* FTI_Exec) 
 {
     FTIFF_db *db = FTI_Exec->firstdb;
     FTIFF_dbvar *dbvar;
@@ -799,7 +810,7 @@ int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec)
   dirty regions are found in which case 0 is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  unsigned char *startAddr, size_t *totalBytes ) 
+int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size, FTIFF_dbvar* dbvar,  FTIT_dataset* FTI_Data, unsigned char *startAddr, size_t *totalBytes ) 
 {
     static bool init = true;
     static bool reset;
