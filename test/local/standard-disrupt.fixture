@@ -5,7 +5,7 @@ shortname() {
 }
 
 name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize ckpt_disruption=$disr_name head=$head keep=0 inline=($l2,$l3,$l4)"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize ckpt_disruption=$disr_name head=$head keep=$keep"
 }
 
 desc() {
@@ -51,17 +51,14 @@ desc() {
 }
 
 parameters() {
-    param_register_itf 'iolib' 'level' 'icp' 'diffsize' 'head'
-    # register_custom_param 'erase_mode' \
-    #     'which files to delete' 'erase_mode' 1 2 3 4 5 6
+    itf_param_register_std 'iolib' 'level' 'icp' 'diffsize' 'head'
+    itf_param_register_usr 'erase_mode' # 1 2 3 4 5 6
 }
 
 setup() {
     # Constants
     app='check.exe'
     keep=0
-
-    #erase_mode=$6 # values 0-6
 
     # Pretty printing
     # case $disrupt in
@@ -107,6 +104,7 @@ runtest() {
     echo "icp=$icp"
     echo "diffsize=$diffsize"
     echo "head=$head"
+    echo "erase_mode=$erase_mode"
 
     # app_run_success $app $itf_cfgfile 1 $level $diffsize $icp
 
