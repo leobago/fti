@@ -1,109 +1,131 @@
 #!/bin/bash
 
 shortname() {
-    echo "standard-disrupt"
+    echo "standard-erase"
 }
 
 name() {
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize ckpt_disruption=$disr_name head=$head keep=0 inline=($l2,$l3,$l4)"
+    echo "$(shortname) io=$(iolib_id_to_name $iolib) ICP=$icp L=$level diffsize=$diffsize ckpt_disruption=$disr_name head=$head keep=$keep"
+}
+
+desc() {
+    echo "[Description]"
+    echo ""
+    echo "Tests FTI multi-level checkpointing when checkpoints are erased."
+    echo "It executes an app, erase checkpoint files and then run it again."
+    echo ""
+    echo "[Parameters]"
+    echo ""
+    echo "--iolib: the IO library"
+    echo "    1: POSIX"
+    echo "    2: MPI-IO"
+    echo "    3: FTI-FF"
+    echo "    4: SIONLib"
+    echo "    5: HDF5"
+    echo ""
+    echo "--level: the checkpoint level"
+    echo "    1: local checkpoint"
+    echo "    2: keep partner's checkpoint"
+    echo "    3: Reed-Solomon encoding"
+    echo "    4: push checkpoint to parallel filesystem"
+    echo ""
+    echo "--icp: use Incremental checkpointing"
+    echo "    0: NOICP"
+    echo "    1: ICP"
+    echo ""
+    echo "--diffsize: generate different checkpoint sizes?"
+    echo "    0: All ranks have checkpoint with same size"
+    echo "    1: Ranks have different checkpoint sizes"
+    echo ""
+    echo "--head: how to perform postprocessing"
+    echo "    0: sync"
+    echo "    1: async"
+    echo ""
+    echo "--erase_mode: which files to delete"
+    echo "    1: $(erase_mode 1)"
+    echo "    2: $(erase_mode 2)"
+    echo "    3: $(erase_mode 3)"
+    echo "    4: $(erase_mode 4)"
+    echo "    5: $(erase_mode 5)"
+    echo "    6: $(erase_mode 6)"
+}
+
+parameters() {
+    itf_param_register_std 'iolib' 'level' 'icp' 'diffsize' 'head'
+    itf_param_register_usr 'erase_mode' # 1 2 3 4 5 6
 }
 
 setup() {
     # Constants
     app='check.exe'
-    disr_none=0
-    disr_erase=1
-    disr_corrupt=2
+    keep=0
 
-    # Input
-    iolib=$1   # values 1-5
-    level=$2   # values 1-4
-    icp=$3 $   # values 0-1
-    disrupt=$4 # values 0-2
-    diffsize=$5 # values 0-1
-    head=$6 # values 0-1
-    
     # Pretty printing
-    case $disrupt in
-    $disr_erase)
-        disr_name='Erase'
-        ;;
-    $disr_corrupt)
-        disr_name='Corrupt'
-        ;;
-    *)
-        disr_name='None'
-        disrupt=$disr_none
-    esac
+    # case $disrupt in
+    # $disr_corrupt)
+    #     disr_name='Corrupt'
+    #     ;;
+    # *)
+    #     disr_name='Erase'
+    #     disrupt=$disr_erase
+    #     ;;
+    # esac
 
-    l2=1
-    l3=1
-    l4=1
-    case $level in
-    2)
-        l2=0
-        ;;
-    3)
-        l3=0
-        ;;
-    4)
-        l4=0
-        ;;
-    esac
+    # l2=1
+    # l3=1
+    # l4=1
+    # case $level in
+    # 2)
+    #     l2=0
+    #     ;;
+    # 3)
+    #     l3=0
+    #     ;;
+    # 4)
+    #     l4=0
+    #     ;;
+    # esac
 
     # Configuration file manipulation
-    fti_config_set 'ckpt_io' "$iolib"
-    fti_config_set 'keep_last_ckpt' '0'
-    fti_config_set 'head' $head
     fti_config_set_inline
-
-    if [ $head -ne 1 ]; then
-        fti_config_set "inline_l$level" '0'
-    fi
 }
 
 teardown() {
     unset app
-
-    unset iolib
-    unset level
-    unset icp
-    unset disrupt
-    unset diffsize
-    unset head
-
-    unset disr_name
-    unset disr_none
-    unset disr_erase
-    unset disr_corrupt
-    unset l2
-    unset l3
-    unset l4
+    unset keep
 }
 
 runtest() {
     # We simulate a crash here so that we can check the standard behavior
     # when keep_last_ckpt = 0
-    app_run $app $itf_cfgfile 1 $level $diffsize $icp
 
-    case $disrupt in
-    $disr_erase)
-        ;;
-    $disr_corrupt)
-        ;;
-    esac
-    if [ $erase -ne 0 ]; then
-        ckpt_delete_global 'l4' '1'
-    fi
+    echo "iolib=$iolib"
+    echo "level=$level"
+    echo "icp=$icp"
+    echo "diffsize=$diffsize"
+    echo "head=$head"
+    echo "erase_mode=$erase_mode"
 
-    app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
+    # app_run_success $app $itf_cfgfile 1 $level $diffsize $icp
 
-    local retv=$?
-    if [ $erase -eq 0 ]; then
-        assert_equals $retv 0 'FTI should recover when files are not touched'
-    else
-        assert_not_equals $retv 0 'FTI should fail when checkpoint files are deleted'
-    fi
+    # case $disrupt in
+    # $disr_erase) ;;
+
+    # $disr_corrupt) ;;
+
+    # esac
+    # if [ $erase -ne 0 ]; then
+    #     ckpt_delete_global 'l4' '1'
+    # fi
+
+    # app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
+
+    # local retv=$?
+    # if [ $erase -eq 0 ]; then
+    #     assert_equals $retv 0 'FTI should recover when files are not touched'
+    # else
+    #     assert_not_equals $retv 0 'FTI should fail when checkpoint files are deleted'
+    # fi
 
     # app_run $app $itf_cfgfile $crash $level $diffsize $icp
 
@@ -119,4 +141,27 @@ runtest() {
 
     # app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
     #assert_not_equals $? 0 'FTI should fail when checkpoint files are deleted'
+}
+
+erase_mode() {
+    case $1 in
+    1)
+        echo "local checkpoint"
+        ;;
+    2)
+        echo "partner checkpoint"
+        ;;
+    3)
+        echo "consecutive node checkpoints"
+        ;;
+    4)
+        echo "non-consecutive node checkpoints"
+        ;;
+    5)
+        echo "Reed Solomon encodings"
+        ;;
+    6)
+        echo "global checkpoint"
+        ;;
+    esac
 }

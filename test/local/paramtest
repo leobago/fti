@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source testengine
+
+on_fixture_teardown() {
+    echo "Im in fixture teardown"
+}
+
+unload_fixture
+
+on_fixture_teardown

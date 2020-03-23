@@ -35,7 +35,7 @@ execute_suites() {
 
     while [ $# -gt 0 ]; do
         # add/overwrite the test fixture function definitions
-        source "$1.fixture"
+        itf_load_fixture "$1"
 
         local __local_failures=$nfailures
         local __local_test_count=0
@@ -59,6 +59,7 @@ execute_suites() {
         # Textual feedback
         print_fixture_feedback $((nfailures - $__local_failures))
         shift
+        itf_unload_fixture
     done
 }
 
@@ -106,10 +107,11 @@ if [ -z $custom ]; then
     execute_suites "${arguments[@]}"
 else
     # Executes a test from a fixture with custom parameters
-    source "${arguments[0]}.fixture"
+    itf_load_fixture "${arguments[0]}"
     unset 'arguments[0]'
     execute_case "${arguments[@]}"
     print_fixture_feedback $nfailures
+    itf_unload_fixture
 fi
 
 # Print the summary of tests executed

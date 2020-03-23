@@ -1,0 +1,2 @@
+--iolib 1 --level 1 --icp 1 --diffsize 0 --head 0
+--iolib 1 --level 1 --icp 1 --diffsize 0 --head 0 --erase_mode 1
