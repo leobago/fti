@@ -874,36 +874,26 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-    FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-  char lfback[FTI_BUFS], gfback[FTI_BUFS];
-#endif
 
-  switch(FTI_Conf->ioMode) {
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-    case FTI_IO_SIONLIB:
-      strncpy(lfback,FTI_Exec->meta[1].ckptFile,FTI_BUFS);
-      strncpy(gfback,FTI_Exec->meta[4].ckptFile,FTI_BUFS);
-      if (FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt) == FTI_SCES ){
-        return FTI_SCES;
-      }
-      strncpy(FTI_Exec->meta[1].ckptFile,lfback,FTI_BUFS);
-      strncpy(FTI_Exec->meta[4].ckptFile,gfback,FTI_BUFS);
-      return FTI_NSCS;
+    switch(FTI_Conf->ioMode) {
+        case FTI_IO_FTIFF:
+        case FTI_IO_HDF5:
+        case FTI_IO_IME:
+        case FTI_IO_POSIX:
+            return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+        case FTI_IO_MPI:
+            return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+#ifdef ENABLE_SIONLIB
+        case FTI_IO_SIONLIB:
+            return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #endif
+        default:
+            FTI_Print("unknown I/O mode",FTI_WARN);
+            return FTI_NSCS;
+    }
 
-    case FTI_IO_FTIFF:
-    case FTI_IO_HDF5:
-    case FTI_IO_POSIX:
-      return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-    case FTI_IO_MPI:
-      return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-    default:
-      FTI_Print("unknown I/O mode",FTI_WARN);
-      return FTI_NSCS;
-  }
-  //}
 }
 
 /*-------------------------------------------------------------------------*/
