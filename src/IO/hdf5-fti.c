@@ -43,6 +43,17 @@
 
 static hid_t _file_id;
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      activates heads for checkpoint postprocessing.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      status          preprocessing checkpoint status.
+  @return     integer         FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
 {
     FTI_Exec->wasLastOffline = 1;
@@ -1169,7 +1180,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Writes ckpt to using HDF5 file format.
+  @brief      Writes ckpt using HDF5 file format.
   @param      FTI_Conf        Configuration metadata.
   @param      FTI_Exec        Execution metadata.
   @param      FTI_Topo        Topology metadata.
@@ -1198,6 +1209,10 @@ int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It loads the HDF5 checkpoint data.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
   @return     integer         FTI_SCES if successful.
 
   This function loads the checkpoint data from the checkpoint file and
@@ -1292,6 +1307,19 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initialization for seperate variable recovery.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function prepares the checkpoint file to enable the recovery of
+  the protected variables seperately.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt)
 {
     char str[FTI_BUFS], fn[FTI_BUFS];
@@ -1326,6 +1354,19 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalize for seperate variable recovery.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer         FTI_SCES if successful.
+
+  This function finalizes the checkpoint file after the recovery of
+  the protected variables seperately.
+
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data)
 {
@@ -1667,6 +1708,13 @@ herr_t FTI_WriteSharedFileData( FTIT_dataset FTI_Data )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      returns rank of global dataset.
+  @param      did       HDF5 internal dataset id (hid_t).
+  @return     integer   rank of global dataset.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetDatasetRankReco( hid_t did ) 
 {
 
@@ -1682,6 +1730,17 @@ int FTI_GetDatasetRankReco( hid_t did )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      returns span of global dataset.
+  @param      did       HDF5 internal dataset id (hid_t).
+  @param      span      span of global dataset 
+  @return     integer   FTI_SCES if successful.
+
+  this function stores the global dataset dimension in the array variable 
+  span. The array has to be allocated to the respective rank beforehand.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetDatasetSpanReco( hid_t did, hsize_t * span )
 {
 
@@ -1849,6 +1908,13 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptId )
     return res;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      frees all memory allocated for VPR.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Data        Data to be stored
+ **/
+/*-------------------------------------------------------------------------*/
 void FTI_FreeVPRMem( FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data ) 
 {
     FTIT_globalDataset * dataset = FTI_Exec->globalDatasets;
@@ -1937,13 +2003,14 @@ int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec )
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      It creates the global dataset in the VPR file.
+  @brief      It creates the global dataset as group in the preprocessing file.
   @param      FTI_Exec        Execution metadata.
   @return     integer         FTI_SCES if successful.
 
-  Creates global dataset (shared among all ranks) in VPR file. The dataset
-  position will be the group assigned to it by calling the FTI API function 
-  'FTI_DefineGlobalDataset'.
+  When head=1 and singleshared file is not inline, the information of the
+  global dataset is stored as attribute inside a group with name of
+  the global dataset. all the corresponding subsets will be stored inside
+  this group.
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
@@ -1987,6 +2054,15 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      reads attribute from object (either offset or count).
+  @param      oid       HDF5 internal object id 
+  @param      name      object name 
+  @param      buffer    storage for offset or count arrays
+  @return     integer   FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer ) 
 {
     
@@ -2015,6 +2091,16 @@ int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      returns rank of attribute from object.
+  @param      oid       HDF5 internal object id 
+  @return     integer   rank of attribute.
+
+  This function returns the rank of the attribute of object. This rank 
+  corresponds to the global dataset rank.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_GetDatasetRankFlush( hid_t oid ) 
 {
     hid_t aid, sid;
@@ -2034,11 +2120,18 @@ int FTI_GetDatasetRankFlush( hid_t oid )
     return rank;
 }
 
-hid_t FTI_GetDatasetTypeFlush( hid_t gid )
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      returns active HDF5 type of global dataset.
+  @param      did       HDF5 internal dataset id 
+  @return     integer   rank of attribute.
+ **/
+/*-------------------------------------------------------------------------*/
+hid_t FTI_GetDatasetTypeFlush( hid_t did )
 {
     char objname[FTI_BUFS];
-    H5Gget_objname_by_idx( gid, 0, objname, FTI_BUFS );
-    hid_t did = H5Dopen( gid, objname, H5P_DEFAULT );
+    H5Gget_objname_by_idx( did, 0, objname, FTI_BUFS );
+    hid_t did = H5Dopen( did, objname, H5P_DEFAULT );
     if(did < 0) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to access dataset '%s'", objname );
@@ -2050,6 +2143,16 @@ hid_t FTI_GetDatasetTypeFlush( hid_t gid )
     return tid;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function adds local subsets from each rank of head to
+  global dataset.
+  @param      gid           HDF5 internal object id 
+  @param      loc           HDF5 internal parent node id 
+  @param      datasetname   global dataset name 
+  @return     integer   FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
 {
 
@@ -2147,6 +2250,14 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function copies the group structure to global single file.
+  @param      orig           HDF5 internal local object id 
+  @param      copy           HDF5 internal global object id 
+  @return     integer   FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
 {
     hsize_t n, na;
@@ -2207,6 +2318,16 @@ int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function merges preprocessed checkpoint files to global
+  single file on PFS.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
+  @return     integer   FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo )
 {
     char fn[FTI_BUFS], tmpfn[FTI_BUFS], lfn[FTI_BUFS];
@@ -2280,6 +2401,16 @@ int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Con
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      This function finalized the single file checkpoint
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @return     integer   FTI_SCES if successful.
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_FinalizeH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, 
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, double t ) 
 {
