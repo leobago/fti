@@ -1331,6 +1331,8 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], _file_id, FTI_Exec->H5groups);
     }
 
+    return FTI_SCES;
+
 }
 
 int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
@@ -1355,6 +1357,9 @@ int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
         return FTI_NREC;
     }
+    
+    return FTI_SCES;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1986,6 +1991,7 @@ int FTI_CreateGlobalDatasetsAsGroups( FTIT_execution* FTI_Exec )
 
 int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer ) 
 {
+    
     hid_t aid, sid;
     hsize_t rank; 
     aid = H5Aopen( oid, name, H5P_DEFAULT );
@@ -1994,6 +2000,9 @@ int FTI_ReadAttributeHDF5( hid_t oid, char* name, hsize_t* buffer )
     H5Aread( aid, H5T_NATIVE_HSIZE, buffer );
     H5Sclose( sid );
     H5Aclose( aid );
+    
+    return FTI_SCES;
+
 }
 
 int FTI_GetDatasetRankFlush( hid_t oid ) 
@@ -2080,26 +2089,24 @@ int FTI_MergeDatasetSingleFile( hid_t gid, hid_t loc, char *datasetname )
 
     free( count );
     free( offset );
+    
+    return FTI_SCES;
 
 }
 
 int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
 {
-    int i, arank, drank;
-    herr_t err;
     hsize_t n, na;
     int h5objtype;
     hid_t childorig;
     hid_t childcopy;
-    hid_t aid, aspace;
-    hsize_t* abuffer, dbuffer;
     char groupname[FTI_BUFS];
     char childname[FTI_BUFS];
 
     H5Iget_name( orig, groupname, FTI_BUFS );
 
-    err = H5Gget_num_objs( orig, &n );
-    for( i=0; i<n; i++ ) {
+    H5Gget_num_objs( orig, &n );
+    int i=0; for(; i<n; i++ ) {
 
         H5Gget_objname_by_idx( orig, i, childname, FTI_BUFS ); 
         h5objtype = H5Gget_objtype_by_idx( orig, i );
@@ -2132,7 +2139,7 @@ int FTI_MergeObjectsSingleFile( hid_t orig, hid_t copy )
 int FTI_FlushH5SingleFile( FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo )
 {
     char fn[FTI_BUFS], tmpfn[FTI_BUFS], lfn[FTI_BUFS];
-    hid_t fid, lfid, gid;
+    hid_t fid, lfid;
     snprintf( tmpfn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->gTmpDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId ); 
     snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptMeta.ckptId ); 
     if( FTI_Topo->splitRank == 0 ) {

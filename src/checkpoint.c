@@ -140,7 +140,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     //If checkpoint is inlin and level 4 save directly to PFS
     int res; //response from writing funcitons
     int offset = 2*(FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff);
-    if ( (FTI_Ckpt[4].isInline && (FTI_Exec->ckptMeta.level == 4))&&!FTI_Exec->h5SingleFile || (FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline) ) {
+    if ( ((FTI_Ckpt[4].isInline && (FTI_Exec->ckptMeta.level == 4)) && !FTI_Exec->h5SingleFile) || (FTI_Exec->h5SingleFile && FTI_Conf->h5SingleFileIsInline) ) {
         if ( !((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf->gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
