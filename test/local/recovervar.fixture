@@ -1,16 +1,18 @@
 #!/bin/bash
 
-setup()
-{
+setup() {
     app='./recoverVar/recoverVar.exe'
     head=0
     keep=0
     itf_param_register 'iolib' 'level' 'diffsize'
 }
 
-runtest()
-{
+runtest() {
     app_run_success $app $itf_cfgfile 1 $level 1
     app_run_timeout $app $itf_cfgfile 0 $level $diffsize
     assert_equals $? 0 "recoverVar.exe returned with output: $?"
+}
+
+teardown() {
+    unset app head keep
 }

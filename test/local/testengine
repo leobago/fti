@@ -150,6 +150,21 @@ fti_config_set_inline() {
     fti_config_set 'inline_l4' '1'
 }
 
+fti_config_set_ckpts() {
+    # Set the checkpoint intervals of FTI
+    #
+    # Parameters:
+    # $1: The L1 checkpoint interval
+    # $2: The L2 checkpoint interval
+    # $3: The L3 checkpoint interval
+    # $4: The L4 checkpoint interval
+
+    fti_config_set 'ckpt_l1' "$1"
+    fti_config_set 'ckpt_l2' "$2"
+    fti_config_set 'ckpt_l3' "$3"
+    fti_config_set 'ckpt_l4' "$4"
+}
+
 # ----------------------- Fixture Parameter handling --------------------------
 
 itf_set_default_variables_to_config() {
@@ -507,16 +522,16 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$CFG_MOCK" >$itf_cfgfile
 
-    itf_param_clear # Clear parameters from previous test case
-    setup $@ # Call setup to declare arguments and other data
+    itf_param_clear    # Clear parameters from previous test case
+    setup $@           # Call setup to declare arguments and other data
     itf_param_parse $@ # Parse the test case arguments an ddefine variables
-        
+
     # Print feedback
     echo "$(itf_describe_test_case)"
-    echo $(itf_describe_test_case_colorless) >> $itf_tstdout
+    echo $(itf_describe_test_case_colorless) >>$itf_tstdout
 
     # Prepare the FTI config file
-    type teardown &>/dev/null && teardown prepare_fti
+    type prepare_fti &>/dev/null && prepare_fti
 
     # Execute the test fixture
     (
@@ -537,9 +552,9 @@ test_case() {
     local normallog="$(get_fixture_log)"
 
     if [ $__exitcode -ne 0 ]; then
-        cat $itf_tstdout >> $faillog
+        cat $itf_tstdout >>$faillog
     elif [ $itf_maintain_app_logs -eq 1 ]; then
-        cat $itf_tstdout >> $normallog
+        cat $itf_tstdout >>$normallog
     fi
 
     # Call the test case teardown

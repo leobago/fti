@@ -1,12 +1,8 @@
 #!/bin/bash
 
 setup() {
-    # Constants
     app='diffckpt/diff_test.exe'
-
-    # Input
-    itf_param_register_std 'iolib' 'head'
-    itf_param_register_fxt 'mode'
+    itf_param_register 'iolib' 'head' 'mode'
 }
 
 prepare_fti() {
@@ -23,10 +19,8 @@ prepare_fti() {
 runtest() {
     export TEST_MODE=$mode
 
-    for i in 0 1
-    do
-        app_run_success $app $itf_cfgfile
-    done
+    app_run_success $app $itf_cfgfile
+    app_run_success $app $itf_cfgfile
 
     awk '
         BEGIN {dcpEnabled=0};
@@ -49,6 +43,5 @@ runtest() {
 }
 
 teardown() {
-    unset app
-    unset TEST_MODE
+    unset app TEST_MODE
 }

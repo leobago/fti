@@ -1,18 +1,15 @@
 #!/bin/bash
 
 setup() {
-    itf_param_register_std 'head'
+    itf_param_register 'head'
+    iolib="$(iolib_name_to_id 'POSIX')"
 
     app='staging/massive.exe'
-    iolib="$(iolib_name_to_id 'POSIX')"
 }
 
 prepare_fti() {
     fti_config_set 'enable_staging' '1'
-    fti_config_set 'ckpt_l1' '0'
-    fti_config_set 'ckpt_l2' '1'
-    fti_config_set 'ckpt_l3' '3'
-    fti_config_set 'ckpt_l4' '0'
+    fti_config_set_ckpts '0' '1' '3' '0'
 }
 
 runtest() {
@@ -33,5 +30,5 @@ runtest() {
 }
 
 teardown() {
-    unset app
+    unset app iolib
 }
