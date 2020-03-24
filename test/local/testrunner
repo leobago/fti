@@ -78,11 +78,11 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     -m | --maintain-logs)
-        itf_set_keep_logs
+        itf_maintain_app_logs=1
         shift
         ;;
     -d | --maintain-ckpt-dir)
-        itf_set_keep_ckpt
+        itf_maintain_ckpt=1
         shift
         ;;
     -h | --help)

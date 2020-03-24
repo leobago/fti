@@ -41,12 +41,16 @@ if [ -z $itf_tstdout ]; then
     itf_tstdout="/tmp/fti-test.log"
 fi
 
-# -------------------------- Runtime Variables --------------------------------
+# ---------------------- Engine Runtime Variables -----------------------------
 
 # itf_error: a buffer for error messages
 itf_error=""
 # itf_loaded_fixture: the currently loaded fixture in ITF
 itf_loaded_fixture=""
+# The argument names managed by ITF
+itf_paramv=()
+# itf_paramv array size
+itf_paramc=0
 
 # -------------------------- Engine Variable Setters --------------------------
 
@@ -66,18 +70,6 @@ itf_set_timeout() {
     fi
     itf_timeout="$1"
     echo "[OPTION] Set timeout -> "$itf_timeout
-}
-
-itf_set_keep_ckpt() {
-    # Set an engine to maintain all checkpoint files after test execution
-
-    itf_maintain_ckpt=1
-}
-
-itf_set_keep_logs() {
-    # Set the flag to keep test application logs even when they are successful
-
-    itf_maintain_app_logs=1
 }
 
 # -------------------------- Fixture Setup Helpers ----------------------------
@@ -160,24 +152,24 @@ fti_config_set_inline() {
 
 # ----------------------- Fixture Parameter handling --------------------------
 
-itf_manage_config_file() {
-    # Set up the config file using ITF-standard variables
+itf_set_default_variables_to_config() {
+    # Set up the config file using ITF standard variables names
     #
     # Details:
     # This method can be called manually but will always be called when
     # a fixture contains a 'parameter' function definition
 
     if [ ! -z $iolib ]; then
-        fti_config_set 'ckpt_io' "$iolib" 'verbose'
+        fti_config_set 'ckpt_io' "$iolib"
     fi
     if [ ! -z $head ]; then
-        fti_config_set 'head' "$head" 'verbose'
+        fti_config_set 'head' "$head"
     fi
     if [ ! -z $keep ]; then
-        fti_config_set 'keep_last_ckpt' "$keep" 'verbose'
+        fti_config_set 'keep_last_ckpt' "$keep"
     fi
     if [ ! -z $level ] && [ $level -gt 1 ] && [ ! -z $head ] && [ $head -eq 0 ]; then
-        fti_config_set "inline_l$level" '0' 'verbose'
+        fti_config_set "inline_l$level" '0'
     fi
 }
 
@@ -188,84 +180,52 @@ itf_param_parse() {
     # $@ The parameters to be parsed
     #
     # Usage:
-    # Use this function after registering the parameters with either:
-    # - param_register_itf
-    # - param_register_custom
+    # Use this function after registering the parameters with:
+    # - itf_param_register
     #
     # This function will parse the parameters and setup variables acordingly
     #
     # Example:
-    # param_register_itf 'iolib' 'head'
-    # param_parse --iolib 1 --head 0
+    # itf_param_register 'iolib' 'head'
+    # itf_param_parse --iolib 1 --head 0
     # echo $iolib # should output 1
     # echo $head # should output 0
 
     # Define all variables from input parameters
     while [ $# -gt 1 ]; do
-        itf_def_var_if_in_array $1 $2 ${itf_std_paramv[@]}
-        if [ $? -ne 0 ]; then
-            itf_def_var_if_in_array $1 $2 ${itf_fixt_paramv[@]}
-            if [ $? -ne 0 ]; then
-                itf_error="Invalid argument $1"
-                return 1
+        local _found='false'
+        for p in ${itf_paramv[@]}; do
+            if [ $1 == "--$p" ]; then
+                eval $p=$2
+                local _found='true'
             fi
+        done
+        if [ $_found == 'false' ]; then
+            itf_error="Invalid argument $1"
+            return 1
         fi
         shift
         shift
     done
 
-    # Check if all required standard variables were defined
-    for p in "${itf_std_paramv[@]}"; do
+    # Check if all required arguments were found
+    for p in "${itf_paramv[@]}"; do
         if [ -z ${!p} ]; then
-            itf_error="Standard variable '$p' not found in test case: add [--$p val] to the suite"
-            return 1
-        fi
-    done
-    # Check if all required user variables were defined
-    for p in "${itf_fixt_paramv[@]}"; do
-        if [ -z ${!p} ]; then
-            itf_error="User variable '$p' not assigned in test case: add [--$p val] to the suite"
+            itf_error="Argument '$p' not found"
             return 1
         fi
     done
 }
 
-itf_param_register_std() {
-    # Register ITF-standard fixture parameters to be managed by ITF
+itf_param_register() {
+    # Register ITF-managed parameter names
     #
     # Parameters:
-    # $@: Names recognized as ITF standard variables
-    #
-    # Details:
-    # Check the ITF standard variables in the case clausules of function:
-    # check_valid_itf_parameter
-    #
-    # Usage:
-    # parameter_register_itf 'iolib' 'head' 'icp'
-    # itf_param_parse --iolib 1 --head 0 --icp 1
-    # echo $iolib
+    # $@: Variable names to be assigned values from arguments
 
     while [ $# -gt 0 ]; do
-        itf_std_paramv[$itf_std_paramc]=$1
-        let itf_std_paramc=$itf_std_paramc+1
-        shift
-    done
-}
-
-itf_param_register_fxt() {
-    # Register non ITF-standard fixture parameters to be managed by ITF
-    #
-    # Parameters:
-    # $@: Names for the parameter variables
-    #
-    # Usage:
-    # itf_param_register_fxt 'myparam' 'otherparam'
-    # itf_param_parse --myparam 2 --otherparam 5
-    # echo $myparam
-
-    while [ $# -gt 0 ]; do
-        itf_fixt_paramv[$itf_fixt_paramc]=$1
-        let itf_fixt_paramc=$itf_fixt_paramc+1
+        itf_paramv[$itf_paramc]=$1
+        let itf_paramc=$itf_paramc+1
         shift
     done
 }
@@ -555,7 +515,9 @@ test_case() {
     echo "$(itf_describe_test_case)"
     echo $(itf_describe_test_case_colorless) >> $itf_tstdout
 
-    prepare_fti # Prepare the FTI config file
+    # Prepare the FTI config file
+    type teardown &>/dev/null && teardown prepare_fti
+
     # Execute the test fixture
     (
         # Test if ITF has any error stored
@@ -563,8 +525,8 @@ test_case() {
             echo "$itf_error" >>$itf_tstdout
             fail "$itf_error"
         fi
-        # If ITF is managing input parameters, setup the config file
-        itf_manage_config_file
+        # Setup the config file with standarized variable names
+        itf_set_default_variables_to_config
         # Run the test
         runtest
     )
@@ -581,9 +543,7 @@ test_case() {
     fi
 
     # Call the test case teardown
-     type teardown &>/dev/null && teardown
-    # Releases any ITF-managed parameter variable names
-    itf_param_unset
+    type teardown &>/dev/null && teardown
 
     # Remove the global, local and meta directories
     if [ $itf_maintain_ckpt -eq 0 ]; then
@@ -620,8 +580,9 @@ print_color() {
 itf_describe_test_case() {
     # Describe the current test case in terms of its arguments and values
 
-    for p in "${itf_std_paramv[@]}"; do
+    for p in "${itf_paramv[@]}"; do
         print_color $COLOR_BLUEBOLD "$p="
+        # IOLib has a direct string representation
         if [ $p == 'iolib' ]; then
             print_color $COLOR_WHITEBOLD "$(iolib_id_to_name $iolib) "
         else
@@ -719,44 +680,14 @@ itf_find_fti_objects() {
     echo "$_files"
 }
 
-itf_def_var_if_in_array() {
-    # Define a variable with a given value if the name is found within a set
-    #
-    # Parameters:
-    # $1: A parameter given to the test fixture setup method
-    # $2: The value given to the parameter
-    # $3+: A set of valid parameters names without the leading '--'
-
-    for p in ${@:3}; do
-        if [ $1 == "--$p" ]; then
-            # TODO: Check if it has a valid value??
-            eval $p=$2
-            return 0
-        fi
-    done
-    return 1
-}
-
 itf_param_clear() {
     # Clear the set of parameters managed by ITF
 
+    for i in ${itf_paramv[@]}; do
+        unset $i
+    done
+
     itf_error=""
-    itf_std_paramc=0
-    itf_std_paramv=()
-    itf_fixt_paramc=0
-    itf_fixt_paramv=()
+    itf_paramc=0
+    itf_paramv=()
 }
-
-itf_param_unset() {
-    # Unsets any parameter registered in the fixture as ITF-managed
-
-    for i in ${itf_std_paramv[@]}; do
-        unset $i
-    done
-    for i in ${itf_fixt_paramv[@]}; do
-        unset $i
-    done
-}
-
-# Declare the list of managed parameters
-itf_param_clear

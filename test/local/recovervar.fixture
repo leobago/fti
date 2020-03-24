@@ -5,51 +5,12 @@ setup()
     app='./recoverVar/recoverVar.exe'
     head=0
     keep=0
-    itf_param_register_std 'iolib' 'level' 'diffsize'
-}
-
-prepare_fti() {
-    fti_config_set_inline
+    itf_param_register 'iolib' 'level' 'diffsize'
 }
 
 runtest()
 {
     app_run_success $app $itf_cfgfile 1 $level 1
     app_run_timeout $app $itf_cfgfile 0 $level $diffsize
-    assert_equals $? 0 "$(print_test_status $?)"
-}
-
-on_fixture_teardown() {
-    unset print_test_status
-}
-
-print_test_status() {
-    # Pretty string for the exit status of the recovervar application
-    #
-    # Parameters:
-    # $1: The integer return value of a recovervar run
-
-    case $1 in
-    255)
-        echo "FTI Abort"
-    ;;
-    30)
-        echo "Checkpoint Data Corrupted"
-    ;;
-    20)
-        echo "Recovery Failed"
-    ;;
-    143)
-        echo "Process Killed, Timeout"
-    ;;
-    40)
-        echo "Test Data Corrupted"
-    ;;
-    50)
-        echo "Wrong Environment"
-    ;;
-    *)
-        echo "Unknown Return Value ($1)"
-    ;;
-    esac
+    assert_equals $? 0 "recoverVar.exe returned with output: $?"
 }

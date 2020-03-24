@@ -1,56 +1,34 @@
 #!/bin/bash
 
-declare_arguments() {
-    # The standard tests with disruption tests FTI when its checkpoint files are corrupted
-    #
-    # Fixture-specific variables:
-    # 
-    # tamper: How to disrupt FTI checkpoint objects
-    #   - erase: delete FTI objects (files or directories)
-    #   - corrupt: corrupt FTI objects (adding or removing bytes)
-    #
-    # target: Which FTI object to tamper
-    #   - node: local node directory
-    #   - ckpt: checkpoint files
-    #   - partner: local partner checkpoint files
-    #   - rs-encoding: local RS encodings
-    #   - global: global directory
-    #
-    # consecutive:
-    #   - true: tamper with objects from consecutive node ids
-    #   - false: tamper with objects from non-consecutive node ids 
-    #
-    # expected:
-    #   - success: FTI is expected to succeed in this scenario
-    #   - failure: FTI is expected to fail in this scenario
+setup() {
+    itf_param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
+    itf_param_register 'disrupt' 'target' 'consecutive' 'expected'
 
-    itf_param_register_std 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
-    itf_param_register_fxt 'disrupt' 'target' 'consecutive' 'expected'
+    app='check.exe'
 }
 
-setup() {
-    app='check.exe'
+prepare_fti() {
     fti_config_set_inline
 }
 
 runtest() {
+    local _crash=0
     if [ $keep -eq 0 ]; then
         # Simulate a crash when not keeping last checkpoint
-        app_run_success $app $itf_cfgfile 1 $level $diffsize $icp
-    else
-        # Run until the end when keeping last checkpoint
-        app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
+        local _crash=1
     fi
+
+    app_run_success $app $itf_cfgfile $_crash $level $diffsize $icp
 
     case $consecutive in
     true)
         ckpt_${disrupt}_last "$target" 'node0' 'node1'
         ;;
-    irrelevant)
-        ckpt_${disrupt}_last "$target"
+    false)
+        ckpt_${disrupt}_last "$target" 'node0' 'node2'
         ;;
     *)
-        ckpt_${disrupt}_last "$target" 'node0' 'node2'
+        ckpt_${disrupt}_last "$target"
         ;;
     esac
 
