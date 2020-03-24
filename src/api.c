@@ -2516,23 +2516,17 @@ int FTI_Finalize()
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      During the restart, recovers the given variable
-  @param      id              Variable to recover
-  @return     int             FTI_SCES if successful.
+  @brief      Initializes recovery of variable
+  @return     integer             FTI_SCES if successful.
 
-  During a restart process, this function recovers the variable specified
-  by the given id. No effect during a regular execution.
-  The variable must have already been protected, otherwise, FTI_NSCS is returned.
-  Improvements to be done:
-  - Open checkpoint file at FTI_Init, close it at FTI_Snapshot
-  - Maintain a variable accumulating the offset as variable are protected during
-  the restart to avoid doing the loop to calculate the offset in the
-  checkpoint file.
+  Initializes the I/O operations for recoverVar 
+  includes implementation for all I/O modes
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVar(int id)
-{
-    char str[2*FTI_BUFS];
+int FTI_RecoverVarInit(){
+    int res = FTI_NSCS;
+
+    char fn[FTI_BUFS];
 
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
@@ -2549,82 +2543,176 @@ int FTI_RecoverVar(int id)
         return FTI_NSCS;
     }
 
-    if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
-        return FTIFF_RecoverVar( id, &FTI_Exec, FTI_Data, FTI_Ckpt );
+    //Recovering from local for L4 case in FTI_Recover
+    if (FTI_Exec.ckptLvel == 4) {
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
+            /*snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.meta[4].ckptFile );
+            res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
+            if(blockSize == 0){
+                FTI_Print("[INIT] blocksize is zero", FTI_WARN);
+            }*/
+            return ;
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
+        }
+    }
+    
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.meta[FTI_Exec.ckptLvel].ckptFile);
     }
 
+    //switch case
+    switch(FTI_Conf.ioMode){
 
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        return FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
-    }
+        case FTI_IO_HDF5:
+#ifdef ENABLE_HDF5 
+            //what to return?
+            res = FTI_RecoverVarInitHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, fn);
+#else
+            FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif
+            break;
 
-    char fn[FTI_BUFS]; //Path to the checkpoint file
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+
+        case FTI_IO_SIONLIB:
+            res = FTI_RecoverVarInitPOSIX(fn);
+#else
+            FTI_Print("Selected Ckpt I/O is SION, but SION is not enabled.", FTI_WARN);
+#endif
+            break;
+
+        case FTI_IO_POSIX:
+            res = FTI_RecoverVarInitPOSIX(fn);
+
+        case FTI_IO_MPI:
+            res = FTI_RecoverVarInitPOSIX(fn);
+            
+        case FTI_IO_FTIFF:            
+            res = FTI_RecoverVarInitFTIFF(fn);
+
+        default: 
+            FTI_Print("Unknown I/O mode.", FTI_EROR);
+            res = FTI_NSCS;
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers given variable
+  @param      integer         id of variable to be recovered
+  @return     integer         FTI_SCES if successful.
+
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVar(int id)
+{
+    int res = FTI_NSCS;
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
-        } else {
-            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
+            FTI_Print("about to DCP", FTI_INFO);
+            //res =  FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Data, fd, blockSize, stackSize, buffer, id);
+            return; 
         }
     }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
+    switch(FTI_Conf.ioMode){
+
+        case FTI_IO_HDF5:
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+            res = FTI_RecoverVarHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, id); 
+#else
+            FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
+#endif
+            break;
+
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+
+        case FTI_IO_SIONLIB:
+            
+            res = FTI_RecoverVarPOSIX(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id, fileposix);
+#else
+            FTI_Print("Selected Ckpt I/O is SION, but SION is not enabled.", FTI_WARN);
+#endif
+            break;
+
+        case FTI_IO_POSIX:
+            res = FTI_RecoverVarPOSIX(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id, fileposix);
+            break;
+
+        case FTI_IO_MPI:
+            res = FTI_RecoverVarPOSIX(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id, fileposix);
+            break;
+
+        case FTI_IO_FTIFF:
+            res = FTIFF_RecoverVar(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id);
+            break;
+
+        default: 
+            FTI_Print("Unknown I/O mode.", FTI_EROR);
+            res = FTI_NSCS;
     }
 
+    return res; 
+}
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes recovery of variable
+  @return     integer             FTI_SCES if successful.
 
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
+  Finalizes the I/O operations for recoverVar 
+  includes implementation for all I/O modes
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarFinalize(){
+    int res; 
 
-    FILE* fd = fopen(fn, "rb");
-    if (fd == NULL) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
+    if (FTI_Exec.ckptLvel == 4) {
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
+            //res = FTI_RecoverVarDcpPosixFinalize(fd, buffer);
+            return; 
+        }
     }
 
+    switch(FTI_Conf.ioMode){
 
-    FTIT_dataset* data;
-    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
-        FTI_Print("failed to recover", FTI_EROR);
-        return FTI_NREC;
+        case FTI_IO_HDF5:
+#ifdef ENABLE_HDF5 // --> If HDF5 is installed
+            res = FTI_RecoverVarFinalizeHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, _file_id); 
+#else
+            FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
+#endif
+            break;
+
+#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+
+        case FTI_IO_SIONLIB:
+            res = FTI_RecoverVarFinalizePOSIX(fileposix);
+#else
+            FTI_Print("Selected Ckpt I/O is SION, but SION is not enabled.", FTI_WARN);
+#endif
+            break;
+
+        case FTI_IO_POSIX:
+            res = FTI_RecoverVarFinalizePOSIX(fileposix);
+            break;
+
+        case FTI_IO_MPI:
+            res = FTI_RecoverVarFinalizePOSIX(fileposix);
+            break;
+
+        case FTI_IO_FTIFF:
+            res = FTI_RecoverVarFinalizeFTIFF(filemmap, filestats);
+            break;
+
+        default: 
+            FTI_Print("Unknown I/O mode.", FTI_EROR);
+            res = FTI_NSCS;
     }
-
-    if( !data ) {
-        snprintf( str, FTI_BUFS, "id = '%d' not found, recovery failed", id );
-        FTI_Print( str, FTI_WARN);
-        return FTI_NREC;
-    }
-
-
-    if( data->size != data->sizeStored ) {
-        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                data->sizeStored, id, data->size);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
-
-    sprintf(str, "Recovering var %d ", id);
-    FTI_Print(str, FTI_DBUG);
-
-    long filePos = data->filePos;
-    fseek(fd,filePos, SEEK_SET);
-    fread(data->ptr, 1, data->sizeStored, fd);
-
-    if (ferror(fd)) {
-        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-        fclose(fd);
-        return FTI_NREC;
-    }
-
-    if (fclose(fd) != 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-
-    return FTI_SCES;
+    return res; 
 }
 
 /*-------------------------------------------------------------------------*/

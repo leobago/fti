@@ -41,7 +41,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-
+hid_t _file_id;
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates h5datatype (hid_t) from definitions in FTI_Types
@@ -1279,7 +1279,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+/*int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data, int id)
 {
     FTIT_dataset* data;
@@ -1372,6 +1372,115 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         return FTI_NREC;
     }
     return FTI_SCES;
+}*/
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes variable recovery for HDF5 mode
+  @param      fn                        ckpt file
+  @return     Integer                   HDF5 file handle
+                                        positive if successful
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+                    FTIT_dataset* FTI_Data, char* fn)
+{
+    _file_id = -1; 
+    int res = FTI_SCES;
+
+    if( FTI_Exec->h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptID );
+        hid_t plid = H5Pcreate( H5P_FILE_ACCESS ); 
+        H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
+        _file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );  
+        H5Pclose( plid );
+    } else {//else read the file
+        _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
+    }
+    
+    DBG_MSG("file_id: %lld", -1, _file_id);
+    if (_file_id < 0) {
+        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+        res = FTI_NSCS;
+        exit(-1);
+    }
+    FTI_Exec->H5groups[0]->h5groupID = _file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+
+    int i;
+    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {//open each groupd
+        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], _file_id, FTI_Exec->H5groups);
+    }
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_CreateComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
+    }
+
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        if (FTI_Data[i].id == id) {
+            break;
+        }
+    }
+    
+    if( FTI_Exec->h5SingleFile ) { 
+        FTI_OpenGlobalDatasets( FTI_Exec );
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers the variable for HDF5 mode
+  @param      id                    variable id
+  @return     Integer               FTI_SCES if successful
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data, int id)
+{
+    int res = FTI_NSCS;
+
+    int activeID, oldID;
+    if(findVarInMeta(&FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_NSCS){
+        if( FTI_Exec->h5SingleFile ) {
+            res = FTI_ReadSharedFileData(FTI_Data[activeID]);//returns herr_t
+        } else {
+            res = FTI_ReadHDF5Var(&FTI_Data[activeID]);//return FTI_status
+        }
+        if(res < 0 || res == FTI_NSCS){/
+            FTI_Print("Could not read variable.", FTI_EROR);
+        }else{
+            res = FTI_SCES;
+        }
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers the variable for HDF5 mode
+  @param      _file_id (int)            HDF5 file handle
+  @return     Integer                   FTI_SCES if successful
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
+        FTIT_dataset* FTI_Data)
+{
+    int res = FTI_NSCS; 
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);//returns void
+    }
+    FTI_Exec->H5groups[0]->h5groupID = _file_id;
+    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
+    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
+        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], FTI_Exec->H5groups);//returns void
+    }
+    if (H5Fclose(_file_id) < 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+    }else{
+        res = FTI_SCES;
+    }
+    return res;
 }
 
 /*-------------------------------------------------------------------------*/

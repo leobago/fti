@@ -46,6 +46,10 @@
 #endif
 #include <assert.h>
 #include <string.h>
+//headers required for recoverVar()
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
@@ -57,6 +61,9 @@
 extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
 extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
 extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
+
+extern char *filemmap; 
+extern struct stat filestats;
 
 /**
 
@@ -187,5 +194,6 @@ void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data );
 void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
         FTIT_dataset *data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
-
+int FTI_RecoverVarInitFTIFF(char* fn);
+int FTI_RecoverVarFinalizeFTIFF();
 #endif
