@@ -310,7 +310,7 @@ ckpt_erase_last() {
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
 
     echo "checkpoint_erase $@" | tee -a $itf_tstdout
-    for f in "$(itf_find_fti_objects $@)"; do
+    for f in $(itf_find_fti_objects $@); do
         (
             set -x
             rm -rf $f
@@ -334,10 +334,10 @@ ckpt_corrupt_last() {
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
 
     echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
-    for f in "$(itf_find_fti_objects $@)"; do
+    for f in $(itf_find_fti_objects $@); do
         (
             set -x
-            printf "corruption" | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
+            echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
         )
         echo "corrupted: $f" &>> $itf_tstdout
     done
