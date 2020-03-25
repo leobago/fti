@@ -139,7 +139,8 @@ fti_config_set() {
     # $2: The new value for the field
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
-    echo "+ fti_config_set $1=$2" | tee -a $itf_tstdout
+    
+    echo "config_set $1=$2" | tee -a $itf_tstdout
 }
 
 fti_config_set_inline() {
@@ -254,11 +255,15 @@ app_run() {
     # To circunvent this, we redirect stdin to /dev/null
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
-
+    echo "app_run" | tee -a $itf_tstdout
+    echo "parameters: $@" &>> $itf_tstdout
     (
         set -x
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>> $itf_tstdout </dev/null
     )
+    local _retval=$?
+    echo "returns $_retval" | tee -a $itf_tstdout
+    return $_retval
 }
 
 app_run_success() {
@@ -284,6 +289,7 @@ app_run_timeout() {
         (
             sleep $itf_timeout
             kill $__pid >/dev/null 2>&1
+            return 1
         ) &
         app_run $@
     )
@@ -303,11 +309,13 @@ ckpt_erase_last() {
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
 
+    echo "checkpoint_erase $@" | tee -a $itf_tstdout
     for f in "$(itf_find_fti_objects $@)"; do
         (
             set -x
             rm -rf $f
         )
+        echo "erased: $f" &>> $itf_tstdout
     done
 }
 
@@ -325,11 +333,13 @@ ckpt_corrupt_last() {
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
 
+    echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
     for f in "$(itf_find_fti_objects $@)"; do
         (
             set -x
             printf "corruption" | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
         )
+        echo "corrupted: $f" &>> $itf_tstdout
     done
 }
 
@@ -653,7 +663,7 @@ itf_find_fti_objects() {
     case $1 in
     global)
         # When deleting from global, delete everything
-        echo "$(fti_config_get 'glbl_dir')/$_id/l$level/*"
+        echo "$(fti_config_get 'glbl_dir')/$_id/l4"
         return 0
         ;;
     ckpt)

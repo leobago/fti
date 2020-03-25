@@ -34,7 +34,7 @@ runtest() {
 
     app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
     local retv=$?
-
+    
     if [ $expected == 'success' ]; then
         assert_equals $retv 0 'FTI should succeed in the informed scenario'
     else
