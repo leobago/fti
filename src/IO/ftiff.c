@@ -1589,7 +1589,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
+/*int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
@@ -1736,7 +1736,7 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
 
     return FTI_SCES;
 }
-
+*/
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1748,10 +1748,10 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
                                         
  **/
 /*-------------------------------------------------------------------------*/
-/*int FTI_RecoverVarInitFTIFF(char* fn)
-{*/
+int FTI_RecoverVarInitFTIFF(char* fn)
+{
     // get filesize
-   /* int res = FTI_SCES; 
+    int res = FTI_SCES; 
 
     //struct stat st;
     if (stat(fn, &filestats) == -1) {
@@ -1773,7 +1773,132 @@ int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, F
     close(fd);
     return res;
 }
-*/
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers variable for FTIFF mode
+  @param      id                     variable id           
+  @param      fmmap                  mapped area in memory for FTIFF file
+  @return     Integer                FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+    FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id)
+{
+    
+    int res = FTI_NREC;
+    FTIFF_db *currentdb;
+    FTIFF_dbvar *currentdbvar = NULL;
+    char *destptr, *srcptr;
+    int dbvar_idx, dbcounter=0;
+
+    // block size for memcpy of pointer.
+    long membs = 1024*1024*16; // 16 MB
+    long cpybuf, cpynow, cpycnt;
+
+    // MD5 context for checksum of data chunks
+    MD5_CTX mdContext;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+
+    int isnextdb;
+    int oldIndex;
+
+    char str[FTI_BUFS], strerr[FTI_BUFS];
+
+    currentdb = FTI_Exec->firstdb;
+    do {
+
+        isnextdb = 0;
+
+        for(dbvar_idx=0;dbvar_idx<currentdb->numvars;dbvar_idx++) {
+
+            currentdbvar = &(currentdb->dbvars[dbvar_idx]);
+
+            if (currentdbvar->id == id) {
+                // get source and destination pointer
+
+                FTIT_dataset* data;
+
+                if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
+
+                if( !data ) {
+                    snprintf(str, FTI_BUFS, "id '%d' does not exist!", id);
+                    FTI_Print( str, FTI_EROR );
+                    return FTI_NSCS;
+                }
+
+                destptr = (char*) data->ptr + currentdbvar->dptr;
+                srcptr = (char*) filemmap + currentdbvar->fptr;
+
+                MD5_Init( &mdContext );
+                cpycnt = 0;
+                while ( cpycnt < currentdbvar->chunksize ) {
+                    cpybuf = currentdbvar->chunksize - cpycnt;
+                    cpynow = ( cpybuf > membs ) ? membs : cpybuf;
+                    cpycnt += cpynow;
+                    memcpy( destptr, srcptr, cpynow );
+                    MD5_Update( &mdContext, destptr, cpynow );
+                    destptr += cpynow;
+                    srcptr += cpynow;
+                }
+
+                // debug information
+                snprintf(str, FTI_BUFS, "FTIFF: FTIFF_RecoverVar -  dataBlock:%i/dataBlockVar%i id: %i"
+                        ", destptr: %ld, fptr: %ld, chunksize: %ld, "
+                        "base_ptr: 0x%" PRIxPTR " ptr_pos: 0x%" PRIxPTR ".", 
+                        dbcounter, dbvar_idx,  
+                        currentdbvar->id, currentdbvar->dptr,
+                        currentdbvar->fptr, currentdbvar->chunksize,
+                        (uintptr_t)data->ptr, (uintptr_t)destptr);
+                FTI_Print(str, FTI_DBUG);
+
+                MD5_Final( hash, &mdContext );
+
+                if ( memcmp( currentdbvar->hash, hash, MD5_DIGEST_LENGTH ) != 0 ) {
+                    snprintf( strerr, FTI_BUFS, "FTIFF: FTIFF_RecoverVar - dataset with id:%i has been corrupted! Discard recovery.", currentdbvar->id);
+                    FTI_Print(strerr, FTI_WARN);
+                    if ( munmap( filemmap, filestats.st_size ) == -1 ) {
+                        FTI_Print("FTIFF: FTIFF_RecoverVar - unable to unmap memory", FTI_EROR);
+                        errno = 0;
+                    }
+                    return FTI_NREC;
+                }
+
+            }
+
+        }
+
+        if (currentdb->next) {
+            currentdb = currentdb->next;
+            isnextdb = 1;
+        }
+
+        dbcounter++;
+
+    } while( isnextdb );
+    return res; 
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Initializes variable recovery for FTIFF mode
+  @param      fmmap                  mapped area in memory for FTIFF file
+  @return     Integer                FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarFinalizeFTIFF()
+{
+    int res = FTI_NREC;
+    if ( munmap( filemmap, filestats.st_size ) == -1 ) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+    }else{
+        res = FTI_SCES;
+    }
+    return res;
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Recovers variable for FTIFF mode

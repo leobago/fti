@@ -2544,23 +2544,34 @@ int FTI_RecoverVarInit(){
     }
 
     //Recovering from local for L4 case in FTI_Recover
-    if (FTI_Exec.ckptLvel == 4) {
+    /*if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            /*snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.meta[4].ckptFile );
+            //snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.meta[4].ckptFile );
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
             res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
             if(blockSize == 0){
                 FTI_Print("[INIT] blocksize is zero", FTI_WARN);
-            }*/
+            }
             return ;
         } else {
             //snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptMeta.ckptFile);
         }
+    }*/
+    if (FTI_Exec.ckptLvel == 4) {
+        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
+            //find ckptFile path
+            snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.ckptMeta.ckptFile );
+            //return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
+            res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
+        } else {
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
+        }
+    }
+    else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
     }
     
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile[FTI_BUFS]);
-    }
 
     //switch case
     switch(FTI_Conf.ioMode){
@@ -2590,7 +2601,7 @@ int FTI_RecoverVarInit(){
             res = FTI_RecoverVarInitPOSIX(fn);
             
         case FTI_IO_FTIFF:            
-            //res = FTI_RecoverVarInitFTIFF(fn);
+            res = FTI_RecoverVarInitFTIFF(fn);
 
         default: 
             FTI_Print("Unknown I/O mode.", FTI_EROR);
@@ -2615,8 +2626,8 @@ int FTI_RecoverVar(int id)
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
             FTI_Print("about to DCP", FTI_INFO);
-            //res =  FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Data, fd, blockSize, stackSize, buffer, id);
-            return; 
+            res =  FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Data, fd, blockSize, stackSize, buffer, id);
+            return res; 
         }
     }
     switch(FTI_Conf.ioMode){
@@ -2648,7 +2659,7 @@ int FTI_RecoverVar(int id)
             break;
 
         case FTI_IO_FTIFF:
-            //res = FTIFF_RecoverVar(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id);
+            res = FTIFF_RecoverVar(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data, id);
             break;
 
         default: 
@@ -2673,8 +2684,8 @@ int FTI_RecoverVarFinalize(){
 
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            //res = FTI_RecoverVarDcpPosixFinalize(fd, buffer);
-            return; 
+            res = FTI_RecoverVarDcpPosixFinalize(fd, buffer);
+            return res; 
         }
     }
 
@@ -2706,7 +2717,7 @@ int FTI_RecoverVarFinalize(){
             break;
 
         case FTI_IO_FTIFF:
-            //res = FTI_RecoverVarFinalizeFTIFF(filemmap, filestats);
+            res = FTI_RecoverVarFinalizeFTIFF(filemmap, filestats);
             break;
 
         default: 

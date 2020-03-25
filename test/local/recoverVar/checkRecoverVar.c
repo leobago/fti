@@ -163,7 +163,10 @@ int main(int argc, char* argv[]) {
         for ( int i = 0; i < 10 ; i++){
             int index = order[i];
             FTI_Protect(index,array[index], sizes[index], FTI_INTG); 
+            //edits go here
+            FTI_RecoverVarInit();
             int res = FTI_RecoverVar(index);
+            FTI_RecoverVarFinalize();
             if (res != FTI_SCES ){
                 if (result != FTI_SCES) {
                     exit(RECOVERY_FAILED);

@@ -333,17 +333,17 @@ int FTI_RecoverVarInitPOSIX(char* fn)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
-FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data, int id, FILE* fileposix)
+FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id, FILE* fileposix)
 {
     int res = FTI_NSCS; 
     //int activeID, oldID;
 
     FTIT_dataset* data;
 
-    /*if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
         FTI_Print("failed to recover variable.", FTI_EROR);
         return FTI_NREC;
-    } */
+    } 
     //data->filePos
     long filePos = data->filePos;
     if(fseek(fileposix, filePos, SEEK_SET) == 0){

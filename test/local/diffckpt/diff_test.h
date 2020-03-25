@@ -11,7 +11,7 @@
 #else
 #   include <openssl/md5.h>
 #endif
-#include <fti.h>
+#include "fti.h"
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
