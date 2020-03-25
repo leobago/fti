@@ -340,10 +340,10 @@ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data, int 
 
     FTIT_dataset* data;
 
-    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
+    /*if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
         FTI_Print("failed to recover variable.", FTI_EROR);
         return FTI_NREC;
-    } 
+    } */
     //data->filePos
     long filePos = data->filePos;
     if(fseek(fileposix, filePos, SEEK_SET) == 0){

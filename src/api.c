@@ -2590,7 +2590,7 @@ int FTI_RecoverVarInit(){
             res = FTI_RecoverVarInitPOSIX(fn);
             
         case FTI_IO_FTIFF:            
-            res = FTI_RecoverVarInitFTIFF(fn);
+            //res = FTI_RecoverVarInitFTIFF(fn);
 
         default: 
             FTI_Print("Unknown I/O mode.", FTI_EROR);
@@ -2706,7 +2706,7 @@ int FTI_RecoverVarFinalize(){
             break;
 
         case FTI_IO_FTIFF:
-            res = FTI_RecoverVarFinalizeFTIFF(filemmap, filestats);
+            //res = FTI_RecoverVarFinalizeFTIFF(filemmap, filestats);
             break;
 
         default: 
