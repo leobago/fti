@@ -11,6 +11,9 @@ declare -r COLOR_YELLOWBOLD="\033[1m\033[33m"
 
 declare -r CFG_MOCK='fti_cfg_mock.cfg'
 
+# ITF report log containing the fixture and test case names for failed tests
+declare -r itf_report_log='itf.log'
+
 # itf_nranks: the rank count for the FTI test application
 if [ -z $itf_nranks ]; then
     itf_nranks=16
@@ -47,6 +50,8 @@ fi
 itf_error=""
 # itf_loaded_fixture: the currently loaded fixture in ITF
 itf_loaded_fixture=""
+# itf_fixture_had_errors: a boolean that checks if current fixture had errors
+itf_fixture_had_errors='false'
 # The argument names managed by ITF
 itf_paramv=()
 # itf_paramv array size
@@ -139,7 +144,7 @@ fti_config_set() {
     # $2: The new value for the field
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
-    
+
     echo "config_set $1=$2" | tee -a $itf_tstdout
 }
 
@@ -256,10 +261,10 @@ app_run() {
     # If this ever needs to be changed, modify the behavior of the testrunner.
     # Otherwise, only the first test case will be executed from a suite.
     echo "app_run" | tee -a $itf_tstdout
-    echo "parameters: $@" &>> $itf_tstdout
+    echo "parameters: $@" &>>$itf_tstdout
     (
         set -x
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>> $itf_tstdout </dev/null
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
     )
     local _retval=$?
     echo "returns $_retval" | tee -a $itf_tstdout
@@ -315,7 +320,7 @@ ckpt_erase_last() {
             set -x
             rm -rf $f
         )
-        echo "erased: $f" &>> $itf_tstdout
+        echo "erased: $f" &>>$itf_tstdout
     done
 }
 
@@ -339,7 +344,7 @@ ckpt_corrupt_last() {
             set -x
             echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
         )
-        echo "corrupted: $f" &>> $itf_tstdout
+        echo "corrupted: $f" &>>$itf_tstdout
     done
 }
 
@@ -468,18 +473,6 @@ assert_not_equals() {
 
 # -------------------------- Test Runner Functions ----------------------------
 
-get_fixture_failure_log() {
-    # Get the failure log filename for the current fixture
-
-    echo "$itf_loaded_fixture-failed.log"
-}
-
-get_fixture_log() {
-    # Get the log filename for the current fixture
-
-    echo "$itf_loaded_fixture.log"
-}
-
 itf_load_fixture() {
     # Loads the function definitions in a fixture to the current context
     #
@@ -487,13 +480,9 @@ itf_load_fixture() {
     # $1: The fixture name without the .fixture extension
 
     itf_loaded_fixture="$1"
-    source "$1.fixture"
-
-    # Erase the old logs so reports contain only the most recent data
-    rm -rf "$(get_fixture_failure_log)"
-    if [ $itf_maintain_app_logs -eq 1 ]; then
-        rm -rf "$(get_fixture_log)"
-    fi
+    itf_fixture_had_errors='false'
+    source "$1"
+    itf_clear_logs
 }
 
 itf_unload_fixture() {
@@ -531,7 +520,8 @@ test_case() {
 
     # Print feedback
     echo "$(itf_describe_test_case)"
-    echo $(itf_describe_test_case_colorless) >>$itf_tstdout
+    # Log the test case in the log stdout
+    itf_log_test_case $itf_tstdout
 
     # Prepare the FTI config file
     type prepare_fti &>/dev/null && prepare_fti
@@ -548,17 +538,9 @@ test_case() {
         # Run the test
         runtest
     )
-
-    # Save logs if needed
     local __exitcode=$?
-    local faillog="$(get_fixture_failure_log)"
-    local normallog="$(get_fixture_log)"
-
-    if [ $__exitcode -ne 0 ]; then
-        cat $itf_tstdout >>$faillog
-    elif [ $itf_maintain_app_logs -eq 1 ]; then
-        cat $itf_tstdout >>$normallog
-    fi
+    # Save logs if needed
+    itf_append_logs $__exitcode
 
     # Call the test case teardown
     type teardown &>/dev/null && teardown
@@ -575,6 +557,77 @@ test_case() {
     rm -rf $itf_cfgfile $itf_tstdout
 
     return $__exitcode
+}
+
+# ------------------------------- Log handling --------------------------------
+
+itf_get_fixture_failure_log() {
+    # Get the failure log filename for the current fixture
+
+    echo "$itf_loaded_fixture-failed.log"
+}
+
+itf_get_fixture_full_log() {
+    # Get the log filename for the current fixture
+
+    echo "$itf_loaded_fixture-all.log"
+}
+
+itf_clear_logs() {
+    # Delete all log files managed by ITF
+
+    rm -rf "$(itf_get_fixture_failure_log)"
+    rm -rf "$(itf_get_fixture_full_log)"
+    rm -rf "$itf_report_log"
+}
+
+itf_log_test_case() {
+    # Log the test case into a log file
+    #
+    # Parameters:
+    # $1: The log file
+
+    local _test_name=""
+    for p in "${itf_paramv[@]}"; do
+        _test_name="${_test_name}--$p ${!p} "
+    done
+    echo $_test_name >>$1
+    echo "" >>$1 # new line feed
+}
+
+itf_append_logs() {
+    # Append test case to the different logs based on the test status
+    #
+    # Parameters:
+    # $1: The test status
+
+    # A log containing stdout of failed tests
+    local faillog="$(itf_get_fixture_failure_log)"
+    # A log containing stdout of successfull tests
+    local normallog="$(itf_get_fixture_full_log)"
+
+    # Check if the test has failed
+    if [ $1 -ne 0 ]; then
+        # Always push the test stdout into the log
+        cat $itf_tstdout >>$faillog
+        echo "" >>$faillog # line feed
+
+        # Check if this is the first failure in the fixture
+        if [ $itf_fixture_had_errors == 'false' ]; then
+            itf_fixture_had_errors='true'
+            # Push the fixture name into the ITF report
+            echo $itf_loaded_fixture >>$itf_report_log
+        fi
+
+        # Log the test arguments into ITF report
+        itf_log_test_case $itf_report_log
+    fi
+
+    # Check if ITF is configured to save all logs
+    if [ $itf_maintain_app_logs -eq 1 ]; then
+        cat $itf_tstdout >>$normallog
+        echo "" >>$faillog # line feed
+    fi
 }
 
 # ------------------------ Helpers for pretty printing ------------------------
@@ -606,26 +659,6 @@ itf_describe_test_case() {
         else
             print_color $COLOR_WHITEBOLD "${!p} "
         fi
-    done
-    for p in "${itf_fixt_paramv[@]}"; do
-        print_color $COLOR_BLUEBOLD "$p="
-        print_color $COLOR_WHITEBOLD "${!p} "
-    done
-}
-
-itf_describe_test_case_colorless() {
-    # Same as itf_describe_test_case but without colors
-
-    for p in "${itf_std_paramv[@]}"; do
-        printf "$p="
-        if [ $p == 'iolib' ]; then
-            printf "$(iolib_id_to_name $iolib) "
-        else
-            printf "${!p} "
-        fi
-    done
-    for p in "${itf_fixt_paramv[@]}"; do
-        printf "$p=${!p} "
     done
 }
 
