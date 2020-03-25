@@ -1589,7 +1589,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
 
  **/
 /*-------------------------------------------------------------------------*/
-/*int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
+int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt )
 {
     char fn[FTI_BUFS]; //Path to the checkpoint file
 
@@ -1736,7 +1736,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
 
     return FTI_SCES;
 }
-*/
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1748,10 +1748,10 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
                                         
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVarInitFTIFF(char* fn)
-{
+/*int FTI_RecoverVarInitFTIFF(char* fn)
+{*/
     // get filesize
-    int res = FTI_SCES; 
+   /* int res = FTI_SCES; 
 
     //struct stat st;
     if (stat(fn, &filestats) == -1) {
@@ -1773,7 +1773,7 @@ int FTI_RecoverVarInitFTIFF(char* fn)
     close(fd);
     return res;
 }
-
+*/
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Recovers variable for FTIFF mode
@@ -1783,7 +1783,7 @@ int FTI_RecoverVarInitFTIFF(char* fn)
                                         
  **/
 /*-------------------------------------------------------------------------*/
-int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+/*int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
     FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data, int id)
 {
     
@@ -1847,7 +1847,7 @@ int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTI
         dbcounter++;
     } while( isnextdb );
     return res; 
-}
+}*/
 
 /*-------------------------------------------------------------------------*/
 /**
