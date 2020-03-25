@@ -27,38 +27,30 @@ print_fixture_feedback() {
     fi
 }
 
-execute_suites() {
-    # Execute a set of suites for each argument value
-    #
-    # Parameters
-    # $@: A sequence of test suite names
+execute_suite() {
+    itf_load_fixture "$1"
+    print_color $COLOR_WHITEBOLD "Fixture loaded: "
+    print_color $COLOR_MAGENTABOLD "$1\n"
 
-    while [ $# -gt 0 ]; do
-        # add/overwrite the test fixture function definitions
-        itf_load_fixture "$1"
-        print_color $COLOR_WHITEBOLD "Fixture loaded: "
-        print_color $COLOR_MAGENTABOLD "$1\n"
+    # Set up fixture-relative test counters
+    local __local_failures=$nfailures
+    local __local_test_count=0
 
-        # Set up fixture-relative test counters
-        local __local_failures=$nfailures
-        local __local_test_count=0
+    # Get the amount of tests in the suite
+    nlines=$(grep -c "^" "$1.suite")
 
-        # Get the amount of tests in the suite
-        nlines=$(grep -c "^" "$1.suite")
+    # Execute each test case
+    while IFS= read -r params; do
+        let __local_test_count=$__local_test_count+1
 
-        # Execute each test case
-        while IFS= read -r params; do
-            let __local_test_count=$__local_test_count+1
+        print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
+        execute_case $params
+    done <"$1.suite"
 
-            print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
-            execute_case $params
-        done <"$1.suite"
-
-        # Textual feedback
-        print_fixture_feedback $((nfailures - $__local_failures))
-        shift
-        itf_unload_fixture
-    done
+    # Textual feedback
+    print_fixture_feedback $((nfailures - $__local_failures))
+    shift
+    itf_unload_fixture
 }
 
 source testengine
@@ -68,28 +60,39 @@ declare -a arguments=()
 nargs=0
 while [[ $# -gt 0 ]]; do
     case $1 in
-    -t | --set-timeout)
-        itf_set_timeout $2
+    -s | --suite)
+        # Runs one fixture with one custom suite
+        suitename="$2"
         shift
         shift
         ;;
     -c | --custom-params)
+        # Runs one fixture with command line arguments instead of a suite
         custom=0
         shift
         ;;
+    -t | --set-timeout)
+        # Change the engine's timeout time on timed app runs
+        itf_set_timeout $2
+        shift
+        shift
+        ;;
     -m | --maintain-logs)
+        # Keep the application logs
         itf_maintain_app_logs=1
         shift
         ;;
     -d | --maintain-ckpt-dir)
+        # Keep the checkpoint directories after execution
         itf_maintain_ckpt=1
         shift
         ;;
     -h | --help)
-        #display_usage
+        # Prints a help message and exit
         exit 0
         ;;
     *)
+        # Capture arguments that are not defined here and pass them on
         arguments[$nargs]="$1"
         let nargs=$nargs+1
         shift
@@ -100,16 +103,22 @@ done
 ntests=0
 nfailures=0
 
-if [ -z $custom ]; then
-    # Execute a sequence of suites if not a custom test
-    execute_suites "${arguments[@]}"
-else
+if [ ! -z $suitename ]; then
+    # Running one fixture with custom suite
+    execute_suite "${arguments[0]}" "$suitename"
+
+elif [ ! -z $custom ]; then
     # Executes a test from a fixture with custom parameters
     itf_load_fixture "${arguments[0]}"
     unset 'arguments[0]'
     execute_case "${arguments[@]}"
     print_fixture_feedback $nfailures
-    itf_unload_fixture
+    
+else
+    # Standard case, running multiple fixture with standard naming convention
+    for s in "${arguments[@]}"; do
+        execute_suite "$s" "$s.suite"
+    done
 fi
 
 # Print the summary of tests executed

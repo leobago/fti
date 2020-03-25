@@ -7,6 +7,10 @@ setup() {
 
 prepare_fti() {
     fti_config_set_inline
+
+    if [ $head -eq 1 ] && [ $level -gt 1 ]; then
+        fti_config_set "inline_l$level" '0'
+    fi
 }
 
 runtest() {
