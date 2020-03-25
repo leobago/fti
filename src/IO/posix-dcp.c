@@ -702,310 +702,6 @@ int FTI_RecoverVarDcpPosixInit(char *fn, FTIT_configuration* FTI_Conf){
     return res; 
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      Recovers the given variable for dcpPosix
-  @param      id              Variable to recover
-  @return     int             FTI_SCES if successful.
-
-  dCP POSIX implementation of FTI_RecoverVar().
- **/
-/*-------------------------------------------------------------------------*/
-/*int FTI_RecoverVarDcpPosix
-( 
- FTIT_configuration* FTI_Conf, 
- FTIT_execution* FTI_Exec, 
- FTIT_checkpoint* FTI_Ckpt, 
- FTIT_keymap* FTI_Data,
- int id
- )
-
-{
-    unsigned long blockSize;
-    unsigned int stackSize;
-    int nbVarLayer;
-    int ckptId;
-
-    char errstr[FTI_BUFS];
-    char fn[FTI_BUFS];
-
-    FTIT_dataset* data;
-
-    snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dcpDir, FTI_Exec->ckptMeta.ckptFile );
-
-    // read base part of file
-    FILE* fd = fopen( fn, "rb" );
-    fread( &blockSize, sizeof(unsigned long), 1, fd );
-    if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-        FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
-    }
-    fread( &stackSize, sizeof(unsigned int), 1, fd );
-    if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-        FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
-    }
-
-    // check if settings are correct. If not correct them
-    if( blockSize != FTI_Conf->dcpInfoPosix.BlockSize )
-    {
-        char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "dCP blocksize differ between configuration settings ('%lu') and checkpoint file ('%lu')", FTI_Conf->dcpInfoPosix.BlockSize, blockSize );
-        FTI_Print( str, FTI_WARN );
-        return FTI_NREC;
-    }
-    if( stackSize != FTI_Conf->dcpInfoPosix.StackSize )
-    {
-        char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "dCP stacksize differ between configuration settings ('%u') and checkpoint file ('%u')", FTI_Conf->dcpInfoPosix.StackSize, stackSize );
-        FTI_Print( str, FTI_WARN );
-        return FTI_NREC;
-    }
-
-
-    void *buffer = (void*) malloc( blockSize ); 
-    if( !buffer ) {
-        FTI_Print("unable to allocate memory!", FTI_EROR);
-        return FTI_NSCS;
-    }
-
-    int i;
-
-    // treat Layer 0 first
-    fread( &ckptId, 1, sizeof(int), fd );
-    if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-        FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
-    }
-    fread( &nbVarLayer, 1, sizeof(int), fd );
-    if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-        FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
-    }
-    for(i=0; i<nbVarLayer; i++) {
-        unsigned int varId;
-        unsigned long locDataSize;
-        fread( &varId, sizeof(int), 1, fd );
-        if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-            FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
-        }
-        fread( &locDataSize, sizeof(unsigned long), 1, fd );
-        if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-            FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
-        }
-        // if requested id load else skip dataSize
-        if( varId == id ) {
-
-            if( FTI_Data->get( &data, varId ) != FTI_SCES ) return FTI_NSCS;
-
-            if( !data ) {
-                snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", varId);
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-
-            fread( data->ptr, locDataSize, 1, fd );
-            if(ferror(fd)) {
-                snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-
-            int overflow;
-            if( (overflow=locDataSize%blockSize) != 0 ) {
-                fread( buffer, blockSize - overflow, 1, fd );
-                if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-                    FTI_Print( errstr, FTI_EROR );
-                    return FTI_NSCS;
-                }
-            }
-        } else {
-            unsigned long skip = ( locDataSize%blockSize == 0 ) ? locDataSize : (locDataSize/blockSize + 1)*blockSize;
-            if( fseek( fd, skip, SEEK_CUR ) == -1 ) {
-                snprintf( errstr, FTI_BUFS, "unable to seek in file %s", fn );
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-        }
-    }
-
-
-    unsigned long offset;
-
-    blockMetaInfo_t blockMeta;
-    unsigned char *block = (unsigned char*) malloc( blockSize );
-    if( !block ) {
-        FTI_Print("unable to allocate memory!", FTI_EROR);
-        return FTI_NSCS;
-    }
-
-    int nbLayer = FTI_Exec->dcpInfoPosix.nbLayerReco;
-    for( i=1; i<nbLayer; i++) {
-
-        unsigned long pos = 0;
-        pos += fread( &ckptId, 1, sizeof(int), fd );
-        if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-            FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
-        }
-        pos += fread( &nbVarLayer, 1, sizeof(int), fd );
-        if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-            FTI_Print( errstr, FTI_EROR );
-            return FTI_NSCS;
-        }
-
-        while( pos < FTI_Exec->dcpInfoPosix.LayerSize[i] ) {
-
-            fread( &blockMeta, 1, 6, fd );
-            if(ferror(fd)) {
-                snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-                FTI_Print( errstr, FTI_EROR );
-                return FTI_NSCS;
-            }
-            if( blockMeta.varId == id ) {
-
-                if( FTI_Data->get( &data, blockMeta.varId ) != FTI_SCES ) return FTI_NSCS;
-
-                if( !data ) {
-                    snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
-                    FTI_Print( errstr, FTI_EROR );
-                    return FTI_NSCS;
-                }
-
-                offset = blockMeta.blockId * blockSize;
-                void* ptr = data->ptr + offset;
-                unsigned int chunkSize = ( (data->size-offset) < blockSize ) ? data->size-offset : blockSize; 
-
-                fread( ptr, 1, chunkSize, fd );
-                if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-                    FTI_Print( errstr, FTI_EROR );
-                    return FTI_NSCS;
-                }
-                fread( buffer, 1, blockSize - chunkSize, fd ); 
-                if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
-                    FTI_Print( errstr, FTI_EROR );
-                    return FTI_NSCS;
-                }
-
-            } else {
-                if( fseek( fd, blockSize, SEEK_CUR ) == -1 ) {
-                    snprintf( errstr, FTI_BUFS, "unable to seek in file %s", fn );
-                    FTI_Print( errstr, FTI_EROR );
-                    return FTI_NSCS;
-                }
-            }
-            pos += (blockSize+6);
-        }
-
-    }
-
-    if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
-
-    if( !data ) {
-        snprintf(errstr, FTI_BUFS, "id '%d' does not exist!", blockMeta.varId);
-        FTI_Print( errstr, FTI_EROR );
-        return FTI_NSCS;
-    }
-
-    FTIT_data_prefetch prefetcher;
-    size_t totalBytes = 0;
-    unsigned char * ptr = NULL,*startPtr = NULL;
-
-#ifdef GPUSUPPORT    
-    prefetcher.fetchSize = ((FTI_Conf->cHostBufSize) / FTI_Conf->dcpInfoPosix.BlockSize ) * FTI_Conf->dcpInfoPosix.BlockSize;
-#else
-    prefetcher.fetchSize =  data->size;
-#endif
-    prefetcher.totalBytesToFetch = data->size;
-    prefetcher.isDevice = data->isDevicePtr;
-
-    if ( prefetcher.isDevice ){ 
-        prefetcher.dptr = data->devicePtr;
-    }
-    else{
-        prefetcher.dptr = data->ptr;
-    }
-
-    FTI_InitPrefetcher(&prefetcher);
-    if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &startPtr), " Fetching Next Memory block from memory") != FTI_SCES ){
-        return FTI_NSCS;
-    }
-
-    unsigned long nbBlocks = (data->size % blockSize) ? data->size/blockSize + 1 : data->size/blockSize;
-    data->dcpInfoPosix.hashDataSize = data->size;
-    int j =0 ;
-    while (startPtr){
-        ptr = startPtr;
-        int currentBlocks = (totalBytes % blockSize) ?  totalBytes/blockSize + 1 : totalBytes/blockSize;
-        int k;
-        for ( k = 0 ; k < currentBlocks && j<nbBlocks-1; k++){
-            unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
-            FTI_Conf->dcpInfoPosix.hashFunc( ptr, blockSize, &data->dcpInfoPosix.oldHashArray[hashIdx] );
-            ptr = ptr+blockSize;
-            j++;
-        }
-        if ( FTI_Try(FTI_getPrefetchedData ( &prefetcher, &totalBytes, &startPtr ), " Fetching Next Memory block from memory") != FTI_SCES ){
-            return FTI_NSCS;
-        }
-    }
-
-    if( data->size%blockSize ) {
-        unsigned char* buffer = calloc( 1, blockSize );
-        if( !buffer ) {
-            FTI_Print("unable to allocate memory!", FTI_EROR);
-            return FTI_NSCS;
-        }
-        unsigned long dataOffset = blockSize * (nbBlocks - 1);
-        unsigned long dataSize = data->size - dataOffset;
-        memcpy( buffer, ptr , dataSize ); 
-        FTI_Conf->dcpInfoPosix.hashFunc( buffer, blockSize, &data->dcpInfoPosix.oldHashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
-    }*/
-
-    /*
-    // create hasharray for id
-    i = FTI_DataGetIdx( id, FTI_Exec, FTI_Data );
-    unsigned long nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
-    FTI_Data[i].dcpInfoPosix.hashDataSize = FTI_Data[i].size;
-
-    int j;
-    for(j=0; j<nbBlocks-1; j++) {
-    unsigned long offset = j*blockSize;
-    unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
-    MD5( FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx] );
-    }
-    if( FTI_Data[i].size%blockSize ) {
-    unsigned char* buffer = calloc( 1, blockSize );
-    if( !buffer ) {
-    FTI_Print("unable to allocate memory!", FTI_EROR);
-    return FTI_NSCS;
-    }
-    unsigned long dataOffset = blockSize * (nbBlocks - 1);
-    unsigned long dataSize = FTI_Data[i].size - dataOffset;
-    memcpy( buffer, FTI_Data[i].ptr + dataOffset, dataSize ); 
-    MD5( buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH] );
-    free(buffer);
-    }
-    */
-/*    free(buffer);
-    fclose(fd);
-
-
-    return FTI_SCES;
-
-}*/
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1036,22 +732,19 @@ int FTI_RecoverVarDcpPosix
     int ckptID;
 
     char errstr[FTI_BUFS];
-    //for testing
-    char fn[FTI_BUFS];
-    //snprintf( fn, FTI_BUFS, "test");
-    
+        
     int i;
 
     // treat Layer 0 first
     fread( &ckptID, 1, sizeof(int), fd );
     if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+        snprintf( errstr, FTI_BUFS, "unable to read in file");
         FTI_Print( errstr, FTI_EROR );
         return FTI_NSCS;
     }
     fread( &nbVarLayer, 1, sizeof(int), fd );
     if(ferror(fd)) {
-        snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+        snprintf( errstr, FTI_BUFS, "unable to read in file");
         FTI_Print( errstr, FTI_EROR );
         return FTI_NSCS;
     }
@@ -1060,21 +753,19 @@ int FTI_RecoverVarDcpPosix
         unsigned long locDataSize;
         fread( &varId, sizeof(int), 1, fd );
         if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+            snprintf( errstr, FTI_BUFS, "unable to read in file");
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
         fread( &locDataSize, sizeof(unsigned long), 1, fd );
         if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+            snprintf( errstr, FTI_BUFS, "unable to read in file");
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
         // if requested id load else skip dataSize
         if( varId == id ) {
             int idx ;
-            //int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
-            //FTIT_dataset* data;
             if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
                 FTI_Print("failed to recover", FTI_EROR);
                 return FTI_NREC;
@@ -1087,7 +778,7 @@ int FTI_RecoverVarDcpPosix
             }
             fread( data->ptr, locDataSize, 1, fd );
             if(ferror(fd)) {
-                snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+                snprintf( errstr, FTI_BUFS, "unable to read in file");
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
@@ -1096,7 +787,7 @@ int FTI_RecoverVarDcpPosix
             if( (overflow=locDataSize%blockSize) != 0 ) {
                 fread( buffer, blockSize - overflow, 1, fd );
                 if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to read in file");
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }
@@ -1104,7 +795,7 @@ int FTI_RecoverVarDcpPosix
         } else {
             unsigned long skip = ( locDataSize%blockSize == 0 ) ? locDataSize : (locDataSize/blockSize + 1)*blockSize;
             if( fseek( fd, skip, SEEK_CUR ) == -1 ) {
-                snprintf( errstr, FTI_BUFS, "unable to seek in file %s", fn );
+                snprintf( errstr, FTI_BUFS, "unable to seek in file");
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
@@ -1127,13 +818,13 @@ int FTI_RecoverVarDcpPosix
         unsigned long pos = 0;
         pos += fread( &ckptID, 1, sizeof(int), fd );
         if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+            snprintf( errstr, FTI_BUFS, "unable to read in file");
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
         pos += fread( &nbVarLayer, 1, sizeof(int), fd );
         if(ferror(fd)) {
-            snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+            snprintf( errstr, FTI_BUFS, "unable to read in file");
             FTI_Print( errstr, FTI_EROR );
             return FTI_NSCS;
         }
@@ -1142,15 +833,12 @@ int FTI_RecoverVarDcpPosix
 
             fread( &blockMeta, 1, 6, fd );
             if(ferror(fd)) {
-                snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+                snprintf( errstr, FTI_BUFS, "unable to read in file");
                 FTI_Print( errstr, FTI_EROR );
                 return FTI_NSCS;
             }
             if( blockMeta.varId == id ) {
-                //int idx = FTI_DataGetIdx(blockMeta.varId, FTI_Exec, FTI_Data);
                 int idx ;
-                //FTIT_dataset* data;
-                //int idx = FTI_DataGetIdx(varId, FTI_Exec, FTI_Data);
                 if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
                     FTI_Print("failed to recover", FTI_EROR);
                     return FTI_NREC;
@@ -1169,20 +857,20 @@ int FTI_RecoverVarDcpPosix
 
                 fread( ptr, 1, chunkSize, fd );
                 if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to read in file");
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }
                 fread( buffer, 1, blockSize - chunkSize, fd ); 
                 if(ferror(fd)) {
-                    snprintf( errstr, FTI_BUFS, "unable to read in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to read in file");
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }
 
             } else {
                 if( fseek( fd, blockSize, SEEK_CUR ) == -1 ) {
-                    snprintf( errstr, FTI_BUFS, "unable to seek in file %s", fn );
+                    snprintf( errstr, FTI_BUFS, "unable to seek in file %s");
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }

@@ -42,6 +42,7 @@
 #include <dirent.h>
 
 hid_t _file_id;
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It creates h5datatype (hid_t) from definitions in FTI_Types
@@ -1394,7 +1395,7 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
         _file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );  
         H5Pclose( plid );
-    } else {//else read the file
+    } else {
         _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     
@@ -1408,7 +1409,7 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
 
     int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {//open each groupd
+    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], _file_id, FTI_Exec->H5groups);
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
@@ -1442,9 +1443,9 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     int activeID, oldID;
     if(findVarInMeta(&FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_NSCS){
         if( FTI_Exec->h5SingleFile ) {
-            res = FTI_ReadSharedFileData(FTI_Data[activeID]);//returns herr_t
+            res = FTI_ReadSharedFileData(FTI_Data[activeID]);
         } else {
-            res = FTI_ReadHDF5Var(&FTI_Data[activeID]);//return FTI_status
+            res = FTI_ReadHDF5Var(&FTI_Data[activeID]);
         }
         if(res < 0 || res == FTI_NSCS){/
             FTI_Print("Could not read variable.", FTI_EROR);
@@ -1468,12 +1469,12 @@ int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
     int res = FTI_NSCS; 
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);//returns void
+        FTI_CloseComplexType(FTI_Data[i].type, FTI_Exec->FTI_Type);
     }
     FTI_Exec->H5groups[0]->h5groupID = _file_id;
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
     for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], FTI_Exec->H5groups);//returns void
+        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], FTI_Exec->H5groups);
     }
     if (H5Fclose(_file_id) < 0) {
         FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);

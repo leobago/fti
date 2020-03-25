@@ -336,7 +336,6 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id, FILE* fileposix)
 {
     int res = FTI_NSCS; 
-    //int activeID, oldID;
 
     FTIT_dataset* data;
 
@@ -344,28 +343,15 @@ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int i
         FTI_Print("failed to recover variable.", FTI_EROR);
         return FTI_NREC;
     } 
-    //data->filePos
     long filePos = data->filePos;
     if(fseek(fileposix, filePos, SEEK_SET) == 0){
-        fread(data->ptr, 1, data->size, fileposix); //returns number of elements read
+        fread(data->ptr, 1, data->size, fileposix); 
         if (ferror(fileposix)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
         }else{
             res = FTI_SCES;
         }
     }
-
-    /*if (FTI_FindVarInMeta(FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_NSCS){
-        long filePos = FTI_Exec->meta[FTI_Exec->ckptLvel].filePos[oldID];
-        if(fseek(fileposix, filePos, SEEK_SET) == 0){
-            fread(FTI_Data[activeID].ptr, 1, FTI_Data[activeID].size, fileposix); //returns number of elements read
-            if (ferror(fileposix)) {
-                FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-            }else{
-                res = FTI_SCES;
-            }
-        }
-    }*/
     return res;
 }
 
