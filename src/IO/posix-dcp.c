@@ -645,7 +645,8 @@ int FTI_RecoverDcpPosix
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Initializes variable recovery for dcpPosix
-  @param      id              Variable to recover
+  @param      fn              ckpt file
+  @param      FTI_Conf        Configuration metadata.
   @return     int             FTI_SCES if successful.
 
   dCP POSIX implementation of FTI_RecoverVarInit().
@@ -706,6 +707,13 @@ int FTI_RecoverVarDcpPosixInit(char *fn, FTIT_configuration* FTI_Conf){
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Recovers the given variable for dcpPosix
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      fd              file handle
+  @param      blockSize       block size
+  @param      stackSize       stack size
+  @param      buffer          buffer for reading ckpt data
   @param      id              Variable to recover
   @return     int             FTI_SCES if successful.
 
@@ -998,7 +1006,7 @@ int FTI_RecoverVarDcpPosix
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Finalizes the recovery of a variable for DCP.
-  @param      fd              POSIX file handle
+  @param      fd              file handle
   @param      buffer          buffer for reading ckpt data
   @return     integer         FTI_SCES if successful
 

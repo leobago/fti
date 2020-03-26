@@ -325,10 +325,15 @@ int FTI_RecoverVarInitPOSIX(char* fn)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Finalizes variable recovery for MPI-Io mode
-  @param      id                  variable id                
-  @param      FILE*               file handle
-  @return     Integer             FTI_SCES if successful
+  @brief      Recovers variable for POSIX mode
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      id              variable id                
+  @param      FILE*           File handle
+  @return     Integer         FTI_SCES if successful
                                         
  **/
 /*-------------------------------------------------------------------------*/

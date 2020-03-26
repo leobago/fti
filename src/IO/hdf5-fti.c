@@ -1271,120 +1271,18 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      During the restart, recovers the given variable
-  @param      id              Variable to recover
-  @return     int             FTI_SCES if successful.
-
-  During a restart process, this function recovers the variable specified
-  by the given id.
-
- **/
-/*-------------------------------------------------------------------------*/
-/*int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_keymap* FTI_Data, int id)
-{
-    FTIT_dataset* data;
-    char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
-
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
-    }
-
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
-
-    int nbVar = (FTI_Exec->h5SingleFile) ? FTI_Exec->nbVar : FTI_Exec->nbVarStored;
-    hid_t file_id;    
-    //Open hdf5 file
-    if( FTI_Exec->h5SingleFile ) { 
-        hid_t plid = H5Pcreate( H5P_FILE_ACCESS );
-        H5Pset_fapl_mpio( plid, FTI_COMM_WORLD, MPI_INFO_NULL );
-        file_id = H5Fopen( fn, H5F_ACC_RDONLY, plid );
-        H5Pclose( plid );
-    } else {
-        file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
-    }
-
-    if (file_id < 0) {
-        FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-
-    FTI_Exec->H5groups[0]->h5groupID = file_id;
-    FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-
-    int i;
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], file_id, FTI_Exec->H5groups);
-    }
-
-    if( FTI_Data->data( &data, nbVar ) != FTI_SCES ) return FTI_NSCS;
-
-    for (i = 0; i < nbVar; i++) {
-        FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
-    }
-
-
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_OpenGlobalDatasets( FTI_Exec );
-    }
-
-    herr_t res;
-
-    if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
-
-    if(!data) {
-        FTI_Print("could not find ID!", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    if( FTI_Exec->h5SingleFile ) {
-        res = FTI_ReadSharedFileData( *data );
-    } else {
-        res = FTI_ReadHDF5Var(data);
-    }
-
-    if (res < 0) {
-        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-        int j;
-        for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-            FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-        }
-        H5Fclose(file_id);
-        return FTI_NREC;
-    }
-
-    if( FTI_Data->data( &data, nbVar) != FTI_SCES ) return FTI_NSCS;
-    for (i = 0; i < nbVar; i++) {
-        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
-    }
-
-    for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
-        FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], FTI_Exec->H5groups);
-    }
-
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_CloseGlobalDatasets( FTI_Exec );
-    }
-
-    if (H5Fclose(file_id) < 0) {
-        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
-        return FTI_NREC;
-    }
-    return FTI_SCES;
-}*/
-
-/*-------------------------------------------------------------------------*/
-/**
   @brief      Initializes variable recovery for HDF5 mode
-  @param      fn                        ckpt file
-  @return     Integer                   HDF5 file handle
-                                        positive if successful
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      fn              ckpt file
+  @return     Integer         HDF5 file handle
+                              Positive if successful
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data, char* fn)
+ FTIT_dataset* FTI_Data, char* fn)
 {
     _file_id = -1; 
     int res = FTI_SCES;
@@ -1431,8 +1329,12 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Recovers the variable for HDF5 mode
-  @param      id                    variable id
-  @return     Integer               FTI_SCES if successful
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      id              variable id
+  @return     Integer         FTI_SCES if successful
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
@@ -1458,9 +1360,12 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Recovers the variable for HDF5 mode
-  @param      _file_id (int)            HDF5 file handle
-  @return     Integer                   FTI_SCES if successful
+  @brief      Finalizes variable recovery for HDF5 mode
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @return     Integer         FTI_SCES if successful
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,

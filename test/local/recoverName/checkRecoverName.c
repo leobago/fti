@@ -181,12 +181,6 @@ int main(int argc, char* argv[]) {
             int FTI_id = FTI_getIDFromString(names[index]); 
             printf("I am getting id %d when searching for %s\n",FTI_id,names[index]);
             FTI_Protect(FTI_id,array[index], sizes[index], FTI_INTG); 
-            /*int res = FTI_RecoverVar(FTI_id);
-            if (res != FTI_SCES ){
-                if (result != FTI_SCES) {
-                    exit(RECOVERY_FAILED);
-                }
-            }*/
             FTI_RecoverVarInit();
             int res = FTI_RecoverVar(FTI_id);
             FTI_RecoverVarFinalize();   

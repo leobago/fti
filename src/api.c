@@ -2544,25 +2544,10 @@ int FTI_RecoverVarInit(){
     }
 
     //Recovering from local for L4 case in FTI_Recover
-    /*if (FTI_Exec.ckptLvel == 4) {
-        if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            //snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.meta[4].ckptFile );
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
-            res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
-            if(blockSize == 0){
-                FTI_Print("[INIT] blocksize is zero", FTI_WARN);
-            }
-            return ;
-        } else {
-            //snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.meta[1].ckptFile);
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir, FTI_Exec.ckptMeta.ckptFile);
-        }
-    }*/
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
             //find ckptFile path
             snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.ckptMeta.ckptFile );
-            //return FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
             res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
         } else {
             snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
@@ -2578,7 +2563,6 @@ int FTI_RecoverVarInit(){
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 
-            //what to return?
             res = FTI_RecoverVarInitHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, fn);
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
