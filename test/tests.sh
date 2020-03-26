@@ -263,7 +263,7 @@ cd $DIR$(echo test)
 #--------Pattern: startTest testName configFile procNo args(ex. checkpoint levels)-------
 #----------------------------------------------------------------------------------------
 #-------------------------------- Write tests here --------------------------------------
-
+set -x
 	if [ -z "$CKPT_IO" ]; then
 		echo "Variable CKPT_IO is not set"
 		echo "Set to default = 1 (POSIX)"
