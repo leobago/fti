@@ -99,8 +99,11 @@ option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
+option(ENABLE_IME_NATIVE "Enables the IME native API" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+
+include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 include(AppendProperty)
@@ -120,7 +123,9 @@ endif()
 find_package(MPI REQUIRED)
 if(NOT DEFINED NO_OPENSSL)
 	find_package(OPENSSL REQUIRED)
-    include_directories( ${OPENSSL_INCLUDE_DIR} )
+	if("${OPENSSL_FOUND}")
+		include_directories( ${OPENSSL_INCLUDE_DIR} )
+	endif()
 else()
 	set(OPENSSL_FOUND false)
 endif()
@@ -140,30 +145,34 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 set(
 SRC_FTI
-    src/postckpt.c
-    src/conf.c
-    src/fti-io.c
-    src/recover.c
-    src/postreco.c
-    src/failure-injection.c
-    src/api-cuda.c
-    src/api.c
-    src/checkpoint.c
-    src/dcp.c
+    src/fortran/ftif.c
+    src/util/tools.c
+    src/util/utility.c
+    src/util/keymap.c
+    src/util/dataset.c
+    src/util/ini.c
+    src/util/macros.c
+    src/util/failure-injection.c
+    src/util/metaqueue.c
     src/IO/posix-dcp.c
     src/IO/hdf5-fti.c
     src/IO/ftiff.c
     src/IO/mpio.c
     src/IO/posix.c
     src/IO/ftiff-dcp.c
-    src/macros.c
+    src/postckpt.c
+    src/conf.c
+    src/fti-io.c
+    src/recover.c
+    src/postreco.c
+    src/api-cuda.c
+    src/api.c
+    src/checkpoint.c
+    src/dcp.c
     src/stage.c
     src/meta.c
     src/icp.c
-    src/fortran/ftif.c
     src/topo.c
-    src/tools.c
-    src/utility.c
 )
 
 if (ENABLE_SIONLIB)
@@ -171,6 +180,10 @@ if (ENABLE_SIONLIB)
     message("${SRC_FTI}")
 endif()
 
+if (ENABLE_IME_NATIVE)
+    list(APPEND SRC_FTI "src/IO/ime.c")
+    message("${SRC_FTI}")
+endif()
 
 if (ENABLE_GPU)
 set(
@@ -292,6 +305,21 @@ if(ENABLE_SIONLIB)
     add_definitions(-DENABLE_SIONLIB)
 endif()
 
+if(ENABLE_IME_NATIVE)
+    if (IMELIBBASE)
+        set(IMELIBBASE "" CACHE FILEPATH "base path to IME client lib installation")
+    else()
+        set(IMELIBBASE "/opt/ddn/ime/" CACHE FILEPATH "base path to IME client lib installation" FORCE)
+    endif()
+    set(IMELIB_INCLUDE_DIR "${IMELIBBASE}/include/")
+    include_directories("${IMELIB_INCLUDE_DIR}")
+    set(IMELIB_CFLAGS "-I${IMELIB_INCLUDE_DIR}")
+    find_library(IMELIB NAMES "im_client" PATHS ${IMELIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    target_link_libraries(fti.static "${IMELIB}")
+    target_link_libraries(fti.shared "${IMELIB}")
+    add_definitions(-DENABLE_IME_NATIVE)
+endif()
+
 
 if(ENABLE_HDF5)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
@@ -319,12 +347,16 @@ endif()
 append_property(SOURCE ${SRC_FTI}
     PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
 
-set(FTI_TARGETS fti.static fti.shared)
-install(TARGETS fti.static fti.shared DESTINATION lib)
-install(FILES "include/fti.h"
-	DESTINATION include)
-install(FILES "include/fti-intern.h"
-	DESTINATION include)
+install(TARGETS fti.static fti.shared DESTINATION "${CMAKE_INSTALL_LIBDIR}" EXPORT FTI_EXPORT
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+)
+
+install(FILES
+    "include/fti.h"
+    "include/fti-intern.h"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
 
 if(ENABLE_FORTRAN)
@@ -344,7 +376,7 @@ if(ENABLE_FORTRAN)
 
 	endif()
 
-    add_subdirectory(vendor/bpp/ bpp/ EXCLUDE_FROM_ALL)
+    add_subdirectory(deps/bpp-0.3.0/ bpp/ EXCLUDE_FROM_ALL)
 
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
@@ -373,11 +405,13 @@ if(ENABLE_FORTRAN)
 	set_property(TARGET fti_f90.static fti_f90.shared
 		PROPERTY OUTPUT_NAME fti_f90)
 
-	list(APPEND FTI_TARGETS fti_f90.static fti_f90.shared)
-	install(TARGETS fti_f90.static fti_f90.shared
-		DESTINATION lib)
+    install(TARGETS fti_f90.static fti_f90.shared EXPORT FTI_EXPORT
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    )
 	install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod
-		DESTINATION include)
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 	set_target_properties(fti_f90.static fti_f90.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 endif()
 
@@ -397,23 +431,31 @@ if(ENABLE_DOCU)
     add_subdirectory(doc/Doxygen)
 endif()
 
-# installable config
 
-set(WORK_DIR "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}")
-set(FTI_INCLUDE_PATH "${CMAKE_INSTALL_PREFIX}/include")
-install(TARGETS ${FTI_TARGETS} DESTINATION lib/CMake/FTI)
-configure_file(CMakeScripts/FTIConfig.cmake.in "${WORK_DIR}/FTIConfig.cmake" @ONLY)
-export(PACKAGE FTI)
-install(FILES "${WORK_DIR}/FTIConfig.cmake" DESTINATION lib/CMake/FTI)
+# Installable config
+
+include(CMakePackageConfigHelpers)
+set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH "cmake modules directory (DATADIR/FTI/cmake)")
+write_basic_package_version_file("${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
+		VERSION "1.3"
+		COMPATIBILITY AnyNewerVersion
+)
+install(EXPORT FTI_EXPORT DESTINATION "${INSTALL_CMAKEDIR}" FILE "FTILib.cmake")
+install(FILES 
+	"${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
+	CMakeScripts/FTIConfig.cmake
+	DESTINATION "${INSTALL_CMAKEDIR}"
+)
 
 
-# in tree config
+# in tree config (most likely useless...)
 
-set(FTI_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include" CACHE STRING "FTI Include path")
-export(TARGETS ${FTI_TARGETS} FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
-configure_file(CMakeScripts/FTIConfig.cmake.in "${PROJECT_BINARY_DIR}/FTIConfig.cmake" @ONLY)
+export(EXPORT FTI_EXPORT FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
+configure_file(CMakeScripts/FTIConfig.cmake "${PROJECT_BINARY_DIR}/FTIConfig.cmake" COPYONLY)
 
-# set up exaples in build/examples/
+
+# set up examples in build/examples/
+
 file(COPY examples/config.fti DESTINATION examples)
 file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)

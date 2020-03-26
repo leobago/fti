@@ -194,10 +194,9 @@ int FTI_MPIORead(void *dest, size_t size, void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data){
+void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data){
     char gfn[FTI_BUFS], ckptFile[FTI_BUFS];
     int i;
-
     MPI_Offset offset = 0;
     MPI_Offset chunkSize = FTI_Exec->ckptSize;
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t*) malloc (sizeof(WriteMPIInfo_t));
@@ -208,8 +207,8 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     write_info->flag = 'w';
 
     FTI_Print("I/O mode: MPI-IO.", FTI_DBUG);
-    snprintf(FTI_Exec->meta[0].ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptID, FTI_Topo->myRank);
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptID);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
     FTI_MPIOOpen(gfn, write_info);
 
@@ -241,16 +240,17 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
+int FTI_WriteMPIOData(FTIT_dataset * data, void *fd){
     WriteMPIInfo_t *write_info = (WriteMPIInfo_t *) fd;
 
     char str[FTI_BUFS];
     int res;
-    if ( !(FTI_DataVar->isDevicePtr) ){
-        FTI_Print(str,FTI_INFO);
-        res = FTI_MPIOWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info);
+    if ( !(data->isDevicePtr) ){
+        snprintf(str, FTI_BUFS, "Dataset #%d Writing CPU Data.", data->id);
+        FTI_Print(str,FTI_DBUG);
+        res = FTI_MPIOWrite(data->ptr, data->size, write_info);
         if (res != FTI_SCES ){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
             return res;
@@ -260,18 +260,18 @@ int FTI_WriteMPIOData(FTIT_dataset * FTI_DataVar, void *fd){
     // dowload data from the GPU if necessary
     // Data are stored in the GPU side.
     else {
-        snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", FTI_DataVar->id);
-        FTI_Print(str,FTI_INFO);
+        snprintf(str, FTI_BUFS, "Dataset #%d Writing GPU Data.", data->id);
+        FTI_Print(str,FTI_DBUG);
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar, FTI_MPIOWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(data, FTI_MPIOWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
             FTI_Print(str, FTI_EROR);
             FTI_MPIOClose(write_info);
             return res;
         }
     }
 #endif
-    write_info->loffset+= FTI_DataVar->size;
+    write_info->loffset+= data->size;
     return FTI_SCES;
 }

@@ -44,28 +44,36 @@ extern "C"
 #endif
 #include "fti.h"
 
+#include "fortran/ftif.h"
+
+#include "util/ini.h"
+#include "util/dataset.h"
+#include "util/keymap.h"
+#include "util/metaqueue.h"
+#include "util/macros.h"
+#include "util/utility.h"
+#include "util/failure-injection.h"
+
+#include "IO/posix.h"
+#include "IO/posix-dcp.h"
+#include "IO/hdf5-fti.h"
+#include "IO/ftiff.h"
+#include "IO/ftiff-dcp.h"
+#include "IO/ime.h"
+
 #include "meta.h"
 #include "api-cuda.h"
 #include "postreco.h"
-#include "tools.h"
+#include "util/tools.h"
 #include "dcp.h"
 #include "conf.h"
 #include "checkpoint.h"
 #include "stage.h"
 #include "fti-io.h"
 #include "topo.h"
-#include "IO/posix.h"
-#include "IO/posix-dcp.h"
-#include "IO/hdf5-fti.h"
-#include "IO/ftiff.h"
-#include "IO/ftiff-dcp.h"
-#include "failure-injection.h"
 #include "postckpt.h"
 #include "recover.h"
-#include "fortran/ftif.h"
 #include "icp.h"
-#include "macros.h"
-#include "utility.h"
 
 #include "../deps/md5/md5.h"
 #include "../deps/iniparser/iniparser.h"
@@ -76,6 +84,10 @@ extern "C"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 #   include <sion.h>
+#endif
+
+#ifdef ENABLE_IME_NATIVE // --> If IME native API is installed
+#   include <ime_native.h>
 #endif
 
 #ifdef LUSTRE

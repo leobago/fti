@@ -48,14 +48,14 @@
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
-    
- This function initializes all the necessary data structures and files
- required to perform incremental checkpoint. 
+
+  This function initializes all the necessary data structures and files
+  required to perform incremental checkpoint. 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+        FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     void *ret = io->initCKPT(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
     FTI_Exec->iCPInfo.fd = ret;
@@ -74,23 +74,30 @@ int FTI_startICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
- 
- This functions writes the varid data on the checkpoint file
+
+  This functions writes the varid data on the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data, FTIT_IO *io)
+        FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     void *write_info = (void *) FTI_Exec->iCPInfo.fd;
     int res = 0;
-    int i;
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if ( FTI_Data[i].id == varID ) {
-            FTI_Data[i].filePos = io->getPos(write_info);
-            res = io->WriteData(&FTI_Data[i],write_info);
-        }
+
+    FTIT_dataset* data;
+
+    if( FTI_Data->get( &data, varID ) != FTI_SCES ) return FTI_NSCS;
+
+    if( data == NULL ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "variable id = '%d' does not exist", varID );
+        FTI_Print( str, FTI_WARN );
+        return FTI_NSCS;
     }
+
+    data->filePos = io->getPos(write_info);
+    res = io->WriteData(data,write_info);
     FTI_Exec->iCPInfo.result = res;
     return res;
 }
@@ -106,11 +113,11 @@ int FTI_WriteVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Ex
   @param      FTI_Data        Dataset metadata.
   @param      io              IO function pointers
   @return     integer         FTI_SCES if successful.
- 
- This functions Finalizes the checkpoint file
+
+  This functions Finalizes the checkpoint file
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_dataset* FTI_Data, FTIT_IO *io)
+int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data, FTIT_IO *io)
 {
     if ( FTI_Exec->iCPInfo.status == FTI_ICP_FAIL ) {
         return FTI_NSCS;
@@ -147,7 +154,7 @@ int FTI_FinishICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
 /*-------------------------------------------------------------------------*/
 int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
     int res;
     FTI_Print("I/O mode: SIONlib.", FTI_DBUG);
@@ -206,7 +213,7 @@ int FTI_InitSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
 
     int sid;
@@ -268,7 +275,7 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf, FTIT_execution*
 /*-------------------------------------------------------------------------*/
 int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data)
+        FTIT_keymap* FTI_Data)
 {
 
     int sid;

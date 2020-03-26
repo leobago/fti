@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+#py23 python2/3 compatible
+
+################################################################################
+# Copyright (c) 2013-2019, Julien Bigot - CEA (julien.bigot@cea.fr)
+# All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+################################################################################
+
+__author__  = 'Julien Bigot <julien.bigot@cea.fr>'
+__version__ = '0.3.0'
+__date__    = '2019/07/15'
+__license__ = 'MIT'
+
+""" The Bash PreProcessor
+"""
+
+from optparse import OptionParser
+from os import unlink, listdir, symlink
+from os.path import join, basename, abspath, exists, isdir
+from re import compile
+from shutil import rmtree, copyfile
+from subprocess import call
+from sys import argv, exit
+from tempfile import NamedTemporaryFile, mkdtemp
+from uuid import uuid4
+
+
+
+def callback_def(option, opt_str, value, parser):
+    (optname, _, valval) = value.partition('=')
+    parser.values.defines[optname.strip()] = valval.strip()
+
+parser = OptionParser(description="", version=__version__, usage="%prog [Options...] <source> <destination>\n  use `%prog -h' for more info")
+parser.add_option('-I',
+                  action='append',
+                  dest='includes',
+                  nargs=1,
+                  default=list(),
+                  metavar="DIR",
+                  help='add DIR to search list for source directives'
+)
+parser.add_option('-D',
+                  action='callback',
+                  callback=callback_def,
+                  dest='defines',
+                  type="string",
+                  default=dict(),
+                  metavar='OPTION=value',
+                  help='Sets the value of OPTION to "value"'
+)
+(opts, args) = parser.parse_args()
+if len(args) != 2:
+    parser.error("Invalid number of arguments")
+
+# auto include install directory
+opts.includes.append(abspath(join(__file__, '..', '..', 'share', 'bpp', 'include')))
+
+tmpdir = mkdtemp(suffix='', prefix='bpp.tmp.')
+result=1
+try:
+    for incdir in reversed(opts.includes):
+        if isdir(incdir):
+            for incfile in listdir(incdir):
+                if incfile[-7:] == '.bpp.sh':
+                    src = abspath(join(incdir, incfile))
+                    dst = join(tmpdir, basename(incfile))
+                    if exists(dst):
+                        unlink(dst)
+                    symlink(src, dst)
+        else:
+            print('Warning: Nonexistent include directory "'+incdir+'"')
+
+    with open(join(tmpdir, basename(args[0])+'.sh'), 'w') as tmpfile:
+        tmpfile.write("#!/bin/bash\n")
+        inbash=True
+        for var in opts.defines:
+            tmpfile.write(var+'='+opts.defines[var]+"\n")
+        EOCAT='EOCAT_'+str(uuid4()).replace('-','_')
+        trigger=compile('^\s*!\$SH\s+')
+        with open(args[0], 'r+') as infile:
+            for line in infile:
+                if trigger.match(line):
+                    if not inbash:
+                        tmpfile.write(EOCAT+"\n")
+                        inbash=True
+                    tmpfile.write(trigger.sub('', line, 1))
+                else:
+                    if inbash:
+                        tmpfile.write("cat<<"+EOCAT+"\n")
+                        inbash=False
+                    tmpfile.write(line)
+        if not inbash:
+            tmpfile.write(EOCAT+"\n")
+        tmpfile.close()
+
+        if args[1] == '-':
+            result = call(['bash','-r', basename(tmpfile.name)], cwd=tmpdir)
+        else:
+            with open(args[1], 'w') as outfile:
+                result = call(['bash','-r', basename(tmpfile.name)], stdout=outfile, cwd=tmpdir)
+
+except Exception as e:
+    print(e)
+    result=-1
+
+rmtree(tmpdir)
+exit(result)
