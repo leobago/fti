@@ -1,43 +1,34 @@
 #!/bin/bash
 
-shortname()
-{
-    echo "vpr"
+setup() {
+    itf_param_register 'head'
+    iolib="$(iolib_name_to_id 'HDF5')"
+
+    app='variateProcessorRestart/test.exe'
+
+    itf_param_register 'icp'
+    itf_param_register 'recovervar'
 }
 
-name()
-{
-    #echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level head=0 keep=0 inline=(1,1,1)"
-    echo "$(shortname) head=$head icp=$icp recovervar=$recovervar"
+prepare_fti() {
+    fti_config_set 'node-size' '4'
+    fti_config_set_ckpts '3' '5' '7' '11'
 }
 
-setup()
-{
-    #cfgfile="/tmp/configfile"
+runtest() {
+    itf_nranks=16
+    app_run $app $itf_cfgfile $icp $recovervar
 
-    head=$1
-    icp=$2
-    recovervar=$3
+    app_run $app $itf_cfgfile $icp $recovervar
 
-    #fti_config_new "$cfgfile"
-    #fti_config_set "$cfgfile" "head" "$head"
-    #fti_config_set "$cfgfile" "keep_last_ckpt" "0"
+    #running with config-npn16
+    itf_nranks=64
+    app_run_success $app $itf_cfgfile $icp $recovervar
+
+    assert_equals $? 0 "test.exe returned with output: $?"
 }
 
-teardown()
-{
-    unset head
-    unset icp
-    unset recovervar
-    #rm -rf "$cfgfile"
-}
-
-runtest()
-{
-    #app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
-    #app_run_normal ./checkVPR.sh $head $icp $recovervar
-    cd variateProcessorRestart
-    bash checkVPR.sh $head $icp $recovervar
-    
-    assert_app_success $?
+teardown() {
+    unset app iolib
+    unset itf_nranks
 }
