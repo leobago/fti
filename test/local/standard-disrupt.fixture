@@ -1,8 +1,8 @@
 #!/bin/bash
 
 setup() {
-    itf_param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
-    itf_param_register 'disrupt' 'target' 'consecutive' 'expected'
+    param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
+    param_register 'disrupt' 'target' 'consecutive' 'expected'
 
     app='check.exe'
 }

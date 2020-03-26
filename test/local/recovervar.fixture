@@ -4,7 +4,7 @@ setup() {
     app='./recoverVar/recoverVar.exe'
     head=0
     keep=0
-    itf_param_register 'iolib' 'level' 'diffsize'
+    param_register 'iolib' 'level' 'diffsize'
 }
 
 runtest() {

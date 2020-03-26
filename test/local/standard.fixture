@@ -1,7 +1,7 @@
 #!/bin/bash
 
 setup() {
-    itf_param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
+    param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
     app='check.exe'
 }
 
