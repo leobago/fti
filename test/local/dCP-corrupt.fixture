@@ -4,7 +4,7 @@ setup() {
     iolib=$(iolib_name_to_id 'POSIX')
     head=0
 
-    itf_param_register 'recovery'
+    param_register 'recovery'
 }
 
 prepare_fti() {

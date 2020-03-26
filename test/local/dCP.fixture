@@ -2,7 +2,7 @@
 
 setup() {
     app='diffckpt/diff_test.exe'
-    itf_param_register 'iolib' 'head' 'mode'
+    param_register 'iolib' 'head' 'mode'
 }
 
 prepare_fti() {

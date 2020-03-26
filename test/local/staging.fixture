@@ -1,7 +1,7 @@
 #!/bin/bash
 
 setup() {
-    itf_param_register 'head'
+    param_register 'head'
     iolib="$(iolib_name_to_id 'POSIX')"
 
     app='staging/massive.exe'
