@@ -465,8 +465,6 @@ test_case() {
 
     # Print feedback
     echo "$(itf_describe_test_case)"
-    # Log the test case in the log stdout
-    itf_log_test_case $itf_tstdout
 
     # Prepare the FTI config file
     type prepare_fti &>/dev/null && prepare_fti
@@ -475,6 +473,7 @@ test_case() {
     (
         # Test if ITF has any error stored
         if [ ! -z "$itf_error" ]; then
+            itf_log_test_case $itf_tstdout
             echo "$itf_error" >>$itf_tstdout
             fail "$itf_error"
         fi
@@ -556,6 +555,7 @@ itf_append_logs() {
     # Check if the test has failed
     if [ $1 -ne 0 ]; then
         # Always push the test stdout into the log
+        itf_log_test_case $itf_tstdout
         cat $itf_tstdout >>$faillog
         echo "" >>$faillog # line feed
 
@@ -572,6 +572,7 @@ itf_append_logs() {
 
     # Check if ITF is configured to save all logs
     if [ $itf_maintain_app_logs -eq 1 ]; then
+        itf_log_test_case $itf_tstdout
         cat $itf_tstdout >>$normallog
         echo "" >>$faillog # line feed
     fi
