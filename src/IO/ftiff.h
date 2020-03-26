@@ -195,6 +195,6 @@ void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data );
 void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
         FTIT_dataset *data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
-int FTI_RecoverVarInitFTIFF(char* fn);
-int FTI_RecoverVarFinalizeFTIFF();
+int FTIFF_RecoverVarInit(char* fn);
+int FTIFF_RecoverVarFinalize();
 #endif

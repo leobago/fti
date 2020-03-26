@@ -24,7 +24,9 @@ int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
 void* FTI_DcpPosixRecoverRuntimeInfo( int tag, void* exec_, void* conf_ );
 int FTI_RecoverDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data );
+int FTI_RecoverVarDcpPosixInit(char *fn, FTIT_configuration* FTI_Conf);
 int FTI_RecoverVarDcpPosix( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data, FILE* fd, unsigned long blockSize, unsigned long stackSize, void* buffer, int id );
+int FTI_RecoverVarDcpPosixFinalize(FILE* fd, void *buffer);
 char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr );
 // wrapper for CRC32 hash algorithm
 unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned char *hash );

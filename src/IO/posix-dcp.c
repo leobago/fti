@@ -878,7 +878,7 @@ int FTI_RecoverVarDcpPosix
 
             } else {
                 if( fseek( fd, blockSize, SEEK_CUR ) == -1 ) {
-                    snprintf( errstr, FTI_BUFS, "unable to seek in file %s");
+                    snprintf( errstr, FTI_BUFS, "unable to seek in file");
                     FTI_Print( errstr, FTI_EROR );
                     return FTI_NSCS;
                 }

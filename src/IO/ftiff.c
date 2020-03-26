@@ -1582,7 +1582,7 @@ int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpo
                                         
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVarInitFTIFF(char* fn)
+int FTIFF_RecoverVarInit(char* fn)
 {
     int res = FTI_SCES; 
 
@@ -1638,7 +1638,6 @@ int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTI
     unsigned char hash[MD5_DIGEST_LENGTH];
 
     int isnextdb;
-    int oldIndex;
 
     char str[FTI_BUFS], strerr[FTI_BUFS];
 
@@ -1723,7 +1722,7 @@ int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTI
                                         
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RecoverVarFinalizeFTIFF()
+int FTIFF_RecoverVarFinalize()
 {
     int res = FTI_NREC;
     if ( munmap( filemmap, filestats.st_size ) == -1 ) {
