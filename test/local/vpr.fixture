@@ -1,34 +1,41 @@
 #!/bin/bash
 
 setup() {
-    param_register 'head'
+    param_register 'head' 'icp' 'recovervar'
     iolib="$(iolib_name_to_id 'HDF5')"
 
     app='variateProcessorRestart/test.exe'
-
-    param_register 'icp'
-    param_register 'recovervar'
 }
 
 prepare_fti() {
-    fti_config_set 'node-size' '4'
     fti_config_set_ckpts '3' '5' '7' '11'
+
+    if [ $head -eq 1 ]; then
+        itf_nranks=20
+        fti_config_set 'node_size' '5'
+    else
+        itf_nranks=16
+        fti_config_set 'node_size' '4'
+    fi
 }
 
 runtest() {
-    itf_nranks=16
-    app_run $app $itf_cfgfile $icp $recovervar
-
-    app_run $app $itf_cfgfile $icp $recovervar
-
-    #running with config-npn16
-    itf_nranks=64
+    app_run_success $app $itf_cfgfile $icp $recovervar
     app_run_success $app $itf_cfgfile $icp $recovervar
 
-    assert_equals $? 0 "test.exe returned with output: $?"
+    if [ $head -eq 1 ]; then
+        itf_nranks=68
+        fti_config_set 'node_size' '17'
+    else
+        itf_nranks=64
+        fti_config_set 'node_size' '16'
+    fi
+    fti_config_set 'failure' '3'
+    
+    app_run_success $app $itf_cfgfile $icp $recovervar
+    pass # If all application succeded, the test is done
 }
 
 teardown() {
     unset app iolib
-    unset itf_nranks
 }

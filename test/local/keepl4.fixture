@@ -1,12 +1,10 @@
 #!/bin/bash
 
 setup() {
-    param_register 'head'
-    param_register 'keep_last_ckpt'
+    param_register 'head' 'keep'
     iolib="$(iolib_name_to_id 'POSIX')"
 
     app='keepL4Ckpt/testkeepl4.exe'
-
     itf_nranks=8
 }
 
@@ -17,9 +15,7 @@ prepare_fti() {
 }
 
 runtest() {
-    
     app_run $app $itf_cfgfile 
-
     app_run_success $app $itf_cfgfile
 
     find Global/ | \
@@ -36,5 +32,4 @@ runtest() {
 
 teardown() {
     unset app iolib
-    unset itf_nranks
 }
