@@ -2580,12 +2580,15 @@ int FTI_RecoverVarInit(){
 
         case FTI_IO_POSIX:
             res = FTI_RecoverVarInitPOSIX(fn);
+            break;
 
         case FTI_IO_MPI:
             res = FTI_RecoverVarInitPOSIX(fn);
+            break;
             
         case FTI_IO_FTIFF:            
             res = FTIFF_RecoverVarInit(fn);
+            break;
 
         default: 
             FTI_Print("Unknown I/O mode.", FTI_EROR);
