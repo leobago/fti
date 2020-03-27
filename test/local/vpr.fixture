@@ -1,13 +1,13 @@
 #!/bin/bash
 
 setup() {
-    itf_param_register 'head'
+    param_register 'head'
     iolib="$(iolib_name_to_id 'HDF5')"
 
     app='variateProcessorRestart/test.exe'
 
-    itf_param_register 'icp'
-    itf_param_register 'recovervar'
+    param_register 'icp'
+    param_register 'recovervar'
 }
 
 prepare_fti() {

@@ -14,13 +14,13 @@
 int main() {
 
     MPI_Init(NULL, NULL);
-    FTI_Init("config.fti", MPI_COMM_WORLD);
+    FTI_Init("/tmp/configfile", MPI_COMM_WORLD);
     
     int rank, grank;
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     MPI_Comm_rank( MPI_COMM_WORLD, &grank );
     
-    dictionary *ini = iniparser_load( "config.fti" );
+    dictionary *ini = iniparser_load( "/tmp/configfile" );
     
     int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
     int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);

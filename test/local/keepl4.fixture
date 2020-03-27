@@ -1,38 +1,40 @@
 #!/bin/bash
 
-shortname()
-{
-    echo "keepl4"
+setup() {
+    param_register 'head'
+    param_register 'keep_last_ckpt'
+    iolib="$(iolib_name_to_id 'POSIX')"
+
+    app='keepL4Ckpt/testkeepl4.exe'
+
+    itf_nranks=8
 }
 
-name()
-{
-    #echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level head=0 keep=0 inline=(1,1,1)"
-    echo "$(shortname)"
-    #head=$head keep=$keep
+prepare_fti() {
+    fti_config_set 'node_size' '2'
+    fti_config_set 'group_size' '4'
+    fti_config_set_ckpts '1' '0' '0' '3'
 }
 
-setup()
-{
-    #cfgfile="/tmp/configfile"
-
-    head=$1
-    keep=$2
-
-}
-
-teardown()
-{
-    unset head
-    unset keep
-    #rm -rf "$cfgfile"
-}
-
-runtest()
-{
-    #app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
-    #app_run_normal ./checkVPR.sh $head $icp $recovervar
-    bash checkKL4.sh #$head $keep
+runtest() {
     
-    assert_app_success $?
+    app_run $app $itf_cfgfile 
+
+    app_run_success $app $itf_cfgfile
+
+    find Global/ | \
+        sed 's/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]//g' | \
+        sed 's/Global//g' | \
+        sed 's/l4_archive//g' | \
+        sed 's/\///g' | \
+        grep Ckpt | \
+        sort \
+        > tmp
+
+    assert_equals $? 0 "testkeepl4.exe returned with output: $?"
+}
+
+teardown() {
+    unset app iolib
+    unset itf_nranks
 }

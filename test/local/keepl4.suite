@@ -1,8 +1,4 @@
-0 0 0
-0 0 1
-0 1 0
-0 1 1 
-1 0 0
-1 0 1
-1 1 0
-1 1 1 
+--head 1 --keep_last_ckpt 0
+--head 0 --keep_last_ckpt 0
+--head 1 --keep_last_ckpt 1
+--head 0 --keep_last_ckpt 1
