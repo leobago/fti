@@ -95,10 +95,10 @@ int main( int argc, char** argv ) {
     // determine global rank
     MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     
-    dictionary *ini = iniparser_load( "config.fti" );
+    dictionary *ini = iniparser_load( "/tmp/configfile" );
     int restart = (int)iniparser_getint(ini, "Restart:failure", -1);
 
-    FTI_Init("config.fti", MPI_COMM_WORLD);
+    FTI_Init("/tmp/configfile", MPI_COMM_WORLD);
 
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
     MPI_Comm_size(FTI_COMM_WORLD, &size);

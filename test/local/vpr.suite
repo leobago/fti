@@ -1,0 +1,8 @@
+--head 1 --icp 0 --recovervar 0
+--head 1 --icp 0 --recovervar 1
+--head 1 --icp 1 --recovervar 0
+--head 1 --icp 1 --recovervar 1
+--head 0 --icp 0 --recovervar 0
+--head 0 --icp 0 --recovervar 1
+--head 0 --icp 1 --recovervar 0
+--head 0 --icp 1 --recovervar 1

@@ -1,0 +1,40 @@
+#!/bin/bash
+
+setup() {
+    param_register 'head'
+    param_register 'keep_last_ckpt'
+    iolib="$(iolib_name_to_id 'POSIX')"
+
+    app='keepL4Ckpt/testkeepl4.exe'
+
+    itf_nranks=8
+}
+
+prepare_fti() {
+    fti_config_set 'node_size' '2'
+    fti_config_set 'group_size' '4'
+    fti_config_set_ckpts '1' '0' '0' '3'
+}
+
+runtest() {
+    
+    app_run $app $itf_cfgfile 
+
+    app_run_success $app $itf_cfgfile
+
+    find Global/ | \
+        sed 's/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]//g' | \
+        sed 's/Global//g' | \
+        sed 's/l4_archive//g' | \
+        sed 's/\///g' | \
+        grep Ckpt | \
+        sort \
+        > tmp
+
+    assert_equals $? 0 "testkeepl4.exe returned with output: $?"
+}
+
+teardown() {
+    unset app iolib
+    unset itf_nranks
+}

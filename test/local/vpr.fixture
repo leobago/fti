@@ -1,0 +1,34 @@
+#!/bin/bash
+
+setup() {
+    param_register 'head'
+    iolib="$(iolib_name_to_id 'HDF5')"
+
+    app='variateProcessorRestart/test.exe'
+
+    param_register 'icp'
+    param_register 'recovervar'
+}
+
+prepare_fti() {
+    fti_config_set 'node-size' '4'
+    fti_config_set_ckpts '3' '5' '7' '11'
+}
+
+runtest() {
+    itf_nranks=16
+    app_run $app $itf_cfgfile $icp $recovervar
+
+    app_run $app $itf_cfgfile $icp $recovervar
+
+    #running with config-npn16
+    itf_nranks=64
+    app_run_success $app $itf_cfgfile $icp $recovervar
+
+    assert_equals $? 0 "test.exe returned with output: $?"
+}
+
+teardown() {
+    unset app iolib
+    unset itf_nranks
+}
