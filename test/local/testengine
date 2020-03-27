@@ -42,13 +42,14 @@ itf_engine_restore_defaults() {
     # Test cases can alter these values on setup without impacting other suites
 
     itf_nranks=$itf_nranks_default
-    itf_timeout=$itf_timeout_default
-    itf_maintain_app_logs=$itf_maintain_app_logs_default
-    itf_maintain_ckpt=$itf_maintain_ckpt_default
-    itf_cfgfile=$itf_cfgfile_default
-    itf_tstdout=$itf_tstdout_default
 }
-itf_engine_restore_defaults # Declare all configuration variables with defaults
+
+itf_nranks=$itf_nranks_default
+itf_timeout=$itf_timeout_default
+itf_maintain_app_logs=$itf_maintain_app_logs_default
+itf_maintain_ckpt=$itf_maintain_ckpt_default
+itf_cfgfile=$itf_cfgfile_default
+itf_tstdout=$itf_tstdout_default
 
 # -------------------------- Engine Runtime Variables -------------------------
 
@@ -488,16 +489,18 @@ test_case() {
 
     # Call the test case teardown
     type teardown &>/dev/null && teardown
-    # Resto the engine configuration defaults
-    itf_engine_restore_defaults
 
     # Remove the global, local and meta directories
     if [ $itf_maintain_ckpt -eq 0 ]; then
+        echo "LORLZ"
         local _locdir="$(fti_config_get 'ckpt_dir')"
         local _globaldir="$(fti_config_get 'glbl_dir')"
         local _metadir="$(fti_config_get 'meta_dir')"
         rm -rf $_locdir $_globaldir $_metadir
     fi
+
+    # Resto the engine configuration defaults
+    itf_engine_restore_defaults
 
     # Remove the config files and test stdout
     rm -rf $itf_cfgfile $itf_tstdout

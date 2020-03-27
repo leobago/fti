@@ -132,5 +132,5 @@ print_color $COLOR_GREENBOLD "PASSED:\t\t$npassed\n"
 print_color $COLOR_REDBOLD "FAILED:\t\t$nfailures\n"
 
 if [ $nfailures -gt 0 ]; then
-    return 1
+    exit 1
 fi

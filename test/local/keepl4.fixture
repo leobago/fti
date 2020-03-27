@@ -5,29 +5,35 @@ setup() {
     iolib="$(iolib_name_to_id 'POSIX')"
 
     app='keepL4Ckpt/testkeepl4.exe'
-    itf_nranks=8
 }
 
 prepare_fti() {
-    fti_config_set 'node_size' '2'
-    fti_config_set 'group_size' '4'
+    if [ $head -eq 1 ]; then
+        fti_config_set 'inline_l4' '0'
+    else
+        fti_config_set 'inline_l4' '1'
+    fi
+
     fti_config_set_ckpts '1' '0' '0' '3'
 }
 
 runtest() {
-    app_run $app $itf_cfgfile 
+    app_run_success $app $itf_cfgfile
     app_run_success $app $itf_cfgfile
 
-    find Global/ | \
-        sed 's/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]//g' | \
-        sed 's/Global//g' | \
-        sed 's/l4_archive//g' | \
-        sed 's/\///g' | \
-        grep Ckpt | \
-        sort \
-        > tmp
+    local globaldir=$(fti_config_get 'glbl_dir')
+    local exec_id=$(fti_config_get 'exec_id')
 
-    assert_equals $? 0 "testkeepl4.exe returned with output: $?"
+    if [ $keep -eq 1 ]; then
+        assert_equals \
+            $itf_nranks $(find "$globaldir/$exec_id/l4" | grep 'Ckpt' | wc -l)\
+            "There are ranks missing in the Global directory"
+    else
+        # This should fail because there is no such directory
+        ls $globaldir/$exec_id 2>> /dev/null
+        assert_not_equals $? 0 \
+            "Checkpoints were pushed to global without keep set"
+    fi
 }
 
 teardown() {
