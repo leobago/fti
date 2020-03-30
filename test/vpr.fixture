@@ -4,7 +4,7 @@ setup() {
     param_register 'head' 'icp' 'recovervar'
     iolib="$(iolib_name_to_id 'HDF5')"
 
-    app='variateProcessorRestart/test.exe'
+    app='local/variateProcessorRestart/test.exe'
 }
 
 prepare_fti() {

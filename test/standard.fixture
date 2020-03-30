@@ -2,7 +2,6 @@
 
 setup() {
     param_register 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep'
-    app='check.exe'
 }
 
 prepare_fti() {
@@ -14,6 +13,9 @@ prepare_fti() {
 }
 
 runtest() {
+    local app='check.exe'
+    local dir='local'
+
     if [ $keep -eq 0 ]
     then
         # we simulate a crash when keep=0 to test standard behavior
@@ -23,6 +25,7 @@ runtest() {
         local crash=0
     fi
 
+    cd $dir
     app_run_success $app $itf_cfgfile $crash $level $diffsize $icp
 
     # When keep=1, FTI flushes the last checkpoint to global
@@ -36,9 +39,6 @@ runtest() {
     # On keep=1, it should restart from the ckpt pushed to global
     # On keep=0, it should restart from the last ckpt in local
     app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
+    cd ..
     pass
-}
-
-teardown() {
-    unset app
 }

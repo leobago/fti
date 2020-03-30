@@ -4,7 +4,7 @@ setup() {
     param_register 'head' 'keep'
     iolib="$(iolib_name_to_id 'POSIX')"
 
-    app='keepL4Ckpt/testkeepl4.exe'
+    app='local/keepL4Ckpt/testkeepl4.exe'
 }
 
 prepare_fti() {

@@ -1,0 +1,341 @@
+#!/ibn/bash
+
+# --------------------------- Fixture Setup Helpers ---------------------------
+
+param_register() {
+    # Register the argument names that the fixture depends on
+    #
+    # ITF will parse parameters automatically
+    # Variables with the same names will be created and available after setup
+    #
+    # Parameters:
+    # $@: Argument names
+
+    while [ $# -gt 0 ]; do
+        itf_paramv[${#itf_paramv[@]}]=$1
+        shift
+    done
+}
+
+# ------------------------ Fixture FTI Prepare Helpers ------------------------
+
+fti_config_get() {
+    # Get the value of an FTI config field
+    #
+    # Parameters:
+    # $1: The field name in the configuration file
+
+    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <$itf_cfgfile)"
+}
+
+fti_config_set() {
+    # Set the value of an FTI config field
+    #
+    # Parameters:
+    # $1: The field name in the configuration file
+    # $2: The new value for the field
+
+    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
+    echo "config_set $1=$2" | tee -a $itf_tstdout # Test Feedback
+}
+
+fti_config_set_inline() {
+    # Set FTI to perform the all checkpoints inline
+
+    fti_config_set 'inline_l2' '1'
+    fti_config_set 'inline_l3' '1'
+    fti_config_set 'inline_l4' '1'
+}
+
+fti_config_set_ckpts() {
+    # Set the checkpoint intervals of FTI
+    #
+    # Parameters:
+    # $1-4: [Optional] The checkpoint interval for a level
+
+    for i in {1..4}; do
+        if [ ! -z ${!i} ]; then
+            fti_config_set "ckpt_l$i" "${!i}"
+        fi
+    done
+}
+
+# --------------------------- Fixture Test Helpers ----------------------------
+
+app_run() {
+    # Executes an MPI application
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+    #
+    # Warning:
+    # mpirun reads from stdin.
+    # It makes it impossible to run mpirun while a file is open in stdin.
+    # This breaks the loop as mpirun consumes the whole file contents as input.
+    # To circunvent this, we redirect mpirun stdin to /dev/null
+    # If this ever needs to be changed, the testrunner will need a rework.
+    # Otherwise, the suite file will be consumed by mpirun.
+
+    echo "app_run" | tee -a $itf_tstdout
+    echo "parameters: $@" &>>$itf_tstdout
+    if [ $itf_verbose -eq 1 ]; then
+        (
+            set -x
+            mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
+        )
+    else
+        (
+            set -x
+            mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        )
+    fi
+    local _retval=$?
+    echo "returns $_retval" | tee -a $itf_tstdout
+    return $_retval
+}
+
+app_run_success() {
+    # Run an MPI application and only continue the test if the app succeeds
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+
+    app_run $@
+    check_is_zero $? "Test app failure exitcode=$?"
+}
+
+app_run_timeout() {
+    # Executes an MPI application and kill if it takes too long
+    #
+    # Parameters:
+    # $1: The path to the application binary
+    # $@: The application's parameters
+
+    (
+        local __pid=$BASHPID
+        (
+            sleep $itf_timeout
+            kill $__pid >/dev/null 2>&1
+            return 1
+        ) &
+        app_run $@
+    )
+}
+
+ckpt_erase_last() {
+    # Erase checkpoint objects from last ITF-managed execution (app_run*)
+    #
+    # Parameters:
+    #
+    # $1: Which checkpoint object to erase
+    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
+    # $@: which nodes, for local objects, only if IO is not MPIIO or SIONLIB
+    #       values: node directory names
+    #
+    # Usage Details:
+    #
+    # See 'itf_find_fti_objects' usage details to see which files are deleted.
+
+    echo "checkpoint_erase $@" | tee -a $itf_tstdout
+    for f in $(itf_find_fti_objects $@); do
+        (
+            set -x
+            rm -rf $f
+        )
+        echo "erased: $f" &>>$itf_tstdout
+    done
+}
+
+ckpt_corrupt_last() {
+    # Corrupt checkpoint objects from last ITF-managed execution (app_run*)
+    #
+    # Parameters:
+    #
+    # $1: Which checkpoint object to corrupt
+    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
+    # $@: which nodes to delete, only used for local objects if IO is not MPIIO or SIONLIB
+    #       values: integers
+    #
+    # Usage Details:
+    #
+    # See 'itf_find_fti_objects' usage details to see which files are deleted.
+
+    echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
+    for f in $(itf_find_fti_objects $@); do
+        (
+            set -x
+            echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
+        )
+        echo "corrupted: $f" &>>$itf_tstdout
+    done
+}
+
+# ---------------------------- Fixture Assertions -----------------------------
+
+pass() {
+    # Exit a test case successfully
+    #
+    # Parameters:
+    # $1: An optional feedback message
+
+    print_color $COLOR_GREENBOLD "Passed"
+    if [ $# -eq 1 ]; then
+        print_color $COLOR_GREENBOLD ": $1"
+    fi
+    printf '\n'
+    exit 0
+}
+
+fail() {
+    # Exit a test case in failure
+    #
+    # Parameters:
+    # $1: An optional feedback message
+
+    print_color $COLOR_REDBOLD "Failed"
+    if [ $# -eq 1 ]; then
+        print_color $COLOR_REDBOLD ": $1"
+    fi
+    printf '\n'
+    exit 1
+}
+
+check_equals() {
+    # Check if a value is equal to another and finalize test case if not equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ $1 -ne $2 ]; then
+        fail "$3"
+    fi
+}
+
+check_not_equals() {
+    # Check if a value is not equal to another and finalize test case if equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ $1 -eq $2 ]; then
+        fail "$3"
+    fi
+}
+
+check_is_zero() {
+    # Check if a value is equal to zero and finalize test case if different
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ $1 -ne 0 ]; then
+        fail "$2"
+    fi
+}
+
+check_non_zero() {
+    # Check if a value is different to zero and finalize test case if equals
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ $1 -eq 0 ]; then
+        fail "$2"
+    fi
+}
+
+assert_equals() {
+    # Assert if a value is equal to another and finalize test case
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    check_equals $1 $2 "$3"
+    pass
+}
+
+assert_not_equals() {
+    # Assert if a value is equal to another and finalize test case
+    #
+    # Parameters:
+    # $1: The first value
+    # $2: Another value
+    # $3: An optional message in case of failure
+
+    check_not_equals $1 $2 "$3"
+    pass
+}
+
+# ------------------------ Helpers for pretty printing ------------------------
+
+print_color() {
+    # Prints a string in a different color
+    #
+    # Parameters:
+    # $1: The color to use
+    # $2: The string to be printed
+    #
+    # Warning:
+    # If the string has spaces, the caller must use double quotes.
+    # ex.: print_color "This is my testname"
+
+    printf "$1$2$COLOR_RESET"
+}
+
+iolib_name_to_id() {
+    # Echo the FTI id associated to a IO library name
+    #
+    # Parameters:
+    # $1: The IO library name
+    #
+    # Returns:
+    # 1 if the name is not recognized by FTI
+
+    if [ "$1" = "POSIX" ]; then
+        echo '1'
+    elif [ "$1" = "MPIIO" ]; then
+        echo '2'
+    elif [ "$1" = "FTIFF" ]; then
+        echo '3'
+    elif [ "$1" = "SIONLIB" ]; then
+        echo '4'
+    elif [ "$1" = "HDF5" ]; then
+        echo '5'
+    else
+        return 1
+    fi
+}
+
+iolib_id_to_name() {
+    # Echo the IO library name associated to an FTI id
+    #
+    # Parameters:
+    # $1: The FTI id for the IO library
+    #
+    # Returns:
+    # 1 if the id is not recognized by FTI
+
+    if [ "$1" = 1 ]; then
+        echo 'POSIX'
+    elif [ "$1" = 2 ]; then
+        echo 'MPIIO'
+    elif [ "$1" = 3 ]; then
+        echo 'FTIFF'
+    elif [ "$1" = 4 ]; then
+        echo 'SIONLIB'
+    elif [ "$1" = 5 ]; then
+        echo 'HDF5'
+    else
+        return 1
+    fi
+}

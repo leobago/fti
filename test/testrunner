@@ -53,13 +53,18 @@ execute_suite() {
     itf_unload_fixture
 }
 
-source testengine
+source 'itf/engine'
 declare -a arguments=()
 
 # Parse the command line outputs, extracts the relevant and maintain the rest
 nargs=0
 while [[ $# -gt 0 ]]; do
     case $1 in
+    -v | --verbose)
+        # Makes ITF output the application log in the terminal
+        itf_verbose=1
+        shift
+        ;;
     -s | --suite)
         # Runs one fixture with one custom suite
         suitename="$2"
@@ -73,7 +78,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     -t | --set-timeout)
         # Change the engine's timeout time on timed app runs
-        itf_set_timeout $2
+        itf_timeout=$2
         shift
         shift
         ;;
@@ -113,7 +118,6 @@ elif [ ! -z $custom ]; then
     unset 'arguments[0]'
     execute_case "${arguments[@]}"
     print_fixture_feedback $nfailures
-    
 else
     # Standard case, running multiple fixture with standard naming convention
     for s in "${arguments[@]}"; do
