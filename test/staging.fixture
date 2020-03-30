@@ -4,7 +4,7 @@ setup() {
     param_register 'head'
     iolib="$(iolib_name_to_id 'POSIX')"
 
-    app='staging/massive.exe'
+    app='local/staging/massive.exe'
 }
 
 prepare_fti() {

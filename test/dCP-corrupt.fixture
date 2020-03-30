@@ -18,7 +18,7 @@ prepare_fti() {
 }
 
 runtest() {
-    local app='diffckpt/checkDCPPosix.exe'
+    local app='local/diffckpt/checkDCPPosix.exe'
     local crash_on_iter=1
     local diffsizes=0
 

@@ -113,7 +113,6 @@ elif [ ! -z $custom ]; then
     unset 'arguments[0]'
     execute_case "${arguments[@]}"
     print_fixture_feedback $nfailures
-    
 else
     # Standard case, running multiple fixture with standard naming convention
     for s in "${arguments[@]}"; do

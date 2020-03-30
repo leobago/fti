@@ -1,0 +1,19 @@
+config_set ckpt_io=1
+config_set head=0
+config_set keep_last_ckpt=0
+app_run
+parameters: local/recoverVar/recoverVar.exe /tmp/configfile 1 1 1
+--------------------------------------------------------------------------
+mpirun was unable to launch the specified application as it could not access
+or execute an executable:
+
+Executable: local/recoverVar/recoverVar.exe
+Node: bsc-alexandre
+
+while attempting to start process rank 0.
+--------------------------------------------------------------------------
+16 total processes failed to start
+returns 132
+--iolib 1 --level 1 --diffsize 0
+
+
