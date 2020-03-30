@@ -38,8 +38,8 @@ for config in ${configs[@]}; do
 		cp ../configs/$config config.fti
 		printRun 1 $config $level
 		for run in 0 1 2; do
-			echo mpirun -n 16 ./consistency 1 $level $run
-			mpirun -n 16 ./consistency 1 $level $run &>> logFile
+			echo mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 1 $level $run
+			mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 1 $level $run &>> logFile
 			if [ $? != 0 ]; then
 				printFailure 1 $config $level
 				echo LOG:
@@ -85,8 +85,8 @@ for config in ${configs[@]}; do
 		cp ../configs/$config config.fti
 		printRun 2 $config $level
 		for run in 0 1 2; do
-			echo mpirun -n 16 ./consistency 2 $level $run
-			mpirun -n 16 ./consistency 2 $level $run &>> logFile
+			echo mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 2 $level $run
+			mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 2 $level $run &>> logFile
 			if [ $? != 0 ]; then
 				printFailure 2 $config $level
 				echo LOG:
@@ -117,8 +117,8 @@ for level in 1 2 3 4; do
 	cp ../configs/configH0I1Silent.fti config.fti
 	cp ../configs/configH0I1Silent.fti config2.fti
 	printRun 3 configH0I1Silent.fti $level
-	echo mpirun -n 16 ./consistency 3 $level
-	mpirun -n 16 ./consistency 3 $level 0 &>> logFile
+	echo mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 3 $level
+	mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 3 $level 0 &>> logFile
 	if [ $? != 0 ]; then
 		printFailure 3 configH0I1Silent.fti $level
 		echo LOG:
@@ -156,8 +156,8 @@ desc
 for level in 1 2 3 4; do
 	cp ../configs/configH0I1Silent.fti config.fti
 	printRun 4 configH0I1Silent.fti $level
-	echo mpirun -n 16 ./consistency 4 $level
-	mpirun -n 16 ./consistency 4 $level 0 &>> logFile
+	echo mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 4 $level
+	mpirun $MPIRUN_ARGS -n 16 ./consistency 'config.fti' 4 $level 0 &>> logFile
 	if [ $? != 0 ]; then
 		printFailure 4 configH0I1Silent.fti $level
 		echo LOG:

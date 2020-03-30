@@ -12,6 +12,8 @@
 #define THIRD (array + DATASET_SIZE*2)
 #define FOURTH (array + DATASET_SIZE*3)
 
+char *configfile;
+
 int* array;
 int world_rank;
 int world_size;
@@ -243,14 +245,15 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     int testCase;
-    if (argc != 4) {
-        if (global_world_rank == 0) printf("Argc == %d. Use: testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
+    if (argc != 5) {
+        if (global_world_rank == 0) printf("Argc == %d. Use: configfile, testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
     } else {
-        testCase = atoi(argv[1]);
-        checkpoint_level = atoi(argv[2]);
-        fail = atoi(argv[3]);
+        configfile = atoi(argv[1]);
+        testCase = atoi(argv[2]);
+        checkpoint_level = atoi(argv[3]);
+        fail = atoi(argv[4]);
         if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, fail = %d\n", testCase, checkpoint_level, fail);
     }
 
