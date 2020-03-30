@@ -30,9 +30,9 @@ void FTI_CloseGroup(FTIT_H5Group* ftiGroup, FTIT_H5Group** FTI_Group);
 int FTI_CreateGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_CloseGlobalDatasets( FTIT_execution* FTI_Exec );
 int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-                    FTIT_dataset* FTI_Data, char* fn);
+                    FTIT_keymap* FTI_Data, char* fn);
 int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_dataset* FTI_Data);
+        FTIT_keymap* FTI_Data);
 #endif
 
 #endif // __HDF5_FTI_H__

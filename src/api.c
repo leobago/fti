@@ -2563,7 +2563,7 @@ int FTI_RecoverVarInit(){
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 
-            res = FTI_RecoverVarInitHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, fn);
+            res = FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, fn);
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif
@@ -2621,7 +2621,7 @@ int FTI_RecoverVar(int id)
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
-            res = FTI_RecoverVarHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, id); 
+            res = FTI_RecoverVarHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id); 
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif
@@ -2680,7 +2680,7 @@ int FTI_RecoverVarFinalize(){
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 // --> If HDF5 is installed
-            res = FTI_RecoverVarFinalizeHDF5(FTI_Conf, FTI_Exec, FTI_Ckpt, FTI_Data, _file_id); 
+            res = FTI_RecoverVarFinalizeHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data); 
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif
