@@ -118,7 +118,7 @@ for level in 1 2 3 4; do
 	cp ../configs/configH0I1Silent.fti config2.fti
 	printRun 3 configH0I1Silent.fti $level
 	echo mpirun $MPIRUN_ARGS -n 16 ./consistency.exe 'config.fti' 3 $level
-	mpirun $MPIRUN_ARGS -n 16 ./consistency.exe 'config.fti' 3 $level 0 &>> logFile
+	mpirun $MPIRUN_ARGS -n 16 ./consistency.exe 'config.fti' 3 $level 0 'config2.fti' &>> logFile
 	if [ $? != 0 ]; then
 		printFailure 3 configH0I1Silent.fti $level
 		echo LOG:

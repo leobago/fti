@@ -47,7 +47,7 @@ test_case() {
     # If it fails, append the log into a file named after the test suite.
 
     # Create the FTI configfile based on the mock
-    cat "$itf_cfg_template" >$itf_cfgfile
+    fti_config_new $itf_cfgfile
 
     itf_param_clear    # Clear parameters from previous test case
     setup $@           # Call setup to declare arguments and other data

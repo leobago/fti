@@ -12,7 +12,7 @@
 #define THIRD (array + DATASET_SIZE*2)
 #define FOURTH (array + DATASET_SIZE*3)
 
-char *configfile;
+char *configfile, *configfile2;
 
 int* array;
 int world_rank;
@@ -220,7 +220,7 @@ int initReInit() {
 
 /* check for a correct restart without the crash of the application. */
 int reInit() {
-        int initres = FTI_Init("config2.fti", MPI_COMM_WORLD);
+        int initres = FTI_Init(configfile2, MPI_COMM_WORLD);
         int* array2 = malloc(sizeof(int)* ARRAY_SIZE);
         
         initArray(array2);
@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     int testCase;
-    if (argc != 5) {
+    if (argc < 5) {
         if (global_world_rank == 0) printf("Argc == %d. Use: configfile, testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
@@ -254,6 +254,7 @@ int main(int argc, char* argv[]) {
         testCase = atoi(argv[2]);
         checkpoint_level = atoi(argv[3]);
         fail = atoi(argv[4]);
+        configfile2 = argv[5];
         if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, fail = %d\n", testCase, checkpoint_level, fail);
     }
 

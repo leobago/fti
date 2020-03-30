@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# check for a correct restart without the crash of the application.
-#    for all levels:
-#        1. init fti
-#        2. perform checkpoint
-#        3. init fti
-#        4. finalize
+# check the behavior for two corner cases that involves two FTI_Init calls
+# This tests the restart functionality without crashing the application
+
+# First test (case 3) tests FTI_Init being called for two different problems.
+# Second test (case 4) tests FTI_Init recovering the app without a hard crash.
 
 setup() {
-    param_register 'level'
+    param_register 'level' 'scenario'
 }
 
 prepare_fti() {
@@ -22,13 +21,27 @@ prepare_fti() {
 
 runtest() {
     local app='cornerCases/consistency.exe'
-    local case='4'
     local run_type='0'
 
-    app_run_success $app $itf_cfgfile $case $level $run_type
+    if [ $scenario == "TwoProblems" ]; then
+        local case='3'
+        aux_cfgfile='/tmp/configfile2'
+        fti_config_copy $aux_cfgfile
+    elif [ $scenario == "NoCrash" ]; then
+        local case='4'
+    else
+        fail 'Scenario for two FTI_Init calls is invalid.'
+    fi
+
+    app_run_success $app $itf_cfgfile $case $level $run_type $aux_cfgfile
 
     grep -q "Error" $itf_tstdout
     check_non_zero $? 'Errors were found in FTI log file'
     grep -q "Warning" $itf_tstdout
     assert_not_equals 0 $? 'Warning were found in FTI log file'
+}
+
+teardown() {
+    rm -rf $aux_cfgfile
+    unset aux_cfgfile
 }

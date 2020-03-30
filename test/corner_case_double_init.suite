@@ -1,4 +1,8 @@
---level 1
---level 2
---level 3
---level 4
+--level 1 --scenario NoCrash
+--level 2 --scenario NoCrash
+--level 3 --scenario NoCrash
+--level 4 --scenario NoCrash
+--level 1 --scenario TwoProblems
+--level 2 --scenario TwoProblems
+--level 3 --scenario TwoProblems
+--level 4 --scenario TwoProblems

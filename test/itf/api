@@ -35,7 +35,7 @@ fti_config_set() {
     # $1: The field name in the configuration file
     # $2: The new value for the field
 
-    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
+    sed -i "/$1/c\\$1 = $2" $itf_cfgfile
     echo "config_set $1=$2" | tee -a $itf_tstdout # Test Feedback
 }
 
@@ -58,6 +58,24 @@ fti_config_set_ckpts() {
             fti_config_set "ckpt_l$i" "${!i}"
         fi
     done
+}
+
+fti_config_copy() {
+    # Creates a copy of the current config file
+    #
+    # Parameters:
+    # $1: The name of the copied config file
+
+    cat $itf_cfgfile > $1
+}
+
+fti_config_new() {
+    # Creates a new config file based on the template
+    #
+    # Parameters:
+    # $1: The name of the new config file
+
+    cat $itf_cfg_template > $1
 }
 
 # --------------------------- Fixture Test Helpers ----------------------------
