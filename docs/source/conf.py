@@ -62,7 +62,7 @@ read_the_docs_build = os.environ.get('READTHEDOCS') == 'True'
 
 if read_the_docs_build:
 
-	subprocess.call('cd ../../doc/Doxygen; doxygen Doxyfile.in', shell=True)
+	subprocess.call('cd ../../doc/Doxygen; doxygen Doxyfile-rtd.in', shell=True)
 
 
 breathe_projects= {"Fault Tolerance Library": "../../doc/Doxygen/xml"}
