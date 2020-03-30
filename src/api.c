@@ -2556,6 +2556,14 @@ int FTI_RecoverVarInit(){
     else {
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dir, FTI_Exec.ckptMeta.ckptFile);
     }
+    char str[FTI_BUFS];
+    if( FTI_Exec.nbVar != FTI_Exec.nbVarStored ) {
+        sprintf(str, "Checkpoint has %d protected variables, but FTI protects %d.",
+                FTI_Exec.nbVarStored, FTI_Exec.nbVar);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+    //Check if sizes of protected variables matches
     
 
     //switch case
@@ -2608,6 +2616,17 @@ int FTI_RecoverVarInit(){
 int FTI_RecoverVar(int id)
 {
     int res = FTI_NSCS;
+    
+    char str[FTI_BUFS];
+    FTIT_dataset* data;
+    FTI_Data->get(&data, id);
+    if (data->size != data->sizeStored) {
+        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                data->sizeStored, data->id,
+                data->size);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
 
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
