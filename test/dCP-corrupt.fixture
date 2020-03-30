@@ -18,7 +18,8 @@ prepare_fti() {
 }
 
 runtest() {
-    local app='local/diffckpt/checkDCPPosix.exe'
+    local dir='local'
+    local app="diffckpt/checkDCPPosix.exe"
     local crash_on_iter=1
     local diffsizes=0
 
@@ -28,6 +29,7 @@ runtest() {
         recovery=1
     fi
 
+    cd $dir
     app_run_success $app $itf_cfgfile $crash_on_iter $diffsizes $recovery
 
     for i in $(seq 1 6); do
@@ -43,7 +45,10 @@ runtest() {
         fi
     done
     grep -q "\[SUCCESSFUL\]" $itf_tstdout
-    assert_equals $? 0 'FTI should recover from corrupted data'
+    local retv=$?
+    
+    cd ..
+    assert_equals $retv 0 'FTI should recover from corrupted data'
 }
 
 teardown() {
