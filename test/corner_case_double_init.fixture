@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# check for a correct restart without the crash of the application.
+#    for all levels:
+#        1. init fti
+#        2. perform checkpoint
+#        3. init fti
+#        4. finalize
+
+setup() {
+    param_register 'level'
+}
+
+prepare_fti() {
+    fti_config_set 'head' '0'
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set 'ckpt_io' '1'
+    fti_config_set 'max_sync_interval' '512'
+    fti_config_set_ckpts '1' '2' '3' '4'
+    fti_config_set_inline
+}
+
+runtest() {
+    local app='cornerCases/consistency.exe'
+    local case='4'
+    local run_type='0'
+
+    app_run_success $app $itf_cfgfile $case $level $run_type
+
+    grep -q "Error" $itf_tstdout
+    check_non_zero $? 'Errors were found in FTI log file'
+    grep -q "Warning" $itf_tstdout
+    assert_not_equals 0 $? 'Warning were found in FTI log file'
+}
