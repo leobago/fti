@@ -79,10 +79,17 @@ app_run() {
 
     echo "app_run" | tee -a $itf_tstdout
     echo "parameters: $@" &>>$itf_tstdout
-    (
-        set -x
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
-    )
+    if [ $itf_verbose -eq 1 ]; then
+        (
+            set -x
+            mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
+        )
+    else
+        (
+            set -x
+            mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        )
+    fi
     local _retval=$?
     echo "returns $_retval" | tee -a $itf_tstdout
     return $_retval

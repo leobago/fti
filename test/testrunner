@@ -60,6 +60,11 @@ declare -a arguments=()
 nargs=0
 while [[ $# -gt 0 ]]; do
     case $1 in
+    -v | --verbose)
+        # Makes ITF output the application log in the terminal
+        itf_verbose=1
+        shift
+        ;;
     -s | --suite)
         # Runs one fixture with one custom suite
         suitename="$2"
