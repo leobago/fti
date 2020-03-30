@@ -42,7 +42,6 @@
 #include <dirent.h>
 
 hid_t _file_id;
-FTIT_dataset* data;
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -1289,7 +1288,7 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     int res = FTI_SCES;
 
     int nbVar = (FTI_Exec->h5SingleFile) ? FTI_Exec->nbVar : FTI_Exec->nbVarStored;
-    //FTIT_dataset* data;
+    FTIT_dataset* data;
 
     if( FTI_Exec->h5SingleFile ) {
         snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
@@ -1301,7 +1300,7 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     
-    DBG_MSG("file_id: %lld", -1, _file_id);
+    //DBG_MSG("file_id: %lld", -1, _file_id);
     if (_file_id < 0) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         res = FTI_NSCS;
@@ -1314,12 +1313,13 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     for (i = 0; i < FTI_Exec->H5groups[0]->childrenNo; i++) {
         FTI_OpenGroup(FTI_Exec->H5groups[rootGroup->childrenID[i]], _file_id, FTI_Exec->H5groups);
     }
+	
 
     if( FTI_Data->data( &data, nbVar ) != FTI_SCES ){
         return FTI_NSCS;
     } 
 
-    for (i = 0; i < FTI_Exec->nbVar; i++) {
+    for (i = 0; i < FTI_Exec->nbVarStored; i++) {
         FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
 
@@ -1369,6 +1369,12 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     //FTIT_dataset* data; 
 
     //if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
+   	FTIT_dataset* data;
+ 
+	if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
+        FTI_Print("failed to recover", FTI_EROR);
+        return FTI_NREC;
+    } // checks if error in function call to get
 
     if(!data) {
         FTI_Print("could not find ID!", FTI_WARN);
@@ -1407,12 +1413,15 @@ int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
         FTIT_keymap* FTI_Data)
 {
     int res = FTI_NSCS; 
-    //FTIT_dataset* data;
+    FTIT_dataset* data;
 
     //if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
 
     int i;
     int nbVar = (FTI_Exec->h5SingleFile) ? FTI_Exec->nbVar : FTI_Exec->nbVarStored;
+    if( FTI_Data->data( &data, nbVar ) != FTI_SCES ){
+        return FTI_NSCS;
+    } 
     for (i = 0; i < nbVar; i++) {
         FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
