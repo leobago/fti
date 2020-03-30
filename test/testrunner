@@ -53,7 +53,7 @@ execute_suite() {
     itf_unload_fixture
 }
 
-source testengine
+source 'itf/engine'
 declare -a arguments=()
 
 # Parse the command line outputs, extracts the relevant and maintain the rest
@@ -73,7 +73,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     -t | --set-timeout)
         # Change the engine's timeout time on timed app runs
-        itf_set_timeout $2
+        itf_timeout=$2
         shift
         shift
         ;;
