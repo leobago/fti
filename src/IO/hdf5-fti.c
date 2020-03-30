@@ -1300,11 +1300,9 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
         _file_id = H5Fopen(fn, H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     
-    //DBG_MSG("file_id: %lld", -1, _file_id);
     if (_file_id < 0) {
         FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
         res = FTI_NSCS;
-        //exit(-1);
     }
     FTI_Exec->H5groups[0]->h5groupID = _file_id;
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
@@ -1322,12 +1320,6 @@ int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exe
     for (i = 0; i < FTI_Exec->nbVarStored; i++) {
         FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
     }
-
-    /*for (i = 0; i < FTI_Exec->nbVar; i++) {
-        if (FTI_Data[i].id == id) {
-            break;
-        }
-    }*/
     
     if( FTI_Exec->h5SingleFile ) { 
         FTI_OpenGlobalDatasets( FTI_Exec );
@@ -1351,24 +1343,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 {
     int res = FTI_NSCS;
 
-    /*int activeID, oldID;
-    if(findVarInMeta(&FTI_Exec, FTI_Data, id, &activeID, &oldID) != FTI_NSCS){
-        if( FTI_Exec->h5SingleFile ) {
-            res = FTI_ReadSharedFileData(FTI_Data[activeID]);
-        } else {
-            res = FTI_ReadHDF5Var(&FTI_Data[activeID]);
-        }
-        if(res < 0 || res == FTI_NSCS){
-            FTI_Print("Could not read variable.", FTI_EROR);
-        }else{
-            res = FTI_SCES;
-        }
-    }*/
-    //herr_t res;
-
-    //FTIT_dataset* data; 
-
-    //if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
    	FTIT_dataset* data;
  
 	if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
@@ -1387,15 +1361,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         res = FTI_ReadHDF5Var(data);
     }
 
-    /*if (res < 0) {
-        FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
-        int j;
-        for (j = 0; j < FTI_Exec->H5groups[0]->childrenNo; j++) {
-            FTI_CloseGroup(FTI_Exec->H5groups[rootGroup->childrenID[j]], FTI_Exec->H5groups);
-        }
-        H5Fclose(file_id);
-        return FTI_NREC;
-    }*/
     return res;
 }
 
@@ -1414,8 +1379,6 @@ int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
 {
     int res = FTI_NSCS; 
     FTIT_dataset* data;
-
-    //if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
 
     int i;
     int nbVar = (FTI_Exec->h5SingleFile) ? FTI_Exec->nbVar : FTI_Exec->nbVarStored;
