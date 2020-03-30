@@ -45,5 +45,5 @@ Phone : +34 934 13 77 16
 
 
 
-Authors: Kai Keller, Tomasz Paluszkiewicz, Karol Sierocinski
+
 
