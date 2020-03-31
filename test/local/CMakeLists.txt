@@ -1,3 +1,13 @@
+enable_testing()
+
+# Add the local tag to all CTests defined here
+list(APPEND test_labels_current "local")
+
+# Declare all local test suites
+set(test_local_suites
+  "recoverVar" "recoverName" "diffckpt"
+  "staging" "variateProcessorRestart" "keepL4Ckpt")
+
 if (ENABLE_GPU)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
@@ -11,13 +21,10 @@ else ()
 endif()
 set(CMAKE_VERBOSE_MAKEFILE on)
 
-# Test applications
-add_subdirectory(recoverVar)
-add_subdirectory(recoverName)
-add_subdirectory(diffckpt)
-add_subdirectory(staging)
-add_subdirectory(variateProcessorRestart)
-add_subdirectory(keepL4Ckpt)
+# Include all local test suites
+foreach(tcase ${test_local_suites})
+  add_subdirectory(${tcase})
+endforeach(tcase)
 
 target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
@@ -29,7 +36,6 @@ if (ENABLE_GPU)
   set_property(TARGET check-gpu.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
   set_property(TARGET checkAll.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endif()
-
  
 
 if(ENABLE_FORTRAN)
@@ -98,6 +104,8 @@ configure_file(keepL4Ckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/keepL4Ckpt/Mak
 configure_file(keepL4Ckpt/checkKL4.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkKL4.sh @ONLY)
 configure_file(staging/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/staging/Makefile @ONLY)
 configure_file(staging/checkGIO.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkGIO.sh @ONLY)
+list(APPEND test_current_labels )
+
 if(ENABLE_HDF5)
 configure_file(variateProcessorRestart/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/variateProcessorRestart/Makefile @ONLY)
 configure_file(variateProcessorRestart/checkVPR.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkVPR.sh @ONLY)
@@ -128,3 +136,5 @@ endif()
 file(REMOVE run-checks-f90.sh)
 file(REMOVE run-travis-locally.sh)
 file(REMOVE check_functions.mod)
+
+list(REMOVE_ITEM test_labels_current "local")

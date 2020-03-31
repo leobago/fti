@@ -14,10 +14,14 @@ itf_load_fixture() {
     # Parameters:
     # $1: The fixture name without the .fixture extension
 
-    itf_loaded_fixture="$1"
+    set -e
+
+    itf_loaded_fixture="$(basename "$1")"
     itf_fixture_had_errors='false'
     source "$1"
     itf_clear_logs
+
+    set +e
 }
 
 itf_unload_fixture() {
@@ -137,6 +141,8 @@ itf_append_logs() {
     #
     # Parameters:
     # $1: The test status
+    
+    set -e
 
     # A log containing stdout of failed tests
     local faillog="$(itf_get_fixture_failure_log)"
@@ -167,6 +173,8 @@ itf_append_logs() {
         cat $itf_tstdout >>$normallog
         echo "" >>$faillog # line feed
     fi
+
+    set +e
 }
 
 # --------------------------- ITF Interal functions ---------------------------

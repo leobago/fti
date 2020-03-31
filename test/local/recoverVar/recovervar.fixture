@@ -1,42 +1,18 @@
 #!/bin/bash
 
-shortname()
-{
-    echo "recovervar"
+setup() {
+    head=0
+    keep=0
+    param_register 'iolib' 'level' 'diffsize'
 }
 
-name()
-{
-    echo "$(shortname) io=$(iolib_id_to_name $iolib) L=$level head=0 keep=0 inline=(1,1,1)"
+runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/recoverVar.exe'
+    app_run_success $app $itf_cfgfile 1 $level 1
+    app_run_timeout $app $itf_cfgfile 0 $level $diffsize
+    assert_equals $? 0 "recoverVar.exe failed with output: $?"
 }
 
-setup()
-{
-    cfgfile="/tmp/configfile"
-
-    iolib=$1
-    level=$2
-    diffsize=$3
-
-    fti_config_new "$cfgfile"
-    fti_config_set "$cfgfile" "ckpt_io" "$iolib"
-    fti_config_set "$cfgfile" "keep_last_ckpt" "0"
-}
-
-teardown()
-{
-    unset cfgfile
-    unset iolib
-    unset level
-    rm -rf "$cfgfile"
-}
-
-runtest()
-{
-    app_run_normal ./recoverVar/recoverVar.exe $cfgfile 1 $level 1
-    
-    run_id=$(fti_config_get "$cfgfile" "exec_id")
-
-    app_run_interrupt ./recoverVar/recoverVar.exe $cfgfile 0 $level $diffsize
-    assert_app_success $?
+teardown() {
+    unset head keep
 }

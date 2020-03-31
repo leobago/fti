@@ -1,3 +1,10 @@
+enable_testing()
+
+# Install ITF Test Fixtures/Suites
+foreach(tcase "recovervar")
+    InstallSuiteITFConvention(${tcase} ${test_labels_current})
+endforeach(tcase)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 add_executable(recoverVar.exe checkRecoverVar.c)
