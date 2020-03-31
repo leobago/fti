@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# check the behavior for two corner cases that involves two FTI_Init calls
+# This tests the restart functionality without crashing the application
+
+# First test (case 3) tests FTI_Init being called for two different problems.
+# Second test (case 4) tests FTI_Init recovering the app without a hard crash.
+
+setup() {
+    param_register 'level' 'run_type' 'head' 'inline'
+}
+
+prepare_fti() {
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set 'ckpt_io' '1'
+    fti_config_set 'max_sync_interval' '512'
+    fti_config_set_ckpts '1' '2' '3' '4'
+
+    if [ $inline -eq 1 ]; then
+        fti_config_set_inline
+    fi
+}
+
+runtest() {
+    local app='cornerCases/consistency.exe'
+    local case='2'
+
+    app_run_success $app $itf_cfgfile $case $level $run_type
+
+    grep -q "Error" $itf_tstdout
+    check_non_zero $? 'Errors were found in FTI log file'
+}
+
+teardown() {
+    rm -rf $aux_cfgfile
+    unset aux_cfgfile
+}
