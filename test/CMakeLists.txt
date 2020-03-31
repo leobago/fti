@@ -1,3 +1,4 @@
+
 add_executable(addInArray addInArray.c)
 target_link_libraries(addInArray fti.static)
 
@@ -41,7 +42,7 @@ file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
 
-# --- ITF engine Integration ---
+# --------------------------- ITF engine Integration --------------------------
 
 # The test directory
 set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -49,18 +50,18 @@ set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(itf)
 
 function(DeclareITFSuite FixtureName)
-# Declares an ITF CTest and assign it label with the remaining parameters
+  # Declares an ITF CTest and assign it label with the remaining parameters
 
-message("Adding CTests calling ITF for fixture: ${FixtureName}")
+  message("Adding CTests calling ITF for fixture: ${FixtureName}")
 
-# Define the test rule using the fixtures
-add_test(NAME ${FixtureName} WORKING_DIRECTORY ${TEST_DIR}
-  COMMAND testrunner ${CMAKE_CURRENT_BINARY_DIR}/${FixtureName})
+  # Define the test rule using the fixtures
+  add_test(NAME ${FixtureName} COMMAND
+    ${itf_run_cmd} ${CMAKE_CURRENT_BINARY_DIR}/${FixtureName})
 
-# Attribute the a label to every test in the suite
-set_property(TEST ${FixtureName} PROPERTY LABELS ${ARGN})
+  # Attribute the a label to every test in the suite
+  set_property(TEST ${FixtureName} PROPERTY LABELS ${ARGN})
 
-message("CTest Suite ${FixtureName} has the following labels: ${FixtureName} ${ARGN}")
+  message("CTest Suite ${FixtureName} has the following labels: ${FixtureName} ${ARGN}")
 endfunction()
 
 function(InstallSuiteITFConvention FixturePreffix)
@@ -70,25 +71,9 @@ function(InstallSuiteITFConvention FixturePreffix)
   configure_file("${FixturePreffix}.suite" ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
   DeclareITFSuite("${FixturePreffix}" ${ARGN})
 endfunction()
-  
-file(INSTALL testrunner DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_WRITE)
-# End of ITF engine
 
-# ITF suites
-file(INSTALL recoverName.fixture DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-file(INSTALL recoverName.suite DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
+# ---------------------- Inclusion of Test subdirectories ---------------------
 
-file(INSTALL vpr.fixture DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-file(INSTALL vpr.suite DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-
-file(INSTALL standard.fixture DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-file(INSTALL standard.suite DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-
-file(INSTALL standard-disrupt.fixture DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-file(INSTALL standard-disrupt.suite DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
-# End of ITF suites
-
-# Test subdirectories
 set(test_subdirs "local")
 
 foreach(test_dir ${test_subdirs})

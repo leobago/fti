@@ -1,9 +1,44 @@
 enable_testing()
 
-# Add the local tag to all CTests defined here
+# TODO: Deprecated after full ITF merge
+set(IO 1)
+set(IO_NAMES "POSIX MPIIO FTIFF")
+set(IO_IDS "1 2 3")
+set(MEMORYTYPES "CPU")
+
+# TODO: Deprecated after full ITF merge
+if(ENABLE_HDF5)
+  SET(DO_VPR_CHECK true)
+else()
+  SET(DO_VPR_CHECK false)
+endif()
+
+# TODO: Deprecated after full ITF merge
+if(ENABLE_SIONLIB)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} SIONLIB")
+  set(IO_IDS "${IO_IDS} 4")
+endif()
+
+# TODO: Deprecated after full ITF merge
+if (ENABLE_HDF5)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} HDF5")
+  set(IO_IDS "${IO_IDS} 5")
+endif()
+
+if (ENABLE_GPU)
+  add_subdirectory(dCPGPU)
+  if(ENABLE_HDF5)
+    add_subdirectory(hdf5GPU)
+  endif()
+endif()   
+
+
+# ------------------------------ ITF Test Suites ------------------------------
+
 list(APPEND test_labels_current "local")
 
-# Declare all local test suites
 set(test_local_suites
   "recoverVar" "recoverName" "diffckpt"
   "staging" "variateProcessorRestart" "keepL4Ckpt")
@@ -12,6 +47,10 @@ set(test_local_suites
 foreach(tcase ${test_local_suites})
   add_subdirectory(${tcase})
 endforeach(tcase)
+
+# -----------------------------------------------------------------------------
+
+set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
 
 if (ENABLE_GPU)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
@@ -47,34 +86,6 @@ if(ENABLE_FORTRAN)
 	    target_compile_definitions(fcheck.exe PRIVATE -DMPI_USE_HEADER)
     endif()
 	target_compile_options(fcheck.exe PRIVATE -cpp)
-endif()
-
-set(IO 1)
-set(IO_NAMES "POSIX MPIIO FTIFF")
-set(MEMORYTYPES "CPU")
-set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
-if(ENABLE_HDF5)
-    SET(DO_VPR_CHECK true)
-else()
-    SET(DO_VPR_CHECK false)
-endif()
-
-
-if(ENABLE_SIONLIB)
-    MATH(EXPR IO "${IO}+1")
-    set(IO_NAMES "${IO_NAMES} SIONLIB")
-endif()
-
-if (ENABLE_GPU)
-        add_subdirectory(dCPGPU)
-        if(ENABLE_HDF5)
-            add_subdirectory(hdf5GPU)
-        endif()
-endif()        
-
-if (ENABLE_HDF5)
-            MATH(EXPR IO "${IO}+1")
-            set(IO_NAMES "${IO_NAMES} HDF5")
 endif()
 
 

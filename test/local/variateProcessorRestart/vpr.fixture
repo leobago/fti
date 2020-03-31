@@ -3,8 +3,6 @@
 setup() {
     param_register 'head' 'icp' 'recovervar'
     iolib="$(iolib_name_to_id 'HDF5')"
-
-    app='local/variateProcessorRestart/test.exe'
 }
 
 prepare_fti() {
@@ -20,6 +18,8 @@ prepare_fti() {
 }
 
 runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/test.exe'
+
     app_run_success $app $itf_cfgfile $icp $recovervar
     app_run_success $app $itf_cfgfile $icp $recovervar
 
@@ -37,5 +37,5 @@ runtest() {
 }
 
 teardown() {
-    unset app iolib
+    unset iolib
 }
