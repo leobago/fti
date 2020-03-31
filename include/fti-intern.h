@@ -94,6 +94,8 @@
 /** Token for IO mode SIONlib.                                             */
 #define FTI_IO_SIONLIB 1004
 #endif
+#define FTI_IO_IME 1006
+/** Token for IO mode MPI.                                                 */
 
 #define MAX_STACK_SIZE 10
 

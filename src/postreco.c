@@ -880,6 +880,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     switch(FTI_Conf->ioMode) {
         case FTI_IO_FTIFF:
         case FTI_IO_HDF5:
+        case FTI_IO_IME:
         case FTI_IO_POSIX:
             return FTI_RecoverL4Posix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         case FTI_IO_MPI:

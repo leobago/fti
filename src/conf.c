@@ -438,6 +438,9 @@ CHECK_DCP_SETTING_END:
         case FTI_IO_POSIX:
             FTI_Print("Selected Ckpt I/O is POSIX", FTI_INFO);
             break;
+        case FTI_IO_IME:
+            FTI_Print("Selected Ckpt I/O is IME", FTI_INFO);
+            break;
         case FTI_IO_MPI:
             FTI_Print("Selected Ckpt I/O is MPI-I/O", FTI_INFO);
             break;

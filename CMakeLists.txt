@@ -99,6 +99,7 @@ option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
+option(ENABLE_IME_NATIVE "Enables the IME native API" OFF)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
@@ -179,6 +180,10 @@ if (ENABLE_SIONLIB)
     message("${SRC_FTI}")
 endif()
 
+if (ENABLE_IME_NATIVE)
+    list(APPEND SRC_FTI "src/IO/ime.c")
+    message("${SRC_FTI}")
+endif()
 
 if (ENABLE_GPU)
 set(
@@ -298,6 +303,21 @@ if(ENABLE_SIONLIB)
     target_link_libraries(fti.static "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     target_link_libraries(fti.shared "${SIONLIB_MPI}" "${SIONLIB_GEN}" "${SIONLIB_SER}" "${SIONLIB_COM}" "${SIONLIB_COM_LOCK}")
     add_definitions(-DENABLE_SIONLIB)
+endif()
+
+if(ENABLE_IME_NATIVE)
+    if (IMELIBBASE)
+        set(IMELIBBASE "" CACHE FILEPATH "base path to IME client lib installation")
+    else()
+        set(IMELIBBASE "/opt/ddn/ime/" CACHE FILEPATH "base path to IME client lib installation" FORCE)
+    endif()
+    set(IMELIB_INCLUDE_DIR "${IMELIBBASE}/include/")
+    include_directories("${IMELIB_INCLUDE_DIR}")
+    set(IMELIB_CFLAGS "-I${IMELIB_INCLUDE_DIR}")
+    find_library(IMELIB NAMES "im_client" PATHS ${IMELIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    target_link_libraries(fti.static "${IMELIB}")
+    target_link_libraries(fti.shared "${IMELIB}")
+    add_definitions(-DENABLE_IME_NATIVE)
 endif()
 
 

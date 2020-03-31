@@ -487,7 +487,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         free(myData);
         fclose(lfd);
         fclose(efd);
-        
 
         long fs = FTI_Exec->ckptMeta.fs; //ckpt file size
 
@@ -556,7 +555,8 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_FlushH5SingleFile( FTI_Exec, FTI_Conf, FTI_Topo );
                 break;
             }
-        case FTI_IO_POSIX:
+        case FTI_IO_IME:
+	case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;
         case FTI_IO_MPI:
@@ -569,7 +569,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 #endif
     }
     //}
-    return FTI_SCES;
+return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
