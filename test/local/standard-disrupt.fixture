@@ -10,15 +10,13 @@ prepare_fti() {
 }
 
 runtest() {
-    local dir='local'
-    local app='check.exe'
+    local app='@CMAKE_CURRENT_BINARY_DIR@/check.exe'
     local _crash=0
     if [ $keep -eq 0 ]; then
         # Simulate a crash when not keeping last checkpoint
         local _crash=1
     fi
 
-    cd $dir
     app_run_success $app $itf_cfgfile $_crash $level $diffsize $icp
 
     case $consecutive in
@@ -36,8 +34,6 @@ runtest() {
     app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp
     local retv=$?
     
-    cd ..
-
     if [ $expected == 'success' ]; then
         assert_equals $retv 0 'FTI should succeed in the informed scenario'
     else

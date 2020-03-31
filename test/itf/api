@@ -333,7 +333,7 @@ iolib_name_to_id() {
         let __idx=$__idx+1
     done
     unset __idx
-    fail "invalid IO name: $1"
+    return 1
 }
 
 iolib_id_to_name() {
@@ -355,5 +355,5 @@ iolib_id_to_name() {
         let __idx=$__idx+1
     done
     unset __idx
-    fail "invalid IO id: $1"
+    return 1
 }

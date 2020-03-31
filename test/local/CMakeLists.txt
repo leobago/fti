@@ -48,6 +48,12 @@ foreach(tcase ${test_local_suites})
   add_subdirectory(${tcase})
 endforeach(tcase)
 
+# TODO: Refactor this when ITF is fully merged
+list(APPEND test_labels_current "standard")
+InstallSuiteITFConvention("standard" ${test_labels_current})
+InstallSuiteITFConvention("standard-disrupt" ${test_labels_current})
+list(REMOVE_ITEM test_labels_current "standard")
+
 # -----------------------------------------------------------------------------
 
 set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
