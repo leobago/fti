@@ -1662,6 +1662,14 @@ int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTI
                     FTI_Print( str, FTI_EROR );
                     return FTI_NSCS;
                 }
+    
+                if (data->size != data->sizeStored) {
+                    sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                            data->sizeStored, data->id,
+                            data->size);
+                    FTI_Print(str, FTI_WARN);
+                    return FTI_NREC;
+                }
 
                 destptr = (char*) data->ptr + currentdbvar->dptr;
                 srcptr = (char*) filemmap + currentdbvar->fptr;

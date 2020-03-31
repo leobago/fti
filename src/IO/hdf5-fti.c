@@ -1410,29 +1410,6 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
 {
     FTIT_dataset* data;
     char str[FTI_BUFS], fn[FTI_BUFS];
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
-
-    if( FTI_Exec->h5SingleFile ) {
-        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
-    }
-
-    sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
-    FTI_Print(str, FTI_DBUG);
-
-    int i;
-    int nbVar = FTI_Exec->nbVar;
-    if( FTI_Data->data( &data, nbVar ) != FTI_SCES ) return FTI_NSCS;
-
-    for (i = 0; i < nbVar; i++) {
-        FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
-    }
-
-
-    if( FTI_Exec->h5SingleFile ) { 
-        FTI_OpenGlobalDatasets( FTI_Exec );
-    }
-
-    herr_t res;
 
     if( FTI_Data->get( &data, id ) != FTI_SCES ) return FTI_NSCS;
 
@@ -1440,6 +1417,31 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
         FTI_Print("could not find ID!", FTI_WARN);
         return FTI_NSCS;
     }
+    
+    FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
+
+    if( FTI_Exec->h5SingleFile ) { 
+        FTI_OpenGlobalDatasets( FTI_Exec );
+    }
+
+    herr_t res;
+
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
+
+    if( FTI_Exec->h5SingleFile ) {
+        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId );
+    } else {
+        if (data->size != data->sizeStored) {
+            sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                    data->sizeStored, data->id,
+                    data->size);
+            FTI_Print(str, FTI_WARN);
+            return FTI_NREC;
+        }
+        sprintf(str, "Trying to load FTI checkpoint file (%s)...", fn);
+    }
+
+    FTI_Print(str, FTI_DBUG);
 
     if( FTI_Exec->h5SingleFile ) {
         res = FTI_ReadSharedFileData( *data );
@@ -1450,11 +1452,8 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, F
     if (res < 0) {
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
     }
-
-    if( FTI_Data->data( &data, nbVar) != FTI_SCES ) return FTI_NSCS;
-    for (i = 0; i < nbVar; i++) {
-        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
-    }
+    
+    FTI_CloseComplexType(data->type, FTI_Exec->FTI_Type);
 
     if( FTI_Exec->h5SingleFile ) { 
         FTI_CloseGlobalDatasets( FTI_Exec );

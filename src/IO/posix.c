@@ -341,6 +341,7 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id, FILE* fileposix)
 {
     int res = FTI_NSCS; 
+    char str[FTI_BUFS];
 
     FTIT_dataset* data;
 
@@ -348,6 +349,15 @@ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int i
         FTI_Print("failed to recover variable.", FTI_EROR);
         return FTI_NREC;
     } 
+    
+    if (data->size != data->sizeStored) {
+        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                data->sizeStored, data->id,
+                data->size);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+
     long filePos = data->filePos;
     if(fseek(fileposix, filePos, SEEK_SET) == 0){
         fread(data->ptr, 1, data->size, fileposix); 

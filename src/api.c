@@ -2615,17 +2615,6 @@ int FTI_RecoverVar(int id)
 {
     int res = FTI_NSCS;
     
-    char str[FTI_BUFS];
-    FTIT_dataset* data;
-    FTI_Data->get(&data, id);
-    if (data->size != data->sizeStored) {
-        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                data->sizeStored, data->id,
-                data->size);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
-
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
