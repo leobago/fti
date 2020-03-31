@@ -35,4 +35,3 @@ set_property(TARGET diff_test.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_
 set_property(TARGET diff_test.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
 list(REMOVE_ITEM test_labels_current ${diff_test_labels})
-message("${test_labels_current}")

@@ -8,6 +8,11 @@ set(test_local_suites
   "recoverVar" "recoverName" "diffckpt"
   "staging" "variateProcessorRestart" "keepL4Ckpt")
 
+# Include all local test suites
+foreach(tcase ${test_local_suites})
+  add_subdirectory(${tcase})
+endforeach(tcase)
+
 if (ENABLE_GPU)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
@@ -20,11 +25,6 @@ else ()
   add_executable(check.exe check.c)
 endif()
 set(CMAKE_VERBOSE_MAKEFILE on)
-
-# Include all local test suites
-foreach(tcase ${test_local_suites})
-  add_subdirectory(${tcase})
-endforeach(tcase)
 
 target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
