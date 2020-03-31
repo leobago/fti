@@ -160,6 +160,7 @@ int main(int argc, char* argv[]) {
     }
     else if ( state == RESTART || state == KEEP ) {
         shuffle(order,10);
+        FTI_RecoverVarInit();
         for ( int i = 0; i < 10 ; i++){
             int index = order[i];
             FTI_Protect(index,array[index], sizes[index], FTI_INTG); 
@@ -172,6 +173,7 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        FTI_RecoverVarFinalize();
         for ( int i = 0; i < 10 ; i++){
             correct &= checkCorrectness(array[i],sizes[i],i);
         }

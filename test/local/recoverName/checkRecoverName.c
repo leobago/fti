@@ -176,21 +176,21 @@ int main(int argc, char* argv[]) {
     }
     else if ( state == RESTART || state == KEEP ) {
         shuffle(order,10);
+        int res = FTI_RecoverVarInit();
         for ( int i = 0; i < 10 ; i++){
             int index = order[i];
             int FTI_id = FTI_getIDFromString(names[index]); 
             printf("I am getting id %d when searching for %s\n",FTI_id,names[index]);
             FTI_Protect(FTI_id,array[index], sizes[index], FTI_INTG); 
-            FTI_RecoverVarInit();
-            int res = FTI_RecoverVar(FTI_id);
-            FTI_RecoverVarFinalize();
-            if (res != FTI_SCES ){
-                if (result != FTI_SCES) {
-                    exit(RECOVERY_FAILED);
-                }
-            }
+            res += FTI_RecoverVar(FTI_id);
         }
-        for ( int i = 0; i < 10 ; i++){
+	res += FTI_RecoverVarFinalize();
+        if (res != FTI_SCES ){
+            if (result != FTI_SCES) {
+            exit(RECOVERY_FAILED);
+            }
+        }        
+	for ( int i = 0; i < 10 ; i++){
             correct &= checkCorrectness(array[i],sizes[i],i);
         }
         MPI_Barrier(FTI_COMM_WORLD);

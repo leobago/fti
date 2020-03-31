@@ -343,6 +343,7 @@ int recover( int* ids, int nids )
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     if( RECOVERVAR ) {
         shuffle( ids, nids );
+        FTI_RecoverVarInit();
         int i;
         FTI_RecoverVarInit();
         for(i=0; i<nids; i++) {

@@ -113,6 +113,8 @@ extern "C" {
   int FTI_setIDFromString( char *name );
   int FTI_getIDFromString( char *name );
   int FTI_GetConfig(const char* configFile, MPI_Comm globalComm, FTIT_allConfiguration FTI_allconf);
+  int FTI_RecoverVarInit();
+  int FTI_RecoverVarFinalize();
 
 
 #ifdef __cplusplus

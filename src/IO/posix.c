@@ -39,6 +39,8 @@
 
 #include "../interface.h"
 
+FILE* fileposix;
+
 int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
 {
     FTI_Exec->wasLastOffline = 1;
@@ -301,3 +303,79 @@ void FTI_PosixMD5(unsigned char *dest, void *md5)
     WritePosixInfo_t *write_info =(WritePosixInfo_t *) md5;
     MD5_Final(dest,&(write_info->integrity));
 }
+
+/**
+  @brief      Initializes variable recovery for POSIX mode
+  @param      fn                        ckpt file                 
+  @return     Integer                   FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarInitPOSIX(char* fn)
+{
+    int res = FTI_NSCS;
+    fileposix = fopen(fn, "rb");
+    if (fileposix == NULL) {
+      FTI_Print("Could not open FTI checkpoint file.", FTI_EROR);
+    }else{
+      res = FTI_SCES;
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Recovers variable for POSIX mode
+  @param      FTI_Conf        Configuration metadata.
+  @param      FTI_Exec        Execution metadata.
+  @param      FTI_Topo        Topology metadata.
+  @param      FTI_Ckpt        Checkpoint metadata.
+  @param      FTI_Data        Dataset metadata.
+  @param      id              variable id                
+  @param      FILE*           File handle
+  @return     Integer         FTI_SCES if successful
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
+FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id, FILE* fileposix)
+{
+    int res = FTI_NSCS; 
+
+    FTIT_dataset* data;
+
+    if( (FTI_Data->get( &data, id ) != FTI_SCES) ) {
+        FTI_Print("failed to recover variable.", FTI_EROR);
+        return FTI_NREC;
+    } 
+    long filePos = data->filePos;
+    if(fseek(fileposix, filePos, SEEK_SET) == 0){
+        fread(data->ptr, 1, data->size, fileposix); 
+        if (ferror(fileposix)) {
+            FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
+        }else{
+            res = FTI_SCES;
+        }
+    }
+    return res;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Finalizes variable recovery for POSIX mode
+  @param      FILE*                     File handle                
+  @return     Integer                   FTI_SCES if successful 
+                                        
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_RecoverVarFinalizePOSIX(FILE* fileposix)
+{
+    int res = FTI_NSCS;
+    if (fclose(fileposix) != 0) {
+        FTI_Print("Could not close FTI checkpoint file.", FTI_EROR);
+    }else{
+        res = FTI_SCES;
+    }
+    return res;
+}
+

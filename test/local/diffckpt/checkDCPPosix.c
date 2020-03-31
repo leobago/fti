@@ -260,16 +260,16 @@ int main(int argc, char* argv[]) {
         else {
             int order[4] = {0,1,2,3};
             shuffle(order,4);
+	    result = FTI_RecoverVarInit();
             for ( i = 0; i < 4; i++){
                 if  ( lrank == 0 ){
                     printf("Recovering Var %d\n", order[i]);
                 }
-                FTI_RecoverVarInit();
-                result = FTI_RecoverVar(order[i]);
-                FTI_RecoverVarFinalize();
-                if (result != FTI_SCES) {
-                    exit(RECOVERY_FAILED);
-                }
+                result += FTI_RecoverVar(order[i]);
+            }
+	    result += FTI_RecoverVarFinalize();
+            if (result != FTI_SCES) {
+                exit(RECOVERY_FAILED);
             }
         }
 
