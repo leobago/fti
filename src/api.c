@@ -2519,31 +2519,6 @@ int FTI_Finalize()
     return FTI_SCES;
 }
 
-int FTI_RecoverVarInit()
-{
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        //DBG_MSG("I GET CALLED",-1);
-        return FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt);
-    }
-#endif
-    
-    return FTI_SCES;
-
-}
-
-int FTI_RecoverVarFinalize()
-{
-#ifdef ENABLE_HDF5 //If HDF5 is installed
-    if (FTI_Conf.ioMode == FTI_IO_HDF5) {
-        return FTI_RecoverVarFinalizeHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data);
-    }
-#endif
-    
-    return FTI_SCES;
-
-}
-
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Initializes recovery of variable
@@ -2594,7 +2569,7 @@ int FTI_RecoverVarInit(){
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 
-            res = FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, fn);
+            res = FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt);
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif

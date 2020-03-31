@@ -1322,7 +1322,6 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarInitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt)
 {
-    FTIT_dataset* data;
     char str[FTI_BUFS], fn[FTI_BUFS];
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec->ckptLvel].dir, FTI_Exec->ckptMeta.ckptFile);
 
@@ -2128,11 +2127,11 @@ int FTI_GetDatasetRankFlush( hid_t oid )
   @return     integer   rank of attribute.
  **/
 /*-------------------------------------------------------------------------*/
-hid_t FTI_GetDatasetTypeFlush( hid_t did )
+hid_t FTI_GetDatasetTypeFlush( hid_t gid )
 {
     char objname[FTI_BUFS];
-    H5Gget_objname_by_idx( did, 0, objname, FTI_BUFS );
-    hid_t did = H5Dopen( did, objname, H5P_DEFAULT );
+    H5Gget_objname_by_idx( gid, 0, objname, FTI_BUFS );
+    hid_t did = H5Dopen( gid, objname, H5P_DEFAULT );
     if(did < 0) {
         char errstr[FTI_BUFS];
         snprintf( errstr, FTI_BUFS, "Unable to access dataset '%s'", objname );

@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
             FTI_Protect(FTI_id,array[index], sizes[index], FTI_INTG); 
             res += FTI_RecoverVar(FTI_id);
         }
-	res += FTI_RecoverVarFinalize();
+	    res += FTI_RecoverVarFinalize();
         if (res != FTI_SCES ){
             if (result != FTI_SCES) {
             exit(RECOVERY_FAILED);

@@ -160,20 +160,18 @@ int main(int argc, char* argv[]) {
     }
     else if ( state == RESTART || state == KEEP ) {
         shuffle(order,10);
-        FTI_RecoverVarInit();
+        int res = FTI_RecoverVarInit();
         for ( int i = 0; i < 10 ; i++){
             int index = order[i];
             FTI_Protect(index,array[index], sizes[index], FTI_INTG); 
-            FTI_RecoverVarInit();
-            int res = FTI_RecoverVar(index);
-            FTI_RecoverVarFinalize();
-            if (res != FTI_SCES ){
-                if (result != FTI_SCES) {
-                    exit(RECOVERY_FAILED);
-                }
+            res += FTI_RecoverVar(index);
+        }
+        res += FTI_RecoverVarFinalize();
+        if (res != FTI_SCES ){
+            if (result != FTI_SCES) {
+                exit(RECOVERY_FAILED);
             }
         }
-        FTI_RecoverVarFinalize();
         for ( int i = 0; i < 10 ; i++){
             correct &= checkCorrectness(array[i],sizes[i],i);
         }
