@@ -11,8 +11,8 @@
  *	The program takes four arguments:
  *	  - arg1: FTI configuration file
  *	  - arg2: Interrupt yes/no (1/0)
- *	  - arg3: Checkpoint level (1, 2, 3, 4)
- *	  - arg4: different ckpt. sizes yes/no (1/0)
+ *	  - arg3: different ckpt. sizes yes/no (1/0)
+ *	  - arg4: recover strategy FTI_Recover / FTI_RecoverVar (0/1)
  *
  * If arg2 = 0, the program simulates a clean run of FTI:
  *    FTI_Init
@@ -144,7 +144,7 @@ int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,size_t st
 
 int main(int argc, char* argv[]) {
 
-    unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
+    unsigned char parity, crash, state, diff_sizes, enable_icp = -1;
     int FTI_APP_RANK, result, tmp, success = 1;
     double *A, *B, *B_chk;
     size_t i;
@@ -160,9 +160,8 @@ int main(int argc, char* argv[]) {
     }
 
     crash = atoi(argv[2]);
-    level = atoi(argv[3]);
-    diff_sizes = atoi(argv[4]);
-    int recoveryType = atoi(argv[5]);
+    diff_sizes = atoi(argv[3]);
+    int recoveryType = atoi(argv[4]);
 
     MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
@@ -369,7 +368,7 @@ int validify(double* A, double* B_chk, size_t asize) {
 
 int write_data(double* B, size_t *asize, int rank) {
     char str[256];
-    sprintf(str, "chk/check-%i.tst", rank);
+    sprintf(str, "/tmp/check-%i.tst", rank);
     FILE* f = fopen(str, "wb");
     size_t written = 0;
 
@@ -386,7 +385,7 @@ int write_data(double* B, size_t *asize, int rank) {
 
 int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,size_t stop) {
     char str[256];
-    sprintf(str, "chk/check-%i.tst", rank);
+    sprintf(str, "/tmp/check-%i.tst", rank);
     FILE* f = fopen(str, "rb");
     size_t read = 0;
 

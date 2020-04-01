@@ -125,7 +125,7 @@ typedef struct _dcp_info {
  * init a random amount of buffers with random data.
  * Allocate not more then 'alloc_size' in bytes.
 */
-void init( dcp_info_t * info, unsigned long alloc_size );
+void init(char *fti_cfgfile, dcp_info_t * info, unsigned long alloc_size );
 
 /*
  * change 'share' percentage (integer) of data in buffer with 'id' 

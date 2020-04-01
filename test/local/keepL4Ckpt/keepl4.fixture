@@ -1,0 +1,42 @@
+#!/bin/bash
+
+setup() {
+    param_register 'head' 'keep'
+    iolib="$(iolib_name_to_id 'POSIX')"
+}
+
+prepare_fti() {
+    if [ $head -eq 1 ]; then
+        fti_config_set 'inline_l4' '0'
+    else
+        fti_config_set 'inline_l4' '1'
+    fi
+
+    fti_config_set_ckpts '1' '0' '0' '3'
+}
+
+runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/testkeepl4.exe'
+
+    app_run_success $app $itf_cfgfile
+    app_run_success $app $itf_cfgfile
+
+    local globaldir=$(fti_config_get 'glbl_dir')
+    local exec_id=$(fti_config_get 'exec_id')
+
+    if [ $keep -eq 1 ]; then
+        local must_be_in_l4=(3 6 9 11)
+        for i in "${must_be_in_l4[@]}"; do
+            check_file_exists $globaldir/$exec_id/l4/Ckpt*-Rank$i.fti
+        done
+    else
+        # This should fail because there is no such directory
+        ls $globaldir/$exec_id 2>> /dev/null
+        assert_not_equals $? 0 \
+            "Checkpoints were pushed to global without keep set"
+    fi
+}
+
+teardown() {
+    unset iolib
+}

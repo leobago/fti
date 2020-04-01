@@ -29,7 +29,7 @@ FAULTY=0
 testFailed=0
 io_mode=0
 display_usage() {
-cat <<EOF
+    cat <<EOF
 Usage: ./run-checks.sh [options]
 
 -h|--help           shows this help.
@@ -90,54 +90,53 @@ if -e and -c is passed, there will be in total 72 tests.
 If *diff-size* is set, the checkpoint files have different sizes.
 EOF
 }
-while [[ $# -gt 0 ]]
-do
-key="$1"
+while [[ $# -gt 0 ]]; do
+    key="$1"
 
-case $key in
-    -d|--diff-size)
-    diffSize=1
-    echo "[OPTION] Set different checkpoint sizes -> TRUE"
-    ;;
-    -v|--verbose)
-    verbose=1
-    echo "[OPTION] Set verbose mode -> TRUE"
-    ;;
-    -e|--erase-files)
-    eraseFiles=1
-    echo "[OPTION] Set erase checkpoint files -> TRUE"
-    ;;
-    -c|--corrupt-files)
-    corruptFiles=1
-    echo "[OPTION] Set corrupt checkpoint files -> TRUE"
-    ;;
-    -t|--set-timeout)
-    if [[ $2 -lt "10" ]] || [[ $2 == -* ]]; then
-        echo -e "Wrong argument for timeout: "$2
-        echo -e "usage: [command] -t <integer -ge 10>"
+    case $key in
+    -d | --diff-size)
+        diffSize=1
+        echo "[OPTION] Set different checkpoint sizes -> TRUE"
+        ;;
+    -v | --verbose)
+        verbose=1
+        echo "[OPTION] Set verbose mode -> TRUE"
+        ;;
+    -e | --erase-files)
+        eraseFiles=1
+        echo "[OPTION] Set erase checkpoint files -> TRUE"
+        ;;
+    -c | --corrupt-files)
+        corruptFiles=1
+        echo "[OPTION] Set corrupt checkpoint files -> TRUE"
+        ;;
+    -t | --set-timeout)
+        if [[ $2 -lt "10" ]] || [[ $2 == -* ]]; then
+            echo -e "Wrong argument for timeout: "$2
+            echo -e "usage: [command] -t <integer -ge 10>"
+            exit 0
+        fi
+        TIMEOUT="$2"
+        echo "[OPTION] Set timeout -> "$TIMEOUT
+        shift
+        ;;
+    -h | --help)
+        display_usage
         exit 0
-    fi
-    TIMEOUT="$2"
-    echo "[OPTION] Set timeout -> "$TIMEOUT
-    shift
-    ;;
-    -h|--help)
-    display_usage
-    exit 0
-    ;;
-esac
-shift # past argument or value
+        ;;
+    esac
+    shift # past argument or value
 done
 #							 #
 # ---- HEADER CHECK LOG ---- #
 #							 #
-cat <<EOF > check.log
+cat <<EOF >check.log
 ### FTI TEST FOR $PROCS PROCESSES ###
 EOF
 #							 #
 # ---- HEADER FAULTY LOG ---- #
 #							 #
-cat <<EOF > failed.log
+cat <<EOF >failed.log
 ### FAILED TESTS FOR $PROCS PROCESSES ###
 EOF
 #							   		    #
@@ -187,104 +186,105 @@ EOF
 get_io() {
     if [ "$1" = "POSIX" ]; then
         io_mode=1
-    elif [ "$1" = "MPIIO" ]; then 
+    elif [ "$1" = "MPIIO" ]; then
         io_mode=2
-    elif [ "$1" = "FTIFF" ]; then 
+    elif [ "$1" = "FTIFF" ]; then
         io_mode=3
-    elif [ "$1" = "SIONLIB" ]; then 
+    elif [ "$1" = "SIONLIB" ]; then
         io_mode=4
-    elif [ "$1" = "HDF5" ]; then 
+    elif [ "$1" = "HDF5" ]; then
         io_mode=5
     fi
 }
 
 should_not_fail() {
-	if [ $1 = 0 ]; then
-	    echo -e "\033[0;32mpassed\033[m"
-		let SUCCEED=SUCCEED+1
-	elif [ $1 = 255 ]; then
+    if [ $1 = 0 ]; then
+        echo -e "\033[0;32mpassed\033[m"
+        let SUCCEED=SUCCEED+1
+    elif [ $1 = 255 ]; then
         echo -e "\033[0;31mfailed\033[m (FTI Abort)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 30 ]; then
-		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 20 ]; then
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 30 ]; then
+        echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 20 ]; then
         echo -e "\033[0;31mfailed\033[m (Recovery Failed)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 143 ]; then
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 143 ]; then
         echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 40 ]; then
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 40 ]; then
         echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
-		let FAULTY=FAULTY+1
-		testFailed=1
-	elif [ $1 = 50 ]; then
+        let FAULTY=FAULTY+1
+        testFailed=1
+    elif [ $1 = 50 ]; then
         echo -e "\033[0;31mfailed\033[m (Wrong Environment!)"
-		let FAULTY=FAULTY+1
-		testFailed=1
-	else
-		echo "Unknown exit status: "$1
-		let FAULTY=FAULTY+1
-		testFailed=1
-	fi
+        let FAULTY=FAULTY+1
+        testFailed=1
+    else
+        echo "Unknown exit status: "$1
+        let FAULTY=FAULTY+1
+        testFailed=1
+    fi
 }
 
 should_fail() {
-	if [ $1 = 255 ]; then
-	    echo -e "\033[0;32mpassed\033[m (FTI Abort)"
-		let SUCCEED=SUCCEED+1
-	elif [ $1 = 0 ]; then
+    if [ $1 = 255 ]; then
+        echo -e "\033[0;32mpassed\033[m (FTI Abort)"
+        let SUCCEED=SUCCEED+1
+    elif [ $1 = 0 ]; then
         echo -e "\033[0;31mfailed\033[m (Finalized Without Error!)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 30 ]; then
-		echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 143 ]; then
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 30 ]; then
+        echo -e "\033[0;31mfailed\033[m (Checkpoint Data Corrupted!)"
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 143 ]; then
         echo -e "\033[0;31mfailed\033[m (Process Killed, Timeout!)"
-		let FAILED=FAILED+1
-		testFailed=1
-	elif [ $1 = 20 ]; then
+        let FAILED=FAILED+1
+        testFailed=1
+    elif [ $1 = 20 ]; then
         echo -e "\033[0;32mpassed\033[m (Recovery failed)"
-		let SUCCEED=SUCCEED+1
-	elif [ $1 = 40 ]; then
+        let SUCCEED=SUCCEED+1
+    elif [ $1 = 40 ]; then
         echo -e "\033[0;31mfailed\033[m (Test Data Corrupted!)"
-		let FAULTY=FAULTY+1
-		testFailed=1
-	elif [ $1 = 50 ]; then
+        let FAULTY=FAULTY+1
+        testFailed=1
+    elif [ $1 = 50 ]; then
         echo -e "\033[0;31mfailed\033[m (Wrong Environment!)"
-		let FAULTY=FAULTY+1
-		testFailed=1
-	else
-		echo "Unknown exit status: "$1
-		let FAULTY=FAULTY+1
-		testFailed=1
-	fi
+        let FAULTY=FAULTY+1
+        testFailed=1
+    else
+        echo "Unknown exit status: "$1
+        let FAULTY=FAULTY+1
+        testFailed=1
+    fi
 }
 
 check_return_val() {
-	if [ $1 = 0 ]; then
-	    echo -e "\033[0;32mpassed\033[m"
-		let SUCCEED=SUCCEED+1
-	elif [ $1 = 255 ]; then
+    if [ $1 = 0 ]; then
+        echo -e "\033[0;32mpassed\033[m"
+        let SUCCEED=SUCCEED+1
+    elif [ $1 = 255 ]; then
         echo -e "\033[0;31mfailed\033[m"
-		let FAILED=FAILED+1
-		testFailed=1
-	else
-		echo "Unknown exit status: "$1
-		let FAULTY=FAULTY+1
-		testFailed=1
-	fi
+        let FAILED=FAILED+1
+        testFailed=1
+    else
+        echo "Unknown exit status: "$1
+        let FAULTY=FAULTY+1
+        testFailed=1
+    fi
 }
 
-# arg 1 -> 'GLOBAL' or 'LOCAL'
 # arg 1 -> 'CORRUPT' or 'ERASE'
-# arg 3 -> 'CKPT', 'PTR', 'ENC', 'CONSECUTIVE_NODE' 'NONCONSECUTIVE_NODE'
+# arg 2 -> 'CKPT', 'PTR', 'ENC', 'CONSECUTIVE_NODE' 'NONCONSECUTIVE_NODE'
+# arg 3 -> ??
+# arg 4 -> 'GLOBAL' or 'LOCAL'
 run_failure() {
 
     if [ $4 = "GLOBAL" ]; then
@@ -300,8 +300,11 @@ run_failure() {
         node0="node0"
         node2="node2"
     fi
-    ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
-    check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
+    (
+        set -x
+        $MPIRUN -n $PROCS ./check.exe $NAME 1 $level $diffSize $enable_icp &>>check.log
+    )
+    check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
     ### DELETE Checkpoint FILES
     if [ "$1" = "CORRUPT" ]; then
         if [ "$2" = "CKPT" ]; then
@@ -319,7 +322,10 @@ run_failure() {
             files="$(find $base/$node0/$check_id/l$level | grep RSed | head -n 1) $(find $base/$node2/$check_id/l$level | grep RSed | head -n 1)"
         fi
         for f in $files; do
-            ( set -x; printf "corruption" | dd conv=notrunc of=$f bs=1 > /dev/null 2>&1 )
+            (
+                set -x
+                printf "corruption" | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
+            )
         done
     fi
     if [ "$1" = "ERASE" ]; then
@@ -343,9 +349,20 @@ run_failure() {
             echo -e "[ \033[1mDeleting Non Consecutive Nodes...\033[m ]"
             files="Local/node0 Local/node2"
         fi
-        ( set -x; rm -rf $files )
+        (
+            set -x
+            rm -rf $files
+        )
     fi
-    ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+    (
+        cmdpid=$BASHPID
+        (
+            sleep $TIMEOUT
+            kill $cmdpid >/dev/null 2>&1
+        ) &
+        set -x
+        $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+    )
     RTN=$?
     if [ "$3" = "FAIL" ]; then
         should_fail $RTN
@@ -353,49 +370,56 @@ run_failure() {
         should_not_fail $RTN
     fi
     if [ $testFailed = 1 ]; then
-        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
+        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >>failed.log
         testFailed=0
     fi
-    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+    awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+    cp tmp $NAME
+    rm tmp
 
 }
 
 run_normal() {
 
-    ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 1 $level $diffSize $MEM &>> check.log )
-    check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-    ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
+    (
+        set -x
+        $MPIRUN -n $PROCS ./check.exe $NAME 1 $level $diffSize $enable_icp &>>check.log
+    )
+    check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+    (
+        cmdpid=$BASHPID
+        (
+            sleep $TIMEOUT
+            kill $cmdpid >/dev/null 2>&1
+        ) &
+        set -x
+        $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+    )
     should_not_fail $?
     if [ $testFailed = 1 ]; then
-        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >> failed.log
+        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head="$head", keep="$keep", inline=($l2,$l3,$l4), failure:'"$1"' should not recover, ID: "$check_id >>failed.log
         testFailed=0
     fi
-    awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
+    awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+    cp tmp $NAME
+    rm tmp
 
 }
 
 set_inline() {
+    let l2=1
+    let l3=1
+    let l4=1
     case $1 in
-        1)
-            let l2=1
-            let l3=1
-            let l4=1
-            ;;
-        2)
-            let l2=$2
-            let l3=1
-            let l4=1
-            ;;
-        3)
-            let l2=1
-            let l3=$2
-            let l4=1
-            ;;
-        4)
-            let l2=1
-            let l3=1
-            let l4=$2
-            ;;
+    2)
+        let l2=$2
+        ;;
+    3)
+        let l3=$2
+        ;;
+    4)
+        let l4=$2
+        ;;
     esac
 }
 #						 #
@@ -407,13 +431,13 @@ INLINE_L3=(0 1)
 INLINE_L4=(0 1)
 KEEP=(0 1)
 IO_NAMES=(@IO_NAMES@)
-MEM_NAMES=(@MEMORYTYPES@)  
+MEM_NAMES=(@MEMORYTYPES@)
 
 if [ ! -z "$CFG_FILE" ]; then
     TESTRECOVERVAR=$(grep -E "^RECOVERVAR" $CFG_FILE)
     TESTRECOVERNAME=$(grep -E "^RECOVERNAME" $CFG_FILE)
     TESTVPR=$(grep -E "^VPR" $CFG_FILE)
-    TESTICP=$(grep -E "^VPR" $CFG_FILE)
+    TESTICP=$(grep -E "^ICP" $CFG_FILE)
     TESTDCPPOSIX=$(grep -E "^DCPPOSIX" $CFG_FILE)
     TESTDCPFTIFF=$(grep -E "^DCPFTIFF" $CFG_FILE)
     TESTSTAGING=$(grep -E "^STAGING" $CFG_FILE)
@@ -425,473 +449,646 @@ fi
 # ---- Check Recover Var ---- #
 #                     #
 if [ ! -z $TESTRECOVERVAR ]; then
-for io in ${!IO_NAMES[@]}; do
-    let io_id=io-1
-    get_io ${IO_NAMES[$io_id]}
-    awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-    keep=0
-    NAME="H0K"$keep"I111"
-    for level in ${LEVEL[*]}; do
-        awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
-        echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(Recover Var): L"$level", head=0, inline=(1,1,1) ... ***\033[m ]"
-        ( set -x; $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 1 $level 1 &>> check.log )
-        check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-        ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-        should_not_fail $?
-        if [ $testFailed = 1 ]; then
-            echo -e ${IO_NAMES[$io_id]}"(recoverVar): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
-            testFailed=0
-        fi
+    for io in ${!IO_NAMES[@]}; do
+        let io_id=io-1
+        get_io ${IO_NAMES[$io_id]}
+        awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT >tmp
+        cp tmp TMPLT
+        keep=0
+        NAME="H0K"$keep"I111"
+        for level in ${LEVEL[*]}; do
+            awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT >tmp
+            cp tmp $NAME
+            echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(Recover Var): L"$level", head=0, inline=(1,1,1) ... ***\033[m ]"
+            (
+                set -x
+                $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 1 $level 1 &>>check.log
+            )
+            check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+            (
+                cmdpid=$BASHPID
+                (
+                    sleep $TIMEOUT
+                    kill $cmdpid >/dev/null 2>&1
+                ) &
+                set -x
+                $MPIRUN -n $PROCS ./recoverVar/recoverVar.exe $NAME 0 $level $diffSize &>>check.log
+            )
+            should_not_fail $?
+            if [ $testFailed = 1 ]; then
+                echo -e ${IO_NAMES[$io_id]}"(recoverVar): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >>failed.log
+                testFailed=0
+            fi
+        done
     done
-done    
 fi
 
 #                     #
 # ---- Check Recover Name ---- #
 #                     #
 if [ ! -z $TESTRECOVERNAME ]; then
-for io in ${!IO_NAMES[@]}; do
-    let io_id=io-1
-    get_io ${IO_NAMES[$io_id]}
-    awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-    keep=0
-    NAME="H0K"$keep"I111"
-    for level in ${LEVEL[*]}; do
-        awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
-        echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(Recover Name): L"$level", head=0, inline=(1,1,1) ... ***\033[m ]"
-        ( set -x; $MPIRUN -n $PROCS ./recoverName/recoverName.exe $NAME 1 $level 1 &>> check.log )
-        check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-        ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; $MPIRUN -n $PROCS ./recoverName/recoverName.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-        should_not_fail $?
-        if [ $testFailed = 1 ]; then
-            echo -e ${IO_NAMES[$io_id]}"(recoverName): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
-            testFailed=0
-        fi
+    for io in ${!IO_NAMES[@]}; do
+        let io_id=io-1
+        get_io ${IO_NAMES[$io_id]}
+        awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT >tmp
+        cp tmp TMPLT
+        keep=0
+        NAME="H0K"$keep"I111"
+        for level in ${LEVEL[*]}; do
+            awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT >tmp
+            cp tmp $NAME
+            echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(Recover Name): L"$level", head=0, inline=(1,1,1) ... ***\033[m ]"
+            (
+                set -x
+                $MPIRUN -n $PROCS ./recoverName/recoverName.exe $NAME 1 $level 1 &>>check.log
+            )
+            check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+            (
+                cmdpid=$BASHPID
+                (
+                    sleep $TIMEOUT
+                    kill $cmdpid >/dev/null 2>&1
+                ) &
+                set -x
+                $MPIRUN -n $PROCS ./recoverName/recoverName.exe $NAME 0 $level $diffSize $MEM &>>check.log
+            )
+            should_not_fail $?
+            if [ $testFailed = 1 ]; then
+                echo -e ${IO_NAMES[$io_id]}"(recoverName): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >>failed.log
+                testFailed=0
+            fi
+        done
     done
-done    
 fi
 
 #                     #
 # ---- Check VPR ---- #
 #                     #
 if [ ! -z $TESTVPR ]; then
-if @DO_VPR_CHECK@ ; then 
-echo -e "[ \033[1m*** Testing VPR: head=0 ***\033[m ]"
-( set -x; bash checkVPR.sh 0 0 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=0 recoverVar ***\033[m ]"
-( set -x; bash checkVPR.sh 0 0 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=0 recoverVar) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=0 iCP ***\033[m ]"
-( set -x; bash checkVPR.sh 0 1 0&>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=0 iCP) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=0 iCP recoverVar ***\033[m ]"
-( set -x; bash checkVPR.sh 0 1 1&>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=0 iCP recoverVar) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=1 ***\033[m ]"
-( set -x; bash checkVPR.sh 1 0 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=1 recoverVar ***\033[m ]"
-( set -x; bash checkVPR.sh 1 0 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=1 recoverVar) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=1 iCP ***\033[m ]"
-( set -x; bash checkVPR.sh 1 1 0&>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=1 iCP) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing VPR: head=1 iCP recoverVar ***\033[m ]"
-( set -x; bash checkVPR.sh 1 1 1&>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "VPR check (head=1 iCP recoverVar) failed" >> failed.log
-    testFailed=0
-fi
-fi
+    if @DO_VPR_CHECK@; then
+        echo -e "[ \033[1m*** Testing VPR: head=0 ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 0 0 0 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=0) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=0 recoverVar ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 0 0 1 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=0 recoverVar) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=0 iCP ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 0 1 0 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=0 iCP) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=0 iCP recoverVar ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 0 1 1 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=0 iCP recoverVar) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=1 ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 1 0 0 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=1) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=1 recoverVar ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 1 0 1 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=1 recoverVar) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=1 iCP ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 1 1 0 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=1 iCP) failed" >>failed.log
+            testFailed=0
+        fi
+        echo -e "[ \033[1m*** Testing VPR: head=1 iCP recoverVar ***\033[m ]"
+        (
+            set -x
+            bash checkVPR.sh 1 1 1 &>>check.log
+        )
+        check_return_val $?
+        if [ $testFailed = 1 ]; then
+            echo -e "VPR check (head=1 iCP recoverVar) failed" >>failed.log
+            testFailed=0
+        fi
+    fi
 fi
 
 #                     #
 # ---- Check dCP ---- #
 #                     #
 if [ ! -z $TESTDCPPOSIX ]; then
-echo -e "[ \033[1m*** Testing dCP POSIX: head=0 ***\033[m ]"
-( set -x; bash checkDCPposix.sh 0 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing dCP POSIX: head=1 ***\033[m ]"
-( set -x; bash checkDCPposix.sh 1 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
+    echo -e "[ \033[1m*** Testing dCP POSIX: head=0 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPposix.sh 0 NOICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing dCP POSIX: head=1 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPposix.sh 1 NOICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=1) failed" >>failed.log
+        testFailed=0
+    fi
 
-echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer :  ***\033[m ]"
-cd diffckpt
-( set -x; bash run.sh 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "DCP Posix Corrupt Layer  failed" >> failed.log
-    testFailed=0
-fi
+    echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer :  ***\033[m ]"
+    cd diffckpt
+    (
+        set -x
+        bash run.sh 0 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "DCP Posix Corrupt Layer  failed" >>failed.log
+        testFailed=0
+    fi
 
-echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer : Recover Var ***\033[m ]"
-( set -x; bash run.sh 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "DCP Posix Corrupt Layer with Recover Var" >> failed.log
-    testFailed=0
-fi
-cd ..
+    echo -e "[ \033[1m*** Testing DCP Posix Corrupt Layer : Recover Var ***\033[m ]"
+    (
+        set -x
+        bash run.sh 1 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "DCP Posix Corrupt Layer with Recover Var" >>failed.log
+        testFailed=0
+    fi
+    cd ..
 fi
 
 if [ ! -z $TESTDCPFTIFF ]; then
-echo -e "[ \033[1m*** Testing dCP FTI-FF: head=0 ***\033[m ]"
-( set -x; bash checkDCPftiff.sh 0 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing dCP FTI-FF: head=1 ***\033[m ]"
-( set -x; bash checkDCPftiff.sh 1 NOICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
+    echo -e "[ \033[1m*** Testing dCP FTI-FF: head=0 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPftiff.sh 0 NOICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing dCP FTI-FF: head=1 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPftiff.sh 1 NOICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=1) failed" >>failed.log
+        testFailed=0
+    fi
 fi
 
 #                     #
 # ---- Check iCP ---- #
 #                     #
-if [ ! -z $TESTDCPFTIFF ]; then
-echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=0 ***\033[m ]"
-( set -x; bash checkDCPposix.sh 0 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=1 ***\033[m ]"
-( set -x; bash checkDCPposix.sh 1 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=0 ***\033[m ]"
-( set -x; bash checkDCPftiff.sh 0 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=1 ***\033[m ]"
-( set -x; bash checkDCPftiff.sh 1 ICP &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "dCP check (head=1) failed" >> failed.log
-    testFailed=0
-fi
+if [ ! -z $TESTICP ]; then
+    echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=0 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPposix.sh 0 ICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing iCP (with dCP POSIX): head=1 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPposix.sh 1 ICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=1) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=0 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPftiff.sh 0 ICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing iCP (with dCP FTI-FF): head=1 ***\033[m ]"
+    (
+        set -x
+        bash checkDCPftiff.sh 1 ICP &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "dCP check (head=1) failed" >>failed.log
+        testFailed=0
+    fi
 fi
 
 #                     #
 # ---- Check GIO ---- #
 #                     #
 if [ ! -z $TESTSTAGING ]; then
-echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
-( set -x; bash checkGIO.sh 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "GIO check (head=1) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
-( set -x; bash checkGIO.sh 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "GIO check (head=0) failed" >> failed.log
-    testFailed=0
-fi
+    echo -e "[ \033[1m*** Testing staging: head=1 ***\033[m ]"
+    (
+        set -x
+        bash checkGIO.sh 1 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "GIO check (head=1) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing staging: head=0 ***\033[m ]"
+    (
+        set -x
+        bash checkGIO.sh 0 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "GIO check (head=0) failed" >>failed.log
+        testFailed=0
+    fi
 fi
 
 #                     #
 # ---- Check KL4 ---- #
 #                     #
 if [ ! -z $TESTKEEPL4 ]; then
-echo -e "[ \033[1m*** Testing KL4: head=0 KEEP = 0***\033[m ]"
-( set -x; bash checkKL4.sh 0 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=0 && keep last = 0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing KL4: head=1 KEEP = 0 ***\033[m ]"
-( set -x; bash checkKL4.sh 1 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=1 && keep last = 0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing KL4: head=0 KEEP LAST = 1 ***\033[m ]"
-( set -x; bash checkKL4.sh 2 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=0 && keep last = 0) failed" >> failed.log
-    testFailed=0
-fi
-echo -e "[ \033[1m*** Testing KL4: head=1 KEEP LAST = 1 ***\033[m ]"
-( set -x; bash checkKL4.sh 3 &>> check.log )
-check_return_val $?
-if [ $testFailed = 1 ]; then
-    echo -e "KL4 check (head=0 && keep last = 1) failed" >> failed.log
-    testFailed=0
-fi
+    echo -e "[ \033[1m*** Testing KL4: head=0 KEEP = 0***\033[m ]"
+    (
+        set -x
+        bash checkKL4.sh 0 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "KL4 check (head=0 && keep last = 0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing KL4: head=1 KEEP = 0 ***\033[m ]"
+    (
+        set -x
+        bash checkKL4.sh 1 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "KL4 check (head=1 && keep last = 0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing KL4: head=0 KEEP LAST = 1 ***\033[m ]"
+    (
+        set -x
+        bash checkKL4.sh 2 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "KL4 check (head=0 && keep last = 0) failed" >>failed.log
+        testFailed=0
+    fi
+    echo -e "[ \033[1m*** Testing KL4: head=1 KEEP LAST = 1 ***\033[m ]"
+    (
+        set -x
+        bash checkKL4.sh 3 &>>check.log
+    )
+    check_return_val $?
+    if [ $testFailed = 1 ]; then
+        echo -e "KL4 check (head=0 && keep last = 1) failed" >>failed.log
+        testFailed=0
+    fi
 
 fi
 
 if [ ! -z $TESTSTANDARD ]; then
-for MEM in "${!MEM_NAMES[@]}"; do
-  for io in ${!IO_NAMES[@]}; do
-      for enable_icp in OFF ON; do
-          let io_id=io-1
-          get_io ${IO_NAMES[$io_id]}
-          awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-          for keep in ${KEEP[*]}; do
-              NAME="H0K"$keep"I111"
-              #                  #
-              # --- HEAD = 0 --- #
-              #                  #
-              head=0
-              l2=1
-              l3=1
-              l4=1
-              for level in ${LEVEL[*]}; do
-                  awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp $NAME
-                  echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1) "${MEM_NAMES[$MEM]}" ... ***\033[m ]"
-                  if [ $keep -eq "1" ]; then
-                      #                  #
-                      # --- KEEP = 1 --- #
-                      #                  #
-                      ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                      check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                      ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
-                      awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                      ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                      should_not_fail $?
-                      if [ $testFailed = 1 ]; then
-                          echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >> failed.log
-                          testFailed=0
-                      fi
-                      awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                      if [ $eraseFiles = "1" ] && [ $DFLAG = "1" ]; then
-                          awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                          check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                          ### DELETE CHECKPOINT FILE
-                          echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                          folder="Global/"$check_id"/l4"
-                          filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                          ( set -x; rm -rf $folder"/"$filename )
-                          ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
-                          awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                          should_fail $?
-                          if [ $testFailed = 1 ]; then
-                              echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
-                              testFailed=0
-                          fi
-                          awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                          let DFLAG=2
-                      fi
-                  fi
-                  if [ $keep -eq "0" ]; then
-                      #                  #
-                      # --- KEEP = 0 --- #
-                      #                  #
-                      run_normal
-                      if [ $corruptFiles = "1" ]; then
-                          if [ $level = 1 ]; then
-                              run_failure "CORRUPT" "CKPT" "FAIL" "LOCAL"
-                          fi
-                          if [ $level = 2 ]; then
-                              run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
-                              run_failure "CORRUPT" "PTN" "PASS" "LOCAL"
-                          fi
-                          if [ $level = 3 ]; then
-                              run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
-                              run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
-                          fi
-                          if [ $level = 4 ]; then
-                              if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
-                                  run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
-                              else
-                                  run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
-                              fi
-                          fi
-                      fi
-                      if [ $eraseFiles = "1" ]; then
-                          if [ $level = 1 ]; then
-                              run_failure "ERASE" "CKPT" "FAIL" "LOCAL"
-                          fi
-                          if [ $level = 2 ]; then
-                              run_failure "ERASE" "CKPT" "PASS" "LOCAL"
-                              run_failure "ERASE" "PTN" "PASS" "LOCAL"
-                              run_failure "ERASE" "CONSECUTIVE_NODE" "FAIL" "LOCAL"
-                              run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
-                          fi
-                          if [ $level = 3 ]; then
-                              run_failure "ERASE" "CKPT" "PASS" "LOCAL"
-                              run_failure "ERASE" "ENC" "PASS" "LOCAL"
-                              run_failure "ERASE" "CONSECUTIVE_NODE" "PASS" "LOCAL"
-                              run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
-                          fi
-                          if [ $level = 4 ]; then
-                              if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
-                                  run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
-                              else
-                                  run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
-                              fi
-                          fi
-                      fi
-                  fi
-              done
-              rm $NAME
-          done
-          for keep in ${KEEP[*]}; do
-              for level in ${LEVEL[*]}; do
-                  for inline in 0 1; do
-                      if [ $inline -eq 1 ] || [[ $inline -eq 0 && $level -ne 1 ]]; then
-                          set_inline $level $inline
-                          NAME="H1K"$keep"I"$l2""$l3""$l4
-                          #                  #
-                          # --- HEAD = 1 --- #
-                          #                  #
-                          head=1
-                          awk '$1 == "head" {$3 = 1}1' TMPLT > tmp; cp tmp TMPLT
-                          awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-                          awk -v var="$l2" '$1 == "inline_l2" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-                          awk -v var="$l3" '$1 == "inline_l3" {$3 = var}1' TMPLT > tmp; cp tmp TMPLT
-                          awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT > $NAME; rm tmp
-                          echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4") "${MEM_NAMES[$MEM]}" ... ***\033[m ]"
-                          if [ $keep -eq "1" ]; then
-                              ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                              check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                              ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
-                              awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                              should_not_fail $?
-                              if [ $testFailed = 1 ]; then
-                                  echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover, ID: "$check_id >> failed.log
-                                  testFailed=0
-                              fi
-                              awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                              if [ $eraseFiles = "1" ] && [ $DFLAG = "2" ]; then
-                                  awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  ( set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                                  check_id=$(awk '$1 == "exec_id" {print $3}' < $NAME)
-                                  ### DELETE CHECKPOINT FILE
-                                  echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
-                                  folder="Global/"$check_id"/l4"
-                                  filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
-                                  ( set -x; rm -rf $folder"/"$filename )
-                                  ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
-                                  awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  ( cmdpid=$BASHPID; (sleep $TIMEOUT; kill $cmdpid > /dev/null 2>&1 ) & set -x; ENABLE_ICP=$enable_icp $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $MEM &>> check.log )
-                                  should_fail $?
-                                  if [ $testFailed = 1 ]; then
-                                      echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >> failed.log
-                                      testFailed=0
-                                  fi
-                                  awk '$1 == "failure" {$3 = 0}1' $NAME > tmp; cp tmp $NAME; rm tmp
-                                  let DFLAG=3
-                              fi
-                          fi
-                          if [ $keep -eq "0" ]; then
-                              run_normal
-                              if [ $corruptFiles = "1" ]; then
-                                  if [ $level = 1 ]; then
-                                      run_failure "CORRUPT" "CKPT" "FAIL" "LOCAL"
-                                  fi
-                                  if [ $level = 2 ]; then
-                                      run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
-                                      run_failure "CORRUPT" "PTN" "PASS" "LOCAL"
-                                  fi
-                                  if [ $level = 3 ]; then
-                                      run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
-                                      run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
-                                  fi
-                                  if [ $level = 4 ]; then
-                                      if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
-                                          run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
-                                      else
-                                          run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
-                                      fi
-                                  fi
-                              fi
-                              if [ $eraseFiles = "1" ]; then
-                                  if [ $level = 1 ]; then
-                                      run_failure "ERASE" "CKPT" "FAIL" "LOCAL"
-                                  fi
-                                  if [ $level = 2 ]; then
-                                      run_failure "ERASE" "CKPT" "PASS" "LOCAL"
-                                      run_failure "ERASE" "PTN" "PASS" "LOCAL"
-                                      run_failure "ERASE" "CONSECUTIVE_NODE" "FAIL" "LOCAL"
-                                      run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
-                                  fi
-                                  if [ $level = 3 ]; then
-                                      run_failure "ERASE" "CKPT" "PASS" "LOCAL"
-                                      run_failure "ERASE" "ENC" "PASS" "LOCAL"
-                                      run_failure "ERASE" "CONSECUTIVE_NODE" "PASS" "LOCAL"
-                                      run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
-                                  fi
-                                  if [ $level = 4 ]; then
-                                      if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
-                                          run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
-                                      else
-                                          run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
-                                      fi
-                                  fi
-                              fi
-                          fi
-                      fi
-                  done
-              done
-              rm $NAME
-          done
-          let DFLAG=1
-          let CFLAG=1
-      done
-  done
+for io in ${!IO_NAMES[@]}; do
+    for enable_icp in 0 1; do
+        let io_id=io-1
+        get_io ${IO_NAMES[$io_id]}
+        awk -v var=$io_mode '$1 == "ckpt_io" {$3 = var}1' TMPLT >tmp
+        cp tmp TMPLT
+        for keep in ${KEEP[*]}; do
+            NAME="H0K"$keep"I111"
+            #                  #
+            # --- HEAD = 0 --- #
+            #                  #
+            head=0
+            l2=1
+            l3=1
+            l4=1
+            for level in ${LEVEL[*]}; do
+                awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT >tmp
+                cp tmp $NAME
+                echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1) ... ***\033[m ]"
+                if [ $keep -eq "1" ]; then
+                    #                  #
+                    # --- KEEP = 1 --- #
+                    #                  #
+                    (
+                        set -x
+                        $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                    )
+                    check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+                    ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                    awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME >tmp
+                    cp tmp $NAME
+                    rm tmp
+                    (
+                        cmdpid=$BASHPID
+                        (
+                            sleep $TIMEOUT
+                            kill $cmdpid >/dev/null 2>&1
+                        ) &
+                        set -x
+                        $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                    )
+                    should_not_fail $?
+                    if [ $testFailed = 1 ]; then
+                        echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), should recover, ID: "$check_id >>failed.log
+                        testFailed=0
+                    fi
+                    awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+                    cp tmp $NAME
+                    rm tmp
+                    if [ $eraseFiles = "1" ] && [ $DFLAG = "1" ]; then
+                        awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME >tmp
+                        cp tmp $NAME
+                        rm tmp
+                        (
+                            set -x
+                            $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                        )
+                        check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+                        ### DELETE CHECKPOINT FILE
+                        echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+                        folder="Global/"$check_id"/l4"
+                        filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
+                        (
+                            set -x
+                            rm -rf $folder"/"$filename
+                        )
+                        ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                        awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME >tmp
+                        cp tmp $NAME
+                        rm tmp
+                        (
+                            cmdpid=$BASHPID
+                            (
+                                sleep $TIMEOUT
+                                kill $cmdpid >/dev/null 2>&1
+                            ) &
+                            set -x
+                            $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                        )
+                        should_fail $?
+                        if [ $testFailed = 1 ]; then
+                            echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=0, keep="$keep", inline=(1,1,1), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >>failed.log
+                            testFailed=0
+                        fi
+                        awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+                        cp tmp $NAME
+                        rm tmp
+                        let DFLAG=2
+                    fi
+                fi
+                if [ $keep -eq "0" ]; then
+                    #                  #
+                    # --- KEEP = 0 --- #
+                    #                  #
+                    run_normal
+                    if [ $corruptFiles = "1" ]; then
+                        if [ $level = 1 ]; then
+                            run_failure "CORRUPT" "CKPT" "FAIL" "LOCAL"
+                        fi
+                        if [ $level = 2 ]; then
+                            run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
+                            run_failure "CORRUPT" "PTN" "PASS" "LOCAL"
+                        fi
+                        if [ $level = 3 ]; then
+                            run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
+                            run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
+                        fi
+                        if [ $level = 4 ]; then
+                            if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
+                                run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
+                            else
+                                run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                            fi
+                        fi
+                    fi
+                    if [ $eraseFiles = "1" ]; then
+                        if [ $level = 1 ]; then
+                            run_failure "ERASE" "CKPT" "FAIL" "LOCAL"
+                        fi
+                        if [ $level = 2 ]; then
+                            run_failure "ERASE" "CKPT" "PASS" "LOCAL"
+                            run_failure "ERASE" "PTN" "PASS" "LOCAL"
+                            run_failure "ERASE" "CONSECUTIVE_NODE" "FAIL" "LOCAL"
+                            run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
+                        fi
+                        if [ $level = 3 ]; then
+                            run_failure "ERASE" "CKPT" "PASS" "LOCAL"
+                            run_failure "ERASE" "ENC" "PASS" "LOCAL"
+                            run_failure "ERASE" "CONSECUTIVE_NODE" "PASS" "LOCAL"
+                            run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
+                        fi
+                        if [ $level = 4 ]; then
+                            if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
+                                run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
+                            else
+                                run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                            fi
+                        fi
+                    fi
+                fi
+            done
+            rm $NAME
+        done
+        for keep in ${KEEP[*]}; do
+            for level in ${LEVEL[*]}; do
+                for inline in 0 1; do
+                    if [ $inline -eq 1 ] || [[ $inline -eq 0 && $level -ne 1 ]]; then
+                        set_inline $level $inline
+                        NAME="H1K"$keep"I"$l2""$l3""$l4
+                        #                  #
+                        # --- HEAD = 1 --- #
+                        #                  #
+                        head=1
+                        awk '$1 == "head" {$3 = 1}1' TMPLT >tmp
+                        cp tmp TMPLT
+                        awk -v var="$keep" '$1 == "keep_last_ckpt" {$3 = var}1' TMPLT >tmp
+                        cp tmp TMPLT
+                        awk -v var="$l2" '$1 == "inline_l2" {$3 = var}1' TMPLT >tmp
+                        cp tmp TMPLT
+                        awk -v var="$l3" '$1 == "inline_l3" {$3 = var}1' TMPLT >tmp
+                        cp tmp TMPLT
+                        awk -v var="$l4" '$1 == "inline_l4" {$3 = var}1' TMPLT >$NAME
+                        rm tmp
+                        echo -e "[ \033[1m*** Testing "${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4") ... ***\033[m ]"
+                        if [ $keep -eq "1" ]; then
+                            (
+                                set -x
+                                $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                            )
+                            check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+                            ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                            awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME >tmp
+                            cp tmp $NAME
+                            rm tmp
+                            (
+                                cmdpid=$BASHPID
+                                (
+                                    sleep $TIMEOUT
+                                    kill $cmdpid >/dev/null 2>&1
+                                ) &
+                                set -x
+                                $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                            )
+                            should_not_fail $?
+                            if [ $testFailed = 1 ]; then
+                                echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), should recover, ID: "$check_id >>failed.log
+                                testFailed=0
+                            fi
+                            awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+                            cp tmp $NAME
+                            rm tmp
+                            if [ $eraseFiles = "1" ] && [ $DFLAG = "2" ]; then
+                                awk '$1 == "keep_last_ckpt" {$3 = 1}1' $NAME >tmp
+                                cp tmp $NAME
+                                rm tmp
+                                (
+                                    set -x
+                                    $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                                )
+                                check_id=$(awk '$1 == "exec_id" {print $3}' <$NAME)
+                                ### DELETE CHECKPOINT FILE
+                                echo -e "[ \033[1mDeleting Checkpoint File...\033[m ]"
+                                folder="Global/"$check_id"/l4"
+                                filename=$(ls $folder | grep 'Rank\|mpiio\|sionlib' | head -n 1)
+                                (
+                                    set -x
+                                    rm -rf $folder"/"$filename
+                                )
+                                ### SETTING KEEP = 0 TO CLEAN DIRECTORY AFTER TEST
+                                awk '$1 == "keep_last_ckpt" {$3 = 0}1' $NAME >tmp
+                                cp tmp $NAME
+                                rm tmp
+                                (
+                                    cmdpid=$BASHPID
+                                    (
+                                        sleep $TIMEOUT
+                                        kill $cmdpid >/dev/null 2>&1
+                                    ) &
+                                    set -x
+                                    $MPIRUN -n $PROCS ./check.exe $NAME 0 $level $diffSize $enable_icp &>>check.log
+                                )
+                                should_fail $?
+                                if [ $testFailed = 1 ]; then
+                                    echo -e ${IO_NAMES[$io_id]}"(ICP=$enable_icp): L"$level", head=1, keep="$keep", inline=("$l2","$l3","$l4"), deleted flushed ckpt file on PFS, should not recover, ID: "$check_id >>failed.log
+                                    testFailed=0
+                                fi
+                                awk '$1 == "failure" {$3 = 0}1' $NAME >tmp
+                                cp tmp $NAME
+                                rm tmp
+                                let DFLAG=3
+                            fi
+                        fi
+                        if [ $keep -eq "0" ]; then
+                            run_normal
+                            if [ $corruptFiles = "1" ]; then
+                                if [ $level = 1 ]; then
+                                    run_failure "CORRUPT" "CKPT" "FAIL" "LOCAL"
+                                fi
+                                if [ $level = 2 ]; then
+                                    run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
+                                    run_failure "CORRUPT" "PTN" "PASS" "LOCAL"
+                                fi
+                                if [ $level = 3 ]; then
+                                    run_failure "CORRUPT" "CKPT" "PASS" "LOCAL"
+                                    run_failure "CORRUPT" "ENC" "PASS" "LOCAL"
+                                fi
+                                if [ $level = 4 ]; then
+                                    if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
+                                        run_failure "CORRUPT" "CKPT" "FAIL" "MPIIO"
+                                    else
+                                        run_failure "CORRUPT" "CKPT" "FAIL" "GLOBAL"
+                                    fi
+                                fi
+                            fi
+                            if [ $eraseFiles = "1" ]; then
+                                if [ $level = 1 ]; then
+                                    run_failure "ERASE" "CKPT" "FAIL" "LOCAL"
+                                fi
+                                if [ $level = 2 ]; then
+                                    run_failure "ERASE" "CKPT" "PASS" "LOCAL"
+                                    run_failure "ERASE" "PTN" "PASS" "LOCAL"
+                                    run_failure "ERASE" "CONSECUTIVE_NODE" "FAIL" "LOCAL"
+                                    run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
+                                fi
+                                if [ $level = 3 ]; then
+                                    run_failure "ERASE" "CKPT" "PASS" "LOCAL"
+                                    run_failure "ERASE" "ENC" "PASS" "LOCAL"
+                                    run_failure "ERASE" "CONSECUTIVE_NODE" "PASS" "LOCAL"
+                                    run_failure "ERASE" "NONCONSECUTIVE_NODE" "PASS" "LOCAL"
+                                fi
+                                if [ $level = 4 ]; then
+                                    if [ ${IO_NAMES[$io_id]} = "MPIIO" -o ${IO_NAMES[$io_id]} = "SIONLIB" ]; then
+                                        run_failure "ERASE" "CKPT" "FAIL" "MPIIO"
+                                    else
+                                        run_failure "ERASE" "CKPT" "FAIL" "GLOBAL"
+                                    fi
+                                fi
+                            fi
+                        fi
+                    fi
+                done
+            done
+            rm $NAME
+        done
+        let DFLAG=1
+        let CFLAG=1
+    done
 done
 fi
 rm -rf TMPLT Global/* Local/* Meta/* chk/*
