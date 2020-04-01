@@ -41,12 +41,18 @@ list(APPEND test_labels_current "local")
 
 set(test_local_suites
   "recoverVar" "recoverName" "diffckpt"
-  "staging" "variateProcessorRestart" "keepL4Ckpt")
+  "staging" "keepL4Ckpt")
 
 # Include all local test suites
 foreach(tcase ${test_local_suites})
   add_subdirectory(${tcase})
 endforeach(tcase)
+
+# Conditiona tests
+if(ENABLE_HDF5)
+  add_subdirectory("variateProcessorRestart")
+endif()
+
 
 # TODO: Refactor this when ITF is fully merged
 list(APPEND test_labels_current "standard")
