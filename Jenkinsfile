@@ -1,5 +1,15 @@
 #!/bin/groovy
 
+ITFLocalFixtures = [
+  'local/standard',
+  'local/standard-disrupt',
+  'local/staging/staging',
+  'local/diffckpt/dCP-standard',
+  'local/diffckpt/dCP-corrupt',
+  'local/keepL4Ckpt/keepl4',
+  'local/recoverVar/recovervar',
+  'local/recoverVar/recovername']
+
 pipeline {
   agent none
   stages {
@@ -11,17 +21,9 @@ pipeline {
       steps {
         sh 'scripts/install.sh && cd build/test'
         
-        catchError { sh 'itf/testrunner local/standard' }
-        catchError { sh 'itf/testrunner local/standard-disrupt' }
-
-        catchError { sh 'itf/testrunner local/staging/staging' }
-
-        catchError { sh 'itf/testrunner local/diffckpt/dCP-standard' }
-        catchError { sh 'itf/testrunner local/diffckpt/dCP-corrupt' }
-
-        catchError { sh 'itf/testrunner local/keepL4Ckpt/keepl4' }
-
-        catchError { sh 'itf/testrunner local/recoverVar/recovervar' }
+        for (fixture in ITFLocalFixtures) {
+          catchError { sh "itf/testrunner $fixture" }
+        }
       }
     }
   }
