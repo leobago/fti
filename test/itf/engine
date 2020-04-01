@@ -37,6 +37,20 @@ itf_unload_fixture() {
     unset on_fixture_teardown
 }
 
+test_case_dry() {
+    # Prepare a test for execution and print its info but do not execute it
+    #
+    # Parameters:
+    # $@ The parameters to be passed to the fixture setup
+
+    itf_param_clear    # Clear parameters from previous test case
+    setup $@           # Call setup to declare arguments and other data
+    itf_param_parse $@ # Parse the test case arguments an ddefine variables
+
+    # Print feedback
+    echo "$(itf_describe_test_case)"
+}
+
 test_case() {
     # Run a test defined in a fixture with a set of input data
     #
@@ -53,12 +67,7 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$itf_cfg_template" >$itf_cfgfile
 
-    itf_param_clear    # Clear parameters from previous test case
-    setup $@           # Call setup to declare arguments and other data
-    itf_param_parse $@ # Parse the test case arguments an ddefine variables
-
-    # Print feedback
-    echo "$(itf_describe_test_case)"
+    test_case_dry $@
 
     # Prepare the FTI config file
     type prepare_fti &>/dev/null && prepare_fti

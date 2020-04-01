@@ -5,11 +5,15 @@ execute_case() {
     #
     # Parameters:
     # $@ The fixture's parameters for the setup function
-
+    
     let ntests=$ntests+1
-    test_case $@
-    if [ ! $? -eq 0 ]; then
-        let nfailures=$nfailures+1
+    if [ -z $dry_run ]; then
+        test_case $@
+        if [ ! $? -eq 0 ]; then
+            let nfailures=$nfailures+1
+        fi
+    else
+        test_case_dry $@
     fi
 }
 
@@ -63,6 +67,11 @@ while [[ $# -gt 0 ]]; do
     -v | --verbose)
         # Makes ITF output the application log in the terminal
         itf_verbose=1
+        shift
+        ;;
+    --dry-run)
+        # Makes ITF not run the tests, only output the test scenarios
+        dry_run=1
         shift
         ;;
     -s | --suite)
