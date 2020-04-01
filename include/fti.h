@@ -105,6 +105,8 @@ extern "C" {
   int FTI_Snapshot();
   int FTI_Finalize();
   int FTI_RecoverVar(int id);
+  int FTI_RecoverVarInit();
+  int FTI_RecoverVarFinalize();
   int FTI_InitICP(int id, int level, bool activate);
   int FTI_AddVarICP( int varID ); 
   int FTI_FinalizeICP(); 

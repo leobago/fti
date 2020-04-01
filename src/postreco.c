@@ -57,9 +57,9 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
 
     int ckptId, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
     char fn[FTI_BUFS], efn[FTI_BUFS];
-    snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptId, rank);
+    snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Ckpt[3].dir, ckptId, rank, FTI_Conf->suffix);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptMeta.ckptFile);
 
     int bs = FTI_Conf->blockSize;
@@ -528,8 +528,8 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {    //if want to send Ptner file
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank); //do we need this from filename?
-        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptId, rank);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix); //do we need this from filename?
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir, ckptId, rank, FTI_Conf->suffix);
         toSend = FTI_Exec->ckptMeta.pfs;
     } else {    //if want to send Ckpt file
         snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
@@ -588,8 +588,8 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) { //if want to receive Ptner file
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, FTI_Exec->ckptId, rank);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir, FTI_Exec->ckptId, rank, FTI_Conf->suffix);
         toRecv = FTI_Exec->ckptMeta.pfs;
     } else { //if want to receive Ckpt file
         snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
@@ -952,13 +952,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_SCES;
         }
 
-        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
-
-#ifdef ENABLE_HDF5
-        if (FTI_Conf->ioMode == FTI_IO_HDF5) {
-            snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.h5", FTI_Exec->ckptId, FTI_Topo->myRank);
-        }
-#endif
+        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
@@ -1067,7 +1061,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Info_set(info, "stripping_unit", "4194304");
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS], gfp[FTI_BUFS];
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti", FTI_Exec->ckptId, FTI_Topo->myRank);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
     snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
     snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
     snprintf(gfp, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, gfn);
@@ -1187,7 +1181,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
-    snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.fti", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->myRank);
+    snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
     snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptId);
 
     int nTasks;

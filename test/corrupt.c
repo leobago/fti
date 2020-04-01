@@ -82,6 +82,7 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
     int ckpt_id = -1;
     char buff[5];
     int res;
+    char suffix[256];
 
     if (ckptORPtner == 0) {
         sprintf(buff, "Rank");
@@ -117,15 +118,24 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
         printf("Could not find checkpoint files");
         return CORRUPT_FAIL;
     }
+    
+    switch(ckpt_io) {
+        case HDF5_IO:
+            strcpy( suffix, "h5" );
+            break;
+        default:
+            strcpy( suffix, "fti" );
+            break;
+    }
 
     if (ckpt_io == HDF5_IO && ckptORPtner == 0)
-        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.h5", folder_path, ckpt_id, buff, target_rank);
+        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.%s", folder_path, ckpt_id, buff, target_rank, suffix);
     else if (level == 4 && ckpt_io == MPI_IO)
-        snprintf(file_path,1024, "%s/Ckpt%d-mpiio.fti", folder_path, ckpt_id);
+        snprintf(file_path,1024, "%s/Ckpt%d-mpiio.%s", folder_path, ckpt_id, suffix);
     else if (level == 4 && ckpt_io == SIONlib_IO)
-        snprintf(file_path,1024, "%s/Ckpt%d-sionlib.fti", folder_path, ckpt_id);
+        snprintf(file_path,1024, "%s/Ckpt%d-sionlib.%s", folder_path, ckpt_id, suffix);
     else
-        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.fti", folder_path, ckpt_id, buff, target_rank);
+        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.%s", folder_path, ckpt_id, buff, target_rank, suffix);
 
     if (corrORErase == 0) {
         res = corruptFile(file_path);

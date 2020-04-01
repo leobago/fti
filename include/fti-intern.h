@@ -487,6 +487,7 @@ extern "C" {
         int             ioMode;             /**< IO mode for L4 ckpt.               */
         bool            h5SingleFileEnable; /**< TRUE if VPR enabled                */
         bool            h5SingleFileKeep;   /**< TRUE if VPR files to keep          */
+        bool            h5SingleFileIsInline;       /**< Indicator if HDF5 single file  */
         char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir        */
         char            h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix  */
         char            stageDir[FTI_BUFS]; /**< Staging directory.                 */

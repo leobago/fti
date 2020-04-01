@@ -106,9 +106,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             res += FTI_RecoverVar(2);
             res += FTI_RecoverVarFinalize();
         }
-
         if (res != 0) {
-            if(world_rank==1) printf("\n -->  rank: %d ARRIVE HERE\n", world_rank);
             buf = FTI_Realloc(2, buf);
             if (buf == NULL) {
                 printf("%d: Reallocation failed!\n", world_rank);

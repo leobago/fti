@@ -52,7 +52,7 @@ int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     int isDCP = (int)FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
-    MPI_Send(&FTI_Exec->ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
+    MPI_Send(&FTI_Exec->ckptMeta.ckptId, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag, FTI_Exec->globalComm);
     return FTI_SCES;
 }
 /*-------------------------------------------------------------------------*/
@@ -231,7 +231,7 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT
 
     WritePosixInfo_t *write_info = (WritePosixInfo_t *) malloc (sizeof(WritePosixInfo_t));
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptMeta.ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
 
     if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
         snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
@@ -341,6 +341,7 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id, FILE* fileposix)
 {
     int res = FTI_NSCS; 
+    char str[FTI_BUFS];
 
     FTIT_dataset* data;
 
@@ -348,6 +349,15 @@ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int i
         FTI_Print("failed to recover variable.", FTI_EROR);
         return FTI_NREC;
     } 
+    
+    if (data->size != data->sizeStored) {
+        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
+                data->sizeStored, data->id,
+                data->size);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NREC;
+    }
+
     long filePos = data->filePos;
     if(fseek(fileposix, filePos, SEEK_SET) == 0){
         fread(data->ptr, 1, data->size, fileposix); 

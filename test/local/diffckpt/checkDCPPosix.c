@@ -163,9 +163,6 @@ int main(int argc, char* argv[]) {
     diff_sizes = atoi(argv[3]);
     int recoveryType = atoi(argv[4]);
 
-
-
-
     MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
     dictionary *ini = iniparser_load( argv[1] );
@@ -233,7 +230,6 @@ int main(int argc, char* argv[]) {
     FTI_Protect(2, &asize, sizeof(size_t), FTI_CHAR);
     FTI_Protect(3, &numberIter, sizeof(size_t), FTI_CHAR);
 
-
     state = FTI_Status();
 
     if (state == INIT) {
@@ -254,22 +250,23 @@ int main(int argc, char* argv[]) {
 
     if ( state == RESTART || state == KEEP ) {
         if ( recoveryType == 0 ){
+            printf("START RECOVER\n");
             result = FTI_Recover();
         }
         else {
+            printf("START RECOVER---VAR\n");
             int order[4] = {0,1,2,3};
             shuffle(order,4);
+	        result = FTI_RecoverVarInit();
             for ( i = 0; i < 4; i++){
                 if  ( lrank == 0 ){
                     printf("Recovering Var %d\n", order[i]);
                 }
-                //edits go here
-                FTI_RecoverVarInit();
-                result = FTI_RecoverVar(order[i]);
-                FTI_RecoverVarFinalize();
-                if (result != FTI_SCES) {
-                    exit(RECOVERY_FAILED);
-                }
+                result += FTI_RecoverVar(order[i]);
+            }
+	        result += FTI_RecoverVarFinalize();
+            if (result != FTI_SCES) {
+                exit(RECOVERY_FAILED);
             }
         }
 
