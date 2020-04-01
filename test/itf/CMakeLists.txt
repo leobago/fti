@@ -1,4 +1,4 @@
-set(itf_dir ${CMAKE_CURRENT_BINARY_DIR})
+set(itf_dir ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL itf_dir)
 
 # --------------- Definition of ITF Installation-time variables ---------------
 
@@ -28,4 +28,4 @@ foreach(itf_file ${itf_files})
     configure_file(${itf_file} ${itf_file} @ONLY)
 endforeach(itf_file)
 
-set(itf_run_cmd ${itf_dir}/testrunner)
+set(itf_run_cmd ${itf_dir}/testrunner CACHE INTERNAL itf_run_cmd)

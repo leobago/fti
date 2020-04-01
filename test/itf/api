@@ -79,18 +79,15 @@ app_run() {
 
     echo "app_run" | tee -a $itf_tstdout
     echo "parameters: $@" &>>$itf_tstdout
+    echo "mpirun $MPIRUN_ARGS -n $itf_nranks $@" | tee -a $itf_tstdout
+    local _retval=0
     if [ $itf_verbose -eq 1 ]; then
-        (
-            set -x
-            mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
-        )
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
+        _retval=${PIPESTATUS[0]}
     else
-        (
-            set -x
-            mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
-        )
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        _retval=$?
     fi
-    local _retval=$?
     echo "returns $_retval" | tee -a $itf_tstdout
     return $_retval
 }
@@ -140,11 +137,8 @@ ckpt_erase_last() {
 
     echo "checkpoint_erase $@" | tee -a $itf_tstdout
     for f in $(itf_find_fti_objects $@); do
-        (
-            set -x
-            rm -rf $f
-        )
-        echo "erased: $f" &>>$itf_tstdout
+        echo "erased: $f" | tee -a $itf_tstdout
+        rm -rf $f
     done
 }
 
@@ -164,11 +158,8 @@ ckpt_corrupt_last() {
 
     echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
     for f in $(itf_find_fti_objects $@); do
-        (
-            set -x
-            echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
-        )
-        echo "corrupted: $f" &>>$itf_tstdout
+        echo "corrupted: $f" | tee -a $itf_tstdout
+        echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
     done
 }
 
