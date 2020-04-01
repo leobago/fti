@@ -144,6 +144,7 @@ fi
 if [ $nfailures -gt 0 ]; then
     print_color $COLOR_WHITEBOLD "ITF failure report: $itf_report_log\n"
 fi
+
 let npassed=$ntests-$nfailures
 print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
 print_color $COLOR_WHITEBOLD "EXECUTED:\t$ntests\n"

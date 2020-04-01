@@ -120,7 +120,7 @@ itf_log() {
 
     let __loglv=$1-1
 
-    if [ $itf_verbose -gt $_loglv ]; then
+    if [ $itf_verbose -gt $__loglv ]; then
         echo "$2" | tee -a $itf_tstdout
     else
         echo "$2" >> $itf_tstdout
