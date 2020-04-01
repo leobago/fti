@@ -2717,7 +2717,7 @@ int FTI_RecoverVarFinalize(){
             res = FTI_NSCS;
     }
     
-    if( res == FTI_SCES ) FTI_Exec.reco = 0;
+    //if( res == FTI_SCES ) FTI_Exec.reco = 0;
     
     return res; 
 }
