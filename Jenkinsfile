@@ -21,8 +21,8 @@ pipeline {
       steps {
         sh 'scripts/install.sh && cd build/test'
         
-        for (fixture in ITFLocalFixtures) {
-          catchError { sh "itf/testrunner $fixture" }
+        for (int i = 0; i < ITFLocalFixtures.size(); i++) {
+          catchError { sh "itf/testrunner ${ITFLocalFixtures[i]}" }
         }
       }
     }
