@@ -1715,10 +1715,11 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptMeta.level = level; // assign to temporary metadata
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
-
     // no postprocessing or meta data for h5 single file
     if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
+#ifdef ENABLE_HDF5
         return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, t2 - t1 ); 
+#endif 
     }
 
     if (!FTI_Ckpt[FTI_Exec.ckptMeta.level].isInline) { // If postCkpt. work is Async. then send message
@@ -2024,7 +2025,9 @@ int FTI_FinalizeICP()
 
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
+#ifdef ENABLE_HDF5
         return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, MPI_Wtime() - FTI_Exec.iCPInfo.t0 ); 
+#endif
     }
 
     if( resCP == FTI_SCES ) {
