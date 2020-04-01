@@ -36,7 +36,7 @@ fti_config_set() {
     # $2: The new value for the field
 
     echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
-    echo "config_set $1=$2" | tee -a $itf_tstdout # Test Feedback
+    itf_log "$itf_log_step" "config_set $1=$2"
 }
 
 fti_config_set_inline() {
@@ -77,18 +77,18 @@ app_run() {
     # If this ever needs to be changed, the testrunner will need a rework.
     # Otherwise, the suite file will be consumed by mpirun.
 
-    echo "app_run" | tee -a $itf_tstdout
-    echo "parameters: $@" &>>$itf_tstdout
-    echo "mpirun $MPIRUN_ARGS -n $itf_nranks $@" | tee -a $itf_tstdout
+    itf_log "$itf_log_step" "app_run: mpirun $MPIRUN_ARGS -n $itf_nranks $@"
+
     local _retval=0
-    if [ $itf_verbose -eq 1 ]; then
+    if [ $itf_verbose -gt 1 ]; then
         mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
         _retval=${PIPESTATUS[0]}
     else
         mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
         _retval=$?
     fi
-    echo "returns $_retval" | tee -a $itf_tstdout
+
+    itf_log "$itf_log_step" "returns $_retval"
     return $_retval
 }
 
@@ -134,12 +134,13 @@ ckpt_erase_last() {
     # Usage Details:
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
-
-    echo "checkpoint_erase $@" | tee -a $itf_tstdout
+    set -e
+    itf_log "$itf_log_step" "checkpoint_erase $@"
     for f in $(itf_find_fti_objects $@); do
-        echo "erased: $f" | tee -a $itf_tstdout
+        itf_log "$itf_log_step" "erased: $f"
         rm -rf $f
     done
+    set +e
 }
 
 ckpt_corrupt_last() {
@@ -155,12 +156,13 @@ ckpt_corrupt_last() {
     # Usage Details:
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
-
-    echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
+    set -e
+    itf_log "$itf_log_step" "checkpoint_corrupt $@"
     for f in $(itf_find_fti_objects $@); do
-        echo "corrupted: $f" | tee -a $itf_tstdout
         echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
+        itf_log "$itf_log_step" "corrupted: $f"
     done
+    set +e
 }
 
 # ---------------------------- Fixture Assertions -----------------------------

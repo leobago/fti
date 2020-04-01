@@ -111,6 +111,23 @@ test_case() {
 
 # ---------------------------- Engine Log handling ----------------------------
 
+itf_log() {
+    # Logs an ITF message and print it to the user depending on ITF state
+    #
+    # Parameters:
+    # $1: The message log level
+    # $2: The message
+
+    let __loglv=$1-1
+
+    if [ $itf_verbose -gt $_loglv ]; then
+        echo "$2" | tee -a $itf_tstdout
+    else
+        echo "$2" >> $itf_tstdout
+    fi
+    unset __loglv
+}
+
 itf_get_fixture_failure_log() {
     # Get the failure log filename for the current fixture
 

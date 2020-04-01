@@ -70,8 +70,9 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     -v | --verbose)
-        # Makes ITF output the application log in the terminal
-        itf_verbose=1
+        # Set the verbosity level for ITF
+        itf_verbose=$2
+        shift
         shift
         ;;
     --dry-run)
