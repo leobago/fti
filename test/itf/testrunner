@@ -41,7 +41,7 @@ execute_suite() {
     local __local_test_count=0
 
     # Get the amount of tests in the suite
-    nlines=$(grep -c "^" "$1.suite")
+    nlines=$(grep -c "^" "$2")
 
     # Execute each test case
     while IFS= read -r params; do
@@ -49,7 +49,7 @@ execute_suite() {
 
         print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
         execute_case $params
-    done <"$1.suite"
+    done <"$2"
 
     # Textual feedback
     print_fixture_feedback $((nfailures - $__local_failures))
@@ -123,7 +123,7 @@ done
 ntests=0
 nfailures=0
 
-if [ ! -z $suitename ]; then
+if  [ ! -z $suitename ]; then
     # Running one fixture with custom suite
     execute_suite "${arguments[0]}" "$suitename"
 
@@ -144,6 +144,7 @@ fi
 if [ $nfailures -gt 0 ]; then
     print_color $COLOR_WHITEBOLD "ITF failure report: $itf_report_log\n"
 fi
+
 let npassed=$ntests-$nfailures
 print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
 print_color $COLOR_WHITEBOLD "EXECUTED:\t$ntests\n"

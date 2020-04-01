@@ -3,14 +3,14 @@
 setup() {
     head=0
     keep=0
-    param_register 'iolib' 'level' 'diffsize'
+    param_register 'iolib' 'level'
 }
 
 runtest() {
     local app='@CMAKE_CURRENT_BINARY_DIR@/recoverName.exe' 
 
     app_run_success $app $itf_cfgfile 1 $level 1
-    app_run_timeout $app $itf_cfgfile 0 $level $diffsize
+    app_run_timeout $app $itf_cfgfile 0 $level 1
     assert_equals $? 0 "recoverName.exe returned with output: $?"
 }
 

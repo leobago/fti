@@ -303,9 +303,9 @@ print_color() {
     # Warning:
     # If the string has spaces, the caller must use double quotes.
     # ex.: print_color "This is my testname"
-    
+
     if [ $itf_no_color -eq 1 ]; then
-        printf $2
+        printf "%b" "$2"
     else
         printf "$1$2$COLOR_RESET"
     fi
