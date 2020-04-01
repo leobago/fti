@@ -266,11 +266,9 @@ itf_find_fti_objects() {
         if [ $_erase_all == 'true' ]; then
             _files="$_files $_where/$i"
         else
-            set -x
             _files="$_files $(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
         fi
     done
-    set +x
     echo "$_files"
 
     set +e

@@ -64,6 +64,11 @@ declare -a arguments=()
 nargs=0
 while [[ $# -gt 0 ]]; do
     case $1 in
+    --no-color)
+        # Disable the color output of ITF for plain logs
+        itf_no_color=1
+        shift
+        ;;
     -v | --verbose)
         # Makes ITF output the application log in the terminal
         itf_verbose=1
