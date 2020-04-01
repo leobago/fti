@@ -1074,16 +1074,6 @@ def cmakesteps(list) {
 pipeline {
   agent none
     stages {
-      stage('Local Tests') {
-        agent {
-          docker {
-            image 'kellekai/archlinuxopenmpi1.10:stable'
-          }
-        }
-        steps {
-          sh 'scripts/install.sh && cd build'
-        }
-      }
       stage('Cmake Versions Test') {
         agent {
           docker {
