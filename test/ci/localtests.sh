@@ -4,7 +4,7 @@
 
 export MPIRUN_ARGS=--oversubscribe
 
-fixtures=$(find 'local' -name '*.fixture' | sed -i s/.fixture//)
+fixtures=$(find 'local' -name '*.fixture' | sed s/.fixture//)
 
 itf/testrunner ${fixtures[@]}
 
