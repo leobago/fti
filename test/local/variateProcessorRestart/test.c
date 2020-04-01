@@ -343,11 +343,13 @@ int recover( int* ids, int nids )
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     if( RECOVERVAR ) {
         shuffle( ids, nids );
+        FTI_RecoverVarInit();
         int i;
         for(i=0; i<nids; i++) {
             // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
             FTI_RecoverVar( ids[i] );
         }
+        FTI_RecoverVarFinalize();
     } else {
         FTI_Recover();
     }

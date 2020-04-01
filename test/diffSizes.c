@@ -101,10 +101,14 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
         if (world_rank % 2 == 0) {
             res = FTI_Recover();
         } else {
-            res = FTI_RecoverVar(1);
+            res = FTI_RecoverVarInit();
+            res += FTI_RecoverVar(1);
             res += FTI_RecoverVar(2);
+            res += FTI_RecoverVarFinalize();
         }
+
         if (res != 0) {
+            if(world_rank==1) printf("\n -->  rank: %d ARRIVE HERE\n", world_rank);
             buf = FTI_Realloc(2, buf);
             if (buf == NULL) {
                 printf("%d: Reallocation failed!\n", world_rank);
@@ -115,8 +119,10 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail)
             if (world_rank % 2 == 0) {
                 res = FTI_Recover();
             } else {
-                res = FTI_RecoverVar(1);
-                res = FTI_RecoverVar(2);
+                res = FTI_RecoverVarInit();
+                res += FTI_RecoverVar(1);
+                res += FTI_RecoverVar(2);
+                res += FTI_RecoverVarFinalize();
             }
             if (res != 0) {
                 printf("%d: Recovery failed! FTI_Recover returned %d.\n", world_rank, res);
