@@ -37,6 +37,20 @@ itf_unload_fixture() {
     unset on_fixture_teardown
 }
 
+test_case_dry() {
+    # Prepare a test for execution and print its info but do not execute it
+    #
+    # Parameters:
+    # $@ The parameters to be passed to the fixture setup
+
+    itf_param_clear    # Clear parameters from previous test case
+    setup $@           # Call setup to declare arguments and other data
+    itf_param_parse $@ # Parse the test case arguments an ddefine variables
+
+    # Print feedback
+    echo "$(itf_describe_test_case)"
+}
+
 test_case() {
     # Run a test defined in a fixture with a set of input data
     #
@@ -53,12 +67,7 @@ test_case() {
     # Create the FTI configfile based on the mock
     cat "$itf_cfg_template" >$itf_cfgfile
 
-    itf_param_clear    # Clear parameters from previous test case
-    setup $@           # Call setup to declare arguments and other data
-    itf_param_parse $@ # Parse the test case arguments an ddefine variables
-
-    # Print feedback
-    echo "$(itf_describe_test_case)"
+    test_case_dry $@
 
     # Prepare the FTI config file
     type prepare_fti &>/dev/null && prepare_fti
@@ -101,6 +110,23 @@ test_case() {
 }
 
 # ---------------------------- Engine Log handling ----------------------------
+
+itf_log() {
+    # Logs an ITF message and print it to the user depending on ITF state
+    #
+    # Parameters:
+    # $1: The message log level
+    # $2: The message
+
+    let __loglv=$1-1
+
+    if [ $itf_verbose -gt $_loglv ]; then
+        echo "$2" | tee -a $itf_tstdout
+    else
+        echo "$2" >> $itf_tstdout
+    fi
+    unset __loglv
+}
 
 itf_get_fixture_failure_log() {
     # Get the failure log filename for the current fixture
@@ -257,11 +283,9 @@ itf_find_fti_objects() {
         if [ $_erase_all == 'true' ]; then
             _files="$_files $_where/$i"
         else
-            set -x
             _files="$_files $(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
         fi
     done
-    set +x
     echo "$_files"
 
     set +e

@@ -79,3 +79,7 @@ set(test_subdirs "local")
 foreach(test_dir ${test_subdirs})
   add_subdirectory(${test_dir})
 endforeach(test_dir)
+
+# -------------------------- Installing Tests for CI --------------------------
+
+configure_file(ci/localtests.sh ${CMAKE_CURRENT_BINARY_DIR}/ci/localtests.sh COPYONLY)
