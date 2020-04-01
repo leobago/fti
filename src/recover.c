@@ -268,31 +268,14 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             int res;
             switch (level) {
-                case 0:
-                    if ( FTI_Ckpt[4].recoIsDcp ) {
-                        res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
-                        if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
-                        if (res == FTI_SCES ) {
-                            level = 4;
-                        } else {
-                            snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptId);
-                            FTI_Print(str, FTI_INFO);
-                        }
-                    } else {
-                        res = FTI_NSCS;
-                    }
-                    break;
                 case 4:
                     if ( FTI_Ckpt[4].recoIsDcp ) {
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                         if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
-                        if (res == FTI_SCES ) {
-                            level = 4;
-                            break;
-                        } else {
+                        if (res == FTI_SCES ) break;
+                        else {
                             snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptId);
                             FTI_Print(str, FTI_INFO);
-                            exit(-1);
                         }
                     }
                     res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
