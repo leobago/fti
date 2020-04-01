@@ -79,18 +79,15 @@ app_run() {
 
     echo "app_run" | tee -a $itf_tstdout
     echo "parameters: $@" &>>$itf_tstdout
+    echo "mpirun $MPIRUN_ARGS -n $itf_nranks $@" | tee -a $itf_tstdout
+    local _retval=0
     if [ $itf_verbose -eq 1 ]; then
-        (
-            set -x
-            mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
-        )
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
+        _retval=${PIPESTATUS[0]}
     else
-        (
-            set -x
-            mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
-        )
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        _retval=$?
     fi
-    local _retval=$?
     echo "returns $_retval" | tee -a $itf_tstdout
     return $_retval
 }
@@ -140,11 +137,8 @@ ckpt_erase_last() {
 
     echo "checkpoint_erase $@" | tee -a $itf_tstdout
     for f in $(itf_find_fti_objects $@); do
-        (
-            set -x
-            rm -rf $f
-        )
-        echo "erased: $f" &>>$itf_tstdout
+        echo "erased: $f" | tee -a $itf_tstdout
+        rm -rf $f
     done
 }
 
@@ -164,11 +158,8 @@ ckpt_corrupt_last() {
 
     echo "checkpoint_corrupt $@" | tee -a $itf_tstdout
     for f in $(itf_find_fti_objects $@); do
-        (
-            set -x
-            echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
-        )
-        echo "corrupted: $f" &>>$itf_tstdout
+        echo "corrupted: $f" | tee -a $itf_tstdout
+        echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
     done
 }
 
@@ -252,6 +243,18 @@ check_non_zero() {
     fi
 }
 
+check_file_exists() {
+    # Assert that a file exists
+    #
+    # Parameters:
+    # $1: The file path
+
+    if ! ls $1 1> /dev/null 2>&1;
+    then
+        fail "File not found: $1"
+    fi
+}
+
 assert_equals() {
     # Assert if a value is equal to another and finalize test case
     #
@@ -273,6 +276,16 @@ assert_not_equals() {
     # $3: An optional message in case of failure
 
     check_not_equals $1 $2 "$3"
+    pass
+}
+
+assert_file_exists() {
+    # Assert that a file exists
+    #
+    # Parameters:
+    # $1: The file path
+
+    check_file_exists $1
     pass
 }
 
@@ -301,19 +314,17 @@ iolib_name_to_id() {
     # Returns:
     # 1 if the name is not recognized by FTI
 
-    if [ "$1" = "POSIX" ]; then
-        echo '1'
-    elif [ "$1" = "MPIIO" ]; then
-        echo '2'
-    elif [ "$1" = "FTIFF" ]; then
-        echo '3'
-    elif [ "$1" = "SIONLIB" ]; then
-        echo '4'
-    elif [ "$1" = "HDF5" ]; then
-        echo '5'
-    else
-        return 1
-    fi
+    __idx=0
+    for i in "${itf_io_names[@]}"; do
+        if [ "$i" == "$1" ]; then
+            echo "${itf_io_ids[$__idx]}"
+            unset __idx
+            return 0
+        fi
+        let __idx=$__idx+1
+    done
+    unset __idx
+    return 1
 }
 
 iolib_id_to_name() {
@@ -325,17 +336,15 @@ iolib_id_to_name() {
     # Returns:
     # 1 if the id is not recognized by FTI
 
-    if [ "$1" = 1 ]; then
-        echo 'POSIX'
-    elif [ "$1" = 2 ]; then
-        echo 'MPIIO'
-    elif [ "$1" = 3 ]; then
-        echo 'FTIFF'
-    elif [ "$1" = 4 ]; then
-        echo 'SIONLIB'
-    elif [ "$1" = 5 ]; then
-        echo 'HDF5'
-    else
-        return 1
-    fi
+    __idx=0
+    for i in "${itf_io_ids[@]}"; do
+        if [ "$i" -eq "$1" ]; then
+            echo "${itf_io_names[$__idx]}"
+            unset __idx
+            return 0
+        fi
+        let __idx=$__idx+1
+    done
+    unset __idx
+    return 1
 }

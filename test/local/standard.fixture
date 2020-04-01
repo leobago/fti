@@ -13,8 +13,7 @@ prepare_fti() {
 }
 
 runtest() {
-    local app='check.exe'
-    local dir='local'
+    local app='@CMAKE_CURRENT_BINARY_DIR@/check.exe'
 
     if [ $keep -eq 0 ]
     then
@@ -25,7 +24,6 @@ runtest() {
         local crash=0
     fi
 
-    cd $dir
     app_run_success $app $itf_cfgfile $crash $level $diffsize $icp
 
     # When keep=1, FTI flushes the last checkpoint to global
@@ -39,6 +37,5 @@ runtest() {
     # On keep=1, it should restart from the ckpt pushed to global
     # On keep=0, it should restart from the last ckpt in local
     app_run_success $app $itf_cfgfile 0 $level $diffsize $icp
-    cd ..
     pass
 }

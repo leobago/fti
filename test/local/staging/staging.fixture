@@ -3,8 +3,6 @@
 setup() {
     param_register 'head'
     iolib="$(iolib_name_to_id 'POSIX')"
-
-    app='local/staging/massive.exe'
 }
 
 prepare_fti() {
@@ -13,6 +11,7 @@ prepare_fti() {
 }
 
 runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/massive.exe'
     app_run_success $app $itf_cfgfile
     
     awk '/of staging completed/ { PROGRESS=$2*1.0; }
@@ -30,5 +29,5 @@ runtest() {
 }
 
 teardown() {
-    unset app iolib
+    unset iolib
 }

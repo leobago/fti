@@ -3,8 +3,6 @@
 setup() {
     param_register 'head' 'keep'
     iolib="$(iolib_name_to_id 'POSIX')"
-
-    app='local/keepL4Ckpt/testkeepl4.exe'
 }
 
 prepare_fti() {
@@ -18,6 +16,8 @@ prepare_fti() {
 }
 
 runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/testkeepl4.exe'
+
     app_run_success $app $itf_cfgfile
     app_run_success $app $itf_cfgfile
 
@@ -25,9 +25,10 @@ runtest() {
     local exec_id=$(fti_config_get 'exec_id')
 
     if [ $keep -eq 1 ]; then
-        assert_equals \
-            $itf_nranks $(find "$globaldir/$exec_id/l4" | grep 'Ckpt' | wc -l)\
-            "There are ranks missing in the Global directory"
+        local must_be_in_l4=(3 6 9 11)
+        for i in "${must_be_in_l4[@]}"; do
+            check_file_exists $globaldir/$exec_id/l4/Ckpt*-Rank$i.fti
+        done
     else
         # This should fail because there is no such directory
         ls $globaldir/$exec_id 2>> /dev/null
@@ -37,5 +38,5 @@ runtest() {
 }
 
 teardown() {
-    unset app iolib
+    unset iolib
 }

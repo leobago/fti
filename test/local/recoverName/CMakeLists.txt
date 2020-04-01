@@ -1,3 +1,12 @@
+enable_testing()
+
+list(APPEND test_labels_current "recovername")
+
+# Install ITF Test Fixtures/Suites
+foreach(tcase "recovername")
+    InstallSuiteITFConvention(${tcase} ${test_labels_current})
+endforeach(tcase)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 add_executable(recoverName.exe checkRecoverName.c)
 
@@ -16,3 +25,4 @@ set_property(TARGET recoverName.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAG
 file(INSTALL configH0.fti DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE  GROUP_READ GROUP_WRITE  WORLD_READ WORLD_WRITE)
 file(INSTALL configH1.fti DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE  GROUP_READ GROUP_WRITE  WORLD_READ WORLD_WRITE)
 
+list(REMOVE_ITEM test_labels_current "recovername")

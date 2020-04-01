@@ -8,6 +8,11 @@ declare -r itf_cfg_template='@itf_config_template@'
 # The runtime-generated FTI config file name
 declare -r itf_cfgfile='/tmp/configfile'
 
+# ------------------------------- FTI Constants -------------------------------
+
+declare -r itf_io_names=(@fti_io_names@)
+declare -r itf_io_ids=(@fti_io_ids@)
+
 # --------------------------- MPI Test Application ----------------------------
 
 # MPI rank count for test applications

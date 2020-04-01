@@ -421,44 +421,7 @@ endif()
 
 if(ENABLE_TESTS)
     enable_testing()
-
-    function(DeclareITFSuite SuiteName)
-        # Declares a set of CTests with the optional parameters
-        # In addition, creates a custom make rule test-SuiteName
-        # The rule will execute only the tests in this Suite.
-
-        message("Creating test-${SuiteName} rule for testing using ITF")
-        # Define the test rule using the fixtures
-        foreach(itf_case ${ARGN})
-            add_test(NAME ${itf_case}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test/local
-                COMMAND testrunner ${itf_case}
-            )
-        endforeach(itf_case)
-
-        # Attribute the a label to every test in the suite
-        set_tests_properties(${ARGN} PROPERTIES LABELS ${SuiteName})
-        # Create a custom command for running the tests with the given label
-        add_custom_target(test-${SuiteName}
-            COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L ${SuiteName}
-        )
-    endfunction()
-
-    # Declare the local tests
-    set(itf_local_tests
-        recovervar
-        dCP
-        dCP-corrupt
-        staging
-        standard
-        standard-disrupt
-    )
-
     add_subdirectory(test)
-
-    # Define the local tests
-    DeclareITFSuite(local ${itf_local_tests})
-
 endif()
 
 if(ENABLE_TUTORIAL)

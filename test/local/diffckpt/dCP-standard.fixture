@@ -1,7 +1,6 @@
 #!/bin/bash
 
 setup() {
-    app='local/diffckpt/diff_test.exe'
     param_register 'iolib' 'head' 'mode'
 }
 
@@ -17,6 +16,7 @@ prepare_fti() {
 }
 
 runtest() {
+    local app='@CMAKE_CURRENT_BINARY_DIR@/diff_test.exe'
     export TEST_MODE=$mode
 
     app_run_success $app $itf_cfgfile
@@ -43,5 +43,5 @@ runtest() {
 }
 
 teardown() {
-    unset app TEST_MODE
+    unset TEST_MODE
 }

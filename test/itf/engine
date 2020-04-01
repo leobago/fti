@@ -14,10 +14,14 @@ itf_load_fixture() {
     # Parameters:
     # $1: The fixture name without the .fixture extension
 
-    itf_loaded_fixture="$1"
+    set -e
+
+    itf_loaded_fixture="$(basename "$1")"
     itf_fixture_had_errors='false'
     source "$1"
     itf_clear_logs
+
+    set +e
 }
 
 itf_unload_fixture() {
@@ -137,6 +141,8 @@ itf_append_logs() {
     #
     # Parameters:
     # $1: The test status
+    
+    set -e
 
     # A log containing stdout of failed tests
     local faillog="$(itf_get_fixture_failure_log)"
@@ -167,6 +173,8 @@ itf_append_logs() {
         cat $itf_tstdout >>$normallog
         echo "" >>$faillog # line feed
     fi
+
+    set +e
 }
 
 # --------------------------- ITF Interal functions ---------------------------
@@ -208,6 +216,8 @@ itf_find_fti_objects() {
     # When the object is 'node' returns:
     # - Local node directory for every supplied node
 
+    set -e
+
     if [ ! $1 == 'global' ] && [ -z $level ]; then
         fail '$level variable must be set for ITF to delete checkpoint files'
     fi
@@ -236,8 +246,7 @@ itf_find_fti_objects() {
         _erase_all='true'
         ;;
     *)
-        fail "checkpoint object type malformed $1, try one of the following: "\
-            "'global', 'ckpt', 'partner' or 'rs-encoding', 'node'"
+        fail "checkpoint object type malformed $1, try one of the following: 'global', 'ckpt', 'partner' or 'rs-encoding', 'node'"
         ;;
     esac
     shift
@@ -248,11 +257,14 @@ itf_find_fti_objects() {
         if [ $_erase_all == 'true' ]; then
             _files="$_files $_where/$i"
         else
-            _files="$_files "\
-                "$(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
+            set -x
+            _files="$_files $(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
         fi
     done
+    set +x
     echo "$_files"
+
+    set +e
 }
 
 itf_param_clear() {

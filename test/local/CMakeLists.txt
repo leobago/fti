@@ -1,3 +1,69 @@
+enable_testing()
+
+# TODO: Deprecated after full ITF merge
+set(IO 1)
+set(IO_NAMES "POSIX MPIIO FTIFF")
+set(IO_IDS "1 2 3")
+set(MEMORYTYPES "CPU")
+
+# TODO: Deprecated after full ITF merge
+if(ENABLE_HDF5)
+  SET(DO_VPR_CHECK true)
+else()
+  SET(DO_VPR_CHECK false)
+endif()
+
+# TODO: Deprecated after full ITF merge
+if(ENABLE_SIONLIB)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} SIONLIB")
+  set(IO_IDS "${IO_IDS} 4")
+endif()
+
+# TODO: Deprecated after full ITF merge
+if (ENABLE_HDF5)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} HDF5")
+  set(IO_IDS "${IO_IDS} 5")
+endif()
+
+if (ENABLE_GPU)
+  add_subdirectory(dCPGPU)
+  if(ENABLE_HDF5)
+    add_subdirectory(hdf5GPU)
+  endif()
+endif()   
+
+
+# ------------------------------ ITF Test Suites ------------------------------
+
+list(APPEND test_labels_current "local")
+
+set(test_local_suites
+  "recoverVar" "recoverName" "diffckpt"
+  "staging" "keepL4Ckpt")
+
+# Include all local test suites
+foreach(tcase ${test_local_suites})
+  add_subdirectory(${tcase})
+endforeach(tcase)
+
+# Conditiona tests
+if(ENABLE_HDF5)
+  add_subdirectory("variateProcessorRestart")
+endif()
+
+
+# TODO: Refactor this when ITF is fully merged
+list(APPEND test_labels_current "standard")
+InstallSuiteITFConvention("standard" ${test_labels_current})
+InstallSuiteITFConvention("standard-disrupt" ${test_labels_current})
+list(REMOVE_ITEM test_labels_current "standard")
+
+# -----------------------------------------------------------------------------
+
+set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
+
 if (ENABLE_GPU)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGPUSUPPORT")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
@@ -11,14 +77,6 @@ else ()
 endif()
 set(CMAKE_VERBOSE_MAKEFILE on)
 
-# Test applications
-add_subdirectory(recoverVar)
-add_subdirectory(recoverName)
-add_subdirectory(diffckpt)
-add_subdirectory(staging)
-add_subdirectory(variateProcessorRestart)
-add_subdirectory(keepL4Ckpt)
-
 target_link_libraries(check.exe fti.static ${MPI_C_LIBRARIES} m)
 set_property(TARGET check.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET check.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
@@ -29,7 +87,6 @@ if (ENABLE_GPU)
   set_property(TARGET check-gpu.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
   set_property(TARGET checkAll.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endif()
-
  
 
 if(ENABLE_FORTRAN)
@@ -41,34 +98,6 @@ if(ENABLE_FORTRAN)
 	    target_compile_definitions(fcheck.exe PRIVATE -DMPI_USE_HEADER)
     endif()
 	target_compile_options(fcheck.exe PRIVATE -cpp)
-endif()
-
-set(IO 1)
-set(IO_NAMES "POSIX MPIIO FTIFF")
-set(MEMORYTYPES "CPU")
-set(FULLPATH "${CMAKE_CURRENT_BINARY_DIR}")
-if(ENABLE_HDF5)
-    SET(DO_VPR_CHECK true)
-else()
-    SET(DO_VPR_CHECK false)
-endif()
-
-
-if(ENABLE_SIONLIB)
-    MATH(EXPR IO "${IO}+1")
-    set(IO_NAMES "${IO_NAMES} SIONLIB")
-endif()
-
-if (ENABLE_GPU)
-        add_subdirectory(dCPGPU)
-        if(ENABLE_HDF5)
-            add_subdirectory(hdf5GPU)
-        endif()
-endif()        
-
-if (ENABLE_HDF5)
-            MATH(EXPR IO "${IO}+1")
-            set(IO_NAMES "${IO_NAMES} HDF5")
 endif()
 
 
@@ -98,6 +127,8 @@ configure_file(keepL4Ckpt/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/keepL4Ckpt/Mak
 configure_file(keepL4Ckpt/checkKL4.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkKL4.sh @ONLY)
 configure_file(staging/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/staging/Makefile @ONLY)
 configure_file(staging/checkGIO.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkGIO.sh @ONLY)
+list(APPEND test_current_labels )
+
 if(ENABLE_HDF5)
 configure_file(variateProcessorRestart/Makefile.in ${CMAKE_CURRENT_SOURCE_DIR}/variateProcessorRestart/Makefile @ONLY)
 configure_file(variateProcessorRestart/checkVPR.sh.in ${CMAKE_CURRENT_BINARY_DIR}/checkVPR.sh @ONLY)
@@ -128,3 +159,5 @@ endif()
 file(REMOVE run-checks-f90.sh)
 file(REMOVE run-travis-locally.sh)
 file(REMOVE check_functions.mod)
+
+list(REMOVE_ITEM test_labels_current "local")
