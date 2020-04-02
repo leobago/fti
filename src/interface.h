@@ -75,12 +75,12 @@ extern "C"
 #include "recover.h"
 #include "icp.h"
 
-#include "../deps/md5/md5.h"
-#include "../deps/iniparser/iniparser.h"
-#include "../deps/iniparser/dictionary.h"
+#include "deps/md5/md5.h"
+#include "deps/iniparser/iniparser.h"
+#include "deps/iniparser/dictionary.h"
 
-#include "../deps/jerasure/include/galois.h"
-#include "../deps/jerasure/include/jerasure.h"
+#include "deps/jerasure/include/galois.h"
+#include "deps/jerasure/include/jerasure.h"
 
 #ifdef ENABLE_SIONLIB // --> If SIONlib is installed
 #   include <sion.h>
