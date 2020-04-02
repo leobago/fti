@@ -5,6 +5,6 @@
 export MPIRUN_ARGS=--oversubscribe
 
 fixtures=$(find '@testing_dir@/local' -name '*.fixture' | sed s/.fixture//)
-@itf_run_cmd@ --dry-run ${fixtures[@]}
+@itf_run_cmd@ ${fixtures[@]}
 
 unset MPIRUN_ARGS
