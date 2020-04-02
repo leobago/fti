@@ -151,6 +151,6 @@ print_color $COLOR_WHITEBOLD "EXECUTED:\t$ntests\n"
 print_color $COLOR_GREENBOLD "PASSED:\t\t$npassed\n"
 print_color $COLOR_REDBOLD "FAILED:\t\t$nfailures\n"
 
-if [ $nfailures -gt 0 ]; then
+if [ $nfailures -gt 0 ] || [ $ntests -eq 0]; then
     exit 1
 fi
