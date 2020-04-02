@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run this scripts from the test folder in build
+# Run this scripts from the testing folder in build
 
 export MPIRUN_ARGS=--oversubscribe
 itf/testrunner $(find 'local' -name '*.fixture' | sed s/.fixture//)

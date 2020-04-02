@@ -15,7 +15,7 @@ Example 1:
 #export necessary variables
 export CONFIG=configH1I1.fti LEVEL=4 CKPT_IO=2 NOTCORRUPT=true
 #run test
-./test/tests.sh
+./testing/tests.sh
 
 This example will check if FTI uses SIONlib to perform checkpoint and is able to
 restart from it.
@@ -26,7 +26,7 @@ unset NOTCORRUPT
 #export necessary variables
 export CONFIG=configH0I1.fti LEVEL=2 CKPT_IO=5 CKPTORPTNER=1 CORRORERASE=1 CORRUPTIONLEVEL=2
 #run test
-./test/tests.sh
+./testing/tests.sh
 
 This example will run a FTI test program without heads, checkpointing on level 2,
 using HDF5-IO, which will check if FTI handles properly missing ckpt file and corresponding partner file.

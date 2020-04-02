@@ -1080,11 +1080,11 @@ pipeline {
       
       stages {
         stage('Build') {
-          steps { sh 'scripts/install.sh' }
+          steps { sh 'install.sh' }
         }
 
         stage('Local Tests') {
-          steps { sh 'cd build/test && ci/localtests.sh' }
+          steps { sh 'cd build/testing && ci/localtests.sh' }
         }
       }
     }
