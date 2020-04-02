@@ -1,5 +1,5 @@
 #!/bin/bash
-export DIR=@DIR@
+export DIR=@CMAKE_BINARY_DIR@
 
 export CKPT_IO=1 TEST=diffSizes CONFIG=configH0I1.fti LEVEL=1 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=0
 $DIR/test/tests.sh

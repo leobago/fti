@@ -1,4 +1,3 @@
-
 add_executable(addInArray addInArray.c)
 target_link_libraries(addInArray fti.static)
 
@@ -42,15 +41,34 @@ file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
 
+# ------------------------ Install-Time Test Variables -----------------------
+
+# TODO: deprecated when CUDA and FORTRAN tests are integrated into ITF
+set(IO 1)
+set(IO_NAMES "POSIX MPIIO FTIFF")
+set(IO_IDS "1 2 3")
+set(MEMORYTYPES "CPU")
+
+if(ENABLE_SIONLIB)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} SIONLIB")
+  set(IO_IDS "${IO_IDS} 4")
+endif()
+
+if (ENABLE_HDF5)
+  MATH(EXPR IO "${IO}+1")
+  set(IO_NAMES "${IO_NAMES} HDF5")
+  set(IO_IDS "${IO_IDS} 5")
+endif()
+
 # --------------------------- ITF engine Integration --------------------------
 
-# The test directory
 set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(itf)
 
+# Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)
-  # Declares an ITF CTest and assign it label with the remaining parameters
 
   message("Adding CTests calling ITF for fixture: ${FixtureName}")
 
@@ -64,12 +82,19 @@ function(DeclareITFSuite FixtureName)
   message("CTest Suite ${FixtureName} has the following labels: ${FixtureName} ${ARGN}")
 endfunction()
 
-function(InstallSuiteITFConvention FixturePreffix)
-  # Install a fixture and create the appropriate test suite for it
-  
+# Install a fixture and create the appropriate test suite for it
+function(InstallSuiteITFConvention FixturePreffix)  
   configure_file("${FixturePreffix}.fixture" ${CMAKE_CURRENT_BINARY_DIR} @ONLY)
   configure_file("${FixturePreffix}.suite" ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
   DeclareITFSuite("${FixturePreffix}" ${ARGN})
+endfunction()
+
+# Install a Test application with its source dependencies as extra arguments
+function(InstallTestApplication AppName)
+  add_executable(${AppName} ${ARGN})
+  target_link_libraries(${AppName} fti.static ${MPI_C_LIBRARIES} m)
+  set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+  set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
 
 # ---------------------- Inclusion of Test subdirectories ---------------------
