@@ -149,9 +149,9 @@ mkdir -p 'build'
 cd 'build'
 
 if [ $VERBOSE ]; then
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. >> $FTI_ROOT/install.log 2>&1 
+    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" $CMAKE_ARGS .. >> $FTI_ROOT/install.log 2>&1 
 else
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. 2>&1 | tee -a $FTI_ROOT/install.log 
+    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" $CMAKE_ARGS .. 2>&1 | tee -a $FTI_ROOT/install.log 
 fi
 if [ $? = 1 ]; then
     rm -rf build
