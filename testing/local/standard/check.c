@@ -41,8 +41,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "../../src/deps/iniparser/iniparser.h"
-#include "../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
 
 #define N 100000
 #define CNTRLD_EXIT 10

@@ -1075,19 +1075,15 @@ pipeline {
   agent none
 
     stages {
-      stage('ITF Tests') {
-      agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
-      
-      stages {
-        stage('Build') {
-          steps { sh './install.sh' }
-        }
 
-        stage('Local Tests') {
-          steps { sh 'cd build/testing && ./ci/localtests.sh' }
+      stage('ITF Local Tests') {
+        agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+      
+        steps {
+          sh 'testing/ci/build.sh' // Command to build for tests
+          sh 'build/testing/ci/localtests.sh' // Commands only installed after build
         }
       }
-    }
 
     stage('Cmake Versions Test') {
         agent {
@@ -1098,7 +1094,7 @@ pipeline {
         steps {
           cmakesteps(versions)
         }
-      }
+    }
 
       stage('GCC Compiler Tests (1/2)') {
         agent {
@@ -1265,5 +1261,5 @@ pipeline {
           executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
         }
       }
-    }
+  }
 }

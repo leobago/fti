@@ -1,5 +1,5 @@
 #!/bin/bash
-export DIR=@DIR@
+export DIR=@CMAKE_BINARY_DIR@
 
 cd $DIR/testing
 

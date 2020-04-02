@@ -20,7 +20,7 @@ print_usage() {
 	echo " "
 	echo "            [--debug]                     # Enable a debug build"
 	echo "            [--silent]                    # No output to stdout or stderr during installation"
-	echo "            [--uninstall]                    # No output to stdout or stderr during installation"
+	echo "            [--uninstall]                 # No output to stdout or stderr during installation"
 }
 
 remove_fti() {
@@ -41,18 +41,17 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export FTI_ROOT="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-CMAKE_ARGS=""
+CMAKE_ARGS="" # Kai, i think you should use an array here and then use -> ${CMAKE_ARGS[@]} without double quotes on the cmake command
 
 #parse arguments
-for i in "$@"
-do
-case $i in
+while [ $# -gt 0 ]; do
+case $1 in
     -h|--help)
     print_usage
     exit 0
     ;;
     -s=*|--prefix=*)
-    FTI_INSTALL_DIR="${i#*=}"
+    FTI_INSTALL_DIR="${1#*=}"
     shift # past argument=value
     ;;
     --debug)
@@ -104,11 +103,11 @@ case $i in
     shift # past argument=value
     ;;
     --sionlib-path=*)
-    CMAKE_ARGS="$CMAKE_ARGS -DSIONLIBBASE=${i#*=}"
+    CMAKE_ARGS="$CMAKE_ARGS -DSIONLIBBASE=${1#*=}"
     shift # past argument=value
     ;;
     --ime-path=*)
-    CMAKE_ARGS="$CMAKE_ARGS -DIMEBASE=${i#*=}"
+    CMAKE_ARGS="$CMAKE_ARGS -DIMEBASE=${1#*=}"
     shift # past argument=value
     ;;
     --silent)
@@ -124,7 +123,7 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-        echo "unknown option: $i"  
+        echo "unknown option: $1"  
         print_usage
         exit -1
     ;;
