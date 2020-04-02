@@ -21,11 +21,11 @@ set(itf_config_template_src fti_template.cfg)
 set(itf_config_template ${itf_dir}/${itf_config_template_src})
 
 # -------------------------------- Install ITF --------------------------------
-set(itf_files engine api variables testrunner ${itf_config_template_src})
+set(itf_files engine api variables testdriver ${itf_config_template_src})
 
 install(DIRECTORY DESTINATION ${itf_dir})
 foreach(itf_file ${itf_files})
     configure_file(${itf_file} ${itf_file} @ONLY)
 endforeach(itf_file)
 
-set(itf_run_cmd ${itf_dir}/testrunner CACHE INTERNAL itf_run_cmd)
+set(itf_run_cmd ${itf_dir}/testdriver CACHE INTERNAL itf_run_cmd)
