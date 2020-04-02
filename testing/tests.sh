@@ -259,7 +259,7 @@ runAllConfiguration() {
 	fi
 }
 
-cd $DIR$(echo test)
+cd "${DIR}testing"
 #--------Pattern: startTest testName configFile procNo args(ex. checkpoint levels)-------
 #----------------------------------------------------------------------------------------
 #-------------------------------- Write tests here --------------------------------------
