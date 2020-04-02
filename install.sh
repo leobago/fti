@@ -45,13 +45,13 @@ CMAKE_ARGS=""
 
 #parse arguments
 while [ $# -gt 0 ]; do
-case $i in
+case $1 in
     -h|--help)
     print_usage
     exit 0
     ;;
     -s=*|--prefix=*)
-    FTI_INSTALL_DIR="${i#*=}"
+    FTI_INSTALL_DIR="${1#*=}"
     shift # past argument=value
     ;;
     --debug)
@@ -103,11 +103,11 @@ case $i in
     shift # past argument=value
     ;;
     --sionlib-path=*)
-    CMAKE_ARGS="$CMAKE_ARGS -DSIONLIBBASE=${i#*=}"
+    CMAKE_ARGS="$CMAKE_ARGS -DSIONLIBBASE=${1#*=}"
     shift # past argument=value
     ;;
     --ime-path=*)
-    CMAKE_ARGS="$CMAKE_ARGS -DIMEBASE=${i#*=}"
+    CMAKE_ARGS="$CMAKE_ARGS -DIMEBASE=${1#*=}"
     shift # past argument=value
     ;;
     --silent)
@@ -123,7 +123,7 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-        echo "unknown option: $i"  
+        echo "unknown option: $1"  
         print_usage
         exit -1
     ;;
