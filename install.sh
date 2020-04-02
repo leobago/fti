@@ -20,7 +20,7 @@ print_usage() {
 	echo " "
 	echo "            [--debug]                     # Enable a debug build"
 	echo "            [--silent]                    # No output to stdout or stderr during installation"
-	echo "            [--uninstall]                    # No output to stdout or stderr during installation"
+	echo "            [--uninstall]                 # No output to stdout or stderr during installation"
 }
 
 remove_fti() {

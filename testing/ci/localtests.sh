@@ -4,6 +4,6 @@
 
 export MPIRUN_ARGS=--oversubscribe
 
-@itf_run_cmd@ $(find 'local' -name '*.fixture' | grep -v 'vpr' | sed s/.fixture//)
+@itf_run_cmd@ --dry-run $(find 'local' -name '*.fixture' | grep -v 'vpr' | sed s/.fixture//)
 
 unset MPIRUN_ARGS
