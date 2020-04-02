@@ -1081,7 +1081,9 @@ pipeline {
       
         steps {
           sh 'testing/ci/build.sh' // Command to build for tests
-          sh 'build/testing/ci/localtests.sh' // Commands only installed after build
+          catchError {
+            sh 'build/testing/ci/localtests.sh' // Commands only installed after build
+          }
         }
       }
 
