@@ -7,6 +7,7 @@ setup() {
 
 prepare_fti() {
     fti_config_set_ckpts '3' '5' '7' '11'
+    fti_config_set 'h5_single_file_enable' '1'
 
     if [ $head -eq 1 ]; then
         itf_nranks=20
