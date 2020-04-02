@@ -63,7 +63,7 @@ endif()
 
 # --------------------------- ITF engine Integration --------------------------
 
-set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(testing_dir ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(itf)
 add_subdirectory(ci)
