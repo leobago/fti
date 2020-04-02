@@ -41,7 +41,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export FTI_ROOT="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-CMAKE_ARGS=""
+CMAKE_ARGS="" # Kai, i think you should use an array here and then use -> ${CMAKE_ARGS[@]} without double quotes on the cmake command
 
 #parse arguments
 while [ $# -gt 0 ]; do
@@ -149,9 +149,9 @@ mkdir -p 'build'
 cd 'build'
 
 if [ $VERBOSE ]; then
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" $CMAKE_ARGS .. >> $FTI_ROOT/install.log 2>&1 
+    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. >> $FTI_ROOT/install.log 2>&1 
 else
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" $CMAKE_ARGS .. 2>&1 | tee -a $FTI_ROOT/install.log 
+    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. 2>&1 | tee -a $FTI_ROOT/install.log 
 fi
 if [ $? = 1 ]; then
     rm -rf build
