@@ -82,8 +82,8 @@ int main( int argc, char** argv ) {
         return -1;
     }
 
-    ICP = atoi(argv[1]);
-    RECOVERVAR = atoi(argv[2]);
+    ICP = atoi(argv[2]);
+    RECOVERVAR = atoi(argv[3]);
     int rank, grank; 
     int size; 
     int size_bac; 
@@ -95,10 +95,10 @@ int main( int argc, char** argv ) {
     // determine global rank
     MPI_Comm_rank(MPI_COMM_WORLD, &grank);
     
-    dictionary *ini = iniparser_load( "config.fti" );
+    dictionary *ini = iniparser_load( argv[1] );
     int restart = (int)iniparser_getint(ini, "Restart:failure", -1);
 
-    FTI_Init("config.fti", MPI_COMM_WORLD);
+    FTI_Init(argv[1], MPI_COMM_WORLD);
 
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
     MPI_Comm_size(FTI_COMM_WORLD, &size);
@@ -343,8 +343,8 @@ int recover( int* ids, int nids )
     MPI_Comm_rank( FTI_COMM_WORLD, &rank );
     if( RECOVERVAR ) {
         shuffle( ids, nids );
-        FTI_RecoverVarInit();
         int i;
+        FTI_RecoverVarInit();
         for(i=0; i<nids; i++) {
             // if( !rank ) printf("[%d] recover variable '%d' from file\n", i, ids[i]); // DEBUG
             FTI_RecoverVar( ids[i] );

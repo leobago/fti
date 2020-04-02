@@ -18,7 +18,6 @@ fi
 # Tutorial steps
 cd "$FTI_ROOT"
 
-mkdir -p "$INSTALL_DIR"
 mkdir 'build'
 cd 'build'
 

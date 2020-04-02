@@ -156,8 +156,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
-            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Ckpt[2].dir, ckptId, rank);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir, ckptId, rank, FTI_Conf->suffix);
             buf = consistency(fn, pfs, ptnerChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -166,8 +166,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
 
-            sscanf(ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Ckpt[3].dir, ckptId, rank);
+            sscanf(ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
+            snprintf(fn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Ckpt[3].dir, ckptId, rank, FTI_Conf->suffix);
             buf = FTI_CheckFile(fn, maxFs, rsChecksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased + FTI_Topo->groupSize, 1, MPI_INT, FTI_Exec->groupComm);
             break;
@@ -268,21 +268,16 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             int res;
             switch (level) {
-                case 0:
+                case 4:
                     if ( FTI_Ckpt[4].recoIsDcp ) {
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                         if( FTI_Conf->dcpFtiff ) FTI_Ckpt[4].recoIsDcp = false;
-                        if (res == FTI_SCES ) {
-                            level = 4;
-                        } else {
+                        if (res == FTI_SCES ) break;
+                        else {
                             snprintf(str, FTI_BUFS, "Recover failed from level %d_dCP with Ckpt. %d.", level, ckptId);
                             FTI_Print(str, FTI_INFO);
                         }
-                    } else {
-                        res = FTI_NSCS;
                     }
-                    break;
-                case 4:
                     res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
                     break;
                 case 3:

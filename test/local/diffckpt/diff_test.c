@@ -1,18 +1,25 @@
 #include "diff_test.h"
+#include <stdlib.h>
 
 #define ALLOC_SIZE (200*MB)
 
-int main() {
+int main(int argc, char* argv[]) {
     
     int exit_status = 0;
     
+    if (argc < 1)
+    {
+        printf("This test requires an FTI config file path as the first argument.");
+        exit(1);
+    }
+
     MPI_Init(NULL,NULL);
-    if ( FTI_Init("config.fti", MPI_COMM_WORLD) != 0 ) {
+    if ( FTI_Init(argv[1], MPI_COMM_WORLD) != 0 ) {
         exit(-1);
     }
     
     dcp_info_t info;
-    init( &info, ALLOC_SIZE );
+    init( argv[1], &info, ALLOC_SIZE );
     
     protect_buffers( &info );
     if (FTI_Status() == 0) {

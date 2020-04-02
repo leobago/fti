@@ -1,3 +1,4 @@
+
 add_executable(addInArray addInArray.c)
 target_link_libraries(addInArray fti.static)
 
@@ -27,8 +28,6 @@ target_link_libraries(corrupt fti.static)
 
 add_executable(syncIntv syncIntv.c)
 target_link_libraries(syncIntv fti.static)
-
-add_subdirectory(local)
   
 add_subdirectory(cornerCases)
 add_subdirectory(ckptHierarchy)
@@ -43,3 +42,44 @@ file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
 file(COPY syncIntvTest.sh DESTINATION .)
 
+# --------------------------- ITF engine Integration --------------------------
+
+# The test directory
+set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(itf)
+
+function(DeclareITFSuite FixtureName)
+  # Declares an ITF CTest and assign it label with the remaining parameters
+
+  message("Adding CTests calling ITF for fixture: ${FixtureName}")
+
+  # Define the test rule using the fixtures
+  add_test(NAME ${FixtureName} COMMAND
+    ${itf_run_cmd} ${CMAKE_CURRENT_BINARY_DIR}/${FixtureName})
+
+  # Attribute the a label to every test in the suite
+  set_property(TEST ${FixtureName} PROPERTY LABELS ${ARGN})
+
+  message("CTest Suite ${FixtureName} has the following labels: ${FixtureName} ${ARGN}")
+endfunction()
+
+function(InstallSuiteITFConvention FixturePreffix)
+  # Install a fixture and create the appropriate test suite for it
+  
+  configure_file("${FixturePreffix}.fixture" ${CMAKE_CURRENT_BINARY_DIR} @ONLY)
+  configure_file("${FixturePreffix}.suite" ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+  DeclareITFSuite("${FixturePreffix}" ${ARGN})
+endfunction()
+
+# ---------------------- Inclusion of Test subdirectories ---------------------
+
+set(test_subdirs "local")
+
+foreach(test_dir ${test_subdirs})
+  add_subdirectory(${test_dir})
+endforeach(test_dir)
+
+# -------------------------- Installing Tests for CI --------------------------
+
+configure_file(ci/localtests.sh ${CMAKE_CURRENT_BINARY_DIR}/ci/localtests.sh COPYONLY)

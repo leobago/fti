@@ -8,11 +8,12 @@
  *	and restart for all configurations. The recovered data is also
  *	tested upon correct data fields.
  *
- *	The program takes four arguments:
+ *	The program takes five arguments:
  *	  - arg1: FTI configuration file
  *	  - arg2: Interrupt yes/no (1/0)
  *	  - arg3: Checkpoint level (1, 2, 3, 4)
  *	  - arg4: different ckpt. sizes yes/no (1/0)
+ *	  - arg5: enable icp yes/no (1/0)
  *
  * If arg2 = 0, the program simulates a clean run of FTI:
  *    FTI_Init
@@ -145,22 +146,7 @@ int main(int argc, char* argv[]) {
   crash = atoi(argv[2]);
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
-
-
-  char *env = getenv("ENABLE_ICP");
-  if( env ) {
-    if( !strcmp(env, "ON") ) {
-      enable_icp = 1;
-    }
-    else if( !strcmp(env, "OFF") ) {
-      enable_icp = 0;
-    }
-    else {
-      exit(WRONG_ENVIRONMENT);
-    }
-  } else {
-    exit(WRONG_ENVIRONMENT);
-  }
+  enable_icp = atoi(argv[5]); // Previously: ENABLE_ICP environment var
 
   MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
@@ -337,7 +323,7 @@ int validify(double* A, double* B_chk, size_t asize) {
 
 int write_data(double* B, size_t *asize, int rank) {
   char str[256];
-  sprintf(str, "chk/check-%i.tst", rank);
+  sprintf(str, "/tmp/check-%i.tst", rank);
   FILE* f = fopen(str, "wb");
   size_t written = 0;
 
@@ -354,7 +340,7 @@ int write_data(double* B, size_t *asize, int rank) {
 
 int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize) {
   char str[256];
-  sprintf(str, "chk/check-%i.tst", rank);
+  sprintf(str, "/tmp/check-%i.tst", rank);
   FILE* f = fopen(str, "rb");
   size_t read = 0;
 

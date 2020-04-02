@@ -199,7 +199,7 @@ int FTI_LoadMetaPostprocessing(FTIT_configuration* FTI_Conf, FTIT_execution* FTI
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s", ini.getString(&ini, str));
 
     //update head's ckptId
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d", &FTI_Exec->ckptId);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d", &FTI_Exec->ckptMeta.ckptId);
 
     snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
     FTI_Exec->ckptMeta.fs = ini.getLong(&ini, str);
@@ -595,7 +595,7 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
     }
 
     char section[FTI_BUFS], key[FTI_BUFS], value[FTI_BUFS];
-    snprintf( section, FTI_BUFS, "checkpoint_id.%d", FTI_Exec->ckptId );
+    snprintf( section, FTI_BUFS, "checkpoint_id.%d", FTI_Exec->ckptMeta.ckptId );
     ini.set( &ini, section, NULL ); 
     time_t time_ctx;
     struct tm * time_info;
@@ -679,7 +679,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     } 
 
     // add checkpoint id
-    snprintf( val, FTI_BUFS, "%d", FTI_Exec->ckptId );
+    snprintf( val, FTI_BUFS, "%d", FTI_Exec->ckptMeta.ckptId );
     ini.set( &ini, "ckpt_info:ckpt_id", val ); 
 
     // Add metadata to dictionary

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# -------------------------- FTI Configuration File ---------------------------
+
+# ITF default FTI configuration file used as a template for every test
+declare -r itf_cfg_template='@itf_config_template@'
+
+# The runtime-generated FTI config file name
+declare -r itf_cfgfile='/tmp/configfile'
+
+# ------------------------------- FTI Constants -------------------------------
+
+declare -r itf_io_names=(@fti_io_names@)
+declare -r itf_io_ids=(@fti_io_ids@)
+
+# --------------------------- MPI Test Application ----------------------------
+
+# MPI rank count for test applications
+declare -r itf_nranks_default=16
+itf_nranks=$itf_nranks_default
+
+# Time limit, in seconds, to avoid stalls in test applications
+itf_timeout=30
+
+# --------------------------- General Configurations --------------------------
+
+# Verbosity level for feedback
+# Values:
+# 0 - Don't print anything besides the test name and status
+# 1 - Print ITF steps to stdout
+# 2 - Also prints the test application stdout
+itf_verbose=1
+
+# Boolean for printing ITF operations into stdout
+itf_quiet=0
+
+# Boolean for disabling colored outputs
+itf_no_color=0 # Use colored outputs (best for pretty terminal runs)
+
+# Flag to keep checkpoint files after running the test cases
+itf_maintain_ckpt=0 # Do not maintain checkpoint files
+
+# --------------------------------- ITF Logs ----------------------------------
+
+# Log containing only fixture and test case names that failed
+declare -r itf_report_log='itf.log'
+
+# Flag to keep application logs despite the test state
+itf_maintain_app_logs=0 # Keep only if test fails
+
+# Standard output of FTI test applications managed by ITF
+declare -r itf_tstdout='/tmp/fti-test.log'
+
+# A constant to log the message only if verbosity is 1
+declare -r itf_log_step=1
+
+# ---------------------------------- Colors -----------------------------------
+
+declare -r COLOR_RESET='\033[0m'
+declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
+declare -r COLOR_GREENBOLD='\033[1m\033[32m'
+declare -r COLOR_REDBOLD='\033[1m\033[31m'
+declare -r COLOR_BLUEBOLD="\033[1m\033[36m"
+declare -r COLOR_MAGENTABOLD="\033[1m\033[35m"
+declare -r COLOR_YELLOWBOLD="\033[1m\033[33m"
+
+# -------------------------- ITF Private Variables ----------------------------
+
+# ITF error message buffer for lazy printing
+itf_error=""
+# Current loaded fixture filename
+itf_loaded_fixture=""
+# Boolean to express if the loaded fixture had errors in the current script run
+itf_fixture_had_errors=0
+# ITF buffer for parsing arguments from the test case to the fixture
+itf_paramv=()

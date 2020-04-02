@@ -1,18 +1,21 @@
+enable_testing()
+
+list(APPEND test_labels_current "recovername")
+
+# Install ITF Test Fixtures/Suites
+foreach(tcase "recovername")
+    InstallSuiteITFConvention(${tcase} ${test_labels_current})
+endforeach(tcase)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 add_executable(recoverName.exe checkRecoverName.c)
 
 
 target_link_libraries(recoverName.exe fti.static ${MPI_C_LIBRARIES} m)
 
-configure_file(configH0.fti.in ${CMAKE_CURRENT_SOURCE_DIR}/configH0.fti @ONLY)
-configure_file(configH1.fti.in ${CMAKE_CURRENT_SOURCE_DIR}/configH1.fti @ONLY)
-
-
 set_property(TARGET recoverName.exe PROPERTY C_STANDARD 99)  
 set_property(TARGET recoverName.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET recoverName.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 #set_property(TARGET heatdis.exe APPEND PROPERTY COMPILE_FLAGS "-L${CMAKE_INSTALL_PREFIX}/include")
 
-file(INSTALL configH0.fti DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE  GROUP_READ GROUP_WRITE  WORLD_READ WORLD_WRITE)
-file(INSTALL configH1.fti DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE  GROUP_READ GROUP_WRITE  WORLD_READ WORLD_WRITE)
-
+list(REMOVE_ITEM test_labels_current "recovername")

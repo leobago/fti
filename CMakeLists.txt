@@ -420,7 +420,8 @@ if(ENABLE_EXAMPLES)
 endif()
 
 if(ENABLE_TESTS)
-	add_subdirectory(test)
+    enable_testing()
+    add_subdirectory(test)
 endif()
 
 if(ENABLE_TUTORIAL)

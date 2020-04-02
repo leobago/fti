@@ -1671,10 +1671,16 @@ int FTI_Checkpoint(int id, int level)
 
     double t1, t2;
 
-    FTI_Exec.ckptId = id;
+    FTI_Exec.ckptMeta.ckptId = id;
 
     // reset hdf5 single file requests.
     FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if( FTI_Conf.h5SingleFileEnable ) {
+            FTI_Exec.h5SingleFile = true;
+            level = 4;
+        } 
+    }
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1709,14 +1715,11 @@ int FTI_Checkpoint(int id, int level)
     FTI_Exec.ckptMeta.level = level; // assign to temporary metadata
     int res = FTI_Try(FTI_WriteCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data), "write the checkpoint.");
     t2 = MPI_Wtime(); //Time after writing checkpoint
-
     // no postprocessing or meta data for h5 single file
     if( res == FTI_SCES && FTI_Exec.h5SingleFile ) {
-        char str[FTI_BUFS];
-        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptId, FTI_Exec.ckptSize / (1024.0 * 1024.0), t2 - t1 );
-        FTI_Print(str, FTI_INFO);
-        return FTI_SCES;
+#ifdef ENABLE_HDF5
+        return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, t2 - t1 ); 
+#endif 
     }
 
     if (!FTI_Ckpt[FTI_Exec.ckptMeta.level].isInline) { // If postCkpt. work is Async. then send message
@@ -1749,13 +1752,13 @@ int FTI_Checkpoint(int id, int level)
     t3 = MPI_Wtime(); //Time after post-processing
 
     if (res != FTI_SCES) {
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
     sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
-            FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
+            FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - t0, t1 - t0, t2 - t1, t3 - t2);
     FTI_Print(str, FTI_INFO);
 
     if ( (FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp ) {
@@ -1768,7 +1771,8 @@ int FTI_Checkpoint(int id, int level)
     // L1 checkpoint and update lateron.
    
     FTI_Exec.nbVarStored = FTI_Exec.nbVar;
-   
+    FTI_Exec.ckptId = FTI_Exec.ckptMeta.ckptId;
+
     FTIT_dataset* data;
     if( FTI_Data->data( &data, FTI_Exec.nbVar ) != FTI_SCES ) {
         FTI_Print( "failed to finalize FTI", FTI_WARN );
@@ -1812,9 +1816,14 @@ int FTI_InitICP(int id, int level, bool activate)
     if ( !activate ) {
         return FTI_SCES;
     }
-
-    // reset hdf5 single file requests.
+    
     FTI_Exec.h5SingleFile = false;
+    if ( level == FTI_L4_H5_SINGLE ) {
+        if( FTI_Conf.h5SingleFileEnable ) {
+            FTI_Exec.h5SingleFile = true;
+            level = 4;
+        } 
+    }
 
     // reset iCP meta info (i.e. set counter to zero etc.)
     memset( &(FTI_Exec.iCPInfo), 0x0, sizeof(FTIT_iCPInfo) );
@@ -1846,7 +1855,7 @@ int FTI_InitICP(int id, int level, bool activate)
 
     FTI_Exec.iCPInfo.lastCkptID = FTI_Exec.ckptId;
     FTI_Exec.iCPInfo.isFirstCp = !FTI_Exec.ckptId; //ckptId = 0 if first checkpoint
-    FTI_Exec.ckptId = id;
+    FTI_Exec.ckptMeta.ckptId = id;
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
@@ -1880,11 +1889,11 @@ int FTI_InitICP(int id, int level, bool activate)
     FTI_Exec.ckptMeta.level = level; //For FTI_WriteCkpt
 
     // Name of the  CKPT file.
-    snprintf(FTI_Exec.ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptId, FTI_Topo.myRank,FTI_Conf.suffix);
+    snprintf(FTI_Exec.ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec.ckptMeta.ckptId, FTI_Topo.myRank,FTI_Conf.suffix);
 
     //If checkpoint is inlin and level 4 save directly to PFS
     int offset = 2*(FTI_Conf.dcpPosix);
-    if (FTI_Ckpt[4].isInline && FTI_Exec.ckptMeta.level == 4) {
+    if ( ((FTI_Ckpt[4].isInline && (FTI_Exec.ckptMeta.level == 4)) && !FTI_Exec.h5SingleFile) || (FTI_Exec.h5SingleFile && FTI_Conf.h5SingleFileIsInline) ) {
         if ( !((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) ) {
             MKDIR(FTI_Conf.gTmpDir,0777);	
         } else if ( !FTI_Ckpt[4].hasDcp ) {
@@ -2016,11 +2025,9 @@ int FTI_FinalizeICP()
 
     // no postprocessing or meta data for h5 single file
     if( resCP == FTI_SCES && FTI_Exec.h5SingleFile ) {
-        char str[FTI_BUFS];
-        sprintf( str, "Ckpt. ID %d (Variate Processor Recovery File) (%.2f MB/proc) taken in %.2f sec.",
-                FTI_Exec.ckptId, FTI_Exec.ckptSize / (1024.0 * 1024.0), MPI_Wtime() - FTI_Exec.iCPInfo.t0 );
-        FTI_Print(str, FTI_INFO);
-        return FTI_SCES;
+#ifdef ENABLE_HDF5
+        return FTI_FinalizeH5SingleFile( &FTI_Exec, &FTI_Conf, &FTI_Topo, FTI_Ckpt, MPI_Wtime() - FTI_Exec.iCPInfo.t0 ); 
+#endif
     }
 
     if( resCP == FTI_SCES ) {
@@ -2029,7 +2036,7 @@ int FTI_FinalizeICP()
 
     if ( resCP != FTI_SCES ) {
         FTI_Exec.iCPInfo.status = FTI_ICP_FAIL;
-        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptId, FTI_Exec.ckptMeta.level);
+        sprintf(str, "Checkpoint with ID %d at Level %d failed.", FTI_Exec.ckptMeta.ckptId, FTI_Exec.ckptMeta.level);
         FTI_Print(str, FTI_WARN);
     }
 
@@ -2081,6 +2088,7 @@ int FTI_FinalizeICP()
     double t3 = MPI_Wtime(); //Time after post-processing
 
     if( resCP == FTI_SCES ) {
+        FTI_Exec.ckptId = FTI_Exec.ckptMeta.ckptId;
         sprintf(str, "Ckpt. ID %d (L%d) (%.2f MB/proc) taken in %.2f sec. (Wt:%.2fs, Wr:%.2fs, Ps:%.2fs)",
                 FTI_Exec.ckptId, FTI_Exec.ckptMeta.level, FTI_Exec.ckptSize / (1024.0 * 1024.0), t3 - FTI_Exec.iCPInfo.t0, FTI_Exec.iCPInfo.t1 - FTI_Exec.iCPInfo.t0, t2 - FTI_Exec.iCPInfo.t1, t3 - t2);
         FTI_Print(str, FTI_INFO);
@@ -2548,7 +2556,7 @@ int FTI_RecoverVarInit(){
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
             //find ckptFile path
             snprintf( fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir, FTI_Exec.ckptMeta.ckptFile );
-            res = FTI_RecoverVarDcpPosixInit(fn, &FTI_Conf);
+            res = FTI_RecoverVarDcpPosixInit();
         } else {
             snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir, FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
         }
@@ -2564,7 +2572,7 @@ int FTI_RecoverVarInit(){
 
         case FTI_IO_HDF5:
 #ifdef ENABLE_HDF5 
-            res = FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, fn);
+            res = FTI_RecoverVarInitHDF5(&FTI_Conf, &FTI_Exec, FTI_Ckpt);
 #else
             FTI_Print("Selected Ckpt I/O is HDF5, but HDF5 is not enabled.", FTI_WARN);
 #endif
@@ -2609,23 +2617,11 @@ int FTI_RecoverVarInit(){
 int FTI_RecoverVar(int id)
 {
     int res = FTI_NSCS;
-    
-    char str[FTI_BUFS];
-    FTIT_dataset* data;
-    FTI_Data->get(&data, id);
-    if (data->size != data->sizeStored) {
-        sprintf(str, "Cannot recover %ld bytes to protected variable (ID %d) size: %ld",
-                data->sizeStored, data->id,
-                data->size);
-        FTI_Print(str, FTI_WARN);
-        return FTI_NREC;
-    }
-
     //Recovering from local for L4 case in FTI_Recover
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
             FTI_Print("about to DCP", FTI_INFO);
-            res =  FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Data, fd, blockSize, stackSize, buffer, id);
+            res =  FTI_RecoverVarDcpPosix(&FTI_Conf, &FTI_Exec, FTI_Ckpt, FTI_Data, id);
             return res; 
         }
     }
@@ -2683,7 +2679,7 @@ int FTI_RecoverVarFinalize(){
 
     if (FTI_Exec.ckptLvel == 4) {
         if( FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix ) {
-            res = FTI_RecoverVarDcpPosixFinalize(fd, buffer);
+            res = FTI_RecoverVarDcpPosixFinalize();
             return res; 
         }
     }
@@ -2723,6 +2719,9 @@ int FTI_RecoverVarFinalize(){
             FTI_Print("Unknown I/O mode.", FTI_EROR);
             res = FTI_NSCS;
     }
+    
+    //if( res == FTI_SCES ) FTI_Exec.reco = 0;
+    
     return res; 
 }
 

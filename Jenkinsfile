@@ -1073,8 +1073,23 @@ def cmakesteps(list) {
 
 pipeline {
   agent none
+
     stages {
-      stage('Cmake Versions Test') {
+      stage('ITF Tests') {
+      agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+      
+      stages {
+        stage('Build') {
+          steps { sh 'scripts/install.sh' }
+        }
+
+        stage('Local Tests') {
+          steps { sh 'cd build/test && ci/localtests.sh' }
+        }
+      }
+    }
+
+    stage('Cmake Versions Test') {
         agent {
           docker {
             image 'kellekai/archlinuxopenmpi1.10:stable'
@@ -1084,6 +1099,7 @@ pipeline {
           cmakesteps(versions)
         }
       }
+
       stage('GCC Compiler Tests (1/2)') {
         agent {
           docker {
@@ -1099,6 +1115,7 @@ pipeline {
           executeSteps_one( '', '' )
         }
       }
+
       stage('GCC Compiler Tests (2/2)') {
         agent {
           docker {
@@ -1114,6 +1131,7 @@ pipeline {
           executeSteps_two( '', '' )
         }
       }
+
       stage('Clang Compiler Tests (1/2)') {
         agent {
           docker {
@@ -1131,6 +1149,7 @@ pipeline {
           executeSteps_one( '', '' )
         }
       }
+
       stage('Clang Compiler Tests (2/2)') {
         agent {
           docker {
@@ -1148,6 +1167,7 @@ pipeline {
           executeSteps_two( '', '' )
         }
       }
+
       stage('PGI Compiler Tests (1/2)') {
         agent {
           docker {
@@ -1172,6 +1192,7 @@ pipeline {
           executeSteps_one( '/opt/pgi/linux86-64/18.4/bin/', '/opt/pgi/linux86-64/2018/mpi/openmpi-2.1.2/bin/' )
         }
       }
+
       stage('PGI Compiler Tests (2/2)') {
         agent {
           docker {
@@ -1196,6 +1217,7 @@ pipeline {
           executeSteps_two( '/opt/pgi/linux86-64/18.4/bin/', '/opt/pgi/linux86-64/2018/mpi/openmpi-2.1.2/bin/' )
         }
       }
+
       stage('Intel Compiler Tests (1/2)') {
         agent {
           docker {
@@ -1219,6 +1241,7 @@ pipeline {
           executeSteps_one( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
         }
       }
+      
       stage('Intel Compiler Tests (2/2)') {
         agent {
           docker {
