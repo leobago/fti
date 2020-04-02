@@ -152,5 +152,6 @@ print_color $COLOR_GREENBOLD "PASSED:\t\t$npassed\n"
 print_color $COLOR_REDBOLD "FAILED:\t\t$nfailures\n"
 
 if [ $nfailures -gt 0 ] || [ $ntests -eq 0]; then
+    set -e # in case this was unset
     exit 1
 fi
