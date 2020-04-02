@@ -15,7 +15,7 @@ print_usage() {
 	echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
 	echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
 	echo " "
-	echo "            [--sionib-path=DIR]           # Path to SIONlib installation"
+	echo "            [--sionlib-path=DIR]           # Path to SIONlib installation"
 	echo "            [--ime-path=DIR]              # Path to DDN IME installation"
 	echo " "
 	echo "            [--debug]                     # Enable a debug build"
@@ -134,14 +134,14 @@ done
 rm -rf $FTI_ROOT/config.log
 rm -rf $FTI_ROOT/install.log
 
-echo "cmake command:" >> $FTI_ROOT/config.log
-echo "cmake cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .." >> $FTI_ROOT/config.log
-
 # Test if user has an installation directory
 if [ -z "$FTI_INSTALL_DIR" ];
 then
 	FTI_INSTALL_DIR="$FTI_ROOT/install"
 fi
+
+echo "cmake command:" >> $FTI_ROOT/config.log
+echo "cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .." >> $FTI_ROOT/config.log
 
 # Tutorial steps
 cd "$FTI_ROOT"
@@ -150,9 +150,9 @@ mkdir -p 'build'
 cd 'build'
 
 if [ $VERBOSE ]; then
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. >> $FTI_ROOT/install.log 2>&1 
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. >> $FTI_ROOT/install.log 2>&1 
 else
-    cmake cmake -DCMAKE_INSTALL_PREFIX:PATH="$FTI_INSTALL_DIR" "$CMAKE_ARGS " .. 2>&1 | tee -a $FTI_ROOT/install.log 
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. 2>&1 | tee -a $FTI_ROOT/install.log 
 fi
 if [ $? = 1 ]; then
     rm -rf build
