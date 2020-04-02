@@ -101,8 +101,3 @@ The file format basic structure, consists of a meta block and a data block:
        hash             // Hash of 'VC_ij'
    }
 
-
-FTI-FF Diagram
---------------------------
-.. image:: _static/FTIT_complexType.png
-   :width: 600
