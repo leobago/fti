@@ -1080,8 +1080,8 @@ pipeline {
         agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
       
         steps {
-          sh './install.sh'
-          sh 'cd build/testing && ci/localtests.sh'
+          sh 'testing/ci/build.sh' // Command to build for tests
+          sh 'build/testing/ci/localtests.sh' // Commands only installed after build
         }
       }
 

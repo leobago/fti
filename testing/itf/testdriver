@@ -34,7 +34,7 @@ print_fixture_feedback() {
 execute_suite() {
     itf_load_fixture "$1.fixture"
     print_color $COLOR_WHITEBOLD "Fixture loaded: "
-    print_color $COLOR_MAGENTABOLD "$1\n"
+    print_color $COLOR_MAGENTABOLD "$(basename "$1")\n"
 
     # Set up fixture-relative test counters
     local __local_failures=$nfailures

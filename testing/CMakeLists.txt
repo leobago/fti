@@ -63,9 +63,10 @@ endif()
 
 # --------------------------- ITF engine Integration --------------------------
 
-set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(testing_dir ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(itf)
+add_subdirectory(ci)
 
 # Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)
@@ -102,7 +103,3 @@ set(test_subdirs "local")
 foreach(test_dir ${test_subdirs})
   add_subdirectory(${test_dir})
 endforeach(test_dir)
-
-# -------------------------- Installing Tests for CI --------------------------
-
-configure_file(ci/localtests.sh ${CMAKE_CURRENT_BINARY_DIR}/ci/localtests.sh COPYONLY)
