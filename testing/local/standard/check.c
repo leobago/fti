@@ -127,6 +127,8 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
  * main
  */
 
+char *write_dir;
+
 int main(int argc, char* argv[]) {
 
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
@@ -146,7 +148,8 @@ int main(int argc, char* argv[]) {
   crash = atoi(argv[2]);
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
-  enable_icp = atoi(argv[5]); // Previously: ENABLE_ICP environment var
+  enable_icp = atoi(argv[5]);
+  write_dir = argv[6];
 
   MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
 
@@ -323,7 +326,7 @@ int validify(double* A, double* B_chk, size_t asize) {
 
 int write_data(double* B, size_t *asize, int rank) {
   char str[256];
-  sprintf(str, "/tmp/check-%i.tst", rank);
+  sprintf(str, "%s/check-%i.tst", write_dir, rank);
   FILE* f = fopen(str, "wb");
   size_t written = 0;
 
@@ -340,7 +343,7 @@ int write_data(double* B, size_t *asize, int rank) {
 
 int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize) {
   char str[256];
-  sprintf(str, "/tmp/check-%i.tst", rank);
+  sprintf(str, "%s/check-%i.tst", write_dir, rank);
   FILE* f = fopen(str, "rb");
   size_t read = 0;
 

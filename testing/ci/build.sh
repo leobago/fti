@@ -1,2 +1,2 @@
 #!/bin/bash
-./install.sh --enable-sionlib --enable-testing --enable-hdf5 --disable-examples --sionlib-path=/opt/sionlib
+./install.sh  --enable-testing --disable-examples --enable-hdf5  --enable-sionlib --sionlib-path=/opt/sionlib

@@ -35,7 +35,7 @@ fti_config_set() {
     # $1: The field name in the configuration file
     # $2: The new value for the field
 
-    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" >$itf_cfgfile
+    echo "$(awk -v find="$1" -v swap="$2" '$1 ~ find {$3 = swap}1' $itf_cfgfile)" > $itf_cfgfile
     itf_log "$itf_log_step" "config_set $1=$2"
 }
 
@@ -84,7 +84,7 @@ app_run() {
         mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
         _retval=${PIPESTATUS[0]}
     else
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>>$itf_tstdout </dev/null
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>> $itf_tstdout </dev/null
         _retval=$?
     fi
 
