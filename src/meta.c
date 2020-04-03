@@ -245,7 +245,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
         }
 
-        int i=4; for (; i > -1; i--) { //for each level
+        int i=4; for (; i > 0; i--) { //for each level
 
             FTIT_metadata meta;
 
@@ -261,7 +261,7 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTIT_iniparser ini;
 
-    int i=4; for (; i > -1; i--) { //for each level
+    int i=4; for (; i > 0; i--) { //for each level
 
         FTIT_metadata meta;
 
