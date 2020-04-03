@@ -34,7 +34,7 @@ runtest() {
         ;;
     esac
 
-    app_run_timeout $app $itf_cfgfile 0 $level $diffsize $icp $write_dir
+    app_run $app $itf_cfgfile 0 $level $diffsize $icp $write_dir
     local retv=$?
     
     if [ $expected == 'success' ]; then
