@@ -134,13 +134,12 @@ ckpt_erase_last() {
     # Usage Details:
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
-    set -e
+
     itf_log "$itf_log_step" "checkpoint_erase $@"
     for f in $(itf_find_fti_objects $@); do
         itf_log "$itf_log_step" "erased: $f"
         rm -rf $f
     done
-    set +e
 }
 
 ckpt_corrupt_last() {
@@ -156,13 +155,12 @@ ckpt_corrupt_last() {
     # Usage Details:
     #
     # See 'itf_find_fti_objects' usage details to see which files are deleted.
-    set -e
+    
     itf_log "$itf_log_step" "checkpoint_corrupt $@"
     for f in $(itf_find_fti_objects $@); do
         echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
         itf_log "$itf_log_step" "corrupted: $f"
     done
-    set +e
 }
 
 # ---------------------------- Fixture Assertions -----------------------------
