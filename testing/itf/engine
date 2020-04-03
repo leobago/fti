@@ -14,14 +14,13 @@ itf_load_fixture() {
     # Parameters:
     # $1: The fixture name without the .fixture extension
 
-    set -e
-
     itf_loaded_fixture="$(basename "$1")"
     itf_fixture_had_errors='false'
     source "$1"
+    if [ $? -ne 0 ]; then
+      fail 'Fixture file not found'
+    fi
     itf_clear_logs
-
-    set +e
 }
 
 itf_unload_fixture() {
@@ -116,14 +115,14 @@ itf_log() {
     #
     # Parameters:
     # $1: The message log level
-    # $2: The message
+    # $@: The message
 
     let __loglv=$1-1
-
+    shift
     if [ $itf_verbose -gt $__loglv ]; then
-        echo "$2" | tee -a $itf_tstdout
+        echo $@ | tee -a $itf_tstdout
     else
-        echo "$2" >> $itf_tstdout
+        echo $@ >> $itf_tstdout
     fi
     unset __loglv
 }
@@ -242,8 +241,6 @@ itf_find_fti_objects() {
     # When the object is 'node' returns:
     # - Local node directory for every supplied node
 
-    set -e
-
     if [ ! $1 == 'global' ] && [ -z $level ]; then
         fail '$level variable must be set for ITF to delete checkpoint files'
     fi
@@ -287,8 +284,6 @@ itf_find_fti_objects() {
         fi
     done
     echo "$_files"
-
-    set +e
 }
 
 itf_param_clear() {
@@ -315,6 +310,9 @@ itf_set_default_variables_to_config() {
     fi
     if [ ! -z $keep ]; then
         fti_config_set 'keep_last_ckpt' "$keep"
+    fi
+    if [ ! -z $keepl4 ]; then
+        fti_config_set 'keep_l4_ckpt' "$keepl4"
     fi
 }
 

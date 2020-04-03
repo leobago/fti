@@ -2,9 +2,12 @@
 
 setup() {
     param_register 'iolib' 'head' 'mode'
+    itf_nranks=8
 }
 
 prepare_fti() {
+    fti_config_set 'node_size' '2'
+
     fti_config_set_inline
 
     fti_config_set "enable_dcp" '1'
@@ -18,6 +21,7 @@ prepare_fti() {
 runtest() {
     local app='@CMAKE_CURRENT_BINARY_DIR@/diff_test.exe'
     export TEST_MODE=$mode
+    local mode_msg_count=16
 
     app_run_success $app $itf_cfgfile
     app_run_success $app $itf_cfgfile
@@ -38,7 +42,7 @@ runtest() {
         ' $itf_tstdout
     check_is_zero $? 'dCP encoded size differ'
 
-    assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $itf_nranks \
+    assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $mode_msg_count \
         'There should be dCP messages for every rank'
 }
 
