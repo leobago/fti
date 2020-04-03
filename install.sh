@@ -15,7 +15,7 @@ print_usage() {
 	echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
 	echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
 	echo " "
-	echo "            [--sionlib-path=DIR]           # Path to SIONlib installation"
+	echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
 	echo "            [--ime-path=DIR]              # Path to DDN IME installation"
 	echo " "
 	echo "            [--debug]                     # Enable a debug build"

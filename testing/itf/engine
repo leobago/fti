@@ -116,14 +116,14 @@ itf_log() {
     #
     # Parameters:
     # $1: The message log level
-    # $2: The message
+    # $@: The message
 
     let __loglv=$1-1
-
+    shift
     if [ $itf_verbose -gt $__loglv ]; then
-        echo "$2" | tee -a $itf_tstdout
+        echo $@ | tee -a $itf_tstdout
     else
-        echo "$2" >> $itf_tstdout
+        echo $@ >> $itf_tstdout
     fi
     unset __loglv
 }

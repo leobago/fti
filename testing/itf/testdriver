@@ -69,10 +69,19 @@ while [[ $# -gt 0 ]]; do
         itf_no_color=1
         shift
         ;;
-    -v | --verbose)
-        # Set the verbosity level for ITF
-        itf_verbose=$2
+    --verbose)
+        # Set the verbosity to the highest level in ITF
+        itf_verbose=2
         shift
+        ;;
+    --quiet)
+        # Set the verbosity to the lowest level in ITF
+        itf_verbose=0
+        shift
+        ;;
+    --verbose=*)
+        # Set the verbosity to a given level in ITF
+        itf_verbose="${1#*=}"
         shift
         ;;
     --dry-run)
@@ -80,10 +89,15 @@ while [[ $# -gt 0 ]]; do
         dry_run=1
         shift
         ;;
-    -s | --suite)
+    -s)
         # Runs one fixture with one custom suite
         suitename="$2"
         shift
+        shift
+        ;;
+    --suite=)
+        # Runs one fixture with one custom suite
+        suitename="${1#*=}"
         shift
         ;;
     -c | --custom-params)
@@ -91,10 +105,15 @@ while [[ $# -gt 0 ]]; do
         custom=0
         shift
         ;;
-    -t | --set-timeout)
+    -t)
         # Change the engine's timeout time on timed app runs
         itf_timeout=$2
         shift
+        shift
+        ;;
+    --set-timeout=*)
+        # Change the engine's timeout time on timed app runs
+        itf_timeout="${1#*=}"
         shift
         ;;
     -m | --maintain-logs)
@@ -109,6 +128,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     -h | --help)
         # Prints a help message and exit
+        echo "Help message still not available"
         exit 0
         ;;
     *)
