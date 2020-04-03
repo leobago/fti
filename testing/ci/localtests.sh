@@ -4,8 +4,7 @@
 
 export MPIRUN_ARGS=--oversubscribe
 
-#fixtures=$(find '@testing_dir@/local' -name '*.fixture' | sed s/.fixture//)
-fixtures=$(find '@testing_dir@/local' -name '*.fixture' | grep 'failtime' | sed s/.fixture//)
+fixtures=$(find '@testing_dir@/local' -name '*.fixture' | sed s/.fixture//)
 @itf_run_cmd@ ${fixtures[@]}
 retval=$?
 
