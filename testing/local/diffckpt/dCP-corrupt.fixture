@@ -5,6 +5,7 @@ setup() {
     head=0
 
     param_register 'recovery'
+    itf_nranks=8
 }
 
 prepare_fti() {
