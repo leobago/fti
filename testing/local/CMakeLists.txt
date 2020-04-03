@@ -19,6 +19,9 @@ add_subdirectory(standard)
 add_subdirectory(staging)
 add_subdirectory(keepL4Ckpt)
 
+file(INSTALL failtime.fixture DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
+file(INSTALL failtime.suite DESTINATION ${CMAKE_CURRENT_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE)
+
 if(ENABLE_HDF5)
   add_subdirectory(variateProcessorRestart)
 endif()

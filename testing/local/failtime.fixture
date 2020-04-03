@@ -1,0 +1,15 @@
+#!/bin/bash
+
+setup() {
+    param_register 'fail'
+}
+
+runtest() {
+
+    if [ $fail -eq 0 ]; then
+        pass
+    else
+        fail 'I was programed to fail'
+    fi
+    
+}
