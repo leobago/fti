@@ -1,7 +1,7 @@
 #!/bin/bash
 
 setup() {
-    param_register 'head' 'keep'
+    param_register 'head' 'keepl4'
     iolib="$(iolib_name_to_id 'POSIX')"
 }
 

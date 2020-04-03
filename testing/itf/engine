@@ -316,6 +316,9 @@ itf_set_default_variables_to_config() {
     if [ ! -z $keep ]; then
         fti_config_set 'keep_last_ckpt' "$keep"
     fi
+    if [ ! -z $keepl4 ]; then
+        fti_config_set 'keep_l4_ckpt' "$keepl4"
+    fi
 }
 
 itf_param_parse() {

@@ -2,6 +2,7 @@
 
 setup() {
     param_register 'iolib' 'head' 'mode'
+    itf_nranks=8
 }
 
 prepare_fti() {
