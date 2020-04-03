@@ -9,7 +9,10 @@ setup() {
 }
 
 prepare_fti() {
+    fti_config_set 'node_size' '2'
+
     fti_config_set_inline
+    
     fti_config_set "enable_dcp" '1'
     fti_config_set "dcp_mode" '1'
     fti_config_set 'ckpt_l1' '2'
