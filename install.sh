@@ -23,15 +23,6 @@ print_usage() {
 	echo "            [--uninstall]                 # No output to stdout or stderr during installation"
 }
 
-remove_fti() {
-    set -x
-    rm -rf $FTI_ROOT/build
-    rm -rf $FTI_ROOT/install
-    rm -f $FTI_ROOT/config.log
-    rm -f $FTI_ROOT/install.log
-    set +x
-}
-
 # Calculate the FTI root directory relative to this file
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -40,6 +31,24 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 export FTI_ROOT="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+remove_fti() {
+    if [ -z "$FTI_ROOT" ]; then
+        set -x
+        rm -r build
+        rm -r install
+        rm config.log
+        rm install.log
+        set +x
+    else
+        set -x
+        rm -r $FTI_ROOT/build
+        rm -r $FTI_ROOT/install
+        rm $FTI_ROOT/config.log
+        rm $FTI_ROOT/install.log
+        set +x
+    fi
+}
 
 CMAKE_ARGS="" # Kai, i think you should use an array here and then use -> ${CMAKE_ARGS[@]} without double quotes on the cmake command
 
