@@ -34,12 +34,12 @@
 /** status 'not initialized' for stage requests                            */
 #define FTI_SI_NINI 0x0
 
-#include "fti-intern.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include "fti-intern.h"
   /*---------------------------------------------------------------------------
     Global variables
     ---------------------------------------------------------------------------*/
@@ -111,6 +111,11 @@ extern "C" {
   int FTI_setIDFromString( char *name );
   int FTI_getIDFromString( char *name );
   int FTI_Finalize_ReInit();
+  int FTI_GetNodeID();
+  int FTI_GetGroupSize();
+  int FTI_GetNodeSize();
+  int FTI_isSimulatedExecution();
+  char *FTI_GetLocalDirectory();
 #ifdef __cplusplus
 }
 #endif

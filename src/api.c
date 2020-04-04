@@ -36,6 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
+#include <string.h>
 
 #include "interface.h"
 #include "IO/cuda-md5/md5Opt.h"
@@ -2598,3 +2599,27 @@ int FTI_Finalize()
         }
         fflush(stdout);
     }
+
+int FTI_GetNodeID(){
+    return FTI_Topo.nodeID;
+}
+
+int FTI_GetGroupSize(){
+    return FTI_Topo.groupSize; 
+}
+
+int FTI_GetNodeSize(){
+    return FTI_Topo.nodeSize;
+}
+
+int FTI_isSimulatedExecution(){
+    return FTI_Conf.test; 
+}
+
+char *FTI_GetLocalDirectory(){
+    int pathsize = strlen(FTI_Conf.localDir);
+    char *path = (char*) malloc (sizeof(int)*pathsize);
+    strcpy(path, FTI_Conf.localDir);
+    return path;
+}
+
