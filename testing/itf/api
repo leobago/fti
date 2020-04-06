@@ -103,24 +103,6 @@ app_run_success() {
     check_is_zero $? "Test app failure exitcode=$?"
 }
 
-app_run_timeout() {
-    # Executes an MPI application and kill if it takes too long
-    #
-    # Parameters:
-    # $1: The path to the application binary
-    # $@: The application's parameters
-
-    (
-        local __pid=$BASHPID
-        (
-            sleep $itf_timeout
-            kill $__pid >/dev/null 2>&1
-            return 1
-        ) &
-        app_run $@
-    )
-}
-
 ckpt_erase_last() {
     # Erase checkpoint objects from last ITF-managed execution (app_run*)
     #
