@@ -264,10 +264,9 @@ As of now, there is no way to re-run automatically all the test cases that faile
 You can contribute with that :)
 
 
-## Creating a new ITF fixture
+**Creating a new ITF fixture**
 
-
-A typical fixture requires a setup, runtest and teardown functions. These functions' definitions are customized depending on the test scanario and the parameters it runs with. Below is a simplistic example of defining the recover-var fixture:
+A typical fixture requires a setup, runtest and teardown functions. These functions' definitions are customized depending on the test scanario and the parameters it runs with. Below is a simplistic example from the recover-var fixture's definition:
 
 .. code-block:: bash
 
@@ -277,7 +276,7 @@ A typical fixture requires a setup, runtest and teardown functions. These functi
         param_register 'iolib' 'level'
     }
     runtest() {
-        local app='/home/bscuser/Documents/swsn/fti/build/testing/local/recoverVar/recoverVar.exe'
+        local app='.../build/testing/local/recoverVar/recoverVar.exe'
         app_run_success $app $itf_cfgfile 1 $level 1
         app_run_success $app $itf_cfgfile 0 $level 1
         pass
@@ -305,7 +304,7 @@ teardown function unsets all the variables related to the test. The purpose is t
 
 **Enhancing a fixture with ITF functions**
 
-testing/itf/api
+ITF's APIs are to be found in: testing/itf/api
 
 **Argument-parsing API**
 
@@ -313,9 +312,10 @@ param_register registers names of the arguments that the fixture relies on for i
 
 **Configuration file manipulation API**
 
-- Explain the fti_param_get, fti_param_set, fti_param_set_inline and fti_config_set_ckpts API functions
+fti_param_set_inline function sets FTI to perform the all checkpoints inline.
 
-where are they?
+fti_config_set_ckpts function sets the checkpoint intervals of FTI. It takes the required checkpoint intervals as parameters.
+
 
 **Running an FTI test application**
 
@@ -341,7 +341,7 @@ Below is an example from the standard-disrupt fixture:
             mkdir -p $write_dir
         } 
     runtest() {
-        local app='/home/bscuser/Documents/swsn/fti/build/testing/local/standard/check.exe'
+        local app='.../build/testing/local/standard/check.exe'
         local _crash=0
         if [ $keep -eq 0 ]; then
             # Simulate a crash when not keeping last checkpoint
