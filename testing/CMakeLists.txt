@@ -92,7 +92,7 @@ endfunction()
 function(InstallTestApplication AppName)
   add_executable(${AppName} ${ARGN})
   target_link_libraries(${AppName} fti.static ${MPI_C_LIBRARIES} m)
-  set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
+  set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -g")
   set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
 
