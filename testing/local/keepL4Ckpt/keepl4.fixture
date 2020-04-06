@@ -24,7 +24,7 @@ runtest() {
     local globaldir=$(fti_config_get 'glbl_dir')
     local exec_id=$(fti_config_get 'exec_id')
 
-    if [ $keep -eq 1 ]; then
+    if [ $keepl4 -eq 1 ]; then
         local must_be_in_l4=(3 6 9 11)
         for i in "${must_be_in_l4[@]}"; do
             check_file_exists $globaldir/$exec_id/l4/Ckpt*-Rank$i.fti
