@@ -134,7 +134,7 @@ case $1 in
     *)
         echo "unknown option: $1"  
         print_usage
-        exit -1
+        exit 1
     ;;
 esac
 done
@@ -162,16 +162,16 @@ if [ $VERBOSE ]; then
 else
     cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. 2>&1 | tee -a $FTI_ROOT/install.log 
 fi
-if [ $? = 1 ]; then
+if [ $? -ne 0 ]; then
     rm -rf build
-    exit -1
+    exit 1
 fi
 if [ $VERBOSE ]; then
     make -j all install >> $FTI_ROOT/install.log 2>&1
 else
     make -j all install 2>&1 | tee -a $FTI_ROOT/install.log
 fi
-if [ $? = 1 ]; then
-    exit -1
+if [ $? -ne 0 ]; then
+    exit 1
 fi
 
