@@ -27,7 +27,7 @@ runtest() {
     if [ $keepl4 -eq 1 ]; then
         local must_be_in_l4=(3 6 9 11)
         for i in "${must_be_in_l4[@]}"; do
-            check_file_exists $globaldir/$exec_id/l4/Ckpt*-Rank$i.fti
+            check_file_exists $globaldir/$exec_id/l4_archive/Ckpt*-Rank$i.fti
         done
     else
         # This should fail because there is no such directory
