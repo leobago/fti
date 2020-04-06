@@ -37,7 +37,12 @@
  */
 
 #include "interface.h"
+#include <stdlib.h>
 
+
+int cmpfunc (const void * a, const void * b) {
+       return ( *(int*)a - *(int*)b );
+}
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It checks if a file exist and that its size is 'correct'.
@@ -239,15 +244,29 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
-        // Search whether I failed in previous run. 
+        qsort(failedRanks,numFailed,sizeof(int), cmpfunc); 
 
+        // Search whether my node failed in previous run. 
+        // otherwise this is a soft error
 
-        for ( i = 0; i < numFailed; i++){
-            if ( failedRanks[i] == FTI_Topo->splitRank){
-                didIFail = 1;
-                break;
+        if ( numFailed > FTI_Topo->nodeSize ){
+            int firstNodeRank = (FTI_Topo->splitRank/FTI_Topo->nodeSize)*FTI_Topo->nodeSize;
+            int numFailures = 0;
+            for ( i = 0; i < numFailed; i++){
+                if ( failedRanks[i] == firstNodeRank){
+                    firstNodeRank++;
+                    numFailures++;
+                }
+                //Early Termination 
+                //Since I do not need to check remaining ranks
+                else if ( firstNodeRank < failedRanks[i] ){
+                    break;
+                }
             }
+            if ( numFailures == FTI_Topo->nodeSize)
+                didIFail = 1;
         }
+
         if ( didIFail == 1) {
             // I need to check whether my buddy failed.
             int numSectors = FTI_Topo->nbNodes / FTI_Topo->groupSize;
@@ -258,8 +277,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             int shiftedRank = FTI_Topo->splitRank - buddyOffset;
             int buddyRank  = (shiftedRank + FTI_Topo->nodeSize) % actualGroupSize;
             buddyRank = buddyOffset + buddyRank;
-            printf("I am %d and my buddy rank is %d SID %d BUDDY OFFSET %d\n", FTI_Topo->splitRank, buddyRank, sectorSize,buddyOffset);
-
             for ( i = 0; i < numFailed; i++){
                 if ( failedRanks[i] == buddyRank){
                     didIFail = 2;

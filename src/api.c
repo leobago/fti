@@ -53,7 +53,6 @@ static FTIT_checkpoint FTI_Ckpt[5];
 
 /** Dynamic information for this execution.                                */
 static FTIT_execution FTI_Exec;
-
 /** Topology of the system.                                                */
 static FTIT_topology FTI_Topo;
 
