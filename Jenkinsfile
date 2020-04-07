@@ -1071,21 +1071,87 @@ def cmakesteps(list) {
   }
 }
 
+
+def run_itf_tests(name) {
+  tests = labelledShell (
+    label: "List ${name} tests",
+    script: "find build/testing/${name} -name '*.fixture' | sed s/.fixture//",
+    returnStdout: true
+  ).trim()
+  
+  for( String test : tests.split('\n'))
+    labelledShell (
+      label: "ITF Test driver with fixture: ${test}",
+      script: "build/testing/ci/itf_driver.sh ${test}"
+    )
+}
+
+
 pipeline {
-  agent none
+agent none
 
-    stages {
+stages {
 
-      stage('ITF Local Tests') {
-        agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+  stage('ITF Local Tests') {
+    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
       
-        steps {
-          sh 'testing/ci/build.sh' // Command to build for tests
-          catchError {
-            sh 'build/testing/ci/localtests.sh' // Commands only installed after build
+    steps {
+      labelledShell (
+        label: 'FTI build for tests with all IOs',
+        script: "./install.sh --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib"
+      )
+      run_itf_tests('local')
+    }
+  }
+      
+      stage('Intel Compiler Tests (1/2)') {
+        agent {
+          docker {
+            image 'kellekai/archlinuximpi18:stable'
           }
         }
+        environment {
+          CFLAGS_FIX = '-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
+          ICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/bin'
+          MPICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin'
+          LD_LIBRARY_PATH = '/opt/HDF5/1.10.4/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7'
+        }
+        steps {
+          sh '''
+            mkdir build; cd build
+            . $ICCPATH/compilervars.sh intel64
+            . $MPICCPATH/mpivars.sh
+            CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            make -j 16 all install
+          '''
+          executeSteps_one( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
+        }
       }
+      
+      stage('Intel Compiler Tests (2/2)') {
+        agent {
+          docker {
+            image 'kellekai/archlinuximpi18:stable'
+          }
+        }
+        environment {
+          CFLAGS_FIX = '-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
+          ICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/bin'
+          MPICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin'
+          LD_LIBRARY_PATH = '/opt/HDF5/1.10.4/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7'
+        }
+        steps {
+          sh '''
+            mkdir build; cd build
+            . $ICCPATH/compilervars.sh intel64
+            . $MPICCPATH/mpivars.sh
+            CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            make -j 16 all install
+          '''
+          executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
+        }
+      }
+>>>>>>> 6a28a3c9... intel after itf
 
     stage('Cmake Versions Test') {
         agent {
@@ -1216,52 +1282,5 @@ pipeline {
         }
       }
 
-      stage('Intel Compiler Tests (1/2)') {
-        agent {
-          docker {
-            image 'kellekai/archlinuximpi18:stable'
-          }
-        }
-        environment {
-          CFLAGS_FIX = '-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
-          ICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/bin'
-          MPICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin'
-          LD_LIBRARY_PATH = '/opt/HDF5/1.10.4/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7'
-        }
-        steps {
-          sh '''
-            mkdir build; cd build
-            . $ICCPATH/compilervars.sh intel64
-            . $MPICCPATH/mpivars.sh
-            CFLAGS=$CFLAGS_FIX cmake -C ../intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
-            make -j 16 all install
-          '''
-          executeSteps_one( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
-        }
-      }
-      
-      stage('Intel Compiler Tests (2/2)') {
-        agent {
-          docker {
-            image 'kellekai/archlinuximpi18:stable'
-          }
-        }
-        environment {
-          CFLAGS_FIX = '-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
-          ICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/bin'
-          MPICCPATH = '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin'
-          LD_LIBRARY_PATH = '/opt/HDF5/1.10.4/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7'
-        }
-        steps {
-          sh '''
-            mkdir build; cd build
-            . $ICCPATH/compilervars.sh intel64
-            . $MPICCPATH/mpivars.sh
-            CFLAGS=$CFLAGS_FIX cmake -C ../intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
-            make -j 16 all install
-          '''
-          executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
-        }
-      }
   }
 }
