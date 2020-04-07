@@ -53,6 +53,7 @@ static FTIT_checkpoint FTI_Ckpt[5];
 
 /** Dynamic information for this execution.                                */
 static FTIT_execution FTI_Exec;
+int ReInited = 0;
 /** Topology of the system.                                                */
 static FTIT_topology FTI_Topo;
 
@@ -106,6 +107,12 @@ FTIT_type FTI_LDBE;
 /*-------------------------------------------------------------------------*/
 int FTI_Init(const char* configFile, MPI_Comm globalComm)
 {
+    if (ReInited == 0 ){
+        FTI_Exec.failedProcesses = NULL;
+        FTI_Exec.numFailed = 0;
+    }
+
+
     int i;
 #ifdef ENABLE_FTI_FI_IO
     FTI_InitFIIO();
@@ -2622,3 +2629,13 @@ char *FTI_GetLocalDirectory(){
     return path;
 }
 
+int FTI_InitOpt(const char *config, MPI_Comm globalComm, int *failedNodes, int numFailedNodes ){
+   FTI_Exec.failedProcesses = failedNodes;
+   FTI_Exec.numFailed = numFailedNodes;
+   ReInited = 1;
+   int i;
+   int val = FTI_Init(config, globalComm);
+   if ( FTI_Topo.splitRank % FTI_Topo.nodeSize == 0)
+       remove("/tmp/failures");
+   return val;
+}

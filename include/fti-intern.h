@@ -642,6 +642,8 @@ extern "C" {
         MPI_Comm        groupComm;          /**< Group communicator.            */
         MPI_Comm        nodeComm;
         FTIT_dcpExecutionPosix dcpInfoPosix;      /**< dCP info for posix I/O   */
+        int *failedProcesses;
+        int numFailed ;
         int (*ckptFunc[2]) 					/** A function pointer pointing to  */									
             (FTIT_configuration* , 		/** the function which actually 	*/
              struct FTIT_execution* ,	/** the checkpoint file. Noticeably	*/ 

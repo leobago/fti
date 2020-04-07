@@ -40,82 +40,83 @@ extern "C" {
 #endif
 
 #include "fti-intern.h"
-  /*---------------------------------------------------------------------------
-    Global variables
-    ---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+      Global variables
+      ---------------------------------------------------------------------------*/
 
-  /** MPI communicator that splits the global one into app and FTI appart.   */
-  extern MPI_Comm FTI_COMM_WORLD;
+    /** MPI communicator that splits the global one into app and FTI appart.   */
+    extern MPI_Comm FTI_COMM_WORLD;
 
-  /** FTI data type for chars.                                               */
-  extern FTIT_type FTI_CHAR;
-  /** FTI data type for short integers.                                      */
-  extern FTIT_type FTI_SHRT;
-  /** FTI data type for integers.                                            */
-  extern FTIT_type FTI_INTG;
-  /** FTI data type for long integers.                                       */
-  extern FTIT_type FTI_LONG;
-  /** FTI data type for unsigned chars.                                      */
-  extern FTIT_type FTI_UCHR;
-  /** FTI data type for unsigned short integers.                             */
-  extern FTIT_type FTI_USHT;
-  /** FTI data type for unsigned integers.                                   */
-  extern FTIT_type FTI_UINT;
-  /** FTI data type for unsigned long integers.                              */
-  extern FTIT_type FTI_ULNG;
-  /** FTI data type for single floating point.                               */
-  extern FTIT_type FTI_SFLT;
-  /** FTI data type for double floating point.                               */
-  extern FTIT_type FTI_DBLE;
-  /** FTI data type for long doble floating point.                           */
-  extern FTIT_type FTI_LDBE;
+    /** FTI data type for chars.                                               */
+    extern FTIT_type FTI_CHAR;
+    /** FTI data type for short integers.                                      */
+    extern FTIT_type FTI_SHRT;
+    /** FTI data type for integers.                                            */
+    extern FTIT_type FTI_INTG;
+    /** FTI data type for long integers.                                       */
+    extern FTIT_type FTI_LONG;
+    /** FTI data type for unsigned chars.                                      */
+    extern FTIT_type FTI_UCHR;
+    /** FTI data type for unsigned short integers.                             */
+    extern FTIT_type FTI_USHT;
+    /** FTI data type for unsigned integers.                                   */
+    extern FTIT_type FTI_UINT;
+    /** FTI data type for unsigned long integers.                              */
+    extern FTIT_type FTI_ULNG;
+    /** FTI data type for single floating point.                               */
+    extern FTIT_type FTI_SFLT;
+    /** FTI data type for double floating point.                               */
+    extern FTIT_type FTI_DBLE;
+    /** FTI data type for long doble floating point.                           */
+    extern FTIT_type FTI_LDBE;
 
-  /*---------------------------------------------------------------------------
-    FTI public functions
-    ---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+      FTI public functions
+      ---------------------------------------------------------------------------*/
 
-  int FTI_Init(const char *configFile, MPI_Comm globalComm);
-  int FTI_Status();
-  int FTI_InitType(FTIT_type* type, int size);
-  int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
-      size_t size, char* name, FTIT_H5Group* h5group);
-  void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
-      size_t offset, int id, char* name);
-  void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
-      size_t offset, int rank, int* dimLength, int id, char* name);
-  int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
-  int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
-  int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
-  int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
-  int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
-  int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
-  int FTI_RecoverDatasetDimension( int did ); 
-  FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank );
-  int FTI_GetDatasetRank( int did );
-  int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength );
-  int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
-  long FTI_GetStoredSize(int id);
-  void* FTI_Realloc(int id, void* ptr);
-  int FTI_BitFlip(int datasetID);
-  int FTI_Checkpoint(int id, int level);
-  int FTI_GetStageDir( char* stageDir, int maxLen );
-  int FTI_GetStageStatus( int ID );
-  int FTI_SendFile( char* lpath, char *rpath );
-  int FTI_Recover();
-  int FTI_Snapshot();
-  int FTI_Finalize();
-  int FTI_RecoverVar(int id);
-  int FTI_InitICP(int id, int level, bool activate);
-  int FTI_AddVarICP( int varID ); 
-  int FTI_FinalizeICP(); 
-  int FTI_setIDFromString( char *name );
-  int FTI_getIDFromString( char *name );
-  int FTI_Finalize_ReInit();
-  int FTI_GetNodeID();
-  int FTI_GetGroupSize();
-  int FTI_GetNodeSize();
-  int FTI_isSimulatedExecution();
-  char *FTI_GetLocalDirectory();
+    int FTI_Init(const char *configFile, MPI_Comm globalComm);
+    int FTI_Status();
+    int FTI_InitType(FTIT_type* type, int size);
+    int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
+            size_t size, char* name, FTIT_H5Group* h5group);
+    void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+            size_t offset, int id, char* name);
+    void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
+            size_t offset, int rank, int* dimLength, int id, char* name);
+    int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
+    int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
+    int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
+    int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
+    int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
+    int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
+    int FTI_RecoverDatasetDimension( int did ); 
+    FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank );
+    int FTI_GetDatasetRank( int did );
+    int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength );
+    int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
+    long FTI_GetStoredSize(int id);
+    void* FTI_Realloc(int id, void* ptr);
+    int FTI_BitFlip(int datasetID);
+    int FTI_Checkpoint(int id, int level);
+    int FTI_GetStageDir( char* stageDir, int maxLen );
+    int FTI_GetStageStatus( int ID );
+    int FTI_SendFile( char* lpath, char *rpath );
+    int FTI_Recover();
+    int FTI_Snapshot();
+    int FTI_Finalize();
+    int FTI_RecoverVar(int id);
+    int FTI_InitICP(int id, int level, bool activate);
+    int FTI_AddVarICP( int varID ); 
+    int FTI_FinalizeICP(); 
+    int FTI_setIDFromString( char *name );
+    int FTI_getIDFromString( char *name );
+    int FTI_Finalize_ReInit();
+    int FTI_GetNodeID();
+    int FTI_GetGroupSize();
+    int FTI_GetNodeSize();
+    int FTI_isSimulatedExecution();
+    char *FTI_GetLocalDirectory();
+    int FTI_InitOpt(const char *config, MPI_Comm globalComm, int *failedNOdes, int numFailedNodes );
 #ifdef __cplusplus
 }
 #endif

@@ -41,7 +41,7 @@
 
 
 int cmpfunc (const void * a, const void * b) {
-       return ( *(int*)a - *(int*)b );
+    return ( *(int*)a - *(int*)b );
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -207,35 +207,21 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
 {
-
+    char str[FTI_BUFS];
     if( FTI_Conf->dcpFtiff ) {
         FTI_LoadCkptMetaData( FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt );
     }
 
+    int i,j;
+    int numFailed = FTI_Exec->numFailed;
+    int *failedRanks = FTI_Exec->failedProcesses;
     int didIFail = 0;
-    FILE *dead = fopen("killed", "r");
-
-    if (dead != NULL ){
-        int numFailed;
-        int numElements = fscanf(dead, "%d ", &numFailed);
-        if ( numElements != 1 ){
-            FTI_Print("I could not read erroneous Values\n",FTI_EROR);
-            exit(-1);
-        }
-        size_t *failedRanks = (size_t*) malloc (sizeof(size_t)*numFailed);
-        if (!failedRanks ){
-            FTI_Print("I could not allocate space for fast recovery, I exit",FTI_EROR);
-            exit(-1);
-        }
-        int i;
-        for ( i = 0 ; i < numFailed; i++){
-            fscanf(dead,"%ld ", &failedRanks[i]);
-        }
-        //I need to transform now MPI_COMM_WORLD rank to current rank id
+    int startLvl = 0;
+    //I need to transform now MPI_COMM_WORLD rank to current rank id
+    if ( numFailed != 0 ){
         if ( FTI_Topo->nbHeads != 0 ){
             for ( i = 0; i < numFailed; i++){
                 if (failedRanks[i] % FTI_Topo->nodeSize == 0 ){
-                    printf("I was head, I just need to set to -1\n");
                     failedRanks[i] = -1;
                 }
                 else{
@@ -243,13 +229,19 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 }
             }
         }
-
         qsort(failedRanks,numFailed,sizeof(int), cmpfunc); 
 
-        // Search whether my node failed in previous run. 
-        // otherwise this is a soft error
+        int *arr = failedRanks;
+        int index = numFailed;
+        j = 0;
+        for (i=0; i < index-1; i++) 
+            if (arr[i] != arr[i+1]) 
+                arr[j++] = arr[i]; 
 
-        if ( numFailed > FTI_Topo->nodeSize ){
+        arr[j++] = arr[index-1]; 
+        numFailed = j;
+
+        if ( numFailed >= FTI_Topo->nodeSize ){
             int firstNodeRank = (FTI_Topo->splitRank/FTI_Topo->nodeSize)*FTI_Topo->nodeSize;
             int numFailures = 0;
             for ( i = 0; i < numFailed; i++){
@@ -266,6 +258,8 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             if ( numFailures == FTI_Topo->nodeSize)
                 didIFail = 1;
         }
+        sprintf(str,"Did My Node Fail %d\n", didIFail);
+        FTI_Print(str,FTI_WARN);
 
         if ( didIFail == 1) {
             // I need to check whether my buddy failed.
@@ -280,11 +274,12 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             for ( i = 0; i < numFailed; i++){
                 if ( failedRanks[i] == buddyRank){
                     didIFail = 2;
+                    char str[FTI_BUFS];
+                    sprintf(str, "BuddyRank %d, shiftedRank %d Buddy Offset %d %d %d",buddyRank, shiftedRank, buddyOffset, failedRanks[i],i);
+                    FTI_Print(str,FTI_WARN);
                     break;
                 }
-
             }
-
             if ( didIFail == 2) {
                 int *groupRanks = (int*) malloc (sizeof(int)*FTI_Topo->groupSize);
                 int numSectors = FTI_Topo->nbNodes / FTI_Topo->groupSize;
@@ -294,10 +289,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 int j;
                 for ( j = 0 ; j < FTI_Topo->groupSize; j++){
                     groupRanks[j] = myOffset + (nodeOffset * FTI_Topo-> nodeSize ) + j*FTI_Topo->nodeSize;
-                }
-                printf("I am %d and my group is ", FTI_Topo->splitRank);
-                for ( j = 0 ; j < FTI_Topo->groupSize; j++){
-                    printf("%d,",groupRanks[j]);
                 }
 
                 int groupFailed = 0;
@@ -315,17 +306,18 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     }
 
                 }
-                printf("\n");
                 free(groupRanks);
             }
-            fclose(dead);
         }
+
+        int myMinLvL = didIFail + 1;
+        MPI_Allreduce(&myMinLvL, &startLvl, 1, MPI_INT, MPI_MAX, FTI_Exec->globalComm);
+        sprintf(str,"myMinLvl = %d startLvl = %d\n", myMinLvL, startLvl);
+        FTI_Print (str,FTI_WARN);
     }
-
-    int myMinLvL = didIFail + 1;
-    int startLvl = 0;
-    MPI_Allreduce(&myMinLvL, &startLvl, 1, MPI_INT, MPI_MAX, FTI_Exec->globalComm);
-
+    else{
+        startLvl = 0;
+    }
     if (!FTI_Topo->amIaHead) {
         if( FTI_Exec->reco == 3 ) {
             if( FTI_Conf->h5SingleFileEnable ) {
@@ -360,7 +352,7 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
         //FTI_LoadMeta(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
         int level;
-        for (level = 0; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
+        for (level = startLvl; level < 5; level++) { //For every level (from 1 to 4, because of reliability)
             if (FTI_Exec->meta[level].exists[0] || FTI_Conf->ioMode == FTI_IO_FTIFF) {
                 //Get ckptID from checkpoint file name
 
