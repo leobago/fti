@@ -1233,7 +1233,7 @@ pipeline {
             mkdir build; cd build
             . $ICCPATH/compilervars.sh intel64
             . $MPICCPATH/mpivars.sh
-            CFLAGS=$CFLAGS_FIX cmake -C ../intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
           executeSteps_one( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
@@ -1257,7 +1257,7 @@ pipeline {
             mkdir build; cd build
             . $ICCPATH/compilervars.sh intel64
             . $MPICCPATH/mpivars.sh
-            CFLAGS=$CFLAGS_FIX cmake -C ../intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
+            CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
           executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
