@@ -23,7 +23,7 @@
 #define FILES_PER_ITER 10L
 #define CLEAN_FREQ 10
 #define F_BUFF 512
-#define F_FORM "file-rank%04d-iter%05d-numb%02d.fti"
+#define F_FORM "file-rank%04d-iter%05lu-numb%02lu.fti"
 #define REMOTE_DIR "./rdir"
 
 void createFile( char *fn );
