@@ -40,11 +40,11 @@ if( ${ENABLE_FORTRAN} )
         string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" COMPILER_IDENT_GNU)
         string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" COMPILER_IDENT_PGI)
         if(${COMPILER_IDENT_INTEL})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/intel_major_ver.f90")
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/cmake/intel_major_ver.f90")
         elseif(${COMPILER_IDENT_GNU})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/gnu_major_ver.f90")
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/cmake/gnu_major_ver.f90")
         elseif(${COMPILER_IDENT_PGI})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/test/cmake/pgi_major_ver.f90")
+            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/cmake/pgi_major_ver.f90")
         endif()
 
         set(CMAKE_Fortran_FLAGS "-cpp")
@@ -134,7 +134,7 @@ if(ENABLE_LUSTRE)
     find_package(LUSTREAPI)
 endif()
 
-add_subdirectory(deps)
+add_subdirectory(src/deps)
 
 include_directories("${CMAKE_CURRENT_BINARY_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -212,12 +212,12 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
     set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
-  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
   if(C_COMPILER_HAS_FLAG)
       set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
   endif()
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
+  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
   if(C_COMPILER_HAS_FLAG)
       set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
   endif()
@@ -357,7 +357,7 @@ install(FILES
     "include/fti.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-configure_file(deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/deps/md5/md5.h" @ONLY)
+configure_file(src/deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/deps/md5/md5.h" @ONLY)
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
@@ -366,7 +366,7 @@ if(ENABLE_FORTRAN)
   ** Fortran compiler does not support -cpp flag.
   *  Please use a newer version!")
     endif()
-    try_compile(MPI_USE_MOD ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/checkMPImodule.f90
+    try_compile(MPI_USE_MOD ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/cmake/checkMPImodule.f90
 	    LINK_LIBRARIES ${MPI_Fortran_LIBRARIES}
 	    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${MPI_Fortran_INCLUDE_PATH}")
 	if(NOT MPI_USE_MOD)
@@ -376,7 +376,7 @@ if(ENABLE_FORTRAN)
 
 	endif()
 
-    add_subdirectory(deps/bpp-0.3.0/ bpp/ EXCLUDE_FROM_ALL)
+    add_subdirectory(src/deps/bpp-0.3.0/ bpp/ EXCLUDE_FROM_ALL)
 
 	bpp_preprocess(BPP_FTI_F90
 		src/fortran/interface.F90.bpp)
@@ -421,7 +421,7 @@ endif()
 
 if(ENABLE_TESTS)
     enable_testing()
-    add_subdirectory(test)
+    add_subdirectory(testing)
 endif()
 
 if(ENABLE_TUTORIAL)

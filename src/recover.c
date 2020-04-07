@@ -247,7 +247,6 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->mqueue.pop( &FTI_Exec->mqueue, &FTI_Exec->ckptMeta );
 
             int level = FTI_Exec->ckptMeta.level;
-
             int ckptId;
             if ( FTI_Conf->ioMode != FTI_IO_FTIFF ) {
                 sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d", &ckptId);

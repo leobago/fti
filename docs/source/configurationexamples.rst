@@ -5,7 +5,7 @@ Configuration Examples
 
 Default Configuration
 ----------------------------------
-.. code-block:: bash
+.. code-block::
 
 	[basic]
 	head                           = 0

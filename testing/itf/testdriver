@@ -1,0 +1,177 @@
+#!/bin/bash
+
+execute_case() {
+    # Execute a single test case from a suite/fixture pair
+    #
+    # Parameters:
+    # $@ The fixture's parameters for the setup function
+    
+    let ntests=$ntests+1
+    if [ -z $dry_run ]; then
+        test_case $@
+        if [ ! $? -eq 0 ]; then
+            let nfailures=$nfailures+1
+        fi
+    else
+        test_case_dry $@
+    fi
+}
+
+print_fixture_feedback() {
+    # Print some fixture-related feedback after running all cases
+    #
+    # Parameters:
+    # $1: The number of failures in the given suite for the fixture
+
+    if [ $itf_maintain_app_logs -eq 1 ]; then
+        print_color $COLOR_WHITEBOLD "All tests stdout recorded: $(itf_get_fixture_full_log)\n"
+    fi
+    if [ $1 -ne 0 ]; then
+        print_color $COLOR_WHITEBOLD "Failed tests stdout recorded: $(itf_get_fixture_failure_log)\n"
+    fi
+}
+
+execute_suite() {
+    itf_load_fixture "$1.fixture"
+    print_color $COLOR_WHITEBOLD "Fixture loaded: "
+    print_color $COLOR_MAGENTABOLD "$(basename "$1")\n"
+
+    # Set up fixture-relative test counters
+    local __local_failures=$nfailures
+    local __local_test_count=0
+
+    # Get the amount of tests in the suite
+    nlines=$(grep -c "^" "$2")
+
+    # Execute each test case
+    while IFS= read -r params; do
+        let __local_test_count=$__local_test_count+1
+
+        print_color $COLOR_WHITEBOLD "Test ($__local_test_count/$nlines) "
+        execute_case $params
+    done <"$2"
+
+    # Textual feedback
+    print_fixture_feedback $((nfailures - $__local_failures))
+    shift
+    itf_unload_fixture
+}
+
+source '@itf_dir@/engine'
+declare -a arguments=()
+
+# Parse the command line outputs, extracts the relevant and maintain the rest
+nargs=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    --no-color)
+        # Disable the color output of ITF for plain logs
+        itf_no_color=1
+        shift
+        ;;
+    --verbose)
+        # Set the verbosity to the highest level in ITF
+        itf_verbose=2
+        shift
+        ;;
+    --quiet)
+        # Set the verbosity to the lowest level in ITF
+        itf_verbose=0
+        shift
+        ;;
+    --verbose=*)
+        # Set the verbosity to a given level in ITF
+        itf_verbose="${1#*=}"
+        shift
+        ;;
+    --dry-run)
+        # Makes ITF not run the tests, only output the test scenarios
+        dry_run=1
+        shift
+        ;;
+    -s)
+        # Runs one fixture with one custom suite
+        suitename="$2"
+        shift
+        shift
+        ;;
+    --suite=)
+        # Runs one fixture with one custom suite
+        suitename="${1#*=}"
+        shift
+        ;;
+    -c | --custom-params)
+        # Runs one fixture with command line arguments instead of a suite
+        custom=0
+        shift
+        ;;
+    -t)
+        # Change the engine's timeout time on timed app runs
+        itf_timeout=$2
+        shift
+        shift
+        ;;
+    --set-timeout=*)
+        # Change the engine's timeout time on timed app runs
+        itf_timeout="${1#*=}"
+        shift
+        ;;
+    -m | --maintain-logs)
+        # Keep the application logs
+        itf_maintain_app_logs=1
+        shift
+        ;;
+    -d | --maintain-ckpt-dir)
+        # Keep the checkpoint directories after execution
+        itf_maintain_ckpt=1
+        shift
+        ;;
+    -h | --help)
+        # Prints a help message and exit
+        echo "Help message still not available"
+        exit 0
+        ;;
+    *)
+        # Capture arguments that are not defined here and pass them on
+        arguments[$nargs]="$1"
+        let nargs=$nargs+1
+        shift
+        ;;
+    esac
+done
+
+ntests=0
+nfailures=0
+
+if  [ ! -z $suitename ]; then
+    # Running one fixture with custom suite
+    execute_suite "${arguments[0]}" "$suitename"
+
+elif [ ! -z $custom ]; then
+    # Executes a test from a fixture with custom parameters
+    itf_load_fixture "${arguments[0]}.fixture"
+    unset 'arguments[0]'
+    execute_case "${arguments[@]}"
+    print_fixture_feedback $nfailures
+else
+    # Standard case, running multiple fixture with standard naming convention
+    for s in "${arguments[@]}"; do
+        execute_suite "$s" "$s.suite"
+    done
+fi
+
+# Print the summary of tests executed
+if [ $nfailures -gt 0 ]; then
+    print_color $COLOR_WHITEBOLD "ITF failure report: $itf_report_log\n"
+fi
+
+let npassed=$ntests-$nfailures
+print_color $COLOR_WHITEBOLD '---SUMMARY---\n'
+print_color $COLOR_WHITEBOLD "EXECUTED:\t$ntests\n"
+print_color $COLOR_GREENBOLD "PASSED:\t\t$npassed\n"
+print_color $COLOR_REDBOLD "FAILED:\t\t$nfailures\n"
+
+if [ $nfailures -gt 0 ] || [ $ntests -eq 0 ]; then
+    set -e # in case this was unset
+    exit 1
+fi

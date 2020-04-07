@@ -1,0 +1,4 @@
+--head 1 --keepl4 0
+--head 0 --keepl4 0
+--head 1 --keepl4 1
+--head 0 --keepl4 1
