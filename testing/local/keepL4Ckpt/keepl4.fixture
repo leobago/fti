@@ -29,6 +29,7 @@ runtest() {
         for i in "${must_be_in_l4[@]}"; do
             check_file_exists $globaldir/$exec_id/l4_archive/Ckpt*-Rank$i.fti
         done
+        pass
     else
         # This should fail because there is no such directory
         ls $globaldir/$exec_id 2>> /dev/null
