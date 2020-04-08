@@ -81,10 +81,10 @@ app_run() {
 
     local _retval=0
     if [ $itf_verbose -gt 1 ]; then
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout $itf_log_buffer
         _retval=${PIPESTATUS[0]}
     else
-        mpirun $MPIRUN_ARGS -n $itf_nranks $@ &>> $itf_tstdout </dev/null
+        mpirun $MPIRUN_ARGS -n $itf_nranks $@ </dev/null | tee -a $itf_tstdout $itf_log_buffer > /dev/null
         _retval=$?
     fi
 
@@ -302,7 +302,7 @@ iolib_name_to_id() {
 
     __idx=0
     for i in "${itf_io_names[@]}"; do
-        if [ "$i" == "$1" ]; then
+        if [ ! -z "$1" ] && [ "$i" == "$1" ]; then
             echo "${itf_io_ids[$__idx]}"
             unset __idx
             return 0
@@ -324,7 +324,7 @@ iolib_id_to_name() {
 
     __idx=0
     for i in "${itf_io_ids[@]}"; do
-        if [ "$i" -eq "$1" ]; then
+        if [ ! -z "$1" ] && [ "$i" -eq "$1" ]; then
             echo "${itf_io_names[$__idx]}"
             unset __idx
             return 0

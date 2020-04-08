@@ -19,9 +19,6 @@ declare -r itf_io_ids=(@fti_io_ids@)
 declare -r itf_nranks_default=16
 itf_nranks=$itf_nranks_default
 
-# Time limit, in seconds, to avoid stalls in test applications
-itf_timeout=30
-
 # --------------------------- General Configurations --------------------------
 
 # Verbosity level for feedback
@@ -51,8 +48,14 @@ itf_maintain_app_logs=0 # Keep only if test fails
 # Standard output of FTI test applications managed by ITF
 declare -r itf_tstdout='/tmp/fti-test.log'
 
-# A constant to log the message only if verbosity is 1
+# A buffer for ITF log files
+declare -r itf_log_buffer='/tmp/itf_buffer.log'
+
+# A log constant for printing ITF steps
 declare -r itf_log_step=1
+
+# A log constant for printing ITF application steps
+declare -r itf_log_app=2
 
 # ---------------------------------- Colors -----------------------------------
 
@@ -70,6 +73,8 @@ declare -r COLOR_YELLOWBOLD="\033[1m\033[33m"
 itf_error=""
 # Current loaded fixture filename
 itf_loaded_fixture=""
+# Current loaded fixture pretty name (without path and extension)
+itf_loaded_fixture_pretty=""
 # Boolean to express if the loaded fixture had errors in the current script run
 itf_fixture_had_errors=0
 # ITF buffer for parsing arguments from the test case to the fixture

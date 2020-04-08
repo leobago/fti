@@ -14,12 +14,21 @@ itf_load_fixture() {
     # Parameters:
     # $1: The fixture name without the .fixture extension
 
-    itf_loaded_fixture="$(basename "$1")"
+    itf_loaded_fixture="$1"
     itf_fixture_had_errors='false'
+    # Remove path and extension from fixture filename
+    itf_loaded_fixture_pretty="$(basename "$1" | sed --expression='s/\..*//')"
+
+    # Load the fixture
+    if [ -z "$1" ] || [ ! -e "$1" ]; then
+        fail "Fixture file not found: $1"
+    fi
+    
     source "$1"
     if [ $? -ne 0 ]; then
-      fail 'Fixture file not found'
+      fail "Failure loading the fixture: $1"
     fi
+
     itf_clear_logs
 }
 
@@ -64,19 +73,23 @@ test_case() {
     # If it fails, append the log into a file named after the test suite.
 
     # Create the FTI configfile based on the mock
-    cat "$itf_cfg_template" >$itf_cfgfile
+    cat "$itf_cfg_template" > $itf_cfgfile
 
     test_case_dry $@
 
     # Prepare the FTI config file
     type prepare_fti &>/dev/null && prepare_fti
 
+    # Log the test fixture and its parameters
+    itf_log "$itf_log_app" "[ITF Test] $itf_loaded_fixture_pretty $(itf_resolve_test_name)"
+    # Log the command to re-run only this test case
+    itf_logln "$itf_log_app" "[ITF cmd] $(itf_resolve_test_cmd)"
+
     # Execute the test fixture
     (
         # Test if ITF has any error stored
         if [ ! -z "$itf_error" ]; then
-            itf_log_test_case $itf_tstdout
-            echo "$itf_error" >>$itf_tstdout
+            itf_logln "$itf_log_app" "$itf_error"
             fail "$itf_error"
         fi
         # Setup the config file with standarized variable names
@@ -103,7 +116,7 @@ test_case() {
     itf_nranks=$itf_nranks_default
 
     # Remove the config files and test stdout
-    rm -rf $itf_cfgfile $itf_tstdout
+    rm -rf $itf_cfgfile $itf_tstdout $itf_log_buffer
     # Return the test exit code
     return $__exitcode
 }
@@ -120,23 +133,34 @@ itf_log() {
     let __loglv=$1-1
     shift
     if [ $itf_verbose -gt $__loglv ]; then
-        echo $@ | tee -a $itf_tstdout
+        echo $@ | tee -a $itf_log_buffer
     else
-        echo $@ >> $itf_tstdout
+        echo $@ >> $itf_log_buffer
     fi
     unset __loglv
+}
+
+itf_logln() {
+    # Calls itf_log and print a new line in the buffer
+    #
+    # Parameters:
+    # $1: The message log level
+    # $@: The message
+
+    itf_log $@
+    echo "" >> $itf_log_buffer # new line feed
 }
 
 itf_get_fixture_failure_log() {
     # Get the failure log filename for the current fixture
 
-    echo "$itf_loaded_fixture-failed.log"
+    echo "$itf_loaded_fixture_pretty-failed.log"
 }
 
 itf_get_fixture_full_log() {
     # Get the log filename for the current fixture
 
-    echo "$itf_loaded_fixture-all.log"
+    echo "$itf_loaded_fixture_pretty-all.log"
 }
 
 itf_clear_logs() {
@@ -147,18 +171,20 @@ itf_clear_logs() {
     rm -rf "$itf_report_log"
 }
 
-itf_log_test_case() {
-    # Log the test case into a log file
-    #
-    # Parameters:
-    # $1: The log file
+itf_resolve_test_name() {
+    # Build the current test name according to its variables
 
     local _test_name=""
     for p in "${itf_paramv[@]}"; do
         _test_name="${_test_name}--$p ${!p} "
     done
-    echo $_test_name >>$1
-    echo "" >>$1 # new line feed
+    echo "$_test_name"
+}
+
+itf_resolve_test_cmd() {
+    # Build an ITF command for re-running the current test
+
+    echo "./$0 -c $(echo $itf_loaded_fixture | sed --expression='s/\.fixture//') $(itf_resolve_test_name)"
 }
 
 itf_append_logs() {
@@ -167,8 +193,6 @@ itf_append_logs() {
     # Parameters:
     # $1: The test status
     
-    set -e
-
     # A log containing stdout of failed tests
     local faillog="$(itf_get_fixture_failure_log)"
     # A log containing stdout of successfull tests
@@ -176,30 +200,25 @@ itf_append_logs() {
 
     # Check if the test has failed
     if [ $1 -ne 0 ]; then
-        # Always push the test stdout into the log
-        itf_log_test_case $itf_tstdout
-        cat $itf_tstdout >>$faillog
-        echo "" >>$faillog # line feed
+        cat $itf_log_buffer >> $faillog
+        echo "" >> $faillog # new line for better visualization
 
         # Check if this is the first failure in the fixture
         if [ $itf_fixture_had_errors == 'false' ]; then
             itf_fixture_had_errors='true'
             # Push the fixture name into the ITF report
-            echo $itf_loaded_fixture >>$itf_report_log
+            echo $itf_loaded_fixture_pretty >> $itf_report_log
         fi
 
         # Log the test arguments into ITF report
-        itf_log_test_case $itf_report_log
+        echo "$(itf_resolve_test_cmd)" >> $itf_report_log
     fi
 
     # Check if ITF is configured to save all logs
     if [ $itf_maintain_app_logs -eq 1 ]; then
-        itf_log_test_case $itf_tstdout
-        cat $itf_tstdout >>$normallog
-        echo "" >>$faillog # line feed
+        cat $itf_log_buffer >> $normallog
+        echo "" >> $normallog # new line for better visualization
     fi
-
-    set +e
 }
 
 # --------------------------- ITF Interal functions ---------------------------

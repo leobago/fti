@@ -105,17 +105,6 @@ while [[ $# -gt 0 ]]; do
         custom=0
         shift
         ;;
-    -t)
-        # Change the engine's timeout time on timed app runs
-        itf_timeout=$2
-        shift
-        shift
-        ;;
-    --set-timeout=*)
-        # Change the engine's timeout time on timed app runs
-        itf_timeout="${1#*=}"
-        shift
-        ;;
     -m | --maintain-logs)
         # Keep the application logs
         itf_maintain_app_logs=1
