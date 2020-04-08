@@ -90,7 +90,7 @@ void init( char *fti_cfgfile, dcp_info_t * info, unsigned long alloc_size ) {
         INFO_MSG("TEST MODE -> NOICP");
     }
 
-    //DBG_MSG("alloc_size: %lu",0,alloc_size);
+    //DBG_MSG_APP("alloc_size: %lu",0,alloc_size);
     init_share();
     
     // init pattern
@@ -205,7 +205,7 @@ void xor_data( int id, dcp_info_t *info ) {
         info->xor_info[id].nunits[idx] = ((unsigned long)(info->xor_info[id].share * eff_size))/UI_UNIT;
         assert(info->xor_info[id].nunits[idx]*UI_UNIT < info->size[idx]);
         unsigned long idxul;
-        //DBG_MSG("size[%d]: %lu, offset: %d, udsize: %lu",0,idx,info->size[idx],info->xor_info[id].offset[idx], info->xor_info[id].nunits[idx]*UI_UNIT);
+        //DBG_MSG_APP("size[%d]: %lu, offset: %d, udsize: %lu",0,idx,info->size[idx],info->xor_info[id].offset[idx], info->xor_info[id].nunits[idx]*UI_UNIT);
         char *ptr = (char*)(void*)((uintptr_t)info->buffer[idx]+(uintptr_t)info->xor_info[id].offset[idx]);
         unsigned long cnt = 0;
         for ( idxul=0; idxul<info->xor_info[id].nunits[idx]; ++idxul ) {
@@ -240,7 +240,7 @@ void xor_data( int id, dcp_info_t *info ) {
     long dcpStats[2];
     long sendBuf[] = { ckptsize, update };
     MPI_Reduce( sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD );
-    DBG_MSG("changed: %lu, of: %lu, expected dCP update (min): %.2lf", 0, dcpStats[1], dcpStats[0], 100*((double)dcpStats[1])/dcpStats[0]);
+    DBG_MSG_APP("changed: %lu, of: %lu, expected dCP update (min): %.2lf", 0, dcpStats[1], dcpStats[0], 100*((double)dcpStats[1])/dcpStats[0]);
 }
 
 void invert_data( dcp_info_t *info ) {
@@ -278,10 +278,10 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
             EXIT_STD_ERR("idx: %d, cannot allocate %lu bytes", idx, info->size[idx]);
         }
         allocated += info->size[idx];
-        //DBG_MSG("idx: %d, allocated (variable): %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
+        //DBG_MSG_APP("idx: %d, allocated (variable): %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
     }
     if ( allocated != alloc_size ) {
-        //DBG_MSG("allocated: %lu but to allocate is: %lu",0,allocated,alloc_size);
+        //DBG_MSG_APP("allocated: %lu but to allocate is: %lu",0,allocated,alloc_size);
         unsigned long rest = alloc_size-allocated;
         allocated += rest;
         info->size[idx-1] += rest;
@@ -291,7 +291,7 @@ void allocate_buffers( dcp_info_t * info, unsigned long alloc_size) {
         }
     }
     unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
-    //DBG_MSG("allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
+    //DBG_MSG_APP("allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
 }    
 unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, enum ALLOC_FLAGS ALLOC_FLAG ) {
@@ -310,16 +310,16 @@ unsigned long reallocate_buffers( dcp_info_t * info, unsigned long _alloc_size, 
         info->oldsize[idx] = info->size[idx];
         info->size[idx] = (unsigned long)(share*alloc_size);
         allocated += info->size[idx];
-        //DBG_MSG("idx: %d, re-allocated (variable) : %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
+        //DBG_MSG_APP("idx: %d, re-allocated (variable) : %lu, share: %.2lf%%",0,idx, info->size[idx], share*100);
     }
     if ( allocated != alloc_size ) {
-        //DBG_MSG("reallocated: %lu but to reallocate is: %lu",0,allocated,alloc_size);
+        //DBG_MSG_APP("reallocated: %lu but to reallocate is: %lu",0,allocated,alloc_size);
         unsigned long rest = alloc_size-allocated;
         allocated += rest;
         info->size[idx-1] += rest;
     }
     unsigned long ckptsize = allocated + sizeof(int) + NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
-    //DBG_MSG("re-allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
+    //DBG_MSG_APP("re-allocated (total): %lu, [ckptsize: %lu]", -1, allocated, ckptsize);
     assert ( ( alloc_size == allocated ) );
     return alloc_size;
 }    

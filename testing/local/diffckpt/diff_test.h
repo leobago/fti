@@ -55,6 +55,15 @@
         printf( "%s:%d[INFO] " MSG "\n", __FILE__,__LINE__, ##__VA_ARGS__); \
 } while (0)
 
+#define DBG_MSG_APP(MSG,RANK,...) do { \
+    int rank; \
+    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
+    if ( rank == RANK ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+    if ( RANK == -1 ) \
+        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+} while (0)
+
 #define KB (1024L)
 #define MB (1024L*KB)
 #define GB (1024L*MB)
