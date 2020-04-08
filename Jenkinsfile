@@ -1094,7 +1094,6 @@ stages {
 
   stage('ITF Local Tests') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
-      
     steps {
       labelledShell (
         label: 'FTI build for tests with all IOs',
@@ -1103,7 +1102,7 @@ stages {
       run_itf_tests('local')
     }
   }
-      
+
       stage('Intel Compiler Tests (1/2)') {
         agent {
           docker {
@@ -1151,7 +1150,6 @@ stages {
           executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
         }
       }
->>>>>>> 6a28a3c9... intel after itf
 
     stage('Cmake Versions Test') {
         agent {
