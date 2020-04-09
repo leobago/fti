@@ -36,7 +36,6 @@ if (ENABLE_GPU)
   add_executable(checkAll.exe checkAll.c cudaTest.cu)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGPUSUPPORT")
 endif()
-set(CMAKE_VERBOSE_MAKEFILE on)
 
 if (ENABLE_GPU)
   target_link_libraries(check-gpu.exe fti.static ${MPI_C_LIBRARIES} m)

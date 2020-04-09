@@ -1071,22 +1071,38 @@ def cmakesteps(list) {
   }
 }
 
+
+def run_itf_tests(name) {
+  tests = labelledShell (
+    label: "List ${name} tests",
+    script: "find build/testing/${name} -name '*.fixture' | sed s/.fixture//",
+    returnStdout: true
+  ).trim()
+  
+  for( String test : tests.split('\n'))
+    labelledShell (
+      label: "ITF Test driver with fixture: ${test}",
+      script: "build/testing/ci/itf_driver.sh ${test}"
+    )
+}
+
+
 pipeline {
-  agent none
+agent none
 
-    stages {
+stages {
 
-      stage('ITF Local Tests') {
-        agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
-      
-        steps {
-          sh 'testing/ci/build.sh' // Command to build for tests
-          catchError {
-            sh 'build/testing/ci/localtests.sh' // Commands only installed after build
-          }
-        }
-      }
-      
+  stage('ITF Local Tests') {
+    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+    steps {
+      labelledShell (
+        label: 'FTI build for tests with all IOs',
+        script: "./install.sh --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib"
+      )
+      run_itf_tests('local')
+    }
+  }
+
       stage('Intel Compiler Tests (1/2)') {
         agent {
           docker {

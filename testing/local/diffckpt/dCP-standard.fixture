@@ -41,7 +41,7 @@ runtest() {
         /Ckpt. ID 7/ {VAL=0}
         ' $itf_tstdout
     check_is_zero $? 'dCP encoded size differ'
-
+    
     assert_equals $(grep $TEST_MODE $itf_tstdout | wc -l) $mode_msg_count \
         'There should be dCP messages for every rank'
 }
