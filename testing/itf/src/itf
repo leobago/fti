@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# Associative array for itf configurations
+declare -A itf_cfg=()
+itf_cfg['core:module_path']='' # The path to find the ITF modules (should be set by apps)
+
+# The associative array of events to listeners
+declare -A _itf_hooks=()
+# ITF separator to simulate 2d arrays on a single-dimension associative arrays
+declare -r _itf_sep=':'
+
+# ------------ ITF Producer/Consumer Modular Design Base Functions ------------
+
+itf_hook_subscribe() {
+    # Register a notifier function to be executed on an ITF event
+    #
+    # Usage:
+    # itf_hook_subscribe 'event' 'callback'
+    #
+    # Explanation:
+    # When a given 'event' occurs in ITF, invoke the 'callback' bash function
+    #
+    # Example:
+    # itf_hook_subscribe 'onTestLoad' 'printTestInfo'
+    #
+    # Will call printTestInfo when a test is loaded in ITF
+    #
+    # Details:
+    # The hooks are exposed, per module, as comments in the source
+    
+    if [ -z ${_itf_hooks[$1]} ]; then
+        _itf_hooks[$1]=$2
+    else
+        _itf_hooks[$1]="${_itf_hooks[$1]}${_itf_sep}${2}"
+    fi
+}
+
+itf_hook_unsubscribe() {
+    # Unsubscribe a function from the ITF event
+    #
+    # Parameters:
+    # $1: The event name
+    # $2: The subscribed function name
+
+    if [ $# -ne 2 ]; then
+        return
+    fi
+    _itf_hooks[$1]=${_itf_hooks[$1]%$2*}${_itf_hooks[$1]#*$2}
+}
+
+itf_hook_publish() {
+    # Notify that an ITF engine event has occurred and issue all callbacks
+    #
+    # Usage:
+    # itf_hook_publish 'event'
+    #
+    # Details:
+    # Call all functions related to that event that were registered with
+    # itf_hook_subscribe.
+    #
+    # Example:
+    # itf_hook_subscribe 'onEvent' 'myCallback'
+    # itf_hook_subscribe 'onEvent' 'myCallback2'
+    # itf_hook_publish 'onEvent'
+    #
+    # This will call the function 'myCallBack' and then 'myCallBack2'
+
+    if [ -z $1 ]; then
+        echo '[ITF] Cannot notify an empty hook' && exit 1
+    fi
+
+    # In case there is no functions to call, just exit
+    if [ -z ${_itf_hooks[$1]} ]; then
+        return
+    fi
+
+    local hooks=()
+    IFS="$_itf_sep" read -r -a hooks <<<"${_itf_hooks[$1]}"
+    for h in ${hooks[@]}; do
+        $h ${@:2}
+    done
+}
+
+itf_set_if_undef() {
+    # Set an ITF configuration value if it was not set before
+    #
+    # Details:
+    # Even if ITF modules are unloaded, their configuration remain.
+    # This is to keep configurations throughout the same set of suites.
+    # Running tests on different shells will overcome this behavior if needed.
+
+    if [ -z ${itf_cfg["$1"]} ]; then
+        itf_cfg["$1"]="$2"
+    fi
+}
+
+# ------------------------ ITF Core Functionalities ---------------------------
+# Assertions and generating the test results
+source $(dirname ${BASH_SOURCE[0]})/assertions
+# Running Tests and triggering ITF events
+source $(dirname ${BASH_SOURCE[0]})/core
+# Core ITF consumer module for logging
+source $(dirname ${BASH_SOURCE[0]})/log
+
+# ----------------------- ITF Non-Core Module Handling ------------------------
+
+itf_load_module() {
+    # Load an ITF module functions and definitions
+    for module in $@; do
+        source ${itf_cfg['core:module_path']}/$module
+      
+        if [ -z ${itf_state['modules']} ]; then
+            itf_state['modules']="$module"
+        else
+            itf_state['modules']="${itf_state['modules']}${_itf_sep}${module}"
+        fi
+    done
+}
+
+itf_hook_subscribe 'onSuiteEnd' 'itf_unload_suite_modules'
+
+itf_unload_suite_modules() {
+    local modules=()
+    IFS="$_itf_sep" read -r -a modules <<<"${itf_state[modules]}"
+
+    for mod in ${modules[@]}; do
+        ${mod}_unload
+        unset ${mod}_unload
+    done
+}

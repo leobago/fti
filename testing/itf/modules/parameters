@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# --------------------- ITF Parameter parsing Public API ----------------------
+
+declare -a param_expected=()
+
+param_parse() {
+    # Brief:
+    # Parse arguments looking for required names and create respecive variables
+    #
+    #
+    # Arguments:
+    # +name: A required parameter to be found.
+    # --name=val: A valid argument containing a value.
+    #
+    # Usage:
+    # Declare required names using the '+name' argument format.
+    # All other arguments will be parsed using the '--name=' format.
+    #
+    # Example:
+    # param_parse +iolib --iolib=1
+    #
+    # - This command will create the bash variable $iolib with value 1.
+    #
+    # param_parse +iolib +head --head=0 --iolib=2
+    #
+    # - This command will create the bash variables $iolib and $head.
+    #
+    # param_parse +iolib +head +keep $@
+    #
+    # - This command will try to create $iolib $head and $keep parsing the
+    # arguments passed to the current executing function.
+    #
+    # Defails:
+    # - If all of the required arguments are not found, the test will fail.
+    # - If unecessary arguments are passed, the test will also fail.
+    # - All bash variables created with this function are unset after teardown.
+
+    local arguments=()
+
+    # Parse all the parameters and sift them in 'required' or 'argument'
+    while [ $# -gt 0 ]; do
+        case $1 in
+        +*)
+            param_expected+=(${1#*+})
+            ;;
+        --*=*)
+            arguments+=(${1#--}) # Remove the prefix --
+            ;;
+        *)
+            fail "Unexpected argument format: $1"
+            ;;
+        esac
+        shift
+    done
+
+    # Transform the 'arguments' into variables with their respective values
+    for arg in ${arguments[@]}; do
+        local name="${arg%=*}" # Remove the suffix =*
+        local val="${arg#*=}"  # Remove the prefix *=
+        local is_expected=0
+
+        # Check if the argument/value found is expected
+        for req in ${param_expected[@]}; do
+            if [ $name == $req ]; then
+                is_expected=1
+                break
+            fi
+        done
+
+        # If the argument is not expected, fail
+        if [ $is_expected -ne 1 ]; then
+            fail "Unexpected argument: $name"
+        fi
+
+        eval $name=$val        # Evaluate twice the expression
+    done
+
+    # Check if all the 'required' names were defined otherwise fails
+    for req in ${param_expected[@]}; do
+        if [ -z ${!req} ]; then
+            fail "Required argument not found: $req"
+        fi
+    done
+}
+
+# ------------------------------ ITF Module Body ------------------------------
+
+itf_hook_subscribe 'onTestRunBegin' 'clear_parameters'
+
+clear_parameters() {
+    # Clear all parameter names and values from the last test run
+
+    for p in ${param_expected[@]}; do
+        unset $p
+    done
+    param_expected=()
+}
+
+parameters_unload() {
+    itf_hook_unsubscribe 'onTestRunBegin' 'clear_parameters'
+    
+    unset param_parse clear_parameters
+}

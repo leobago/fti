@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# --------------------------- Assertions public API ---------------------------
+
+pass() {
+    # Exit a test case successfully
+    #
+    # Parameters:
+    # $1: An optional feedback message
+
+    itf_assertion_msg=$1
+    exit 0
+}
+
+fail() {
+    # Exit a test case in failure
+    #
+    # Parameters:
+    # $1: An optional feedback message
+    
+    itf_assertion_msg=$1
+    exit 1
+}
+
+check_equals() {
+    # Check if a value is equal to another or fails otherwise
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on check_equals is empty"
+    fi
+
+    if [ -z $2 ]; then
+        fail "Second argument on check_equals is empty"
+    fi
+
+    if [ $1 -ne $2 ]; then
+        fail "$3"
+    fi
+}
+
+check_not_equals() {
+    # Check if a value is not equal to another or fails otherwise
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on check_not_equals is empty"
+    fi
+
+    if [ -z $2 ]; then
+        fail "Second argument on check_not_equals is empty"
+    fi
+
+    if [ $1 -eq $2 ]; then
+        fail "$3"
+    fi
+}
+
+check_is_zero() {
+    # Check if a value is equal to zero or fails otherwise
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on check_is_zero is empty"
+    fi
+
+    if [ $1 -ne 0 ]; then
+        fail "$2"
+    fi
+}
+
+check_non_zero() {
+    # Check if a value is different to zero or fails otherwise
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on check_non_zero is empty"
+    fi
+
+    if [ $1 -eq 0 ]; then
+        fail "$2"
+    fi
+}
+
+check_file_exists() {
+    # Check if a file exists or fails otherwise
+    #
+    # Parameters:
+    # $1: The file path
+
+    if ! ls $1 1> /dev/null 2>&1;
+    then
+        fail "File not found: $1"
+    fi
+}
+
+assert_equals() {
+    # Check if two values are equal and finalize the test with the result
+    #
+    # Parameters:
+    # $1: The first numerical value
+    # $2: Another numerical value
+    # $3: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on assert_equals is empty"
+    fi
+
+    if [ -z $2 ]; then
+        fail "Second argument on assert_equals is empty"
+    fi
+
+    check_equals $1 $2 "$3"
+    pass
+}
+
+assert_not_equals() {
+    # Check if two values are different and finalize the test with the result
+    #
+    # Parameters:
+    # $1: The first value
+    # $2: Another value
+    # $3: An optional message in case of failure
+
+    if [ -z $1 ]; then
+        fail "First argument on assert_not_equals is empty"
+    fi
+
+    if [ -z $2 ]; then
+        fail "Second argument on assert_not_equals is empty"
+    fi
+
+    check_not_equals $1 $2 "$3"
+    pass
+}
+
+assert_file_exists() {
+    # Check if a file exists and finalize the test with the result
+    #
+    # Parameters:
+    # $1: The file path
+
+    if [ -z $1 ]; then
+        fail "First argument on assert_file_exists is empty"
+    fi
+
+    check_file_exists $1
+    pass
+}
+
+# ------------------------- ITF Assertion Private API -------------------------
+
+declare itf_assertion_msg=''
