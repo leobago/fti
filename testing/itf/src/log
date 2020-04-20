@@ -39,7 +39,7 @@ log_new_case() {
 get_suite_logname_prefix() {
     # Get the current suite name without the file extension
 
-    echo ${itf_state['name']%.*}
+    echo ${itf_state['suite_name']%.*}
 }
 
 do_log() {

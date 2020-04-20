@@ -25,9 +25,9 @@ print_color() {
     # ex.: print_color "This is my testname"
 
     if [ ! -z ${cfg['no_colors']} ]; then
-        printf "%b" "$2"
+        printf "%b" "${@:2}"
     else
-        printf "$1$2$COLOR_RESET"
+        printf "$1${@:2}$COLOR_RESET"
     fi
 }
 
@@ -80,7 +80,11 @@ test_load() {
 }
 
 test_case() {
-    print_color $COLOR_WHITEBOLD "+ Test ${driver_state['test_name']} (${driver_state['test_id']}/${driver_state['test_max']}) "
+    print_color $COLOR_WHITEBOLD "+ Test "
+    print_color $COLOR_MAGENTABOLD "${itf_state[suite_name]}"
+    print_color $COLOR_WHITEBOLD "::${driver_state['test_name']} "
+    print_color $COLOR_WHITEBOLD "(${driver_state['test_id']}/${driver_state['test_max']}) "
+    
     for param in ${@:2}; do
 
         local name=${param%=*}
@@ -98,8 +102,12 @@ test_pass() {
     # Prints a message in green to notify that a test passed
 
     print_color $COLOR_GREENBOLD "[Passed]"
-    if [ $# -eq 1 ]; then
-        print_color $COLOR_GREENBOLD ": $1"
+    if [ $# -gt 0 ]; then
+        print_color $COLOR_GREENBOLD ":"
+        while [ $# -gt 0 ]; do
+            print_color $COLOR_GREENBOLD " $1"
+            shift
+        done
     fi
     printf '\n'
 }
@@ -108,8 +116,12 @@ test_fail() {
     # Prints a message in red to notify that a test failed
 
     print_color $COLOR_REDBOLD "[Failed]"
-    if [ $# -eq 1 ]; then
-        print_color $COLOR_REDBOLD ": $1"
+    if [ $# -gt 0 ]; then
+        print_color $COLOR_REDBOLD ":"
+        while [ $# -gt 0 ]; do
+            print_color $COLOR_REDBOLD " $1"
+            shift
+        done
     fi
     printf '\n'
 }
@@ -209,6 +221,6 @@ elif [ ${#arguments[@]} -gt 1 ]; then
     print_color $COLOR_REDBOLD   "\nFailed:   ${summary[failed]}\n"
 fi
 
-if [ ${summary[failed]} -ne 0 ]; then
+if [ ${summary[failed]} -ne 0 ] || [ ${summary[ntests]} -eq 0 ]; then
     exit 1
 fi

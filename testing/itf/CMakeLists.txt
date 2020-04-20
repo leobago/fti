@@ -41,4 +41,4 @@ foreach(app ${itf_apps})
   configure_file(${app} ${app} @ONLY)
 endforeach(app)
 
-set(itf_run_cmd ${itf_dir}/testdriver CACHE INTERNAL itf_run_cmd)
+set(itf_run_cmd ${itf_dir}/testdriver --quiet CACHE INTERNAL itf_run_cmd)

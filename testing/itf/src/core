@@ -25,12 +25,12 @@ itf_echo() {
     # Prints a message to the log and to the terminal if verbose is enabled
     #
     # Parameters:
-    # $1: The message
+    # $@: The message
 
     if [ ${itf_cfg['core:verbose']} == 'true' ]; then
-        echo "$1" | tee -a ${itf_cfg['core:stdout']}
+        echo "$@" | tee -a ${itf_cfg['core:stdout']}
     else
-        itf_log "$1"
+        itf_log "$@"
     fi
 }
 
@@ -38,9 +38,9 @@ itf_log() {
     # Log a message but does not print it to the terminal
     #
     # Parameters:
-    # $1: The message
+    # $@: The message
 
-    echo "$1" >>${itf_cfg['core:stdout']}
+    echo "$@" >>${itf_cfg['core:stdout']}
 }
 
 itf_setup() {
@@ -133,6 +133,10 @@ itf_case() {
         echo "[ITF] Test function name cannot be empty" && exit 1
     fi
 
+    if [ ! -z ${itf_state[filter:mode]} ] && [ ! -z ${itf_state[filter:list]} ]; then
+        IFS="$_itf_sep" read -r -a tcases <<<"${_itf_cases[$atest]}"
+    fi
+
     if [ -z "${_itf_cases[$1]}" ]; then
         _itf_cases[$1]="${@:2}"
     else
@@ -142,13 +146,27 @@ itf_case() {
     let itf_state["${1}_ntests"]=${itf_state["${1}_ntests"]}+1
 }
 
+itf_suite_unload() {
+    # Register a function to be executed when the suite is finished.
+    #
+    # Parameters:
+    # $1: A function name to clean up.
+    #
+    # Usage:
+    # This function is useful to clean up suite' extra variable and function names.
+    # Keep in mind that ITF will automatically destroy test functions, setups and teardowns.
+    # Use this function to register auxiliary functions and variables used to construct the suite.
+
+    itf_state['suite_teardown']="$1"
+}
+
 # --------------------------- ITF Suite Private API ---------------------------
 
 # Read-only associative array with status about the suite after execution
 #
 # Array keys for suite summary:
 #
-# - name: The fixture name
+# - suite_name: The fixture name
 # - ntests: The test count in the suite
 # - passed: The amount of tests that passed
 # - failed: The amount of tests that failed
@@ -164,8 +182,38 @@ itf_case() {
 # - modules: The ITF modules loaded by this suite
 declare -A itf_state=()
 
+# Writable associative array for applying filters for the test cases.
+#
+# Usage:
+# This array can be used to disable checks when running the suite.
+# It can be used to limit test case arguments to a set of values.
+# Also, it can restrict which functions will be called.
+#
+# Testname related keys:
+# - names: The list of names to filter
+# - mode: Can be 'filter' or 'exclude'
+#
+# If mode is 'filter', only the informed tests will run.
+# If mode is 'exclude', only the informed tests will not run.
+#
+# Example:
+# itf_filters[names]='standard' && itf_filters[mode]='filter'
+#
+# This will make ITF run only checks named 'standard'
+#
+# itf_filters[mode]='filter' && itf_filters[names]='standard;nonstandard'
+#
+# This will make ITF run only checks named 'standard' or 'nonstandard'
+#
+# itf_filters[mode]='exclude' && itf_filters[names]='standard;nonstandard'
+#
+# This will make ITF exclude all checks names 'standard' and 'nonstandard'.
+declare -A itf_filters=()
+
+
 # Test case parameters
 declare -A _itf_cases=()
+# Test case parameters
 # Setup functions
 declare -A _itf_setup=()
 # Teardown functions
@@ -178,19 +226,23 @@ itf_run_suite() {
     _itf_setup=()
     _itf_teardown=()
     itf_state=()
+    itf_filters=()
     itf_state['ntests']=0
     itf_state['failed']=0
     itf_state['passed']=0
+    itf_state['filters']=''
+    itf_state['filters']=''
+    itf_state['suite_teardown']=''
 
     # Import the suite definitions
-    itf_state['name']=$(basename $1)
+    itf_state['suite_name']=$(basename ${1%.*})
     source $1
 
-    itf_hook_publish 'onSuiteBegin' ${itf_state['name']}
+    itf_hook_publish 'onSuiteBegin' ${itf_state[suite_name]}
 
     # If this is a dry-run, do not execute any tests
     if [ ${itf_cfg['core:dry_run']} == 'true' ]; then
-        itf_hook_publish 'onSuiteEnd' ${itf_state['name']}
+        itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
         return 0
     fi
 
@@ -228,12 +280,13 @@ itf_run_suite() {
             if [ $retval -eq 0 ]; then
                 let itf_state['passed']=${itf_state['passed']}+1
                 let itf_state["${atest}_passed"]=${itf_state["${atest}_passed"]}+1
-                itf_hook_publish 'onTestPass' $itf_assertion_msg
+                itf_hook_publish 'onTestPass' "$(itf_get_assert_msg)"
             else
                 let itf_state['failed']=${itf_state['failed']}+1
                 let itf_state["${atest}_failed"]=${itf_state["${atest}_failed"]}+1
-                itf_hook_publish 'onTestFail' $itf_assertion_msg
+                itf_hook_publish 'onTestFail' "$(itf_get_assert_msg)"
             fi
+            itf_clear_assert_msg
         done
     done
 
@@ -242,5 +295,11 @@ itf_run_suite() {
         unset $atest ${_itf_setup[$atest]} ${_itf_teardown[$atest]}
     done
     unset tcases args
-    itf_hook_publish 'onSuiteEnd' ${itf_state['name']}
+    itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
+
+    # Call the suite teardown if any
+    if [ ! -z ${itf_state['suite_teardown']} ]; then
+        ${itf_state['suite_teardown']}
+        unset ${itf_state['suite_teardown']}
+    fi
 }

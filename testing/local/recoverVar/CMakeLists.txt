@@ -1,8 +1,7 @@
 enable_testing()
 
 # Install ITF Test Fixtures/Suites
-#InstallSuiteITFConvention("recovervar" ${test_labels_current} "recovervar")
-install(FILES "recovervar.itf" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+InstallSuiteITFConvention("recovervar" ${test_labels_current} "recovervar")
 
 # Install MPI Test Application
 InstallTestApplication("recoverVar.exe" "checkRecoverVar.c")

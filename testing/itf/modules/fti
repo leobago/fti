@@ -93,11 +93,12 @@ fti_run() {
 
     fti_mod_log "fti_run: $fti_cmd $@"
 
+    rm -rf $app_stdout
     if [ ${itf_cfg['fti:verbose_app']} == 'true' ]; then
-        $fti_cmd $@ | tee $app_stdout
+        $fti_cmd $@ | tee -a $app_stdout 2>&1
         local _retval=${PIPESTATUS[0]}
     else
-        $fti_cmd $@ > $app_stdout
+        $fti_cmd $@ >> $app_stdout 2>&1
         local _retval=$?
     fi
     itf_log "$(cat $app_stdout)"
@@ -133,9 +134,9 @@ ckpt_erase_last() {
     #
     # See 'find_fti_objects' usage details to see which files are deleted.
 
-    itf_log "$itf_log_step" "checkpoint_erase $@"
+    fti_mod_log "checkpoint_erase: $@"
     for f in $(find_fti_objects $@); do
-        itf_log "$itf_log_step" "erased: $f"
+        fti_mod_log "erased: $f"
         rm -rf $f
     done
 }
@@ -154,10 +155,10 @@ ckpt_corrupt_last() {
     #
     # See 'find_fti_objects' usage details to see which files are deleted.
     
-    itf_log "$itf_log_step" "checkpoint_corrupt $@"
+    fti_mod_log "checkpoint_corrupt: $@"
     for f in $(find_fti_objects $@); do
         echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
-        itf_log "$itf_log_step" "corrupted: $f"
+        fti_mod_log "corrupted: $f"
     done
 }
 
@@ -170,9 +171,9 @@ fti_mod_log() {
     # $1: The message to be logged
 
     if [ ${itf_cfg['fti:verbose']} == 'true' ]; then
-        itf_echo "$1"
+        itf_echo "$@"
     elif [ ${itf_cfg['fti:verbose_log']} == 'true' ]; then
-        itf_log "$1"
+        itf_log "$@"
     fi
 }
 
@@ -187,17 +188,15 @@ find_fti_objects() {
     #       values: node names
     #
     # Usage Details:
+    # Returns filenames/directory names in respect to the last ITF managed run.
+    # The function reads the FTI configuration file to get paths and exec_id.
+    # The output depends on the first parameter, the 'type' of the FTI object.
     #
-    # When the object is 'global' returns:
-    # - The L4 directory in the FTI Global archive
-    # When the object is 'ckpt' returns:
-    # - First local checkpoint file, in a given level, for every supplied node
-    # When the object is 'partner' returns:
-    # - First local partner file, in a given level, for every supplied node
-    # When the object is 'rs-encoding' returns:
-    # - First local RS-encoding, in a given level, for every supplied node
-    # When the object is 'node' returns:
-    # - Local node directory for every supplied node
+    # - ckpt) first file with 'Rank' prefix in the local directory;
+    # - partner) first file with 'Pcof' prefix in the local directory;
+    # - rs-encoding) first file with 'RSed' prefix in the local directory;
+    # - global) the global/l4 folder for the last application run;
+    # - node) the node directory within the local checkpoint directory.
 
     if [ ! $1 == 'global' ] && [ -z $level ]; then
         fail '$level variable must be set for ITF to delete checkpoint files'
@@ -227,7 +226,7 @@ find_fti_objects() {
         _erase_all='true'
         ;;
     *)
-        fail "checkpoint object type malformed $1, try one of the following: 'global', 'ckpt', 'partner' or 'rs-encoding', 'node'"
+        fail "[FTI module] Unrecognized checkpoint object type to search: $1"
         ;;
     esac
     shift

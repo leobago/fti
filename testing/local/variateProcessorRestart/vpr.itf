@@ -1,0 +1,53 @@
+#!/bin/bash
+
+itf_load_module 'parameters' 'fti'
+
+standard() {
+    # Brief:
+    # TODO: Missing a description
+    #
+    # Details:
+    # TODO: Missing a description
+
+    local app="$(dirname ${BASH_SOURCE[0]})/test.exe"
+
+    param_parse '+head' '+icp' '+recovervar' $@
+
+    fti_config_set 'head' $head
+    fti_config_set 'ckpt_io' 5 # HDF5
+    fti_config_set_ckpts '3' '5' '7' '11'
+    fti_config_set 'h5_single_file_enable' '1'
+
+    if [ $head -eq 1 ]; then
+        itf_cfg['fti:nranks']=20
+        fti_config_set 'node_size' '5'
+    else
+        itf_cfg['fti:nranks']=16
+        fti_config_set 'node_size' '4'
+    fi
+
+    fti_run_success $app ${itf_cfg['fti:config']} $icp $recovervar
+    fti_run_success $app ${itf_cfg['fti:config']} $icp $recovervar
+
+    if [ $head -eq 1 ]; then
+        itf_cfg['fti:nranks']=68
+        fti_config_set 'node_size' '17'
+    else
+        itf_cfg['fti:nranks']=64
+        fti_config_set 'node_size' '16'
+    fi
+
+    fti_config_set 'failure' '3'
+    fti_run_success $app ${itf_cfg['fti:config']} $icp $recovervar
+    pass
+}
+
+# Register all test cases for the parametrized test
+for head in 0 1; do
+    for icp in 0 1; do
+        for recovervar in 0 1; do
+            itf_case 'standard' "--head=$head" "--icp=$icp" "--recovervar=$recovervar"
+        done
+    done
+done
+unset head icp recovervar

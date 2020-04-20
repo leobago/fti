@@ -8,7 +8,9 @@ pass() {
     # Parameters:
     # $1: An optional feedback message
 
-    itf_assertion_msg=$1
+    if [ ! -z "$1" ]; then
+        echo "$1" >${itf_cfg['core:assert_msg_buf']}
+    fi
     exit 0
 }
 
@@ -17,8 +19,10 @@ fail() {
     #
     # Parameters:
     # $1: An optional feedback message
-    
-    itf_assertion_msg=$1
+
+    if [ ! -z "$1" ]; then
+        echo "$1" >${itf_cfg['core:assert_msg_buf']}
+    fi
     exit 1
 }
 
@@ -102,8 +106,7 @@ check_file_exists() {
     # Parameters:
     # $1: The file path
 
-    if ! ls $1 1> /dev/null 2>&1;
-    then
+    if ! ls $1 1>/dev/null 2>&1; then
         fail "File not found: $1"
     fi
 }
@@ -164,4 +167,16 @@ assert_file_exists() {
 
 # ------------------------- ITF Assertion Private API -------------------------
 
-declare itf_assertion_msg=''
+itf_get_assert_msg() {
+    # Get the assertion message stored in ITF buffer
+
+    if [ -f ${itf_cfg['core:assert_msg_buf']} ]; then
+        cat ${itf_cfg['core:assert_msg_buf']}
+    fi
+}
+
+itf_clear_assert_msg() {
+    # Clear the assertion message stored in ITF buffer
+
+    rm -rf "${itf_cfg['core:assert_msg_buf']}"
+}

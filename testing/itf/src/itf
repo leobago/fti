@@ -3,11 +3,85 @@
 # Associative array for itf configurations
 declare -A itf_cfg=()
 itf_cfg['core:module_path']='' # The path to find the ITF modules (should be set by apps)
+itf_cfg['core:assert_msg_buf']='/tmp/itf_assert.out' # Assertion message buffer
 
 # The associative array of events to listeners
 declare -A _itf_hooks=()
 # ITF separator to simulate 2d arrays on a single-dimension associative arrays
 declare -r _itf_sep=':'
+
+# ------------------- ITF Custom List Management functions --------------------
+
+itf_list_unwrap() {
+    # Unwrap a list of elemets into an bash array.
+    #
+    # Details:
+    # The list must be represented as a string with the _itf_sep separator.
+    # It must also reside in an associative array.
+    #
+    # Parameters:
+    # $1: Associative array variable name
+    # $2: Associative array key for the list
+    # $3: Variable name for the generated bash array
+    #
+    # Example:
+    # declare -A aarray=(['anykey']='a:b:c:d')
+    # itf_unwrap_list 'aarray' 'anykey' 'myarray'
+    # echo ${!myarray[@]} # Should print 4
+
+    declare -nl pointer=$1
+    IFS="$_itf_sep" read -r -a $3 <<<"${pointer[$2]}"
+}
+
+itf_list_add() {
+    # Add an element into a list within an associative array
+    #
+    # Parameters:
+    # $1: The associative array name
+    # $2: The associative array key
+    # $3: The value to add
+    #
+    # Details:
+    # If the key does not exist or is empty, the key will be created.
+    # In any case, an item will be added to the list.
+    # The items can be later retrieved as a bash array using itf_list_unwrap.
+
+    declare -nl pointer="$1"
+    if [ -z "${pointer[$2]}" ]; then
+        pointer["$2"]="$3"
+    else
+        pointer["$2"]="${pointer[$2]}${_itf_sep}$3"
+    fi
+}
+
+itf_list_remove() {
+    # Remove an element stored in a list within an associative array
+    #
+    # Parameters:
+    # $1: The associative array name
+    # $2: The associative array key
+    # $3: The value to remove
+
+    if [ $# -ne 3 ]; then
+        return
+    fi
+    declare -nl pointer="$1"
+
+    if [ -z "${pointer[$2]}" ]; then
+        return 0
+    fi
+    echo "Before: ${pointer[$2]}"
+
+    local prefix=${pointer[$2]%$3*}    # Get everything before element
+    prefix=${prefix/#$_itf_sep/}       # Remove separator in begin if any
+    prefix=${prefix/%$_itf_sep/}       # Remove separator in end if any
+    local sufix=${pointer[$2]#*$3}     # Get everything after element
+    sufix=${sufix/%$_itf_sep/}         # Remove separator in end if any
+    sufix=${sufix/#$_itf_sep/}         # Remove separator in begin if any
+    pointer[$2]=$prefix$_itf_sep$sufix # Write back to the list
+    echo "After: ${pointer[$2]}"
+    echo "Post-Filter: ${pointer[$2]}"
+}
 
 # ------------ ITF Producer/Consumer Modular Design Base Functions ------------
 
@@ -27,7 +101,7 @@ itf_hook_subscribe() {
     #
     # Details:
     # The hooks are exposed, per module, as comments in the source
-    
+
     if [ -z ${_itf_hooks[$1]} ]; then
         _itf_hooks[$1]=$2
     else
@@ -95,10 +169,10 @@ itf_set_if_undef() {
 }
 
 # ------------------------ ITF Core Functionalities ---------------------------
-# Assertions and generating the test results
-source $(dirname ${BASH_SOURCE[0]})/assertions
 # Running Tests and triggering ITF events
 source $(dirname ${BASH_SOURCE[0]})/core
+# Assertions and generating the test results
+source $(dirname ${BASH_SOURCE[0]})/assertions
 # Core ITF consumer module for logging
 source $(dirname ${BASH_SOURCE[0]})/log
 
@@ -106,9 +180,10 @@ source $(dirname ${BASH_SOURCE[0]})/log
 
 itf_load_module() {
     # Load an ITF module functions and definitions
+
     for module in $@; do
         source ${itf_cfg['core:module_path']}/$module
-      
+
         if [ -z ${itf_state['modules']} ]; then
             itf_state['modules']="$module"
         else

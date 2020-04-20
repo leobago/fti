@@ -71,7 +71,7 @@ add_subdirectory(ci)
 # Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)
 
-  message("ITF CTest installed: ${FixtureName} (${ARGN})")
+  message("ITF CTest configured: ${FixtureName} (${ARGN})")
 
   # Define the test rule using the fixtures
   add_test(NAME ${FixtureName} COMMAND
@@ -83,9 +83,8 @@ endfunction()
 
 # Install a fixture and create the appropriate test suite for it
 function(InstallSuiteITFConvention FixturePreffix)  
-  configure_file("${FixturePreffix}.fixture" ${CMAKE_CURRENT_BINARY_DIR} @ONLY)
-  configure_file("${FixturePreffix}.suite" ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-  DeclareITFSuite("${FixturePreffix}" ${ARGN})
+  DeclareITFSuite("${FixturePreffix}.itf" ${ARGN})
+  install(FILES "${FixturePreffix}.itf" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
 
 # Install a Test application with its source dependencies as extra arguments
@@ -98,8 +97,4 @@ endfunction()
 
 # ---------------------- Inclusion of Test subdirectories ---------------------
 
-set(test_subdirs "local")
-
-foreach(test_dir ${test_subdirs})
-  add_subdirectory(${test_dir})
-endforeach(test_dir)
+add_subdirectory(local)

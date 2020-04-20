@@ -1,0 +1,51 @@
+#!/bin/bash
+
+itf_load_module 'parameters' 'fti'
+
+standard() {
+    # Brief:
+    # TODO: missing a description
+    #
+    # Details:
+    # TODO: missing a description
+
+    param_parse '+head' '+keepl4' $@
+
+    local app="$(dirname ${BASH_SOURCE[0]})/testkeepl4.exe"
+    local globaldir=$(fti_config_get 'glbl_dir')
+    local must_be_in_l4=(3 6 9 11)
+
+    fti_config_set 'head' "$head"
+    fti_config_set 'ckpt_io' 1 # POSIX
+    fti_config_set 'keep_l4_ckpt' $keepl4
+    fti_config_set_ckpts '1' '0' '0' '3'
+    if [ $head -eq 1 ]; then
+        fti_config_set 'inline_l4' '0'
+    else
+        fti_config_set 'inline_l4' '1'
+    fi
+
+    fti_run_success $app ${itf_cfg['fti:config']}
+    fti_run_success $app ${itf_cfg['fti:config']}
+    local exec_id=$(fti_config_get 'exec_id')
+    
+    if [ $keepl4 -eq 1 ]; then
+        for i in "${must_be_in_l4[@]}"; do
+            check_file_exists $globaldir/$exec_id/l4_archive/Ckpt*-Rank$i.fti
+        done
+    else
+        # This should fail because there is no such directory
+        ls $globaldir/$exec_id 2>>/dev/null
+        check_not_equals $? 0 \
+            "Checkpoints were pushed to global without keep set"
+    fi
+    pass
+}
+
+for head in 0 1; do
+    for keepl4 in 0 1; do
+        itf_case 'standard' "--head=$head" "--keepl4=$keepl4"
+    done
+done
+
+unset head keepl4
