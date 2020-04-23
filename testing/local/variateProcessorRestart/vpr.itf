@@ -1,6 +1,6 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+itf_load_module 'fti'
 
 standard() {
     # Brief:

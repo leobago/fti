@@ -76,7 +76,7 @@ test_load() {
     print_color $COLOR_MAGENTABOLD "${driver_state['test_name']}"
     print_color $COLOR_WHITEBOLD " with "
     print_color $COLOR_YELLOWBOLD "${driver_state['test_max']}"
-    print_color $COLOR_WHITEBOLD " tests.\n"
+    print_color $COLOR_WHITEBOLD " tests.\n\n"
 }
 
 test_case() {
@@ -156,39 +156,52 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --verbose)
+        # Activate all optional output from ITF and the FTI module
         itf_cfg['core:verbose']='true'
         itf_cfg['fti:verbose']='true'
         itf_cfg['fti:verbose_app']='true'
         shift
         ;;
     --quiet)
+        # Shutdown any output to the terminal derived from ITF
         itf_cfg['core:verbose']='false'
         itf_cfg['fti:verbose']='false'
         itf_cfg['fti:verbose_app']='false'
         shift
         ;;
     --dry-run)
+        # Only count the number of tests but do not execute them
         itf_cfg['core:dry_run']='true'
         shift
         ;;
-    -c | --custom-params)
-        # Runs one fixture with command line arguments instead of a suite
-        # TODO
+    --ignore | -i)
+        # Ignores a test function with the given name, can be passed multiple times
+        itf_list_add 'itf_filter' 'ignore' "$2"
+        shift
+        shift
+        ;;
+    --filter | -f)
+        # Filters test cases from a test function in a suite by its parameters
+        # TODO:
+        # Format: suite:test:param=v1,v2,v3
+        # Expected: ITF ignores the cases of 'test', in 'suite', where 'param' is v1, v2 or v3
+        itf_list_add 'itf_filter' "${2%=*}" "${2#*=}"
+        shift
         shift
         ;;
     --all-logs)
-        # Keep the application logs
+        # Also keep the application logs for tests that passed
         itf_cfg['log:passed_cases']='true'
         shift
         ;;
     --no-logs)
-        # Do not keep any ITF log
+        # Do not keep any ITF logs
         itf_cfg['log:passed_cases']='false'
         itf_cfg['log:failed_cases']='false'
         shift
         ;;
     -d | --maintain-ckpt-dir)
-        # Keep the checkpoint directories after execution
+        # Keep the FTI checkpoint, global and meta directories after execution
         itf_cfg['fti:keep_ckpt_dir']='true'
         shift
         ;;

@@ -133,15 +133,30 @@ itf_case() {
         echo "[ITF] Test function name cannot be empty" && exit 1
     fi
 
-    if [ ! -z ${itf_state[filter:mode]} ] && [ ! -z ${itf_state[filter:list]} ]; then
-        IFS="$_itf_sep" read -r -a tcases <<<"${_itf_cases[$atest]}"
+    # Check if the function name is marked to be ignored
+    if [ $(itf_list_contains 'itf_filter' 'ignore' "$1") == 'true' ]; then
+        return 0
     fi
 
-    if [ -z "${_itf_cases[$1]}" ]; then
-        _itf_cases[$1]="${@:2}"
-    else
-        _itf_cases[$1]="${_itf_cases[$1]}${_itf_sep}${@:2}"
-    fi
+    # Check if any argument assumes a value that should be ignored
+    local k_prefix="${itf_state['suite_name']}:$1:"
+    for arg in ${@:2}; do
+        declare -l name=$(param_name $arg)
+        declare -l value=$(param_value $arg)
+        declare -l key=${k_prefix}${name}
+
+        # List is empty, check next argument
+        if [ -z "${itf_filter[$key]}" ]; then
+            continue
+        fi
+        # Ignore the test case if there is a filter for this argument/value
+        if [ $(itf_list_contains 'itf_filter' "$key" $value) == 'true' ]; then
+            return 0
+        fi 
+    done
+
+    itf_list_add '_itf_cases' "$1" "${@:2}"
+
     let itf_state['ntests']=${itf_state['ntests']}+1
     let itf_state["${1}_ntests"]=${itf_state["${1}_ntests"]}+1
 }
@@ -164,52 +179,27 @@ itf_suite_unload() {
 
 # Read-only associative array with status about the suite after execution
 #
-# Array keys for suite summary:
+# Keys for the suite state:
 #
 # - suite_name: The fixture name
 # - ntests: The test count in the suite
 # - passed: The amount of tests that passed
 # - failed: The amount of tests that failed
 #
-# Array keys per test function:
+# Keys for individual test function state:
 #
-# - [test_function]_ntests: The test count for the specific function
-# - [test_function]_passed: The amount of tests that passed for a function
-# - [test_function]_failed: The amount of tests that failed for a function
+# - [testname]_ntests: The test count for the specific function
+# - [testname]_passed: The amount of tests that passed for a function
+# - [testname]_failed: The amount of tests that failed for a function
 #
 # Internal ITF Array keys:
 #
 # - modules: The ITF modules loaded by this suite
 declare -A itf_state=()
 
-# Writable associative array for applying filters for the test cases.
-#
-# Usage:
-# This array can be used to disable checks when running the suite.
-# It can be used to limit test case arguments to a set of values.
-# Also, it can restrict which functions will be called.
-#
-# Testname related keys:
-# - names: The list of names to filter
-# - mode: Can be 'filter' or 'exclude'
-#
-# If mode is 'filter', only the informed tests will run.
-# If mode is 'exclude', only the informed tests will not run.
-#
-# Example:
-# itf_filters[names]='standard' && itf_filters[mode]='filter'
-#
-# This will make ITF run only checks named 'standard'
-#
-# itf_filters[mode]='filter' && itf_filters[names]='standard;nonstandard'
-#
-# This will make ITF run only checks named 'standard' or 'nonstandard'
-#
-# itf_filters[mode]='exclude' && itf_filters[names]='standard;nonstandard'
-#
-# This will make ITF exclude all checks names 'standard' and 'nonstandard'.
-declare -A itf_filters=()
-
+# Keys
+# ignore: Ignore the test functions listed here (ITF list string)
+declare -A itf_filter=()
 
 # Test case parameters
 declare -A _itf_cases=()
@@ -250,13 +240,14 @@ itf_run_suite() {
     for atest in ${!_itf_cases[@]}; do
 
         # Get an array of test cases associated with this test function name
-        IFS="$_itf_sep" read -r -a tcases <<<"${_itf_cases[$atest]}"
+        declare -la tcases=()
+        itf_list_unwrap '_itf_cases' "$atest" 'tcases'
 
         itf_hook_publish 'onTestLoad' $atest
-
         # Iterate on every test case
         for acase in "${tcases[@]}"; do
-            # Get test case arguments as an array separated by spaces
+            # Get test case arguments as a string separated by spaces
+            declare -la args=()
             IFS=" " read -r -a args <<<"$acase"
 
             itf_hook_publish 'onTestRunBegin' $atest ${args[@]}
@@ -294,7 +285,6 @@ itf_run_suite() {
     for atest in ${!_itf_cases[@]}; do
         unset $atest ${_itf_setup[$atest]} ${_itf_teardown[$atest]}
     done
-    unset tcases args
     itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
 
     # Call the suite teardown if any

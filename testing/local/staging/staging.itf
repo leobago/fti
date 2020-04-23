@@ -1,6 +1,8 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+# ---------------------------- Bash Test functions ----------------------------
+
+itf_load_module 'fti'
 
 standard() {
     # Brief:
@@ -34,7 +36,8 @@ standard() {
     assert_equals $? 0 'Number of files differ'
 }
 
-# Register all test cases for the parametrized test
+# -------------------------- ITF Register test cases --------------------------
+
 for head in 0 1; do
     itf_case 'standard' "--head=$head"
 done

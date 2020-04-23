@@ -1,6 +1,8 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+# ---------------------------- Bash Test functions ----------------------------
+
+itf_load_module 'fti'
 
 standard() {
     # Brief:
@@ -42,10 +44,11 @@ standard() {
     pass
 }
 
+# ------------------------ Registering ITF test cases -------------------------
+
 for head in 0 1; do
     for keepl4 in 0 1; do
         itf_case 'standard' "--head=$head" "--keepl4=$keepl4"
     done
 done
-
 unset head keepl4

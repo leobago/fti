@@ -1,6 +1,8 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+# ---------------------------- Bash Test functions ----------------------------
+
+itf_load_module 'fti'
 
 setup() {
     # Set up the common FTI variables for the checks in this suite
@@ -55,9 +57,9 @@ standard() {
         /Ckpt. ID 7/ {VAL=0}
         ' ${itf_cfg['fti:app_stdout']}
     check_is_zero $? 'dCP encoded size differ'
-    check_equals $(grep $mode ${itf_cfg['fti:app_stdout']} | wc -l) $mode_msg_count \
-        'There should be dCP messages for every rank'
 
+    check_equals "$(grep $mode ${itf_cfg['fti:app_stdout']} -ic)" $mode_msg_count \
+        'There should be dCP messages for every rank'
     fti_run_success $app ${itf_cfg['fti:config']}
     pass
 }
@@ -75,10 +77,9 @@ posix_corrupt() {
     local crash_on_iter=1
     local diffsizes=0
 
+    recovery=1
     if [ $recovery == 'FTI_Recover' ]; then
         recovery=0
-    else
-        recovery=1
     fi
 
     fti_config_set 'ckpt_io' '1' # POSIX
@@ -99,10 +100,10 @@ posix_corrupt() {
         fi
     done
     grep -q "\[SUCCESSFUL\]" ${itf_cfg['fti:app_stdout']}
-    local retv=$?
-
-    assert_equals $retv 0 'FTI should recover from corrupted data'
+    assert_equals $? 0 'FTI should recover from corrupted data'
 }
+
+# -------------------------- ITF Register test cases --------------------------
 
 itf_fixture 'standard' 'setup' 'standard_teardown'
 itf_setup 'posix_corrupt' 'setup'
@@ -110,7 +111,7 @@ itf_setup 'posix_corrupt' 'setup'
 # Add test cases for the standard checks
 for iolib in 1 3; do
     for head in 0 1; do
-        for mode in NOICP ICP; do
+        for mode in 'NOICP' 'ICP'; do
             itf_case 'standard' "--iolib=$iolib" "--head=$head" "--mode=$mode"
         done
     done

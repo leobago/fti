@@ -1,0 +1,10 @@
+#!/bin/bash
+
+export MPIRUN_ARGS=--oversubscribe
+
+@itf_dir@/testdriver --quiet -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail $@
+retval=$?
+
+unset MPIRUN_ARGS
+
+exit $retval

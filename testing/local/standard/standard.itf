@@ -1,6 +1,6 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+itf_load_module 'fti'
 
 # --------------------------- Test Fixture Functions ---------------------------
 
@@ -140,12 +140,9 @@ ckpt_disruption() {
     fi
 }
 
-# --------- ITF calls to register the fixtures for the test functions ---------
+# -------------- ITF calls to register the FTI normal-run checks --------------
 
 itf_fixture 'normal_run' 'setup' 'teardown'
-itf_fixture 'ckpt_disruption' 'setup' 'teardown'
-
-# -------------- ITF calls to register the FTI normal-run checks --------------
 
 # Register checks for the full combination of parameter values
 for iolib in ${fti_io_ids[@]}; do
@@ -165,6 +162,8 @@ for iolib in ${fti_io_ids[@]}; do
 done
 
 # ------------- ITF calls to register the FTI ckpt_disrupt checks -------------
+
+itf_fixture 'ckpt_disruption' 'setup' 'teardown'
 
 # Checkpoint disruption tests does not require full combination of arguments.
 # The needs depends on the tested ckpt level and 'keep_last_ckpt' behavior.
@@ -279,8 +278,8 @@ register_disrupt_checks
 
 # Clean up after all checks are registered
 unset 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep' 'disrupt' 'target' 'consecutive' 'expected'
-# Clean up after ITF has executed the suite
+itf_suite_unload 'on_suite_teardown'
+
 on_suite_teardown() {
     unset run_app_first_time run_app_second_time register_disrupt_checks
 }
-itf_suite_unload 'on_suite_teardown'

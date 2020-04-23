@@ -1,6 +1,8 @@
 #!/bin/bash
 
-itf_load_module 'parameters' 'fti'
+itf_load_module 'fti'
+
+# ---------------------------- Bash Test functions ----------------------------
 
 standard() {
     # Brief:
@@ -23,7 +25,8 @@ standard() {
     pass
 }
 
-# Register all test cases for the parametrized test
+# -------------------------- ITF Register test cases --------------------------
+
 for iolib in ${fti_io_ids[@]}; do
     for level in ${fti_levels[@]}; do
         itf_case 'standard' "--iolib=$iolib" "--level=$level"

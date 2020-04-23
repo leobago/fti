@@ -2,179 +2,26 @@
 
 # Associative array for itf configurations
 declare -A itf_cfg=()
-itf_cfg['core:module_path']='' # The path to find the ITF modules (should be set by apps)
+itf_cfg['core:module_path']=''                       # The path to find the ITF modules (should be set by apps)
 itf_cfg['core:assert_msg_buf']='/tmp/itf_assert.out' # Assertion message buffer
 
-# The associative array of events to listeners
-declare -A _itf_hooks=()
-# ITF separator to simulate 2d arrays on a single-dimension associative arrays
-declare -r _itf_sep=':'
-
-# ------------------- ITF Custom List Management functions --------------------
-
-itf_list_unwrap() {
-    # Unwrap a list of elemets into an bash array.
-    #
-    # Details:
-    # The list must be represented as a string with the _itf_sep separator.
-    # It must also reside in an associative array.
-    #
-    # Parameters:
-    # $1: Associative array variable name
-    # $2: Associative array key for the list
-    # $3: Variable name for the generated bash array
-    #
-    # Example:
-    # declare -A aarray=(['anykey']='a:b:c:d')
-    # itf_unwrap_list 'aarray' 'anykey' 'myarray'
-    # echo ${!myarray[@]} # Should print 4
-
-    declare -nl pointer=$1
-    IFS="$_itf_sep" read -r -a $3 <<<"${pointer[$2]}"
-}
-
-itf_list_add() {
-    # Add an element into a list within an associative array
-    #
-    # Parameters:
-    # $1: The associative array name
-    # $2: The associative array key
-    # $3: The value to add
-    #
-    # Details:
-    # If the key does not exist or is empty, the key will be created.
-    # In any case, an item will be added to the list.
-    # The items can be later retrieved as a bash array using itf_list_unwrap.
-
-    declare -nl pointer="$1"
-    if [ -z "${pointer[$2]}" ]; then
-        pointer["$2"]="$3"
-    else
-        pointer["$2"]="${pointer[$2]}${_itf_sep}$3"
-    fi
-}
-
-itf_list_remove() {
-    # Remove an element stored in a list within an associative array
-    #
-    # Parameters:
-    # $1: The associative array name
-    # $2: The associative array key
-    # $3: The value to remove
-
-    if [ $# -ne 3 ]; then
-        return
-    fi
-    declare -nl pointer="$1"
-
-    if [ -z "${pointer[$2]}" ]; then
-        return 0
-    fi
-    echo "Before: ${pointer[$2]}"
-
-    local prefix=${pointer[$2]%$3*}    # Get everything before element
-    prefix=${prefix/#$_itf_sep/}       # Remove separator in begin if any
-    prefix=${prefix/%$_itf_sep/}       # Remove separator in end if any
-    local sufix=${pointer[$2]#*$3}     # Get everything after element
-    sufix=${sufix/%$_itf_sep/}         # Remove separator in end if any
-    sufix=${sufix/#$_itf_sep/}         # Remove separator in begin if any
-    pointer[$2]=$prefix$_itf_sep$sufix # Write back to the list
-    echo "After: ${pointer[$2]}"
-    echo "Post-Filter: ${pointer[$2]}"
-}
-
-# ------------ ITF Producer/Consumer Modular Design Base Functions ------------
-
-itf_hook_subscribe() {
-    # Register a notifier function to be executed on an ITF event
-    #
-    # Usage:
-    # itf_hook_subscribe 'event' 'callback'
-    #
-    # Explanation:
-    # When a given 'event' occurs in ITF, invoke the 'callback' bash function
-    #
-    # Example:
-    # itf_hook_subscribe 'onTestLoad' 'printTestInfo'
-    #
-    # Will call printTestInfo when a test is loaded in ITF
-    #
-    # Details:
-    # The hooks are exposed, per module, as comments in the source
-
-    if [ -z ${_itf_hooks[$1]} ]; then
-        _itf_hooks[$1]=$2
-    else
-        _itf_hooks[$1]="${_itf_hooks[$1]}${_itf_sep}${2}"
-    fi
-}
-
-itf_hook_unsubscribe() {
-    # Unsubscribe a function from the ITF event
-    #
-    # Parameters:
-    # $1: The event name
-    # $2: The subscribed function name
-
-    if [ $# -ne 2 ]; then
-        return
-    fi
-    _itf_hooks[$1]=${_itf_hooks[$1]%$2*}${_itf_hooks[$1]#*$2}
-}
-
-itf_hook_publish() {
-    # Notify that an ITF engine event has occurred and issue all callbacks
-    #
-    # Usage:
-    # itf_hook_publish 'event'
-    #
-    # Details:
-    # Call all functions related to that event that were registered with
-    # itf_hook_subscribe.
-    #
-    # Example:
-    # itf_hook_subscribe 'onEvent' 'myCallback'
-    # itf_hook_subscribe 'onEvent' 'myCallback2'
-    # itf_hook_publish 'onEvent'
-    #
-    # This will call the function 'myCallBack' and then 'myCallBack2'
-
-    if [ -z $1 ]; then
-        echo '[ITF] Cannot notify an empty hook' && exit 1
-    fi
-
-    # In case there is no functions to call, just exit
-    if [ -z ${_itf_hooks[$1]} ]; then
-        return
-    fi
-
-    local hooks=()
-    IFS="$_itf_sep" read -r -a hooks <<<"${_itf_hooks[$1]}"
-    for h in ${hooks[@]}; do
-        $h ${@:2}
-    done
-}
-
-itf_set_if_undef() {
-    # Set an ITF configuration value if it was not set before
-    #
-    # Details:
-    # Even if ITF modules are unloaded, their configuration remain.
-    # This is to keep configurations throughout the same set of suites.
-    # Running tests on different shells will overcome this behavior if needed.
-
-    if [ -z ${itf_cfg["$1"]} ]; then
-        itf_cfg["$1"]="$2"
-    fi
-}
-
 # ------------------------ ITF Core Functionalities ---------------------------
-# Running Tests and triggering ITF events
-source $(dirname ${BASH_SOURCE[0]})/core
-# Assertions and generating the test results
-source $(dirname ${BASH_SOURCE[0]})/assertions
-# Core ITF consumer module for logging
-source $(dirname ${BASH_SOURCE[0]})/log
+
+srcdir="$(dirname ${BASH_SOURCE[0]})"
+
+# ITF list and methods to manipulate them
+source $srcdir/list
+# ITF hooks for publisher/subscriber event lists
+source $srcdir/hooks
+# Core functionality of registering and running tests
+source $srcdir/test
+# Core functionality for assertions and test results
+source $srcdir/assertions
+# Core ITF consumer module for generating logs
+source $srcdir/log
+
+# Frequently used module for parameter parsing in ITF test cases
+source $srcdir/parameters
 
 # ----------------------- ITF Non-Core Module Handling ------------------------
 
@@ -183,21 +30,17 @@ itf_load_module() {
 
     for module in $@; do
         source ${itf_cfg['core:module_path']}/$module
-
-        if [ -z ${itf_state['modules']} ]; then
-            itf_state['modules']="$module"
-        else
-            itf_state['modules']="${itf_state['modules']}${_itf_sep}${module}"
-        fi
+        itf_list_add 'itf_state' 'modules' "$module"
     done
 }
 
 itf_hook_subscribe 'onSuiteEnd' 'itf_unload_suite_modules'
 
 itf_unload_suite_modules() {
-    local modules=()
-    IFS="$_itf_sep" read -r -a modules <<<"${itf_state[modules]}"
+    # Unload all modules loaded into the suite using itf_load_module
 
+    declare -la modules=()
+    itf_list_unwrap 'itf_state' 'modules' 'modules'
     for mod in ${modules[@]}; do
         ${mod}_unload
         unset ${mod}_unload

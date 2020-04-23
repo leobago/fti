@@ -45,7 +45,7 @@ param_parse() {
             param_expected+=(${1#*+})
             ;;
         --*=*)
-            arguments+=(${1#--}) # Remove the prefix --
+            arguments+=($1) # Remove the prefix --
             ;;
         *)
             fail "Unexpected argument format: $1"
@@ -56,8 +56,8 @@ param_parse() {
 
     # Transform the 'arguments' into variables with their respective values
     for arg in ${arguments[@]}; do
-        local name="${arg%=*}" # Remove the suffix =*
-        local val="${arg#*=}"  # Remove the prefix *=
+        local name=$(param_name $arg)
+        local val=$(param_value $arg)
         local is_expected=0
 
         # Check if the argument/value found is expected
@@ -84,6 +84,34 @@ param_parse() {
     done
 }
 
+param_name() {
+    # Extract the parameter name from the ITF standard format
+    #
+    # Parameters:
+    # $1: The string that represents a parameter in ITF standard format
+    #
+    # Details:
+    # Receives a string in the form: "--name=val" and outputs the 'name' part
+
+    local __name=${1#--} # Remove the leading --
+    __name=${__name%=*} # Remove the trailing =*
+    echo $__name
+}
+
+param_value() {
+    # Extract the parameter value from the ITF standard format
+    #
+    # Parameters:
+    # $1: The string that represents a parameter in ITF standard format
+    #
+    # Details:
+    # Receives a string in the form: "--name=val" and outputs the 'value' part
+
+    local value=${1#--} # Remove the leading --
+    value=${value#*=} # Remove the leading *=
+    echo $value
+}
+
 # ------------------------------ ITF Module Body ------------------------------
 
 itf_hook_subscribe 'onTestRunBegin' 'clear_parameters'
@@ -95,10 +123,4 @@ clear_parameters() {
         unset $p
     done
     param_expected=()
-}
-
-parameters_unload() {
-    itf_hook_unsubscribe 'onTestRunBegin' 'clear_parameters'
-    
-    unset param_parse clear_parameters
 }

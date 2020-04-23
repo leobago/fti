@@ -8,9 +8,7 @@ pass() {
     # Parameters:
     # $1: An optional feedback message
 
-    if [ ! -z "$1" ]; then
-        echo "$1" >${itf_cfg['core:assert_msg_buf']}
-    fi
+    echo "$1" >${itf_cfg['core:assert_msg_buf']}
     exit 0
 }
 
@@ -20,9 +18,7 @@ fail() {
     # Parameters:
     # $1: An optional feedback message
 
-    if [ ! -z "$1" ]; then
-        echo "$1" >${itf_cfg['core:assert_msg_buf']}
-    fi
+    echo "$1" >${itf_cfg['core:assert_msg_buf']}
     exit 1
 }
 
@@ -34,12 +30,8 @@ check_equals() {
     # $2: Another numerical value
     # $3: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on check_equals is empty"
-    fi
-
-    if [ -z $2 ]; then
-        fail "Second argument on check_equals is empty"
+    if [ $# -lt 2 ]; then
+        fail "check_equals requires at least two arguments"
     fi
 
     if [ $1 -ne $2 ]; then
@@ -55,12 +47,8 @@ check_not_equals() {
     # $2: Another numerical value
     # $3: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on check_not_equals is empty"
-    fi
-
-    if [ -z $2 ]; then
-        fail "Second argument on check_not_equals is empty"
+    if [ $# -lt 2 ]; then
+        fail "check_not_equals requires at least two arguments"
     fi
 
     if [ $1 -eq $2 ]; then
@@ -75,8 +63,8 @@ check_is_zero() {
     # $1: The first numerical value
     # $2: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on check_is_zero is empty"
+    if [ $# -lt 1 ]; then
+        fail "check_is_zero requires at least one argument"
     fi
 
     if [ $1 -ne 0 ]; then
@@ -91,8 +79,8 @@ check_non_zero() {
     # $1: The first numerical value
     # $2: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on check_non_zero is empty"
+    if [ $# -lt 1 ]; then
+        fail "check_non_zero requires at least one argument"
     fi
 
     if [ $1 -eq 0 ]; then
@@ -105,6 +93,10 @@ check_file_exists() {
     #
     # Parameters:
     # $1: The file path
+
+    if [ $# -lt 1 ]; then
+        fail "check_file_exists requires at least two arguments"
+    fi
 
     if ! ls $1 1>/dev/null 2>&1; then
         fail "File not found: $1"
@@ -119,12 +111,8 @@ assert_equals() {
     # $2: Another numerical value
     # $3: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on assert_equals is empty"
-    fi
-
-    if [ -z $2 ]; then
-        fail "Second argument on assert_equals is empty"
+    if [ $# -lt 2 ]; then
+        fail "assert_not_equals requires at least two arguments"
     fi
 
     check_equals $1 $2 "$3"
@@ -139,12 +127,8 @@ assert_not_equals() {
     # $2: Another value
     # $3: An optional message in case of failure
 
-    if [ -z $1 ]; then
-        fail "First argument on assert_not_equals is empty"
-    fi
-
-    if [ -z $2 ]; then
-        fail "Second argument on assert_not_equals is empty"
+    if [ $# -lt 2 ]; then
+        fail "assert_not_equals requires at least two arguments"
     fi
 
     check_not_equals $1 $2 "$3"
@@ -157,8 +141,8 @@ assert_file_exists() {
     # Parameters:
     # $1: The file path
 
-    if [ -z $1 ]; then
-        fail "First argument on assert_file_exists is empty"
+    if [ $# -lt 1 ]; then
+        fail "assert_file_exists requires at least one argument"
     fi
 
     check_file_exists $1
