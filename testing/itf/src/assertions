@@ -8,7 +8,7 @@ pass() {
     # Parameters:
     # $1: An optional feedback message
 
-    echo "$1" >${itf_cfg['core:assert_msg_buf']}
+    echo "$1" >"${itf_cfg['core:assert_msg_buf']}"
     exit 0
 }
 
@@ -18,7 +18,7 @@ fail() {
     # Parameters:
     # $1: An optional feedback message
 
-    echo "$1" >${itf_cfg['core:assert_msg_buf']}
+    echo "$1" >"${itf_cfg['core:assert_msg_buf']}"
     exit 1
 }
 
@@ -34,7 +34,7 @@ check_equals() {
         fail "check_equals requires at least two arguments"
     fi
 
-    if [ $1 -ne $2 ]; then
+    if [ "$1" -ne "$2" ]; then
         fail "$3"
     fi
 }
@@ -51,7 +51,7 @@ check_not_equals() {
         fail "check_not_equals requires at least two arguments"
     fi
 
-    if [ $1 -eq $2 ]; then
+    if [ "$1" -eq "$2" ]; then
         fail "$3"
     fi
 }
@@ -67,7 +67,7 @@ check_is_zero() {
         fail "check_is_zero requires at least one argument"
     fi
 
-    if [ $1 -ne 0 ]; then
+    if [ "$1" -ne "0" ]; then
         fail "$2"
     fi
 }
@@ -83,7 +83,7 @@ check_non_zero() {
         fail "check_non_zero requires at least one argument"
     fi
 
-    if [ $1 -eq 0 ]; then
+    if [ "$1" -eq "0" ]; then
         fail "$2"
     fi
 }
@@ -98,7 +98,7 @@ check_file_exists() {
         fail "check_file_exists requires at least two arguments"
     fi
 
-    if ! ls $1 1>/dev/null 2>&1; then
+    if ! ls "$1" 1>/dev/null 2>&1; then
         fail "File not found: $1"
     fi
 }
@@ -115,7 +115,7 @@ assert_equals() {
         fail "assert_not_equals requires at least two arguments"
     fi
 
-    check_equals $1 $2 "$3"
+    check_equals "$1" "$2" "$3"
     pass
 }
 
@@ -131,7 +131,7 @@ assert_not_equals() {
         fail "assert_not_equals requires at least two arguments"
     fi
 
-    check_not_equals $1 $2 "$3"
+    check_not_equals "$1" "$2" "$3"
     pass
 }
 
@@ -145,7 +145,7 @@ assert_file_exists() {
         fail "assert_file_exists requires at least one argument"
     fi
 
-    check_file_exists $1
+    check_file_exists "$1"
     pass
 }
 
@@ -154,8 +154,8 @@ assert_file_exists() {
 itf_get_assert_msg() {
     # Get the assertion message stored in ITF buffer
 
-    if [ -f ${itf_cfg['core:assert_msg_buf']} ]; then
-        cat ${itf_cfg['core:assert_msg_buf']}
+    if [ -f "${itf_cfg['core:assert_msg_buf']}" ]; then
+        cat "${itf_cfg['core:assert_msg_buf']}"
     fi
 }
 

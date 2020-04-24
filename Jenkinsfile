@@ -1053,45 +1053,36 @@ def executeSteps_two( arg1, arg2 ) {
   }
 }
 
-versions = [ '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9' ]
-
-def cmakesteps(list) {
-  for (int i = 0; i < list.size(); i++) {
-    env.CMAKE = "/opt/cmake/${list[i]}/bin/cmake"
-    sh '''
-      mkdir build; cd build
-      $CMAKE --version
-      $CMAKE -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE ..
-      make -j 16 all install
-      '''
-    catchError {
-      sh 'cd build; TEST=diffSizes CONFIG=configH1I0.fti LEVEL=3 CKPTORPTNER=0 CORRORERASE=0 CORRUPTIONLEVEL=3 ./testing/tests.sh'
-    }
-    sh 'rm -rf build'
-  }
-}
-
-
 def run_itf_tests(name) {
+  // Brief: Run a set of ITF tests using the CI testdriver script
+  // Details: Use this function when in need of ITF modules
+
   tests = labelledShell ( label: "List ${name} tests",
-    script: "find build/testing/${name} -name '*.itf'",
+    script: "find ${name} -name '*.itf'",
     returnStdout: true
   ).trim()
   
   for( String test : tests.split('\n'))
     catchError {
       labelledShell ( label: "ITF suite: ${test}",
-        script: "build/testing/itf/ci_testdriver ${test}"
+        script: "testing/itf/ci_testdriver ${test}"
       )
-    }
+  }
 }
-
 
 pipeline {
 agent none
 
 stages {
 
+  stage('ITF CMake Tests') {
+    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+
+    steps {
+      run_itf_tests('testing/compilation')
+    }
+  }
+  
   stage('ITF Local Tests') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
 
@@ -1099,7 +1090,7 @@ stages {
       labelledShell ( label: 'FTI build for tests with all IOs',
         script: "./install.sh --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib"
       )
-      run_itf_tests('local')
+      run_itf_tests('build/testing/local')
     }
   }
 
@@ -1149,14 +1140,6 @@ stages {
       '''
       executeSteps_two( '/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin', '' )
     }
-  }
-
-  stage('Cmake Versions Test') {
-    when { expression { return env.BRANCH_NAME == 'master' } }
-  
-    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
-    
-    steps { cmakesteps(versions) }
   }
 
   stage('GCC Compiler Tests (1/2)') {

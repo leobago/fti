@@ -2,7 +2,8 @@
 
 export MPIRUN_ARGS=--oversubscribe
 
-@itf_dir@/testdriver --quiet -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail $@
+$(dirname ${BASH_SOURCE[0]})/testdriver --quiet --path-modules "build/testing/itf/modules" -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail $@
+    
 retval=$?
 
 unset MPIRUN_ARGS

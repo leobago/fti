@@ -100,8 +100,8 @@ fti_run() {
     else
         $fti_cmd $@ >> $app_stdout 2>&1
         local _retval=$?
+        cat $app_stdout >> ${itf_cfg['core:stdout']}
     fi
-    itf_log "$(cat $app_stdout)"
 
     fti_mod_log "returns $_retval"
     return $_retval
@@ -171,9 +171,9 @@ fti_mod_log() {
     # $1: The message to be logged
 
     if [ ${itf_cfg['fti:verbose']} == 'true' ]; then
-        itf_echo "$@"
+        echo "$@"
     elif [ ${itf_cfg['fti:verbose_log']} == 'true' ]; then
-        itf_log "$@"
+        echo "$@" >> ${itf_cfg['core:stdout']}
     fi
 }
 

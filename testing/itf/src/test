@@ -21,26 +21,13 @@ itf_cfg['core:stdout']='/tmp/itf.out'
 
 # --------------------------- ITF Suite Public API ----------------------------
 
-itf_echo() {
-    # Prints a message to the log and to the terminal if verbose is enabled
-    #
-    # Parameters:
-    # $@: The message
+itf_log_pipe() {
+    # Prints a message to the log and to the terminal from the stdin
 
-    if [ ${itf_cfg['core:verbose']} == 'true' ]; then
-        echo "$@" | tee -a ${itf_cfg['core:stdout']}
-    else
-        itf_log "$@"
-    fi
-}
+    read message
 
-itf_log() {
-    # Log a message but does not print it to the terminal
-    #
-    # Parameters:
-    # $@: The message
-
-    echo "$@" >>${itf_cfg['core:stdout']}
+    itf_log "$message"
+    unset message
 }
 
 itf_setup() {
@@ -152,7 +139,7 @@ itf_case() {
         # Ignore the test case if there is a filter for this argument/value
         if [ $(itf_list_contains 'itf_filter' "$key" $value) == 'true' ]; then
             return 0
-        fi 
+        fi
     done
 
     itf_list_add '_itf_cases' "$1" "${@:2}"
@@ -242,13 +229,20 @@ itf_run_suite() {
         # Get an array of test cases associated with this test function name
         declare -la tcases=()
         itf_list_unwrap '_itf_cases' "$atest" 'tcases'
-
         itf_hook_publish 'onTestLoad' $atest
+        
         # Iterate on every test case
-        for acase in "${tcases[@]}"; do
+        local _ntests=${itf_state["${atest}_ntests"]}
+        let _ntests=$_ntests-1
+        for tid in $(seq 0 $_ntests); do
+            
             # Get test case arguments as a string separated by spaces
-            declare -la args=()
-            IFS=" " read -r -a args <<<"$acase"
+            local acase="${tcases[$tid]}"
+            local args=()
+
+            if [ ! -z "$acase" ]; then
+                IFS=" " read -r -a args <<<"$acase"
+            fi
 
             itf_hook_publish 'onTestRunBegin' $atest ${args[@]}
 
@@ -258,7 +252,14 @@ itf_run_suite() {
             fi
 
             # Invoke the test with the correct arguments
-            ($atest ${args[@]})
+            (
+                if [ ${itf_cfg['core:verbose']} == 'true' ]; then
+                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']}
+                else
+                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']} > /dev/null
+                fi
+                exit ${PIPESTATUS[0]}
+            )
             local retval=$?
 
             # Teardown
@@ -281,11 +282,11 @@ itf_run_suite() {
         done
     done
 
+    itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
     # Teardown the suite functions
     for atest in ${!_itf_cases[@]}; do
         unset $atest ${_itf_setup[$atest]} ${_itf_teardown[$atest]}
     done
-    itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
 
     # Call the suite teardown if any
     if [ ! -z ${itf_state['suite_teardown']} ]; then

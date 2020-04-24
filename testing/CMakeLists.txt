@@ -66,7 +66,6 @@ endif()
 set(testing_dir ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(itf)
-add_subdirectory(ci)
 
 # Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)

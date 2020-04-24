@@ -9,7 +9,7 @@ for logtype in ${_logtypes[@]}; do
     itf_set_if_undef "log:${logtype}_cases" 'true'           #Keep the log for tests with state
     itf_set_if_undef "log:${logtype}_name" "-${logtype}.log" #logname for state
 done
-itf_set_if_undef "log:passed_cases" 'false' # Dont keep logs for test cases that pass
+itf_cfg["log:passed_cases"]='false' # Dont keep logs for test cases that pass
 
 # --------------------------- ITF Log Module Body ----------------------------
 
@@ -48,14 +48,14 @@ do_log() {
     # Parameters:
     # $1: the log type
 
-    if [ ${itf_cfg["log:${1}_cases"]} == 'false' ]; then
+    if [ "${itf_cfg["log:${1}_cases"]}" == 'false' ]; then
         return 0
     fi
 
     local logfile="$(get_suite_logname_prefix)${itf_cfg["log:${1}_name"]}"
-    
+
     echo "[ITF Test Case] $_casename" >>$logfile
-    if [ ! -z "$(less ${itf_cfg['core:stdout']})" ]; then
+    if [ -e ${itf_cfg['core:stdout']} ] && [ ! -z "$(less ${itf_cfg['core:stdout']})" ]; then
         echo "" >>$logfile
         cat ${itf_cfg['core:stdout']} >>$logfile
         echo "" >>$logfile
@@ -68,6 +68,7 @@ do_log() {
 log_prepare_suite() {
     # Remove the old suite log before continuing
 
+    rm -rf ${itf_cfg['core:stdout']}
     for logtype in "${_logtypes[@]}"; do
         local logfile="$(get_suite_logname_prefix)${itf_cfg["log:${logtype}_name"]}"
         rm -rf $logfile

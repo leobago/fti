@@ -19,9 +19,5 @@ endif()
 # Configure ITF modules
 configure_file(modules/fti ${itf_mod_dir}/fti @ONLY)
 
-# Configure ITF testdriver
-configure_file(testdriver testdriver @ONLY)
-configure_file(ci_testdriver ci_testdriver @ONLY)
-
 # Install ITF resources
 install(FILES resources/fti_template.cfg DESTINATION ${itf_dir}/resources)

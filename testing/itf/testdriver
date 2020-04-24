@@ -1,7 +1,6 @@
 #!/bin/bash
 
-source @itf_src_dir@/itf
-itf_cfg['core:module_path']=@itf_mod_dir@
+source $(dirname ${BASH_SOURCE[0]})/src/itf
 
 # ---------------------------------- Colors -----------------------------------
 
@@ -150,6 +149,12 @@ declare -a arguments=()
 # Parse the command line outputs, extracts the relevant and maintain the rest
 while [[ $# -gt 0 ]]; do
     case $1 in
+    --path-modules)
+        # Set the path to where ITF modules will be
+        itf_cfg['core:module_path']=$2
+        shift
+        shift
+        ;;
     --no-colors)
         # Disable the color output for the test driver
         cfg['no_colors']='true'
