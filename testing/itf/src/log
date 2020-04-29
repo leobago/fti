@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# ------------------------- ITF Log Configuration ---------------------------
+
+# All the log types that ITF generates
+declare -a _logtypes=(failed passed)
+
+for logtype in ${_logtypes[@]}; do
+    itf_set_if_undef "log:${logtype}_cases" 'true'           #Keep the log for tests with state
+    itf_set_if_undef "log:${logtype}_name" "-${logtype}.log" #logname for state
+done
+itf_cfg["log:passed_cases"]='false' # Dont keep logs for test cases that pass
+
+# --------------------------- ITF Log Module Body ----------------------------
+
+itf_hook_subscribe 'onTestPass' 'log_passed'
+itf_hook_subscribe 'onTestFail' 'log_failed'
+itf_hook_subscribe 'onTestRunBegin' 'log_new_case'
+itf_hook_subscribe 'onSuiteBegin' 'log_prepare_suite'
+
+log_passed() {
+    # Log the core:stdout in the passed checks log
+
+    do_log 'passed'
+}
+
+log_failed() {
+    # Log the core:stdout in the failed checks log
+
+    do_log 'failed'
+}
+
+log_new_case() {
+    # Save the check name for further logging
+
+    _casename="$@"
+}
+
+get_suite_logname_prefix() {
+    # Get the current suite name without the file extension
+
+    echo ${itf_state['suite_name']%.*}
+}
+
+do_log() {
+    # Perform the core:stdout copy operation to a log file
+    #
+    # Parameters:
+    # $1: the log type
+
+    if [ "${itf_cfg["log:${1}_cases"]}" == 'false' ]; then
+        return 0
+    fi
+
+    local logfile="$(get_suite_logname_prefix)${itf_cfg["log:${1}_name"]}"
+
+    echo "[ITF Test Case] $_casename" >>$logfile
+    if [ -e ${itf_cfg['core:stdout']} ] && [ ! -z "$(less ${itf_cfg['core:stdout']})" ]; then
+        echo "" >>$logfile
+        cat ${itf_cfg['core:stdout']} >>$logfile
+        echo "" >>$logfile
+        rm -rf ${itf_cfg['core:stdout']}
+    fi
+
+    unset _casename
+}
+
+log_prepare_suite() {
+    # Remove the old suite log before continuing
+
+    rm -rf ${itf_cfg['core:stdout']}
+    for logtype in "${_logtypes[@]}"; do
+        local logfile="$(get_suite_logname_prefix)${itf_cfg["log:${logtype}_name"]}"
+        rm -rf $logfile
+    done
+}

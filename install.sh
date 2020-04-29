@@ -50,7 +50,7 @@ remove_fti() {
     fi
 }
 
-CMAKE_ARGS="" # Kai, i think you should use an array here and then use -> ${CMAKE_ARGS[@]} without double quotes on the cmake command
+CMAKE_ARGS=""
 
 #parse arguments
 while [ $# -gt 0 ]; do

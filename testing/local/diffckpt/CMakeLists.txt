@@ -1,8 +1,7 @@
 enable_testing()
 
 # Install ITF Test Fixtures/Suites
-InstallSuiteITFConvention("dCP-standard" ${test_labels_current} "dCP" "iCP")
-InstallSuiteITFConvention("dCP-corrupt" ${test_labels_current} "dCP" "iCP")
+InstallSuiteITFConvention("dCP" ${test_labels_current} "dCP")
 
 
 # Install MPI Test Application
