@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Associative array for itf configurations
+declare -A itf_cfg=()
+itf_cfg['core:module_path']=''                       # The path to find the ITF modules (should be set by apps)
+itf_cfg['core:assert_msg_buf']='/tmp/itf_assert.out' # Assertion message buffer
+
+# ------------------------ ITF Core Functionalities ---------------------------
+
+srcdir="$(dirname ${BASH_SOURCE[0]})"
+
+# ITF list and methods to manipulate them
+source $srcdir/list
+# ITF hooks for publisher/subscriber event lists
+source $srcdir/hooks
+# Core functionality of registering and running tests
+source $srcdir/test
+# Core functionality for assertions and test results
+source $srcdir/assertions
+# Core ITF consumer module for generating logs
+source $srcdir/log
+
+# Frequently used module for parameter parsing in ITF test cases
+source $srcdir/parameters
+
+# ----------------------- ITF Non-Core Module Handling ------------------------
+
+itf_load_module() {
+    # Load an ITF module functions and definitions
+
+    for module in $@; do
+        source ${itf_cfg['core:module_path']}/$module
+        itf_list_add 'itf_state' 'modules' "$module"
+    done
+}
+
+itf_hook_subscribe 'onSuiteEnd' 'itf_unload_suite_modules'
+
+itf_unload_suite_modules() {
+    # Unload all modules loaded into the suite using itf_load_module
+
+    declare -la modules=()
+    itf_list_unwrap 'itf_state' 'modules' 'modules'
+    for mod in ${modules[@]}; do
+        ${mod}_unload
+        unset ${mod}_unload
+    done
+}

@@ -30,6 +30,7 @@ Fault Tolerance Library
    doxy
    codeformatting
    ftiff
+   itf
 
 
 .. codeauthor:: Dr. Leonardo Bautista-Gomez (Leo) <leonardo.bautista@bsc.es>
@@ -45,5 +46,5 @@ Phone : +34 934 13 77 16
 
 
 
-Authors: Kai Keller, Tomasz Paluszkiewicz, Karol Sierocinski
+
 

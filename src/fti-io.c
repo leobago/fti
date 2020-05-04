@@ -288,7 +288,7 @@ int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec ){
             FTI_Exec->finalizeICPFunc[LOCAL] = FTI_FinishICP;
             FTI_Exec->finalizeICPFunc[GLOBAL] = FTI_FinishICP;
 
-            FTI_Exec->activateHeads = FTI_ActivateHeadsPosix;
+            FTI_Exec->activateHeads = FTI_ActivateHeadsHDF5;
             break;
 #endif
     }

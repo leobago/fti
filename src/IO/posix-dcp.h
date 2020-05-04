@@ -24,4 +24,6 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
 // wrapper for CRC32 hash algorithm
 unsigned char* CRC32( const unsigned char *d, unsigned long nBytes, unsigned char *hash );
 
+int FTI_RecoverVarDcpPosixInit();
+int FTI_RecoverVarDcpPosixFinalize();
 #endif // __POSIX_DCP_H__

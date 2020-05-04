@@ -48,7 +48,7 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     write_info->rank_map[0] = FTI_Topo->splitRank;
     // open parallel file
     char fn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptMeta.ckptId);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s",str);

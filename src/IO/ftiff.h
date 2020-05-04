@@ -47,6 +47,10 @@
 #include <assert.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
@@ -57,6 +61,9 @@
 extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
 extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
 extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
+
+extern char *filemmap; 
+extern struct stat filestats;
 
 /**
 
@@ -156,7 +163,8 @@ int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
 int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
 int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
-int FTIFF_RecoverVar( int id, FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
+int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+    FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id);
 int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec, 
         FTIT_dataset* data, FTIT_configuration* FTI_Conf );
 int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data );
@@ -187,5 +195,6 @@ void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data );
 void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
         FTIT_dataset *data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
-
+int FTIFF_RecoverVarInit(char* fn);
+int FTIFF_RecoverVarFinalize();
 #endif

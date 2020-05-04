@@ -130,10 +130,10 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_c
 {
     //heads need to use ckptFile to get ckptId and rank
     int ckptId, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
 
     char pfn[FTI_BUFS], str[FTI_BUFS];
-    snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.fti", FTI_Conf->lTmpDir, ckptId, rank);
+    snprintf(pfn, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Conf->lTmpDir, ckptId, rank, FTI_Conf->suffix);
     snprintf(str, FTI_BUFS, "L2 trying to access Ptner file (%s).", pfn);
     FTI_Print(str, FTI_DBUG);
 
@@ -259,11 +259,11 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.fti", &ckptId, &rank);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
         char lfn[FTI_BUFS], efn[FTI_BUFS];
 
         snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
-        snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.fti", FTI_Conf->lTmpDir, ckptId, rank);
+        snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Conf->lTmpDir, ckptId, rank, FTI_Conf->suffix);
 
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "L3 trying to access local ckpt. file (%s).", lfn);
@@ -534,23 +534,31 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
     FTI_Print(str, FTI_DBUG);
+    
+    if( !FTI_Exec->h5SingleFile ) {
+        if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
+            FTI_Print("Saving to temporary global directory", FTI_DBUG);
 
-    if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
-        FTI_Print("Saving to temporary global directory", FTI_DBUG);
-
-        //Create global temp directory
-        MKDIR(FTI_Conf->gTmpDir,0777);
-    } else {
-        if ( !FTI_Ckpt[4].hasDcp ) {
-            MKDIR(FTI_Ckpt[4].dcpDir,0777);
+            //Create global temp directory
+            MKDIR(FTI_Conf->gTmpDir,0777);
+        } else {
+            if ( !FTI_Ckpt[4].hasDcp ) {
+                MKDIR(FTI_Ckpt[4].dcpDir,0777);
+            }
         }
     }
 
     switch(FTI_Conf->ioMode) {
-        case FTI_IO_FTIFF:
+#ifdef ENABLE_HDF5
         case FTI_IO_HDF5:
+            if( FTI_Exec->h5SingleFile ) {
+                FTI_FlushH5SingleFile( FTI_Exec, FTI_Conf, FTI_Topo );
+                break;
+            }
+#endif
+        case FTI_IO_FTIFF:
         case FTI_IO_IME:
-        case FTI_IO_POSIX:
+	case FTI_IO_POSIX:
             FTI_FlushPosix(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, level);
             break;
         case FTI_IO_MPI:
@@ -769,7 +777,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     WriteMPIInfo_t write_info;
     // enable collective buffer optimization
     char gfn[FTI_BUFS],  ckptFile[FTI_BUFS];
-    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
+    snprintf(ckptFile, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptMeta.ckptId);
     snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, ckptFile);
 
     write_info.FTI_Conf = FTI_Conf;
@@ -793,7 +801,6 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (proc = startProc; proc < endProc; proc++) {
         if (FTI_Topo->amIaHead) {
             int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
-            DBG_MSG("ckptFile: %s|%s, ckpt->id: %d", -1, ckptFile,FTI_Exec->ckptMeta.ckptFile, FTI_Exec->ckptId);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
@@ -926,7 +933,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     //  sscanf(&FTI_Exec->meta[level].ckptFile[0], "Ckpt%d-Rank%d.fti", &ckptId, &rank);
-    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptId);
+    snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptMeta.ckptId);
     //  snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", ckptId);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 

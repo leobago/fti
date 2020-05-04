@@ -639,6 +639,9 @@ int FTI_RecoverDcpPosix
 
 }
 
+int FTI_RecoverVarDcpPosixInit() { /*TODO*/ return FTI_SCES; }
+int FTI_RecoverVarDcpPosixFinalize() { /*TODO*/ return FTI_SCES; }
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Recovers the given variable for dcpPosix

@@ -40,8 +40,8 @@
 #ifndef FTI_INI_H
 #define FTI_INI_H
 
-#include "../../deps/iniparser/iniparser.h"
-#include "../../deps/iniparser/dictionary.h"
+#include "../deps/iniparser/iniparser.h"
+#include "../deps/iniparser/dictionary.h"
 
 /**--------------------------------------------------------------------------
   
