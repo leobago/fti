@@ -21,15 +21,6 @@ itf_cfg['core:stdout']='/tmp/itf.out'
 
 # --------------------------- ITF Suite Public API ----------------------------
 
-itf_log_pipe() {
-    # Prints a message to the log and to the terminal from the stdin
-
-    read message
-
-    itf_log "$message"
-    unset message
-}
-
 itf_setup() {
     # Associate a setup function to a test function
     #
@@ -120,8 +111,14 @@ itf_case() {
         echo "[ITF] Test function name cannot be empty" && exit 1
     fi
 
-    # Check if the function name is marked to be ignored
-    if [ $(itf_list_contains 'itf_filter' 'ignore' "$1") == 'true' ]; then
+    # Check if the function name is in the blacklist
+    if [ $(itf_list_contains 'itf_filter' 'blacklist' "$1") == 'true' ]; then
+        return 0
+    fi
+
+    # Check if function name is in the whitelist
+    # If this list is used, only functions with names there may be called
+    if [ ! -z ${itf_filter['whitelist']} ] && [ $(itf_list_contains 'itf_filter' 'whitelist' "$1") == 'false' ]; then
         return 0
     fi
 
@@ -136,8 +133,11 @@ itf_case() {
         if [ -z "${itf_filter[$key]}" ]; then
             continue
         fi
-        # Ignore the test case if there is a filter for this argument/value
-        if [ $(itf_list_contains 'itf_filter' "$key" $value) == 'true' ]; then
+
+        # Exclude test cases if:
+        # Mode is exclude and value match with the ones informed in filter
+        # Mode is not exclude and value does not match one of the informed in filter
+        if [ $(itf_list_contains 'itf_filter' "$key" $value) == ${itf_filter['excludemode']} ]; then
             return 0
         fi
     done
@@ -185,8 +185,12 @@ itf_suite_unload() {
 declare -A itf_state=()
 
 # Keys
-# ignore: Ignore the test functions listed here (ITF list string)
+# blacklist   - Ignore the test functions listed here (ITF list string)
+# whitelist   - Ignore all test functions not listed here (ITF list string)
+# suitename:testname:paramname - Denotes a value filter for a parameter (ITF list string)
+# excludemode - Value filter exclude tests on mach (true) or inclde on match (false)
 declare -A itf_filter=()
+itf_filter['excludemode']='true' # param filters are used to exclude test cases
 
 # Test case parameters
 declare -A _itf_cases=()
@@ -230,12 +234,12 @@ itf_run_suite() {
         declare -la tcases=()
         itf_list_unwrap '_itf_cases' "$atest" 'tcases'
         itf_hook_publish 'onTestLoad' $atest
-        
+
         # Iterate on every test case
         local _ntests=${itf_state["${atest}_ntests"]}
         let _ntests=$_ntests-1
         for tid in $(seq 0 $_ntests); do
-            
+
             # Get test case arguments as a string separated by spaces
             local acase="${tcases[$tid]}"
             local args=()
@@ -256,7 +260,7 @@ itf_run_suite() {
                 if [ ${itf_cfg['core:verbose']} == 'true' ]; then
                     $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']}
                 else
-                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']} > /dev/null
+                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']} >/dev/null
                 fi
                 exit ${PIPESTATUS[0]}
             )

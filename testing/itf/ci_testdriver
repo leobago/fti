@@ -1,11 +1,22 @@
 #!/bin/bash
+# Brief:
+# A proxy script that calls ITF testdriver contained in the src directory.
+#
+# Details:
+# Configures the environment and set up default arguments used in Jenkins.
+# Use this script if replicating the conditions in the CI environment.
+# Keep in mind that this script is used only for checks after compiling FTI.
+# CMake must configure the ITF modules in accord to FTI compilation parameters.
+# The testdriver can be used without FTI module for non-FTI test cases.
+# To do that, call it without from the src folder and without --path-modules.
 
 export MPIRUN_ARGS=--oversubscribe
 
-$(dirname ${BASH_SOURCE[0]})/testdriver --quiet --path-modules "build/testing/itf/modules" -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail $@
+fti_root=$(git rev-parse --show-toplevel)
+$(dirname ${BASH_SOURCE[0]})/testdriver --quiet --path-modules "$fti_root/build/testing/itf/modules" -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail --ignore subsequent_checkpoints $@
     
 retval=$?
 
-unset MPIRUN_ARGS
+unset MPIRUN_ARGS fti_root
 
 exit $retval

@@ -22,14 +22,8 @@ target_link_libraries(heatdis fti.static)
 add_executable(nodeFlag nodeFlag.c)
 target_link_libraries(nodeFlag fti.static)
 
-add_executable(corrupt corrupt.c)
-target_link_libraries(corrupt fti.static)
-
 add_executable(syncIntv syncIntv.c)
 target_link_libraries(syncIntv fti.static)
-  
-add_subdirectory(cornerCases)
-add_subdirectory(ckptHierarchy)
 
 if (ENABLE_GPU)
   add_subdirectory(cuda)
@@ -78,12 +72,7 @@ function(DeclareITFSuite FixtureName)
 
   # Attribute the a label to every test in the suite
   set_property(TEST ${FixtureName} PROPERTY LABELS ${ARGN})
-endfunction()
-
-# Install a fixture and create the appropriate test suite for it
-function(InstallSuiteITFConvention FixturePreffix)  
-  DeclareITFSuite("${FixturePreffix}.itf" ${ARGN})
-  install(FILES "${FixturePreffix}.itf" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  install(FILES ${FixtureName} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
 
 # Install a Test application with its source dependencies as extra arguments
@@ -94,6 +83,6 @@ function(InstallTestApplication AppName)
   set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
 
-# ---------------------- Inclusion of Test subdirectories ---------------------
+# -------------------- Inclusion of ITF Test subdirectories -------------------
 
 add_subdirectory(local)

@@ -12,7 +12,7 @@ itf_set_if_undef 'fti:verbose_log' 'true'
 itf_set_if_undef 'fti:verbose_app' 'false'
 # The stdout for MPI test applications filename
 itf_set_if_undef 'fti:app_stdout' '/tmp/itf_fti_app.out'
-# The FTI configuration template file 
+# The FTI configuration template file
 itf_set_if_undef 'fti:config_template' @fti_cfg_template@
 # The FTI configuration file name used for FTI test cases
 itf_set_if_undef 'fti:config' '/tmp/configfile.cfg'
@@ -37,6 +37,20 @@ fti_config_get() {
     echo "$(awk -v f="$1" '$1 ~ f {print $3}' <${itf_cfg['fti:config']})"
 }
 
+fti_config_dupe() {
+    # Create a copy of the runtime FTI configuration file
+    #
+    # Details:
+    # Remember to delete this file in a teardown function.
+    # Otherwise, the file might not be deleted due to test case failures.
+
+    if [ -z $1 ]; then
+        fail 'Duplicated FTI configuration must have a name'
+    fi
+
+    cp ${itf_cfg['fti:config']} $1
+}
+
 fti_config_set() {
     # Set the value of an FTI configuration variable
     #
@@ -45,8 +59,8 @@ fti_config_set() {
     # $2: The new value for the field
 
     sed -i "/$1/c\\$1 = $2" ${itf_cfg['fti:config']}
-    
-    fti_mod_log "fti_config_set $1=$2"
+
+    fti_mod_log "config_set: $1=$2"
 }
 
 fti_config_set_inline() {
@@ -55,6 +69,14 @@ fti_config_set_inline() {
     fti_config_set 'inline_l2' '1'
     fti_config_set 'inline_l3' '1'
     fti_config_set 'inline_l4' '1'
+}
+
+fti_config_set_noinline() {
+    # Set the inline fields in FTI configuration file to false
+
+    fti_config_set 'inline_l2' '0'
+    fti_config_set 'inline_l3' '0'
+    fti_config_set 'inline_l4' '0'
 }
 
 fti_config_set_ckpts() {
@@ -91,19 +113,19 @@ fti_run() {
     local app_stdout="${itf_cfg['fti:app_stdout']}"
     local test_stdout="${itf_cfg['core:stdout']}"
 
-    fti_mod_log "fti_run: $fti_cmd $@"
+    fti_mod_log "app_run: $fti_cmd $@"
 
     rm -rf $app_stdout
     if [ ${itf_cfg['fti:verbose_app']} == 'true' ]; then
         $fti_cmd $@ | tee -a $app_stdout 2>&1
         local _retval=${PIPESTATUS[0]}
     else
-        $fti_cmd $@ >> $app_stdout 2>&1
+        $fti_cmd $@ >>$app_stdout 2>&1
         local _retval=$?
-        cat $app_stdout >> ${itf_cfg['core:stdout']}
+        cat $app_stdout >>${itf_cfg['core:stdout']}
     fi
 
-    fti_mod_log "returns $_retval"
+    fti_mod_log "app_run: returned $_retval"
     return $_retval
 }
 
@@ -120,46 +142,112 @@ fti_run_success() {
 
 # ------------------------- Checkpoint Corruption API -------------------------
 
-ckpt_erase_last() {
-    # Erase checkpoint objects from the last application executed with app_run
+ckpt_disrupt() {
+    # Disrupt checkpoint objects from the application launched with fti_run
     #
     # Parameters:
     #
-    # $1: Which checkpoint object to erase
-    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
-    # $@: which nodes to disrupt (only for local and IO is not MPI or SION)
-    #       values: node directory names
+    # $1: Which type of disruption to employ
+    #       values: [ 'corrupt', 'erase' ]
+    # $2: Which checkpoint object to erase
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $3: Which level to look for the data.
+    #       values: 1, 2, 3, 4
+    # $@: which ids to disrupt
+    #       values: nodes or rank ids
     #
     # Usage Details:
-    #
-    # See 'find_fti_objects' usage details to see which files are deleted.
+    # - Node checkpoint object is available only for erasing.
+    # - The ids are treated as node ids for node checkpoints and Rank for files
 
-    fti_mod_log "checkpoint_erase: $@"
-    for f in $(find_fti_objects $@); do
-        fti_mod_log "erased: $f"
-        rm -rf $f
-    done
+    if [ ! -z $2 ] && [ $2 == 'node' ] && [ $1 == 'corrupt' ]; then
+        fail 'Node directory cannot be corrupted, use erase instead'
+    fi
+
+    disrupt_ckpt_obj $1 $(find_fti_objects ${@:2})
 }
 
-ckpt_corrupt_last() {
-    # Corrupt checkpoint objects from the last application executed with app_run
+ckpt_disrupt_all() {
+    # Disrupt all checkpoint objects of a given type
     #
     # Parameters:
     #
-    # $1: Which checkpoint object to corrupt
-    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
-    # $@: which nodes to disrupt (only for local and IO is not MPI or SION)
-    #       values: integers
+    # $1: Which type of disruption to employ
+    #       values: [ 'corrupt', 'erase' ]
+    # $2: Which checkpoint object to erase
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $3: Which level to look for the data.
+    #       values: 1, 2, 3, 4
+
+    if [ ! -z $2 ] && [ $2 == 'node' ] && [ $1 == 'corrupt' ]; then
+        fail 'Node directory cannot be corrupted, use erase instead'
+    fi
+
+    disrupt_ckpt_obj $1 $(find_fti_objects_all $2 $3)
+}
+
+ckpt_disrupt_any() {
+    # Disrupt checkpoint files for each node from the last fti_run application
     #
-    # Usage Details:
+    # Parameters:
     #
-    # See 'find_fti_objects' usage details to see which files are deleted.
-    
-    fti_mod_log "checkpoint_corrupt: $@"
-    for f in $(find_fti_objects $@); do
-        echo 'corruption' | dd conv=notrunc of=$f bs=1 >/dev/null 2>&1
-        fti_mod_log "corrupted: $f"
+    # $1: Which type of disruption to employ
+    #       values: [ 'corrupt', 'erase' ]
+    # $2: Which checkpoint object to erase
+    #       values: [ 'checkpoint', 'partner' ]
+    # $3: Which level to look for the data.
+    #       values: 1, 2, 3
+    # $@: which node ids to disrupt
+    #       values: nodes ids
+    #
+    # Usage details:
+    # - Disrupting L4 files is not currently supported with this function
+
+    local _files=()
+    local _node=''
+    local _dir=$(fti_config_get 'ckpt_dir')
+
+    if [ ! $2 == 'checkpoint' ] && [ ! $2 == 'partner' ]; then
+        fail "Invalid disruption target for disrupt_any: $2"
+    fi
+    if [ $3 -eq 4 ]; then
+        fail 'Global directory does not have node directories to disrupt'
+    fi
+
+    for _node in ${@:4}; do
+        local _dir="$(get_ckpt_dir $3 $_node)"
+        local _f=$(ls $_dir | head -1)
+        _f=${_f#*-}              # Remove the CkptXXX- prefix
+        _files+=( "${_f//[^0-9]/}" ) # Extract the numbers
     done
+    echo ${_files[@]}
+    ckpt_disrupt $1 $2 $3 ${_files[@]}
+}
+
+# ------------------------- Test Assertion Extensions -------------------------
+
+fti_fail_if_err_msg() {
+    # Fails the previous application run issued an error message
+    grep -q 'Error' "${itf_cfg['fti:app_stdout']}" && fail "Error messages in FTI log"
+}
+
+fti_fail_if_warn_msg() {
+    # Fails the previous application run issued a warning message
+    grep -q 'Warning' "${itf_cfg['fti:app_stdout']}" && fail "Warning messages in FTI log"
+}
+
+fti_assert_no_err_msg() {
+    # Same as the check but pass the test if no error messages
+
+    fti_fail_if_err_msg
+    pass
+}
+
+fti_assert_no_warn_msg() {
+    # Same as the check but pass the test if no warning messages
+
+    fti_fail_if_warn_msg
+    pass
 }
 
 # ------------------------- FTI Private Internal API --------------------------
@@ -171,100 +259,233 @@ fti_mod_log() {
     # $1: The message to be logged
 
     if [ ${itf_cfg['fti:verbose']} == 'true' ]; then
-        echo "$@"
+        echo "[FTI module] $@"
     elif [ ${itf_cfg['fti:verbose_log']} == 'true' ]; then
-        echo "$@" >> ${itf_cfg['core:stdout']}
+        echo "[FTI module] $@" >>${itf_cfg['core:stdout']}
+    fi
+}
+
+disrupt_ckpt_obj() {
+    # Perform a disruption action in an FTI checkpoint object (file or directory)
+    #
+    # Arguments
+    # $1: The disruption action
+    #       values: [ 'corrupt', 'erase' ]
+    # $2: The file or directory name for the disruption
+
+    local __tmp=''
+    case $1 in
+    corrupt)
+        for __tmp in ${@:2}; do
+            echo 'TextForCorruption' | dd conv=notrunc of=$__tmp bs=1 >/dev/null 2>&1
+            fti_mod_log "ckpt_disrupt: $1 $__tmp"
+        done
+        ;;
+    erase)
+        for __tmp in ${@:2}; do
+            rm -rf $__tmp
+            fti_mod_log "ckpt_disrupt: $1 $__tmp"
+        done
+        ;;
+    *)
+        fail "Unrecognized disrupt operation: $1"
+        ;;
+    esac
+}
+
+get_ckpt_dir() {
+    # Get the checkpoint directory path for the last fti_run execution
+    #
+    # Parameters:
+    # $1: The checkpoint level
+    # $2: The node id (Irrelevant for L4)
+    #
+    # Usage Details:
+    # - If the node id is empty, a path with a wildcard is returned;
+    # - The node id is ignored when the level is 4;
+
+    local _level=$1
+    local _node=$2
+    local _exec_id="$(fti_config_get 'exec_id')"
+
+    if [ -z $_node ]; then
+        # Use wildcard as the node id, for searching in any node
+        _node='*'
+    fi
+
+    if [ $_level -eq 4 ]; then
+        # Global consolidates all files into the l4 folder
+        local _global="$(fti_config_get 'glbl_dir')"
+        echo "$_global/$_exec_id/l4"
+    else
+        # Local folder depends on the node id, or use wildcard for all
+        local _local="$(fti_config_get 'ckpt_dir')"
+        echo "$_local/node$_node/$_exec_id/l$_level"
     fi
 }
 
 find_fti_objects() {
-    # Find checkpoint objects from last ITF-managed execution (app_run*)
+    # Find checkpoint, partner files and node directories in the last execution
     #
     # Parameters:
     #
-    # $1: Which checkpoint object to find
-    #       values: [ 'global', 'ckpt', 'partner', 'rs-encoding', 'node' ]
-    # $@: which nodes to delete, for local, if IO is not MPIIO or SIONLIB
-    #       values: node names
+    # $1: What to find.
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $2: In which checkpoint level directory to look for.
+    #       values: 1, 2, 3, 4
+    # $@: Which node ids or ckpt/partner file ranks to find
+    #       values: numerical values
     #
-    # Usage Details:
-    # Returns filenames/directory names in respect to the last ITF managed run.
-    # The function reads the FTI configuration file to get paths and exec_id.
-    # The output depends on the first parameter, the 'type' of the FTI object.
+    # Example:
+    # The following finds the node directory for nodes 0, 1 and 2 at the ckpt level 3
     #
-    # - ckpt) first file with 'Rank' prefix in the local directory;
-    # - partner) first file with 'Pcof' prefix in the local directory;
-    # - rs-encoding) first file with 'RSed' prefix in the local directory;
-    # - global) the global/l4 folder for the last application run;
-    # - node) the node directory within the local checkpoint directory.
+    # find_fti_local_objects 3 node 0 1 2
+    #
+    # The following finds the partner checkpoint files with rank 2 and 4
+    #
+    # find_fti_local_objects 2 partner 2 4
+    #
+    # The following finds the RS-encoding files for ranks 1 and 10
+    #
+    # find_fti_local_objects 3 partner 1 10
 
-    if [ ! $1 == 'global' ] && [ -z $level ]; then
-        fail '$level variable must be set for ITF to delete checkpoint files'
+    find_fti_objects_special_cases $1 $2
+    if [ $? -eq 0 ]; then
+        # A special case has been found, return
+        return 0
     fi
 
-    local _id=$(fti_config_get 'exec_id')
-    local _erase_all='false'
+    local _what=$1
+    local _level=$2
+    local _dir="$(get_ckpt_dir $_level)"
+    local _files=()
 
-    # Switch action depending on the checkpoint object suppllied
-    case $1 in
-    global)
-        # When deleting from global, delete everything
-        echo "$(fti_config_get 'glbl_dir')/$_id/l4"
-        return 0
+    case $_what in
+    node)
+        # Node folder search in local directory (Global treated above)
+        local _exec_id="$(fti_config_get 'exec_id')"
+        local _local="$(fti_config_get 'ckpt_dir')"
+        for __nid in ${@:3}; do
+            local f="$_local/node$__nid/$_exec_id/l$_level"
+            if [ -d $f ]; then
+                _files+=("$f")
+            fi
+        done
+        unset __nid
         ;;
-    ckpt)
-        local _what='Rank'
+    checkpoint)
+        # Common case for ckpt file, get all files using the Rank preffix
+        for __rank in ${@:3}; do
+            _files+=($(find $_dir -type f -iname "*Rank${__rank}\.*"))
+        done
+        unset __rank
         ;;
     partner)
-        local _what='Pcof'
-        ;;
-    rs-encoding)
-        local _what='RSed'
-        ;;
-    node)
-        # When erasing the node, we delete all local information
-        _erase_all='true'
+        # Common case for ptn file, get all files using the Pcof or RSed preffix
+        for __rank in ${@:3}; do
+            _files+=($(find $_dir -type f \( -iname "*Pcof${__rank}\.*" -o -iname "*RSed${__rank}\.*" \)))
+        done
+        unset __rank
         ;;
     *)
-        fail "[FTI module] Unrecognized checkpoint object type to search: $1"
+        fail "Unrecognized FTI ckpt object type: $_what"
         ;;
     esac
-    shift
+    echo ${_files[@]}
+}
 
-    local _where="$(fti_config_get 'ckpt_dir')"
-    local _files=""
-    for i in $@; do
-        if [ $_erase_all == 'true' ]; then
-            _files="$_files $_where/$i"
+find_fti_objects_all() {
+    # Find all FTI checkpoint, partner files, or node directories in a level
+    #
+    # Parameters:
+    #
+    # $1: What to find.
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $2: In which checkpoint level directory to look for.
+    #       values: 1, 2, 3, 4
+
+    find_fti_objects_special_cases $1 $2
+    if [ $? -eq 0 ]; then
+        # A special case has been found, return
+        return 0
+    fi
+
+    local _what=$1
+    local _level=$2
+    local _exec_id=$(fti_config_get 'exec_id')
+
+    local _dir=$(fti_config_get 'ckpt_dir')
+    if [ $_level -eq 4 ]; then
+        _dir=$(fti_config_get 'glbl_dir')
+    fi
+
+    case $_what in
+    node)
+        # Node in L4 is a special case, so we can assume to work with Local
+        find $_dir -type d -ipath "*${_exec_id}*" -a -ipath "*l${_level}*"
+        ;;
+    checkpoint)
+        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Rank*"
+        ;;
+    partner)
+        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Pcof*" -o -iname '*RSed*'
+        ;;
+    esac
+}
+
+find_fti_objects_special_cases() {
+    # Check the special cases for finding FTI objects in the ckpt file hierarchy
+    #
+    # Parameters:
+    # $1: What to find.
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $2: In which checkpoint level directory to look for.
+    #       values: 1, 2, 3, 4
+    #
+    # Usage details:
+    # - Use this in find functions to avoid duplicating this code
+    # - The code searches for MPIIO and SIONLib L4 files, which are different from other IOs
+    # - This code also returns the parent directory when searching for the nodes in L4 (Global).
+
+    if [ $2 -eq 4 ]; then
+        if [ $1 == 'node' ]; then
+            # Special case for node search in L4, which has no subnodes directory
+            echo "$(get_ckpt_dir '4')"
+            return 0
         else
-            _files="$_files $(find $_where/$i/$_id/l$level | grep "$_what" | head -n 1)"
+            # Special case for ptn/ckpt files when IO is MPIIO or SIONLib
+            local _ckpt_io=$(fti_config_get 'ckpt_io')
+            if [ $_ckpt_io -eq 2 ] || [ $_ckpt_io -eq 4 ]; then
+                # These IOs have only one ckpt file without rank number
+                echo $(find $_dir -iname '*Ckpt*')
+                return 0
+            fi
         fi
-    done
-    echo "$_files"
+    fi
+    return 1
 }
 
 # ----------------------------- ITF Module Body -------------------------------
 
-itf_hook_subscribe 'onTestRunBegin' 'copy_fti_config'
-itf_hook_subscribe 'onTestRunBegin' 'clear_applog_buffer'
-itf_hook_subscribe 'onTestRunEnd' 'remove_ckpt_dir'
-itf_hook_subscribe 'onTestRunEnd' 'clear_applog_buffer'
+itf_hook_subscribe 'onTestRunBegin' 'fti_test_setup'
+itf_hook_subscribe 'onTestRunEnd' 'fti_test_teardown'
 
-copy_fti_config() {
+declare -a fti_cfg_files=()
+
+fti_test_setup() {
     # Copy the FTI configuration file template
 
     cp ${itf_cfg['fti:config_template']} ${itf_cfg['fti:config']}
+
+    # Reset the list of created config files to only one config file
+    fti_cfg_files=(${itf_cfg['fti:config']})
 }
 
-clear_applog_buffer() {
-    # Clears the application log buffer before executing the test
+fti_test_teardown() {
+    # Undo everything that FTI module does to support an FTI test case
 
-    rm -rf ${itf_cfg['fti:app_stdout']}
-}
-
-remove_ckpt_dir() {
     # Removes the checkpoint directory in FTI configuration file
-    if [ ${itf_cfg[fti:keep_ckpt_dir]} == 'true' ]; then
+    if [ ${itf_cfg['fti:keep_ckpt_dir']} == 'false' ]; then
         local ckpt=$(fti_config_get 'ckpt_dir')
         local meta=$(fti_config_get 'meta_dir')
         local glbl=$(fti_config_get 'glbl_dir')
@@ -272,6 +493,11 @@ remove_ckpt_dir() {
         rm -rf $ckpt $meta $glbl
     fi
 
+    # Removes the automatically-generated FTI configuration file
+    rm -rf ${fti_cfg_files[@]}
+
+    # Removes the application log buffer
+    rm -rf ${itf_cfg['fti:app_stdout']}
 }
 
 fti_unload() {
@@ -284,6 +510,13 @@ fti_unload() {
     unset fti_config_set fti_config_set_ckpts fti_config_set_inline
     # FTI run application functions
     unset fti_run fti_run_success
+    # FTI ckpt corruption functions
+    unset find_fti_objects get_ckpt_dir ckpt_disrupt ckpt_disrupt_any
+    unset find_fti_object_special_cases find_fti_objects_all ckpt_disrupt_all
+    unset disrupt_ckpt_obj
+    # FTI assertion extensions
+    unset fti_fail_if_warn_msg fti_fail_if_err_msg
+    unset fti_assert_no_warn_msg fti_assert_no_err_msg
 
     # FTI integration hooks functions
     unset copy_fti_config remove_ckpt_dir clear_applog_buffer

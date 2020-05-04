@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fti.h>
-#include "../../src/deps/iniparser/iniparser.h"
-#include "../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
 
 
 #define ARRAY_SIZE 1024 * 1024
@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     int testCase;
-    if (argc < 5) {
+    if (argc < 4) {
         if (global_world_rank == 0) printf("Argc == %d. Use: configfile, testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
@@ -254,7 +254,8 @@ int main(int argc, char* argv[]) {
         testCase = atoi(argv[2]);
         checkpoint_level = atoi(argv[3]);
         fail = atoi(argv[4]);
-        configfile2 = argv[5];
+        if(argc > 4)
+            configfile2 = argv[5];
         if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, fail = %d\n", testCase, checkpoint_level, fail);
     }
 
