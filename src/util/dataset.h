@@ -37,8 +37,8 @@
  *  @brief  Utility functions for FTIT_dataset.
  */
 
-#ifndef FTI_DATASET_H
-#define FTI_DATASET_H
+#ifndef FTI_DATASET_H_
+#define FTI_DATASET_H_
 
 /**--------------------------------------------------------------------------
   
@@ -59,6 +59,6 @@
  
 
 --------------------------------------------------------------------------**/
-int FTI_InitDataset( FTIT_execution* FTI_Exec, FTIT_dataset* data , int id );
+int FTI_InitDataset(FTIT_execution* FTI_Exec, FTIT_dataset* data , int id);
 
-#endif
+#endif  // FTI_DATASET_H_
