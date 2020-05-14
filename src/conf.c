@@ -259,7 +259,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Exec->reco = (int)iniparser_getint(ini, "restart:failure", 0);
     if ((FTI_Exec->reco == 0) || (FTI_Exec->reco == 3)) {
         time_t tim = time(NULL);
-        struct tm* n = localtime(&tim);
+        // struct tm* n = localtime(&tim);
+        struct tm local_tm;
+        struct tm* n = localtime_r(&tim, &local_tm);
         snprintf(FTI_Exec->id, FTI_BUFS, "%d-%02d-%02d_%02d-%02d-%02d",
                 n->tm_year + 1900, n->tm_mon + 1, n->tm_mday, n->tm_hour,
                  n->tm_min, n->tm_sec);

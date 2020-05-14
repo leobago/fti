@@ -1,5 +1,12 @@
-#ifndef __CONF_H__
-#define __CONF_H__
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   conf.h
+ */
+
+#ifndef FTI_CONF_H_
+#define FTI_CONF_H_
 
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int restart);
@@ -15,4 +22,4 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection *FTI_Inje);
 
-#endif // __CONF_H__
+#endif  // FTI_CONF_H_

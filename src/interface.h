@@ -36,11 +36,10 @@
  *  @brief  Header file for the FTI library private functions.
  */
 
-#ifndef _FTI_INTERFACE_H
-#define _FTI_INTERFACE_H
+#ifndef FTI_INTERFACE_H_
+#define FTI_INTERFACE_H_
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 #include "fti.h"
 
@@ -61,19 +60,19 @@ extern "C"
 #include "IO/ftiff-dcp.h"
 #include "IO/ime.h"
 
-#include "meta.h"
-#include "api-cuda.h"
-#include "postreco.h"
+#include "./meta.h"
+#include "./api-cuda.h"
+#include "./postreco.h"
 #include "util/tools.h"
-#include "dcp.h"
-#include "conf.h"
-#include "checkpoint.h"
-#include "stage.h"
-#include "fti-io.h"
-#include "topo.h"
-#include "postckpt.h"
-#include "recover.h"
-#include "icp.h"
+#include "./dcp.h"
+#include "./conf.h"
+#include "./checkpoint.h"
+#include "./stage.h"
+#include "./fti-io.h"
+#include "./topo.h"
+#include "./postckpt.h"
+#include "./recover.h"
+#include "./icp.h"
 
 #include "deps/md5/md5.h"
 #include "deps/iniparser/iniparser.h"
@@ -82,11 +81,11 @@ extern "C"
 #include "deps/jerasure/include/galois.h"
 #include "deps/jerasure/include/jerasure.h"
 
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+#ifdef ENABLE_SIONLIB  // --> If SIONlib is installed
 #   include <sion.h>
 #endif
 
-#ifdef ENABLE_IME_NATIVE // --> If IME native API is installed
+#ifdef ENABLE_IME_NATIVE  // --> If IME native API is installed
 #   include <ime_native.h>
 #endif
 
@@ -96,4 +95,4 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif  // FTI_INTERFACE_H_
