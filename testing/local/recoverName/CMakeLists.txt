@@ -1,7 +1,7 @@
 enable_testing()
 
 # Install ITF Test Fixtures/Suites
-InstallSuiteITFConvention("recovername" ${test_labels_current} "recovername")
+DeclareITFSuite("recovername.itf" ${test_labels_current} "recovername")
 
 # Install MPI Test Application
 InstallTestApplication("recoverName.exe" "checkRecoverName.c")

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fti.h>
-#include "../../src/deps/iniparser/iniparser.h"
-#include "../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
 
 
 #define ARRAY_SIZE 1024 * 1024
@@ -20,8 +20,10 @@ int global_world_size;
 int checkpoint_level[4];
 int initStatus;
 
+char *configFile;
+
 void simulateCrash() {
-    dictionary* ini = iniparser_load("config.fti");
+    dictionary* ini = iniparser_load(configFile);
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
@@ -61,50 +63,33 @@ void simulateCrash() {
     exit(0);
 }
 
-void initArray(int* tab) {
-    int i;
-    for (i = 0; i < ARRAY_SIZE; i++) {
-        tab[i] = (i + world_rank);
-    }
-}
-
-int checkArray(int* tab) {
-    int i;
-    for (i = 0; i < ARRAY_SIZE; i++) {
-        if (tab[i] != (i + world_rank)) {
-            printf("%d: array[%d] != %d\n", world_rank, tab[i], (i + world_rank));
-            return 1;
-        }
-    }
-    if (world_rank == 0) printf("Array values correct.\n");
-    return 0;
-}
-
 int main (int argc, char** argv) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
-    if (argc != 7) {
-        if (global_world_rank == 0) printf("Argc doesn't equeal 6! (run: ./ckptHierarchy 1stCkpt 2ndCkpt 3rdCkpt 4thCkpt (1/2/3/4) ifCrash ifReco(0/1) \n");
+    int i, crash, reco;
+
+    if (argc != 8) {
+        if (global_world_rank == 0) printf("Argc doesn't equeal 7! (run: ./ckptHierarchy configFile 1stCkpt 2ndCkpt 3rdCkpt 4thCkpt (1/2/3/4) ifCrash ifReco(0/1) \n");
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
     }
-    int i;
-    int crash = atoi(argv[5]);
-    int reco = atoi(argv[6]);
-    for (i = 0; i < argc - 2; i++) {
-        checkpoint_level[i] = atoi(argv[i + 1]);
-    }
+    
+    configFile = argv[1];
+    for (i = 0; i < 4; i++)
+        checkpoint_level[i] = atoi(argv[i+2]); // First number is in [2]
+    crash = atoi(argv[6]);
+    reco = atoi(argv[7]);
 
-    initStatus = FTI_Init("config.fti", MPI_COMM_WORLD);
+    initStatus = FTI_Init(configFile, MPI_COMM_WORLD);
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
 
     array = malloc(sizeof(int) * ARRAY_SIZE);
-    if (reco == 0) {
-        initArray(array);
-    }
+    if (reco == 0)
+        for (i = 0; i < ARRAY_SIZE; i++)
+            array[i] = (i + world_rank);
 
     FTI_Protect(1, FIRST, DATASET_SIZE, FTI_INTG);
     FTI_Protect(2, SECOND, DATASET_SIZE, FTI_INTG);

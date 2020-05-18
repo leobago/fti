@@ -17,6 +17,7 @@ add_subdirectory(recoverName)
 add_subdirectory(diffckpt)
 add_subdirectory(standard)
 add_subdirectory(staging)
+add_subdirectory(cornerCases)
 add_subdirectory(keepL4Ckpt)
 
 if(ENABLE_HDF5)

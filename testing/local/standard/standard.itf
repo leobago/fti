@@ -30,12 +30,13 @@ run_app_first_time() {
     fti_config_set 'head' $head
     fti_config_set 'keep_last_ckpt' $keep
 
-    local crash=0 # we do not crash on keep=1 to test flushing the last checkpoint
+    local cfgfile=${itf_cfg['fti:config']}
+    local crash=0 # Do not crash on keep=1 to test flushing the last checkpoint
     if [ $keep -eq 0 ]; then
         # Simulate a crash when not keeping last checkpoint
         crash=1
     fi
-    fti_run_success $app ${itf_cfg['fti:config']} $crash $level $diffsize $icp $write_dir
+    fti_run_success $app $cfgfile $crash $level $diffsize $icp $write_dir
 }
 
 run_app_second_time() {
@@ -99,8 +100,7 @@ ckpt_disruption() {
     # The target is enconded in 'target' and 'consecutive'.
     # Target can be:
     # - first local 'ckpt' files with 'Rank' prefix;
-    # - first local 'partner' files with 'Pcof' prefix;
-    # - first local 'rs-encoding' files with 'RSed' prefix;
+    # - first local 'partner' files with 'Pcof' or 'RSed' prefix;
     # - everything from the 'global'/l4 folder for that application run;
     # - the whole 'node' folder in the local checkpoint directory.
     #
@@ -116,17 +116,29 @@ ckpt_disruption() {
         '+disrupt' '+target' '+consecutive' '+expected' $@
     run_app_first_time
 
-    # FTI module has the ckpt_erase_last and ckpt_corrupt_last function
-    # The valid $disrupt values are the same, hence the following calls.
     case $consecutive in
     true)
-        ckpt_${disrupt}_last "$target" 'node0' 'node1'
+        if [ $target == 'global' ]; then
+            fail 'Wrong test parameter configuration: disrupting global directory as it was local'
+        elif [ $target == 'node' ]; then
+            ckpt_disrupt $disrupt $target $level 0 1
+        else
+            ckpt_disrupt_any $disrupt $target $level 0 1
+        fi
         ;;
     false)
-        ckpt_${disrupt}_last "$target" 'node0' 'node2'
+        if [ $target == 'global' ]; then
+            fail 'Wrong test parameter configuration: disrupting global directory as it was local'
+        elif [ $target == 'node' ]; then
+            ckpt_disrupt $disrupt $target $level 0 2
+        else
+            ckpt_disrupt_any $disrupt $target $level 0 2
+        fi
         ;;
     *)
-        ckpt_${disrupt}_last "$target"
+        # Our target is Global/l4 directory
+        # We can only erase it as corrupting makes no sense for a directory
+        ckpt_disrupt 'erase' 'node' '4'
         ;;
     esac
 
@@ -134,9 +146,9 @@ ckpt_disruption() {
     local retv=$?
 
     if [ $expected == 'success' ]; then
-        assert_equals $retv 0 'FTI should succeed in the informed scenario'
+        assert_equals $retv 0 'FTI should be able to recover'
     else
-        assert_not_equals $retv 0 'FTI should fail in the informed scenario'
+        assert_not_equals $retv 0 'FTI should not be able to recover'
     fi
 }
 
@@ -213,7 +225,7 @@ keep=0
 # -------- FTI ckpt_disrupt where **keep_last_ckpt=0** and **level=1** --------
 
 level=1
-target='ckpt'       # Files are in the local folder after crash
+target='checkpoint'       # Files are in the local folder after crash
 consecutive='false' # Disrupt checkpoints from non-consecutive nodes.
 expected='fail'     # FTI should NOT recover from this scenario.
 
@@ -231,16 +243,13 @@ for level in 2 3; do
     expected='success'  # FTI should recover from this scenario.
 
     # Register checks for the local checkpoint rank disruption
-    target='ckpt'
+    target='checkpoint'
     for disrupt in 'erase' 'corrupt'; do
         register_disrupt_checks
     done
 
     # Register checks for the checkpoint file according to the level
     target='partner'
-    if [ $level -eq 3 ]; then
-        target='rs-encoding'
-    fi
     for disrupt in 'erase' 'corrupt'; do
         register_disrupt_checks
     done

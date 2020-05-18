@@ -1,0 +1,362 @@
+#!/bin/bash
+
+itf_load_module 'fti'
+
+# --------------------- General Setup/Teardown Functions ----------------------
+
+common_setups=(H0I1 H1I1 H1I0)
+
+setup() {
+    # Common setup for all corner case checks
+
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set_ckpts '1' '2' '3' '4'
+}
+
+itf_suite_unload 'unload_corner_cases'
+
+unload_corner_cases() {
+    # Remove all non-setup, teardown and test names after executing the suite
+
+    unset set_configfile_to_preset
+    unset common_setups
+}
+
+# ----------------------------- Utility Functions -----------------------------
+
+set_configfile_to_preset() {
+    # Change the config file, after the setup, to one of the common presets
+    #
+    # Arguments:
+    # $1: Preset name, one of the presets for this suite
+    #       values: [ H1I0, H1I1 ]
+
+    case $1 in
+    H1I0 | h1i0)
+        fti_config_set 'head' '1'
+        fti_config_set_noinline
+        ;;
+    H1I1 | h1i1)
+        fti_config_set 'head' '1'
+        fti_config_set_inline
+        ;;
+    esac
+}
+
+# -------------------------- Consistency Scenario 1 ---------------------------
+
+ckpt_consistency() {
+    # Brief:
+    # Consistency of the ckpt-files after successful recovery
+    #
+    # Details:
+    # We claim to have the same state as after the successful checkpoint.
+    # We need to proof this by performing the following actions:
+    #
+    # 1. init fti
+    # 2. perform checkpoint
+    # 3. simulate crash
+    # 4. delete all partner/encoded files
+    # 5. restart
+    # 6. after successful restart, simulate crash again
+    # 7. delete all checkpoint files
+    # 8. restart and check if restart successful
+
+    param_parse '+config' '+level' $@
+
+    # Default fti config preset (H0I1) is already covered in setup
+    set_configfile_to_preset $config
+
+    # Set up local constants
+    local case_id=1
+    local cfgfile="${itf_cfg['fti:config']}"
+    local app="$(dirname ${BASH_SOURCE[0]})/consistency.exe"
+
+    # Set up local variables
+    local has_partners='false'
+    local run_id=0
+
+    if [ $level -eq 2 ] || [ $level -eq 3 ]; then
+        has_partners='true'
+    fi
+
+    for run_id in 0 1 2; do
+        fti_run_success $app $cfgfile $case_id $level $run_id
+
+        case $run_id in
+        0)
+            fti_fail_if_err_msg
+            if [ $has_partners == 'true' ]; then
+                ckpt_disrupt_all 'erase' 'partner' $level
+            fi
+            ;;
+        1)
+            fti_fail_if_err_msg
+            ckpt_disrupt_all 'erase' 'checkpoint' $level
+            ;;
+        2)
+            if [ $has_partners == 'true' ]; then
+                # Cannot have error messages if parter checkpoint files exist
+                fti_fail_if_err_msg
+            fi
+            ;;
+        esac
+    done
+    pass
+}
+
+# Inform the fixture methods used in scenario 1
+itf_setup 'ckpt_consistency' 'setup'
+
+# Register all test cases for scenario 1
+for config in ${common_setups[@]}; do
+    for level in ${fti_levels[@]}; do
+        itf_case 'ckpt_consistency' "--level=$level" "--config=$config"
+    done
+done
+
+unset config level
+
+# -------------------------- Consistency Scenario 2 ---------------------------
+
+keep_last_consistency() {
+    # Brief:
+    # Assure the consistency of checkpoint files when keep_last_ckpt is true
+    #
+    # Details:
+    # Same as scenario 1, after the restart, we claim to have the same state
+    #
+    # 1. init fti
+    # 2. perform checkpoint
+    # 3. finalize
+    # 4. restart
+    # 5. after successful restart, simulate crash
+    # 6. restart and check if restart successful
+
+    param_parse '+config' '+level' $@
+
+    # Default fti config case (H0I1) is already covered in setup
+    set_configfile_to_preset $config
+
+    # Set up local constants
+    local case_id=2
+    local cfgfile="${itf_cfg['fti:config']}"
+    local run_id=0
+    local app="$(dirname ${BASH_SOURCE[0]})/consistency.exe"
+
+    for run_id in 0 1 2; do
+        fti_run_success $app $cfgfile $case_id $level $run_id
+        fti_fail_if_err_msg
+    done
+    pass
+}
+
+# Inform the fixture methods used in scenario 2
+itf_setup 'keep_last_consistency' 'setup'
+
+# Register all test cases for scenario 2
+for config in ${common_setups[@]}; do
+    for level in ${fti_levels[@]}; do
+        itf_case 'keep_last_consistency' "--level=$level" "--config=$config"
+    done
+done
+
+unset config level
+
+# ------------------------- Consistency Scenarios 3/4 -------------------------
+
+# Test FTI behavior when FTI_Init is called twice in the same application run.
+# There are two individual test cases that must be tested this way.
+# Both checks are encoded in the consistency application.
+# They are identified by case id numbers 3 and 4.
+#
+# Corner Case number 3: Independent Segments
+# Combine two different problems (segments) in one code (application/run).
+# Init FTI for the first segument and finalize at the end of its execution.
+# Then, in the same application run, init FTI for the second segment.
+# Execute the second segment/problem and finalize FTI after its execution.
+# Check if FTI worked properly for both application segments.
+# FTI should exit with 0 and have no errors or warnings messages.
+#
+# Corner Case number 4: Live restart
+# Checks if FTI can restart without the crash of the application.
+# Program flow is the following:
+# 1) Init FTI; 2) Perform checkpoint; 3) Init FTI; 4) Finalize FTI
+
+setup_double_fti_init() {
+    # Duplicate the FTI configuration file for using it in another app segment
+
+    setup
+    cfg_copy='/tmp/fti2.cfg'
+    fti_config_dupe "$cfg_copy"
+}
+
+double_fti_init() {
+    # Brief:
+    # Run the consistency test application for scenarios 3 and 4.
+    #
+    # Details:
+    # Both scenarios require only the application to run once.
+    # Plus, they initialize FTI twice for different reasons.
+
+    local run_id=0
+    local cfg_original="${itf_cfg['fti:config']}"
+    local app="$(dirname ${BASH_SOURCE[0]})/consistency.exe"
+
+    param_parse '+level' '+case_id' $@
+
+    # Run the application until completion
+    fti_run_success $app $cfg_original $case_id $level $run_id $cfg_copy
+
+    fti_fail_if_warn_msg
+    fti_assert_no_err_msg
+}
+
+teardown_double_fti_init() {
+    # Remove the additional variables related to the extra FTI config file
+
+    rm -rf $cfg_copy
+    unset cfg_copy
+}
+
+# Register fixture for double FTI init scenarios
+itf_fixture 'double_fti_init' 'setup_double_fti_init' 'teardown_double_fti_init'
+
+# Register test cases for double FTI init scenarios
+for case_id in 3 4; do
+    for level in ${fti_levels[@]}; do
+        itf_case 'double_fti_init' "--level=$level" "--case_id=$case_id"
+    done
+done
+
+# Clean up after registering
+unset level case_id
+
+# ---------------------- Checkpoint Hierarchy scenario 1-3 ----------------------
+
+subsequent_checkpoints() {
+    # Brief:
+    # Tests the behavior of FTI when checkpoints are taken in sequence.
+    #
+    # Details:
+    # Make the checks with different configuration file 'config' setups.
+    #
+    # Scenario 1: When checkpoint 'order' is 'secure-first'
+    # Asserts that older but more secure checkpoint files are kept.
+    #
+    # Scenario 2: When checkpoint 'order' is 'local-first'
+    # Asserts that older and less secure checkpoint files are erased.
+    #
+    # Scenario 3: When checkpoint 'order' is all of the same level
+    # In this scenario, we check that all levels are deleted after a success.
+    # Only the global directory should contain the checkpoint files.
+
+    param_parse '+config' '+order' $@
+
+    # Default fti config case (H0I1) is already covered in setup
+    set_configfile_to_preset $config
+
+    local app="$(dirname ${BASH_SOURCE[0]})/ckptHierarchy.exe"
+    local cfgfile="${itf_cfg['fti:config']}"
+    local expected_ckpt_count=0
+
+    case $order in
+    secure-first)
+        # Goes from the most secure ckpt, 4, all the way to the least secure, 1.
+        # Then, simulate a crash at the end.
+        # We expect that all checkpoints will remain as they are more recent.
+        fti_run $app $cfgfile 4 3 2 1 1 0
+        expected_ckpt_count=${itf_cfg['fti:nranks']}
+        ;;
+    local-first)
+        # Goes from the least secure ckpt, 1, all the way to the more secure, 4.
+        # Then, simulate a crash at the end.
+        # We expect that all checkpoints will be deleted as they are older.
+        fti_run $app $cfgfile 1 2 3 4 1 0
+        expected_ckpt_count=0
+        ;;
+    all-l*)
+        # Repeatedly call checkpoint for the same level.
+        # Then, finalize the application correctly and keep the last checkpoint.
+        # We expect that only the global copies of the files remain.
+        local _level=${order##*-l}
+        fti_run $app $cfgfile $_level $_level $_level $_level 0 0
+        expected_ckpt_count=0
+        ;;
+    *)
+        fail "Unrecognized order parameter value: $order"
+        ;;
+    esac
+
+    for level in 1 2 3; do
+        local nfiles=($(find_fti_objects_all 'checkpoint' $level))
+        check_equals $expected_ckpt_count ${#nfiles[@]}
+    done
+    pass
+}
+
+# Inform the fixture methods used for checkpoint hierarchy scenarios 1-3
+itf_setup 'subsequent_checkpoints' 'setup'
+
+# Register all test cases for checkpoint hierarchy scenarios 1-3
+for config in ${common_setups[@]}; do
+    for order in 'secure-first' 'local-first' 'all-l1' 'all-l2' 'all-l3'; do
+        itf_case 'subsequent_checkpoints' "--config=$config" "--order=$order"
+    done
+done
+unset config order
+
+# ---------------------- Checkpoint Hierarchy scenario 4 ----------------------
+
+subsequent_ckpts_restart() {
+    # Brief:
+    # After several checkpoints, FTI should recover from the most recent
+    #
+    # Details:
+    # Performs checkpoins in descending security order.
+    # Then, corrupt the most recent checkpoint files.
+    # Assert that the older ones are available and used for the recovery.
+
+    param_parse '+config' '+level' $@
+
+    # Default fti config case (H0I1) is already covered in setup
+    set_configfile_to_preset $config
+
+    local app="$(dirname ${BASH_SOURCE[0]})/ckptHierarchy.exe"
+    local cfgfile="${itf_cfg['fti:config']}"
+    local recovery_level=2
+
+    # Simulate a crash taking checkpoints on level 4, 3, 2, 1
+    fti_run $app $cfgfile 4 3 2 1 1 0
+
+    # Erase all checkpoints from level 1
+    ckpt_disrupt_all 'erase' 'checkpoint' '1'
+    if [ $level -gt 1 ]; then
+        # Erase all partner and checkpoint files from level 2
+        ckpt_disrupt_all 'erase' 'checkpoint' '2'
+        ckpt_disrupt_all 'erase' 'partner' '2'
+        recovery_level=3
+    fi
+    if [ $level -gt 2 ]; then
+        # Erase all RS-encoding and checkpoint files from level 3
+        ckpt_disrupt_all 'erase' 'checkpoint' '3'
+        ckpt_disrupt_all 'erase' 'partner' '3'
+        recovery_level=4
+    fi
+
+    # Simulate an application trying to recover from the previous crash
+    fti_run $app $cfgfile 1 1 1 1 0 1
+    grep -q "Recovering successfully from level ${recovery_level}" ${itf_cfg['fti:app_stdout']}
+    assert_equals 0 $? "Recovery was not performed from expected level ${recovery_level}"
+}
+
+# Inform the fixture methods used for checkpoint hierarchy scenarios 1-3
+itf_setup 'subsequent_ckpts_restart' 'setup'
+
+# Register all test cases for checkpoint hierarchy scenarios 1-3
+for config in ${common_setups[@]}; do
+    for level in '1' '2' '3'; do
+        itf_case 'subsequent_ckpts_restart' "--config=$config" "--level=$level"
+    done
+done
+unset config level

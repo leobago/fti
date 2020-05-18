@@ -47,7 +47,7 @@ suite_begin() {
     print_color $COLOR_WHITEBOLD " with "
     print_color $COLOR_YELLOWBOLD "${itf_state['ntests']}"
     print_color $COLOR_WHITEBOLD " tests.\n"
-    
+
     let driver_state['nsuites']=${driver_state['nsuites']}+1
 }
 
@@ -63,7 +63,7 @@ suite_end() {
     print_color $COLOR_WHITEBOLD "\n### Suite summary ###"
     print_color $COLOR_WHITEBOLD "\nExecuted: ${itf_state[ntests]}"
     print_color $COLOR_GREENBOLD "\nPassed:   ${itf_state[passed]}"
-    print_color $COLOR_REDBOLD   "\nFailed:   ${itf_state[failed]}\n"
+    print_color $COLOR_REDBOLD "\nFailed:   ${itf_state[failed]}\n"
 }
 
 test_load() {
@@ -81,9 +81,9 @@ test_load() {
 test_case() {
     print_color $COLOR_WHITEBOLD "+ Test "
     print_color $COLOR_MAGENTABOLD "${itf_state[suite_name]}"
-    print_color $COLOR_WHITEBOLD "::${driver_state['test_name']} "
+    print_color $COLOR_WHITEBOLD ":${driver_state['test_name']} "
     print_color $COLOR_WHITEBOLD "(${driver_state['test_id']}/${driver_state['test_max']}) "
-    
+
     for param in ${@:2}; do
 
         local name=${param%=*}
@@ -181,17 +181,37 @@ while [[ $# -gt 0 ]]; do
         ;;
     --ignore | -i)
         # Ignores a test function with the given name, can be passed multiple times
-        itf_list_add 'itf_filter' 'ignore' "$2"
+        if [ ! -z ${itf_filter['whitelist']} ]; then
+            echo "Cannot use both --ignore and --pick test case filters"
+            exit 1
+        fi
+        itf_list_add 'itf_filter' 'blacklist' "$2"
+        shift
+        shift
+        ;;
+    --pick | -p)
+        # Only execte test functions with the given name, can be passed multiple times
+        if [ ! -z ${itf_filter['blacklist']} ]; then
+            echo "Cannot use both --ignore and --pick test case filters"
+            exit 1
+        fi
+        itf_list_add 'itf_filter' 'whitelist' "$2"
         shift
         shift
         ;;
     --filter | -f)
         # Filters test cases from a test function in a suite by its parameters
-        # TODO:
         # Format: suite:test:param=v1,v2,v3
-        # Expected: ITF ignores the cases of 'test', in 'suite', where 'param' is v1, v2 or v3
-        itf_list_add 'itf_filter' "${2%=*}" "${2#*=}"
+        # Behavior: ITF ignores cases of 'test' function, in 'suite', where 'param' is v1, v2 or v3
+        declare -l filter="$(echo $2 | tr '[:upper:]' '[:lower:]')"
+        itf_list_add 'itf_filter' "${filter%=*}" "${filter#*=}"
         shift
+        shift
+        ;;
+    --revfilter)
+        # Make the parameter filter include tests on a match instead of excluding on a match
+        # Use this when looking to executing a subset of tests which you know the parameter to execute
+        itf_filter['excludemode']='false'
         shift
         ;;
     --all-logs)
@@ -236,7 +256,7 @@ elif [ ${#arguments[@]} -gt 1 ]; then
     print_color $COLOR_WHITEBOLD "\nSuites:   ${driver_state['nsuites']}"
     print_color $COLOR_WHITEBOLD "\nTests:    ${summary[ntests]}"
     print_color $COLOR_GREENBOLD "\nPassed:   ${summary[passed]}"
-    print_color $COLOR_REDBOLD   "\nFailed:   ${summary[failed]}\n"
+    print_color $COLOR_REDBOLD "\nFailed:   ${summary[failed]}\n"
 fi
 
 if [ ${summary[failed]} -ne 0 ] || [ ${summary[ntests]} -eq 0 ]; then

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fti.h>
-#include "../../src/deps/iniparser/iniparser.h"
-#include "../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
 
 
 #define ARRAY_SIZE 1024 * 1024
@@ -11,6 +11,8 @@
 #define SECOND (array + DATASET_SIZE)
 #define THIRD (array + DATASET_SIZE*2)
 #define FOURTH (array + DATASET_SIZE*3)
+
+char *configfile, *configfile2;
 
 int* array;
 int world_rank;
@@ -23,7 +25,7 @@ int initStatus;
 
 void simulateCrash() {
     MPI_Barrier(FTI_COMM_WORLD);
-    dictionary* ini = iniparser_load("config.fti");
+    dictionary* ini = iniparser_load(configfile);
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
@@ -71,7 +73,7 @@ void simulateCrash() {
 
 void simulateCrashWithoutCkpt() {
     MPI_Barrier(FTI_COMM_WORLD);
-    dictionary* ini = iniparser_load("config.fti");
+    dictionary* ini = iniparser_load(configfile);
     int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
@@ -218,7 +220,7 @@ int initReInit() {
 
 /* check for a correct restart without the crash of the application. */
 int reInit() {
-        int initres = FTI_Init("config2.fti", MPI_COMM_WORLD);
+        int initres = FTI_Init(configfile2, MPI_COMM_WORLD);
         int* array2 = malloc(sizeof(int)* ARRAY_SIZE);
         
         initArray(array2);
@@ -243,18 +245,21 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     int testCase;
-    if (argc != 4) {
-        if (global_world_rank == 0) printf("Argc == %d. Use: testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
+    if (argc < 4) {
+        if (global_world_rank == 0) printf("Argc == %d. Use: configfile, testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
     } else {
-        testCase = atoi(argv[1]);
-        checkpoint_level = atoi(argv[2]);
-        fail = atoi(argv[3]);
+        configfile = argv[1];
+        testCase = atoi(argv[2]);
+        checkpoint_level = atoi(argv[3]);
+        fail = atoi(argv[4]);
+        if(argc > 4)
+            configfile2 = argv[5];
         if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, fail = %d\n", testCase, checkpoint_level, fail);
     }
 
-    initStatus = FTI_Init("config.fti", MPI_COMM_WORLD);
+    initStatus = FTI_Init(configfile, MPI_COMM_WORLD);
 
     //check initStatus
     if (testCase == 1) {
@@ -284,7 +289,7 @@ int main(int argc, char* argv[]) {
     } else if (testCase == 3) {
         rtn += initReInit();
     } else if (testCase == 4) {
-        rtn += FTI_Init("config.fti", MPI_COMM_WORLD);
+        rtn += FTI_Init(configfile, MPI_COMM_WORLD);
     }
 
     rtn += checkArray(array);

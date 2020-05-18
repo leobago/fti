@@ -1,7 +1,7 @@
 enable_testing()
 
 # Install ITF Test Fixtures/Suites
-InstallSuiteITFConvention("recovervar" ${test_labels_current} "recovervar")
+DeclareITFSuite("recovervar.itf" ${test_labels_current} "recovervar")
 
 # Install MPI Test Application
 InstallTestApplication("recoverVar.exe" "checkRecoverVar.c")
