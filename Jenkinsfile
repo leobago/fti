@@ -1059,7 +1059,7 @@ def cmakesteps(list) {
   for (int i = 0; i < list.size(); i++) {
     env.CMAKE = "/opt/cmake/${list[i]}/bin/cmake"
     sh '''
-      mkdir build; cd build
+      rm -rf build; mkdir -p build; cd build
       $CMAKE --version
       $CMAKE -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE ..
       make -j 16 all install
@@ -1117,7 +1117,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             . $ICCPATH/compilervars.sh intel64
             . $MPICCPATH/mpivars.sh
             CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
@@ -1141,7 +1141,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             . $ICCPATH/compilervars.sh intel64
             . $MPICCPATH/mpivars.sh
             CFLAGS=$CFLAGS_FIX cmake -C ../CMakeScripts/intel.cmake cmake -DHDF5_ROOT=/opt/HDF5/1.10.4 -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
@@ -1170,7 +1170,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
@@ -1186,7 +1186,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
@@ -1202,7 +1202,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             export OMPI_MPICC=clang
             export OMPI_CXX=clang++
             CC=clang FC=gfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
@@ -1220,7 +1220,7 @@ stages {
         }
         steps {
           sh '''
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             export OMPI_MPICC=clang
             export OMPI_CXX=clang++
             CC=clang FC=gfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DENABLE_HDF5=ON ..
@@ -1247,7 +1247,7 @@ stages {
             export PATH=$PGICC:$PGIMPICC:$PATH
             echo $PATH
             ls /opt/pgi/
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DHDF5_ROOT=/opt/HDF5/1.10.4 -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
@@ -1272,7 +1272,7 @@ stages {
             export PATH=$PGICC:$PGIMPICC:$PATH
             echo $PATH
             ls /opt/pgi/
-            mkdir build; cd build
+            rm -rf build; mkdir -p build; cd build
             CC=pgcc FC=pgfortran cmake -DCMAKE_INSTALL_PREFIX=`pwd`/RELEASE -DHDF5_ROOT=/opt/HDF5/1.10.4 -DENABLE_HDF5=ON ..
             make -j 16 all install
           '''
