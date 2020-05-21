@@ -2,6 +2,7 @@
 
 # Associative array for itf configurations
 declare -A itf_cfg=()
+
 itf_cfg['core:module_path']=''                       # The path to find the ITF modules (should be set by apps)
 itf_cfg['core:assert_msg_buf']='/tmp/itf_assert.out' # Assertion message buffer
 
@@ -39,7 +40,7 @@ itf_hook_subscribe 'onSuiteEnd' 'itf_unload_suite_modules'
 itf_unload_suite_modules() {
     # Unload all modules loaded into the suite using itf_load_module
 
-    declare -la modules=()
+    local modules=()
     itf_list_unwrap 'itf_state' 'modules' 'modules'
     for mod in ${modules[@]}; do
         ${mod}_unload

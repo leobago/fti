@@ -59,7 +59,7 @@ itf_hook_publish() {
         echo '[ITF] Cannot notify an empty hook' && exit 1
     fi
 
-    declare -la hooks=()
+    local hooks=()
     itf_list_unwrap '_itf_hooks' "$1" 'hooks'
     for h in ${hooks[@]}; do
         $h ${@:2}

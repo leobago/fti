@@ -203,8 +203,7 @@ while [[ $# -gt 0 ]]; do
         # Filters test cases from a test function in a suite by its parameters
         # Format: suite:test:param=v1,v2,v3
         # Behavior: ITF ignores cases of 'test' function, in 'suite', where 'param' is v1, v2 or v3
-        declare -l filter="$(echo $2 | tr '[:upper:]' '[:lower:]')"
-        itf_list_add 'itf_filter' "${filter%=*}" "${filter#*=}"
+        itf_list_add 'itf_filter' "${2%=*}" "${2#*=}"
         shift
         shift
         ;;

@@ -1,5 +1,4 @@
-add_executable(addInArray addInArray.c)
-target_link_libraries(addInArray fti.static)
+enable_testing()
 
 add_executable(diffSizes diffSizes.c)
 target_link_libraries(diffSizes fti.static)
@@ -15,12 +14,6 @@ if(ENABLE_HDF5)
     target_link_libraries(hdf5CreateBasePattern ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
     file(COPY hdf5Test.sh DESTINATION .)
 endif()
-
-add_executable(heatdis heatdis.c)
-target_link_libraries(heatdis fti.static)
-
-add_executable(nodeFlag nodeFlag.c)
-target_link_libraries(nodeFlag fti.static)
 
 add_executable(syncIntv syncIntv.c)
 target_link_libraries(syncIntv fti.static)
@@ -86,3 +79,4 @@ endfunction()
 # -------------------- Inclusion of ITF Test subdirectories -------------------
 
 add_subdirectory(local)
+add_subdirectory(integration)

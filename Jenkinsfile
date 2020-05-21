@@ -31,13 +31,13 @@ def executeSteps_one( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH0I1.fti LEVEL=1 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=1 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=1 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -80,20 +80,20 @@ def executeSteps_one( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH1I0.fti LEVEL=1 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=1 ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=1 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=1 ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=1 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -213,13 +213,13 @@ def executeSteps_one( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH0I1.fti LEVEL=2 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=2 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=2 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -458,20 +458,20 @@ def executeSteps_one( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH1I0.fti LEVEL=2 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=2 ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=2 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=2 ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=2 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -596,13 +596,13 @@ def executeSteps_two( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH0I1.fti LEVEL=3 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=3 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=3 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -841,20 +841,20 @@ def executeSteps_two( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH1I0.fti LEVEL=3 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=3 ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=3 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=3 ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=3 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -925,13 +925,13 @@ def executeSteps_two( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH0I1.fti LEVEL=4 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=4 ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH0I1.fti LEVEL=4 ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH
@@ -974,62 +974,62 @@ def executeSteps_two( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH1I0.fti LEVEL=4 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=4 ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=4 ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=heatdis CONFIG=configH0I1.fti ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=heatdis CONFIG=configH1I1.fti ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=heatdis CONFIG=configH1I0.fti ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=nodeFlag CONFIG=configH0I1.fti ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=nodeFlag CONFIG=configH1I1.fti ./testing/tests.sh
-      '''
-  }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=nodeFlag CONFIG=configH1I0.fti ./testing/tests.sh
-      '''
-  }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I1.fti LEVEL=4 ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=addInArray CONFIG=configH1I0.fti LEVEL=4 ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=heatdis CONFIG=configH0I1.fti ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=heatdis CONFIG=configH1I1.fti ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=heatdis CONFIG=configH1I0.fti ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=nodeFlag CONFIG=configH0I1.fti ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=nodeFlag CONFIG=configH1I1.fti ./testing/tests.sh
+  //     '''
+  // }
+  // catchError {
+  //   sh '''
+  //     export PATH=$PATHA:$PATHB:$PATH
+  //     echo $PATH
+  //     cd build; TEST=nodeFlag CONFIG=configH1I0.fti ./testing/tests.sh
+  //     '''
+  // }
   catchError {
     sh '''
       export PATH=$PATHA:$PATHB:$PATH

@@ -207,14 +207,14 @@ startTest () { #$1 - test name $2 - config name; $3 - number of processes; $4 - 
 	printRun $1 $2 $4
 	cp configs/$2 config.fti
 	changeIO config.fti $5
-	mpirun $MPI_ARGS -n $3 ./$1 config.fti $4 1 &> logFile1
+	mpirun $MPI_ARGS -n $3 appIntegration/$1.exe config.fti $4 1 | tee -a logFile1
 	rtn=$?
 	if [ $rtn != 0 ]; then
 		cat logFile1
 		exit $rtn
 	fi
 	printResume $1 $2 $4
-	mpirun $MPI_ARGS -n $3 ./$1 config.fti $4 0 &> logFile2
+	mpirun $MPI_ARGS -n $3 appIntegration/$1.exe config.fti $4 0 | tee -a logFile2
 	rtn=$?
 	if [ $rtn != 0 ]; then
 		cat logFile2
@@ -259,7 +259,7 @@ runAllConfiguration() {
 	fi
 }
 
-cd "${DIR}testing"
+#cd "${DIR}testing"
 #--------Pattern: startTest testName configFile procNo args(ex. checkpoint levels)-------
 #----------------------------------------------------------------------------------------
 #-------------------------------- Write tests here --------------------------------------

@@ -37,7 +37,6 @@ param_parse() {
     # - All bash variables created with this function are unset after teardown.
 
     local arguments=()
-
     # Parse all the parameters and sift them in 'required' or 'argument'
     while [ $# -gt 0 ]; do
         case $1 in
@@ -72,7 +71,6 @@ param_parse() {
         if [ $is_expected -ne 1 ]; then
             fail "Unexpected argument: $name"
         fi
-
         eval $name=$val        # Evaluate twice the expression
     done
 
@@ -107,9 +105,9 @@ param_value() {
     # Details:
     # Receives a string in the form: "--name=val" and outputs the 'value' part
 
-    local value=${1#--} # Remove the leading --
-    value=${value#*=} # Remove the leading *=
-    echo $value
+    local __value=${1#--} # Remove the leading --
+    __value=${__value#*=} # Remove the leading *=
+    echo $__value
 }
 
 # ------------------------------ ITF Module Body ------------------------------

@@ -1,5 +1,3 @@
-enable_testing()
-
 if (ENABLE_GPU)
   add_subdirectory(dCPGPU)
   if(ENABLE_HDF5)

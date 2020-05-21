@@ -125,10 +125,9 @@ itf_case() {
     # Check if any argument assumes a value that should be ignored
     local k_prefix="${itf_state['suite_name']}:$1:"
     for arg in ${@:2}; do
-        declare -l name=$(param_name $arg)
-        declare -l value=$(param_value $arg)
-        declare -l key=${k_prefix}${name}
-
+        local name=$(param_name $arg)
+        local value=$(param_value $arg)
+        local key=${k_prefix}${name}
         # List is empty, check next argument
         if [ -z "${itf_filter[$key]}" ]; then
             continue
@@ -231,7 +230,7 @@ itf_run_suite() {
     for atest in ${!_itf_cases[@]}; do
 
         # Get an array of test cases associated with this test function name
-        declare -la tcases=()
+        local tcases=()
         itf_list_unwrap '_itf_cases' "$atest" 'tcases'
         itf_hook_publish 'onTestLoad' $atest
 
