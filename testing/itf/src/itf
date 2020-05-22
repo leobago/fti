@@ -41,6 +41,8 @@ itf_unload_suite_modules() {
     # Unload all modules loaded into the suite using itf_load_module
 
     local modules=()
+    local mod=''
+
     itf_list_unwrap 'itf_state' 'modules' 'modules'
     for mod in ${modules[@]}; do
         ${mod}_unload

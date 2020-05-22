@@ -3,7 +3,7 @@
 # ------------------------- FTI Module Configuration --------------------------
 
 # The number of ranks used for the mpirun command
-itf_cfg['fti:nranks']=16
+itf_cfg['fti:nranks']=16 # This is always set back to 16 everytime it is loaded
 # If FTI module messages should be sent to the terminal
 itf_set_if_undef 'fti:verbose' 'true'
 # If FTI module messages should be sent to ITF logs
@@ -522,8 +522,6 @@ fti_unload() {
     unset copy_fti_config remove_ckpt_dir clear_applog_buffer
 
     # Unsubscribe from ITF event hooks
-    itf_hook_unsubscribe 'onTestRunBegin' 'copy_fti_config'
-    itf_hook_unsubscribe 'onTestRunBegin' 'clear_applog_buffer'
-    itf_hook_unsubscribe 'onTestRunEnd' 'remove_ckpt_dir'
-    itf_hook_unsubscribe 'onTestRunEnd' 'clear_applog_buffer'
+    itf_hook_unsubscribe 'onTestRunBegin' 'fti_test_setup'
+    itf_hook_unsubscribe 'onTestRunEnd' 'fti_test_teardown'
 }

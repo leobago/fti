@@ -180,7 +180,9 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --ignore | -i)
-        # Ignores a test function with the given name, can be passed multiple times
+        # Ignores functions with the given name in a given suite
+        # Syntax is suite_name:function_name
+        # Example: -i dCP:standard will ignore the standard function in dCP
         if [ ! -z ${itf_filter['whitelist']} ]; then
             echo "Cannot use both --ignore and --pick test case filters"
             exit 1
@@ -190,7 +192,9 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --pick | -p)
-        # Only execte test functions with the given name, can be passed multiple times
+        # Only execte functions with the given name in a given suite
+        # Syntax is suite_name:function_name
+        # Example: --pick dCP:standard will run the standard function in dCP
         if [ ! -z ${itf_filter['blacklist']} ]; then
             echo "Cannot use both --ignore and --pick test case filters"
             exit 1
@@ -200,17 +204,20 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --filter | -f)
-        # Filters test cases from a test function in a suite by its parameters
+        # Filters out test cases from a test function in a suite by its parameters
         # Format: suite:test:param=v1,v2,v3
         # Behavior: ITF ignores cases of 'test' function, in 'suite', where 'param' is v1, v2 or v3
-        itf_list_add 'itf_filter' "${2%=*}" "${2#*=}"
+        itf_list_add 'itf_filter' "exclude:${2%=*}" "${2#*=}"
         shift
         shift
         ;;
-    --revfilter)
-        # Make the parameter filter include tests on a match instead of excluding on a match
-        # Use this when looking to executing a subset of tests which you know the parameter to execute
-        itf_filter['excludemode']='false'
+    --revfilter | -r)
+        # Only run test cases from a test function in a suite by its parameters
+        # Format: suite:test:param=v1,v2,v3
+        # Behavior: ITF run only cases of 'test' function, in 'suite', where 'param' is v1, v2 or v3
+        # Details: revfilter is processed before filter
+        itf_list_add 'itf_filter' "include:${2%=*}" "${2#*=}"
+        shift
         shift
         ;;
     --all-logs)
