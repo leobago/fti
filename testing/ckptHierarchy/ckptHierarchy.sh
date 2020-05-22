@@ -36,7 +36,7 @@ for config in ${configs[@]}; do
 				fi
 				for group in ${groups[@]}; do
 					rank=$(grep -A 1 "\[${node}\]" ./Meta/${exec_id}/l4/sector${sector}-group${group}.fti | grep -o 'Rank[0-9]\+' | tail -n 1 | cut -c 5-)
-					lv=$(echo 5 - $level | bc)
+					lv=$((5-$level))
 					ls -l ./Local/node${node}/${exec_id}/l${level}/Ckpt${lv}-Rank${rank}.fti > /dev/null
 					if [ $? != 0 ]; then
 						printFailure 4.1.1.1 $config
