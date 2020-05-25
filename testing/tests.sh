@@ -275,12 +275,6 @@ runAllConfiguration() {
 			else
 				startTestLogVerify diffSizes "$CONFIG" 16 "$LEVEL" 0 "$CKPT_IO"
 			fi
-		elif [ "$TEST" = "syncIntv" ]; then
-			printRun $TEST "$CONFIG"
-			./syncIntvTest.sh "$CONFIG" 16 "$CKPT_IO"
-			if [ $? -eq 0 ]; then
-				printSuccess $TEST "$CONFIG"
-			fi
 		elif [ "$TEST" = "hdf5" ]; then
 			./hdf5Test.sh
 			if [ $? -eq 0 ]; then

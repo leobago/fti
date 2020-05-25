@@ -1,4 +1,11 @@
 #!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   integration.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Karol Sierocinski (ksiero@man.poznan.pl) (First implementation)
+#   @date   May, 2020
 
 itf_load_module 'fti'
 

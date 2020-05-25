@@ -15,9 +15,6 @@ if(ENABLE_HDF5)
     file(COPY hdf5Test.sh DESTINATION .)
 endif()
 
-add_executable(syncIntv syncIntv.c)
-target_link_libraries(syncIntv fti.static)
-
 if (ENABLE_GPU)
   add_subdirectory(cuda)
 endif()
@@ -26,7 +23,6 @@ file(COPY configs DESTINATION .)
 file(COPY patterns DESTINATION .)
 file(COPY README.txt DESTINATION .)
 file(COPY tests.sh DESTINATION .)
-file(COPY syncIntvTest.sh DESTINATION .)
 
 # ------------------------ Install-Time Test Variables -----------------------
 
@@ -80,3 +76,4 @@ endfunction()
 
 add_subdirectory(local)
 add_subdirectory(integration)
+add_subdirectory(syncintv)

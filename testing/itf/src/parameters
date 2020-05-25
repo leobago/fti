@@ -1,4 +1,10 @@
 #!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   parameters
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
 
 # --------------------- ITF Parameter parsing Public API ----------------------
 

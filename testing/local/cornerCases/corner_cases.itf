@@ -1,4 +1,11 @@
 #!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   corner_cases.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Kai Keller (kellekai@gmx.de) (First implementation)
+#   @date   May, 2020
 
 itf_load_module 'fti'
 

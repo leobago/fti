@@ -1,4 +1,11 @@
 #!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   ci_testdriver
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+#
 # Brief:
 # A proxy script that calls ITF testdriver contained in the src directory.
 #
@@ -53,7 +60,6 @@ run)
     ${dirs['src']}/itf/testdriver \
         --quiet \
         --path-modules "${dirs['compiled']}/itf/modules" \
-        --dry-run \
         --ignore subsequent_checkpoints \
         --filter recovername:standard:iolib=3 \
         --filter standard:ckpt_disruption:expected=fail \
@@ -82,6 +88,7 @@ find)
             ;;
         integration)
             find "${dirs['compiled']}/integration" -iname *.itf
+            find "${dirs['compiled']}/syncintv" -iname *.itf
             ;;
         esac
     done

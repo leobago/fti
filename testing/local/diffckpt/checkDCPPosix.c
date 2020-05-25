@@ -1,5 +1,8 @@
 /**
- *  @file   check.c
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ * 
+ *  @file   checkDCPPosix.c
  *  @author Kai Keller (kellekai@gmx.de)
  *  @date   June, 2017
  *  @brief  FTI testing program.

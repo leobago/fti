@@ -21,6 +21,6 @@ configure_file(modules/fti ${itf_mod_dir}/fti @ONLY)
 
 # Install ITF resources
 install(FILES resources/fti_template.cfg DESTINATION ${itf_dir}/resources)
-configure_file(install_testdriver ${itf_dir}/testdriver @ONLY)
 
+configure_file(testdriver_build ${itf_dir}/testdriver @ONLY)
 set(itf_run_cmd "${itf_dir}/testdriver" CACHE INTERNAL itf_run_cmd)

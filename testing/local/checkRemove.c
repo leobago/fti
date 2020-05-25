@@ -1,5 +1,8 @@
 /**
- *  @file   check.c
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   checkRemove.c
  *  @author Kai Keller (kellekai@gmx.de)
  *  @date   June, 2017
  *  @brief  FTI testing program.
@@ -34,14 +37,15 @@
  *
  */
 
-#include "mpi.h"
-#include "fti.h"
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
-#include "../../src/deps/iniparser/iniparser.h"
+
 #include "../../src/deps/iniparser/dictionary.h"
+#include "../../src/deps/iniparser/iniparser.h"
+#include "fti.h"
+#include "mpi.h"
 
 #define CPU 0
 #define GPU 1
@@ -132,7 +136,6 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize);
  */
 
 int main(int argc, char* argv[]) {
-
   unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;
@@ -154,46 +157,38 @@ int main(int argc, char* argv[]) {
   crash = atoi(argv[2]);
   level = atoi(argv[3]);
   diff_sizes = atoi(argv[4]);
-  memoryType = atoi (argv[5]);
+  memoryType = atoi(argv[5]);
 
-
-  if (memoryType == CPU){
+  if (memoryType == CPU) {
     N = 100000;
-  }
-  else{
+  } else {
     N = ((size_t)1 << 25);
   }
 
-
-
-
-
-  char *env = getenv("ENABLE_ICP");
-  if( env ) {
-    if( !strcmp(env, "ON") ) {
+  char* env = getenv("ENABLE_ICP");
+  if (env) {
+    if (!strcmp(env, "ON")) {
       enable_icp = 1;
-    }
-    else if( !strcmp(env, "OFF") ) {
+    } else if (!strcmp(env, "OFF")) {
       enable_icp = 0;
-    }
-    else {
+    } else {
       exit(WRONG_ENVIRONMENT);
     }
   } else {
     exit(WRONG_ENVIRONMENT);
   }
 
-  MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
+  MPI_Comm_rank(FTI_COMM_WORLD, &FTI_APP_RANK);
 
-  dictionary *ini = iniparser_load( argv[1] );
-  int grank;    
-  MPI_Comm_rank(MPI_COMM_WORLD,&grank);
-  int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
+  dictionary* ini = iniparser_load(argv[1]);
+  int grank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &grank);
+  int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1);
   int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
   int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-  int headRank = grank - grank%nodeSize;
+  int headRank = grank - grank % nodeSize;
 
-  if ( (nbHeads<0) || (nodeSize<0) ) {
+  if ((nbHeads < 0) || (nodeSize < 0)) {
     printf("wrong configuration (for head or node-size settings)!\n");
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
@@ -201,46 +196,44 @@ int main(int argc, char* argv[]) {
   asize = N;
 
   if (diff_sizes) {
-    parity = FTI_APP_RANK%7;
+    parity = FTI_APP_RANK % 7;
 
     switch (parity) {
-
       case 0:
         asize = N;
         break;
 
       case 1:
-        asize = 2*N;
+        asize = 2 * N;
         break;
 
       case 2:
-        asize = 3*N;
+        asize = 3 * N;
         break;
 
       case 3:
-        asize = 4*N;
+        asize = 4 * N;
         break;
 
       case 4:
-        asize = 5*N;
+        asize = 5 * N;
         break;
 
       case 5:
-        asize = 6*N;
+        asize = 6 * N;
         break;
 
       case 6:
-        asize = 7*N;
+        asize = 7 * N;
         break;
-
     }
   }
 
   asize_with_dt = asize * sizeof(double);
 
-  if (memoryType == CPU){
-    A = (double*) malloc(asize_with_dt);
-    B = (double*) malloc(asize_with_dt);
+  if (memoryType == CPU) {
+    A = (double*)malloc(asize_with_dt);
+    B = (double*)malloc(asize_with_dt);
   }
 
   FTI_Protect(0, A, asize, FTI_DBLE);
@@ -250,30 +243,27 @@ int main(int argc, char* argv[]) {
   state = FTI_Status();
 
   if (state == INIT) {
-    // Initialize memory 
-    if ( memoryType == CPU ){
+    // Initialize memory
+    if (memoryType == CPU) {
       init_arrays(A, B, asize);
       write_data(B, &asize, FTI_APP_RANK);
     }
-    //Checkpoint data          
-    if ( enable_icp == 1 ) {
-      FTI_InitICP( 1, level, 1 );
-      FTI_AddVarICP( 2 );  
-      FTI_AddVarICP( 0 );  
-      FTI_AddVarICP( 1 );  
+    // Checkpoint data
+    if (enable_icp == 1) {
+      FTI_InitICP(1, level, 1);
+      FTI_AddVarICP(2);
+      FTI_AddVarICP(0);
+      FTI_AddVarICP(1);
       FTI_FinalizeICP();
-    } 
-    else if ( enable_icp == 0 ) {
-      FTI_Checkpoint(1,level);
-    }
-    else
-    {
+    } else if (enable_icp == 0) {
+      FTI_Checkpoint(1, level);
+    } else {
       exit(WRONG_ENVIRONMENT);
     }
     MPI_Barrier(FTI_COMM_WORLD);
 
-    if ( crash ) {
-      if( nbHeads > 0 ) { 
+    if (crash) {
+      if (nbHeads > 0) {
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
         MPI_Barrier(MPI_COMM_WORLD);
@@ -283,12 +273,12 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if ( state == RESTART || state == KEEP ) {
+  if (state == RESTART || state == KEEP) {
     result = FTI_Recover();
     if (result != FTI_SCES) {
       exit(RECOVERY_FAILED);
     }
-    B_chk = (double*) malloc(asize*sizeof(double));
+    B_chk = (double*)malloc(asize * sizeof(double));
     printf("I am reading Data\n");
     result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize);
     printf("Finished reading Data\n");
@@ -302,7 +292,7 @@ int main(int argc, char* argv[]) {
    * on INIT, B is initialized randomly
    * on RESTART or KEEP, B is recovered and must be equal to B_chk
    */
-  if ( memoryType == CPU ){
+  if (memoryType == CPU) {
     vecmult(A, B, asize);
   }
 
@@ -314,7 +304,7 @@ int main(int argc, char* argv[]) {
     free(B_chk);
   }
 
-  if (memoryType == CPU ){
+  if (memoryType == CPU) {
     free(A);
     free(B);
   }
@@ -324,7 +314,7 @@ int main(int argc, char* argv[]) {
       printf("[SUCCESSFUL]\n");
     } else {
       printf("[NOT SUCCESSFUL]\n");
-      success=0;
+      success = 0;
     }
   }
 
@@ -336,7 +326,6 @@ int main(int argc, char* argv[]) {
     return 0;
   else
     exit(DATA_CORRUPT);
-
 }
 
 /**
@@ -346,15 +335,14 @@ int main(int argc, char* argv[]) {
 void init_arrays(double* A, double* B, size_t asize) {
   int i;
   double r;
-  for (i = 0; i< asize; i++) {
+  for (i = 0; i < asize; i++) {
     A[i] = 1.0;
-    B[i] = ((double)rand()/RAND_MAX)*5.0;
+    B[i] = ((double)rand() / RAND_MAX) * 5.0;
   }
 }
 
 #ifdef GPUSUPPORT
-__global__
-void vecmultGPU(double* A, double* B, size_t asize) {
+__global__ void vecmultGPU(double* A, double* B, size_t asize) {
   size_t i = (size_t)blockIdx.x * (size_t)blockDim.x + (size_t)threadIdx.x;
   if (i < asize) {
     A[i] = A[i] * B[i];
@@ -362,34 +350,33 @@ void vecmultGPU(double* A, double* B, size_t asize) {
 }
 #endif
 
-
 void vecmult(double* A, double* B, size_t asize) {
   int i;
-  for (i=0; i<asize; i++) {
-    A[i] = A[i]*B[i];
+  for (i = 0; i < asize; i++) {
+    A[i] = A[i] * B[i];
   }
 }
 
 int validify(double* A, double* B_chk, size_t asize) {
   int i;
-  for (i=0; i<asize; i++) {
-    if (A[i] != B_chk[i]){
+  for (i = 0; i < asize; i++) {
+    if (A[i] != B_chk[i]) {
       return -1;
     }
   }
   return 0;
 }
 
-int write_data(double* B, size_t *asize, int rank) {
+int write_data(double* B, size_t* asize, int rank) {
   char str[256];
   sprintf(str, "chk/check-%i.tst", rank);
   FILE* f = fopen(str, "wb");
   size_t written = 0;
 
-  fwrite( (void*) asize, sizeof(size_t), 1, f);
+  fwrite((void*)asize, sizeof(size_t), 1, f);
 
-  while ( written < (*asize) ) {
-    written += fwrite( (void*) B, sizeof(double), (*asize), f);
+  while (written < (*asize)) {
+    written += fwrite((void*)B, sizeof(double), (*asize), f);
   }
 
   fclose(f);
@@ -397,20 +384,22 @@ int write_data(double* B, size_t *asize, int rank) {
   return 0;
 }
 
-int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize) {
+int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize) {
   char str[256];
   sprintf(str, "chk/check-%i.tst", rank);
   FILE* f = fopen(str, "rb");
   size_t read = 0;
 
-  fread( (void*) asize_chk, sizeof(size_t), 1, f);
+  fread((void*)asize_chk, sizeof(size_t), 1, f);
   if ((*asize_chk) != asize) {
-    printf("[ERROR -%i] : wrong dimension 'asize' -- asize: %zd, asize_chk: %zd\n", rank, asize, *asize_chk);
+    printf(
+        "[ERROR -%i] : wrong dimension 'asize' -- asize: %zd, asize_chk: %zd\n",
+        rank, asize, *asize_chk);
     fflush(stdout);
     return -1;
   }
-  while ( read < (*asize_chk) ) {
-    read += fread( (void*) B_chk, sizeof(double), (*asize_chk), f);
+  while (read < (*asize_chk)) {
+    read += fread((void*)B_chk, sizeof(double), (*asize_chk), f);
   }
 
   fclose(f);
