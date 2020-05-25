@@ -1053,19 +1053,25 @@ def executeSteps_two( arg1, arg2 ) {
   // }
 }
 
-def run_itf_tests(name) {
+def compile_fti() {
+  labelledShell ( label: 'Compile with all IOs for tests',
+    script: "./install.sh --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib"
+  )
+}
+
+def itf_suite(stage) {
   // Brief: Run a set of ITF tests using the CI testdriver script
   // Details: Use this function when in need of ITF modules
 
-  tests = labelledShell ( label: "List ${name} tests",
-    script: "find ${name} -name '*.itf'",
+  tests = labelledShell ( label: "List ${stage} tests",
+    script: "testing/itf/ci_testdriver --find ${stage}",
     returnStdout: true
   ).trim()
   
   for( String test : tests.split('\n'))
     catchError {
       labelledShell ( label: "ITF suite: ${test}",
-        script: "testing/itf/ci_testdriver ${test}"
+        script: "testing/itf/ci_testdriver --run ${test}"
       )
   }
 }
@@ -1075,22 +1081,29 @@ agent none
 
 stages {
 
-  stage('ITF CMake Tests') {
+  stage('ITF: CMake') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
 
     steps {
-      run_itf_tests('testing/compilation')
+      itf_suite('cmake')
     }
   }
   
-  stage('ITF Local Tests') {
+  stage('ITF: Local') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
 
     steps {
-      labelledShell ( label: 'FTI build for tests with all IOs',
-        script: "./install.sh --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib"
-      )
-      run_itf_tests('build/testing/local')
+      compile_fti()
+      itf_suite('local')
+    }
+  }
+
+  stage('ITF: Integration') {
+    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+
+    steps {
+      compile_fti()
+      itf_suite('integration')
     }
   }
 

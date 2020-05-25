@@ -10,13 +10,80 @@
 # The testdriver can be used without FTI module for non-FTI test cases.
 # To do that, call it without from the src folder and without --path-modules.
 
-export MPIRUN_ARGS=--oversubscribe
+# FTI directories related to ITF tests on CI
+declare -A dirs=()
+dirs['root']=$(git rev-parse --show-toplevel)
+dirs['src']=${dirs['root']}/testing
+dirs['compiled']=${dirs['root']}/build/testing
 
-fti_root=$(git rev-parse --show-toplevel)
-$(dirname ${BASH_SOURCE[0]})/testdriver --quiet --path-modules "$fti_root/build/testing/itf/modules" -f recovername:standard:iolib=3 -f standard:ckpt_disruption:expected=fail --ignore subsequent_checkpoints $@
-    
-retval=$?
+# Parse the arguments to check the script execution mode find/run
+mode='run'              # Default mode is Run
+declare -a arguments=() # CI Testdriver parameters
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    --find)
+        mode='find'
+        shift
+        ;;
+    --run)
+        mode='run'
+        shift
+        ;;
+    *)
+        arguments+=($1)
+        shift
+        ;;
+    esac
+done
 
-unset MPIRUN_ARGS fti_root
+case $mode in
+run)
+    # Brief:
+    # Invoke the testdriver with CI parameters to execute ITF test suites.
+    #
+    # Arguments:
+    # ITF file paths containing suite of tests (see find mode).
+    #
+    # Example:
+    # cd /path/to/FTI/build/testing
+    # itf/ci_testdriver local/standard/standard.itf
 
-exit $retval
+    export MPIRUN_ARGS=--oversubscribe
+    echo "[Testdriver] Running suites: " ${arguments[@]}
+    ${dirs['src']}/itf/testdriver \
+        --quiet \
+        --path-modules "${dirs['compiled']}/itf/modules" \
+        --dry-run \
+        --ignore subsequent_checkpoints \
+        --filter recovername:standard:iolib=3 \
+        --filter standard:ckpt_disruption:expected=fail \
+        ${arguments[@]}
+    retval=$?
+    unset MPIRUN_ARGS
+    exit $retval
+    ;;
+find)
+    # Brief:
+    # Echo the ITF suite files related to a given CI stage.
+    #
+    # Arguments:
+    # One or more of the CI stage names below.
+    #
+    # Local:       Test FTI behavior and additional features.
+    # CMake:       Test compilation using different CMake versions.
+    # Integration: Test FTI integration into small apps.
+    for step in ${arguments[@]}; do
+        case $step in
+        local)
+            find "${dirs['compiled']}/local" -iname *.itf
+            ;;
+        cmake)
+            find "${dirs['src']}/compilation" -iname *.itf
+            ;;
+        integration)
+            find "${dirs['compiled']}/integration" -iname *.itf
+            ;;
+        esac
+    done
+    ;;
+esac
