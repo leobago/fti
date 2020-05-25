@@ -1,6 +1,7 @@
 /**
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
+ * 
  *  @file   hdf5Test.c
  *  @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl)
  *  @date   November, 2017
@@ -8,7 +9,7 @@
  *
  *  Testing FTI_InitType, FTI_InitSimpleTypeWithNames,
  *  FTI_InitComplexTypeWithNames, FTI_ProtectWithName, FTI_Checkpoint,
- * FTI_Recover, saving last checkpoint to PFS
+ *  FTI_Recover, saving last checkpoint to PFS
  *
  *  Program creates complex data structures, then adds it to protect list
  *  and makes a checkpoint. Second run recovers the files and checks if
@@ -26,8 +27,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../src/deps/iniparser/dictionary.h"
-#include "../src/deps/iniparser/iniparser.h"
+#include "../../src/deps/iniparser/dictionary.h"
+#include "../../src/deps/iniparser/iniparser.h"
 
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
@@ -77,7 +78,7 @@ typedef struct AllTypes {
 } AllTypes;
 
 void defaultChars(Chars* in, int shift) {
-  sprintf(in->chars, "%s", "abcdefg");
+  snprintf(in->chars, sizeof(in->chars), "%s", "abcdefg");
   int i, j, k, l;
 
   for (i = 0; i < 7; i++) in->chars[i] += shift % (25 - in->chars[i] - 'a');
@@ -245,12 +246,12 @@ int verifyAllInts(AllInts* in, int shift, int rank, char* name) {
   int i, res = 0;
   char buff[256];
   for (i = 0; i < 5; i++) {
-    sprintf(buff, "%s.integers[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.integers[%d]", name, i);
     res += verifyInts(&(in->integers[i]), shift + i, rank, buff);
   }
 
   for (i = 0; i < 4; i++) {
-    sprintf(buff, "%s.uIntegers[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.uIntegers[%d]", name, i);
     res += verifyUInts(&(in->uIntegers[i]), shift + i, rank, buff);
   }
   return res;
@@ -260,12 +261,12 @@ int verifyFloatsChars(FloatsChars* in, int shift, int rank, char* name) {
   int i, res = 0;
   char buff[256];
   for (i = 0; i < 3; i++) {
-    sprintf(buff, "%s.floats[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.floats[%d]", name, i);
     res += verifyFloats(&(in->floats[i]), shift + i, rank, buff);
   }
 
   for (i = 0; i < 2; i++) {
-    sprintf(buff, "%s.chars[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.chars[%d]", name, i);
     res += verifyChars(&(in->chars[i]), shift + i, rank, buff);
   }
   return res;
@@ -273,9 +274,9 @@ int verifyFloatsChars(FloatsChars* in, int shift, int rank, char* name) {
 
 int verifyAllTypes(AllTypes* in, int shift, int rank, char* name) {
   char buff[256];
-  sprintf(buff, "%s.allInts", name);
+  snprintf(buff, sizeof(buff), "%s.allInts", name);
   int res = verifyAllInts(&(in->allInts), shift, rank, buff);
-  sprintf(buff, "%s.floatsChars", name);
+  snprintf(buff, sizeof(buff), "%s.floatsChars", name);
   res += verifyFloatsChars(&(in->floatsChars), shift, rank, buff);
   return res;
 }

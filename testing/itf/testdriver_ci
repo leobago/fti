@@ -89,6 +89,7 @@ find)
         integration)
             find "${dirs['compiled']}/integration" -iname *.itf
             find "${dirs['compiled']}/syncintv" -iname *.itf
+            find "${dirs['compiled']}/hdf5" -iname *.itf
             ;;
         esac
     done

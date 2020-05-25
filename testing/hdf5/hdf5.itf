@@ -1,0 +1,117 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   integration.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Karol Sierocinski (ksiero@man.poznan.pl) (First implementation)
+#   @date   May, 2020
+
+itf_load_module 'fti'
+
+# --------------------- General Setup/Teardown Functions ----------------------
+
+declare -A files=()
+setup() {
+    # Common setup for all HDF5 checks
+
+    fti_config_set 'ckpt_io' '5'
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set_ckpts '1' '2' '3' '4'
+
+    files['pattern']='/tmp/pattern.h5'
+    files['pattern_dump']='/tmp/pattern_dump.log'
+    files['test_dump']='/tmp/test_dump.log'
+}
+
+teardown() {
+    # Remove all files created by HDF5 tests and unset varialbes
+
+    local i
+    for i in "${!files[@]}"; do
+        rm -rf ${files[$i]}
+    done
+}
+
+# ----------------------------- Utility Functions -----------------------------
+
+common_setups=('H0I1' 'H1I1' 'H1I0')
+
+set_configfile_to_preset() {
+    # Change the config file, after the setup, to one of the common presets
+    #
+    # Arguments:
+    # $1: Preset name, one of the presets for this suite
+    #       values: [ H1I0, H1I1 ]
+
+    case $1 in
+    H1I0 | h1i0)
+        fti_config_set 'head' '1'
+        fti_config_set_noinline
+        ;;
+    H1I1 | h1i1)
+        fti_config_set 'head' '1'
+        fti_config_set_inline
+        ;;
+    esac
+}
+
+itf_suite_unload 'unload_hdf5'
+
+unload_hdf5() {
+    # Remove all non-setup, teardown and test names after executing the suite
+    unset set_configfile_to_preset
+    unset common_setups files
+}
+
+# ------------------------------ Check Behaviors ------------------------------
+
+hdf5_test() {
+
+    param_parse '+preset' '+level' $@
+    set_configfile_to_preset $preset
+
+    local cfgfile="${itf_cfg['fti:config']}"
+    local dir="$(dirname ${BASH_SOURCE[0]})"
+
+    # Create a pattern HDF5 file to compare with FTI-generated ones
+    $dir/hdf5CreateBasePattern.exe ${files['pattern']}
+    h5dump ${files['pattern']} | tail -n +2 >${files['pattern_dump']}
+
+    # Run application and simulate a failure
+    fti_run_success $dir/hdf5Test.exe $cfgfile $level 1
+
+    # Test if FTI created a checkpoint in HDF5 format
+    local ckptfile=$(find_fti_objects 'checkpoint' $level '1')
+    h5dump $ckptfile | tail -n +2 >${files['test_dump']}
+    check_is_zero $? "Failed to call HDF5 dump after FTI application"
+
+    # Test if FTI created the same HDF5 checkpoint as an application without FTI
+    diff ${files['test_dump']} ${files['pattern_dump']}
+    check_is_zero $? "FTI (Local) and original HDF5 dumps are different"
+
+    # FTI checkpoint file verification using test application
+    echo "Running offline verification for checkpoint file..."
+    $dir/hdf5noFTI.exe $ckptfile
+    check_is_zero $? "HDF5 checkpoint file offline verification failed"
+
+    # FTI recovery with HDF5 with keep_last_ckpt=1
+    fti_run_success $dir/hdf5Test.exe $cfgfile $level 0
+
+    # Check if format is consistent after being pushed to the PFS
+    ckptfile=$(find_fti_objects 'checkpoint' '4' '1')
+    h5dump $ckptfile | tail -n +2 >${files['test_dump']}
+    check_is_zero $? "Failed to call HDF5 dump after FTI application"
+    diff ${files['test_dump']} ${files['pattern_dump']}
+    check_is_zero $? "FTI (Global) and original HDF5 dumps are different"
+    pass
+}
+
+itf_fixture 'hdf5_test' 'setup' 'teardown'
+
+for pset in ${common_setups[@]}; do
+    for level in ${fti_levels[@]}; do
+        itf_case 'hdf5_test' "--preset=$pset" "--level=$level"
+    done
+done
+unset pset level

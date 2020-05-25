@@ -904,13 +904,6 @@ def executeSteps_two( arg1, arg2 ) {
       cd build; TEST=diffSizes NOTCORRUPT=1 CONFIG=configH1I0.fti LEVEL=4 ./testing/tests.sh
       '''
   }
-  catchError {
-    sh '''
-      export PATH=$PATHA:$PATHB:$PATH
-      echo $PATH
-      cd build; TEST=hdf5 ./testing/tests.sh
-      '''
-  }
 }
 
 def compile_fti() {

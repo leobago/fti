@@ -16,6 +16,7 @@ print_usage() {
     echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
     echo " "
     echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
+    echo "            [--hdf5-path=DIR]             # Path to HDF5 installation"
     echo "            [--ime-path=DIR]              # Path to DDN IME installation"
     echo " "
     echo "            [--debug]                     # Enable a debug build"
@@ -117,6 +118,10 @@ while [ $# -gt 0 ]; do
         ;;
     --sionlib-path=*)
         CMAKE_ARGS="$CMAKE_ARGS -DSIONLIBBASE=${1#*=}"
+        shift # past argument=value
+        ;;
+    --hdf5-path=*)
+        CMAKE_ARGS="$CMAKE_ARGS -DHDF5_ROOT=${1#*=}"
         shift # past argument=value
         ;;
     --ime-path=*)

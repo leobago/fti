@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
     bool success =
         ((res[0] == check) && (res[1] == check) && (res[2] == (2 * check)));
     if (rank == 0) {
-      printf("[%s]\n", (success) ? "SUCCESS" : "FAILURE", res, check);
+      printf("[%s]\n", (success) ? "SUCCESS" : "FAILURE");
     }
     FTI_Finalize();
     for (i = 0; i < ldim0; ++i) {

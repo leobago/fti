@@ -1,6 +1,7 @@
 /**
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
+ *
  *  @file   hdf5Test.c
  *  @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl)
  *  @author Kai Keller (kellekai@gmx.de)
@@ -10,7 +11,6 @@
  *  Program creates HDF5 file hiearchy with groups,
  *  datatypes and datasets identical to the FTI HDF5
  *  test program hdf5Test.c
- *
  */
 
 #include <fcntl.h>
@@ -67,7 +67,7 @@ typedef struct AllTypes {
 } AllTypes;
 
 void defaultChars(Chars* in, int shift) {
-  sprintf(in->chars, "%s", "abcdefg");
+  snprintf(in->chars, sizeof(in->chars), "%s", "abcdefg");
   int i, j, k, l;
 
   for (i = 0; i < 7; i++) in->chars[i] += shift % (25 - in->chars[i] - 'a');
@@ -132,10 +132,12 @@ void defaultAllTypes(AllTypes* in, int shift) {
   defaultFloatsChars(&in->floatsChars, shift);
 }
 
-int main() {
+int main(int argc, char** argv) {
+  if (argc < 2)
+    return 1;
+
   // create hdf5 file
-  hid_t file_id =
-      H5Fcreate("pattern.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t file_id = H5Fcreate(argv[1], H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // root group id is file id
   hid_t root_group_id = file_id;

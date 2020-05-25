@@ -1,6 +1,7 @@
 /**
  *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
  *  All rights reserved
+ *
  *  @file   hdf5noFTI.c
  *  @author Karol Sierocinski (ksiero@man.poznan.pl)
  *  @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl)
@@ -8,9 +9,7 @@
  *  @brief  FTI testing program.
  *
  *  Testing correctness of HDF5 checkpoint file.
- *
  *  Program loads datatypes saved in hdf5 file by name and verifies values.
- *
  */
 
 #include <fcntl.h>
@@ -171,12 +170,12 @@ int verifyAllInts(AllInts* in, int shift, int rank, char* name) {
   int i, res = 0;
   char buff[256];
   for (i = 0; i < 5; i++) {
-    sprintf(buff, "%s.integers[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.integers[%d]", name, i);
     res += verifyInts(&(in->integers[i]), shift + i, rank, buff);
   }
 
   for (i = 0; i < 4; i++) {
-    sprintf(buff, "%s.uIntegers[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.uIntegers[%d]", name, i);
     res += verifyUInts(&(in->uIntegers[i]), shift + i, rank, buff);
   }
   return res;
@@ -186,12 +185,12 @@ int verifyFloatsChars(FloatsChars* in, int shift, int rank, char* name) {
   int i, res = 0;
   char buff[256];
   for (i = 0; i < 3; i++) {
-    sprintf(buff, "%s.floats[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.floats[%d]", name, i);
     res += verifyFloats(&(in->floats[i]), shift + i, rank, buff);
   }
 
   for (i = 0; i < 2; i++) {
-    sprintf(buff, "%s.chars[%d]", name, i);
+    snprintf(buff, sizeof(buff), "%s.chars[%d]", name, i);
     res += verifyChars(&(in->chars[i]), shift + i, rank, buff);
   }
   return res;
@@ -199,16 +198,16 @@ int verifyFloatsChars(FloatsChars* in, int shift, int rank, char* name) {
 
 int verifyAllTypes(AllTypes* in, int shift, int rank, char* name) {
   char buff[256];
-  sprintf(buff, "%s.allInts", name);
+  snprintf(buff, sizeof(buff), "%s.allInts", name);
   int res = verifyAllInts(&(in->allInts), shift, rank, buff);
-  sprintf(buff, "%s.floatsChars", name);
+  snprintf(buff, sizeof(buff), "%s.floatsChars", name);
   res += verifyFloatsChars(&(in->floatsChars), shift, rank, buff);
   return res;
 }
 
 int main(int argc, char** argv) {
   // open file
-  hid_t file_id = H5Fopen("offlineVerify.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+  hid_t file_id = H5Fopen(argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
     printf("Could not open checkpoint file.");
     return 1;

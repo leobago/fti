@@ -24,6 +24,13 @@ array_contains() {
     return 1
 }
 
+itf_suite_unload 'unload_integration'
+
+unload_integration() {
+    # Remove all non-setup, teardown and test names after executing the suite
+    unset array_contains
+}
+
 # ---------------------- Synchronization Interval check -----------------------
 
 checkpoint_interval() {
