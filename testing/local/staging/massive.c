@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
   int *reqID = (int *)malloc(FILES_PER_ITER * NUM_ITER * sizeof(int));
 
   // set stage and remote directory
-  char ldir[F_BUFF];
-  char rdir[] = REMOTE_DIR;
+  char ldir[F_BUFF / 2]; // Divided buffer by half to allow merging
+  char rdir[F_BUFF / 2] = REMOTE_DIR;
   if (FTI_GetStageDir(ldir, F_BUFF) != FTI_SCES) {
     EXIT_FAIL("Failed to get the local directory.");
   }

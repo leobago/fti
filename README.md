@@ -29,7 +29,7 @@ Download, compile and install FTI (as easy as 1,2,3)
 
 > **REMARK 2** (OpenSSL)
 > To use the built-in MD5 rather than OpenSSL, please configure using:
-> `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
+> `cmake -DENABLE_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
 > **REMARK 3** (GNU versions)
 > The usage of different GNU compiler versions for C and Fortran leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.

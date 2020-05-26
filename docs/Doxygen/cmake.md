@@ -22,7 +22,7 @@ For instance if it is desired to use the PGI compiler, try:
 To use the built-in MD5 rather than OpenSSL, please configure using:  
 
 ```
-    cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
+    cmake -DENABLE_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..
 ```
 
 On Cray systems, it might be helping to use the cmake flag:   

@@ -14,6 +14,7 @@ print_usage() {
     echo "            [--enable-docu]               # Enable creation of FTI documentation (default: disabled)"
     echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
     echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
+    echo "            [--disable-openssl]           # Disable linking with OpenSSL (default: enabled)"
     echo " "
     echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
     echo "            [--hdf5-path=DIR]             # Path to HDF5 installation"
@@ -110,6 +111,10 @@ while [ $# -gt 0 ]; do
         ;;
     --enable-fi)
         CMAKE_ARGS="$CMAKE_ARGS -DENABLE_FI_IO=1"
+        shift # past argument=value
+        ;;
+    --disable-openssl)
+        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_OPENSSL=0"
         shift # past argument=value
         ;;
     --enable-docu)
