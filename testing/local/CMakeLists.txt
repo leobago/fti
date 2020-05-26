@@ -68,7 +68,7 @@ if ( OPENSSL_FOUND )
     set( DCP_CHECK_DEF "" )
 else()
     set( DCP_CHECK_MD5_LIB "" )
-    set( DCP_CHECK_DEF "-DNO_OPENSSL" )
+    set( DCP_CHECK_DEF "-DDISABLE_OPENSSL" )
 endif()
 
 configure_file(run-checks-f90.in ${CMAKE_CURRENT_SOURCE_DIR}/run-checks-f90.sh @ONLY)

@@ -12,18 +12,13 @@
 #define _DIFF_TEST_H_
 
 #include <assert.h>
-#include <mpi.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef NO_OPENSSL
-#include "../../../src/deps/md5/md5.h"
-#else
-#include <openssl/md5.h>
-#endif
 #include <errno.h>
 #include <fti.h>
+#include <mpi.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
@@ -31,6 +26,7 @@
 
 #include "../../../src/deps/iniparser/dictionary.h"
 #include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/md5/md5.h"
 
 #ifndef NUM_DCKPT
 #define NUM_DCKPT 5
