@@ -146,9 +146,8 @@ while [ $# -gt 0 ]; do
         shift
         ;;
     *)
-        echo "unknown option: $1"
-        print_usage
-        exit 1
+        CMAKE_ARGS="$CMAKE_ARGS $1"
+        shift
         ;;
     esac
 done

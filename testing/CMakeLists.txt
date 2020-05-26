@@ -1,21 +1,7 @@
 enable_testing()
 
-add_executable(diffSizes diffSizes.c)
-target_link_libraries(diffSizes fti.static)
-
-if (ENABLE_GPU)
-  add_subdirectory(cuda)
-endif()
-
-file(COPY configs DESTINATION .)
-file(COPY patterns DESTINATION .)
-file(COPY README.txt DESTINATION .)
-file(COPY tests.sh DESTINATION .)
-
 # ------------------------ Install-Time Test Variables -----------------------
 
-# TODO: deprecated when CUDA and FORTRAN tests are integrated into ITF
-set(IO 1)
 set(IO_NAMES "POSIX MPIIO FTIFF")
 set(IO_IDS "1 2 3")
 set(MEMORYTYPES "CPU")
@@ -35,8 +21,7 @@ endif()
 # --------------------------- ITF engine Integration --------------------------
 
 set(testing_dir ${CMAKE_CURRENT_BINARY_DIR})
-
-add_subdirectory(itf)
+add_subdirectory(tools/itf)
 
 # Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)
@@ -62,10 +47,5 @@ endfunction()
 
 # -------------------- Inclusion of ITF Test subdirectories -------------------
 
-add_subdirectory(local)
-add_subdirectory(integration)
-add_subdirectory(syncintv)
-
-if (ENABLE_HDF5)
-  add_subdirectory(hdf5)
-endif()
+add_subdirectory(suites/integration)
+add_subdirectory(suites/local)
