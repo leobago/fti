@@ -1,33 +1,39 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   failure-injection.c
+ */
+
 #include "../interface.h"
 
-static float _PROBABILITY ;
+static float _PROBABILITY;
 static char _FUNCTION[FTI_BUFS];
 
 float PROBABILITY() {
     return _PROBABILITY;
 }
 
-unsigned int FUNCTION( const char *testFunction ) {
-    int len = ( strlen(testFunction) > FTI_BUFS ) ? FTI_BUFS : strlen(testFunction);
-    int res = strncmp( testFunction, _FUNCTION, len );
+unsigned int FUNCTION(const char *testFunction) {
+    int len = (strlen(testFunction) > FTI_BUFS) ?
+     FTI_BUFS : strlen(testFunction);
+    int res = strncmp(testFunction, _FUNCTION, len);
     return !res;
 }
 
 void FTI_InitFIIO() {
-
     char *env;
-    if ( (env = getenv("FTI_FI_PROBABILITY")) != NULL ) {
+    if ((env = getenv("FTI_FI_PROBABILITY")) != NULL) {
         _PROBABILITY = atof(env);
     } else {
         _PROBABILITY = 0.01;
     }
-    if ( (env = getenv("FTI_FI_FUNCTION")) != NULL ) {
-        strncpy( _FUNCTION, env, FTI_BUFS-1 );
+    if ((env = getenv("FTI_FI_FUNCTION")) != NULL) {
+        strncpy(_FUNCTION, env, FTI_BUFS-1);
         _FUNCTION[FTI_BUFS-1] = '\0';
     } else {
         _FUNCTION[0] = '\0';
     }
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -41,8 +47,7 @@ void FTI_InitFIIO() {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_FloatBitFlip(float* target, int bit)
-{
+int FTI_FloatBitFlip(float* target, int bit) {
     if (bit >= 32 || bit < 0) {
         return FTI_NSCS;
     }
@@ -66,8 +71,7 @@ int FTI_FloatBitFlip(float* target, int bit)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DoubleBitFlip(double* target, int bit)
-{
+int FTI_DoubleBitFlip(double* target, int bit) {
     if (bit >= 64 || bit < 0) {
         return FTI_NSCS;
     }

@@ -62,8 +62,8 @@
  *  @file   failure-injection.h
  *  @date   December, 2018 
  */
-#ifndef _FAILURE_INJECTION_H
-#define _FAILURE_INJECTION_H
+#ifndef FTI_FAILURE_INJECTION_H_
+#define FTI_FAILURE_INJECTION_H_
 
 #include <fti.h>
 #include <unistd.h>
@@ -83,37 +83,37 @@ static inline uint64_t get_ruint() {
 
 void FTI_InitFIIO();
 float PROBABILITY();
-unsigned int FUNCTION( const char *testFunction );
+unsigned int FUNCTION(const char *testFunction);
 
 #ifdef ENABLE_FTI_FI_IO
-#define FTI_FI_WRITE( ERR, FD, BUF, COUNT, FN ) \
+#define FTI_FI_WRITE(ERR, FD, BUF, COUNT, FN) \
     do { \
-        if( FUNCTION(__FUNCTION__) ) { \
-            if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
+        if (FUNCTION(__FUNCTION__)) { \
+            if (get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX))) { \
                 close(FD); \
                 FD = open(FN, O_RDONLY); \
             }  \
         } \
-        ERR = write( FD, BUF, COUNT ); \
+        ERR = write(FD, BUF, COUNT); \
         (void)(ERR); \
-    } while(0)
-#define FTI_FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) \
+    } while (0)
+#define FTI_FI_FWRITE(ERR, BUF, SIZE, COUNT, FSTREAM, FN) \
     do { \
-        if( FUNCTION(__FUNCTION__) ) { \
-            if( get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX)) ) { \
+        if (FUNCTION(__FUNCTION__)) { \
+            if (get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX))) { \
                 fclose(FSTREAM); \
                 FSTREAM = fopen(FN, "rb"); \
             } \
         } \
-        ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ); \
+        ERR = fwrite(BUF, SIZE, COUNT, FSTREAM); \
         (void)(ERR); \
-    } while(0)
+    } while (0)
 #else
-#define FTI_FI_WRITE( ERR, FD, BUF, COUNT, FN ) ( ERR = write( FD, BUF, COUNT ) )
-#define FTI_FI_FWRITE( ERR, BUF, SIZE, COUNT, FSTREAM, FN ) ( ERR = fwrite( BUF, SIZE, COUNT, FSTREAM ) )
+#define FTI_FI_WRITE(ERR, FD, BUF, COUNT, FN) (ERR = write(FD, BUF, COUNT))
+#define FTI_FI_FWRITE(ERR, BUF, SIZE, COUNT, FSTREAM, FN) (ERR = fwrite(BUF, SIZE, COUNT, FSTREAM))
 #endif
 
 int FTI_FloatBitFlip(float *target, int bit);
 int FTI_DoubleBitFlip(double *target, int bit);
 
-#endif //_FAILURE_INJECTION_H
+#endif  // FTI_FAILURE_INJECTION_H_
