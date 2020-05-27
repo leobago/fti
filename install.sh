@@ -1,26 +1,29 @@
 #!/bin/bash
 
 print_usage() {
-	echo "usage     : ./install.sh [options]"
-	echo "options   : "
-	echo "            [--prefix=DIR]                # Installation directory (default: ./install/)"
-	echo "            [--enable-hdf5]               # Enable HDF5 extension (default: disabled)"
-	echo "            [--enable-sionlib]            # Enable SIONlib extension (default: disabled)"
-	echo "            [--enable-ime]                # Enable IME extension (default: disabled)"
-	echo "            [--enable-lustre]             # Enable extended Lustre support (default: disabled)"
-	echo "            [--enable-fortran]            # Enable Fortran bindings (default: disabled)"
-	echo "            [--disable-examples]          # Disable the compilation of examples (default: enabled)"
-	echo "            [--enable-testing]            # Enable testing framework (default: disabled)"
-	echo "            [--enable-docu]               # Enable creation of FTI documentation (default: disabled)"
-	echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
-	echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
-	echo " "
-	echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
-	echo "            [--ime-path=DIR]              # Path to DDN IME installation"
-	echo " "
-	echo "            [--debug]                     # Enable a debug build"
-	echo "            [--silent]                    # No output to stdout or stderr during installation"
-	echo "            [--uninstall]                 # No output to stdout or stderr during installation"
+    echo "usage     : ./install.sh [options]"
+    echo "options   : "
+    echo "            [--prefix=DIR]                # Installation directory (default: ./install/)"
+    echo "            [--enable-hdf5]               # Enable HDF5 extension (default: disabled)"
+    echo "            [--enable-sionlib]            # Enable SIONlib extension (default: disabled)"
+    echo "            [--enable-ime]                # Enable IME extension (default: disabled)"
+    echo "            [--enable-lustre]             # Enable extended Lustre support (default: disabled)"
+    echo "            [--enable-fortran]            # Enable Fortran bindings (default: disabled)"
+    echo "            [--disable-examples]          # Disable the compilation of examples (default: enabled)"
+    echo "            [--enable-testing]            # Enable testing framework (default: disabled)"
+    echo "            [--enable-docu]               # Enable creation of FTI documentation (default: disabled)"
+    echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
+    echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
+    echo "            [--disable-openssl]           # Disable linking with OpenSSL (default: enabled)"
+    echo " "
+    echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
+    echo "            [--hdf5-path=DIR]             # Path to HDF5 installation"
+    echo "            [--ime-path=DIR]              # Path to DDN IME installation"
+    echo " "
+    echo "            [--debug]                     # Enable a debug build"
+    echo "            [--silent]                    # No output to stdout or stderr during installation"
+    echo "            [--uninstall]                 # No output to stdout or stderr during installation"
+    echo "            [--create-logs]               # Create installation logs when running this command"
 }
 
 # Calculate the FTI root directory relative to this file
@@ -104,9 +107,13 @@ case $1 in
     shift # past argument=value
     ;;
     --enable-fi)
-    CMAKE_ARGS="$CMAKE_ARGS -DENABLE_FI_IO=1"
-    shift # past argument=value
-    ;;
+        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_FI_IO=1"
+        shift # past argument=value
+        ;;
+    --disable-openssl)
+        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_OPENSSL=0"
+        shift # past argument=value
+        ;;
     --enable-docu)
     CMAKE_ARGS="$CMAKE_ARGS -DENABLE_DOCU=1"
     shift # past argument=value
