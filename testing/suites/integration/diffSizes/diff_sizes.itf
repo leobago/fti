@@ -94,7 +94,6 @@ verify_log() {
 
     param_parse '+preset' '+level' $@
 
-    fti_config_set 'iolib' $iolib
     set_configfile_to_preset $preset
 
     local app="$(dirname ${BASH_SOURCE[0]})/diffSizes.exe"
@@ -121,10 +120,10 @@ verify_log() {
 itf_setup 'verify_log' 'setup'
 for pset in ${common_setups[@]}; do
     for level in ${fti_levels[@]}; do
-        itf_case 'verify_log' "--preset=$pset" "--iolib=$iolib" "--level=$level"
+        itf_case 'verify_log' "--preset=$pset" "--level=$level"
     done
 done
-unset level iolib pset
+unset level pset
 
 # -------------------- Log Check with Corruption Function ---------------------
 

@@ -17,7 +17,6 @@ def itf_suite(stage) {
 }
 
 def compiler_checks(compilerName) {  
-  stage('CMake checks') { itf_suite('cmake') }
   stage('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
@@ -33,8 +32,11 @@ pipeline {
 agent none
 
 stages {
+  stage('CMake versions') {
+    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+    steps { itf_suite('cmake') }
+  }
   stage('GCC') {
-    when { expression { return env.BRANCH_NAME == 'master' } }
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
     steps { script { compiler_checks('GCC') } }
   }
