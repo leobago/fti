@@ -100,6 +100,7 @@ option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
 option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
 option(ENABLE_IME_NATIVE "Enables the IME native API" OFF)
+option(ENABLE_OPENSSL "Enables linking against system OpenSSL library" ON)
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
@@ -121,14 +122,16 @@ if(NOT ZLIB_FOUND)
 endif()
 
 find_package(MPI REQUIRED)
-if(NOT DEFINED NO_OPENSSL)
-	find_package(OPENSSL REQUIRED)
-	if("${OPENSSL_FOUND}")
-		include_directories( ${OPENSSL_INCLUDE_DIR} )
-	endif()
-else()
-	set(OPENSSL_FOUND false)
+
+set(HAVE_OPENSSL 0)
+if(ENABLE_OPENSSL)
+    find_package(OPENSSL)
+    if(OPENSSL_FOUND)
+        set(HAVE_OPENSSL 1)
+	    include_directories( ${OPENSSL_INCLUDE_DIR} )
+    endif()
 endif()
+set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL=${HAVE_OPENSSL}")
 
 if(ENABLE_LUSTRE)
     find_package(LUSTREAPI)
@@ -357,7 +360,6 @@ install(FILES
     "include/fti.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-configure_file(src/deps/md5/md5.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/deps/md5/md5.h" @ONLY)
 
 if(ENABLE_FORTRAN)
     CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
