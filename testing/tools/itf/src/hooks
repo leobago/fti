@@ -1,0 +1,86 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   hooks
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# The associative array of events to listeners
+declare -A _itf_hooks=()
+
+# ------------ ITF Producer/Consumer Modular Design Base Functions ------------
+
+itf_hook_subscribe() {
+    # Register a notifier function to be executed on an ITF event
+    #
+    # Usage:
+    # itf_hook_subscribe 'event' 'callback'
+    #
+    # Explanation:
+    # When a given 'event' occurs in ITF, invoke the 'callback' bash function
+    #
+    # Example:
+    # itf_hook_subscribe 'onTestLoad' 'printTestInfo'
+    #
+    # Will call printTestInfo when a test is loaded in ITF
+    #
+    # Details:
+    # The hooks are exposed, per module, as comments in the source
+
+    itf_list_add '_itf_hooks' "$1" "$2"
+}
+
+itf_hook_unsubscribe() {
+    # Unsubscribe a function from the ITF event
+    #
+    # Parameters:
+    # $1: The event name
+    # $2: The subscribed function name
+
+    if [ $# -ne 2 ]; then
+        return
+    fi
+    itf_list_remove '_itf_hooks' "$1" "$2"
+}
+
+itf_hook_publish() {
+    # Notify that an ITF engine event has occurred and issue all callbacks
+    #
+    # Usage:
+    # itf_hook_publish 'event'
+    #
+    # Details:
+    # Call all functions related to that event that were registered with
+    # itf_hook_subscribe.
+    #
+    # Example:
+    # itf_hook_subscribe 'onEvent' 'myCallback'
+    # itf_hook_subscribe 'onEvent' 'myCallback2'
+    # itf_hook_publish 'onEvent'
+    #
+    # This will call the function 'myCallBack' and then 'myCallBack2'
+
+    if [ -z $1 ]; then
+        echo '[ITF] Cannot notify an empty hook' && exit 1
+    fi
+
+    local hooks=()
+    itf_list_unwrap '_itf_hooks' "$1" 'hooks'
+    for h in ${hooks[@]}; do
+        $h ${@:2}
+    done
+}
+
+itf_set_if_undef() {
+    # Set an ITF configuration value if it was not set before
+    #
+    # Details:
+    # Even if ITF modules are unloaded, their configuration remain.
+    # This is to keep configurations throughout the same set of suites.
+    # Running tests on different shells will overcome this behavior if needed.
+
+    if [ -z ${itf_cfg["$1"]} ]; then
+        itf_cfg["$1"]="$2"
+    fi
+}

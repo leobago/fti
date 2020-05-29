@@ -1,50 +1,7 @@
-add_executable(addInArray addInArray.c)
-target_link_libraries(addInArray fti.static)
-
-add_executable(diffSizes diffSizes.c)
-target_link_libraries(diffSizes fti.static)
-
-if(ENABLE_HDF5)
-	add_executable(hdf5Test hdf5Test.c)
-	target_link_libraries(hdf5Test fti.static)
-
-	add_executable(hdf5noFTI hdf5noFTI.c)
-    target_link_libraries(hdf5noFTI ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
-
-    add_executable(hdf5CreateBasePattern hdf5CreateBasePattern.c)
-    target_link_libraries(hdf5CreateBasePattern ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
-    file(COPY hdf5Test.sh DESTINATION .)
-endif()
-
-add_executable(heatdis heatdis.c)
-target_link_libraries(heatdis fti.static)
-
-add_executable(nodeFlag nodeFlag.c)
-target_link_libraries(nodeFlag fti.static)
-
-add_executable(corrupt corrupt.c)
-target_link_libraries(corrupt fti.static)
-
-add_executable(syncIntv syncIntv.c)
-target_link_libraries(syncIntv fti.static)
-  
-add_subdirectory(cornerCases)
-add_subdirectory(ckptHierarchy)
-
-if (ENABLE_GPU)
-  add_subdirectory(cuda)
-endif()
-
-file(COPY configs DESTINATION .)
-file(COPY patterns DESTINATION .)
-file(COPY README.txt DESTINATION .)
-file(COPY tests.sh DESTINATION .)
-file(COPY syncIntvTest.sh DESTINATION .)
+enable_testing()
 
 # ------------------------ Install-Time Test Variables -----------------------
 
-# TODO: deprecated when CUDA and FORTRAN tests are integrated into ITF
-set(IO 1)
 set(IO_NAMES "POSIX MPIIO FTIFF")
 set(IO_IDS "1 2 3")
 set(MEMORYTYPES "CPU")
@@ -64,8 +21,7 @@ endif()
 # --------------------------- ITF engine Integration --------------------------
 
 set(testing_dir ${CMAKE_CURRENT_BINARY_DIR})
-
-add_subdirectory(itf)
+add_subdirectory(tools/itf)
 
 # Declares an ITF CTest and assign it labels with the remaining arguments
 function(DeclareITFSuite FixtureName)
@@ -78,12 +34,7 @@ function(DeclareITFSuite FixtureName)
 
   # Attribute the a label to every test in the suite
   set_property(TEST ${FixtureName} PROPERTY LABELS ${ARGN})
-endfunction()
-
-# Install a fixture and create the appropriate test suite for it
-function(InstallSuiteITFConvention FixturePreffix)  
-  DeclareITFSuite("${FixturePreffix}.itf" ${ARGN})
-  install(FILES "${FixturePreffix}.itf" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  install(FILES ${FixtureName} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
 
 # Install a Test application with its source dependencies as extra arguments
@@ -94,6 +45,7 @@ function(InstallTestApplication AppName)
   set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
 
-# ---------------------- Inclusion of Test subdirectories ---------------------
+# -------------------- Inclusion of ITF Test subdirectories -------------------
 
-add_subdirectory(local)
+add_subdirectory(suites/integration)
+add_subdirectory(suites/local)

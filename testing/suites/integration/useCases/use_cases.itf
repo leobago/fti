@@ -1,0 +1,147 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   integration.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Karol Sierocinski (ksiero@man.poznan.pl) (First implementation)
+#   @date   May, 2020
+
+itf_load_module 'fti'
+
+# --------------------- General Setup/Teardown Functions ----------------------
+
+common_setups=('H0I1' 'H1I1' 'H1I0')
+
+setup() {
+    # Common setup for all app_integration checks
+
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set_ckpts '1' '2' '3' '4'
+}
+
+itf_suite_unload 'unload_corner_cases'
+
+unload_corner_cases() {
+    # Remove all non-setup, teardown and test names after executing the suite
+
+    unset set_configfile_to_preset
+    unset common_setups
+}
+
+# ----------------------------- Utility Functions -----------------------------
+
+set_configfile_to_preset() {
+    # Change the config file, after the setup, to one of the common presets
+    #
+    # Arguments:
+    # $1: Preset name, one of the presets for this suite
+    #       values: [ H1I0, H1I1 ]
+
+    case $1 in
+    H1I0 | h1i0)
+        fti_config_set 'head' '1'
+        fti_config_set_noinline
+        ;;
+    H1I1 | h1i1)
+        fti_config_set 'head' '1'
+        fti_config_set_inline
+        ;;
+    esac
+}
+
+# ------------------------------ NodeFlag checks ------------------------------
+
+nodeflag() {
+    # Brief:
+    # Runs the nodeFlag application once and pass if the app succeeds
+    #
+    # Details:
+    # Checks if there is only one process per node with nodeFlag set.
+
+    param_parse '+preset' $@
+    set_configfile_to_preset $preset
+
+    local app="$(dirname ${BASH_SOURCE[0]})/nodeFlag.exe"
+    local configfile="${itf_cfg['fti:config']}"
+
+    # This application verifies FTI logs and verbosity must be set to max
+    fti_config_set 'verbosity' '1'
+    # Assert that these folders exist before running with verbose mode
+    mkdir -p $(fti_config_get 'ckpt_dir')
+    mkdir -p $(fti_config_get 'glbl_dir')
+    mkdir -p $(fti_config_get 'meta_dir')
+
+    fti_run_success $app $configfile
+    pass   
+}
+
+itf_setup 'nodeflag' 'setup'
+for pset in ${common_setups[@]}; do
+     itf_case 'nodeflag' "--preset=$pset"
+done
+unset pset
+
+# ------------------ HeatDist and AddInArray simulates cases ------------------
+
+simulated_use_cases() {
+    # Brief:
+    # Run the simulated application twice, in the first time, simulate a crash
+    #
+    # Arguments:
+    # $1 - The configuration file preset mnemonic name to configure the app
+    # $2 - The name of the C test application
+    # $3 - The checkpoint level that is tested with this check
+    #
+    # Details:
+    # Different applications are constructed in the same way.
+    # This test body can be reused in different test functions in this suite.
+    #
+    # Applications:
+    # 1) ./heatdis.exe "configfile" "stopBeforeFinish"
+    #
+    # Runs the heatdis kernel and simulate an app stop after some iterations.
+    # Note that a crash is not simulated as FTI_Finalize is called.
+    # Run again and try to recover from the previous stop.
+    # This check tests the functionality of FTI_Snapshot.
+    # As such, level is not relevant for this test.
+    #
+    # 2) ./addInArray.exe "configfile" "checkpointLevel" "stopBeforeFinish"
+    #
+    # Adds numbers in array, and does MPI_Allgather each iteration.
+    # Checkpoint every ITER_CHECK interations with level passed in argv.
+    # Note that a crash is not simulated as FTI_Finalize is called.
+    # Recover should always be from L4 due to keep_last_ckpt=1.
+    # Tests the behavior of a simple app:
+    # i) FTI_Init, ii) FTI_Checkpoint, iii) FTI_Status, iv) FTI_Recover,
+    # v) FTI_Finalize.
+
+    param_parse '+app' '+preset' '+level' $@
+
+    set_configfile_to_preset $preset
+
+    app="$(dirname ${BASH_SOURCE[0]})/$app.exe"
+    local cfgfile="${itf_cfg['fti:config']}"
+
+    if [ $level -eq 0 ]; then
+        # Level is not part of the useful parameters for the application
+        fti_run_success $app $cfgfile 1
+        fti_run_success $app $cfgfile 0
+    else
+        # Level is required in the application parameters
+        fti_run_success $app $cfgfile $level 1
+        fti_run_success $app $cfgfile $level 0
+    fi
+    
+    pass
+}
+
+itf_setup 'simulated_use_cases' 'setup'
+for pset in ${common_setups[@]}; do
+    for level in ${fti_levels[@]}; do
+        itf_case 'simulated_use_cases' '--app=addInArray' "--preset=$pset" "--level=$level"
+    done
+    itf_case 'simulated_use_cases' '--app=heatdis' "--preset=$pset" '--level=0'
+done
+
+unset pset level

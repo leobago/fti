@@ -1,0 +1,103 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   sync_intv.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl) (First implementation)
+#   @date   May, 2020
+
+itf_load_module 'fti'
+
+# ----------------------------- Utility functions -----------------------------
+
+array_contains() {
+    # Brief:
+    # Checks if an array contains a given element
+    #
+    # Arguments:
+    # $1 - The element
+    # $@ - The array elements
+    local e match="$1"
+    shift
+    for e; do [[ "$e" == "$match" ]] && return 0; done
+    return 1
+}
+
+itf_suite_unload 'unload_integration'
+
+unload_integration() {
+    # Remove all non-setup, teardown and test names after executing the suite
+    unset array_contains
+}
+
+# ---------------------- Synchronization Interval check -----------------------
+
+checkpoint_interval() {
+    # Brief:
+    #
+    #
+    # Details:
+    #
+
+    local app="$(dirname ${BASH_SOURCE[0]})/syncIntv.exe"
+    local configfile="${itf_cfg['fti:config']}"
+    local logfile="${itf_cfg['fti:app_stdout']}"
+
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set_ckpts '1' '2' '3' '4'
+    fti_config_set 'head' '1'
+    fti_config_set_noinline
+    # This application verifies FTI debug logs and verbosity must be set to max
+    fti_config_set 'verbosity' '1'
+
+    # Sanity check to see if the test is configured properly
+    local max_sync=$(fti_config_get 'max_sync_intv')
+    if [ -z $max_sync ]; then
+        fail 'max_sync not found in config file'
+    fi
+
+    # Run the application
+    fti_run_success $app $configfile
+
+    local ckpt_next=($(grep "Next ckpt. at iter." $logfile | awk '{ print $(NF-5) }' | sort -nu))
+    local ckpt_made_in=($(grep "Checkpoint made i" $logfile | awk '{ print $NF }' | sort -nu))
+    local ckpt_intv=($(grep "Next ckpt. at iter." $logfile | awk '{ print $(NF-11) }' | sort -nu))
+
+    # Assert that ckpts were made in the correct iterations (in ckpt_next)
+    local i=''
+    for i in ${!ckpt_made_in[@]}; do
+        local ckpt=${ckpt_made_in[$i]}
+        local last_ckpt=0
+
+        # When i=0, there is no last checkpoint
+        if [ $i -gt 0 ]; then
+            last_ckpt=${ckpt_made_in[$(($i-1))]}
+        fi
+
+        array_contains $(($ckpt+1)) ${ckpt_next[@]}
+
+        # If resync didnt occured between checkpoints
+        if [ $? -ne 0 ]; then
+            # Check if iterations difference is in ckpt interval values
+            array_contains $(($ckpt-$last_ckpt)) ${ckpt_intv[@]}
+            check_is_zero $? "Ckpt $i was not in the predicted iteration"
+        fi
+    done
+
+    # SyncIntv is done at right iterations and is less than max_sync_intv
+    while read -r i; do
+        local iter=$(echo $i | awk '{ print $9 }')
+        local sync=$(echo $i | awk '{ print $NF }')
+
+        if [ $sync -gt $max_sync ]; then
+            fail "SyncIntv ($sync) is greater than max_sync ($max_sync)."
+        fi
+
+        # Check if resync is done at right iterations
+        check_is_zero $(($iter%$sync)) "Resync doesnt match."
+    done < <(grep "Current iter" $logfile | awk 'NF == 24 {print}')
+    pass   
+}
+
+itf_case 'checkpoint_interval'

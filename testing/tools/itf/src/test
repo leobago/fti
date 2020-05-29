@@ -1,0 +1,315 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   test
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# ----------------------------- ITF Suite Hooks ------------------------------
+
+# onSuiteBegin   'suitename'        : before all test cases in the suite
+# onSuiteEnd     'suitename'        : after all test cases in the suite
+# onTestLoad     'testname'         : after loading the parametrized test cases
+# onTestRunBegin 'testname' 'params': before a test case setup function
+# onTestRunEnd   'testname' 'params': after a test case teardown function
+# onTestPass     'message'          : after a test passes
+# onTestFail     'message'          : after a test fails
+
+# ------------------------- ITF Suite Configuration ---------------------------
+
+# If set to anything other than 0, ITF will only count the test cases
+itf_cfg['core:dry_run']='false'
+# If set, will output the test stdout to the terminal
+itf_cfg['core:verbose']='true'
+# The default buffer for the test stdout (cleared before every test)
+itf_cfg['core:stdout']='/tmp/itf.out'
+
+# --------------------------- ITF Suite Public API ----------------------------
+
+itf_setup() {
+    # Associate a setup function to a test function
+    #
+    # Usage:
+    # itf_setup 'mytest' 'mysetup'
+    #
+    # Explanation:
+    # Makes ITF call 'mysetup' before 'mytest' when executing test cases
+    #
+    # Use to:
+    # Express common steps for different tests without code duplication
+    #
+    # Example:
+    # itf_setup 'testOne' 'setupCommon'
+    # itf_setup 'testTwo' 'setupCommon'
+
+    if [ -z $1 ]; then
+        echo '[ITF] Test function name cannot be empty' && exit 1
+    fi
+    if [ -z $2 ]; then
+        echo '[ITF] Setup function name cannot be empty' && exit 1
+    fi
+
+    _itf_setup[$1]=$2
+}
+
+itf_teardown() {
+    # Associate a teardown function to a test function
+    #
+    # Usage:
+    # itf_teardown 'mytest' 'myteardown'
+    #
+    # Explanation:
+    # Makes ITF call 'mysetup' after 'myteardown' when executing test cases
+    #
+    # Use to:
+    # Express common steps for different tests without code duplication
+    #
+    # Example:
+    # itf_teardown 'testOne' 'teardownCommon'
+    # itf_teardown 'testTwo' 'teardownCommon'
+
+    if [ -z $1 ]; then
+        echo '[ITF] Test function name cannot be empty' && exit 1
+    fi
+    if [ -z $2 ]; then
+        echo '[ITF] Teardown function name cannot be empty' && exit 1
+    fi
+
+    _itf_teardown[$1]=$2
+}
+
+itf_fixture() {
+    # Associate a setup and teardown function to a test function
+    #
+    # Usage:
+    # itf_fixture 'mytest' 'mysetup' 'myteardown'
+    #
+    # Explanation:
+    # See itf_setup and itf_teardown
+    #
+    # Example:
+    # itf_fixture 'testOne' 'setupCommon' 'teardownCommon'
+    # itf_fixture 'testTwo' 'setupCommon' 'teardownCommon'
+
+    itf_setup $1 $2
+    itf_teardown $1 $3
+}
+
+itf_case() {
+    # Brief:
+    # Adds a test case using a parametrized function and a set of parameters
+    #
+    # Arguments:
+    # $1: Test bash function name
+    # $@: Arguments passed to the function following ITF parameter convention
+    #
+    # Usage:
+    # itf_case 'myfunction' '--arg1=val1' '--arg2=val2' ...
+    #
+    # Explanation:
+    # Registers the 'myfunction' as a test function in ITF, if not already.
+    # Then, saves the arguments for later usage to invoke the function.
+    # This effectively creates a suite of cases for the specific test function.
+    #
+    # Example
+    # itf_case a_must_be_2 --a=2
+    # itf_case a_must_be_3 --a=3
+    # itf_case a_must_not_be_2 --a=3
+    # itf_case a_must_not_be_2 --a=4
+
+    local fullname="${itf_state['suite_name']}:$1"
+    if [ -z $1 ]; then
+        echo "[ITF] Test function name cannot be empty" && exit 1
+    fi
+
+    # Check if the function name is in the blacklist
+    if [ $(itf_list_contains 'itf_filter' 'blacklist' "$1") == 'true' ]; then
+        return 0
+    fi
+
+    # Check if function name is in the whitelist
+    # If this list is used, only functions with names there may be called
+    if [ ! -z ${itf_filter['whitelist']} ] && \
+    [ $(itf_list_contains 'itf_filter' 'whitelist' "$fullname") == 'false' ]; then
+        return 0
+    fi
+
+    # Check if any argument assumes a value that should be ignored
+    local k_prefix="$fullname:"
+    for arg in ${@:2}; do
+        local name=$(param_name $arg)
+        local value=$(param_value $arg)
+        local key=${k_prefix}${name}
+
+        # Include list is not empty and does not match the parameter value
+        if [ ! -z ${itf_filter["include:$key"]} ] && \
+           [ $(itf_list_contains 'itf_filter' "include:$key" $value) == 'false' ]; then
+            return 0
+        fi
+        # Exclude list is not empty and match the parameter value
+        if [ ! -z ${itf_filter["exclude:$key"]} ] && \
+           [ $(itf_list_contains 'itf_filter' "exclude:$key" $value) == 'true' ]; then
+            return 0
+        fi
+    done
+
+    itf_list_add '_itf_cases' "$1" "${@:2}"
+
+    let itf_state['ntests']=${itf_state['ntests']}+1
+    let itf_state["${1}_ntests"]=${itf_state["${1}_ntests"]}+1
+}
+
+itf_suite_unload() {
+    # Register a function to be executed when the suite is finished.
+    #
+    # Parameters:
+    # $1: A function name to clean up.
+    #
+    # Usage:
+    # This function is useful to clean up suite' extra variable and function names.
+    # Keep in mind that ITF will automatically destroy test functions, setups and teardowns.
+    # Use this function to register auxiliary functions and variables used to construct the suite.
+
+    itf_state['suite_teardown']="$1"
+}
+
+# --------------------------- ITF Suite Private API ---------------------------
+
+# Read-only associative array with status about the suite after execution
+#
+# Keys for the suite state:
+#
+# - suite_name: The fixture name
+# - ntests: The test count in the suite
+# - passed: The amount of tests that passed
+# - failed: The amount of tests that failed
+#
+# Keys for individual test function state:
+#
+# - [testname]_ntests: The test count for the specific function
+# - [testname]_passed: The amount of tests that passed for a function
+# - [testname]_failed: The amount of tests that failed for a function
+#
+# Internal ITF Array keys:
+#
+# - modules: The ITF modules loaded by this suite
+declare -A itf_state=()
+
+# Keys
+# blacklist   - Ignore the test functions listed here (ITF list string)
+# whitelist   - Ignore all test functions not listed here (ITF list string)
+# include:suitename:testname:paramname - Test cases to include (ITF list string)
+# exclude:suitename:testname:paramname - Test cases to exclude (ITF list string)
+#
+# Details:
+# If include is empty, all tests are included
+# If exclude is empty, no tests are excluded
+declare -A itf_filter=()
+
+# Test case parameters
+declare -A _itf_cases=()
+# Test case parameters
+# Setup functions
+declare -A _itf_setup=()
+# Teardown functions
+declare -A _itf_teardown=()
+
+itf_run_suite() {
+
+    # Clear ITF Suite variables state
+    _itf_cases=()
+    _itf_setup=()
+    _itf_teardown=()
+    itf_state=()
+    itf_filters=()
+    itf_state['ntests']=0
+    itf_state['failed']=0
+    itf_state['passed']=0
+    itf_state['filters']=''
+    itf_state['filters']=''
+    itf_state['suite_teardown']=''
+
+    # Import the suite definitions
+    itf_state['suite_name']=$(basename ${1%.*})
+    source $1
+
+    itf_hook_publish 'onSuiteBegin' ${itf_state[suite_name]}
+
+    # If this is a dry-run, do not execute any tests
+    if [ ${itf_cfg['core:dry_run']} == 'true' ]; then
+        itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
+        return 0
+    fi
+
+    # Iterate on every test function registered
+    for atest in ${!_itf_cases[@]}; do
+
+        # Get an array of test cases associated with this test function name
+        local tcases=()
+        itf_list_unwrap '_itf_cases' "$atest" 'tcases'
+        itf_hook_publish 'onTestLoad' $atest
+
+        # Iterate on every test case
+        local _ntests=${itf_state["${atest}_ntests"]}
+        let _ntests=$_ntests-1
+        for tid in $(seq 0 $_ntests); do
+
+            # Get test case arguments as a string separated by spaces
+            local acase="${tcases[$tid]}"
+            local args=()
+
+            if [ ! -z "$acase" ]; then
+                IFS=" " read -r -a args <<<"$acase"
+            fi
+
+            itf_hook_publish 'onTestRunBegin' $atest ${args[@]}
+
+            # Setup
+            if [ ! -z "${_itf_setup[$atest]}" ]; then
+                ${_itf_setup[$atest]}
+            fi
+
+            # Invoke the test with the correct arguments
+            (
+                if [ ${itf_cfg['core:verbose']} == 'true' ]; then
+                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']}
+                else
+                    $atest ${args[@]} | tee -a ${itf_cfg['core:stdout']} >/dev/null
+                fi
+                exit ${PIPESTATUS[0]}
+            )
+            local retval=$?
+
+            # Teardown
+            if [ ! -z "${_itf_teardown[$atest]}" ]; then
+                ${_itf_teardown[$atest]}
+            fi
+
+            itf_hook_publish 'onTestRunEnd' $atest ${args[@]}
+
+            if [ $retval -eq 0 ]; then
+                let itf_state['passed']=${itf_state['passed']}+1
+                let itf_state["${atest}_passed"]=${itf_state["${atest}_passed"]}+1
+                itf_hook_publish 'onTestPass' "$(itf_get_assert_msg)"
+            else
+                let itf_state['failed']=${itf_state['failed']}+1
+                let itf_state["${atest}_failed"]=${itf_state["${atest}_failed"]}+1
+                itf_hook_publish 'onTestFail' "$(itf_get_assert_msg)"
+            fi
+            itf_clear_assert_msg
+        done
+    done
+
+    itf_hook_publish 'onSuiteEnd' ${itf_state[suite_name]}
+    # Teardown the suite functions
+    for atest in ${!_itf_cases[@]}; do
+        unset $atest ${_itf_setup[$atest]} ${_itf_teardown[$atest]}
+    done
+
+    # Call the suite teardown if any
+    if [ ! -z ${itf_state['suite_teardown']} ]; then
+        ${itf_state['suite_teardown']}
+        unset ${itf_state['suite_teardown']}
+    fi
+}
