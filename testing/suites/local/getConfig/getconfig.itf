@@ -1,0 +1,28 @@
+#!/bin/bash
+
+itf_load_module 'fti'
+
+# ---------------------------- Bash Test functions ----------------------------
+
+standard() {
+    # Brief:
+    # Tests the default behavior of the getConfig functionality
+    #
+    local app="$(dirname ${BASH_SOURCE[0]})/getConfig.exe"
+
+    param_parse '+iolib' $@
+
+    # fti_config_set 'head' 0
+    # fti_config_set 'keep_last_ckpt' 0
+    # fti_config_set 'ckpt_io' $iolib
+
+    fti_run_success $app ${itf_cfg['fti:config']}
+    #fti_run_success $app ${itf_cfg['fti:config']} 0 $level 1
+    pass
+}
+
+# -------------------------- ITF Register test cases --------------------------
+
+for iolib in ${fti_io_ids[@]}; do
+    itf_case 'standard' "--iolib=$iolib"
+done

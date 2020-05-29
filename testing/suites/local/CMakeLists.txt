@@ -7,6 +7,7 @@ add_subdirectory(standard)
 add_subdirectory(staging)
 add_subdirectory(cornerCases)
 add_subdirectory(keepL4Ckpt)
+add_subdirectory(getConfig)
 
 if(ENABLE_HDF5)
   add_subdirectory(variateProcessorRestart)
