@@ -28,7 +28,7 @@ itf_list_unwrap() {
     # itf_list_unwrap 'aarray' 'anykey' 'myarray'
     # echo ${!myarray[@]} # Should print 4
 
-    declare -nl pointer=$1
+    declare -n pointer=$1
     IFS="$_itf_sep" read -r -a $3 <<<"${pointer[$2]:1:-1}"
 }
 
@@ -45,7 +45,7 @@ itf_list_add() {
     # In any case, an item will be added to the list.
     # The items can be later retrieved as a bash array using itf_list_unwrap.
 
-    declare -nl pointer="$1"
+    declare -n pointer="$1"
     if [ -z "${pointer[$2]}" ]; then
         pointer["$2"]="${_itf_sep}${@:3}${_itf_sep}"
     else
@@ -64,7 +64,7 @@ itf_list_remove() {
     if [ $# -ne 3 ]; then
         return
     fi
-    declare -nl pointer="$1"
+    declare -n pointer="$1"
 
     # List is empty
     if [ -z "${pointer[$2]}" ]; then
@@ -72,7 +72,8 @@ itf_list_remove() {
     fi
 
     # Element not in the list
-    if [ $(itf_list_contains "$1" "$2" "$3") == 'false' ]; then
+    itf_list_contains "$1" "$2" "$3"
+    if [ $? -ne 0 ]; then
         return 0
     fi
 
@@ -103,17 +104,32 @@ itf_list_contains() {
     # $2: The associative array key
     # $3: The element to be found in an ITF-list string
 
-    declare -nl pointer=$1
+    declare -n pointer=$1
 
     # No items in the list or no sufficient parameters
     if [ -z "${pointer[$2]}" ] || [ $# -lt 3 ]; then
-        echo "false"
-        return 0
+        return 1
     fi
     # Check if substring exists
     if [ -z "${pointer[$2]##*${_itf_sep}$3${_itf_sep}*}" ]; then
-        echo 'true'
         return 0
     fi
-    echo 'false'
+    return 1
+}
+
+itf_array_contains() {
+    # Brief:
+    # Check if a bash array contains a given element
+    #
+    # Arguments:
+    # $1: The array variable name
+    # $2: The element value
+
+    if [ $# -lt 2 ]; then
+        return 2
+    fi
+
+    declare -n pointer=$1
+    case "${pointer[@]}" in *"${@:2}"*) return 0 ;; esac
+    return 1
 }

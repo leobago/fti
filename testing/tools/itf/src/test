@@ -10,7 +10,7 @@
 
 # onSuiteBegin   'suitename'        : before all test cases in the suite
 # onSuiteEnd     'suitename'        : after all test cases in the suite
-# onTestLoad     'testname'         : after loading the parametrized test cases
+# onTestLoad     'testname' 'ncases': after loading the parametrized test cases
 # onTestRunBegin 'testname' 'params': before a test case setup function
 # onTestRunEnd   'testname' 'params': after a test case teardown function
 # onTestPass     'message'          : after a test passes
@@ -28,20 +28,18 @@ itf_cfg['core:stdout']='/tmp/itf.out'
 # --------------------------- ITF Suite Public API ----------------------------
 
 itf_setup() {
+    # Brief:
     # Associate a setup function to a test function
     #
+    # Arguments:
+    # $1 - The test function name
+    # $2 - The teardown function name
+    #
     # Usage:
-    # itf_setup 'mytest' 'mysetup'
+    # itf_steup 'mytest' 'mysetup'
     #
-    # Explanation:
-    # Makes ITF call 'mysetup' before 'mytest' when executing test cases
-    #
-    # Use to:
-    # Express common steps for different tests without code duplication
-    #
-    # Example:
-    # itf_setup 'testOne' 'setupCommon'
-    # itf_setup 'testTwo' 'setupCommon'
+    # Details:
+    # ITF will call setup before each test case for the test function.
 
     if [ -z $1 ]; then
         echo '[ITF] Test function name cannot be empty' && exit 1
@@ -54,16 +52,18 @@ itf_setup() {
 }
 
 itf_teardown() {
+    # Brief:
     # Associate a teardown function to a test function
+    #
+    # Arguments:
+    # $1 - The test function name
+    # $2 - The teardown function name
     #
     # Usage:
     # itf_teardown 'mytest' 'myteardown'
     #
-    # Explanation:
-    # Makes ITF call 'mysetup' after 'myteardown' when executing test cases
-    #
-    # Use to:
-    # Express common steps for different tests without code duplication
+    # Details:
+    # ITF will call teardown after each test case for the test function.
     #
     # Example:
     # itf_teardown 'testOne' 'teardownCommon'
@@ -80,12 +80,13 @@ itf_teardown() {
 }
 
 itf_fixture() {
+    # Brief
     # Associate a setup and teardown function to a test function
     #
     # Usage:
     # itf_fixture 'mytest' 'mysetup' 'myteardown'
     #
-    # Explanation:
+    # Details:
     # See itf_setup and itf_teardown
     #
     # Example:
@@ -107,12 +108,12 @@ itf_case() {
     # Usage:
     # itf_case 'myfunction' '--arg1=val1' '--arg2=val2' ...
     #
-    # Explanation:
+    # Details:
     # Registers the 'myfunction' as a test function in ITF, if not already.
     # Then, saves the arguments for later usage to invoke the function.
     # This effectively creates a suite of cases for the specific test function.
     #
-    # Example
+    # Examples:
     # itf_case a_must_be_2 --a=2
     # itf_case a_must_be_3 --a=3
     # itf_case a_must_not_be_2 --a=3
@@ -124,15 +125,21 @@ itf_case() {
     fi
 
     # Check if the function name is in the blacklist
-    if [ $(itf_list_contains 'itf_filter' 'blacklist' "$1") == 'true' ]; then
-        return 0
+    if [ ! -z ${itf_filter['blacklist']} ]; then
+        # If this list is used, functions named here will not be registered
+        itf_list_contains 'itf_filter' 'blacklist' "$fullname"
+        if [ $? -eq 0 ]; then
+            return 0 # Ignore the test function
+        fi
     fi
 
     # Check if function name is in the whitelist
-    # If this list is used, only functions with names there may be called
-    if [ ! -z ${itf_filter['whitelist']} ] && \
-    [ $(itf_list_contains 'itf_filter' 'whitelist' "$fullname") == 'false' ]; then
-        return 0
+    if [ ! -z ${itf_filter['whitelist']} ]; then
+        # If this list is used, only functions with names there may be called
+        itf_list_contains 'itf_filter' 'whitelist' "$fullname"
+        if [ $? -ne 0 ]; then
+            return 0 # Ignore the test function
+        fi
     fi
 
     # Check if any argument assumes a value that should be ignored
@@ -143,14 +150,18 @@ itf_case() {
         local key=${k_prefix}${name}
 
         # Include list is not empty and does not match the parameter value
-        if [ ! -z ${itf_filter["include:$key"]} ] && \
-           [ $(itf_list_contains 'itf_filter' "include:$key" $value) == 'false' ]; then
-            return 0
+        if [ ! -z ${itf_filter["include:$key"]} ]; then
+            itf_list_contains 'itf_filter' "include:$key" $value
+            if [ $? -ne 0 ]; then
+                return 0 # Ignore the test case
+            fi
         fi
         # Exclude list is not empty and match the parameter value
-        if [ ! -z ${itf_filter["exclude:$key"]} ] && \
-           [ $(itf_list_contains 'itf_filter' "exclude:$key" $value) == 'true' ]; then
-            return 0
+        if [ ! -z ${itf_filter["exclude:$key"]} ]; then
+            itf_list_contains 'itf_filter' "exclude:$key" $value
+            if [ $? -eq 0 ]; then
+                return 0 # Ignore the test case
+            fi
         fi
     done
 
@@ -161,12 +172,16 @@ itf_case() {
 }
 
 itf_suite_unload() {
+    # Brief:
     # Register a function to be executed when the suite is finished.
     #
     # Parameters:
     # $1: A function name to clean up.
     #
     # Usage:
+    # itf_suite_unload 'my_suite_unload_function'
+    #
+    # Details:
     # This function is useful to clean up suite' extra variable and function names.
     # Keep in mind that ITF will automatically destroy test functions, setups and teardowns.
     # Use this function to register auxiliary functions and variables used to construct the suite.
@@ -176,35 +191,33 @@ itf_suite_unload() {
 
 # --------------------------- ITF Suite Private API ---------------------------
 
+# Brief:
 # Read-only associative array with status about the suite after execution
 #
-# Keys for the suite state:
+# Keys:
+# -- Suite --
+# suite_name: The fixture name
+# ntests: The test count in the suite
+# passed: The amount of tests that passed
+# failed: The amount of tests that failed
 #
-# - suite_name: The fixture name
-# - ntests: The test count in the suite
-# - passed: The amount of tests that passed
-# - failed: The amount of tests that failed
+# -- Individual Test Function --
+# [testname]_ntests: The test count for the specific function
+# [testname]_passed: The amount of tests that passed for a function
+# [testname]_failed: The amount of tests that failed for a function
 #
-# Keys for individual test function state:
-#
-# - [testname]_ntests: The test count for the specific function
-# - [testname]_passed: The amount of tests that passed for a function
-# - [testname]_failed: The amount of tests that failed for a function
-#
-# Internal ITF Array keys:
-#
-# - modules: The ITF modules loaded by this suite
+# -- Internal/Private Keys --
+# modules: The ITF modules loaded by this suite
 declare -A itf_state=()
 
-# Keys
+# Brief:
+# Filter parameters to prevent/allow test cases to be registered for execution
+#
+# Keys:
 # blacklist   - Ignore the test functions listed here (ITF list string)
 # whitelist   - Ignore all test functions not listed here (ITF list string)
 # include:suitename:testname:paramname - Test cases to include (ITF list string)
 # exclude:suitename:testname:paramname - Test cases to exclude (ITF list string)
-#
-# Details:
-# If include is empty, all tests are included
-# If exclude is empty, no tests are excluded
 declare -A itf_filter=()
 
 # Test case parameters
@@ -216,6 +229,16 @@ declare -A _itf_setup=()
 declare -A _itf_teardown=()
 
 itf_run_suite() {
+    # Brief:
+    # Interpret an ITF suite bash script and run all registered tests
+    #
+    # Parameters:
+    # $1 - The filename containing a suite of ITF tests
+    #
+    # Details:
+    # Clear the internal ITF engine state.
+    # Source the bash file, which should contain ITF function calls.
+    # Then, run every test case and issue ITF events for hook subscribers.
 
     # Clear ITF Suite variables state
     _itf_cases=()
@@ -247,11 +270,11 @@ itf_run_suite() {
 
         # Get an array of test cases associated with this test function name
         local tcases=()
+        local _ntests=${itf_state["${atest}_ntests"]}
         itf_list_unwrap '_itf_cases' "$atest" 'tcases'
-        itf_hook_publish 'onTestLoad' $atest
+        itf_hook_publish 'onTestLoad' "$atest" "$_ntests"
 
         # Iterate on every test case
-        local _ntests=${itf_state["${atest}_ntests"]}
         let _ntests=$_ntests-1
         for tid in $(seq 0 $_ntests); do
 
