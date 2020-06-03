@@ -44,6 +44,14 @@ int main(int argc, char *argv[]){
         if (configStruct.configuration.ioMode == 1003){
             compare = true;
         }
+    } else if (ckpt_io == 4){
+        if (configStruct.configuration.ioMode == 1004){
+            compare = true;
+        }
+    } else if (ckpt_io == 5){
+        if (configStruct.configuration.ioMode == 1005){
+            compare = true;
+        }
     }
     
     if(nrank==0){
@@ -53,8 +61,10 @@ int main(int argc, char *argv[]){
             printf("FAILURE\n");
     }
 
+    MPI_Barrier(FTI_COMM_WORLD);
     FTI_Finalize();
     MPI_Finalize();
+
     if (compare)
         return 0;
     else
