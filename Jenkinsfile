@@ -24,17 +24,17 @@ def compiler_checks(compilerName) {
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  stage('Local checks') { itf_suite('local') }
-  stage('Integration checks') { itf_suite('integration') }
+  stage('Core behavior checks') { itf_suite('core') }
+  stage('Feature checks') { itf_suite('features') }
 }
 
 pipeline {
 agent none
 
 stages {
-  stage('CMake versions') {
+  stage('Complation checks') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
-    steps { itf_suite('cmake') }
+    steps { itf_suite('compilation') }
   }
   stage('GCC') {
     agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }

@@ -432,7 +432,7 @@ if(ENABLE_TUTORIAL)
 endif()
 
 if(ENABLE_DOCU)
-    add_subdirectory(doc/Doxygen)
+    add_subdirectory(docs/Doxygen)
 endif()
 
 

@@ -1,0 +1,58 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   parameters.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   June, 2020
+
+no_validation() {
+    # Brief:
+    # A test example without any parameter validation
+
+    username=$1
+    password=$2
+
+    check_equals $username 'correct_usr'
+    assert_equals $password 'correct_pass'
+}
+
+# Registers a valid test
+itf_case 'no_validation' 'correct_usr' 'correct_pass'
+# The test won't make sense without both parameters
+itf_case 'no_validation' 'correct_usr'
+
+manual_validation() {
+    # Brief:
+    # A test example without any parameter validation
+
+    username=$1
+    password=$2
+
+    if [ -z $1 ] || [ -z $2 ]; then
+        fail 'Insuficient parameters'
+    fi
+
+    check_equals $username 'correct_usr'
+    assert_equals $password 'correct_pass'
+}
+
+# This test case should fail correctly
+itf_case 'manual_validation' 'correct_usr'
+
+automatic_validation() {
+    # Brief:
+    # Example using ITF param_parse command
+
+    param_parse '+username' '+password' $@
+
+    check_equals $username 'correct_usr'
+    assert_equals $password 'correct_pass'
+}
+
+# Correct test case registering
+itf_case 'automatic_validation' '--username=correct_usr' '--password=correct_pass'
+# Use of unexpected argument
+itf_case 'automatic_validation' '--invalidparam=correct_usr' '--password=correct_pass'
+# Required argument is missing
+itf_case 'automatic_validation' '--username=correct_usr'
