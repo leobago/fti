@@ -3,8 +3,10 @@
 #   All rights reserved
 #
 #   @file   integration.itf
+#   @author Karol Sierocinski (ksiero@man.poznan.pl)
+#       Contribution: First implementation of test behavior
 #   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
-#   @author Karol Sierocinski (ksiero@man.poznan.pl) (First implementation)
+#       Contribution: Refactoring and conversion to ITF format
 #   @date   May, 2020
 
 itf_load_module 'fti'
@@ -90,7 +92,7 @@ check_log() {
 
 verify_log() {
     # Brief:
-    # Check for standard FTI messages in log despite ranks with different sizes
+    # Asserts normal behavior, in logs, when ranks have different ckpt sizes
 
     param_parse '+preset' '+level' $@
 
@@ -129,7 +131,7 @@ unset level pset
 
 verify_log_disrupt() {
     # Brief:
-    # Check for standard FTI messages in log despite ranks with different sizes
+    # Same as verify_log but with checkpoint file disruption
 
     param_parse '+preset' '+level' '+disrupt' '+target' '+nodes' $@
     set_configfile_to_preset $preset

@@ -47,5 +47,10 @@ endfunction()
 
 # -------------------- Inclusion of ITF Test subdirectories -------------------
 
-add_subdirectory(suites/integration)
-add_subdirectory(suites/local)
+add_subdirectory(suites/core)
+add_subdirectory(suites/features)
+
+if(ENABLE_EXAMPLES)
+  add_subdirectory(suites/examples)
+endif()
+

@@ -1,0 +1,65 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   mpi_api.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   June, 2020
+
+itf_load_module 'fti'
+
+launch_app() {
+    # Brief:
+    # Launch an MPI application with FTI
+    #
+    # Parameters:
+    # crash - Simulate a logic crash in FTI or not (boolean 1/0)
+
+    param_parse '+crash' $@
+
+    local app="$(dirname ${BASH_SOURCE[0]})/dummy_app.exe"
+    local cfg=${itf_cfg[fti:config]}
+
+    # The amount of ranks used is configured per-test, the variable is:
+    echo "MPI Application configured to use ${itf_cfg[fti:nranks]} ranks"
+    # Launches an application with its parameters
+    # 1 -> FTI configuration file
+    # 2 -> Simulate a crash or not
+    # 3 -> The return value of the application
+    fti_run $app $cfg $crash 0
+    # The application stdout is contained in the following
+    echo "Application stdout saved to: ${itf_cfg[fti:app_stdout]}"
+    echo "Application stdout: "
+    cat ${itf_cfg[fti:app_stdout]}
+
+    pass
+}
+
+# Simulate the correct closing of FTI
+itf_case 'launch_app' '--crash=0'
+# Simulate a crash closing of FTI
+itf_case 'launch_app' '--crash=1'
+
+launch_app_success() {
+    # Brief:
+    # Launch an MPI application with FTI, failing if the app fails
+    #
+    # Parameters:
+    # retval - The return value for the dummy_app.exe application (integer)
+
+    param_parse '+retval' $@
+
+    local app="$(dirname ${BASH_SOURCE[0]})/dummy_app.exe"
+    local cfg=${itf_cfg[fti:config]}
+
+    # Launches an application with its parameters
+    # 1 -> FTI configuration file
+    # 2 -> Simulate a crash or not
+    # 3 -> The return value of the application
+    # Using this command will make the test fail if the app fails
+    fti_run_success $app $cfg 0 $retval
+    pass
+}
+
+itf_case 'launch_app_success' '--retval=0'
+itf_case 'launch_app_success' '--retval=1'

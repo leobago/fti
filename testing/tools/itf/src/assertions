@@ -29,7 +29,7 @@ fail() {
 }
 
 check_equals() {
-    # Check if a value is equal to another or fails otherwise
+    # Evaluates two values and fails the test if both are different
     #
     # Parameters:
     # $1: The first numerical value
@@ -40,13 +40,13 @@ check_equals() {
         fail "check_equals requires at least two arguments"
     fi
 
-    if [ "$1" -ne "$2" ]; then
+    if [ ! "$1" == "$2" ]; then
         fail "$3"
     fi
 }
 
 check_not_equals() {
-    # Check if a value is not equal to another or fails otherwise
+    # Evaluates two values and fails the test if both are equal
     #
     # Parameters:
     # $1: The first numerical value
@@ -57,13 +57,13 @@ check_not_equals() {
         fail "check_not_equals requires at least two arguments"
     fi
 
-    if [ "$1" -eq "$2" ]; then
+    if [ "$1" == "$2" ]; then
         fail "$3"
     fi
 }
 
 check_is_zero() {
-    # Check if a value is equal to zero or fails otherwise
+    # Fail the test if a given value is not zero
     #
     # Parameters:
     # $1: The first numerical value
@@ -73,13 +73,13 @@ check_is_zero() {
         fail "check_is_zero requires at least one argument"
     fi
 
-    if [ "$1" -ne "0" ]; then
+    if [ ! "$1" == "0" ]; then
         fail "$2"
     fi
 }
 
 check_non_zero() {
-    # Check if a value is different to zero or fails otherwise
+    # Fail the test if a given value is zero
     #
     # Parameters:
     # $1: The first numerical value
@@ -89,7 +89,7 @@ check_non_zero() {
         fail "check_non_zero requires at least one argument"
     fi
 
-    if [ "$1" -eq "0" ]; then
+    if [ "$1" == "0" ]; then
         fail "$2"
     fi
 }
@@ -125,7 +125,7 @@ check_file_dont_exist() {
 }
 
 assert_equals() {
-    # Check if two values are equal and finalize the test with the result
+    # Evaluates two values and pass the test if both are equals, fail otherwise
     #
     # Parameters:
     # $1: The first numerical value
@@ -141,7 +141,7 @@ assert_equals() {
 }
 
 assert_not_equals() {
-    # Check if two values are different and finalize the test with the result
+    # Same as assert_equals but pass the test if both values are different
     #
     # Parameters:
     # $1: The first value
@@ -157,7 +157,7 @@ assert_not_equals() {
 }
 
 assert_file_exists() {
-    # Check if a file exists and finalize the test with the result
+    # Pass the test if a given path represents a file, fail otherwise
     #
     # Parameters:
     # $1: The file path
