@@ -1,0 +1,91 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   declaration_block.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   June, 2020
+
+attempt_1() {
+    # Brief:
+    # Checks if a given pattern can be found in the patterns file
+    #
+    # Details:
+    # This test is ill-formed because a file is created and never deleted
+
+    # Given than
+    echo 'ABC' > 'patterns1.txt'
+    echo 'BAC' >> 'patterns1.txt'
+    echo 'CAB' >> 'patterns1.txt'
+    
+    # When
+    grep -q $1 'pattern1.txt'
+
+    # Assert that
+    assert_equals $? 0 "Pattern $1 not found"
+
+    # Clean-up (Not called because assert terminates the test)
+    rm -rf 'patterns1.txt'
+}
+
+attempt_2() {
+    # Brief:
+    # Checks if a given pattern can be found in the patterns file
+    #
+    # Details:
+    # This test is ill-formed because the file remains when the test fails
+
+    # Given than
+    echo 'ABC' > 'patterns2.txt'
+    echo 'BAC' >> 'patterns2.txt'
+    echo 'CAB' >> 'patterns2.txt'
+    
+    # When
+    grep -q $1 'pattern.txt'
+    check_is_zero $? "Pattern $1 not found"
+    
+    # Clean-up ( will not be called when test fails )
+    rm -rf "patterns2.txt"
+    pass
+}
+
+create_patterns() {
+    # Brief:
+    # Create a patterns file with ABC BAC and CAB patterns
+
+    patterns_file='patterns.txt'
+
+    for pat in 'ABC' 'BAC' 'CAB'; do
+        echo $pat >> $patterns_file
+    done
+}
+
+delete_patterns() {
+    # Brief:
+    # Delete the pattern files and clear the variable name
+
+    rm -rf $patterns_file
+    unset patterns_file
+}
+
+attempt_3() {
+    grep -q $1 $patterns_file
+    assert_equals $? 0 "Pattern $1 not found"
+}
+
+# ----------------------------- Declarative block -----------------------------
+
+itf_case 'attempt_1' 'ABC' # patterns.txt will be created and not erased
+
+# Register two test cases for the attempt_2 and attempt_3 test functions
+for pat in 'ABC' 'XDG'; do
+    itf_case 'attempt_2' $pat
+    itf_case 'attempt_3' $pat
+done
+
+# Register setup/teardown functions
+itf_setup 'attempt_3' 'create_patterns'
+itf_teardown 'attempt_3' 'delete_patterns'
+
+# One-line variant for registering fixture methods (subscribe previous)
+itf_fixture 'attempt_3' 'create_patterns' 'delete_patterns'

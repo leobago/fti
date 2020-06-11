@@ -71,7 +71,7 @@ standard() {
     pass
 }
 
-posix_corrupt() {
+corrupt_check() {
     # Brief:
     # TODO: missing a description
     #
@@ -113,7 +113,7 @@ posix_corrupt() {
 # -------------------------- ITF Register test cases --------------------------
 
 itf_fixture 'standard' 'setup' 'standard_teardown'
-itf_setup 'posix_corrupt' 'setup'
+itf_setup 'corrupt_check' 'setup'
 
 # Add test cases for the standard checks
 for iolib in 1 3; do
@@ -126,7 +126,7 @@ done
 
 # Add test cases for the Posix-corrupt checks
 for recovery in FTI_Recover FTI_RecoverVar; do
-    itf_case 'posix_corrupt' "--recovery=$recovery"
+    itf_case 'corrupt_check' "--recovery=$recovery"
 done
 
 unset iolib head mode recovery

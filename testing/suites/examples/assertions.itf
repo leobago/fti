@@ -1,0 +1,64 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   assertions.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   June, 2020
+
+# ---------------------- Unconditional Assertion Examples ---------------------
+
+always_pass() {
+    # Brief:
+    # A test case that always succeeds
+
+    pass
+}
+
+always_fail() {
+    # Brief:
+    # A test case that always fails
+
+    fail 'Optional message when failed'
+}
+
+# ----------------------- Conditional Assertion Examples ----------------------
+
+pass_if_zero() {
+    # Brief:
+    # A parametrized test where cases pass if the first arg is 0
+
+    assert_equals $1 0 "First argument is not zero"
+}
+
+fail_if_zero() {
+    # Brief:
+    # A parametrized test where cases pass if the first arg is 0
+
+    assert_not_equals $1 0 "First argument is zero"
+}
+
+# ------------------------- Check Assertion Examples --------------------------
+
+check_assertion() {
+    # Brief:
+    # Uses the check assertion to keep testing if condition is true
+
+    check_equals $1 0 'I failed because the first argument is 0'
+    echo "Checks passed..."
+    pass
+}
+
+# ----------------------------- Declarative block -----------------------------
+
+itf_case 'always_pass'
+
+itf_case 'always_fail'
+
+itf_case 'pass_if_zero' '0'
+
+itf_case 'fail_if_zero' '0'
+itf_case 'fail_if_zero' '1'
+
+itf_case 'check_assertion' '1'
+itf_case 'check_assertion' '0'

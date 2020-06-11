@@ -232,6 +232,115 @@ ckpt_disrupt_first() {
     ckpt_disrupt $1 $2 $3 ${_files[@]}
 }
 
+find_fti_objects() {
+    # Find checkpoint, partner files and node directories in the last execution
+    #
+    # Parameters:
+    #
+    # $1: What to find.
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $2: In which checkpoint level directory to look for.
+    #       values: 1, 2, 3, 4
+    # $@: Which node ids or ckpt/partner file ranks to find
+    #       values: numerical values
+    #
+    # Example:
+    # The following finds the node directory for nodes 0, 1 and 2 at the ckpt level 3
+    #
+    # find_fti_local_objects 3 node 0 1 2
+    #
+    # The following finds the partner checkpoint files with rank 2 and 4
+    #
+    # find_fti_local_objects 2 partner 2 4
+    #
+    # The following finds the RS-encoding files for ranks 1 and 10
+    #
+    # find_fti_local_objects 3 partner 1 10
+
+    find_fti_objects_special_cases $1 $2
+    if [ $? -eq 0 ]; then
+        # A special case has been found, return
+        return 0
+    fi
+
+    local _what=$1
+    local _level=$2
+    local _dir="$(get_ckpt_dir $_level)"
+    local _files=()
+
+    case $_what in
+    node)
+        # Node folder search in local directory (Global treated above)
+        local _exec_id="$(fti_config_get 'exec_id')"
+        local _local="$(fti_config_get 'ckpt_dir')"
+        for __nid in ${@:3}; do
+            local f="$_local/node$__nid/$_exec_id/l$_level"
+            if [ -d $f ]; then
+                _files+=("$f")
+            fi
+        done
+        unset __nid
+        ;;
+    checkpoint)
+        # Common case for ckpt file, get all files using the Rank preffix
+        for __rank in ${@:3}; do
+            _files+=($(find $_dir -type f -iname "*Rank${__rank}\.*"))
+        done
+        unset __rank
+        ;;
+    partner)
+        # Common case for ptn file, get all files using the Pcof or RSed preffix
+        for __rank in ${@:3}; do
+            _files+=($(find $_dir -type f \( -iname "*Pcof${__rank}\.*" -o -iname "*RSed${__rank}\.*" \)))
+        done
+        unset __rank
+        ;;
+    *)
+        fail "Unrecognized FTI ckpt object type: $_what"
+        ;;
+    esac
+    echo ${_files[@]}
+}
+
+find_fti_objects_all() {
+    # Find all FTI checkpoint, partner files, or node directories in a level
+    #
+    # Parameters:
+    #
+    # $1: What to find.
+    #       values: [ 'checkpoint', 'partner', 'node' ]
+    # $2: In which checkpoint level directory to look for.
+    #       values: 1, 2, 3, 4
+
+    find_fti_objects_special_cases $1 $2
+    if [ $? -eq 0 ]; then
+        # A special case has been found, return
+        return 0
+    fi
+
+    local _what=$1
+    local _level=$2
+    local _exec_id=$(fti_config_get 'exec_id')
+
+    local _dir=$(fti_config_get 'ckpt_dir')
+    if [ $_level -eq 4 ]; then
+        _dir=$(fti_config_get 'glbl_dir')
+    fi
+
+    case $_what in
+    node)
+        # Node in L4 is a special case, so we can assume to work with Local
+        find $_dir -type d -ipath "*${_exec_id}*" -a -ipath "*l${_level}*"
+        ;;
+    checkpoint)
+        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Rank*"
+        ;;
+    partner)
+        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Pcof*" -o -iname '*RSed*'
+        ;;
+    esac
+}
+
 # ------------------------- Test Assertion Extensions -------------------------
 
 fti_check_in_log() {
@@ -358,115 +467,6 @@ get_ckpt_dir() {
         local _local="$(fti_config_get 'ckpt_dir')"
         echo "$_local/node$_node/$_exec_id/l$_level"
     fi
-}
-
-find_fti_objects() {
-    # Find checkpoint, partner files and node directories in the last execution
-    #
-    # Parameters:
-    #
-    # $1: What to find.
-    #       values: [ 'checkpoint', 'partner', 'node' ]
-    # $2: In which checkpoint level directory to look for.
-    #       values: 1, 2, 3, 4
-    # $@: Which node ids or ckpt/partner file ranks to find
-    #       values: numerical values
-    #
-    # Example:
-    # The following finds the node directory for nodes 0, 1 and 2 at the ckpt level 3
-    #
-    # find_fti_local_objects 3 node 0 1 2
-    #
-    # The following finds the partner checkpoint files with rank 2 and 4
-    #
-    # find_fti_local_objects 2 partner 2 4
-    #
-    # The following finds the RS-encoding files for ranks 1 and 10
-    #
-    # find_fti_local_objects 3 partner 1 10
-
-    find_fti_objects_special_cases $1 $2
-    if [ $? -eq 0 ]; then
-        # A special case has been found, return
-        return 0
-    fi
-
-    local _what=$1
-    local _level=$2
-    local _dir="$(get_ckpt_dir $_level)"
-    local _files=()
-
-    case $_what in
-    node)
-        # Node folder search in local directory (Global treated above)
-        local _exec_id="$(fti_config_get 'exec_id')"
-        local _local="$(fti_config_get 'ckpt_dir')"
-        for __nid in ${@:3}; do
-            local f="$_local/node$__nid/$_exec_id/l$_level"
-            if [ -d $f ]; then
-                _files+=("$f")
-            fi
-        done
-        unset __nid
-        ;;
-    checkpoint)
-        # Common case for ckpt file, get all files using the Rank preffix
-        for __rank in ${@:3}; do
-            _files+=($(find $_dir -type f -iname "*Rank${__rank}\.*"))
-        done
-        unset __rank
-        ;;
-    partner)
-        # Common case for ptn file, get all files using the Pcof or RSed preffix
-        for __rank in ${@:3}; do
-            _files+=($(find $_dir -type f \( -iname "*Pcof${__rank}\.*" -o -iname "*RSed${__rank}\.*" \)))
-        done
-        unset __rank
-        ;;
-    *)
-        fail "Unrecognized FTI ckpt object type: $_what"
-        ;;
-    esac
-    echo ${_files[@]}
-}
-
-find_fti_objects_all() {
-    # Find all FTI checkpoint, partner files, or node directories in a level
-    #
-    # Parameters:
-    #
-    # $1: What to find.
-    #       values: [ 'checkpoint', 'partner', 'node' ]
-    # $2: In which checkpoint level directory to look for.
-    #       values: 1, 2, 3, 4
-
-    find_fti_objects_special_cases $1 $2
-    if [ $? -eq 0 ]; then
-        # A special case has been found, return
-        return 0
-    fi
-
-    local _what=$1
-    local _level=$2
-    local _exec_id=$(fti_config_get 'exec_id')
-
-    local _dir=$(fti_config_get 'ckpt_dir')
-    if [ $_level -eq 4 ]; then
-        _dir=$(fti_config_get 'glbl_dir')
-    fi
-
-    case $_what in
-    node)
-        # Node in L4 is a special case, so we can assume to work with Local
-        find $_dir -type d -ipath "*${_exec_id}*" -a -ipath "*l${_level}*"
-        ;;
-    checkpoint)
-        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Rank*"
-        ;;
-    partner)
-        find $_dir -type f -ipath "*${_exec_id}*" -a -ipath "*l${_level}*" -a -iname "*Pcof*" -o -iname '*RSed*'
-        ;;
-    esac
 }
 
 find_fti_objects_special_cases() {

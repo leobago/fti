@@ -73,19 +73,19 @@ find)
     # Arguments:
     # One or more of the CI stage names below.
     #
-    # Local:       Test FTI behavior and additional features.
-    # CMake:       Test compilation using different CMake versions.
-    # Integration: Test FTI integration into small apps.
+    # compilation: compilation checks (i.e compile with other CMake versions)
+    # core:        FTI core behavior
+    # features:    FTI additional features
     for step in ${arguments[@]}; do
         case $step in
-        local)
-            find "${dirs['compiled']}/suites/local" -iname *.itf
+        core)
+            find "${dirs['compiled']}/suites/core" -iname *.itf
             ;;
-        cmake)
+        compilation)
             find "${dirs['src']}/suites/compilation" -iname *.itf
             ;;
-        integration)
-            find "${dirs['compiled']}/suites/integration" -iname *.itf
+        features)
+            find "${dirs['compiled']}/suites/features" -iname *.itf
             ;;
         esac
     done

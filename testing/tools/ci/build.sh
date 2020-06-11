@@ -27,11 +27,11 @@ intel | Intel)
     export MPICCPATH='/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin'
     export LD_LIBRARY_PATH='/opt/HDF5/1.10.4/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/intel/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.7'
     export PATH="$PATH:$MPICCPATH"
-
+    export CFLAGS=$CFLAGS_FIX
+    
     . $ICCPATH/compilervars.sh intel64
     . $MPICCPATH/mpivars.sh
-    export CFLAGS=$CFLAGS_FIX
-    ${install_script} --enable-hdf5 -C $root_folder/CMakeScripts/intel.cmake -DHDF5_ROOT=/opt/HDF5/1.10.4
+    ${install_script} --enable-hdf5 -C $root_folder/CMakeScripts/intel.cmake --hdf5-path=/opt/HDF5/1.10.4
     ;;
 clang | Clang)
     export OMPI_MPICC=clang
@@ -50,6 +50,6 @@ pgi | PGI)
     export FC=pgfortran
     echo $PATH
     ls /opt/pgi/
-    ${install_script} --enable-hdf5 -DHDF5_ROOT=/opt/HDF5/1.10.4
+    ${install_script} --enable-hdf5 --hdf5-path=/opt/HDF5/1.10.4
     ;;
 esac

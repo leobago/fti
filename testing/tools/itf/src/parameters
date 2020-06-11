@@ -77,7 +77,7 @@ param_parse() {
         if [ $is_expected -ne 1 ]; then
             fail "Unexpected argument: $name"
         fi
-        eval $name=$val        # Evaluate twice the expression
+        eval $name=$val # Evaluate twice the expression
     done
 
     # Check if all the 'required' names were defined otherwise fails
@@ -97,9 +97,16 @@ param_name() {
     # Details:
     # Receives a string in the form: "--name=val" and outputs the 'name' part
 
-    local __name=${1#--} # Remove the leading --
-    __name=${__name%=*} # Remove the trailing =*
-    echo $__name
+    case $1 in
+    --*=*)
+        local __name="${1#--}" # Remove the leading --
+        __name="${__name%=*}"  # Remove the trailing =*
+        echo "$__name"
+        ;;
+    *)
+        echo 'arg'
+        ;;
+    esac
 }
 
 param_value() {
@@ -111,9 +118,16 @@ param_value() {
     # Details:
     # Receives a string in the form: "--name=val" and outputs the 'value' part
 
-    local __value=${1#--} # Remove the leading --
-    __value=${__value#*=} # Remove the leading *=
-    echo $__value
+    case $1 in
+    --*=*)
+        local __value="${1#--}" # Remove the leading --
+        __value="${__value#*=}" # Remove the leading *=
+        echo "$__value"
+        ;;
+    *)
+        echo "$1"
+        ;;
+    esac
 }
 
 # ------------------------------ ITF Module Body ------------------------------
