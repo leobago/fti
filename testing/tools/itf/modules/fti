@@ -227,6 +227,7 @@ ckpt_disrupt_first() {
         local _dir="$(get_ckpt_dir $3 $_node)"
         local _f=$(ls $_dir | head -1)
         _f=${_f#*-}              # Remove the CkptXXX- prefix
+        _f=${_f%.*}              # Remove the file extension
         _files+=( "${_f//[^0-9]/}" ) # Extract the numbers
     done
     ckpt_disrupt $1 $2 $3 ${_files[@]}
