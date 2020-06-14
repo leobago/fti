@@ -174,10 +174,18 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         case 4:
             if( FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp && FTI_Conf->dcpPosix ) {
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile); 
+                buf = consistency(fn, fs, checksum);
             } else {
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].L4Replica, ckptFile);
+                buf = consistency(fn, fs, checksum);
+                FTI_Ckpt[4].localReplica = 1;
+                if ( buf != 0 ){ 
+                    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
+                    buf = consistency(fn, fs, checksum);
+                    FTI_Ckpt[4].localReplica = 0;
+
+                }
             }
-            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
             break;
     }

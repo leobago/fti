@@ -592,7 +592,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
-        
+    snprintf(FTI_Ckpt[4].L4Replica, FTI_BUFS, "%s/lL4Dir", FTI_Conf->localDir);
+    // This is a local directory which will contain a replica of all 
+    // l4 file in case of posix. 
     // Checking metadata directory
     if( FTI_Conf->h5SingleFileEnable && FTI_Topo->myRank == 0 ) {
         char str[FTI_BUFS];
