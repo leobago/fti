@@ -962,7 +962,6 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ( FTI_Ckpt[4].recoIsDcp ) {
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile);
     } if ( FTI_Ckpt[4].localReplica == 1){
-        FTI_Print("Recovering from local replica",FTI_WARN);
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].L4Replica, FTI_Exec->ckptMeta.ckptFile);
     }else {
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.ckptFile);

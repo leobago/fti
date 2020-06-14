@@ -266,7 +266,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 //In case of Level 4 Checkpoint We keep a
                 //copy of the global checkpoint file 
                 //on the local persistent memory
-                RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[4].L4Replica);
+                if ( FTI_Conf->ioMode == FTI_IO_POSIX){
+                    RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[4].L4Replica);
+                }
+                else{
+                    RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
+                }
             }
         }
     }
