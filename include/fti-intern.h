@@ -523,6 +523,8 @@ extern "C" {
         int             groupID;            /**< Group ID in the node.          */
         int             amIaHead;           /**< TRUE if FTI process.           */
         int             headRank;           /**< Rank of the head in this node. */
+        int             headID;             /**< My Local id as a head. */
+        int             procsPerHead;       /**< Number of ranks each head operates on.*/
         int             headRankNode;       /**< Rank of the head in node comm. */
         int             nodeRank;           /**< Rank of the node.              */
         int             groupRank;          /**< My rank in the group comm.     */

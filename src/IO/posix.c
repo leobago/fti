@@ -43,6 +43,7 @@ FILE* fileposix;
 
 int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec,FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int status)
 {
+    char str[FTI_BUFS];
     FTI_Exec->wasLastOffline = 1;
     // Head needs ckpt. ID to determine ckpt file name.
     int value = FTI_BASE + FTI_Exec->ckptMeta.level; //Token to send to head

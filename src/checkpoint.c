@@ -412,7 +412,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         flags[i] = 0;
     }
     FTI_Print("Head waits for message...", FTI_DBUG);
-    for (i = 0; i < FTI_Topo->nbApprocs; i++) { // Iterate on the application processes in the node
+    for (i = 0; i < FTI_Topo->procsPerHead - 1; i++) { // Iterate on the application processes in the node
         int buf;
         MPI_Status status;
         MPI_Recv(&buf, 1, MPI_INT, FTI_Topo->body[i], FTI_Conf->ckptTag, FTI_Exec->globalComm, &status);
@@ -430,13 +430,16 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec
         flags[buf - FTI_BASE] = flags[buf - FTI_BASE] + 1;
     }
     for (i = 1; i < 7; i++) {
-        if (flags[i] == FTI_Topo->nbApprocs) { // Determining checkpoint level
+        // I am waiting one message from each App process
+        if (flags[i] == FTI_Topo->procsPerHead -1 ) { // Determining checkpoint level
             FTI_Exec->ckptMeta.level = i;
         }
     }
     if (flags[6] > 0) {
         FTI_Exec->ckptMeta.level = 6;
     }
+    snprintf(str,FTI_BUFS, " I am checkpoint in level %d", FTI_Exec->ckptMeta.level);
+    FTI_Print(str, FTI_WARN);
 
     if ( FTI_Conf->ioMode == FTI_IO_FTIFF &&  FTI_Exec->ckptMeta.level != 6 &&  FTI_Exec->ckptMeta.level != 5 ) {
 

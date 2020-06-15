@@ -533,7 +533,7 @@ int FTI_Flush(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     char str[FTI_BUFS];
     snprintf(str, FTI_BUFS, "Starting checkpoint post-processing L4 for level %d", level);
-    FTI_Print(str, FTI_DBUG);
+    FTI_Print(str,FTI_WARN);
     
     if( !FTI_Exec->h5SingleFile ) {
         if ( !((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && FTI_Ckpt[4].isDcp) ) {
@@ -679,15 +679,16 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_Print("Starting checkpoint post-processing L4 using Posix IO.", FTI_DBUG);
     int startProc, endProc, proc;
     if (FTI_Topo->amIaHead) {
-        startProc = 1;
-        endProc = FTI_Topo->nodeSize;
+        startProc = FTI_Topo->headID * FTI_Topo->procsPerHead ;
+        endProc = startProc + FTI_Topo->procsPerHead;
     }
     else {
         startProc = 0;
         endProc = 1;
     }
 
-    for (proc = startProc; proc < endProc; proc++) {
+    for (proc = startProc + 1; proc < endProc; proc++) {
+        // My Meta are not loaded yet. So I need to load them
         if (FTI_Topo->amIaHead) {
             int res = FTI_Try(FTI_LoadMetaPostprocessing(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, proc), "load temporary metadata.");
             if (res != FTI_SCES) {

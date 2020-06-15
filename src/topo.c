@@ -306,6 +306,7 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   @param      FTI_Topo        Topology metadata.
   @param      userProcList    The list of the app. processess.
   @param      distProcList    The list of the distributed processes.
+  @param      headProcList    The list of the head processes.
   @param      nodeList        The list of the nodes to fill.
   @return     integer         FTI_SCES if successful.
 
@@ -317,27 +318,29 @@ int FTI_BuildNodeList(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, int* userProcList,
-        int* distProcList, int* nodeList)
+        int* distProcList, int *headProcList, int* nodeList)
 {
     MPI_Group newGroup, origGroup;
     MPI_Comm_group(FTI_Exec->globalComm, &origGroup);
     if (FTI_Topo->amIaHead) {
-        MPI_Group_incl(origGroup, FTI_Topo->nbNodes * FTI_Topo->nbHeads, distProcList, &newGroup);
+        MPI_Group_incl(origGroup, FTI_Topo->nbNodes * FTI_Topo->nbHeads, headProcList, &newGroup);
         MPI_Comm_create(FTI_Exec->globalComm, newGroup, &FTI_COMM_WORLD);
         int i;
-        for (i = FTI_Topo->nbHeads; i < FTI_Topo->nodeSize; i++) {
-            int src = nodeList[(FTI_Topo->nodeID * FTI_Topo->nodeSize) + i];
+        for (i = 1; i < FTI_Topo->procsPerHead ; i++) {
+            int index = FTI_Topo->headID * FTI_Topo->procsPerHead + i;
+            int src = nodeList[(FTI_Topo->nodeID * FTI_Topo->nodeSize) + index];
             int buf;
             MPI_Recv(&buf, 1, MPI_INT, src, FTI_Conf->generalTag, FTI_Exec->globalComm, MPI_STATUS_IGNORE);
             if (buf == src) {
-                FTI_Topo->body[i - FTI_Topo->nbHeads] = src;
+                //index starts from -1
+                FTI_Topo->body[i- 1] = src;
             }
         }
     }
     else {
         MPI_Group_incl(origGroup, FTI_Topo->nbProc - (FTI_Topo->nbNodes * FTI_Topo->nbHeads), userProcList, &newGroup);
         MPI_Comm_create(FTI_Exec->globalComm, newGroup, &FTI_COMM_WORLD);
-        if (FTI_Topo->nbHeads == 1) {
+        if (FTI_Topo->nbHeads > 0) {
             MPI_Send(&(FTI_Topo->myRank), 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->generalTag, FTI_Exec->globalComm);
         }
     }
@@ -379,6 +382,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char *nameList = talloc(char, FTI_Topo->nbNodes *FTI_BUFS);
 
     int* nodeList = talloc(int, FTI_Topo->nbNodes* FTI_Topo->nodeSize);
+    char str[FTI_BUFS];
     int i;
     for (i = 0; i < FTI_Topo->nbProc; i++) {
         nodeList[i] = -1;
@@ -416,35 +420,58 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int *distProcList = talloc(int, FTI_Topo->nbNodes);
     int *userProcList = talloc(int, FTI_Topo->nbProc - (FTI_Topo->nbNodes * FTI_Topo->nbHeads));
+    int *headProcList = NULL;
+    int procsPerHead = 1;
 
-    int mypos = -1, c = 0;
+    if ( FTI_Topo->nbHeads != 0 ){
+        headProcList = talloc(int, FTI_Topo->nbNodes * FTI_Topo->nbHeads);
+        // This is correct since we already checked if nbProc mod nbheads = 0
+        procsPerHead = FTI_Topo->nodeSize / FTI_Topo->nbHeads;
+    }
+
+    int mypos = -1, c = 0, h=0;
     for (i = 0; i < FTI_Topo->nbProc; i++) {
         if (FTI_Topo->myRank == nodeList[i]) {
             mypos = i;
         }
-        if ((i % FTI_Topo->nodeSize != 0) || (FTI_Topo->nbHeads == 0)) {
+        if (FTI_Topo->nbHeads != 0 && i % procsPerHead == 0 ){
+            headProcList[h] = nodeList[i];
+            h++;
+        }
+        else {
             userProcList[c] = nodeList[i];
             c++;
         }
     }
-    if (mypos == -1) {
+    if ((mypos == -1) ||  (h != (FTI_Topo->nbHeads*FTI_Topo->nbNodes)) || (c != FTI_Topo->nbApprocs*FTI_Topo->nbNodes)){
         free(userProcList);
         free(distProcList);
+        free(headProcList);
         free(nameList);
         free(nodeList);
-
+        snprintf(str,FTI_BUFS, "I could not distribute heads (%d, %d - %d, %d - %d)",mypos, h, FTI_Topo->nbHeads*FTI_Topo->nbNodes, c, FTI_Topo->nbApprocs);
+        FTI_Print(str,FTI_EROR);
         return FTI_NSCS;
     }
 
     FTI_Topo->nodeRank = mypos % FTI_Topo->nodeSize;
-    if (FTI_Topo->nodeRank == 0 && FTI_Topo->nbHeads == 1) {
+    if (FTI_Topo->nbHeads > 0 && FTI_Topo->nodeRank % procsPerHead == 0  ) {
         FTI_Topo->amIaHead = 1;
+        FTI_Topo->headID = FTI_Topo->nodeRank/procsPerHead; 
+        FTI_Topo->procsPerHead = procsPerHead;
     }
     else {
         FTI_Topo->amIaHead = 0;
+        // I am setting this to 1 so that i can always divide by this number.
+        FTI_Topo->procsPerHead = 1;
     }
+
     FTI_Topo->nodeID = mypos / FTI_Topo->nodeSize;
-    FTI_Topo->headRank = nodeList[(mypos / FTI_Topo->nodeSize) * FTI_Topo->nodeSize];
+    int headOffset = 0;
+    if (FTI_Topo->nbHeads > 0 )
+        headOffset = (FTI_Topo->nodeRank / procsPerHead) * procsPerHead; 
+
+    FTI_Topo->headRank = nodeList[FTI_Topo->nodeID * FTI_Topo->nodeSize + headOffset];
     FTI_Topo->sectorID = FTI_Topo->nodeID / FTI_Topo->groupSize;
     int posInNode = mypos % FTI_Topo->nodeSize;
     FTI_Topo->groupID = posInNode;
@@ -452,7 +479,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         distProcList[i] = nodeList[(FTI_Topo->nodeSize * i) + posInNode];
     }
 
-    res = FTI_Try(FTI_CreateComms(FTI_Conf, FTI_Exec, FTI_Topo, userProcList, distProcList, nodeList), "create communicators.");
+    res = FTI_Try(FTI_CreateComms(FTI_Conf, FTI_Exec, FTI_Topo, userProcList, distProcList, headProcList,  nodeList), "create communicators.");
     if (res == FTI_NSCS) {
         free(userProcList);
         free(distProcList);
