@@ -1881,8 +1881,8 @@ int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_T
         strncpy( dir, FTI_Ckpt[1].dcpDir, FTI_BUFS);
     else
         strncpy( dir, FTI_Conf->lTmpDir, FTI_BUFS);
-
-    if( FTIFF_RequestFileName( dir, FTI_Topo->body[proc-1], level, FTI_Ckpt[level].isDcp, 0, file ) != FTI_SCES ) {
+    int index = proc - FTI_Topo->headID*FTI_Topo->procsPerHead - 1;
+    if( FTIFF_RequestFileName( dir, FTI_Topo->body[ index ], level, FTI_Ckpt[level].isDcp, 0, file ) != FTI_SCES ) {
         return FTI_NSCS;
     }
 

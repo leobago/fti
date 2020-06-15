@@ -316,9 +316,11 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_execution* FTI_Exec)
 {
     // Check requirements.
-    if (FTI_Topo->nbHeads != 0 && FTI_Topo->nbHeads != 1) {
-        FTI_Print("The number of heads needs to be set to 0 or 1.", FTI_WARN);
-        return FTI_NSCS;
+    if (FTI_Topo->nbHeads != 0 ){
+        if (FTI_Topo->nodeSize % FTI_Topo->nbHeads  != 0) {
+            FTI_Print("The number of heads needs to be set to 0 or 1.", FTI_WARN);
+            return FTI_NSCS;
+        }
     }
     if (FTI_Topo->nbProc % FTI_Topo->nodeSize != 0) {
         FTI_Print("Number of ranks is not a multiple of the node size.", FTI_WARN);
@@ -403,7 +405,7 @@ CHECK_DCP_SETTING_END:
         if (FTI_Ckpt[i].isInline != 0 && FTI_Ckpt[i].isInline != 1) {
             FTI_Ckpt[i].isInline = 1;
         }
-        if (FTI_Ckpt[i].isInline == 0 && FTI_Topo->nbHeads != 1) {
+        if (FTI_Ckpt[i].isInline == 0 && FTI_Topo->nbHeads == 0) {
             FTI_Print("If inline is set to 0 then head should be set to 1.", FTI_WARN);
             return FTI_NSCS;
         }

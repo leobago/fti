@@ -2443,7 +2443,7 @@ int FTI_Finalize()
     }
 
     // Send notice to the head to stop listening
-    if (FTI_Topo.nbHeads == 1) {
+    if (FTI_Topo.nbHeads > 0) {
         int value = FTI_ENDW;
         MPI_Send(&value, 1, MPI_INT, FTI_Topo.headRank, FTI_Conf.finalTag, FTI_Exec.globalComm);
     }
@@ -2457,7 +2457,6 @@ int FTI_Finalize()
 
     // If we need to keep the last checkpoint and there was a checkpoint
     if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
-        //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptId > 0) {
         if (FTI_Exec.ckptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.ckptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);

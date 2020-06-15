@@ -20,7 +20,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
-
+int FTI_amINodeMaster(FTIT_topology* FTI_Topo);
 #ifdef __cplusplus
 }
 #endif

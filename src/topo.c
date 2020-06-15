@@ -464,6 +464,7 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Topo->amIaHead = 0;
         // I am setting this to 1 so that i can always divide by this number.
         FTI_Topo->procsPerHead = 1;
+        FTI_Topo->headID = 0;
     }
 
     FTI_Topo->nodeID = mypos / FTI_Topo->nodeSize;

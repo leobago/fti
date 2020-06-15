@@ -386,7 +386,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 
         if (remove(path) == -1) {
             if (errno != ENOENT) {
-                FTI_Print("Error removing target directory.", FTI_EROR);
+                snprintf(str,FTI_BUFS, "Error removing target directory. (%s)",path);
+                FTI_Print(str, FTI_EROR);
             }
         }
     }
@@ -411,10 +412,8 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level)
 {
-    int nodeFlag; //only one process in the node has set it to 1
+    int nodeFlag = FTI_amINodeMaster(FTI_Topo); //only one process in the node has set it to 1
     int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
-
-    nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
 
     bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff); 
     bool notDcp = !FTI_Ckpt[4].isDcp;   
@@ -506,4 +505,20 @@ char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr 
 
     return hashHexStr;
 }
+
+int FTI_amINodeMaster(FTIT_topology *FTI_Topo){
+    int nodeFlag = 0;
+    if ( FTI_Topo->amIaHead == 0 ){
+       if ( FTI_Topo->splitRank % FTI_Topo->nbApprocs == 0 ){
+            nodeFlag=1;      
+       }
+    }
+    else{
+        if ( FTI_Topo->headID == 0 ){
+            nodeFlag = 1;
+        }
+    }
+    return nodeFlag;
+}
+
 

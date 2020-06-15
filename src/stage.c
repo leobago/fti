@@ -246,7 +246,6 @@ int FTI_InitStage( FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIT_
 /*-------------------------------------------------------------------------*/
 void FTI_FinalizeStage( FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf ) 
 {
-
     // free request structures
     // NOTE: the heads should already have freed all the ressources during the execution.
     if ( FTI_Topo->amIaHead ) {
