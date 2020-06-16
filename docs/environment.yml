@@ -4,4 +4,5 @@ channels:
   - QuantStack 
 
 dependencies:
-  - breathe
+  - pip:
+    - breathe==4.19.1
