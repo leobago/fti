@@ -25,7 +25,7 @@ compile_fti() {
     echo "$($cmd --version)"
     check_equals "$($cmd --version | grep $version -c)" '1' "Could not validate CMake version $version"
 
-    $rootdir/install.sh
+    $rootdir/install.sh "--cmake-bin=$cmd"
 
     if [ ! -d "$libdir" ]; then
         echo "$libdir does not exist"
