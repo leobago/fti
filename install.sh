@@ -19,6 +19,7 @@ print_usage() {
     echo "            [--sionlib-path=DIR]          # Path to SIONlib installation"
     echo "            [--hdf5-path=DIR]             # Path to HDF5 installation"
     echo "            [--ime-path=DIR]              # Path to DDN IME installation"
+    echo "            [--cmake-bin=BIN]             # Use a custom CMake installation"
     echo " "
     echo "            [--debug]                     # Enable a debug build"
     echo "            [--silent]                    # No output to stdout or stderr during installation"
@@ -133,6 +134,10 @@ while [ $# -gt 0 ]; do
         CMAKE_ARGS="$CMAKE_ARGS -DIMEBASE=${1#*=}"
         shift # past argument=value
         ;;
+    --cmake-bin=*)
+        cmake_bin="${1#*=}"
+        shift
+        ;;
     --silent)
         VERBOSE=false
         shift # past argument=value
@@ -181,20 +186,31 @@ cd "$FTI_ROOT"
 mkdir -p 'build'
 cd 'build'
 
-if [ $VERBOSE ]; then
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. >>$install_log 2>&1
-else
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. 2>&1 | tee -a $install_log
+if [ -z $cmake_bin ]; then
+    cmake_bin='cmake'
 fi
-if [ $? -ne 0 ]; then
-    rm -rf build
-    exit 1
+
+if [ $VERBOSE ]; then
+    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. >>$install_log 2>&1
+    if [ $? -ne 0 ]; then
+        rm -rf build
+        exit 1
+    fi
+else
+    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. 2>&1 | tee -a $install_log
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        rm -rf build
+        exit 1
+    fi
 fi
 if [ $VERBOSE ]; then
     make -j all install >>$install_log 2>&1
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 else
     make -j all install 2>&1 | tee -a $install_log
-fi
-if [ $? -ne 0 ]; then
-    exit 1
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        exit 1
+    fi
 fi

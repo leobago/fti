@@ -91,7 +91,7 @@
 
 enum ALLOC_FLAGS { ALLOC_FULL, ALLOC_RANDOM };
 
-int grank;
+extern int grank;
 
 extern int numHeads;
 extern int finalTag;
