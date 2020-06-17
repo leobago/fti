@@ -27,11 +27,10 @@ compile_fti() {
 
     $rootdir/install.sh "--cmake-bin=$cmd"
 
+    # If install/lib does not exist, try install/lib64 folder
     if [ ! -d "$libdir" ]; then
-        echo "$libdir does not exist"
-        libdir="${libdir}64" # lib64 as the last folder alternative
+        libdir="${libdir}64"
         if [ ! -d "$libdir" ]; then
-            echo "$libdir does not exist"
             ls $rootdir/install
             fail 'Could not find lib directory in install'
         fi
