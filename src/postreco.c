@@ -1234,8 +1234,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf,
     int* rank_map = talloc(int, nTasks);
     sion_int64* chunkSizes = talloc(sion_int64, nTasks);
     sion_int32 fsblksize = -1;
-
-    for (int i = 0; i < nTasks; i++) {
+    int i;
+    for (i = 0; i < nTasks; i++) {
         chunkSizes[i] = 1000;
         ranks[i] = FTI_Topo->splitRank;
         rank_map[i] = FTI_Topo->splitRank;
