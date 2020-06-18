@@ -107,7 +107,6 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
-include(AppendProperty)
 if(${ENABLE_FORTRAN})
     include(FortranCInterface)
     include(CheckFortranCompilerFlag)
@@ -242,25 +241,19 @@ else()
 	add_library(fti.shared SHARED ${SRC_FTI} ${SRC_CUDA_FTI}
 	    $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>
 		$<TARGET_OBJECTS:md5>)
-	append_property(TARGET fti.static fti.shared
-		PROPERTY LINK_FLAGS "-DMD5P=TRUE")
+	set_property(TARGET fti.static fti.shared APPEND PROPERTY
+		LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
     set(HAVE_OPENSSL 0)
 endif()
 set_target_properties(fti.static fti.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 
 if( NOT ZLIB_FOUND )
-append_property(SOURCE ${SRC_CUDA_FTI}
-    PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
-else()
-append_property(SOURCE ${SRC_CUDA_FTI}
-    PROPERTY COMPILE_FLAGS )
+    set_property(SOURCE ${SRC_CUDA_FTI} APPEND PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
 endif()
 
-append_property(TARGET fti.static fti.shared
-	PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-set_property(TARGET fti.static fti.shared
-	PROPERTY OUTPUT_NAME fti)
+set_property(TARGET fti.static fti.shared APPEND PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+set_property(TARGET fti.static fti.shared PROPERTY OUTPUT_NAME fti)
 
 #PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
 #http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
@@ -279,7 +272,7 @@ endif()
 if(ENABLE_LUSTRE)
     if(LUSTREAPI_FOUND)
         include_directories(${LUSTREAPI_INCLUDE_DIRS})
-        append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_DEFINITIONS LUSTRE)
+        set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_DEFINITIONS LUSTRE)
         target_link_libraries(fti.static ${LUSTREAPI_LIBRARIES})
         target_link_libraries(fti.shared ${LUSTREAPI_LIBRARIES})
     else()
@@ -330,7 +323,7 @@ if(ENABLE_HDF5)
 		add_definitions(-DENABLE_HDF5)
         include_directories(${HDF5_INCLUDE_DIRS})
         message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
-		append_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_DEFINITIONS HDF5)
+		set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_DEFINITIONS HDF5)
 		target_link_libraries(fti.static ${HDF5_LIBRARIES})
 		target_link_libraries(fti.shared ${HDF5_LIBRARIES})
 		target_link_libraries(fti.static ${HDF5_HL_LIBRARIES})
@@ -348,8 +341,7 @@ if(ENABLE_FI_IO)
     add_definitions(-DENABLE_FTI_FI_IO)
 endif()
 
-append_property(SOURCE ${SRC_FTI}
-    PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
+set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
 
 install(TARGETS fti.static fti.shared DESTINATION "${CMAKE_INSTALL_LIBDIR}" EXPORT FTI_EXPORT
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -388,8 +380,7 @@ if(ENABLE_FORTRAN)
 
 	set(SRC_FTI_F90 ${BPP_FTI_F90}
 		src/fortran/ftif.c)
-	append_property(SOURCE ${SRC_FTI_F90}
-		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
+	set_property(SOURCE ${SRC_FTI_F90} APPEND PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
 
 	add_library(fti_f90.static STATIC ${SRC_FTI_F90})
 	add_dependencies(fti_f90.static bpp_file) # to serialize src generation
@@ -403,8 +394,8 @@ if(ENABLE_FORTRAN)
 	target_link_libraries(fti_f90.shared
 		fti.shared ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
 
-	append_property(TARGET fti_f90.static fti_f90.shared
-		PROPERTY LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
+    set_property(TARGET fti_f90.static fti_f90.shared APPEND PROPERTY
+        LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
 	set_property(TARGET fti_f90.static fti_f90.shared
 		PROPERTY OUTPUT_NAME fti_f90)
 
