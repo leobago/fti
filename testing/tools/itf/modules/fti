@@ -31,6 +31,7 @@ itf_set_if_undef 'fti:keep_ckpt_dir' 'false'
 export fti_io_ids=(@fti_io_ids@)
 # A list will all FTI available checkpoint levels
 export fti_levels=(1 2 3 4)
+export anothervar="var"
 
 # ----------------- FTI Public Configuration File Handling API ----------------
 

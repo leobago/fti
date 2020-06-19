@@ -7,7 +7,10 @@
 #   @author Kai Keller (kellekai@gmx.de) (First implementation)
 #   @date   May, 2020
 
+set -x
 itf_load_module 'fti'
+echo "fti_io_ids: ${fti_io_ids[@]}"
+echo "anothervar: $anothervar"
 
 # ---------------------------- Bash Test functions ----------------------------
 
@@ -33,7 +36,6 @@ standard() {
 }
 
 # -------------------------- ITF Register test cases --------------------------
-
 set -x
 for iolib in ${fti_io_ids[@]}; do
     for level in ${fti_levels[@]}; do
