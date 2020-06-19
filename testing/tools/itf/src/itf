@@ -34,11 +34,8 @@ srcdir="$(dirname ${BASH_SOURCE[0]})"
 
 itf_load_module() {
     # Load an ITF module functions and definitions
-    echo "module name: $1"
     for module in $@; do
-        echo "sourcing: ${itf_cfg['core:module_path']}/$module"
         . ${itf_cfg['core:module_path']}/$module
-        set +x
         itf_list_add 'itf_state' 'modules' "$module"
     done
 }
