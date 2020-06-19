@@ -144,6 +144,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         consistency = &FTI_CheckFile;
     }
 #endif
+    FTI_Ckpt[4].localReplica = 0;
 
     switch (level) {
         case 1:

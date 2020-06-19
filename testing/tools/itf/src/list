@@ -28,8 +28,9 @@ itf_list_unwrap() {
     # itf_list_unwrap 'aarray' 'anykey' 'myarray'
     # echo ${!myarray[@]} # Should print 4
 
-    declare -n pointer=$1
-    IFS="$_itf_sep" read -r -a $3 <<<"${pointer[$2]:1:-1}"
+    declare pointer="$1[$2]"
+    pointer="${!pointer:1:-1}"
+    IFS="$_itf_sep" read -r -a $3 <<< "$pointer"
 }
 
 itf_list_add() {
@@ -45,11 +46,19 @@ itf_list_add() {
     # In any case, an item will be added to the list.
     # The items can be later retrieved as a bash array using itf_list_unwrap.
 
-    declare -n pointer="$1"
-    if [ -z "${pointer[$2]}" ]; then
-        pointer["$2"]="${_itf_sep}${@:3}${_itf_sep}"
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    
+    if [ $# -lt 3 ]; then
+        return 1
+    fi
+
+    declare pointer="$1[$2]"
+
+    if [ -z "${!pointer}" ]; then
+        eval "$pointer=\"${_itf_sep}${@:3}${_itf_sep}\""
     else
-        pointer["$2"]="${pointer[$2]::-1}${_itf_sep}${@:3}${_itf_sep}"
+        eval "$pointer=\"${!pointer::-1}${_itf_sep}${@:3}${_itf_sep}\""
     fi
 }
 
@@ -64,10 +73,13 @@ itf_list_remove() {
     if [ $# -ne 3 ]; then
         return
     fi
-    declare -n pointer="$1"
+
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[$2]"
 
     # List is empty
-    if [ -z "${pointer[$2]}" ]; then
+    if [ -z "${!pointer}" ]; then
         return 0
     fi
 
@@ -77,22 +89,22 @@ itf_list_remove() {
         return 0
     fi
 
-    local prefix=${pointer[$2]%$3*} # Get everything before element
-    local sufix=${pointer[$2]#*$3}  # Get everything after element
+    local prefix=${!pointer%$3*} # Get everything before element
+    local sufix=${!pointer#*$3}  # Get everything after element
 
-    prefix=${prefix/#$_itf_sep$_itf_sep/$_itf_sep} # Remove separator in begin if any
-    prefix=${prefix/%$_itf_sep/}                   # Remove separator in end if any
-    sufix=${sufix/%$_itf_sep$_itf_sep/$_itf_sep}   # Remove separator in end if any
-    sufix=${sufix/#$_itf_sep/}                     # Remove separator in begin if any
+    prefix=${prefix/#$_itf_sep$_itf_sep/$_itf_sep} # Remove separator in begin
+    prefix=${prefix/%$_itf_sep/}                   # Remove separator in end
+    sufix=${sufix/%$_itf_sep$_itf_sep/$_itf_sep}   # Remove separator in end
+    sufix=${sufix/#$_itf_sep/}                     # Remove separator in begin
 
     if [ -z $prefix ] && [ -z $sufix ]; then
-        pointer[$2]='' # Deleted the only element
+        eval "$pointer=''" # Deleted the only element
     elif [ -z $prefix ]; then
-        pointer[$2]="$_itf_sep$sufix" # Deleted the first element
+        eval "$pointer=\"$_itf_sep$sufix\"" # Deleted the first element
     elif [ -z $sufix ]; then
-        pointer[$2]="$prefix$_itf_sep" # Deleted the last element
+        eval "$pointer=\"$prefix$_itf_sep\"" # Deleted the last element
     else
-        pointer[$2]=$prefix$_itf_sep$sufix # Deleted element in the middle
+        eval "$pointer=\"$prefix$_itf_sep$sufix\"" # Deleted element in the middle
     fi
 }
 
@@ -104,14 +116,17 @@ itf_list_contains() {
     # $2: The associative array key
     # $3: The element to be found in an ITF-list string
 
-    declare -n pointer=$1
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[$2]"
 
     # No items in the list or no sufficient parameters
-    if [ -z "${pointer[$2]}" ] || [ $# -lt 3 ]; then
+    if [ -z "${!pointer}" ] || [ $# -lt 3 ]; then
         return 1
     fi
+
     # Check if substring exists
-    if [ -z "${pointer[$2]##*${_itf_sep}$3${_itf_sep}*}" ]; then
+    if [ -z "${!pointer##*${_itf_sep}$3${_itf_sep}*}" ]; then
         return 0
     fi
     return 1
@@ -129,7 +144,9 @@ itf_array_contains() {
         return 2
     fi
 
-    declare -n pointer=$1
-    case "${pointer[@]}" in *"${@:2}"*) return 0 ;; esac
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[@]"
+    case "${!pointer}" in *"${@:2}"*) return 0 ;; esac
     return 1
 }
