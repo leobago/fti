@@ -1,0 +1,130 @@
+#!/bin/bash
+#   
+#   @file   	pre-commit
+#   @author 	Sawsane Ouchtal (sawsaneouchtal@gmail.com)
+#   @date   	February, 2020
+#   @brief  	Checks formatting of C/Fortran/CMake files before local commit
+#
+
+# For more formatting options, check FTI's guide
+# at : https://fault-tolerance-interface.readthedocs.io
+
+OPTIONS_C="--filter=-readability/casting,-readability/braces" 													#cpplint has embedded formatting options 
+OPTIONS_FORTRAN="-i 3 -l 140 -w 2 --strict-indent" 																#(line length=50 && whitespace btwn operators/print/read/+- && strinct indentation)
+OPTIONS_CMAKE="--line-width=80 --tab-size=4 --separate-ctrl-name-with-space TRUE --separate-fn-name-with-space TRUE --disabled-codes C0103 E1120 R0912 R0915 W0105 -- "
+
+C_EXTENSIONS="c|cpp|h"
+FORTRAN_EXTENSIONS="f90"
+CMAKE_EXTENSIONS="cmake"
+
+#FORMATTER NAME
+CPPLINT="cpplint"
+FPRETTIFY="fprettify"
+CMAKE="cmake-lint"
+
+#CHECKERS
+declare -a CHECKERS=($CPPLINT $FPRETTIFY $CMAKE)
+COUNTER=${#CHECKERS[@]}
+
+FLAG=0
+
+#DBG COLORS
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;36m'
+NC='\033[0m' # No Color
+
+#
+#This function iterates through the files and checks their format 
+#given their extension and the formatting options per language
+check_files(){
+	eval FILE_EXTENSIONS="$1" 		#file extension
+	eval CHECKER_OPTIONS="$2" 		#checker's options
+	eval CHECKER="$3"				#checker's name
+	eval LANGUAGE="$4"				#language
+	
+	FILES=`git diff --cached --name-only --diff-filter=ACMR | grep -E "\.(${FILE_EXTENSIONS})$"` #Added, Copied, Modified, Renamed from (A|C|D|M|R|T|U|X|B)
+	for FILE in $FILES; do
+		cp $FILE tmp
+		$CHECKER $CHECKER_OPTIONS tmp 2>/dev/null | cmp -s tmp - > /dev/null
+		if [ $? -ne 0 ]; then #if any file/language
+			echo -e "\n######################## ${BLUE}$LANGUAGE${NC} #########################"
+			if [ $LANGUAGE == "FORTRAN" ]; then
+				#compare tmp and FILE
+				cmp $FILE tmp > /dev/null 2>&1
+				if [ $? -ne 0 ]; then #if they re not the same
+					echo -e "${RED}[Error]${NC} $FILE does not respect the agreed coding style." >&2
+					echo -e "${GREEN}[Info]${NC} You can run $CHECKER on the file separately to see the expected formatting"
+				fi
+			elif [ $LANGUAGE == "C" ]; then 
+				$CHECKER $CHECKER_OPTIONS $FILE
+				#if C: check for implicit var declaration inside loop
+				check_loop_in_file $FILE
+			else #if CMake
+				$CHECKER $CHECKER_OPTIONS $FILE
+			fi
+			FLAG=1
+		fi
+	done
+}
+
+#this function iterates through a c file and checks for implicit variable declaration inside for loop
+check_loop_in_file(){
+  eval FILE="$1"     #file to check
+  linenumber=0
+  while IFS='' read -r LINE || [ -n "${LINE}" ]; do
+      #increment line number 
+      linenumber=$((linenumber + 1))
+      if [[ $LINE == *"for("* ]]; then  
+        occurrence=$((occurrence + 1))
+        if [[ $LINE == *"for(int"* || $LINE == *"for( int"* ]]; then
+          echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
+        fi
+    elif [[ $LINE == *"for ("* ]]; then
+      occurrence=$((occurrence + 1))
+        if [[ $LINE == *"for (int"* || $LINE == *"for ( int"* ]]; then
+          echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
+        fi
+    fi
+  done < $FILE
+}
+
+#Check installation of the code checkers
+for CHECKER in "${CHECKERS[@]}"; do
+	which $CHECKER > /dev/null
+	if [ $? -ne 0 ]; then 
+		echo -e "${RED}[Error]${NC} $CHECKER not installed. Skipping..." >&2
+		((COUNTER=COUNTER - 1))
+	else
+		echo -e "${GREEN}[Info]${NC} $CHECKER installed.."
+	fi
+done 
+
+if [[ $COUNTER < 3 ]]; then 
+	echo -e "${RED}[Error]${NC} At least one Checker is not installed. Please make sure they all are."
+	echo "For C checker 		  | type: pip install cpplint"
+	echo "For Fortran checker     | type: pip install fprettify"
+	echo "For CMake checker 	  | type: pip install cmake-format"
+	exit 1
+elif [ $COUNTER -eq 3 ]; then
+	#C Files
+	check_files "\${C_EXTENSIONS}" "\${OPTIONS_C}" "\${CPPLINT}" "C" 
+
+	#FORTRAN Files 
+	check_files "\${FORTRAN_EXTENSIONS}" "\${OPTIONS_FORTRAN}" "\${FPRETTIFY}" "FORTRAN" 
+
+	#CMake Files 
+	check_files "\${CMAKE_EXTENSIONS}" "\${OPTIONS_CMAKE}" "\${CMAKE}" "CMake" 
+fi
+echo -e "\n\n"
+echo -e "########################### ${BLUE}Commit${NC} #######################"
+if [ $FLAG -eq 1 ];then
+	#formatting still needed 
+	echo -e "${RED}[Error]${NC} Some files need formatting. Please format them accordingly before trying to commit."
+	echo -e "${RED}[Error]${NC} Failed to commit..."
+	exit 1
+else
+	echo -e "${GREEN}[Info]${NC} Ready to commit..."
+	exit 0
+fi
+

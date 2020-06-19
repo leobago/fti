@@ -89,9 +89,6 @@ Contributing
 Before you will be able to contribute to FTI, you need to have the code checkers installed so that your code is checked prior to any commit.
 The checkers are easy to install if you have pip. For the latest installation steps, please visit the :ref:`Code Checkers`. 
 
-The following table describes the code formatting used for FTI and its meaning. 
-
-
 ..
 
 	To make use of the pre-commit hook, after cloning the repository, one should initialize their branch through ``git init`` command.
@@ -103,4 +100,4 @@ The following table describes the code formatting used for FTI and its meaning.
 
 
 .. note::
-	Notice: For a temporary commit where the developer is aware that the code might still need formatting but still wants to commit, use the flag **--no-verify**
+	Notice: For a temporary commit where the developer is aware that the code might still need formatting but still wants to commit, use the flag **--no-verify** along with the commit command.
