@@ -138,7 +138,7 @@ simulated_use_cases() {
 
 itf_setup 'simulated_use_cases' 'setup'
 for pset in ${common_setups[@]}; do
-    for level in ${fti_levels[@]}; do
+    for level in $fti_levels; do
         itf_case 'simulated_use_cases' '--app=addInArray' "--preset=$pset" "--level=$level"
     done
     itf_case 'simulated_use_cases' '--app=heatdis' "--preset=$pset" '--level=0'

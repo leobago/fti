@@ -23,6 +23,6 @@ standard() {
 
 # -------------------------- ITF Register test cases --------------------------
 
-for iolib in ${fti_io_ids[@]}; do
+for iolib in $fti_io_ids; do
     itf_case 'standard' "--iolib=$iolib"
 done

@@ -117,7 +117,7 @@ itf_setup 'ckpt_consistency' 'setup'
 
 # Register all test cases for scenario 1
 for config in ${common_setups[@]}; do
-    for level in ${fti_levels[@]}; do
+    for level in $fti_levels; do
         itf_case 'ckpt_consistency' "--level=$level" "--config=$config"
     done
 done
@@ -163,7 +163,7 @@ itf_setup 'keep_last_consistency' 'setup'
 
 # Register all test cases for scenario 2
 for config in ${common_setups[@]}; do
-    for level in ${fti_levels[@]}; do
+    for level in $fti_levels; do
         itf_case 'keep_last_consistency' "--level=$level" "--config=$config"
     done
 done
@@ -231,7 +231,7 @@ itf_fixture 'double_fti_init' 'setup_double_fti_init' 'teardown_double_fti_init'
 
 # Register test cases for double FTI init scenarios
 for case_id in 3 4; do
-    for level in ${fti_levels[@]}; do
+    for level in $fti_levels; do
         itf_case 'double_fti_init' "--level=$level" "--case_id=$case_id"
     done
 done

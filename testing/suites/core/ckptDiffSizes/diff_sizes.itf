@@ -121,7 +121,7 @@ verify_log() {
 
 itf_setup 'verify_log' 'setup'
 for pset in ${common_setups[@]}; do
-    for level in ${fti_levels[@]}; do
+    for level in $fti_levels; do
         itf_case 'verify_log' "--preset=$pset" "--level=$level"
     done
 done

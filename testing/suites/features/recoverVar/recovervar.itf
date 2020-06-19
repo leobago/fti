@@ -34,8 +34,8 @@ standard() {
 
 # -------------------------- ITF Register test cases --------------------------
 
-for iolib in ${fti_io_ids[@]}; do
-    for level in ${fti_levels[@]}; do
+for iolib in $fti_io_ids; do
+    for level in $fti_levels; do
         itf_case 'standard' "--iolib=$iolib" "--level=$level"
     done
 done
