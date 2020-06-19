@@ -60,7 +60,6 @@ run)
     ${dirs['src']}/tools/itf/testdriver/testdriver \
         --path-modules "${dirs['compiled']}/itf/modules" \
         --filter recovername:standard:iolib=3 \
-        --filter standard:ckpt_disruption:expected=fail \
         ${arguments[@]}
     retval=$?
     unset MPIRUN_ARGS
