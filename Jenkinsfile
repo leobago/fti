@@ -33,7 +33,7 @@ agent none
 
 stages {
   stage('Complation checks') {
-    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+    agent { docker { image 'alexandrelimassantana/fti-development' } }
     steps { itf_suite('compilation') }
   }
   stage('GCC') {
@@ -47,7 +47,7 @@ stages {
   }
   stage('CLang') {
     when { expression { return env.BRANCH_NAME == 'master' } }
-    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+    agent { docker { image 'alexandrelimassantana/fti-development' } }
     steps { script { compiler_checks('Clang') } }
   }
   stage('PGI') {

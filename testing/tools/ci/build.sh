@@ -19,7 +19,7 @@ fi
 
 case $1 in
 gcc | GCC)
-    ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
+    ${install_script} --enable-coverage --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 intel | Intel)
     export CFLAGS_FIX='-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'

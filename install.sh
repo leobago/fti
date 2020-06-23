@@ -21,6 +21,8 @@ print_usage() {
     echo "            [--ime-path=DIR]              # Path to DDN IME installation"
     echo "            [--cmake-bin=BIN]             # Use a custom CMake installation"
     echo " "
+    echo "            [--enable-coverage]           # Enable another build, fti_cov, for gathering coverage metrics"
+    echo "            [--make-verbose]              # Enable verbosity when calling make commands"
     echo "            [--debug]                     # Enable a debug build"
     echo "            [--silent]                    # No output to stdout or stderr during installation"
     echo "            [--uninstall]                 # No output to stdout or stderr during installation"
@@ -72,6 +74,10 @@ while [ $# -gt 0 ]; do
         ;;
     --debug)
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=Debug"
+        shift # past argument=value
+        ;;
+    --enable-coverage)
+        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_COVERAGE=1"
         shift # past argument=value
         ;;
     --enable-hdf5)
@@ -136,6 +142,10 @@ while [ $# -gt 0 ]; do
         ;;
     --cmake-bin=*)
         cmake_bin="${1#*=}"
+        shift
+        ;;
+    --make-verbose)
+        make_verbose="VERBOSE=1"
         shift
         ;;
     --silent)
@@ -203,13 +213,14 @@ else
         exit 1
     fi
 fi
+
 if [ $VERBOSE ]; then
-    make -j all install >>$install_log 2>&1
+    make -j $make_verbose all install >>$install_log 2>&1
     if [ $? -ne 0 ]; then
         exit 1
     fi
 else
-    make -j all install 2>&1 | tee -a $install_log
+    make -j $make_verbose all install 2>&1 | tee -a $install_log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         exit 1
     fi
