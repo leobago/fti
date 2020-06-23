@@ -260,8 +260,19 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print(str, FTI_DBUG);
         if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptMeta.level == 4)) {
             //checkpoint was not saved in global temporary directory
-            int level = (FTI_Exec->ckptMeta.level != 4) ? FTI_Exec->ckptMeta.level : 1; //if level 4: head moves local ckpt files to PFS
-            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
+            if (FTI_Exec->ckptMeta.level != 4){
+                RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[FTI_Exec->ckptMeta.level].dir);
+            }else{
+                //In case of Level 4 Checkpoint We keep a
+                //copy of the global checkpoint file 
+                //on the local persistent memory
+                if ( FTI_Conf->ioMode != FTI_IO_POSIX){
+                    RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[4].L4Replica);
+                }
+                else{
+                    RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
+                }
+            }
         }
     }
     int globalFlag = !FTI_Topo->splitRank;

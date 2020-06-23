@@ -12,7 +12,7 @@ print_usage() {
     echo "            [--disable-examples]          # Disable the compilation of examples (default: enabled)"
     echo "            [--enable-testing]            # Enable testing framework (default: disabled)"
     echo "            [--enable-docu]               # Enable creation of FTI documentation (default: disabled)"
-    echo "            [--enable-titorial]           # Enable creation of FTI tutorial (default: disabled)"
+    echo "            [--enable-tutorial]           # Enable creation of FTI tutorial (default: disabled)"
     echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
     echo "            [--disable-openssl]           # Disable linking with OpenSSL (default: enabled)"
     echo " "
