@@ -11,10 +11,7 @@ itf_load_module 'fti'
 
 standard() {
     # Brief:
-    # TODO: Missing a description
-    #
-    # Details:
-    # TODO: Missing a description
+    # Asserts that FTI can re-start in a different number of ranks using HDF5
 
     local app="$(dirname ${BASH_SOURCE[0]})/test.exe"
 

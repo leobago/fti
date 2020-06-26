@@ -32,10 +32,7 @@ standard_teardown() {
 
 standard() {
     # Brief:
-    # TODO: missing a description
-    #
-    # Details:
-    # TODO: missing a description
+    # Asserts that differential checkpointing encodes the right amount of data
 
     local app="$(dirname ${BASH_SOURCE[0]})/diff_test.exe"
 
@@ -73,10 +70,7 @@ standard() {
 
 corrupt_check() {
     # Brief:
-    # TODO: missing a description
-    #
-    # Details:
-    # TODO: missing a description
+    # Asserts that FTI is able to recover from corrupted DCP data
 
     param_parse '+recovery' $@
 

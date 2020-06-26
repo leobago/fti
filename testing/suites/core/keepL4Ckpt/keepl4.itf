@@ -13,10 +13,8 @@ itf_load_module 'fti'
 
 standard() {
     # Brief:
-    # TODO: missing a description
-    #
-    # Details:
-    # TODO: missing a description
+    # Verifies if checkpoints are being put in an archive located in the PFS
+    # when keep_l4_ckpt is set to true.
 
     param_parse '+head' '+keepl4' $@
 
