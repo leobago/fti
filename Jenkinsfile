@@ -41,8 +41,9 @@ stages {
     steps { script { compiler_checks('GCC') } }
     post {
       always {
-        labelledShell ( label:'Generate coverage reports',
-          script:"testing/tools/ci/coverage.sh 'make-xml'")
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
         cobertura coberturaReportFile: 'coverage.xml'
       }
     }
