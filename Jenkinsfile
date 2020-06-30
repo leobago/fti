@@ -37,8 +37,16 @@ stages {
     steps { itf_suite('compilation') }
   }
   stage('GCC') {
-    agent { docker { image 'kellekai/archlinuxopenmpi1.10:stable' } }
+    agent { docker { image 'alexandrelimassantana/fti-development' } }
     steps { script { compiler_checks('GCC') } }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
   }
   stage('Intel') {
     when { expression { return env.BRANCH_NAME == 'master' } }
