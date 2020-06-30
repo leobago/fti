@@ -13,10 +13,7 @@ itf_load_module 'fti'
 
 standard() {
     # Brief:
-    # TODO: Missing a description
-    #
-    # Details:
-    # TODO: Missing a description
+    # Asserts that FTI is capable of sending files to PFS in the background
 
     param_parse '+head' $@
 

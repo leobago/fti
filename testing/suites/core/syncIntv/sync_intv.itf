@@ -35,10 +35,8 @@ unload_integration() {
 
 checkpoint_interval() {
     # Brief:
-    #
-    #
-    # Details:
-    #
+    # Executes an application kernel and verifies if checkpoints are taken
+    # in the correct intervals.
 
     local app="$(dirname ${BASH_SOURCE[0]})/syncIntv.exe"
     local configfile="${itf_cfg['fti:config']}"
