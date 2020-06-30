@@ -41,15 +41,13 @@ clang | Clang)
     ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 pgi | PGI)
-    export PGICC='/opt/pgi/linux86-64/18.4/bin/'
-    export PGIMPICC='/opt/pgi/linux86-64/2018/mpi/openmpi-2.1.2/bin/'
+    export PGICC='/opt/pgi/linux86-64/19.10/bin/'
+    export PGIMPICC='/opt/pgi/linux86-64/2019/mpi/openmpi-3.1.3/bin/'
     export LM_LICENSE_FILE="/opt/pgi/license.dat"
-    export LD_LIBRARY_PATH='/opt/pgi/linux86-64/18.4/lib'
+    export LD_LIBRARY_PATH='/opt/pgi/linux86-64/19.10/lib'
     export PATH="$PGICC:$PGIMPICC:$PATH"
     export CC=pgcc
     export FC=pgfortran
-    echo $PATH
-    ls /opt/pgi/
-    ${install_script} --enable-hdf5 --hdf5-path=/opt/HDF5/1.10.4
+    ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 esac
