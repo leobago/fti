@@ -136,7 +136,7 @@ As such, they need to be populated by a container.
 To create the cmake-versions volume, run the FTI container with the following parameters.
 
 .. code-block:: bash
-   docker run -d -t --name make-cmake --volume cmake-versions:/opt/cmake alexandrelimassantana/fti-ci:latest
+   docker run -d -t --name make-cmake --volume cmake-versions:/opt/cmake ftibsc/ci:latest
 
 This command will create a new container, **make-cmake**, and a new volume **cmake-versions** mounted in */opt/cmake*.
 Now, all we must do is to populate the container with the CMake installations.
@@ -182,7 +182,7 @@ It is important to remember that you need to launch the container with the volum
 The following command will do this.
 
 .. code-block:: bash
-   docker run -d -t --volume cmake-versions:/opt/cmake alexandrelimassantana/fti-ci:latest
+   docker run -d -t --volume cmake-versions:/opt/cmake ftibsc/ci:latest
 
 pgi-compiler
 ~~~~~~~
@@ -193,7 +193,7 @@ To build this volume, you first need to download the PGI compiler in this `link 
 After this step, get a docker running with the following command.
 
 .. code-block:: bash
-   docker run -d -t --name make-pgi --volume pgi-compiler:/opt/pgi alexandrelimassantana/fti-ci:latest
+   docker run -d -t --name make-pgi --volume pgi-compiler:/opt/pgi ftibsc/ci:latest
 
 The command will create an image named **make-pgi** and a new volume, **pgi-compiler** in */opt/pgi*.
 We need to install the PGI compiler inside the volume just as we did with the CMake versions.

@@ -35,7 +35,7 @@ stages {
   stage('Complation checks') {
     agent {
       docker {
-        image 'alexandrelimassantana/fti-ci'
+        image 'ftibsc/ci:latest'
         args '--volume cmake-versions:/opt/cmake'
       }
     }
@@ -45,7 +45,7 @@ stages {
   stage('GCC') {
     agent {
       docker {
-        image 'alexandrelimassantana/fti-ci'
+        image 'ftibsc/ci:latest'
       }
     }
     steps { script { compiler_checks('GCC') } }
@@ -73,7 +73,7 @@ stages {
     when { expression { return env.BRANCH_NAME == 'master' } }
     agent {
       docker {
-        image 'alexandrelimassantana/fti-ci'
+        image 'ftibsc/ci:latest'
       }
     }
     steps { script { compiler_checks('Clang') } }
@@ -83,7 +83,7 @@ stages {
     when { expression { return env.BRANCH_NAME == 'master' } }
     agent {
       docker { 
-        image 'alexandrelimassantana/fti-ci'
+        image 'ftibsc/ci:latest'
         args '--volume pgi-compiler:/opt/pgi'
       }
     }
