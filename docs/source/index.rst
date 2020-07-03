@@ -38,6 +38,7 @@ Fault Tolerance Library
    codeformatting
    itf
    test_suites
+   ci
 
 
 .. codeauthor:: Dr. Leonardo Bautista-Gomez (Leo) <leonardo.bautista@bsc.es>
