@@ -194,7 +194,7 @@ setup_double_fti_init() {
     # Duplicate the FTI configuration file for using it in another app segment
 
     setup
-    cfg_copy='/tmp/fti2.cfg'
+    cfg_copy="${itf_cfg['core:dir']}/fti2.cfg"
     fti_config_dupe "$cfg_copy"
 }
 

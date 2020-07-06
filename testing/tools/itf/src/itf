@@ -9,8 +9,11 @@
 # Associative array for itf configurations
 declare -A itf_cfg=()
 
-itf_cfg['core:module_path']=''                       # The path to find the ITF modules (should be set by apps)
-itf_cfg['core:assert_msg_buf']='/tmp/itf_assert.out' # Assertion message buffer
+itf_cfg['core:dir']='itf_data'                  # Where to keep temporary files for the test run
+itf_cfg['core:module_path']=''                  # The path to find the ITF modules (should be set by apps)
+itf_cfg['core:assert_msg_buf']="${itf_cfg['core:dir']}/assert.out" # Assertion message buffer
+
+mkdir -p "${itf_cfg[core:dir]}"
 
 # ------------------------ ITF Core Functionalities ---------------------------
 
@@ -53,4 +56,10 @@ itf_unload_suite_modules() {
         ${mod}_unload
         unset ${mod}_unload
     done
+}
+
+itf_exit() {
+  # Removes ITF temporary folders
+  
+  rm -rf "${itf_cfg[core:dir]}"
 }

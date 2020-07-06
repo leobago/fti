@@ -17,11 +17,11 @@ itf_set_if_undef 'fti:verbose_log' 'true'
 # If FTI application stdout should be sent to terminal
 itf_set_if_undef 'fti:verbose_app' 'false'
 # The stdout for MPI test applications filename
-itf_set_if_undef 'fti:app_stdout' '/tmp/itf_fti_app.out'
+itf_set_if_undef 'fti:app_stdout' "${itf_cfg['core:dir']}/fti_app.out"
 # The FTI configuration template file
 itf_set_if_undef 'fti:config_template' @fti_cfg_template@
 # The FTI configuration file name used for FTI test cases
-itf_set_if_undef 'fti:config' '/tmp/configfile.cfg'
+itf_set_if_undef 'fti:config' "${itf_cfg['core:dir']}/configfile.cfg"
 # A Flag to keep the checkpoint directory after running the checks
 itf_set_if_undef 'fti:keep_ckpt_dir' 'false'
 

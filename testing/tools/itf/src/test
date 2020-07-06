@@ -23,7 +23,7 @@ itf_cfg['core:dry_run']='false'
 # If set, will output the test stdout to the terminal
 itf_cfg['core:verbose']='true'
 # The default buffer for the test stdout (cleared before every test)
-itf_cfg['core:stdout']='/tmp/itf.out'
+itf_cfg['core:stdout']="${itf_cfg['core:dir']}/test.out"
 
 # --------------------------- ITF Suite Public API ----------------------------
 

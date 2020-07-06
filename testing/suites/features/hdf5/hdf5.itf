@@ -19,9 +19,9 @@ setup() {
     fti_config_set 'keep_last_ckpt' '1'
     fti_config_set_ckpts '1' '2' '3' '4'
 
-    files['pattern']='/tmp/pattern.h5'
-    files['pattern_dump']='/tmp/pattern_dump.log'
-    files['test_dump']='/tmp/test_dump.log'
+    files['pattern']="${itf_cfg['core:dir']}/pattern.h5"
+    files['pattern_dump']="${itf_cfg['core:dir']}/pattern_dump.log"
+    files['test_dump']="${itf_cfg['core:dir']}/test_dump.log"
 }
 
 teardown() {

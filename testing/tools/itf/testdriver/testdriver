@@ -483,6 +483,7 @@ if [ ${summary[failed]} -ne 0 ] && [ ${cfg['fail_review']} == "true" ]; then
     done
 fi
 
+itf_exit
 if [ ${summary[failed]} -ne 0 ] || [ ${summary[ntests]} -eq 0 ]; then
     # If execution had failed cases or did not run tests, return non-zero
     # Not executing tests should be regarded as a configuration fault or bug

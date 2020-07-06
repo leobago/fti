@@ -33,11 +33,21 @@ agent none
 
 stages {
   stage('Complation checks') {
-    agent { docker { image 'alexandrelimassantana/fti-development' } }
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+        args '--volume cmake-versions:/opt/cmake'
+      }
+    }
     steps { itf_suite('compilation') }
   }
+
   stage('GCC') {
-    agent { docker { image 'alexandrelimassantana/fti-development' } }
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+      }
+    }
     steps { script { compiler_checks('GCC') } }
     post {
       always {
@@ -48,19 +58,35 @@ stages {
       }
     }
   }
+
   stage('Intel') {
     when { expression { return env.BRANCH_NAME == 'master' } }
-    agent { docker { image 'kellekai/archlinuximpi18:stable' } }
+    agent {
+      docker {
+        image 'kellekai/archlinuximpi18:stable'
+      }
+    }
     steps { script { compiler_checks('Intel') } }
   }
+
   stage('CLang') {
     when { expression { return env.BRANCH_NAME == 'master' } }
-    agent { docker { image 'alexandrelimassantana/fti-development' } }
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+      }
+    }
     steps { script { compiler_checks('Clang') } }
   }
+
   stage('PGI') {
     when { expression { return env.BRANCH_NAME == 'master' } }
-    agent { docker { image 'kellekai/archlinuxpgi18:stable' } }
+    agent {
+      docker { 
+        image 'ftibsc/ci:latest'
+        args '--volume pgi-compiler:/opt/pgi'
+      }
+    }
     steps { script { compiler_checks('PGI') } }
   }
 }}
