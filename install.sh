@@ -4,6 +4,7 @@ print_usage() {
     echo "usage     : ./install.sh [options]"
     echo "options   : "
     echo "            [--prefix=DIR]                # Installation directory (default: ./install/)"
+    echo "            [--build=DIR]                 # Build directory (default: ./build/)"
     echo "            [--enable-hdf5]               # Enable HDF5 extension (default: disabled)"
     echo "            [--enable-sionlib]            # Enable SIONlib extension (default: disabled)"
     echo "            [--enable-ime]                # Enable IME extension (default: disabled)"
@@ -70,6 +71,10 @@ while [ $# -gt 0 ]; do
         ;;
     -s=* | --prefix=*)
         FTI_INSTALL_DIR="${1#*=}"
+        shift # past argument=value
+        ;;
+    --build=*)
+        FTI_BUILD_DIR="${1#*=}"
         shift # past argument=value
         ;;
     --debug)
@@ -186,28 +191,32 @@ fi
 if [ -z "$FTI_INSTALL_DIR" ]; then
     FTI_INSTALL_DIR="$FTI_ROOT/install"
 fi
+# Test if user has a build directory
+if [ -z "$FTI_BUILD_DIR" ]; then
+    FTI_BUILD_DIR="build"
+fi
 
 echo "cmake command:" >>$config_log
-echo "cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .." >>$config_log
+echo "cmake -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS $FTI_ROOT" >>$config_log
 
 # Tutorial steps
 cd "$FTI_ROOT"
 
-mkdir -p 'build'
-cd 'build'
+mkdir -p "$FTI_BUILD_DIR"
+cd "$FTI_BUILD_DIR"
 
 if [ -z $cmake_bin ]; then
     cmake_bin='cmake'
 fi
 
 if [ $VERBOSE ]; then
-    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. >>$install_log 2>&1
+    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS $FTI_ROOT >>$install_log 2>&1
     if [ $? -ne 0 ]; then
         rm -rf build
         exit 1
     fi
 else
-    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS .. 2>&1 | tee -a $install_log
+    $cmake_bin -DCMAKE_INSTALL_PREFIX:PATH=$FTI_INSTALL_DIR $CMAKE_ARGS $FTI_ROOT 2>&1 | tee -a $install_log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         rm -rf build
         exit 1
