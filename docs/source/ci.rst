@@ -224,4 +224,38 @@ Once you are done, you can leave the container and the volume will persist in th
 intel-compiler
 ~~~~~~~
 
-.. warning:: not yet in the docker image.
+The *intel-compiler* volume is a requirement of the **Intel** CI stage.
+This volume must contain an installation of the `Intel C/C++ compiler <https://software.intel.com/content/www/us/en/develop/tools/compilers/c-compilers.html>`_.
+The volume is mounted at */opt/intel* and should contain a valid license in */opt/intel/licenses/*.
+
+The first step to build the *intel-compiler* volume is to download and install the compiler in the host machine.
+Using the default options, the installation will install the package in */opt/intel*.
+After this step, get a docker running with a bind and a volume mounts with the following command.
+
+.. code-block:: bash
+   docker run -d -t --name make-intel --volume intel-compiler:/opt/intel --mount type=bind,source=/opt/intel,destination=/opt/intel-host ftibsc/ci:latest
+
+The aforementioned command will create two mounts, a volume in */opt/intel* and a bind in */opt/intel-host*.
+The volume will be empty while the bing will contain the host's installation of the Intel tools.
+To populate the volume, simply copy all files from the bind mount to the volume using the following command.
+
+.. code-block:: bash
+   sudo cp -r /opt/intel-host/* /opt/intel
+
+To test the new volume, instantiate a new docker and mount only the *intel-compiler* volume.
+
+.. code-block:: bash
+   docker run -d -t --name fti-test --volume intel-compiler:/opt/intel ftibsc/ci:latest
+
+Connect to the docker container, pull fti from github and check if the build script is working.
+
+.. code-block:: bash
+   # On host machine
+   docker exec -it fti-test /bin/bash
+   # On docker container
+   git clone https://github.com/leobago/fti
+   cd fti && git checkout develop
+   testing/tools/ci/build.sh Intel
+
+This command is the same that is used in Jenkins and should be able to compile FTI using ICC.
+After this step, the container is ready to run the tests and check FTI's behavior.
