@@ -63,7 +63,8 @@ stages {
     when { expression { return env.BRANCH_NAME == 'master' } }
     agent {
       docker {
-        image 'kellekai/archlinuximpi18:stable'
+        image 'ftibsc/ci:latest'
+        args '--volume intel-compiler:/opt/intel'
       }
     }
     steps { script { compiler_checks('Intel') } }
