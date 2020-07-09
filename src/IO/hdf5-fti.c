@@ -1704,9 +1704,17 @@ int FTI_H5CheckSingleFile( FTIT_configuration* FTI_Conf, int *ckptID )
                 if( strncmp( fileRootExpected, fileRoot, FTI_BUFS ) == 0 ) {
                     int id_tmp;
                     sscanf( entry->d_name + len - 14 + 3, "%08d.h5", &id_tmp );
-                    if( id_tmp > *ckptID ) {
+                    char fn_tmp[FTI_BUFS];
+                    snprintf( fn_tmp, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, id_tmp );
+                    bool sane;
+                    {   // check hdf5 file
+                        hid_t fid_tmp = H5Fopen( fn_tmp, H5F_ACC_RDONLY, H5P_DEFAULT ) > 0;
+                        sane = fid_tmp > 0; 
+                        H5Fclose(fid_tmp);
+                    }
+                    if( (id_tmp > *ckptID) && sane ) {
                         *ckptID = id_tmp;
-                        snprintf( fn, FTI_BUFS, "%s/%s-ID%08d.h5", FTI_Conf->h5SingleFileDir, FTI_Conf->h5SingleFilePrefix, *ckptID ); 
+                        strncpy( fn, fn_tmp, FTI_BUFS ); 
                     }
                     found = true;
                 }
