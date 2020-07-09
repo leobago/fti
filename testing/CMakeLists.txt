@@ -7,13 +7,11 @@ set(IO_IDS "1 2 3")
 set(MEMORYTYPES "CPU")
 
 if(ENABLE_SIONLIB)
-  MATH(EXPR IO "${IO}+1")
   set(IO_NAMES "${IO_NAMES} SIONLIB")
   set(IO_IDS "${IO_IDS} 4")
 endif()
 
 if (ENABLE_HDF5)
-  MATH(EXPR IO "${IO}+1")
   set(IO_NAMES "${IO_NAMES} HDF5")
   set(IO_IDS "${IO_IDS} 5")
 endif()
