@@ -1,3 +1,9 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ */
+
 #ifndef _DIFF_TEST_H_
 #define _DIFF_TEST_H_
 
@@ -34,34 +40,37 @@
 #define EXIT_ID_ERROR_RECOVERY 1
 #define EXIT_ID_ERROR_DATA 2
 
-#define EXIT_CFG_ERR(MSG,...) do {                                                              \
-    fprintf( stderr, "[ERROR-%d] " MSG "\n", grank, ##__VA_ARGS__);                             \
-    exit(ERR_CONF);                                                                             \
+#define EXIT_CFG_ERR(MSG, ...) do {                                     \
+    fprintf(stderr, "[ERROR-%d] " MSG "\n", grank, ##__VA_ARGS__);      \
+    exit(ERR_CONF);                                \
 } while (0)
 
-#define EXIT_STD_ERR(MSG,...) do {                                                              \
-    fprintf( stderr, "[ERROR-%d] " MSG " : %s\n", grank, ##__VA_ARGS__, strerror(errno));       \
-    exit(EXIT_FAILURE);                                                                              \
+#define EXIT_STD_ERR(MSG, ...) do {                \
+    fprintf(stderr, "[ERROR-%d] " MSG " : %s\n",
+     grank, ##__VA_ARGS__, strerror(errno));       \
+    exit(EXIT_FAILURE);                            \
 } while (0)
 
-#define WARN_MSG(MSG,...) do {                                                                  \
-    printf( "[WARNING-%d] " MSG "\n", grank, ##__VA_ARGS__);                                    \
+#define WARN_MSG(MSG, ...) do {                               \
+    printf("[WARNING-%d] " MSG "\n", grank, ##__VA_ARGS__);   \
 } while (0)
 
-#define INFO_MSG(MSG,...) do { \
+#define INFO_MSG(MSG, ...) do { \
     int rank; \
-    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
-    if ( rank == 0 ) \
-        printf( "%s:%d[INFO] " MSG "\n", __FILE__,__LINE__, ##__VA_ARGS__); \
+    MPI_Comm_rank(FTI_COMM_WORLD, &rank); \
+    if (rank == 0) \
+        printf("%s:%d[INFO] " MSG "\n", __FILE__, __LINE__, ##__VA_ARGS__); \
 } while (0)
 
-#define DBG_MSG_APP(MSG,RANK,...) do { \
+#define DBG_MSG_APP(MSG, RANK, ...) do { \
     int rank; \
-    MPI_Comm_rank(FTI_COMM_WORLD,&rank); \
-    if ( rank == RANK ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
-    if ( RANK == -1 ) \
-        printf( "%s:%d[DEBUG-%d] " MSG "\n", __FILE__,__LINE__,rank, ##__VA_ARGS__); \
+    MPI_Comm_rank(FTI_COMM_WORLD, &rank); \
+    if (rank == RANK) \
+        printf("%s:%d[DEBUG-%d] " MSG "\n",
+         __FILE__, __LINE__, rank, ##__VA_ARGS__); \
+    if (RANK == -1) \
+        printf("%s:%d[DEBUG-%d] " MSG "\n",
+         __FILE__, __LINE__, rank, ##__VA_ARGS__); \
 } while (0)
 
 #define KB (1024L)
@@ -72,7 +81,7 @@
 #define TEST_NOICP 0
 
 #define UI_UNIT sizeof(uint32_t)
-#define STATIC_SEED 310793 
+#define STATIC_SEED 310793
 
 enum ALLOC_FLAGS {
     ALLOC_FULL,
@@ -108,13 +117,13 @@ void init_share();
 typedef struct _xor_info {
     double share;
     int offset[256];
-    unsigned long nunits[256];
+    uint32_t nunits[256];
 } xor_info_t;
 
 typedef struct _dcp_info {
     void **buffer;
-    unsigned long *size;
-    unsigned long *oldsize;
+    uint32_t *size;
+    uint32_t *oldsize;
     int nbuffer;
     int test_mode;
     unsigned char **hash;
@@ -125,22 +134,23 @@ typedef struct _dcp_info {
  * init a random amount of buffers with random data.
  * Allocate not more then 'alloc_size' in bytes.
 */
-void init(char *fti_cfgfile, dcp_info_t * info, unsigned long alloc_size );
+void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size);
 
 /*
  * change 'share' percentage (integer) of data in buffer with 'id' 
  * and return size of changed data in bytes.
 */
-void xor_data( int id, dcp_info_t *info );
+void xor_data(int id, dcp_info_t *info);
 
-void allocate_buffers( dcp_info_t * info, unsigned long alloc_size);
-void update_data( dcp_info_t * info, uintptr_t *offset );
-void generate_data( dcp_info_t * info );
-unsigned long reallocate_buffers( dcp_info_t * info, unsigned long alloc_size, enum ALLOC_FLAGS ALLOC_FLAG );
-void invert_data( dcp_info_t *info );
+void allocate_buffers(dcp_info_t * info, uint32_t alloc_size);
+void update_data(dcp_info_t * info, uintptr_t *offset);
+void generate_data(dcp_info_t * info);
+uint32_t reallocate_buffers(dcp_info_t * info, uint32_t alloc_size,
+ enum ALLOC_FLAGS ALLOC_FLAG);
+void invert_data(dcp_info_t *info);
 double get_share_ratio();
-bool valid( dcp_info_t * info );
-void protect_buffers( dcp_info_t *info );
-void checkpoint( dcp_info_t *info, int ID, int level );
-void deallocate_buffers( dcp_info_t * info );
+bool valid(dcp_info_t * info);
+void protect_buffers(dcp_info_t *info);
+void checkpoint(dcp_info_t *info, int ID, int level);
+void deallocate_buffers(dcp_info_t * info);
 #endif
