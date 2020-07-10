@@ -67,7 +67,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int k = FTI_Topo->groupSize;
     int m = k;
 
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -129,8 +129,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FILE *fd, *efd;
-    long maxFs = FTI_Exec->ckptMeta.maxFs;
-    long ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
+    int32_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    int32_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;  // Calculating padding size
     }
@@ -236,7 +236,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    long pos = 0;
+    int32_t pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
@@ -381,7 +381,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        fs = (long) fs_;
+        fs = (int32_t) fs_;
         FTI_Exec->ckptMeta.fs = fs;
 
         close(ifd);
@@ -535,7 +535,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int destination, int ptner) {
-    long toSend;  // remaining data to send
+    int32_t toSend;  // remaining data to send
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to send Ptner file
         int ckptId, rank;
@@ -599,7 +599,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int source, int ptner) {
-    long toRecv;  // remaining data to receive
+    int32_t toRecv;  // remaining data to receive
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to receive Ptner file
         int ckptId, rank;
@@ -1011,11 +1011,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char *readData = talloc(char, FTI_Conf->transferSize);
-    long bSize = FTI_Conf->transferSize;
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t bSize = FTI_Conf->transferSize;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
 
     // Checkpoint files transfer from PFS
-    long pos = 0;
+    int32_t pos = 0;
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
             bSize = fs - pos;
@@ -1139,10 +1139,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
     char *readData = talloc(char, FTI_Conf->transferSize);
-    long bSize = FTI_Conf->transferSize;
-    long pos = 0;
+    int32_t bSize = FTI_Conf->transferSize;
+    int32_t pos = 0;
     // Checkpoint files transfer from PFS
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
@@ -1303,10 +1303,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf,
 
     // Checkpoint files transfer from PFS
     while (!sion_feof(sid)) {
-        long fs = FTI_Exec->ckptMeta.fs;
+        int32_t fs = FTI_Exec->ckptMeta.fs;
         char *readData = talloc(char, FTI_Conf->transferSize);
-        long bSize = FTI_Conf->transferSize;
-        long pos = 0;
+        int32_t bSize = FTI_Conf->transferSize;
+        int32_t pos = 0;
         // Checkpoint files transfer from PFS
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize) {

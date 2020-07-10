@@ -16,12 +16,12 @@ int FTI_InitNextHashData(FTIT_DataDiffHash *hashes);
 int FTI_FreeDataDiff(FTIT_DataDiffHash *dhash);
 dcpBLK_t FTI_GetDiffBlockSize();
 int FTI_GetDcpMode();
-int FTI_ReallocateDataDiff(FTIT_DataDiffHash *dhash, long nbHashes);
+int FTI_ReallocateDataDiff(FTIT_DataDiffHash *dhash, int32_t nbHashes);
 int FTI_InitBlockHashArray(FTIFF_dbvar* dbvar);
-int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, long chunkSize);
-int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, long chunkSize);
-long FTI_CalcNumHashes(long chunkSize);
-int FTI_HashCmp(long hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr);
+int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, int32_t chunkSize);
+int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int32_t chunkSize);
+int32_t FTI_CalcNumHashes(int32_t chunkSize);
+int FTI_HashCmp(int32_t hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr);
 int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec);
 int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size,
  FTIFF_dbvar* dbvar,  unsigned char *startAddr, size_t *totalBytes);

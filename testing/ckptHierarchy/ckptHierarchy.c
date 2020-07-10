@@ -1,3 +1,9 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   ckptHierarchy.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <fti.h>
@@ -42,20 +48,23 @@ void simulateCrash() {
                 break;
         }
         if (isInline == 0) {
-            //waiting untill head do Post-checkpointing
-            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , general_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            // waiting untill head do Post-checkpointing
+            MPI_Recv(&res, 1, MPI_INT, global_world_rank -
+             (global_world_rank%nodeSize), general_tag,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
     iniparser_freedict(ini);
     if (heads > 0) {
         res = FTI_ENDW;
-        //sending END WORK to head to stop listening
-        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
-        //Barrier needed for heads (look FTI_Finalize() in api.c)
+        // sending END WORK to head to stop listening
+        MPI_Send(&res, 1, MPI_INT, global_world_rank -
+         (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
+        // Barrier needed for heads (look FTI_Finalize() in api.c)
         MPI_Barrier(MPI_COMM_WORLD);
     }
     MPI_Barrier(FTI_COMM_WORLD);
-    //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
+    // There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
     free(array);
     exit(0);
@@ -72,7 +81,8 @@ int checkArray(int* tab) {
     int i;
     for (i = 0; i < ARRAY_SIZE; i++) {
         if (tab[i] != (i + world_rank)) {
-            printf("%d: array[%d] != %d\n", world_rank, tab[i], (i + world_rank));
+            printf("%d: array[%d] != %d\n", world_rank, tab[i],
+             (i + world_rank));
             return 1;
         }
     }
@@ -80,13 +90,15 @@ int checkArray(int* tab) {
     return 0;
 }
 
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &global_world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &global_world_rank);
 
     if (argc != 7) {
-        if (global_world_rank == 0) printf("Argc doesn't equeal 6! (run: ./ckptHierarchy 1stCkpt 2ndCkpt 3rdCkpt 4thCkpt (1/2/3/4) ifCrash ifReco(0/1) \n");
+        if (global_world_rank == 0)
+            printf("Argc doesn't equeal 6! (run: ./ckptHierarchy 1stCkpt"
+            " 2ndCkpt 3rdCkpt 4thCkpt (1/2/3/4) ifCrash ifReco(0/1) \n");
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
     }

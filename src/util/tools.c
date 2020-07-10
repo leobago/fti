@@ -93,7 +93,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_filemetastructsize
         = MD5_DIGEST_STRING_LENGTH
         + MD5_DIGEST_LENGTH
-        + 7*sizeof(long)
+        + 7*sizeof(int32_t)
         + sizeof(int);
 
     // TODO(leobago) RS L3 only works for even file sizes.
@@ -103,13 +103,13 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
-        + sizeof(long);             /* dbsize */
+        + sizeof(int32_t);             /* dbsize */
 
     FTI_dbvarstructsize
         = 2*sizeof(int)               /* numvars */
         + 2*sizeof(bool)
         + 2*sizeof(uintptr_t)
-        + 2*sizeof(long)
+        + 2*sizeof(int32_t)
         + MD5_DIGEST_LENGTH;
 
     //
@@ -315,13 +315,13 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
 /*-------------------------------------------------------------------------*/
 int FTI_InitBasicTypes() {
     FTI_InitType(&FTI_CHAR, sizeof(char));
-    FTI_InitType(&FTI_SHRT, sizeof(short));
+    FTI_InitType(&FTI_SHRT, sizeof(int16_t));
     FTI_InitType(&FTI_INTG, sizeof(int));
-    FTI_InitType(&FTI_LONG, sizeof(long));
+    FTI_InitType(&FTI_LONG, sizeof(int32_t));
     FTI_InitType(&FTI_UCHR, sizeof(unsigned char));
-    FTI_InitType(&FTI_USHT, sizeof(unsigned short));
+    FTI_InitType(&FTI_USHT, sizeof(uint16_t));
     FTI_InitType(&FTI_UINT, sizeof(unsigned int));
-    FTI_InitType(&FTI_ULNG, sizeof(unsigned long));
+    FTI_InitType(&FTI_ULNG, sizeof(uint32_t));
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));

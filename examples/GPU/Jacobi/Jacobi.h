@@ -31,6 +31,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <cuda_runtime.h>
 
 #ifdef __cplusplus
@@ -112,7 +113,7 @@ extern "C" {
 	#define MPI_CUSTOM_REAL		MPI_DOUBLE
 #endif		
 
-#define uint64					unsigned long long
+#define uint64					uint64_t
 
 #define SafeCudaCall(call) 			CheckCudaCall(call, #call, __FILE__, __LINE__)
 #define SafeHostFree(block)			{ if (block) free(block); }

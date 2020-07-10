@@ -37,6 +37,7 @@
  */
 
 #include <time.h>
+#include <stdint.h>
 #include "./interface.h"
 
 /*-------------------------------------------------------------------------*/
@@ -360,7 +361,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int k; for (k = 0; k < MAX_STACK_SIZE; k++) {
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
-        unsigned long LayerSize = ini.getLong(&ini, str);
+        uint32_t LayerSize = ini.getLong(&ini, str);
         if (LayerSize == -1) {
             // No more variables
             break;
@@ -381,12 +382,12 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varID = varID;
             snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size",
              FTI_Topo->groupRank, k, j);
-            long varSize = ini.getLong(&ini, str);
+            int32_t varSize = ini.getLong(&ini, str);
             if (varID < 0) {
                 break;
             }
             FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varSize =
-             (unsigned long) varSize;
+             (uint32_t) varSize;
         }
     }
 
@@ -675,10 +676,10 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, long* fs, long mfs,
-        char* fnl, char* checksums, int* allVarIDs, long* allVarSizes,
-        unsigned long* allLayerSizes, char* allLayerHashes,
-        long *allVarPositions, char *allCharIds) {
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int32_t* fs,
+        int32_t mfs, char* fnl, char* checksums, int* allVarIDs,
+        int32_t* allVarSizes, uint32_t* allLayerSizes, char* allLayerHashes,
+        int32_t *allVarPositions, char *allCharIds) {
     // no metadata files for FTI-FF
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) { return FTI_SCES; }
 
@@ -718,10 +719,10 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(key, FTI_BUFS, "%d:Ckpt_file_name", i);
         ini.set(&ini, key, val);
         snprintf(key, FTI_BUFS, "%d:Ckpt_file_size", i);
-        snprintf(val, FTI_BUFS, "%lu", fs[i]);
+        snprintf(val, FTI_BUFS, "%u", fs[i]);
         ini.set(&ini, key, val);
         snprintf(key, FTI_BUFS, "%d:Ckpt_file_maxs", i);
-        snprintf(val, FTI_BUFS, "%lu", mfs);
+        snprintf(val, FTI_BUFS, "%u", mfs);
         ini.set(&ini, key, val);
         strncpy(val, checksums + (i * MD5_DIGEST_STRING_LENGTH),
          MD5_DIGEST_STRING_LENGTH);
@@ -736,12 +737,12 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             // Save size of variable
             snprintf(key, FTI_BUFS, "%d:Var%d_size", i, j);
-            snprintf(val, FTI_BUFS, "%ld",
+            snprintf(val, FTI_BUFS, "%d",
              allVarSizes[i * FTI_Exec->nbVar + j]);
             ini.set(&ini, key, val);
 
             snprintf(key, FTI_BUFS, "%d:Var%d_pos", i, j);
-            snprintf(val, FTI_BUFS, "%ld",
+            snprintf(val, FTI_BUFS, "%d",
              allVarPositions[i * FTI_Exec->nbVar + j]);
             ini.set(&ini, key, val);
 
@@ -755,7 +756,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
              FTI_Conf->dcpInfoPosix.StackSize) + 1;
             for (j=0; j < nbLayer; j++) {
                 snprintf(key, FTI_BUFS, "%d:dcp_layer%d_size", i, j);
-                snprintf(val, FTI_BUFS, "%lu", allLayerSizes[i * nbLayer + j]);
+                snprintf(val, FTI_BUFS, "%u", allLayerSizes[i * nbLayer + j]);
                 ini.set(&ini, key, val);
 
                 snprintf(key, FTI_BUFS, "%d:dcp_layer%d_hash", i, j);
@@ -773,7 +774,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                     // Save size of variable
                     snprintf(key, FTI_BUFS, "%d:dcp_layer%d_var%d_size",
                      i, j, k);
-                    snprintf(val, FTI_BUFS, "%ld",
+                    snprintf(val, FTI_BUFS, "%d",
                      allVarSizes[i * FTI_Exec->nbVar + k]);
                     ini.set(&ini, key, val);
                 }
@@ -846,7 +847,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 #endif
 
-    long fileSizes[FTI_BUFS];
+    int32_t fileSizes[FTI_BUFS];
     MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG,
      FTI_Exec->groupComm);
 
@@ -857,7 +858,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->ckptMeta.pfs = fileSizes[ptnerGroupRank];
     }
 
-    long mfs = 0;  // Max file size in group
+    int32_t mfs = 0;  // Max file size in group
     int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         if (fileSizes[i] > mfs) {
@@ -866,7 +867,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     FTI_Exec->ckptMeta.maxFs = mfs;
     char str[FTI_BUFS];  // For console output
-    snprintf(str, FTI_BUFS, "Max. file size in group %lu.", mfs);
+    snprintf(str, FTI_BUFS, "Max. file size in group %d.", mfs);
     FTI_Print(str, FTI_DBUG);
 
     char* ckptFileNames = NULL;
@@ -899,11 +900,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Every process has the same number of protected variables
 
     int* allVarIDs = NULL;
-    long* allVarSizes = NULL;
-    long *allVarPositions = NULL;
+    int32_t* allVarSizes = NULL;
+    int32_t *allVarPositions = NULL;
 
     // for posix dcp
-    unsigned long* allLayerSizes = NULL;
+    uint32_t* allLayerSizes = NULL;
     char* allLayerHashes = NULL;
     char* allCharIds = NULL;
 
@@ -912,12 +913,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
-        allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
-        allVarPositions = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarSizes = talloc(int32_t, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarPositions = talloc(int32_t,
+         FTI_Topo->groupSize * FTI_Exec->nbVar);
         allCharIds = (char *)malloc(sizeof(char)*FTI_BUFS*
           FTI_Exec->nbVar*FTI_Topo->groupSize);
         if (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) {
-            allLayerSizes = talloc(unsigned long,
+            allLayerSizes = talloc(uint32_t,
              FTI_Topo->groupSize * nbLayer);
             allLayerHashes = talloc(char,
              FTI_Topo->groupSize * nbLayer * MD5_DIGEST_STRING_LENGTH);
@@ -925,8 +927,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
-    long* myVarSizes = talloc(long, FTI_Exec->nbVar);
-    long* myVarPositions = talloc(long, FTI_Exec->nbVar);
+    int32_t* myVarSizes = talloc(int32_t, FTI_Exec->nbVar);
+    int32_t* myVarPositions = talloc(int32_t, FTI_Exec->nbVar);
     char *ArrayOfStrings = (char *)malloc(FTI_Exec->nbVar *
      sizeof(char*) *FTI_BUFS);
 

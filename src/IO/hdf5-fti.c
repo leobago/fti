@@ -148,7 +148,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
     FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
     snprintf(str, sizeof(str),
-     "Type [%d] has hid_t %ld.", ftiType->id, (long)ftiType->h5datatype);
+     "Type [%d] has hid_t %ld.", ftiType->id, (int32_t)ftiType->h5datatype);
     FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -454,7 +454,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
     }
     snprintf(str, sizeof(str),
      "Calling CreateComplexType [%d] with hid_t %ld",
-     data->type->id, (long)data->type->h5datatype);
+     data->type->id, (int32_t)data->type->h5datatype);
     FTI_Print(str, FTI_DBUG);
     FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
     if (toCommit == 1) {
@@ -495,7 +495,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckHDF5File(char* fn, long fs, char* checksum) {
+int FTI_CheckHDF5File(char* fn, int32_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;

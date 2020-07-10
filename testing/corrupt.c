@@ -1,4 +1,7 @@
 /**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
  *  @file   corrupt.c
  *  @author Tomasz Paluszkiewicz (tomaszp@man.poznan.pl)
  *  @date   May, 2017
@@ -27,7 +30,7 @@
 #define CORRUPT_FAIL 1
 #define CORRUPT_SCES 0
 
-#define TARGET_GROUP 0 //target group id
+#define TARGET_GROUP 0  // target group id
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -74,7 +77,7 @@ int corruptFile(char* file_path) {
  **/
 /*-------------------------------------------------------------------------*/
 int corruptTargetFile(char* exec_id, int target_node, int target_rank,
-                        int ckptORPtner, int corrORErase, int level, int ckpt_io) {
+    int ckptORPtner, int corrORErase, int level, int ckpt_io) {
     DIR *dir;
     struct dirent *ent;
     char folder_path[256];
@@ -85,22 +88,20 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
     char suffix[256];
 
     if (ckptORPtner == 0) {
-        sprintf(buff, "Rank");
-    }
-    else {
+        snprintf(buff, sizeof(buff), "Rank");
+    } else {
         if (level == 2) {
-            sprintf(buff, "Pcof");
-        }
-        else {
-            sprintf(buff, "RSed");
+            snprintf(buff, sizeof(buff), "Pcof");
+        } else {
+            snprintf(buff, sizeof(buff), "RSed");
         }
     }
 
     if (level == 4) {
-        sprintf(folder_path, "./Global/%s/l4", exec_id);
-    }
-    else {
-        sprintf(folder_path, "./Local/node%d/%s/l%d", target_node, exec_id, level);
+        snprintf(folder_path, sizeof(folder_path), "./Global/%s/l4", exec_id);
+    } else {
+        snprintf(folder_path, sizeof(folder_path), "./Local/node%d/%s/l%d",
+         target_node, exec_id, level);
     }
 
     if ((dir = opendir(folder_path)) == NULL) {
@@ -113,34 +114,37 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
             break;
         }
     }
-    closedir (dir);
+    closedir(dir);
     if (ckpt_id == -1) {
         printf("Could not find checkpoint files");
         return CORRUPT_FAIL;
     }
-    
-    switch(ckpt_io) {
+
+    switch (ckpt_io) {
         case HDF5_IO:
-            strcpy( suffix, "h5" );
+            snprintf(suffix, sizeof(suffix), "h5");
             break;
         default:
-            strcpy( suffix, "fti" );
+            snprintf(suffix, sizeof(suffix), "fti");
             break;
     }
 
     if (ckpt_io == HDF5_IO && ckptORPtner == 0)
-        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.%s", folder_path, ckpt_id, buff, target_rank, suffix);
+        snprintf(file_path, sizeof(file_path), "%s/Ckpt%d-%s%d.%s",
+         folder_path, ckpt_id, buff, target_rank, suffix);
     else if (level == 4 && ckpt_io == MPI_IO)
-        snprintf(file_path,1024, "%s/Ckpt%d-mpiio.%s", folder_path, ckpt_id, suffix);
+        snprintf(file_path, sizeof(file_path), "%s/Ckpt%d-mpiio.%s",
+         folder_path, ckpt_id, suffix);
     else if (level == 4 && ckpt_io == SIONlib_IO)
-        snprintf(file_path,1024, "%s/Ckpt%d-sionlib.%s", folder_path, ckpt_id, suffix);
+        snprintf(file_path, sizeof(file_path), "%s/Ckpt%d-sionlib.%s",
+         folder_path, ckpt_id, suffix);
     else
-        snprintf(file_path,1024, "%s/Ckpt%d-%s%d.%s", folder_path, ckpt_id, buff, target_rank, suffix);
+        snprintf(file_path, sizeof(file_path), "%s/Ckpt%d-%s%d.%s",
+         folder_path, ckpt_id, buff, target_rank, suffix);
 
     if (corrORErase == 0) {
         res = corruptFile(file_path);
-    }
-    else {
+    } else {
         res = unlink(file_path);
         if (res == 0) {
             printf("File %s erased.\n", file_path);
@@ -152,7 +156,7 @@ int corruptTargetFile(char* exec_id, int target_node, int target_rank,
 }
 
 int init(char** argv) {
-    int rtn = 0;    //return value
+    int rtn = 0;  // return value
     if (argv[1] == NULL) {
         printf("Missing first parameter (config file).\n");
         rtn = 1;
@@ -168,30 +172,32 @@ int init(char** argv) {
         printf("Missing third parameter (number of processes).\n");
         rtn = 1;
     } else if (atoi(argv[3]) < 1) {
-        printf("Third parameter  (number of processes) must be greater than 0.\n");
+        printf("Third parameter  (number of processes) must"
+        " be greater than 0.\n");
         rtn = 1;
     }
     if (argv[4] == NULL) {
-        printf("Missing fourth parameter (ckpt(0) or Pcof/Rsed(1) ).\n");
+        printf("Missing fourth parameter (ckpt(0) or Pcof/Rsed(1)).\n");
         rtn = 1;
     } else if (atoi(argv[4]) != 0 && atoi(argv[4]) != 1) {
-        printf("Fourth parameter (ckpt(0) or Pcof/Rsed(1) ) must be 0 or 1.\n");
+        printf("Fourth parameter (ckpt(0) or Pcof/Rsed(1)) must be 0 or 1.\n");
         rtn = 1;
     }
     if (argv[5] == NULL) {
-        printf("Missing fifth parameter (corrupt (0) or erase (1) ).\n");
+        printf("Missing fifth parameter (corrupt (0) or erase (1)).\n");
         rtn = 1;
     } else if (atoi(argv[5]) != 0 && atoi(argv[5]) != 1) {
         printf("Fifth parameter (corrupt (0) or erase (1)) must be 0 or 1.\n");
         rtn = 1;
     }
     if (argv[6] == NULL) {
-        printf("Missing sixth parameter (one (0), two non adjacent\
-                    Nodes (1), two adjacent Nodes (2) or all (3) ).\n");
+        printf("Missing sixth parameter (one (0), two non adjacent"
+                    " nodes (1), two adjacent Nodes (2) or all (3)).\n");
         rtn = 1;
     } else if (atoi(argv[6]) < 0 || atoi(argv[6]) > 3) {
-        printf("Sixth parameter (one (0), two non adjacent\
-                Nodes (1), two adjacent Nodes (2) or all (3) ) must be 0, 1, 2 or 3.\n");
+        printf("Sixth parameter (one (0), two non adjacent "
+              " nodes (1), two adjacent Nodes (2) or all (3))"
+                " must be 0, 1, 2 or 3.\n");
         rtn = 1;
     }
     if (argv[7] == NULL) {
@@ -223,37 +229,54 @@ int main(int argc, char **argv) {
     int group_size = (int)iniparser_getint(ini, "Basic:group_size", -1);
     int head = (int)iniparser_getint(ini, "Basic:head", -1);
 
-    int target_node, target_rank; //node id and target process rank
-    target_node = (TARGET_GROUP % node_size) * group_size; //calculate first node in group
-    target_rank = target_node * node_size + (TARGET_GROUP % group_size) + head; //calcualte procsess rank in node
+    // node id and target process rank
+    int target_node, target_rank;
+    // calculate first node in group
+    target_node = (TARGET_GROUP % node_size) * group_size;
+    // calcualte procsess rank in node
+    target_rank = target_node * node_size + (TARGET_GROUP % group_size) + head;
 
-    if (corruptionLevel == 0) { //one
-        res = corruptTargetFile(exec_id, target_node, target_rank, ckptORPtner, corrORErase, level, ckpt_io);
-    } else if (corruptionLevel == 1) { //two non adjacent Nodes
-        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level, ckpt_io);
-        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level, ckpt_io);
+    if (corruptionLevel == 0) {  // one
+        res = corruptTargetFile(exec_id, target_node, target_rank,
+         ckptORPtner, corrORErase, level, ckpt_io);
+    } else if (corruptionLevel == 1) {  // two non adjacent Nodes
+        res = corruptTargetFile(exec_id, target_node, target_rank,
+         0, corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node, target_rank,
+         1, corrORErase, level, ckpt_io);
         if (res) {
             printf("Failed to corrupt a file.\n");
         }
-        target_node += (group_size - 2); //second target is last node - 1 in group
-        target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) + head; //calculate rank
-        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level, ckpt_io);
-        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level, ckpt_io);
-    } else if (corruptionLevel == 2) { //two adjacent Nodes
-        res = corruptTargetFile(exec_id, target_node, target_rank, 0, corrORErase, level, ckpt_io);
-        res += corruptTargetFile(exec_id, target_node, target_rank, 1, corrORErase, level, ckpt_io);
-        target_node += 1; //second target is next node in group
-        target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) + head; //calculate rank
-        res += corruptTargetFile(exec_id, target_node , target_rank, 0, corrORErase, level, ckpt_io);
-        res += corruptTargetFile(exec_id, target_node , target_rank, 1, corrORErase, level, ckpt_io);
-    } else if (corruptionLevel == 3) { //all
+        // second target is last node - 1 in group
+        target_node += (group_size - 2);
+        target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) +
+         head;  // calculate rank
+        res += corruptTargetFile(exec_id, target_node , target_rank, 0,
+         corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 1,
+         corrORErase, level, ckpt_io);
+    } else if (corruptionLevel == 2) {  // two adjacent Nodes
+        res = corruptTargetFile(exec_id, target_node, target_rank, 0,
+         corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node, target_rank, 1,
+         corrORErase, level, ckpt_io);
+        target_node += 1;  // second target is next node in group
+        target_rank = (target_node * node_size) + (TARGET_GROUP % group_size) +
+         head;  // calculate rank
+        res += corruptTargetFile(exec_id, target_node , target_rank, 0,
+         corrORErase, level, ckpt_io);
+        res += corruptTargetFile(exec_id, target_node , target_rank, 1,
+         corrORErase, level, ckpt_io);
+    } else if (corruptionLevel == 3) {  // all
         int i;
         for (i = 0; i < nbProcs; i++) {
             if (head && (i % node_size == 0)) continue;
             target_node = i / node_size;
-            res = corruptTargetFile(exec_id, target_node , i, ckptORPtner, corrORErase, level, ckpt_io);
+            res = corruptTargetFile(exec_id, target_node , i, ckptORPtner,
+             corrORErase, level, ckpt_io);
             if (res) {
-                printf("Faild to corrupt rank = %d, node = %d\n", i, target_node);
+                printf("Faild to corrupt rank = %d, node = %d\n", i,
+                 target_node);
                 break;
             }
         }

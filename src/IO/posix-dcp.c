@@ -136,12 +136,12 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // - stacksize
     if (dcpLayer == 0) {
         FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.BlockSize,
-         sizeof(unsigned long), 1, write_info->f, "p", write_info);
+         sizeof(uint32_t), 1, write_info->f, "p", write_info);
         FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.StackSize,
          sizeof(unsigned int), 1, write_info->f, "p", write_info);
-        FTI_Exec->dcpInfoPosix.FileSize += sizeof(unsigned long) +
+        FTI_Exec->dcpInfoPosix.FileSize += sizeof(uint32_t) +
          sizeof(unsigned int);
-        write_DCPinfo->layerSize += sizeof(unsigned long) +
+        write_DCPinfo->layerSize += sizeof(uint32_t) +
          sizeof(unsigned int);
     }
 
@@ -182,18 +182,18 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     unsigned char * block = (unsigned char*)malloc(FTI_Conf->
         dcpInfoPosix.BlockSize);
     size_t bytes;
-    long varId = data->id;
+    int32_t varId = data->id;
 
     FTI_Exec->dcpInfoPosix.dataSize += data->size;
-    unsigned long dataSize = data->size;
-    // unsigned long nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize +
+    uint32_t dataSize = data->size;
+    // uint32_t nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize +
     // (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
 
     if (dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize)) {
         snprintf(errstr, FTI_BUFS, "overflow in size of dataset with id:"
-            " %d (datasize: %lu > MAX_DATA_SIZE: %lu)", data->id, dataSize,
-             ((unsigned long)MAX_BLOCK_IDX)*
-             ((unsigned long)FTI_Conf->dcpInfoPosix.BlockSize));
+            " %d (datasize: %u > MAX_DATA_SIZE: %u)", data->id, dataSize,
+             ((uint32_t)MAX_BLOCK_IDX)*
+             ((uint32_t)FTI_Conf->dcpInfoPosix.BlockSize));
         FTI_Print(errstr, FTI_EROR);
         return FTI_NSCS;
     }
@@ -215,13 +215,13 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     if (dcpLayer == 0) {
         FWRITE(FTI_NSCS, bytes, &data->id, sizeof(int), 1,
          write_info->f, "p", block);
-        FWRITE(FTI_NSCS, bytes, &dataSize, sizeof(unsigned long), 1,
+        FWRITE(FTI_NSCS, bytes, &dataSize, sizeof(uint32_t), 1,
          write_info->f, "p", block);
         FTI_Exec->dcpInfoPosix.FileSize += (sizeof(int) +
-         sizeof(unsigned long));
-        write_DCPinfo->layerSize += sizeof(int) + sizeof(unsigned long);
+         sizeof(uint32_t));
+        write_DCPinfo->layerSize += sizeof(int) + sizeof(uint32_t);
     }
-    unsigned long pos = 0;
+    uint32_t pos = 0;
 
     FTIT_data_prefetch prefetcher;
     size_t totalBytes = 0;
@@ -402,7 +402,7 @@ int FTI_PosixDCPClose(void *fileDesc) {
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data) {
-    unsigned long blockSize;
+    uint32_t blockSize;
     unsigned int stackSize;
     int nbVarLayer;
     int ckptId;
@@ -419,7 +419,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // read base part of file
     FILE* fd = fopen(fn, "rb");
-    fread(&blockSize, sizeof(unsigned long), 1, fd);
+    fread(&blockSize, sizeof(uint32_t), 1, fd);
     if (ferror(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
         FTI_Print(errstr, FTI_EROR);
@@ -436,7 +436,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (blockSize != FTI_Conf->dcpInfoPosix.BlockSize) {
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "dCP blocksize differ between configuration"
-        " settings ('%lu') and checkpoint file ('%lu')",
+        " settings ('%u') and checkpoint file ('%u')",
          FTI_Conf->dcpInfoPosix.BlockSize, blockSize);
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
@@ -473,14 +473,14 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     for (i = 0; i < nbVarLayer; i++) {
         unsigned int varId;
-        unsigned long locDataSize;
+        uint32_t locDataSize;
         fread(&varId, sizeof(int), 1, fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
             FTI_Print(errstr, FTI_EROR);
             return FTI_NSCS;
         }
-        fread(&locDataSize, sizeof(unsigned long), 1, fd);
+        fread(&locDataSize, sizeof(uint32_t), 1, fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
             FTI_Print(errstr, FTI_EROR);
@@ -526,7 +526,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
 
-    unsigned long offset;
+    uint32_t offset;
     blockMetaInfo_t blockMeta;
     unsigned char *block = (unsigned char*) malloc(blockSize);
     if (!block) {
@@ -538,7 +538,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
     for (i = 1; i < nbLayer; i++) {
-        unsigned long pos = 0;
+        uint32_t pos = 0;
         pos += fread(&ckptId, 1, sizeof(int), fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
@@ -634,7 +634,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        unsigned long nbBlocks = (data[i].size % blockSize) ?
+        uint32_t nbBlocks = (data[i].size % blockSize) ?
          data[i].size/blockSize + 1 : data[i].size/blockSize;
         data[i].dcpInfoPosix.hashDataSize = data[i].size;
         int j = 0;
@@ -644,7 +644,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               totalBytes/blockSize + 1 : totalBytes/blockSize;
             int k;
             for (k = 0 ; k < currentBlocks && j < nbBlocks-1; k++) {
-                unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
+                uint32_t hashIdx = j*MD5_DIGEST_LENGTH;
                 FTI_Conf->dcpInfoPosix.hashFunc(ptr, blockSize,
                  &data[i].dcpInfoPosix.oldHashArray[hashIdx]);
                 ptr = ptr+blockSize;
@@ -663,8 +663,8 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 FTI_Print("unable to allocate memory!", FTI_EROR);
                 return FTI_NSCS;
             }
-            unsigned long dataOffset = blockSize * (nbBlocks - 1);
-            unsigned long dataSize = data[i].size - dataOffset;
+            uint32_t dataOffset = blockSize * (nbBlocks - 1);
+            uint32_t dataSize = data[i].size - dataOffset;
             memcpy(buffer, ptr, dataSize);
             FTI_Conf->dcpInfoPosix.hashFunc(buffer, blockSize,
             &data[i].dcpInfoPosix.oldHashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH]);
@@ -695,7 +695,7 @@ int FTI_RecoverVarDcpPosixFinalize() { /*TODO*/ return FTI_SCES; }
 int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     FTIT_execution* FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data,
     int id) {
-    unsigned long blockSize;
+    uint32_t blockSize;
     unsigned int stackSize;
     int nbVarLayer;
     int ckptId;
@@ -710,7 +710,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
 
     // read base part of file
     FILE* fd = fopen(fn, "rb");
-    fread(&blockSize, sizeof(unsigned long), 1, fd);
+    fread(&blockSize, sizeof(uint32_t), 1, fd);
     if (ferror(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
         FTI_Print(errstr, FTI_EROR);
@@ -727,7 +727,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     if (blockSize != FTI_Conf->dcpInfoPosix.BlockSize) {
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "dCP blocksize differ between configuration"
-        " settings ('%lu') and checkpoint file ('%lu')",
+        " settings ('%u') and checkpoint file ('%u')",
          FTI_Conf->dcpInfoPosix.BlockSize, blockSize);
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
@@ -765,14 +765,14 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     }
     for (i = 0; i < nbVarLayer; i++) {
         unsigned int varId;
-        unsigned long locDataSize;
+        uint32_t locDataSize;
         fread(&varId, sizeof(int), 1, fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
             FTI_Print(errstr, FTI_EROR);
             return FTI_NSCS;
         }
-        fread(&locDataSize, sizeof(unsigned long), 1, fd);
+        fread(&locDataSize, sizeof(uint32_t), 1, fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
             FTI_Print(errstr, FTI_EROR);
@@ -805,7 +805,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
                 }
             }
         } else {
-            unsigned long skip = (locDataSize%blockSize == 0) ?
+            uint32_t skip = (locDataSize%blockSize == 0) ?
              locDataSize : (locDataSize/blockSize + 1)*blockSize;
             if (fseek(fd, skip, SEEK_CUR) == -1) {
                 snprintf(errstr, FTI_BUFS, "unable to seek in file %s", fn);
@@ -816,7 +816,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     }
 
 
-    unsigned long offset;
+    uint32_t offset;
 
     blockMetaInfo_t blockMeta;
     unsigned char *block = (unsigned char*) malloc(blockSize);
@@ -827,7 +827,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
 
     int nbLayer = FTI_Exec->dcpInfoPosix.nbLayerReco;
     for (i = 1; i < nbLayer; i++) {
-        unsigned long pos = 0;
+        uint32_t pos = 0;
         pos += fread(&ckptId, 1, sizeof(int), fd);
         if (ferror(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
@@ -920,7 +920,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
         return FTI_NSCS;
     }
 
-    unsigned long nbBlocks = (data->size % blockSize) ?
+    uint32_t nbBlocks = (data->size % blockSize) ?
      data->size/blockSize + 1 : data->size/blockSize;
     data->dcpInfoPosix.hashDataSize = data->size;
     int j = 0;
@@ -930,7 +930,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
           totalBytes/blockSize + 1 : totalBytes/blockSize;
         int k;
         for (k = 0 ; k < currentBlocks && j < nbBlocks-1; k++) {
-            unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
+            uint32_t hashIdx = j*MD5_DIGEST_LENGTH;
             FTI_Conf->dcpInfoPosix.hashFunc(ptr, blockSize,
              &data->dcpInfoPosix.oldHashArray[hashIdx]);
             ptr = ptr+blockSize;
@@ -948,8 +948,8 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
             FTI_Print("unable to allocate memory!", FTI_EROR);
             return FTI_NSCS;
         }
-        unsigned long dataOffset = blockSize * (nbBlocks - 1);
-        unsigned long dataSize = data->size - dataOffset;
+        uint32_t dataOffset = blockSize * (nbBlocks - 1);
+        uint32_t dataSize = data->size - dataOffset;
         memcpy(buffer, ptr, dataSize);
         FTI_Conf->dcpInfoPosix.hashFunc(buffer, blockSize,
          &data->dcpInfoPosix.oldHashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH]);
@@ -958,13 +958,13 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     /*
     // create hasharray for id
     i = FTI_DataGetIdx(id, FTI_Exec, FTI_Data);
-    unsigned long nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
+    uint32_t nbBlocks = (FTI_Data[i].size % blockSize) ? FTI_Data[i].size/blockSize + 1 : FTI_Data[i].size/blockSize;
     FTI_Data[i].dcpInfoPosix.hashDataSize = FTI_Data[i].size;
 
     int j;
     for(j=0; j<nbBlocks-1; j++) {
-    unsigned long offset = j*blockSize;
-    unsigned long hashIdx = j*MD5_DIGEST_LENGTH;
+    uint32_t offset = j*blockSize;
+    uint32_t hashIdx = j*MD5_DIGEST_LENGTH;
     MD5(FTI_Data[i].ptr+offset, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[hashIdx]);
     }
     if (FTI_Data[i].size%blockSize) {
@@ -973,8 +973,8 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     FTI_Print("unable to allocate memory!", FTI_EROR);
     return FTI_NSCS;
     }
-    unsigned long dataOffset = blockSize * (nbBlocks - 1);
-    unsigned long dataSize = FTI_Data[i].size - dataOffset;
+    uint32_t dataOffset = blockSize * (nbBlocks - 1);
+    uint32_t dataSize = FTI_Data[i].size - dataOffset;
     memcpy(buffer, FTI_Data[i].ptr + dataOffset, dataSize); 
     MD5(buffer, blockSize, &FTI_Data[i].dcpInfoPosix.hashArray[(nbBlocks-1)*MD5_DIGEST_LENGTH]);
     free(buffer);
@@ -998,7 +998,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
   dCP POSIX implementation of FTI_CheckFile().
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckFileDcpPosix(char* fn, long fs, char* checksum) {
+int FTI_CheckFileDcpPosix(char* fn, int32_t fs, char* checksum) {
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {
@@ -1042,7 +1042,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     int *ckptIds  = NULL;
     char errstr[FTI_BUFS];
     char dummyBuffer[FTI_BUFS];
-    unsigned long blockSize;
+    uint32_t blockSize;
     unsigned int stackSize;
     unsigned int counter = 0;
     unsigned int dcpFileId;
@@ -1066,7 +1066,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     size_t fs = 0;
 
     // get blocksize
-    fs += fread(&blockSize, 1, sizeof(unsigned long), fd);
+    fs += fread(&blockSize, 1, sizeof(uint32_t), fd);
     if (ferror(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
         FTI_Print(errstr, FTI_EROR);
@@ -1083,7 +1083,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     if (blockSize != conf->dcpInfoPosix.BlockSize) {
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS, "dCP blocksize differ between configuration"
-        " settings ('%lu') and checkpoint file ('%lu')",
+        " settings ('%u') and checkpoint file ('%u')",
          conf->dcpInfoPosix.BlockSize, blockSize);
         FTI_Print(str, FTI_WARN);
         conf->dcpInfoPosix.BlockSize = blockSize;
@@ -1133,15 +1133,15 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         goto FINALIZE;
     }
     for (i = 0; i < nbVarLayer; i++) {
-        unsigned long dataSize;
-        unsigned long pos = 0;
+        uint32_t dataSize;
+        uint32_t pos = 0;
         fs += fread(dummyBuffer, 1, sizeof(int), fd);
         if (ferror(fd)|| feof(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
             FTI_Print(errstr, FTI_EROR);
             goto FINALIZE;
         }
-        fs += fread(&dataSize, 1, sizeof(unsigned long), fd);
+        fs += fread(&dataSize, 1, sizeof(uint32_t), fd);
         if (ferror(fd)|| feof(fd)) {
             snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
             FTI_Print(errstr, FTI_EROR);
@@ -1325,7 +1325,7 @@ void* FTI_DcpPosixRecoverRuntimeInfo(int tag, void* exec_, void* conf_) {
 }
 
 // have the same for for MD5 and CRC32
-unsigned char* CRC32(const unsigned char *d, unsigned long nBytes,
+unsigned char* CRC32(const unsigned char *d, uint32_t nBytes,
  unsigned char *hash) {
     static unsigned char hash_[CRC32_DIGEST_LENGTH];
     if (hash == NULL) {
