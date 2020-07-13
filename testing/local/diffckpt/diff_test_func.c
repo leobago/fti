@@ -250,7 +250,7 @@ void xor_data(int id, dcp_info_t *info) {
      sizeof(unsigned int);
     int32_t dcpStats[2];
     int32_t sendBuf[] = { ckptsize, update };
-    MPI_Reduce(sendBuf, dcpStats, 2, MPI_LONG, MPI_SUM, 0, FTI_COMM_WORLD);
+    MPI_Reduce(sendBuf, dcpStats, 2, MPI_INT32_T, MPI_SUM, 0, FTI_COMM_WORLD);
     DBG_MSG_APP("changed: %lu, of: %lu, expected dCP update (min): %.2lf", 0,
      dcpStats[1], dcpStats[0], 100*((double)dcpStats[1])/dcpStats[0]);
 }

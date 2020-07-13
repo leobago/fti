@@ -1315,7 +1315,7 @@ int FTIFF_CreateMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     // allgather not needed for L1 checkpoint
     if ((FTI_Exec->ckptMeta.level == 2) || (FTI_Exec->ckptMeta.level == 3)) {
         int32_t fileSizes[FTI_BUFS], mfs = 0;
-        MPI_Allgather(&fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG,
+        MPI_Allgather(&fs, 1, MPI_INT32_T, fileSizes, 1, MPI_INT32_T,
          FTI_Exec->groupComm);
         int ptnerGroupRank, i;
         switch (FTI_Exec->ckptMeta.level) {
@@ -2312,7 +2312,7 @@ int FTIFF_CheckL3RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     }
     // for the case that all (and only) the encoded files are deleted
     if (saneMaxFs == 0 && !(erasures > FTI_Topo->groupSize)) {
-        MPI_Allreduce(&(info.maxFs), &FTI_Exec->ckptMeta.maxFs, 1, MPI_LONG,
+        MPI_Allreduce(&(info.maxFs), &FTI_Exec->ckptMeta.maxFs, 1, MPI_INT32_T,
          MPI_SUM, FTI_Exec->groupComm);
         FTI_Exec->ckptMeta.maxFs /= FTI_Topo->groupSize;
     }
@@ -2467,7 +2467,7 @@ void FTIFF_InitMpiTypes() {
     MBR_CNT(headInfo) =  7;
     MBR_BLK_LEN(headInfo) = { 1, 1, FTI_BUFS, 1, 1, 1, 1 };
     MBR_TYPES(headInfo) = { MPI_INT, MPI_INT, MPI_CHAR,
-     MPI_LONG, MPI_LONG, MPI_LONG, MPI_INT };
+     MPI_INT32_T, MPI_INT32_T, MPI_INT32_T, MPI_INT };
     MBR_DISP(headInfo) = {
         offsetof(FTIFF_headInfo, exists),
         offsetof(FTIFF_headInfo, nbVar),
@@ -2486,7 +2486,7 @@ void FTIFF_InitMpiTypes() {
     MBR_CNT(RecoInfo) = 6;
     MBR_BLK_LEN(RecoInfo) = { 1, 1, 1, 1, 1, 1 };
     MBR_TYPES(RecoInfo) = { MPI_INT, MPI_INT, MPI_INT,
-     MPI_INT, MPI_LONG, MPI_LONG };
+     MPI_INT, MPI_INT32_T, MPI_INT32_T };
     MBR_DISP(RecoInfo) = {
         offsetof(FTIFF_RecoveryInfo, FileExists),
         offsetof(FTIFF_RecoveryInfo, BackupExists),

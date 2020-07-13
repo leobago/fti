@@ -847,8 +847,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 #endif
 
-    long fileSizes[FTI_BUFS];
-    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_LONG, fileSizes, 1, MPI_LONG,
+    int32_t fileSizes[FTI_BUFS];
+    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_INT32_T, fileSizes, 1, MPI_INT32_T,
      FTI_Exec->groupComm);
 
     // update partner file size:
@@ -858,7 +858,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Exec->ckptMeta.pfs = fileSizes[ptnerGroupRank];
     }
 
-    long mfs = 0;  // Max file size in group
+    int32_t mfs = 0;  // Max file size in group
     int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         if (fileSizes[i] > mfs) {
@@ -867,7 +867,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     FTI_Exec->ckptMeta.maxFs = mfs;
     char str[FTI_BUFS];  // For console output
-    snprintf(str, FTI_BUFS, "Max. file size in group %d.", mfs);
+    snprintf(str, FTI_BUFS, "Max. file size in group %u.", mfs);
     FTI_Print(str, FTI_DBUG);
 
     char* ckptFileNames = NULL;
@@ -900,11 +900,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Every process has the same number of protected variables
 
     int* allVarIDs = NULL;
-    long* allVarSizes = NULL;
-    long *allVarPositions = NULL;
+    int32_t* allVarSizes = NULL;
+    int32_t *allVarPositions = NULL;
 
     // for posix dcp
-    unsigned long* allLayerSizes = NULL;
+    uint32_t* allLayerSizes = NULL;
     char* allLayerHashes = NULL;
     char* allCharIds = NULL;
 
@@ -913,13 +913,13 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (FTI_Topo->groupRank == 0) {
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
-        allVarSizes = talloc(long, FTI_Topo->groupSize * FTI_Exec->nbVar);
-        allVarPositions = talloc(long,
+        allVarSizes = talloc(int32_t, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarPositions = talloc(int32_t,
          FTI_Topo->groupSize * FTI_Exec->nbVar);
         allCharIds = (char *)malloc(sizeof(char)*FTI_BUFS*
           FTI_Exec->nbVar*FTI_Topo->groupSize);
         if (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) {
-            allLayerSizes = talloc(unsigned long,
+            allLayerSizes = talloc(uint32_t,
              FTI_Topo->groupSize * nbLayer);
             allLayerHashes = talloc(char,
              FTI_Topo->groupSize * nbLayer * MD5_DIGEST_STRING_LENGTH);
@@ -927,8 +927,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
-    long* myVarSizes = talloc(long, FTI_Exec->nbVar);
-    long* myVarPositions = talloc(long, FTI_Exec->nbVar);
+    int32_t* myVarSizes = talloc(int32_t, FTI_Exec->nbVar);
+    int32_t* myVarPositions = talloc(int32_t, FTI_Exec->nbVar);
     char *ArrayOfStrings = (char *)malloc(FTI_Exec->nbVar *
      sizeof(char*) *FTI_BUFS);
 
@@ -946,11 +946,11 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar,
      MPI_INT, 0, FTI_Exec->groupComm);
     // Gather variables sizes
-    MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_LONG, allVarSizes,
-     FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+    MPI_Gather(myVarSizes, FTI_Exec->nbVar, MPI_INT32_T, allVarSizes,
+     FTI_Exec->nbVar, MPI_INT32_T, 0, FTI_Exec->groupComm);
     // Gather variables file positions
-    MPI_Gather(myVarPositions, FTI_Exec->nbVar, MPI_LONG, allVarPositions,
-     FTI_Exec->nbVar, MPI_LONG, 0, FTI_Exec->groupComm);
+    MPI_Gather(myVarPositions, FTI_Exec->nbVar, MPI_INT32_T, allVarPositions,
+     FTI_Exec->nbVar, MPI_INT32_T, 0, FTI_Exec->groupComm);
     // Gather all variable names
     MPI_Gather(ArrayOfStrings, FTI_Exec->nbVar*FTI_BUFS, MPI_CHAR,
       allCharIds, FTI_Exec->nbVar*FTI_BUFS, MPI_CHAR, 0, FTI_Exec->groupComm);

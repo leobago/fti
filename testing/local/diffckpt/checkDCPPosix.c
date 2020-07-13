@@ -385,7 +385,7 @@ int write_data(double* B, size_t *asize, int rank) {
 int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,
  size_t stop) {
     char str[256];
-    snprintf(str, size(str), "/tmp/check-%i.tst", rank);
+    snprintf(str, sizeof(str), "/tmp/check-%i.tst", rank);
     FILE* f = fopen(str, "rb");
     size_t read = 0;
 
