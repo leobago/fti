@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "diff_test.h"
 
-#define ALLOC_SIZE (200*MB)
+#define ALLOC_SIZE (100*MB)
 
 int main(int argc, char* argv[]) {
     int exit_status = 0;

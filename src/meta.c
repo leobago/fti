@@ -957,8 +957,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     if (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) {
         // Gather dcp layer sizes
-        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerSize, nbLayer, MPI_UNSIGNED_LONG,
-         allLayerSizes, nbLayer, MPI_UNSIGNED_LONG, 0, FTI_Exec->groupComm);
+        MPI_Gather(FTI_Exec->dcpInfoPosix.LayerSize, nbLayer, MPI_UINT32_T,
+         allLayerSizes, nbLayer, MPI_UINT32_T, 0, FTI_Exec->groupComm);
         // Gather dcp layer hashes
         MPI_Gather(FTI_Exec->dcpInfoPosix.LayerHash,
          nbLayer * MD5_DIGEST_STRING_LENGTH, MPI_CHAR, allLayerHashes,

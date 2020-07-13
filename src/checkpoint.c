@@ -189,7 +189,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         &FTI_Exec->dcpInfoPosix.dcpSize;
         uint32_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
         uint32_t sendBuf[] = { *dcpSize, *dataSize };
-        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UNSIGNED_LONG, MPI_SUM, 0,
+        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT32_T, MPI_SUM, 0,
          FTI_COMM_WORLD);
         if (FTI_Topo->splitRank ==  0) {
             *dcpSize = dcpStats[0];

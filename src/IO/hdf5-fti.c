@@ -1867,7 +1867,7 @@ int FTI_CheckDimensions(FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec) {
         for (i = 0; i < dataset->rank; ++i) {
             numElem *= dataset->dimension[i];
         }
-        MPI_Allreduce(&numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG,
+        MPI_Allreduce(&numElemLocal, &numElemGlobal, 1, MPI_UINT64_T,
          MPI_SUM, FTI_COMM_WORLD);
         if (numElem != numElemGlobal) {
             char errstr[FTI_BUFS];
