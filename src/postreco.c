@@ -1316,7 +1316,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf,
             if (res != bSize) {
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "SIONlib: Unable to read"
-                " %lu Bytes from file", bSize);
+                " %u Bytes from file", bSize);
                 FTI_Print(str, FTI_EROR);
                 sion_parclose_mapped_mpi(sid);
                 free(file_map);
