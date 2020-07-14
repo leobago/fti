@@ -215,7 +215,7 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // malloc( MD5_DIGEST_LENGTH * FTI_Conf->dcpInfoPosix.StackSize );
         switch (FTI_Conf->dcpMode) {
             case FTI_DCP_MODE_MD5:
-                FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                //FTI_Conf->dcpInfoPosix.hashFunc = MD5;
                 FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
                 break;
             case FTI_DCP_MODE_CRC32:

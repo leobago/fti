@@ -25,7 +25,6 @@
 #ifndef _MD5_H_WRAPPER
 #define _MD5_H_WRAPPER
 
-#include <stdint.h>
 #if 1
 #include <openssl/md5.h>
 #elif !defined(_MD5_H)

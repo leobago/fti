@@ -14,7 +14,7 @@ list(APPEND test_labels_current "local")
 
 add_subdirectory(recoverVar)
 add_subdirectory(recoverName)
-add_subdirectory(diffckpt)
+
 add_subdirectory(standard)
 add_subdirectory(staging)
 add_subdirectory(keepL4Ckpt)
