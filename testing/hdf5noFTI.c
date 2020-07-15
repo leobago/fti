@@ -44,7 +44,7 @@ typedef struct Integers {
 } Integers;
 
 typedef struct UIntegers {
-    uint16_t int shortInteger;
+    uint16_t shortInteger;
     unsigned int integer;
     uint32_t longInteger;
 } UIntegers;
