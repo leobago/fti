@@ -179,8 +179,8 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     int dcpLayer = FTI_Exec->dcpInfoPosix.Counter %
      FTI_Conf->dcpInfoPosix.StackSize;
     char errstr[FTI_BUFS];
-    unsigned char * block = (unsigned char*)malloc(FTI_Conf->
-        dcpInfoPosix.BlockSize);
+    unsigned char * block = (unsigned char*)malloc
+    (FTI_Conf->dcpInfoPosix.BlockSize);
     size_t bytes;
     int32_t varId = data->id;
 

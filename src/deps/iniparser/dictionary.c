@@ -121,7 +121,9 @@ dictionary * dictionary_new(int size)
     /* If no size was specified, allocate space for DICTMINSZ */
     if (size<DICTMINSZ) size=DICTMINSZ ;
 
-    if (!(d = (dictionary *)calloc(1, sizeof(dictionary)))) {
+    //if (!(d = (dictionary *)calloc(1, sizeof(dictionary)))) {
+    if (!(d = calloc(1, sizeof(dictionary)))) {
+        printf("[NULL] calloc1\n");
         return NULL;
     }
     d->size = size ;
