@@ -26,18 +26,21 @@
     } while (0)
 
 #define FILE_SIZE 1024  // 1KB
-#define NUM_ITER 100L
-#define FILES_PER_ITER 10L
+/*#define NUM_ITER 100
+#define FILES_PER_ITER 10*/
 #define CLEAN_FREQ 10
 #define F_BUFF 512
 #define F_FORM "file-rank%04d-iter%05lu-numb%02lu.fti"
 #define REMOTE_DIR "./rdir"
 
 void createFile(char *fn);
-bool check_status(int request_counter, int *reqID, bool printout);
+bool check_status(uint32_t request_counter, int *reqID, bool printout);
 
 int rank, size;
 uint32_t num_files;
+
+uint32_t NUM_ITER = 100;
+uint32_t FILES_PER_ITER = 10;
 
 int main(int argc, char* argv[]) {
     if (argc < 1) {
@@ -142,7 +145,7 @@ void createFile(char *fn) {
     truncate(fn, FILE_SIZE);
 }
 
-bool check_status(int request_counter, int *reqID, bool printout) {
+bool check_status(uint32_t request_counter, int *reqID, bool printout) {
     uint32_t completed = 0;
     uint32_t active = 0;
     uint32_t j;
@@ -177,7 +180,7 @@ bool check_status(int request_counter, int *reqID, bool printout) {
          MPI_SUM, FTI_COMM_WORLD);
         acc = 100*((double)completed_all)/num_files;
         if (rank == 0) {
-            printf("[ %.2lf%% of staging completed (%lu / %lu)... ]\n",
+            printf("[ %.2lf%% of staging completed ( %lu / %lu )... ]\n",
              acc, completed_all, num_files);
         }
         wait = !(completed_all == num_files);
