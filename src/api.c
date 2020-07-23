@@ -2458,6 +2458,7 @@ int FTI_Finalize()
     // If we need to keep the last checkpoint and there was a checkpoint
     if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
         //if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt) && FTI_Exec.ckptId > 0) {
+        MPI_Barrier(FTI_COMM_WORLD);
         if (FTI_Exec.ckptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Exec.ckptLvel), "save the last ckpt. in the PFS.");
             MPI_Barrier(FTI_COMM_WORLD);
