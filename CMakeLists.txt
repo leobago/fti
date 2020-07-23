@@ -17,25 +17,15 @@ option(ENABLE_IME_NATIVE "Enables the IME native API" OFF)
 option(ENABLE_OPENSSL "Enables linking against system OpenSSL library" ON)
 option(ENABLE_COVERAGE "Enable another build, fti_cov, for gathering coverage metrics" OFF)
 
-if (ENABLE_GPU)
-  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-    if( ${ENABLE_FORTRAN} )
-      project(FTI C Fortran CUDA CXX)
-    else()
-      project(FTI C CUDA CXX)
-    endif()
-  endif()
+set(LANGUAGES "C")
+if(ENABLE_FORTRAN)
+  list(APPEND LANGUAGES "Fortran")
+endif()
+if(ENABLE_GPU)
+  list(APPEND LANGUAGES "CUDA" "CXX")
   FIND_PACKAGE(CUDA)
-else ()
-  if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-      if( ${ENABLE_FORTRAN} )
-        project(FTI C Fortran)
-      else()
-        project(FTI C)
-      endif()
-  endif()
-endif()  
-
+endif()
+project("FTI" VERSION 1.4 LANGUAGES ${LANGUAGES})
 
 ## [START] DETERMINE COMPILER MAJOR VERSIONS
 string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
@@ -442,7 +432,7 @@ endif()
 include(CMakePackageConfigHelpers)
 set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH "cmake modules directory (DATADIR/FTI/cmake)")
 write_basic_package_version_file("${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
-		VERSION "1.3"
+		VERSION ${CMAKE_PROJECT_VERSION}
 		COMPATIBILITY AnyNewerVersion
 )
 install(EXPORT FTI_EXPORT DESTINATION "${INSTALL_CMAKEDIR}" FILE "FTILib.cmake")
