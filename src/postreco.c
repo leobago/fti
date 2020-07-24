@@ -1118,10 +1118,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // collect chunksizes of other ranks
-    MPI_Offset* chunkSizes = talloc(MPI_Offset,
+    int32_t* chunkSizes = talloc(int32_t,
      FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_OFFSET, chunkSizes, 1,
-     MPI_OFFSET, FTI_COMM_WORLD);
+    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_INT32_T, chunkSizes, 1,
+     MPI_INT32_T, FTI_COMM_WORLD);
 
     MPI_Offset offset = 0;
     // set file offset
@@ -1149,7 +1149,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             bSize = fs - pos;
         }
         // read block in parallel file
-        buf = MPI_File_read_at(pfh, offset, readData, bSize, MPI_BYTE,
+        buf = MPI_File_read_at(pfh, offset, readData, (int)bSize, MPI_BYTE,
          MPI_STATUS_IGNORE);
         // check if successful
         if (buf != 0) {
