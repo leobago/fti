@@ -442,16 +442,10 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     // Clean last checkpoint level 4
-<<<<<<< HEAD
-    if ( level == 4 || level == 5 ) {
-        FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp );
-        FTI_RmDir(FTI_Ckpt[4].L4Replica, nodeFlag );
-=======
     if (level == 4 || level == 5) {
         FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff);
         FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp);
->>>>>>> master
+        FTI_RmDir(FTI_Ckpt[4].L4Replica, nodeFlag);
         rmdir(FTI_Conf->gTmpDir);
     }
     if ((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5) {

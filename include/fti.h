@@ -116,20 +116,12 @@ extern "C" {
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
   int FTI_InitICP(int id, int level, bool activate);
-<<<<<<< HEAD
-  int FTI_AddVarICP( int varID ); 
-  int FTI_FinalizeICP(); 
-  int FTI_setIDFromString( char *name );
-  int FTI_getIDFromString( char *name );
-  FTIT_allConfiguration FTI_GetConfig(const char* configFile, MPI_Comm globalComm);
-=======
   int FTI_AddVarICP(int varID);
   int FTI_FinalizeICP();
   int FTI_setIDFromString(char *name);
   int FTI_getIDFromString(char *name);
-  int FTI_GetConfig(const char* configFile, MPI_Comm globalComm,
-   FTIT_allConfiguration FTI_allconf);
->>>>>>> master
+  FTIT_allConfiguration FTI_GetConfig(const char* configFile,
+   MPI_Comm globalComm);
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
 

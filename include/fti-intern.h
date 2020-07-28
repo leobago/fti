@@ -548,26 +548,9 @@ extern "C" {
      *  This type stores all the checkpoint metadata.
      */
     typedef struct FTIT_checkpoint {
-<<<<<<< HEAD
-        char            dir[FTI_BUFS];      /**< Checkpoint directory.                  */
-        char            L4Replica[FTI_BUFS]; /**<A replica of the global checkpoint file in case of head == 1 **/
-        char            dcpDir[FTI_BUFS];   /**< dCP directory.                         */
-        char            archDir[FTI_BUFS];  /**< Checkpoint directory.                  */        
-        char            archMeta[FTI_BUFS]; /**< .Directory storing archieved meta      */        
-        char            metaDir[FTI_BUFS];  /**< Metadata directory.                    */
-        char            dcpName[FTI_BUFS];  /**< dCP file name.                         */
-        bool            isDcp;              /**< TRUE if dCP requested                  */
-        bool            recoIsDcp;          /**< TRUE if dCP requested                  */
-        bool            hasDcp;             /**< TRUE if execution has already a dCP    */
-        bool            hasCkpt;            /**< TRUE if level has ckpt                 */        
-        int             isInline;           /**< TRUE if work is inline.                */
-        int             ckptIntv;           /**< Checkpoint interval.                   */
-        int             ckptCnt;            /**< Checkpoint counter.                    */
-        int             ckptDcpIntv;        /**< Checkpoint interval.                   */
-        int             ckptDcpCnt;         /**< Checkpoint counter.                    */
-        bool            localReplica;       /**< if I have a local replica of the ckpt file */
-=======
         char            dir[FTI_BUFS];      /**< Checkpoint directory.  */
+        char            L4Replica[FTI_BUFS]; /**<A replica of the global
+                                     checkpoint file in case of head == 1 **/
         char            dcpDir[FTI_BUFS];   /**< dCP directory.         */
         char            archDir[FTI_BUFS];  /**< Checkpoint directory.  */
         /**< .Directory storing archieved meta      */
@@ -584,7 +567,8 @@ extern "C" {
         int             ckptCnt;            /**< Checkpoint counter.      */
         int             ckptDcpIntv;        /**< Checkpoint interval.     */
         int             ckptDcpCnt;         /**< Checkpoint counter.      */
->>>>>>> master
+        bool            localReplica;       /**< if I have a local replica
+                                                 of the ckpt file */
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection

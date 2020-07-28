@@ -181,15 +181,10 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
              MPI_INT, FTI_Exec->groupComm);
             break;
         case 4:
-<<<<<<< HEAD
-            if( FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp && FTI_Conf->dcpPosix ) {
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile); 
-                buf = consistency(fn, fs, checksum);
-=======
             if (FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp &&
              FTI_Conf->dcpPosix) {
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile);
->>>>>>> master
+              buf = consistency(fn, fs, checksum);
             } else {
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].L4Replica, ckptFile);
                 buf = consistency(fn, fs, checksum);
@@ -201,13 +196,8 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
                 }
             }
-<<<<<<< HEAD
-            MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT, FTI_Exec->groupComm);
-=======
-            buf = consistency(fn, fs, checksum);
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT,
              FTI_Exec->groupComm);
->>>>>>> master
             break;
     }
     return FTI_SCES;

@@ -281,28 +281,21 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             "CkptLvel = %d.", FTI_Topo->nodeID, FTI_Exec->ckptMeta.level);
         FTI_Print(str, FTI_DBUG);
         if (!(FTI_Ckpt[4].isInline && FTI_Exec->ckptMeta.level == 4)) {
-<<<<<<< HEAD
-            //checkpoint was not saved in global temporary directory
-            if (FTI_Exec->ckptMeta.level != 4){
-                RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[FTI_Exec->ckptMeta.level].dir);
-            }else{
-                //In case of Level 4 Checkpoint We keep a
-                //copy of the global checkpoint file 
-                //on the local persistent memory
-                if ( FTI_Conf->ioMode != FTI_IO_POSIX){
+            // checkpoint was not saved in global temporary directory
+            // if level 4: head moves local ckpt files to PFS
+            if (FTI_Exec->ckptMeta.level != 4) {
+                RENAME(FTI_Conf->lTmpDir,
+                 FTI_Ckpt[FTI_Exec->ckptMeta.level].dir);
+            } else {
+                // In case of Level 4 Checkpoint We keep a
+                // copy of the global checkpoint file 
+                // on the local persistent memory
+                if (FTI_Conf->ioMode != FTI_IO_POSIX) {
                     RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[4].L4Replica);
-                }
-                else{
+                } else {
                     RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[1].dir);
                 }
             }
-=======
-            // checkpoint was not saved in global temporary directory
-            // if level 4: head moves local ckpt files to PFS
-            int level = (FTI_Exec->ckptMeta.level != 4) ?
-             FTI_Exec->ckptMeta.level : 1;
-            RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[level].dir);
->>>>>>> master
         }
     }
     int globalFlag = !FTI_Topo->splitRank;
