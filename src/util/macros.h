@@ -38,62 +38,62 @@
 
 
 
-#ifndef __MACROS__
-#define __MACROS__
+#ifndef FTI_MACROS_H_
+#define FTI_MACROS_H_
 
 void cleanup(char* pattern, ...);
 
-#define MKDIR(a,b) \
-    do{				\
-        if (mkdir(a,b) == -1) { 																\
-            if (errno != EEXIST) {																					\
-                char ErrorString[400];																			\
-                sprintf(ErrorString,"FILE %s FUNC %s:%d Cannot create directory: %s",__FILE__,__FUNCTION__,__LINE__,a);	\
-                FTI_Print(ErrorString, FTI_EROR); 																	\
-                return FTI_NSCS; 																					\
-            }																										\
-        }																											\
-    }while(0)
+#define MKDIR(a, b)                                                      \
+    do {                                                                 \
+        if (mkdir(a, b) == -1) {                                         \
+            if (errno != EEXIST) {                                       \
+                char ErrorString[400];                                   \
+                snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Cannot create directory: %s", __FILE__, __FUNCTION__, __LINE__, a); \
+                FTI_Print(ErrorString, FTI_EROR);                        \
+                return FTI_NSCS;                                         \
+            }                                                            \
+        }                                                                \
+    } while (0)
 
-#define RENAME(a,b)\
-    do{																										\
-        errno = 0;																							\
-        if ( rename(a,b) != 0 ){																			\
-            char ErrorString[1024];																			\
-            sprintf(ErrorString,"FILE %s FUNC %s:%d Cannot rename : %s to %s",__FILE__,__FUNCTION__,__LINE__,a, b);	\
-            FTI_Print(ErrorString, FTI_EROR); 																	\
-            errno = 0;																							\
-            return FTI_NSCS; 																					\
-        }																										\
-    }while(0)
-
-
-#define FREAD(errorCode, bytes, buff, size, number, fd, format, ...) \
-    do{																										\
-        bytes = fread(buff, size, number, fd);																\
-        if (ferror(fd)) {																					\
-            char ErrorString[400];																			\
-            sprintf(ErrorString,"FILE %s FUNC %s:%d Error Reading File Bytes Read : %ld",__FILE__,__FUNCTION__,__LINE__, (long)bytes);	\
-            FTI_Print(ErrorString, FTI_EROR); 																\
-            cleanup(format,__VA_ARGS__,NULL);																\
-            fclose(fd);																						\
-            return errorCode;																				\
-        }																									\
-    }while(0)																								
-
-#define FWRITE(errorCode, bytes, buff, size, number, fd, format, ...) 														\
-    do{																										\
-        bytes = fwrite(buff, size, number, fd);																\
-        if (ferror(fd)) {																					\
-            char ErrorString[400];																			\
-            sprintf(ErrorString,"FILE %s FUNC %s:%d Error Writing File Bytes Written : %ld",__FILE__,__FUNCTION__,__LINE__,(long)bytes);	\
-            FTI_Print(ErrorString, FTI_EROR); 																\
-            cleanup(format,__VA_ARGS__,NULL);																\
-            fclose(fd);																						\
-            return errorCode;																				\
-        }																									\
-    }while(0)	
+#define RENAME(a, b)                                                     \
+    do {                                                                 \
+        errno = 0;                                                       \
+        if (rename(a, b) != 0) {                                         \
+            char ErrorString[1024];                                      \
+            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Cannot rename : %s to %s", __FILE__, __FUNCTION__, __LINE__, a, b); \
+            FTI_Print(ErrorString, FTI_EROR);                            \
+            errno = 0;                                                   \
+            return FTI_NSCS;                                             \
+        }                                                                \
+    } while (0)
 
 
+#define FREAD(errorCode, bytes, buff, size, number, fd, format, ...)     \
+    do {                                                                 \
+        bytes = fread(buff, size, number, fd);                           \
+        if (ferror(fd)) {                                                \
+            char ErrorString[400];                                       \
+            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Reading File Bytes Read : %d", __FILE__, __FUNCTION__, __LINE__, (int32_t)bytes);  \
+            FTI_Print(ErrorString, FTI_EROR);                            \
+            cleanup(format, __VA_ARGS__, NULL);                          \
+            fclose(fd);                                                  \
+            return errorCode;                                            \
+        }                                                                \
+    } while (0)
 
-#endif //__MACROS__
+#define FWRITE(errorCode, bytes, buff, size, number, fd, format, ...)    \
+    do {                                                                 \
+        bytes = fwrite(buff, size, number, fd);                          \
+        if (ferror(fd)) {                                                \
+            char ErrorString[400];                                       \
+            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Writing File Bytes Written : %d", __FILE__, __FUNCTION__, __LINE__, (int32_t)bytes); \
+            FTI_Print(ErrorString, FTI_EROR);                 \
+            cleanup(format, __VA_ARGS__, NULL);               \
+            fclose(fd);                                       \
+            return errorCode;                                 \
+        }                                                     \
+    } while (0)
+
+
+
+#endif  // FTI_MACROS_H_

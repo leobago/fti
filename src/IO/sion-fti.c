@@ -1,7 +1,14 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   sion-fti.c
+ */
+
 #include "../interface.h"
 
 
-int FTI_SionClose(void *fileDesc){
+int FTI_SionClose(void *fileDesc) {
     WriteSionInfo_t *fd = (WriteSionInfo_t *) fileDesc;
     if (sion_parclose_mapped_mpi(fd->sid) == -1) {
         FTI_Print("Cannot close sionlib file.", FTI_WARN);
@@ -31,9 +38,10 @@ int FTI_SionClose(void *fileDesc){
 
  **/
 /*-------------------------------------------------------------------------*/
-void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data)
-{
-    WriteSionInfo_t *write_info = (WriteSionInfo_t *) malloc (sizeof(WriteSionInfo_t));
+void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data) {
+    WriteSionInfo_t *write_info = (WriteSionInfo_t *)
+    malloc(sizeof(WriteSionInfo_t));
 
     write_info->loffset = 0;
     int numFiles = 1;
@@ -51,9 +59,12 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     snprintf(str, FTI_BUFS, "Ckpt%d-sionlib.fti", FTI_Exec->ckptMeta.ckptId);
     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, str);
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s",str);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "%s", str);
 
-    write_info->sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &write_info->ranks, &write_info->chunkSizes, &write_info->file_map, &write_info->rank_map, &fsblksize, NULL);
+    write_info->sid = sion_paropen_mapped_mpi(fn, "wb,posix", &numFiles,
+     FTI_COMM_WORLD, &nlocaltasks, &write_info->ranks,
+      &write_info->chunkSizes, &write_info->file_map,
+       &write_info->rank_map, &fsblksize, NULL);
 
     // check if successful
     if (write_info->sid == -1) {
@@ -69,7 +80,8 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
     }
 
     // set file pointer to corresponding block in sionlib file
-    int res = sion_seek(write_info->sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    int res = sion_seek(write_info->sid, FTI_Topo->splitRank,
+     SION_CURRENT_BLK, SION_CURRENT_POS);
 
     // check if successful
     if (res != SION_SUCCESS) {
@@ -98,11 +110,10 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SionWrite (void *src, size_t size, void *opaque)
-{
-    int *sid= (int *)opaque;
+int FTI_SionWrite(void *src, size_t size, void *opaque) {
+    int *sid = (int *)opaque;
     int res = sion_fwrite(src, size, 1, *sid);
-    if (res < 0 ){
+    if (res < 0) {
         return FTI_NSCS;
     }
     return FTI_SCES;
@@ -121,15 +132,16 @@ int FTI_SionWrite (void *src, size_t size, void *opaque)
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_WriteSionData(FTIT_dataset *data, void *fd){
+int FTI_WriteSionData(FTIT_dataset *data, void *fd) {
     WriteSionInfo_t *write_info = (WriteSionInfo_t*) fd;
     int res;
     char str[FTI_BUFS];
-    FTI_Print("Writing Sion Data",FTI_DBUG);
-    if ( !data->isDevicePtr) {
+    FTI_Print("Writing Sion Data", FTI_DBUG);
+    if (!data->isDevicePtr) {
         res = FTI_SionWrite(data->ptr, data->size, &write_info->sid);
-        if (res != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+        if (res != FTI_SCES) {
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.",
+             data->id);
             FTI_Print(str, FTI_EROR);
             errno = 0;
             FTI_Print("SIONlib: Data could not be written", FTI_EROR);
@@ -141,14 +153,16 @@ int FTI_WriteSionData(FTIT_dataset *data, void *fd){
             return FTI_NSCS;
         }
     }
-#ifdef GPUSUPPORT            
+#ifdef GPUSUPPORT
     // if data are stored to the GPU move them from device
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(data, FTI_SionWrite, &write_info->sid),
+                        FTI_TransferDeviceMemToFileAsync(data, FTI_SionWrite,
+                        &write_info->sid),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", data->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.",
+             data->id);
             FTI_Print(str, FTI_EROR);
             errno = 0;
             FTI_Print("SIONlib: Data could not be written", FTI_EROR);
@@ -160,14 +174,13 @@ int FTI_WriteSionData(FTIT_dataset *data, void *fd){
             return FTI_NSCS;
         }
     }
-#endif            
+#endif
     write_info->loffset+= data->size;
     return FTI_SCES;
-
 }
 
 
-size_t FTI_GetSionFilePos(void *fileDesc){
+size_t FTI_GetSionFilePos(void *fileDesc) {
     WriteSionInfo_t *fd  = (WriteSionInfo_t *) fileDesc;
     return fd->loffset;
 }

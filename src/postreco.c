@@ -35,8 +35,8 @@
  *  @date   October, 2017
  *  @brief  Post recovery functions for the FTI library.
  */
-#include "interface.h"
 #include <time.h>
+#include "./interface.h"
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It recovers a set of ckpt. files using RS decoding.
@@ -53,20 +53,21 @@
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased)
-{
-
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int* erased) {
     int ckptId, rank;
-    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
+    sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank,
+     FTI_Conf->suffix);
     char fn[FTI_BUFS], efn[FTI_BUFS];
-    snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Ckpt[3].dir, ckptId, rank, FTI_Conf->suffix);
-    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir, FTI_Exec->ckptMeta.ckptFile);
+    snprintf(efn, FTI_BUFS, "%s/Ckpt%d-RSed%d.%s", FTI_Ckpt[3].dir, ckptId,
+     rank, FTI_Conf->suffix);
+    snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir,
+     FTI_Exec->ckptMeta.ckptFile);
 
     int bs = FTI_Conf->blockSize;
     int k = FTI_Topo->groupSize;
     int m = k;
 
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -78,7 +79,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int i, j;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         for (j = 0; j < FTI_Topo->groupSize; j++) {
-            matrix[i * FTI_Topo->groupSize + j] = galois_single_divide(1, i ^ (FTI_Topo->groupSize + j), FTI_Conf->l3WordSize);
+            matrix[i * FTI_Topo->groupSize + j] = galois_single_divide(1,
+             i ^ (FTI_Topo->groupSize + j), FTI_Conf->l3WordSize);
         }
     }
     for (i = 0; i < m; i++) {
@@ -99,8 +101,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 tmpmat[i * k + j] = 0;
             }
             tmpmat[i * k + dm_ids[i]] = 1;
-        }
-        else {
+        } else {
             for (j = 0; j < k; j++) {
                 tmpmat[i * k + j] = matrix[(dm_ids[i] - k) * k + j];
             }
@@ -108,7 +109,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Inversing the matrix
-    if (jerasure_invert_matrix(tmpmat, decMatrix, k, FTI_Conf->l3WordSize) < 0) {
+    if (jerasure_invert_matrix(tmpmat, decMatrix, k,
+     FTI_Conf->l3WordSize) < 0) {
         FTI_Print("Error inversing matrix", FTI_DBUG);
 
         for (i = 0; i < m; i++) {
@@ -127,19 +129,18 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FILE *fd, *efd;
-    long maxFs = FTI_Exec->ckptMeta.maxFs;
-    long ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
+    int32_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    int32_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
-        ps = ps + FTI_Conf->blockSize; // Calculating padding size
+        ps = ps + FTI_Conf->blockSize;  // Calculating padding size
     }
-    if (erased[FTI_Topo->groupRank] == 0) { // Resize and open files
-
-        // determine file size in order to write at the end of the 
+    if (erased[FTI_Topo->groupRank] == 0) {  // Resize and open files
+        // determine file size in order to write at the end of the
         // elongated and padded file (i.e. write at the end of file
         // after 'truncate(.., maxFs)'
         struct stat st_;
-        if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-            stat( fn, &st_ );
+        if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+            stat(fn, &st_);
         }
 
         if (truncate(fn, maxFs) == -1) {
@@ -165,32 +166,32 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         // in order to have the same file as at the state we performed
         // the encoding. In order to do so, we need to determine the
         // file size with stat, before the truncation!
-        if( FTI_Conf->ioMode == FTI_IO_FTIFF ) {
-            int lftmp_ = open( fn, O_RDWR );
-            if( lftmp_ == -1 ) {
+        if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+            int lftmp_ = open(fn, O_RDWR);
+            if (lftmp_ == -1) {
                 FTI_Print("FTI_RSenc: (FTIFF) Unable to open file!", FTI_EROR);
                 return FTI_NSCS;
-            } 
-            if( lseek( lftmp_, -sizeof(off_t), SEEK_END ) == -1 ) {
-                FTI_Print("FTI_RSenc: (FTIFF) Unable to seek in file!", FTI_EROR);
+            }
+            if (lseek(lftmp_, -sizeof(off_t), SEEK_END) == -1) {
+                FTI_Print("FTI_RSenc: (FTIFF) Unable to seek in file!",
+                 FTI_EROR);
                 return FTI_NSCS;
             }
-            if( write( lftmp_, &st_.st_size, sizeof(off_t) ) == -1 ) {
-                FTI_Print("FTI_RSenc: (FTIFF) Unable to write meta data in file!", FTI_EROR);
+            if (write(lftmp_, &st_.st_size, sizeof(off_t)) == -1) {
+                FTI_Print("FTI_RSenc: (FTIFF) Unable to write meta data"
+                " in file!", FTI_EROR);
                 return FTI_NSCS;
             }
-            close( lftmp_ );
+            close(lftmp_);
         }
         fd = fopen(fn, "rb");
-    }
-    else {
+    } else {
         fd = fopen(fn, "wb");
     }
 
     if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] == 0) {
         efd = fopen(efn, "rb");
-    }
-    else {
+    } else {
         efd = fopen(efn, "wb");
     }
     if (fd == NULL) {
@@ -235,13 +236,12 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    long pos = 0;
+    int32_t pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
     MD5_Init(&md5ctxRS);
     while (pos < ps) {
-
         if ((maxFs - pos) < bs) {
             remBsize = maxFs - pos;
         }
@@ -299,42 +299,50 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             }
         }
 
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs,
+         MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
-        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(coding[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp,
+         bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
             memcpy(coding[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
         // Decoding the lost data work
         if (erased[FTI_Topo->groupRank]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, decMatrix + (FTI_Topo->groupRank * k), dm_ids, FTI_Topo->groupRank, data, coding, bs);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize,
+             decMatrix + (FTI_Topo->groupRank * k), dm_ids,
+             FTI_Topo->groupRank, data, coding, bs);
         }
 
-        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR, dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
+        MPI_Allgather(data[FTI_Topo->groupRank] + 0, bs, MPI_CHAR,
+         dataTmp, bs, MPI_CHAR, FTI_Exec->groupComm);
         for (i = 0; i < k; i++) {
             memcpy(data[i] + 0, &(dataTmp[i * bs]), sizeof(char) * bs);
         }
 
         // Finally, re-encode any erased encoded checkpoint file
         if (erased[FTI_Topo->groupRank + k]) {
-            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize, matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k, data, coding, bs);
+            jerasure_matrix_dotprod(k, FTI_Conf->l3WordSize,
+             matrix + (FTI_Topo->groupRank * k), NULL, FTI_Topo->groupRank + k,
+              data, coding, bs);
         }
         if (erased[FTI_Topo->groupRank]) {
             fwrite(data[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, fd);
         }
         if (erased[FTI_Topo->groupRank + k]) {
             MD5_Update(&md5ctxRS, coding[FTI_Topo->groupRank], remBsize);
-            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char), remBsize, efd);
+            fwrite(coding[FTI_Topo->groupRank] + 0, sizeof(char),
+             remBsize, efd);
         }
 
         pos = pos + bs;
     }
     unsigned char hashRS[MD5_DIGEST_LENGTH];
-    MD5_Final( hashRS, &md5ctxRS );
+    MD5_Final(hashRS, &md5ctxRS);
 
 
     // Closing files
@@ -342,45 +350,47 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     fclose(efd);
 
     // FTI-FF: if file ckpt file deleted, determine fs from recovered file
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank] ) {
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank]) {
         char str[FTI_BUFS];
 
         int ifd = open(fn, O_RDONLY);
-        if( ifd == -1 ) {
-            snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
-            FTI_Print( str, FTI_EROR);
-            errno=0;
+        if (ifd == -1) {
+            snprintf(str, FTI_BUFS,
+             "failed to read FTI-FF file meta data from file '%s'", fn);
+            FTI_Print(str, FTI_EROR);
+            errno = 0;
             return FTI_NSCS;
         }
 
-        if( lseek( ifd, -sizeof(off_t), SEEK_END ) == -1 ) {
-            snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
-            FTI_Print( str, FTI_EROR);
-            errno=0;
+        if (lseek(ifd, -sizeof(off_t), SEEK_END) == -1) {
+            snprintf(str, FTI_BUFS,
+             "failed to read FTI-FF file meta data from file '%s'", fn);
+            FTI_Print(str, FTI_EROR);
+            errno = 0;
             close(ifd);
             return FTI_NSCS;
         }
 
         off_t fs_;
-        if ( read( ifd, &fs_, sizeof(off_t) ) == -1 ) {
-            snprintf( str, FTI_BUFS, "failed to read FTI-FF file meta data from file '%s'", fn );
-            FTI_Print( str, FTI_EROR);
-            errno=0;
+        if (read(ifd, &fs_, sizeof(off_t)) == -1) {
+            snprintf(str, FTI_BUFS,
+             "failed to read FTI-FF file meta data from file '%s'", fn);
+            FTI_Print(str, FTI_EROR);
+            errno = 0;
             close(ifd);
             return FTI_NSCS;
         }
 
-        fs = (long) fs_;
+        fs = (int32_t) fs_;
         FTI_Exec->ckptMeta.fs = fs;
 
-        close( ifd );
+        close(ifd);
     }
 
     // FTI-FF: if encoded file deleted, append meta data to encoded file
-    if ( FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k] ) {
-
+    if (FTI_Conf->ioMode == FTI_IO_FTIFF && erased[FTI_Topo->groupRank + k]) {
         char str[FTI_BUFS];
-        FTIFF_metaInfo *FTIFFMeta = malloc( sizeof( FTIFF_metaInfo) );
+        FTIFF_metaInfo *FTIFFMeta = malloc(sizeof(FTIFF_metaInfo));
 
         // get timestamp
         struct timespec ntime;
@@ -394,38 +404,40 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         char checksum[MD5_DIGEST_STRING_LENGTH];
         int ii = 0;
-        for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
             sprintf(&checksum[ii], "%02x", hashRS[i]);
             ii+=2;
         }
         strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);
 
         // add hash of meta info to meta info structure
-        FTIFF_GetHashMetaInfo( FTIFFMeta->myHash, FTIFFMeta );
+        FTIFF_GetHashMetaInfo(FTIFFMeta->myHash, FTIFFMeta);
 
         // append meta info to RS file
         int ifd = open(efn, O_WRONLY|O_APPEND);
-        char* buffer_ser = (char*) malloc( FTI_filemetastructsize );
-        if ( buffer_ser == NULL ) {
-            FTI_Print("failed to allocate memory for FTI-FF file meta data.", FTI_EROR);
-            errno=0;
+        char* buffer_ser = (char*) malloc(FTI_filemetastructsize);
+        if (buffer_ser == NULL) {
+            FTI_Print("failed to allocate memory for FTI-FF file meta data.",
+             FTI_EROR);
+            errno = 0;
             close(ifd);
             return FTI_NSCS;
         }
-        if ( FTIFF_SerializeFileMeta( FTIFFMeta, buffer_ser ) != FTI_SCES ) {
+        if (FTIFF_SerializeFileMeta(FTIFFMeta, buffer_ser) != FTI_SCES) {
             FTI_Print("failed to serialize FTI-FF file meta data.", FTI_EROR);
-            errno=0;
+            errno = 0;
             close(ifd);
             return FTI_NSCS;
         }
-        if ( write( ifd, buffer_ser, FTI_filemetastructsize ) == -1 ) {
-            snprintf( str, FTI_BUFS, "failed to write FTI-FF file meta data to file '%s'", efn );
-            FTI_Print( str, FTI_EROR);
-            errno=0;
+        if (write(ifd, buffer_ser, FTI_filemetastructsize) == -1) {
+            snprintf(str, FTI_BUFS,
+             "failed to write FTI-FF file meta data to file '%s'", efn);
+            FTI_Print(str, FTI_EROR);
+            errno = 0;
             close(ifd);
             return FTI_NSCS;
         }
-        close( ifd );
+        close(ifd);
         free(buffer_ser);
     }
 
@@ -477,18 +489,18 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        if ( FTIFF_CheckL1RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf ) != FTI_SCES ) {
-            FTI_Print("No restart possible from L1. Ckpt files missing.", FTI_DBUG);
+        if ( FTIFF_CheckL1RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt,
+         FTI_Conf) != FTI_SCES) {
+            FTI_Print("No restart possible from L1. Ckpt files missing.",
+             FTI_DBUG);
             return FTI_NSCS;
         }
-    }
-
-    else {
-        int erased[FTI_BUFS]; // FTI_BUFS > 32*3
-        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+    } else {
+        int erased[FTI_BUFS];  // FTI_BUFS > 32*3
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased) != FTI_SCES) {
             FTI_Print("Error checking erasures.", FTI_DBUG);
             return FTI_NSCS;
         }
@@ -496,7 +508,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int i;
         for (i = 0; i < FTI_Topo->groupSize; i++) {
             if (erased[i]) {
-                buf++; // Counting erasures
+                buf++;  // Counting erasures
             }
         }
         if (buf > 0) {
@@ -522,17 +534,19 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_checkpoint* FTI_Ckpt, int destination, int ptner)
-{
-    long toSend ; // remaining data to send
+        FTIT_checkpoint* FTI_Ckpt, int destination, int ptner) {
+    int32_t toSend;  // remaining data to send
     char filename[FTI_BUFS], str[FTI_BUFS];
-    if (ptner) {    //if want to send Ptner file
+    if (ptner) {  // if want to send Ptner file
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix); //do we need this from filename?
-        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir, ckptId, rank, FTI_Conf->suffix);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank,
+         FTI_Conf->suffix);  // do we need this from filename?
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir,
+         ckptId, rank, FTI_Conf->suffix);
         toSend = FTI_Exec->ckptMeta.pfs;
-    } else {    //if want to send Ckpt file
-        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
+    } else {  // if want to send Ckpt file
+        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir,
+         FTI_Exec->ckptMeta.ckptFile);
         toSend = FTI_Exec->ckptMeta.fs;
     }
 
@@ -546,7 +560,8 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* buffer = talloc(char, FTI_Conf->blockSize);
 
     while (toSend > 0) {
-        int sendSize = (toSend > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toSend;
+        int sendSize = (toSend > FTI_Conf->blockSize) ?
+         FTI_Conf->blockSize : toSend;
         size_t bytes = fread(buffer, sizeof(char), sendSize, fileDesc);
 
         if (ferror(fileDesc)) {
@@ -557,7 +572,8 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             return FTI_NSCS;
         }
-        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->generalTag, FTI_Exec->groupComm);
+        MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->generalTag,
+         FTI_Exec->groupComm);
         toSend -= bytes;
     }
 
@@ -582,17 +598,19 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_checkpoint* FTI_Ckpt, int source, int ptner)
-{
-    long toRecv;    //remaining data to receive
+        FTIT_checkpoint* FTI_Ckpt, int source, int ptner) {
+    int32_t toRecv;  // remaining data to receive
     char filename[FTI_BUFS], str[FTI_BUFS];
-    if (ptner) { //if want to receive Ptner file
+    if (ptner) {  // if want to receive Ptner file
         int ckptId, rank;
-        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank, FTI_Conf->suffix);
-        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir, FTI_Exec->ckptId, rank, FTI_Conf->suffix);
+        sscanf(FTI_Exec->ckptMeta.ckptFile, "Ckpt%d-Rank%d.%s", &ckptId, &rank,
+         FTI_Conf->suffix);
+        snprintf(filename, FTI_BUFS, "%s/Ckpt%d-Pcof%d.%s", FTI_Ckpt[2].dir,
+         FTI_Exec->ckptId, rank, FTI_Conf->suffix);
         toRecv = FTI_Exec->ckptMeta.pfs;
-    } else { //if want to receive Ckpt file
-        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir, FTI_Exec->ckptMeta.ckptFile);
+    } else {  // if want to receive Ckpt file
+        snprintf(filename, FTI_BUFS, "%s/%s", FTI_Ckpt[2].dir,
+         FTI_Exec->ckptMeta.ckptFile);
         toRecv = FTI_Exec->ckptMeta.fs;
     }
 
@@ -606,8 +624,10 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* buffer = talloc(char, FTI_Conf->blockSize);
 
     while (toRecv > 0) {
-        int recvSize = (toRecv > FTI_Conf->blockSize) ? FTI_Conf->blockSize : toRecv;
-        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag, FTI_Exec->groupComm, MPI_STATUS_IGNORE);
+        int recvSize = (toRecv > FTI_Conf->blockSize) ?
+         FTI_Conf->blockSize : toRecv;
+        MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag,
+         FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         fwrite(buffer, sizeof(char), recvSize, fileDesc);
 
         if (ferror(fileDesc)) {
@@ -644,8 +664,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
     if (mkdir(FTI_Ckpt[2].dir, 0777) == -1) {
         if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
@@ -653,12 +672,13 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int erased[FTI_BUFS];
-    int source = FTI_Topo->right; //to receive Ptner file from this process (to recover)
-    int destination = FTI_Topo->left; //to send Ptner file (to let him recover)
+    // to receive Ptner file from this process (to recover)
+    int source = FTI_Topo->right;
+    // to send Ptner file (to let him recover)
+    int destination = FTI_Topo->left;
     int res;
 
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-
         enum {
             LEFT_FILE,  // ckpt file of left partner (on left node)
             MY_FILE,    // my ckpt file (on my node)
@@ -668,8 +688,10 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         int exists[4];
 
-        if ( FTIFF_CheckL2RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf, exists ) != FTI_SCES ) {
-            FTI_Print("No restart possible from L2. Ckpt files missing.", FTI_DBUG);
+        if (FTIFF_CheckL2RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Conf,
+         exists) != FTI_SCES) {
+            FTI_Print("No restart possible from L2. Ckpt files missing.",
+             FTI_DBUG);
             return FTI_NSCS;
         }
 
@@ -679,12 +701,10 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         erased[FTI_Topo->groupRank] = !exists[MY_FILE];
         erased[source + FTI_Topo->groupSize] = !exists[MY_COPY];
         erased[FTI_Topo->groupRank + FTI_Topo->groupSize] = !exists[LEFT_COPY];
-
-    }
-
-    else {
+    } else {
         // Checking erasures
-        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased) != FTI_SCES) {
             FTI_Print("Error checking erasures.", FTI_WARN);
             return FTI_NSCS;
         }
@@ -693,7 +713,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int j;
         for (j = 0; j < FTI_Topo->groupSize * 2; j++) {
             if (erased[j]) {
-                i++; // Counting erasures
+                i++;  // Counting erasures
             }
         }
 
@@ -703,13 +723,17 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         res = FTI_SCES;
-        if (erased[FTI_Topo->groupRank] && erased[source + FTI_Topo->groupSize]) {
-            FTI_Print("My checkpoint file and partner copy have been lost", FTI_WARN);
+        if (erased[FTI_Topo->groupRank] &&
+         erased[source + FTI_Topo->groupSize]) {
+            FTI_Print("My checkpoint file and partner copy have been lost",
+             FTI_WARN);
             res = FTI_NSCS;
         }
 
-        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] && erased[destination]) {
-            FTI_Print("My Ptner checkpoint file and his checkpoint file have been lost", FTI_WARN);
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize] &&
+         erased[destination]) {
+            FTI_Print("My Ptner checkpoint file and his checkpoint"
+            " file have been lost", FTI_WARN);
             res = FTI_NSCS;
         }
 
@@ -718,61 +742,66 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (allRes != FTI_SCES) {
             return FTI_NSCS;
         }
-
     }
-    //recover checkpoint files
+    // recover checkpoint files
     if (FTI_Topo->groupRank % 2) {
-        if (erased[destination]) { //first send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 1);
+        if (erased[destination]) {  // first send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt,
+             destination, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-        if (erased[FTI_Topo->groupRank]) { //then receive file
+        if (erased[FTI_Topo->groupRank]) {  // then receive file
             res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     } else {
-        if (erased[FTI_Topo->groupRank]) { //first receive file
+        if (erased[FTI_Topo->groupRank]) {  // first receive file
             res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
 
-        if (erased[destination]) { //then send file
-            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 1);
+        if (erased[destination]) {  // then send file
+            res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt,
+             destination, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     }
 
-    //recover partner files
+    // recover partner files
     if (FTI_Topo->groupRank % 2) {
-        if (erased[source + FTI_Topo->groupSize]) { //fisrst send file
+        if (erased[source + FTI_Topo->groupSize]) {  // first send file
             res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
-        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 1);
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) {
+            // receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt,
+             destination, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
     } else {
-        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) { //first receive file
-            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, destination, 1);
+        if (erased[FTI_Topo->groupRank + FTI_Topo->groupSize]) {
+            // first receive file
+            res = FTI_RecvCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt,
+             destination, 1);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
             }
         }
 
-        if (erased[source + FTI_Topo->groupSize]) { //send file
+        if (erased[source + FTI_Topo->groupSize]) {  // send file
             res = FTI_SendCkptFileL2(FTI_Conf, FTI_Exec, FTI_Ckpt, source, 0);
             if (res != FTI_SCES) {
                 return FTI_NSCS;
@@ -799,8 +828,7 @@ int FTI_RecoverL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
     if (mkdir(FTI_Ckpt[3].dir, 0777) == -1) {
         if (errno != EEXIST) {
             FTI_Print("Cannot create directory", FTI_EROR);
@@ -810,18 +838,16 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int erased[FTI_BUFS];
 
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-
-        if ( FTIFF_CheckL3RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt, erased ) != FTI_SCES ) {
-            FTI_Print("No restart possible from L3. Ckpt files missing.", FTI_DBUG);
+        if (FTIFF_CheckL3RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased) != FTI_SCES) {
+            FTI_Print("No restart possible from L3. Ckpt files missing.",
+             FTI_DBUG);
             return FTI_NSCS;
         }
-
-    }
-
-    else {
-
+    } else {
         // Checking erasures
-        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased) != FTI_SCES) {
             FTI_Print("Error checking erasures.", FTI_DBUG);
             return FTI_NSCS;
         }
@@ -847,9 +873,11 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Reed-Solomon decoding
     if (l > 0) {
         char str[FTI_BUFS];
-        snprintf(str, FTI_BUFS, "There are %d encoded/checkpoint files missing in this group.", l);
+        snprintf(str, FTI_BUFS, "There are %d encoded/checkpoint files"
+        " missing in this group.", l);
         FTI_Print(str, FTI_DBUG);
-        int res = FTI_Try(FTI_Decode(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased), "use RS-decoding to regenerate the missing data.");
+        int res = FTI_Try(FTI_Decode(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased), "use RS-decoding to regenerate the missing data.");
         if (res == FTI_NSCS) {
             return FTI_NSCS;
         }
@@ -874,10 +902,8 @@ int FTI_RecoverL3(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
-
-    switch(FTI_Conf->ioMode) {
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
+    switch (FTI_Conf->ioMode) {
         case FTI_IO_FTIFF:
         case FTI_IO_HDF5:
         case FTI_IO_IME:
@@ -887,13 +913,13 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_RecoverL4Mpi(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
 #ifdef ENABLE_SIONLIB
         case FTI_IO_SIONLIB:
-            return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            return FTI_RecoverL4Sionlib(FTI_Conf, FTI_Exec, FTI_Topo,
+             FTI_Ckpt);
 #endif
         default:
-            FTI_Print("unknown I/O mode",FTI_WARN);
+            FTI_Print("unknown I/O mode", FTI_WARN);
             return FTI_NSCS;
     }
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -912,8 +938,7 @@ int FTI_RecoverL4(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
     FTI_Print("Starting recovery L4 using Posix I/O.", FTI_DBUG);
     if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
         if (errno != EEXIST) {
@@ -923,15 +948,16 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Checking erasures
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        if ( FTIFF_CheckL4RecoverInit( FTI_Exec, FTI_Topo, FTI_Ckpt ) != FTI_SCES ) {
-            FTI_Print("No restart possible from L4. Ckpt files missing.", FTI_DBUG);
+        if (FTIFF_CheckL4RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt) !=
+            FTI_SCES) {
+            FTI_Print("No restart possible from L4. Ckpt files missing.",
+             FTI_DBUG);
             return FTI_NSCS;
         }
-    }
-
-    else {
+    } else {
         int erased[FTI_BUFS];
-        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, erased) != FTI_SCES) {
+        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+         erased) != FTI_SCES) {
             FTI_Print("Error checking erasures.", FTI_DBUG);
             return FTI_NSCS;
         }
@@ -948,23 +974,35 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        if( FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp && FTI_Conf->dcpPosix ) {
+        if (FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp &&
+         FTI_Conf->dcpPosix) {
             return FTI_SCES;
         }
 
-        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+        snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s",
+         FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
 
-    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
+     FTI_Exec->ckptMeta.ckptFile);
 
+<<<<<<< HEAD
     if ( FTI_Ckpt[4].recoIsDcp ) {
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, FTI_Exec->ckptMeta.ckptFile);
     } else if ( FTI_Ckpt[4].localReplica == 1){
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].L4Replica, FTI_Exec->ckptMeta.ckptFile);
     }else {
         snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, FTI_Exec->ckptMeta.ckptFile);
+=======
+    if (FTI_Ckpt[4].recoIsDcp) {
+        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir,
+         FTI_Exec->ckptMeta.ckptFile);
+    } else {
+        snprintf(gfn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir,
+         FTI_Exec->ckptMeta.ckptFile);
+>>>>>>> master
     }
 
     FILE* gfd = fopen(gfn, "rb");
@@ -973,7 +1011,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    MKDIR(FTI_Conf->lTmpDir,0777);
+    MKDIR(FTI_Conf->lTmpDir, 0777);
     FILE* lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
         FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
@@ -982,11 +1020,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char *readData = talloc(char, FTI_Conf->transferSize);
-    long bSize = FTI_Conf->transferSize;
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t bSize = FTI_Conf->transferSize;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
 
     // Checkpoint files transfer from PFS
-    long pos = 0;
+    int32_t pos = 0;
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
             bSize = fs - pos;
@@ -995,7 +1033,8 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         size_t bytes = fread(readData, sizeof(char), bSize, gfd);
 
         if (ferror(gfd)) {
-            FTI_Print("R4 cannot read from the ckpt. file in the PFS.", FTI_DBUG);
+            FTI_Print("R4 cannot read from the ckpt. file in the PFS.",
+             FTI_DBUG);
 
             free(readData);
 
@@ -1044,8 +1083,7 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
     FTI_Print("Starting recovery L4 using MPI-IO.", FTI_DBUG);
     // create local directories
     if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
@@ -1063,9 +1101,11 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     MPI_Info_set(info, "stripping_unit", "4194304");
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS], gfp[FTI_BUFS];
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s",
+     FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
     snprintf(gfn, FTI_BUFS, "Ckpt%d-mpiio.fti", FTI_Exec->ckptId);
-    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
+    snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
+     FTI_Exec->ckptMeta.ckptFile);
     snprintf(gfp, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, gfn);
 
     // open parallel file
@@ -1079,15 +1119,18 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MPI_Error_string(buf, mpi_err, &reslen);
         if (buf != MPI_ERR_NO_SUCH_FILE) {
             char str[FTI_BUFS];
-            snprintf(str, FTI_BUFS, "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
+            snprintf(str, FTI_BUFS,
+             "Unable to access file [MPI ERROR - %i] %s", buf, mpi_err);
             FTI_Print(str, FTI_EROR);
         }
         return FTI_NSCS;
     }
 
     // collect chunksizes of other ranks
-    MPI_Offset* chunkSizes = talloc(MPI_Offset, FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_OFFSET, chunkSizes, 1, MPI_OFFSET, FTI_COMM_WORLD);
+    int32_t* chunkSizes = talloc(int32_t,
+     FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
+    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_INT32_T, chunkSizes, 1,
+     MPI_INT32_T, FTI_COMM_WORLD);
 
     MPI_Offset offset = 0;
     // set file offset
@@ -1097,7 +1140,7 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     free(chunkSizes);
 
-    MKDIR(FTI_Conf->lTmpDir,0777);
+    MKDIR(FTI_Conf->lTmpDir, 0777);
     FILE *lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
         FTI_Print("R4 cannot open the local ckpt. file.", FTI_DBUG);
@@ -1105,17 +1148,18 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    long fs = FTI_Exec->ckptMeta.fs;
+    int32_t fs = FTI_Exec->ckptMeta.fs;
     char *readData = talloc(char, FTI_Conf->transferSize);
-    long bSize = FTI_Conf->transferSize;
-    long pos = 0;
+    int32_t bSize = FTI_Conf->transferSize;
+    int32_t pos = 0;
     // Checkpoint files transfer from PFS
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
             bSize = fs - pos;
         }
         // read block in parallel file
-        buf = MPI_File_read_at(pfh, offset, readData, bSize, MPI_BYTE, MPI_STATUS_IGNORE);
+        buf = MPI_File_read_at(pfh, offset, readData, (int)bSize, MPI_BYTE,
+         MPI_STATUS_IGNORE);
         // check if successful
         if (buf != 0) {
             errno = 0;
@@ -1123,7 +1167,8 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             char str[FTI_BUFS];
             int reslen;
             MPI_Error_string(buf, mpi_err, &reslen);
-            snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
+            snprintf(str, FTI_BUFS, "R4 cannot read from the ckpt. file in"
+            " the PFS. [MPI ERROR - %i] %s", buf, mpi_err);
             FTI_Print(str, FTI_EROR);
             free(readData);
             MPI_File_close(&pfh);
@@ -1170,12 +1215,12 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
  **/
 /*-------------------------------------------------------------------------*/
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
-int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt)
-{
+#ifdef ENABLE_SIONLIB  // --> If SIONlib is installed
+int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf,
+     FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+     FTIT_checkpoint* FTI_Ckpt) {
     FTI_Print("Starting recovery L4 using Sionlib.", FTI_DBUG);
-    //Create local directories
+    // Create local directories
     if (mkdir(FTI_Ckpt[1].dir, 0777) == -1) {
         if (errno != EEXIST) {
             FTI_Print("Directory L1 could NOT be created.", FTI_WARN);
@@ -1183,8 +1228,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char gfn[FTI_BUFS], lfn[FTI_BUFS];
-    snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Conf->lTmpDir, FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
-    snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir, FTI_Exec->ckptId);
+    snprintf(lfn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Conf->lTmpDir,
+     FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(gfn, FTI_BUFS, "%s/Ckpt%d-sionlib.fti", FTI_Ckpt[4].dir,
+     FTI_Exec->ckptId);
 
     int nTasks;
     MPI_Comm_size(FTI_COMM_WORLD, &nTasks);
@@ -1196,9 +1243,9 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* rank_map = talloc(int, nTasks);
     sion_int64* chunkSizes = talloc(sion_int64, nTasks);
     sion_int32 fsblksize = -1;
-
-    for (int i = 0; i < nTasks; i++){
-        chunkSizes[i] = 1000; 
+    int i;
+    for (i = 0; i < nTasks; i++) {
+        chunkSizes[i] = 1000;
         ranks[i] = FTI_Topo->splitRank;
         rank_map[i] = FTI_Topo->splitRank;
     }
@@ -1208,24 +1255,27 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // this is done, since sionlib aborts if the file is not readable.
     if (access(gfn, F_OK) != 0) {
         return FTI_NSCS;
-    }
-    else{
-        sid = sion_open(gfn, "rb,posix",&nlocaltasks , &numFiles, &chunkSizes, &fsblksize, &ranks, NULL);   
+    } else {
+        sid = sion_open(gfn, "rb,posix", &nlocaltasks , &numFiles, &chunkSizes,
+         &fsblksize, &ranks, NULL);
         int correct  = 1;
         int globalcorrect = 1;
-        if ( sid < 0 ){
-            correct =0;
+        if (sid < 0) {
+            correct = 0;
         }
-        MPI_Allreduce(&correct,&globalcorrect,1, MPI_INT, MPI_BAND, FTI_COMM_WORLD);
-        if ( globalcorrect == 0 ){
+        MPI_Allreduce(&correct, &globalcorrect, 1, MPI_INT, MPI_BAND,
+         FTI_COMM_WORLD);
+        if (globalcorrect == 0) {
             return FTI_NSCS;
         }
     }
 
 
-    sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles, FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map, &rank_map, &fsblksize, NULL);
+    sid = sion_paropen_mapped_mpi(gfn, "rb,posix", &numFiles,
+     FTI_COMM_WORLD, &nlocaltasks, &ranks, &chunkSizes, &file_map,
+      &rank_map, &fsblksize, NULL);
 
-    if ( sid < 0 ){
+    if (sid < 0) {
         FTI_Print("R4 cannot open the Global ckpt. file.", FTI_WARN);
         free(file_map);
         free(ranks);
@@ -1234,7 +1284,7 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    MKDIR(FTI_Conf->lTmpDir,0777);
+    MKDIR(FTI_Conf->lTmpDir, 0777);
     FILE* lfd = fopen(lfn, "wb");
     if (lfd == NULL) {
         FTI_Print("R4 cannot open the local ckpt. file.", FTI_WARN);
@@ -1246,7 +1296,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK, SION_CURRENT_POS);
+    int res = sion_seek(sid, FTI_Topo->splitRank, SION_CURRENT_BLK,
+     SION_CURRENT_POS);
     // check if successful
     if (res != SION_SUCCESS) {
         FTI_Print("SIONlib: Could not set file pointer", FTI_EROR);
@@ -1261,10 +1312,10 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Checkpoint files transfer from PFS
     while (!sion_feof(sid)) {
-        long fs = FTI_Exec->ckptMeta.fs;
+        int32_t fs = FTI_Exec->ckptMeta.fs;
         char *readData = talloc(char, FTI_Conf->transferSize);
-        long bSize = FTI_Conf->transferSize;
-        long pos = 0;
+        int32_t bSize = FTI_Conf->transferSize;
+        int32_t pos = 0;
         // Checkpoint files transfer from PFS
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize) {
@@ -1273,7 +1324,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             res = sion_fread(readData, sizeof(char), bSize, sid);
             if (res != bSize) {
                 char str[FTI_BUFS];
-                snprintf(str, FTI_BUFS, "SIONlib: Unable to read %lu Bytes from file", bSize);
+                snprintf(str, FTI_BUFS, "SIONlib: Unable to read"
+                " %u Bytes from file", bSize);
                 FTI_Print(str, FTI_EROR);
                 sion_parclose_mapped_mpi(sid);
                 free(file_map);
@@ -1287,7 +1339,8 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             fwrite(readData, sizeof(char), bSize, lfd);
             if (ferror(lfd)) {
-                FTI_Print("R4 cannot write to the local ckpt. file.", FTI_WARN);
+                FTI_Print("R4 cannot write to the local ckpt. file.",
+                 FTI_WARN);
                 free(readData);
                 fclose(lfd);
                 sion_parclose_mapped_mpi(sid);

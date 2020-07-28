@@ -1,5 +1,12 @@
-#ifndef __DCP_H__
-#define __DCP_H__
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   dcp.h
+ */
+
+#ifndef FTI_DCP_H_
+#define FTI_DCP_H_
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -8,8 +15,7 @@
 #ifdef FTI_NOZLIB
 extern const uint32_t crc32_tab[];
 
-static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc)
-{
+static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc) {
     const uint8_t *p = (const uint8_t *)buf;
 
     while (size--)
@@ -17,8 +23,7 @@ static inline uint32_t crc32_raw(const void *buf, size_t size, uint32_t crc)
     return (crc);
 }
 
-static inline uint32_t crc32(const void *buf, size_t size)
-{
+static inline uint32_t crc32(const void *buf, size_t size) {
     uint32_t crc;
 
     crc = crc32_raw(buf, size, ~0U);
@@ -26,6 +31,7 @@ static inline uint32_t crc32(const void *buf, size_t size)
 }
 #endif
 
-void FTI_PrintDcpStats( FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec, FTIT_topology FTI_Topo );
+void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
+ FTIT_topology FTI_Topo);
 
-#endif // __DCP_H__
+#endif  // FTI_DCP_H_

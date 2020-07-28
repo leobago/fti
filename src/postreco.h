@@ -1,5 +1,12 @@
-#ifndef __POSTRECO_H__
-#define __POSTRECO_H__
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   postreco.h
+ */
+
+#ifndef FTI_POSTRECO_H_
+#define FTI_POSTRECO_H_
 
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int *erased);
@@ -15,9 +22,9 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
-#ifdef ENABLE_SIONLIB // --> If SIONlib is installed
+#ifdef ENABLE_SIONLIB  // --> If SIONlib is installed
 int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 #endif
 
-#endif // __POSTRECO_H__
+#endif  // FTI_POSTRECO_H_

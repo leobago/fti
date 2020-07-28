@@ -37,17 +37,19 @@
  *  @brief  methods for key-value container.
  */
 
-#ifndef __FTI__KEYMAP
+#ifndef FTI_KEYMAP_H_
+#define FTI_KEYMAP_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     /** Minimum size for dynamic reallocation (in number of elements) */
-    const static size_t FTI_MIN_REALLOC = 32;
-    
-    /** Maximum size for dynamic reallocation (in number of elements) ~ 10 Mb for FTIT_dataset */
-    const static size_t FTI_MAX_REALLOC = 10*1024;  
+    static const size_t FTI_MIN_REALLOC = 32;
+
+    /** Maximum size for dynamic reallocation 
+    (in number of elements) ~ 10 Mb for FTIT_dataset */
+    static const size_t FTI_MAX_REALLOC = 10*1024;
 
     /**--------------------------------------------------------------------------
       
@@ -67,19 +69,17 @@ extern "C" {
     
     --------------------------------------------------------------------------**/
     typedef struct FTIT_keymap {
-
-        bool    initialized;    /**< True iff instance exists                  */
-        long    _type_size;     /**< Size of keymap elements                   */
-        long    _size;          /**< Capacity of keymap                        */
-        long    _used;          /**< Number of elements in keymap              */
-        int     _max_key;       /**< Maximum value for key                     */       
-        void*   _data;          /**< Pointer to first element in keymap        */
-        int*    _key;           /**< Lookup table for key -> location in keymap*/
-        int     (*push_back)    ( void*, int );
-        int     (*data)         ( FTIT_dataset**, int );
-        int     (*get)          ( FTIT_dataset**, int );
-        int     (*clear)        ( void );
-    
+        bool    initialized;  /**< True iff instance exists                  */
+        int32_t    _type_size;   /**< Size of keymap elements                   */
+        int32_t    _size;        /**< Capacity of keymap                        */
+        int32_t    _used;        /**< Number of elements in keymap              */
+        int     _max_key;     /**< Maximum value for key                     */
+        void*   _data;        /**< Pointer to first element in keymap        */
+        int*    _key;         /**< Lookup table for key -> location in keymap*/
+        int     (*push_back)(void*, int);
+        int     (*data)(FTIT_dataset**, int);
+        int     (*get)(FTIT_dataset**, int);
+        int     (*clear)(void);
     } FTIT_keymap;
 
     /**--------------------------------------------------------------------------
@@ -96,16 +96,16 @@ extern "C" {
       
       @param        instance[out]     <b> FTIT_keymap** </b>  Pointer to be set to
       the static instance of the key value container.
-      @param        type_size[in]     <b> long          </b>  Element size of container.
-      @param        max_key[in]       <b> long          </b>  Maximum value for Key.
+      @param        type_size[in]     <b> int32_t          </b>  Element size of container.
+      @param        max_key[in]       <b> int32_t          </b>  Maximum value for Key.
       @param        reset[in]         <b> bool          </b>  if true reset key map.
       @return                       \ref FTI_SCES if successful.  
                                     \ref FTI_NSCS on failure.
 
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMap              ( FTIT_keymap**, long, long, bool );
-    
+    int     FTI_KeyMap(FTIT_keymap**, int32_t, int32_t, bool);
+
     /**--------------------------------------------------------------------------
       
       
@@ -127,8 +127,8 @@ extern "C" {
      
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMapPushBack      ( void*, int );
-    
+    int     FTI_KeyMapPushBack(void*, int);
+
     /**--------------------------------------------------------------------------
       
       
@@ -146,8 +146,8 @@ extern "C" {
      
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMapData          ( FTIT_dataset**, int );
-    
+    int     FTI_KeyMapData(FTIT_dataset**, int);
+
     /**--------------------------------------------------------------------------
       
       
@@ -165,8 +165,8 @@ extern "C" {
      
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMapGet           ( FTIT_dataset**, int );
-    
+    int     FTI_KeyMapGet(FTIT_dataset**, int);
+
     /**--------------------------------------------------------------------------
       
       
@@ -181,10 +181,10 @@ extern "C" {
      
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMapClear         ( void ); 
+    int     FTI_KeyMapClear(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __FTI__KEYMAP
+#endif  // FTI_KEYMAP_H_

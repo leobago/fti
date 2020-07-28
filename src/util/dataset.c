@@ -39,16 +39,15 @@
 
 #include "../interface.h"
 
-int FTI_InitDataset( FTIT_execution* FTI_Exec, FTIT_dataset* data , int id )
-{
+int FTI_InitDataset(FTIT_execution* FTI_Exec, FTIT_dataset* data , int id) {
     FTIT_dataset dataNew = {0};
     dataNew.rank = 1;
     dataNew.h5group = FTI_Exec->H5groups[0];
-    sprintf(dataNew.name, "Dataset_%d", id);
+    snprintf(dataNew.name, sizeof(dataNew.name), "Dataset_%d", id);
     dataNew.rank = 1;
     dataNew.h5group = FTI_Exec->H5groups[0];
     dataNew.id = id;
-    sprintf(dataNew.name, "Dataset_%d", id);
+    snprintf(dataNew.name, sizeof(dataNew.name), "Dataset_%d", id);
     memcpy(data, &dataNew, sizeof(FTIT_dataset));
     return FTI_SCES;
 }

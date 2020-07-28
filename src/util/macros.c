@@ -51,7 +51,7 @@
   This functions cleans up the local environment after an error occurs.
  **/
 /*-------------------------------------------------------------------------*/
-__attribute__ ((sentinel))
+__attribute__((sentinel))
     void cleanup(char *pattern, ...) {
         va_list args;
         va_start(args, pattern);
@@ -64,7 +64,7 @@ __attribute__ ((sentinel))
                     fclose(va_arg(args, void*));
                     break;
                 default:
-                    FTI_Print("Unknown pattern in error Clean UP",FTI_WARN);
+                    FTI_Print("Unknown pattern in error Clean UP", FTI_WARN);
             }
         }
 

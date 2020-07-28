@@ -51,27 +51,27 @@ ould not open FTI checkpoint file
   @return     integer         FTI_SCES on success.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_IMEOpen(char *fn, void *fileDesc)
-{
-     
+int FTI_IMEOpen(char *fn, void *fileDesc) {
     char str[FTI_BUFS];
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
-    if ( fd->flag == O_WRONLY )
+    if (fd->flag == O_WRONLY)
         fd->f = ime_native_open(fn, O_CREAT | O_TRUNC | O_WRONLY, 0664);
-    else if ( fd -> flag == O_RDONLY )
-        fd->f = ime_native_open(fn,O_RDONLY, 0664);
-    else if ( fd -> flag == O_RDWR )
+    else if (fd -> flag == O_RDONLY)
+        fd->f = ime_native_open(fn, O_RDONLY, 0664);
+    else if (fd -> flag == O_RDWR)
         fd->f = ime_native_open(fn, O_RDWR, 0664);
-    else if ( fd -> flag == O_APPEND )
+    else if (fd -> flag == O_APPEND)
         fd->f = ime_native_open(fn, O_APPEND, 0664);
-    else{
-        FTI_Print("IME native Open Should always indicated flag",FTI_WARN);
+    else {
+        FTI_Print("IME native Open Should always indicated flag", FTI_WARN);
     }
 
 
-    if ( fd->f == -1 ){
-        snprintf(str, FTI_BUFS, "unable to create file [IME native ERROR - %d] %s", errno, strerror(errno));
-        FTI_Print(str,FTI_EROR);
+    if (fd->f == -1) {
+        snprintf(str, FTI_BUFS,
+         "unable to create file [IME native ERROR - %d] %s",
+          errno, strerror(errno));
+        FTI_Print(str, FTI_EROR);
         return FTI_NSCS;
     }
     MD5_Init(&(fd->integrity));
@@ -86,8 +86,7 @@ int FTI_IMEOpen(char *fn, void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_IMEClose(void *fileDesc)
-{
+int FTI_IMEClose(void *fileDesc) {
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
     FTI_IMESync(fileDesc);
     ime_native_close(fd->f);
@@ -104,20 +103,20 @@ int FTI_IMEClose(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_IMEWrite(void *src, size_t size, void *fileDesc)
-{
+int FTI_IMEWrite(void *src, size_t size, void *fileDesc) {
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *)fileDesc;
     size_t written = 0;
     int fwrite_errno = 0;
     char str[FTI_BUFS];
 
-    while (written < size) { // KC FIXME && !ferror(fd->f)) {
+    while (written < size) {  // KC FIXME && !ferror(fd->f)) {
         errno = 0;
-        written += ime_native_write(fd->f, ((char *)src) + written, size - written);
+        written += ime_native_write(fd->f,
+         ((char *)src) + written, size - written);
         fwrite_errno = errno;
     }
 
-    MD5_Update (&(fd->integrity), src, size);
+    MD5_Update(&(fd->integrity), src, size);
 /* KC FIXME *
     if (ferror(fd->f)){
         char error_msg[FTI_BUFS];
@@ -131,7 +130,6 @@ int FTI_IMEWrite(void *src, size_t size, void *fileDesc)
     else
 */
         return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -143,13 +141,13 @@ int FTI_IMEWrite(void *src, size_t size, void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_IMESeek(size_t pos, void *fileDesc)
-{
+int FTI_IMESeek(size_t pos, void *fileDesc) {
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
-    if ( ime_native_lseek( fd->f, pos, SEEK_SET ) == -1 ) {
+    if (ime_native_lseek(fd->f, pos, SEEK_SET) == -1) {
         char error_msg[FTI_BUFS];
-        sprintf(error_msg, "Unable to Seek : [IME native ERROR -%s.]", strerror(errno));
-        FTI_Print(error_msg, FTI_EROR );
+        snprintf(error_msg, sizeof(error_msg),
+         "Unable to Seek : [IME native ERROR -%s.]", strerror(errno));
+        FTI_Print(error_msg, FTI_EROR);
         return FTI_NSCS;
     }
     return FTI_SCES;
@@ -163,8 +161,7 @@ int FTI_IMESeek(size_t pos, void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetIMEFilePos(void *fileDesc)
-{
+size_t FTI_GetIMEFilePos(void *fileDesc) {
     WriteIMEInfo_t *fd = (WriteIMEInfo_t *) fileDesc;
     return ime_native_lseek(fd->f, 0, SEEK_CUR);
 }
@@ -177,8 +174,7 @@ size_t FTI_GetIMEFilePos(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_IMESync(void *fileDesc)
-{
+int FTI_IMESync(void *fileDesc) {
     // KC FIXME ime_native_fsync(fileno(((WriteIMEInfo_t *) fileDesc)->f));
     ime_native_fsync(((WriteIMEInfo_t *) fileDesc)->f);
     return FTI_SCES;
@@ -196,30 +192,33 @@ int FTI_IMESync(void *fileDesc)
 
  **/
 /*-------------------------------------------------------------------------*/
-void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data)
-{
-
+void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+ FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_dataset *FTI_Data) {
     FTI_Print("I/O mode: IME.", FTI_DBUG);
 
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptMeta.level;
 
-    WriteIMEInfo_t *write_info = (WriteIMEInfo_t *) malloc (sizeof(WriteIMEInfo_t));
+    WriteIMEInfo_t *write_info = (WriteIMEInfo_t *)
+    malloc(sizeof(WriteIMEInfo_t));
 
-    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s", FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
+    snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s",
+     FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
 
-    if (level == 4 && FTI_Ckpt[4].isInline) { //If inline L4 save directly to global directory
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir, FTI_Exec->ckptMeta.ckptFile);
+    if (level == 4 && FTI_Ckpt[4].isInline) {
+        // If inline L4 save directly to global directory
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir,
+         FTI_Exec->ckptMeta.ckptFile);
+    } else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
+         FTI_Exec->ckptMeta.ckptFile);
     }
-    else {
-        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir, FTI_Exec->ckptMeta.ckptFile);
-    }
-    
+
     DBG_MSG("WRITING WITH IME: fn -> '%s'", -1, fn);
 
     write_info->flag = O_WRONLY;
     write_info->offset = 0;
-    FTI_IMEOpen(fn,write_info);
+    FTI_IMEOpen(fn, write_info);
     return write_info;
 }
 
@@ -235,15 +234,16 @@ void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_t
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd)
-{
+int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd) {
     WriteIMEInfo_t *write_info = (WriteIMEInfo_t*) fd;
     char str[FTI_BUFS];
     int res;
 
-    if ( !(FTI_DataVar->isDevicePtr) ){
-        if (( res = FTI_Try(FTI_IMEWrite(FTI_DataVar->ptr, FTI_DataVar->size, write_info),"Storing Data to Checkpoint file")) != FTI_SCES){
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+    if (!(FTI_DataVar->isDevicePtr)) {
+        if ((res = FTI_Try(FTI_IMEWrite(FTI_DataVar->ptr, FTI_DataVar->size,
+            write_info), "Storing Data to Checkpoint file")) != FTI_SCES) {
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.",
+             FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_IMEClose(write_info);
             return FTI_NSCS;
@@ -254,9 +254,11 @@ int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd)
     // memory to cpu memory and store them.
     else {
         if ((res = FTI_Try(
-                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,  FTI_IMEWrite, write_info),
+                        FTI_TransferDeviceMemToFileAsync(FTI_DataVar,
+                        FTI_IMEWrite, write_info),
                         "moving data from GPU to storage")) != FTI_SCES) {
-            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.", FTI_DataVar->id);
+            snprintf(str, FTI_BUFS, "Dataset #%d could not be written.",
+             FTI_DataVar->id);
             FTI_Print(str, FTI_EROR);
             FTI_IMEClose(write_info);
             return FTI_NSCS;
@@ -275,8 +277,7 @@ int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_IMEMD5(unsigned char *dest, void *md5)
-{
+void FTI_IMEMD5(unsigned char *dest, void *md5) {
     WriteIMEInfo_t *write_info =(WriteIMEInfo_t *) md5;
-    MD5_Final(dest,&(write_info->integrity));
+    MD5_Final(dest, &(write_info->integrity));
 }

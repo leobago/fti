@@ -37,8 +37,8 @@
  *  @brief  methods for FTIT_mqueue, a queue for the FTI checkpoint meta data (FTIT_metadata).
  */
 
-#ifndef __METAQUEUE_H__
-#define __METAQUEUE_H__
+#ifndef FTI_METAQUEUE_H_
+#define FTI_METAQUEUE_H_
 
 /**--------------------------------------------------------------------------
   
@@ -56,7 +56,7 @@
 
 
 --------------------------------------------------------------------------**/
-int FTI_MetadataQueue( FTIT_mqueue* );
+int FTI_MetadataQueue(FTIT_mqueue*);
 
 /**--------------------------------------------------------------------------
   
@@ -73,7 +73,7 @@ int FTI_MetadataQueue( FTIT_mqueue* );
 
 
 --------------------------------------------------------------------------**/
-bool FTI_MetadataQueueEmpty( FTIT_mqueue* );
+bool FTI_MetadataQueueEmpty(FTIT_mqueue*);
 
 /**--------------------------------------------------------------------------
   
@@ -93,7 +93,7 @@ bool FTI_MetadataQueueEmpty( FTIT_mqueue* );
 
 
 --------------------------------------------------------------------------**/
-int FTI_MetadataQueuePush( FTIT_mqueue*, FTIT_metadata );
+int FTI_MetadataQueuePush(FTIT_mqueue*, FTIT_metadata);
 
 /**--------------------------------------------------------------------------
   
@@ -115,7 +115,7 @@ int FTI_MetadataQueuePush( FTIT_mqueue*, FTIT_metadata );
 
 
 --------------------------------------------------------------------------**/
-int FTI_MetadataQueuePop( FTIT_mqueue*, FTIT_metadata* );
+int FTI_MetadataQueuePop(FTIT_mqueue*, FTIT_metadata*);
 
 /**--------------------------------------------------------------------------
   
@@ -132,7 +132,7 @@ int FTI_MetadataQueuePop( FTIT_mqueue*, FTIT_metadata* );
 
 
 --------------------------------------------------------------------------**/
-int FTI_MetadataQueueClear( FTIT_mqueue* );
+int FTI_MetadataQueueClear(FTIT_mqueue*);
 
-#endif // __METAQUEUE_H__
+#endif  // FTI_METAQUEUE_H_
 

@@ -8,6 +8,7 @@
 /*--------------------------------------------------------------------------*/
 /*---------------------------- Includes ------------------------------------*/
 #include <ctype.h>
+#include <stdint.h>
 #include "iniparser.h"
 
 /*---------------------------- Defines -------------------------------------*/
@@ -426,7 +427,7 @@ int iniparser_getint(dictionary * d, const char * key, int notfound)
   slightly modified to return long instead of int.
  */
 /*--------------------------------------------------------------------------*/
-long iniparser_getlint(dictionary * d, const char * key, int notfound)
+int32_t iniparser_getlint(dictionary * d, const char * key, int notfound)
 {
     char    *   str ;
 
