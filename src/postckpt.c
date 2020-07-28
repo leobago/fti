@@ -96,7 +96,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    long toSend = FTI_Exec->ckptMeta.fs;  // remaining data to send
+    int32_t toSend = FTI_Exec->ckptMeta.fs;  // remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ?
          FTI_Conf->blockSize : toSend;
@@ -149,7 +149,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    unsigned long toRecv = FTI_Exec->ckptMeta.pfs;
+    uint32_t toRecv = FTI_Exec->ckptMeta.pfs;
     // remaining data to receive
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ?
@@ -282,7 +282,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print(str, FTI_DBUG);
 
         // all files in group must have the same size
-        long maxFs = FTI_Exec->ckptMeta.maxFs;  // max file size in group
+        int32_t maxFs = FTI_Exec->ckptMeta.maxFs;  // max file size in group
 
         // determine file size in order to write at the end of the elongated
         // file (i.e. write at the end of file after 'truncate(..., maxFs)'.
@@ -354,7 +354,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
         int remBsize = bs;
-        long ps = ((maxFs / bs)) * bs;
+        int32_t ps = ((maxFs / bs)) * bs;
         if (ps < maxFs) {
             ps = ps + bs;
         }
@@ -364,7 +364,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MD5_Init(&mdContext);
 
         // For each block
-        long pos = 0;
+        int32_t pos = 0;
         while (pos < ps) {
             if ((maxFs - pos) < bs) {
                 remBsize = maxFs - pos;
@@ -513,7 +513,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(lfd);
         fclose(efd);
 
-        long fs = FTI_Exec->ckptMeta.fs;  // ckpt file size
+        int32_t fs = FTI_Exec->ckptMeta.fs;  // ckpt file size
 
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
@@ -784,11 +784,11 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         char *readData = talloc(char, FTI_Conf->transferSize);
-        long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->ckptMeta.fs;
-        snprintf(str, FTI_BUFS, "Local file size for proc %d: %ld", proc, fs);
+        int32_t bSize = FTI_Conf->transferSize;
+        int32_t fs = FTI_Exec->ckptMeta.fs;
+        snprintf(str, FTI_BUFS, "Local file size for proc %d: %d", proc, fs);
         FTI_Print(str, FTI_DBUG);
-        long pos = 0;
+        int32_t pos = 0;
         // Checkpoint files exchange
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize)
@@ -909,10 +909,10 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         char* readData = talloc(char, FTI_Conf->transferSize);
-        long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->ckptMeta.fs;
+        int32_t bSize = FTI_Conf->transferSize;
+        int32_t fs = FTI_Exec->ckptMeta.fs;
 
-        long pos = 0;
+        int32_t pos = 0;
         // Checkpoint files exchange
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize) {
@@ -967,7 +967,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     int nbProc = endProc - startProc;
 
-    long* localFileSizes = talloc(long, nbProc);
+    int32_t* localFileSizes = talloc(int32_t, nbProc);
     char* localFileNames = talloc(char, FTI_BUFS * nbProc);
     int* splitRanks = talloc(int, nbProc);  // rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
@@ -1073,10 +1073,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         char *readData = talloc(char, FTI_Conf->transferSize);
-        long bSize = FTI_Conf->transferSize;
-        long fs = FTI_Exec->ckptMeta.fs;
+        int32_t bSize = FTI_Conf->transferSize;
+        int32_t fs = FTI_Exec->ckptMeta.fs;
 
-        long pos = 0;
+        int32_t pos = 0;
         // Checkpoint files exchange
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize)
@@ -1088,7 +1088,8 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  ranks, rank_map, chunkSizes);
 
 
-            long data_written = sion_fwrite(readData, sizeof(char), bytes, sid);
+            int32_t data_written = sion_fwrite(readData, sizeof(char),
+             bytes, sid);
 
             if (data_written < 0) {
                 FTI_Print("Sionlib: could not write data", FTI_EROR);

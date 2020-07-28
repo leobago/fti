@@ -148,7 +148,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
     FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
     snprintf(str, sizeof(str),
-     "Type [%d] has hid_t %ld.", ftiType->id, (long)ftiType->h5datatype);
+     "Type [%d] has hid_t %d.", ftiType->id, (int32_t)ftiType->h5datatype);
     FTI_Print(str, FTI_DBUG);
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
@@ -453,8 +453,8 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
         toCommit = 1;
     }
     snprintf(str, sizeof(str),
-     "Calling CreateComplexType [%d] with hid_t %ld",
-     data->type->id, (long)data->type->h5datatype);
+     "Calling CreateComplexType [%d] with hid_t %d",
+     data->type->id, (int32_t)data->type->h5datatype);
     FTI_Print(str, FTI_DBUG);
     FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
     if (toCommit == 1) {
@@ -495,7 +495,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckHDF5File(char* fn, long fs, char* checksum) {
+int FTI_CheckHDF5File(char* fn, int32_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
@@ -1509,8 +1509,8 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId);
     } else {
         if (data->size != data->sizeStored) {
-            snprintf(str, sizeof(str), "Cannot recover %ld bytes to "
-                "protected variable (ID %d) size: %ld",
+            snprintf(str, sizeof(str), "Cannot recover %d bytes to "
+                "protected variable (ID %d) size: %d",
                     data->sizeStored, data->id,
                     data->size);
             FTI_Print(str, FTI_WARN);
@@ -1867,7 +1867,7 @@ int FTI_CheckDimensions(FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec) {
         for (i = 0; i < dataset->rank; ++i) {
             numElem *= dataset->dimension[i];
         }
-        MPI_Allreduce(&numElemLocal, &numElemGlobal, 1, MPI_UNSIGNED_LONG_LONG,
+        MPI_Allreduce(&numElemLocal, &numElemGlobal, 1, MPI_UINT64_T,
          MPI_SUM, FTI_COMM_WORLD);
         if (numElem != numElemGlobal) {
             char errstr[FTI_BUFS];

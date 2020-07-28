@@ -37,7 +37,7 @@
  *  @brief  Routines to compute the MD5 checksum  
  */
 
-
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -57,10 +57,10 @@ int usesAsync = 0;
 pthread_t thread;
 pthread_mutex_t worker;
 pthread_mutex_t application;
-long totalWork= 0;
-long worker_exit = 0;
+int32_t totalWork= 0;
+int32_t worker_exit = 0;
 int deviceId;
-unsigned char* (*cpuHash)( const unsigned char *data, unsigned long nBytes, unsigned char *hash );
+unsigned char* (*cpuHash)( const unsigned char *data, uint32_t nBytes, unsigned char *hash );
 
 
 typedef struct threadWork{
@@ -91,8 +91,8 @@ tw work[FTI_BUFS];
 MD5_u32plus *Hin,*Hout;
 MD5_u32plus *in,*out,*tmp;
 char *tempGpuBuffer; 
-long tempBufferSize;
-long md5ChunkSize;
+int32_t tempBufferSize;
+int32_t md5ChunkSize;
 cudaStream_t Gstream; 
 
 
@@ -137,13 +137,13 @@ cudaStream_t Gstream;
  **/
 /*-------------------------------------------------------------------------*/
     __global__
-void body(MD5_u32plus *out, const void *data, unsigned long size, long md5ChunkSize )
+void body(MD5_u32plus *out, const void *data, uint32_t size, int32_t md5ChunkSize )
 {
     const unsigned char *ptr;
     MD5_u32plus a, b, c, d;
     MD5_u32plus saved_a, saved_b, saved_c, saved_d;
-    long tid = threadIdx.x  + blockIdx.x *blockDim.x; 
-    long index = tid * md5ChunkSize;
+    int32_t tid = threadIdx.x  + blockIdx.x *blockDim.x; 
+    int32_t index = tid * md5ChunkSize;
     unsigned char block[64];
     int allocate = 0;
     if (index > size)
@@ -151,7 +151,7 @@ void body(MD5_u32plus *out, const void *data, unsigned long size, long md5ChunkS
     //  unsigned char *block=&allBlock[blockIdx.x][0];
     ptr = (const unsigned char *)data;
     ptr = &ptr[index];
-    long localSize = md5ChunkSize;
+    int32_t localSize = md5ChunkSize;
 
     if ( index+ md5ChunkSize > size){
         allocate=1;
@@ -255,14 +255,14 @@ void body(MD5_u32plus *out, const void *data, unsigned long size, long md5ChunkS
         localSize -=64;
     } 
 
-    long used;
+    int32_t used;
     for ( used = 0; used < localSize; used++){
         block[used] = ptr[used];
     }
 
     block[used++]=0x80;
 
-    long available=64-used; 
+    int32_t available=64-used; 
 
     if ( available  < 8 ){
         ptr = block;
@@ -471,7 +471,7 @@ int syncDevice(){
 /*-------------------------------------------------------------------------*/
 void *workerMain(void *){
     cudaSetDevice(deviceId);
-    long l;
+    int32_t l;
     int lock= 1;
     while (1){
         pthread_mutex_lock(&worker);
@@ -519,7 +519,7 @@ void *workerMain(void *){
   and if requested spawns the worker thread.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
+int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf){
     if ( FTI_Conf->dcpInfoPosix.cachedCkpt)
         usesAsync = 1;
     else
@@ -581,9 +581,9 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
 /*-------------------------------------------------------------------------*/
 int MD5GPU(FTIT_dataset *data){
     size_t size = data->size;
-    long numKernels= GETDIV(size,md5ChunkSize);
-    long numThreads = min(numKernels,1024L);
-    long numGroups = GETDIV(numKernels,numThreads);// + ((( numKernels % numThreads ) == 0 ) ? 0:1);
+    int32_t numKernels= GETDIV(size,md5ChunkSize);
+    int32_t numThreads = min(numKernels,1024L);
+    int32_t numGroups = GETDIV(numKernels,numThreads);// + ((( numKernels % numThreads ) == 0 ) ? 0:1);
     unsigned char *tmp = (unsigned char*) malloc (sizeof(char)*size);
     body<<<numGroups,numThreads,0,Gstream>>>((MD5_u32plus *) data->dcpInfoPosix.currentHashArray, data->devicePtr, size, md5ChunkSize);
     return FTI_SCES;
@@ -601,7 +601,7 @@ int MD5GPU(FTIT_dataset *data){
  **/
 /*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_dataset *data){
-    unsigned long dataSize = data->size;
+    uint32_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;

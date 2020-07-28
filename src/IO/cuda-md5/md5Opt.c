@@ -56,13 +56,13 @@ int usesAsync = 0;
 pthread_t thread;
 pthread_mutex_t worker;
 pthread_mutex_t application;
-long totalWork = 0;
-long worker_exit = 0;
+int32_t totalWork = 0;
+int32_t worker_exit = 0;
 int deviceId;
-unsigned char* (*cpuHash)(const unsigned char *data, unsigned long nBytes,
+unsigned char* (*cpuHash)(const unsigned char *data, uint32_t nBytes,
  unsigned char *hash);
-long tempBufferSize;
-long md5ChunkSize;
+int32_t tempBufferSize;
+int32_t md5ChunkSize;
 
 
 /*-------------------------------------------------------------------------*/
@@ -76,7 +76,7 @@ long md5ChunkSize;
   This function initializes parameters for the computation of DCP MD5 checksums
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf) {
+int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
     if (FTI_Conf->dcpInfoPosix.cachedCkpt)
         usesAsync = 1;
     else
@@ -98,7 +98,7 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf) {
  **/
 /*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_dataset *data) {
-    unsigned long dataSize = data->size;
+    uint32_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;

@@ -41,13 +41,13 @@
 void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
  FTIT_topology FTI_Topo) {
     char str[FTI_BUFS];
-    unsigned long pureDataSize = (FTI_Conf.dcpFtiff) ?
+    long pureDataSize = (FTI_Conf.dcpFtiff) ?
      FTI_Exec.FTIFFMeta.pureDataSize : FTI_Exec.dcpInfoPosix.dataSize;
-    unsigned long dcpSize = (FTI_Conf.dcpFtiff) ?
+    long dcpSize = (FTI_Conf.dcpFtiff) ?
      FTI_Exec.FTIFFMeta.dcpSize : FTI_Exec.dcpInfoPosix.dcpSize;
     long norder_data, norder_dcp;
     char corder_data[3], corder_dcp[3];
-    long DCP_TB = (1024L*1024L*1024L*1024L);
+    long DCP_TB = (1024L*1024L*1024L*1024L);//*1024
     long DCP_GB = (1024L*1024L*1024L);
     long DCP_MB = (1024L*1024L);
     if (pureDataSize > DCP_TB) {

@@ -1,4 +1,7 @@
 /**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
  *  @file   check.c
  *  @author Kai Keller (kellekai@gmx.de)
  *  @date   June, 2017
@@ -34,12 +37,12 @@
  *
  */
 
-#include "mpi.h"
-#include "fti.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "mpi.h"
+#include "fti.h"
 #include "../../../src/deps/iniparser/iniparser.h"
 #include "../../../src/deps/iniparser/dictionary.h"
 
@@ -56,13 +59,10 @@
  * function prototypes
  */
 
-void shuffle(int *array, size_t n)
-{
-    if (n > 1) 
-    {
+void shuffle(int *array, size_t n) {
+    if (n > 1)  {
         size_t i;
-        for (i = 0; i < n - 1; i++) 
-        {
+        for (i = 0; i < n - 1; i++) {
             size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
             int t = array[j];
             array[j] = array[i];
@@ -136,14 +136,14 @@ int write_data(double* B, size_t* asize, int rank);
   to prevent SIGSEGV. If not 'asize_chk' = 'asize' it returns -1.
  **/
 /*-------------------------------------------------------------------------*/
-int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,size_t stop); 
+int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,
+ size_t stop);
 
 /**
  * main
  */
 
 int main(int argc, char* argv[]) {
-
     unsigned char parity, crash, state, diff_sizes, enable_icp = -1;
     int FTI_APP_RANK, result, tmp, success = 1;
     double *A, *B, *B_chk;
@@ -163,23 +163,23 @@ int main(int argc, char* argv[]) {
     diff_sizes = atoi(argv[3]);
     int recoveryType = atoi(argv[4]);
 
-    MPI_Comm_rank(FTI_COMM_WORLD,&FTI_APP_RANK);
+    MPI_Comm_rank(FTI_COMM_WORLD, &FTI_APP_RANK);
 
-    dictionary *ini = iniparser_load( argv[1] );
-    int grank;    
+    dictionary *ini = iniparser_load(argv[1]);
+    int grank;
     int lrank;
-    MPI_Comm_rank(MPI_COMM_WORLD,&grank);
-    MPI_Comm_rank(FTI_COMM_WORLD,&lrank);
-    if( lrank == 0)
+    MPI_Comm_rank(MPI_COMM_WORLD, &grank);
+    MPI_Comm_rank(FTI_COMM_WORLD, &lrank);
+    if (lrank == 0)
         printf("The recovery type is %d\n", recoveryType);
 
-    int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1); 
+    int nbHeads = (int)iniparser_getint(ini, "Basic:head", -1);
     int finalTag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
     int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
     int headRank = grank - grank%nodeSize;
     int numberIter = 0;
 
-    if ( (nbHeads<0) || (nodeSize<0) ) {
+    if ((nbHeads < 0) || (nodeSize < 0)) {
         printf("wrong configuration (for head or node-size settings)!\n");
         MPI_Abort(MPI_COMM_WORLD, -1);
     }
@@ -190,7 +190,6 @@ int main(int argc, char* argv[]) {
         parity = FTI_APP_RANK%7;
 
         switch (parity) {
-
             case 0:
                 asize = N;
                 break;
@@ -218,7 +217,6 @@ int main(int argc, char* argv[]) {
             case 6:
                 asize = 7*N;
                 break;
-
         }
     }
 
@@ -237,10 +235,11 @@ int main(int argc, char* argv[]) {
         write_data(B, &asize, FTI_APP_RANK);
         FTI_Checkpoint(numberIter, 8);
         MPI_Barrier(FTI_COMM_WORLD);
-        if ( crash ){
-            if( nbHeads > 0 ) { 
+        if (crash) {
+            if (nbHeads > 0) {
                 int value = FTI_ENDW;
-                MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
+                MPI_Send(&value, 1, MPI_INT, headRank, finalTag,
+                 MPI_COMM_WORLD);
                 MPI_Barrier(MPI_COMM_WORLD);
             }
             MPI_Finalize();
@@ -248,56 +247,57 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if ( state == RESTART || state == KEEP ) {
-        if ( recoveryType == 0 ){
+    if (state == RESTART || state == KEEP) {
+        if (recoveryType == 0) {
             printf("START RECOVER\n");
             result = FTI_Recover();
-        }
-        else {
+        } else {
             printf("START RECOVER---VAR\n");
-            int order[4] = {0,1,2,3};
-            shuffle(order,4);
-	        result = FTI_RecoverVarInit();
-            for ( i = 0; i < 4; i++){
-                if  ( lrank == 0 ){
+            int order[4] = {0, 1, 2, 3};
+            shuffle(order, 4);
+            result = FTI_RecoverVarInit();
+            for (i = 0; i < 4; i++) {
+                if (lrank == 0) {
                     printf("Recovering Var %d\n", order[i]);
                 }
                 result += FTI_RecoverVar(order[i]);
             }
-	        result += FTI_RecoverVarFinalize();
+            result += FTI_RecoverVarFinalize();
             if (result != FTI_SCES) {
                 exit(RECOVERY_FAILED);
             }
         }
-
         if (result != FTI_SCES) {
             exit(RECOVERY_FAILED);
         }
-
         B_chk = (double*) malloc(asize*sizeof(double));
 
-        result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize, (numberIter)*(asize/5 ));
+        result = read_data(B_chk, &asize_chk, FTI_APP_RANK, asize,
+         (numberIter)*(asize/5));
         MPI_Barrier(FTI_COMM_WORLD);
         if (result != 0) {
             exit(DATA_CORRUPT);
         }
     }
 
-    for ( i = numberIter ; i < 5 ; i++){
-        size_t start = i * ( asize/5);
+    for (i = numberIter ; i < 5 ; i++) {
+        size_t start = i * (asize/5);
         size_t end = (i+1) * (asize/5);
         double ChangedBytes = (end-start)*sizeof(double);
-        double totalBytes = 2*asize*sizeof(double) + 2*sizeof(size_t); 
-        if  ( lrank == 0 ){
-            printf("I am executing iteration %ld I am computing %.2f Mb, Changed Size (%%) %.2f \n",i, (end-start)/(1024.0*1024.0), (ChangedBytes/totalBytes)*100.0  );
+        double totalBytes = 2*asize*sizeof(double) + 2*sizeof(size_t);
+        if (lrank == 0) {
+            printf("I am executing iteration %ld I am computing %.2f Mb,"
+                " Changed Size (%%) %.2f \n", i, (end-start)/(1024.0*1024.0),
+                 (ChangedBytes/totalBytes)*100.0);
         }
-        vecmult(A, B, start,end );
+        vecmult(A, B, start, end);
         numberIter+=1;
         FTI_Checkpoint(numberIter, 8);
-        if (numberIter == crash ){
-            if( nbHeads > 0 ) { 
+        if (numberIter == crash) {
+            if (nbHeads > 0) {
                 int value = FTI_ENDW;
-                MPI_Send(&value, 1, MPI_INT, headRank, finalTag, MPI_COMM_WORLD);
+                MPI_Send(&value, 1, MPI_INT, headRank, finalTag,
+                 MPI_COMM_WORLD);
                 MPI_Barrier(MPI_COMM_WORLD);
             }
             MPI_Finalize();
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
             printf("[SUCCESSFUL]\n");
         } else {
             printf("[NOT SUCCESSFUL]\n");
-            success=0;
+            success = 0;
         }
     }
 
@@ -333,7 +333,6 @@ int main(int argc, char* argv[]) {
         return 0;
     else
         exit(DATA_CORRUPT);
-
 }
 
 /**
@@ -343,7 +342,7 @@ int main(int argc, char* argv[]) {
 void init_arrays(double* A, double* B, size_t asize) {
     int i;
     double r;
-    for (i = 0; i< asize; i++) {
+    for (i = 0; i < asize; i++) {
         A[i] = 1.0;
         B[i] = ((double)rand()/RAND_MAX)*5.0;
     }
@@ -351,15 +350,15 @@ void init_arrays(double* A, double* B, size_t asize) {
 
 void vecmult(double* A, double* B, size_t start, size_t end) {
     int i;
-    for (i=start; i<end; i++) {
+    for (i=start; i < end; i++) {
         A[i] = A[i]*B[i];
     }
 }
 
 int validify(double* A, double* B_chk, size_t asize) {
     int i;
-    for (i=0; i<asize; i++) {
-        if (A[i] != B_chk[i]){
+    for (i=0; i < asize; i++) {
+        if (A[i] != B_chk[i]) {
             return -1;
         }
     }
@@ -368,14 +367,14 @@ int validify(double* A, double* B_chk, size_t asize) {
 
 int write_data(double* B, size_t *asize, int rank) {
     char str[256];
-    sprintf(str, "/tmp/check-%i.tst", rank);
+    snprintf(str, sizeof(str), "/tmp/check-%i.tst", rank);
     FILE* f = fopen(str, "wb");
     size_t written = 0;
 
-    fwrite( (void*) asize, sizeof(size_t), 1, f);
+    fwrite((void*) asize, sizeof(size_t), 1, f);
 
-    while ( written < (*asize) ) {
-        written += fwrite( (void*) B, sizeof(double), (*asize), f);
+    while (written < (*asize)) {
+        written += fwrite((void*) B, sizeof(double), (*asize), f);
     }
 
     fclose(f);
@@ -383,20 +382,22 @@ int write_data(double* B, size_t *asize, int rank) {
     return 0;
 }
 
-int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,size_t stop) {
+int read_data(double* B_chk, size_t *asize_chk, int rank, size_t asize,
+ size_t stop) {
     char str[256];
-    sprintf(str, "/tmp/check-%i.tst", rank);
+    snprintf(str, sizeof(str), "/tmp/check-%i.tst", rank);
     FILE* f = fopen(str, "rb");
     size_t read = 0;
 
-    fread( (void*) asize_chk, sizeof(size_t), 1, f);
+    fread((void*) asize_chk, sizeof(size_t), 1, f);
     if ((*asize_chk) != asize) {
-        printf("[ERROR -%i] : wrong dimension 'asize' -- asize: %zd, asize_chk: %zd\n", rank, asize, *asize_chk);
+        printf("[ERROR -%i] : wrong dimension 'asize' -- asize: %zd,"
+            " asize_chk: %zd\n", rank, asize, *asize_chk);
         fflush(stdout);
         return -1;
     }
-    while ( read < stop ) {
-        read += fread( (void*) B_chk, sizeof(double), (*asize_chk), f);
+    while (read < stop) {
+        read += fread((void*) B_chk, sizeof(double), (*asize_chk), f);
     }
 
     fclose(f);

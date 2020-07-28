@@ -74,13 +74,13 @@ extern struct stat filestats;
  **/
 
 /** @typedef    dcpBLK_t
- *  @brief      unsigned short (0 - 65535).
+ *  @brief      uint16_t (0 - 65535).
  *  
  *  Type that keeps the block sizes inside the hash meta data. 
- *  unsigned short is a trade off between memory occupation and block 
+ *  uint16_t is a trade off between memory occupation and block 
  *  size range.
  */
-typedef unsigned short dcpBLK_t;
+typedef uint16_t dcpBLK_t;
 
 /** @typedef    FTIFF_headInfo
  *  @brief      Runtime meta info for the heads.
@@ -93,9 +93,9 @@ typedef struct FTIFF_headInfo {
     int exists;
     int nbVar;
     char ckptFile[FTI_BUFS];
-    long maxFs;
-    long fs;
-    long pfs;
+    int32_t maxFs;
+    int32_t fs;
+    int32_t pfs;
     int isDcp;
 } FTIFF_headInfo;
 
@@ -110,9 +110,9 @@ typedef struct FTIFF_RecoveryInfo {
     int BackupExists;
     int ckptId;
     int rightIdx;
-    long maxFs;
-    long fs;
-    long bfs;
+    int32_t maxFs;
+    int32_t fs;
+    int32_t bfs;
 } FTIFF_RecoveryInfo;
 
 /**
@@ -203,7 +203,7 @@ void FTIFF_SetHashChunk(FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data);
 void FTIFF_PrintDataStructure(int rank, FTIT_execution* FTI_Exec);
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
  FTIFF_dbvar *currentdbvar,  FTIT_dataset *data, unsigned char *hashchk,
- WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
+ WriteFTIFFInfo_t *fd, int32_t *dcpSize, unsigned char **dptr);
 int FTIFF_RecoverVarInit(char* fn);
 int FTIFF_RecoverVarFinalize();
 #endif  // FTI_FTIFF_H_

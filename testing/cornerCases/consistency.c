@@ -1,3 +1,9 @@
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   consistency.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <fti.h>
@@ -44,26 +50,30 @@ void simulateCrash() {
                 break;
         }
         if (isInline == 0) {
-            //waiting untill head do Post-checkpointing
+            // waiting untill head do Post-checkpointing
             printf("%d: Receiving.\n", world_rank);
-            MPI_Recv(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize) , general_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&res, 1, MPI_INT, global_world_rank -
+             (global_world_rank%nodeSize) , general_tag, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
             printf("%d: Received.\n", world_rank);
         }
     }
     iniparser_freedict(ini);
     printf("%d: Heads = %d.\n", global_world_rank, heads);
     if (heads > 0) {
-        printf("%d: Sending end WORK to %d.\n", global_world_rank, global_world_rank - (global_world_rank%nodeSize));
+        printf("%d: Sending end WORK to %d.\n", global_world_rank,
+         global_world_rank - (global_world_rank%nodeSize));
         res = FTI_ENDW;
-        //sending END WORK to head to stop listening
-        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
-        //Barrier needed for heads (look FTI_Finalize() in api.c)
+        // sending END WORK to head to stop listening
+        MPI_Send(&res, 1, MPI_INT, global_world_rank -
+         (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
+        // Barrier needed for heads (look FTI_Finalize() in api.c)
         printf("%d: END_WORK sent.\n", global_world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
     }
     printf("%d: After 1st barrier.\n", global_world_rank);
     MPI_Barrier(FTI_COMM_WORLD);
-    //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
+    // There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
     free(array);
     exit(0);
@@ -82,15 +92,16 @@ void simulateCrashWithoutCkpt() {
     if (heads > 0) {
         printf("%d: Sending end WORK without ckpt.\n", world_rank);
         res = FTI_ENDW;
-        //sending END WORK to head to stop listening
-        MPI_Send(&res, 1, MPI_INT, global_world_rank - (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
-        //Barrier needed for heads (look FTI_Finalize() in api.c)
+        // sending END WORK to head to stop listening
+        MPI_Send(&res, 1, MPI_INT, global_world_rank -
+         (global_world_rank%nodeSize), final_tag, MPI_COMM_WORLD);
+        // Barrier needed for heads (look FTI_Finalize() in api.c)
         printf("%d: END_WORK sent  without ckpt.\n", world_rank);
         MPI_Barrier(MPI_COMM_WORLD);
     }
     printf("%d: After 1st barrier without ckpt.\n", world_rank);
     MPI_Barrier(FTI_COMM_WORLD);
-    //There is no FTI_Finalize(), because want to recover also from L1, L2, L3
+    // There is no FTI_Finalize(), because want to recover also from L1, L2, L3
     MPI_Finalize();
     free(array);
     exit(0);
@@ -107,7 +118,8 @@ int checkArray(int* tab) {
     int i;
     for (i = 0; i < ARRAY_SIZE; i++) {
         if (tab[i] != (i + world_rank)) {
-            printf("%d: array[%d]: %d != %d\n", world_rank,  i, tab[i], (i + world_rank));
+            printf("%d: array[%d]: %d != %d\n", world_rank, i, tab[i],
+             (i + world_rank));
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
     }
@@ -126,7 +138,8 @@ void initAfterSuccessfulRecovery() {
     if (fail == 2) {
         if (checkpoint_level == 1 || checkpoint_level == 4) {
             if (initStatus == FTI_SCES) {
-                printf("Shouldn't init on level 1 and 4, but initStatus = %d\n", initStatus);
+                printf("Shouldn't init on level 1 and 4, but initStatus"
+                " = %d\n", initStatus);
                 MPI_Abort(MPI_COMM_WORLD, 1);
             } else {
                 printf("Succes, fail == 2 and cannot recover.\n");
@@ -136,7 +149,8 @@ void initAfterSuccessfulRecovery() {
             }
         } else {
             if (initStatus != FTI_SCES) {
-                printf("Should init on level 2 and 3, but initStatus = %d\n", initStatus);
+                printf("Should init on level 2 and 3, but initStatus"
+                " = %d\n", initStatus);
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }
@@ -175,7 +189,8 @@ int afterSuccessfulRecovery() {
 
 void initKeep_last_ckpt() {
     if (initStatus != FTI_SCES) {
-            printf("Error FTI_Init returned %d in keep_last_ckpt case.\n", initStatus);
+            printf("Error FTI_Init returned %d in keep_last_ckpt case.\n",
+             initStatus);
             MPI_Finalize();
             MPI_Abort(MPI_COMM_WORLD, 1);
     }
@@ -195,7 +210,8 @@ int keep_last_ckpt() {
             if (world_rank == 0) printf("Recover done. Simulating crash.\n");
             simulateCrashWithoutCkpt();
         } else {
-            if (world_rank == 0) printf("Error: recover failed when fail == 1.\n");
+            if (world_rank == 0)
+                printf("Error: recover failed when fail == 1.\n");
             return 1;
         }
     }
@@ -204,7 +220,8 @@ int keep_last_ckpt() {
             if (world_rank == 0) printf("Recover done.\n");
             return 0;
         } else {
-            if (world_rank == 0) printf("Error: recover failed when fail == 2.\n");
+            if (world_rank == 0)
+                printf("Error: recover failed when fail == 2.\n");
             return 1;
         }
     }
@@ -220,7 +237,7 @@ int initReInit() {
 int reInit() {
         int initres = FTI_Init("config2.fti", MPI_COMM_WORLD);
         int* array2 = malloc(sizeof(int)* ARRAY_SIZE);
-        
+
         initArray(array2);
         FTI_Protect(1, array2, ARRAY_SIZE, FTI_INTG);
         FTI_Checkpoint(1, checkpoint_level);
@@ -244,25 +261,28 @@ int main(int argc, char* argv[]) {
 
     int testCase;
     if (argc != 4) {
-        if (global_world_rank == 0) printf("Argc == %d. Use: testCase(1/2/3/4), level(1/2/3/4), fail(0/1/2)\n", argc);
+        if (global_world_rank == 0)
+            printf("Argc == %d. Use: testCase(1/2/3/4), level(1/2/3/4),"
+                " fail(0/1/2)\n", argc);
         MPI_Barrier(MPI_COMM_WORLD);
         return 1;
     } else {
         testCase = atoi(argv[1]);
         checkpoint_level = atoi(argv[2]);
         fail = atoi(argv[3]);
-        if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, fail = %d\n", testCase, checkpoint_level, fail);
+        if (global_world_rank == 0) printf("testCase = %d, ckpt_lvl = %d, "
+            "fail = %d\n", testCase, checkpoint_level, fail);
     }
 
     initStatus = FTI_Init("config.fti", MPI_COMM_WORLD);
 
-    //check initStatus
+    // check initStatus
     if (testCase == 1) {
         initAfterSuccessfulRecovery();
     } else if (testCase == 2) {
         initKeep_last_ckpt();
     }
-    
+
 
     MPI_Comm_size(FTI_COMM_WORLD, &world_size);
     MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);

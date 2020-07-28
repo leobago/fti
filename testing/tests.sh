@@ -269,7 +269,7 @@ cd "${DIR}testing"
 		CKPT_IO=1
 	fi;
 	if  [ ! -z "$TEST" ]; then
-		if [ "$TEST" = "diffSizes" ]; then
+		if false; then
 			if [ -z "$NOTCORRUPT" ]; then
 				startTestCorr diffSizes "$CONFIG" 16 "$LEVEL" "$CKPTORPTNER" "$CORRORERASE" "$CORRUPTIONLEVEL" "$CKPT_IO"
 			else

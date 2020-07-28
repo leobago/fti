@@ -49,8 +49,7 @@
  * @param globalComm (INOUT) the "world" communicator, FTI will replace it
  *        with a communicator where its own processes have been removed.
  */
-int FTI_Init_fort_wrapper(char* configFile, int* globalComm)
-{
+int FTI_Init_fort_wrapper(char* configFile, int* globalComm) {
     int ierr = FTI_Init(configFile, MPI_Comm_f2c(*globalComm));
     *globalComm = MPI_Comm_c2f(FTI_COMM_WORLD);
     return ierr;
@@ -66,8 +65,7 @@ int FTI_Init_fort_wrapper(char* configFile, int* globalComm)
  *   size of the data type, the rest is black box for FTI.
  *
  **/
-int FTI_InitType_wrapper(FTIT_type** type, int size)
-{
+int FTI_InitType_wrapper(FTIT_type** type, int size) {
     *type = talloc(FTIT_type, 1);
     return FTI_InitType(*type, size);
 }
@@ -87,8 +85,7 @@ int FTI_InitType_wrapper(FTIT_type** type, int size)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
-{
+int FTI_Protect_wrapper(int id, void* ptr, int32_t count, FTIT_type* type) {
     return FTI_Protect(id, ptr, count, *type);
 }
 
@@ -105,8 +102,10 @@ int FTI_Protect_wrapper(int id, void* ptr, long count, FTIT_type* type)
  *   in typeDefinition, the rest is black box for FTI.
  *
  **/
-int FTI_InitComplexType_wrapper(FTIT_type** newType, FTIT_complexType* typeDefinition, int length, size_t size, char* name, FTIT_H5Group* h5group)
-{
+int FTI_InitComplexType_wrapper(FTIT_type** newType,
+ FTIT_complexType* typeDefinition, int length, size_t size, char* name,
+ FTIT_H5Group* h5group) {
     *newType = talloc(FTIT_type, 1);
-    return FTI_InitComplexType(*newType, typeDefinition, length, size, name, h5group);
+    return FTI_InitComplexType(*newType, typeDefinition, length, size, name,
+     h5group);
 }

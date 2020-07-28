@@ -44,11 +44,11 @@ typedef struct {
 } MD5_CTX;
 
 extern void MD5_Init(MD5_CTX *ctx);
-extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
+extern void MD5_Update(MD5_CTX *ctx, const void *data, uint32_t size);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 
 // openssl provide a function MD5(), we just wrap it out if the library is not used
-extern unsigned char * MD5( const unsigned char *pointer, unsigned long pointerLength, unsigned char *md5HashPointer);
+extern unsigned char * MD5( const unsigned char *pointer, uint32_t pointerLength, unsigned char *md5HashPointer);
 
 #endif
 

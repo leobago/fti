@@ -70,9 +70,9 @@ extern "C" {
     --------------------------------------------------------------------------**/
     typedef struct FTIT_keymap {
         bool    initialized;  /**< True iff instance exists                  */
-        long    _type_size;   /**< Size of keymap elements                   */
-        long    _size;        /**< Capacity of keymap                        */
-        long    _used;        /**< Number of elements in keymap              */
+        int32_t    _type_size;   /**< Size of keymap elements                   */
+        int32_t    _size;        /**< Capacity of keymap                        */
+        int32_t    _used;        /**< Number of elements in keymap              */
         int     _max_key;     /**< Maximum value for key                     */
         void*   _data;        /**< Pointer to first element in keymap        */
         int*    _key;         /**< Lookup table for key -> location in keymap*/
@@ -96,15 +96,15 @@ extern "C" {
       
       @param        instance[out]     <b> FTIT_keymap** </b>  Pointer to be set to
       the static instance of the key value container.
-      @param        type_size[in]     <b> long          </b>  Element size of container.
-      @param        max_key[in]       <b> long          </b>  Maximum value for Key.
+      @param        type_size[in]     <b> int32_t          </b>  Element size of container.
+      @param        max_key[in]       <b> int32_t          </b>  Maximum value for Key.
       @param        reset[in]         <b> bool          </b>  if true reset key map.
       @return                       \ref FTI_SCES if successful.  
                                     \ref FTI_NSCS on failure.
 
     
     --------------------------------------------------------------------------**/
-    int     FTI_KeyMap(FTIT_keymap**, long, long, bool);
+    int     FTI_KeyMap(FTIT_keymap**, int32_t, int32_t, bool);
 
     /**--------------------------------------------------------------------------
       
