@@ -85,8 +85,6 @@ enum ALLOC_FLAGS {
     ALLOC_RANDOM
 };
 
-int grank;
-
 extern int numHeads;
 extern int finalTag;
 extern int headRank;
