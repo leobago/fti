@@ -33,8 +33,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "../src/deps/iniparser/iniparser.h"
-#include "../src/deps/iniparser/dictionary.h"
+#include "../../../../src/deps/iniparser/iniparser.h"
+#include "../../../../src/deps/iniparser/dictionary.h"
 
 #define ITERATIONS 111          // iterations
 #define ITER_CHECK 10           // every ITER_CHECK iterations make checkpoint

@@ -13,7 +13,7 @@
 #include <mpi.h>
 #include <stdlib.h>
 #ifdef NO_OPENSSL
-#   include "../../../src/deps/md5/md5.h"
+#   include "../../../../src/deps/md5/md5.h"
 #else
 #   include <openssl/md5.h>
 #endif
@@ -24,8 +24,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
-#include "../../../src/deps/iniparser/dictionary.h"
-#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../../src/deps/iniparser/dictionary.h"
+#include "../../../../src/deps/iniparser/iniparser.h"
 
 #ifndef NUM_DCKPT
 #   define NUM_DCKPT 5

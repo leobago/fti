@@ -5,8 +5,8 @@
 #include "wrapperFunc.h"
 #include "mpi.h"
 #include "fti.h"
-#include "../../../src/deps/iniparser/iniparser.h"
-#include "../../../src/deps/iniparser/dictionary.h"
+#include "../../../../src/deps/iniparser/iniparser.h"
+#include "../../../../src/deps/iniparser/dictionary.h"
 
 
 #define MYFILE "hd5GPUTest.h5"

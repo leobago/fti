@@ -28,8 +28,8 @@
 #include <fti.h>
 #include <string.h>
 
-#include "../src/deps/iniparser/iniparser.h"
-#include "../src/deps/iniparser/dictionary.h"
+#include "../../../../src/deps/iniparser/iniparser.h"
+#include "../../../../src/deps/iniparser/dictionary.h"
 
 #define VERIFY_SUCCESS 0
 #define VERIFY_FAILED 1
