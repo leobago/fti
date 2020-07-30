@@ -158,7 +158,6 @@ verify_log_disrupt() {
 
     # Run once, simulate a crash
     fti_run_success $app $cfgfile $level 1 $check_sizes
-    pass
     # Check logs for messages that should be there
     check_log 0 0
 
