@@ -1,0 +1,144 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   parameters
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# --------------------- ITF Parameter parsing Public API ----------------------
+
+declare -a param_expected=()
+
+param_parse() {
+    # Brief:
+    # Parse arguments looking for required names and create respecive variables
+    #
+    #
+    # Arguments:
+    # +name: A required parameter to be found.
+    # --name=val: A valid argument containing a value.
+    #
+    # Usage:
+    # Declare required names using the '+name' argument format.
+    # All other arguments will be parsed using the '--name=' format.
+    #
+    # Example:
+    # param_parse +iolib --iolib=1
+    #
+    # - This command will create the bash variable $iolib with value 1.
+    #
+    # param_parse +iolib +head --head=0 --iolib=2
+    #
+    # - This command will create the bash variables $iolib and $head.
+    #
+    # param_parse +iolib +head +keep $@
+    #
+    # - This command will try to create $iolib $head and $keep parsing the
+    # arguments passed to the current executing function.
+    #
+    # Defails:
+    # - If all of the required arguments are not found, the test will fail.
+    # - If unecessary arguments are passed, the test will also fail.
+    # - All bash variables created with this function are unset after teardown.
+
+    local arguments=()
+    # Parse all the parameters and sift them in 'required' or 'argument'
+    while [ $# -gt 0 ]; do
+        case $1 in
+        +*)
+            param_expected+=(${1#*+})
+            ;;
+        --*=*)
+            arguments+=($1) # Remove the prefix --
+            ;;
+        *)
+            fail "Unexpected argument format: $1"
+            ;;
+        esac
+        shift
+    done
+
+    # Transform the 'arguments' into variables with their respective values
+    for arg in ${arguments[@]}; do
+        local name=$(param_name $arg)
+        local val=$(param_value $arg)
+        local is_expected=0
+
+        # Check if the argument/value found is expected
+        for req in ${param_expected[@]}; do
+            if [ $name == $req ]; then
+                is_expected=1
+                break
+            fi
+        done
+
+        # If the argument is not expected, fail
+        if [ $is_expected -ne 1 ]; then
+            fail "Unexpected argument: $name"
+        fi
+        eval $name=$val # Evaluate twice the expression
+    done
+
+    # Check if all the 'required' names were defined otherwise fails
+    for req in ${param_expected[@]}; do
+        if [ -z ${!req} ]; then
+            fail "Required argument not found: $req"
+        fi
+    done
+}
+
+param_name() {
+    # Extract the parameter name from the ITF standard format
+    #
+    # Parameters:
+    # $1: The string that represents a parameter in ITF standard format
+    #
+    # Details:
+    # Receives a string in the form: "--name=val" and outputs the 'name' part
+
+    case $1 in
+    --*=*)
+        local __name="${1#--}" # Remove the leading --
+        __name="${__name%=*}"  # Remove the trailing =*
+        echo "$__name"
+        ;;
+    *)
+        echo 'arg'
+        ;;
+    esac
+}
+
+param_value() {
+    # Extract the parameter value from the ITF standard format
+    #
+    # Parameters:
+    # $1: The string that represents a parameter in ITF standard format
+    #
+    # Details:
+    # Receives a string in the form: "--name=val" and outputs the 'value' part
+
+    case $1 in
+    --*=*)
+        local __value="${1#--}" # Remove the leading --
+        __value="${__value#*=}" # Remove the leading *=
+        echo "$__value"
+        ;;
+    *)
+        echo "$1"
+        ;;
+    esac
+}
+
+# ------------------------------ ITF Module Body ------------------------------
+
+itf_hook_subscribe 'onTestRunBegin' 'clear_parameters'
+
+clear_parameters() {
+    # Clear all parameter names and values from the last test run
+
+    for p in ${param_expected[@]}; do
+        unset $p
+    done
+    param_expected=()
+}

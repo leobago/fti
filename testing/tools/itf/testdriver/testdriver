@@ -1,0 +1,491 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   testdriver
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# Include ITF engine source code into the testdriver
+source $(dirname ${BASH_SOURCE[0]})/../src/itf
+
+# ------------------ Test Runner State and Summary Variables ------------------
+
+# Brief:
+# Encapsulates dynamic data regarding loaded and executed suites and tests
+#
+# Details:
+# The driver state is used to keep track of progress through ITF event stream.
+# ITF publishes ordered events and we use this variable to buffer data.
+# This can be used in ITF hooks to print or account for test data.
+#
+# Keys:
+# -- Suite information --
+# suite.count: The amount of suites executed
+# suite.name: The currently loaded suite name
+#
+# -- Test information --
+# test.name: The currently loaded test function name
+# test.ncases: The test case count for the current loaded test function
+#
+# -- Case information --
+# case.id: A numeric identifier to the current loaded test case
+# case.params: string with the current case parameters in "key=val" format
+declare -A driver_state=()
+driver_state['suite.count']=0
+
+# Brief:
+# Variable to summarize all suites and test metrics gathered from execution
+#
+# Details:
+# Used to account for the statistics of the testdriver program after execution
+#
+# Keys:
+# ntests: The amount of tests cases executed.
+# passed: The amount of tests cases that passed.
+# failed: The amount of tests cases that failed.
+declare -A summary=()
+summary['ntests']=0
+summary['passed']=0
+summary['failed']=0
+
+# ------------------- Test Runner Failure Report Variables -------------------
+
+# Brief:
+# Test names with at least one failed test case
+#
+# Elements String Format:
+# suite_name.function_name
+declare -a failed_tests=()
+
+# Brief:
+# Associative array for full test name and its arguments for failed cases
+#
+# Keys Format:
+# suite_name.test_name: The fully qualified test name
+#
+# Value Format:
+# ITF list string with all parameters that failed for the test function
+#
+# Details:
+# Refer to itf/src/list for functions to manipulate ITF list strings.
+declare -A failed_cases=()
+
+# Example:
+# Assume that two suites ran, X and Y, and both have at least one failed case.
+# The failed cases comes from a function 'foo', in X, and 'bar', in 'Y'.
+# The parameters for 'foo' that caused the failure were 'a=1' and 'a=2'.
+# The parameters for 'bar' that caused the failure were 'a=3 b=4'.
+# In this case, the failure report variables must be:
+#
+# failed_tests=('X.foo' 'Y.bar')
+# failed_cases['X.foo']=',a=1,a=2,'
+# failed_cases['Y.bar']=',a=3 b=4,'
+
+# ------------------- Test Runner Argument Parsing Variables ------------------
+
+# Brief:
+# Holds key/value pairs regarding the testdriver additional behavior over ITF
+#
+# Details:
+# Use this variable to add new testdriver-specific configurations.
+# ITF engine configurations are directly handled in itf_cfg associative array
+#
+# Keys:
+# colors: boolean to disable color output in the terminal when set
+# fail_review: boolean to disable failed test name feedback after execution
+declare -A cfg=()
+cfg['colors']='true'
+cfg['fail_review']='true'
+
+# Brief:
+# Array of arguments passed to this program after argument parsing
+declare -a arguments=()
+
+print_help() {
+    # Brief:
+    # Prints usage guidelines and options to the standard output
+
+    echo "Usage:"
+    echo "./testdriver [OPTION]... [FILE]..."
+    echo ""
+    echo "Brief:"
+    echo "Execute ITF test cases in ITF suite files and generates a summary."
+    echo "ITF suites are bash scripts calling functions exposed by ITF."
+    echo "If no FILE argument is supplemented, no tests will be executed."
+    echo "The program returns zero only if all tests pass and at least one test is executed."
+    echo ""
+    echo "ITF Configuration Options:"
+    echo "  --path-modules [PATH]    Set the path to ITF modules loaded using itf_load_module."
+    echo "                               No path is selected by default."
+    echo "  --dry-run                Only count the number of tests but do not execute them."
+    echo "                               Use this option to test filter parameters."
+    echo "  -d, --maintain-ckpt-dir  Keep FTI checkpoint directories after running tests."
+    echo "                               ITF deletes directories after each test case by default."
+    echo "  --verbose                Enable test applications stdout to be displayed in terminal."
+    echo "                               The stdout will be always available in log files."
+    echo "  --quiet                  Disable all output form test cases in the terminal."
+    echo "                               The stdout will be always available in log files."
+    echo ""
+    echo "ITF Logging Options:"
+    echo "  --all-logs               Create logs for all test cases, regardless of their resolution."
+    echo "                               By default, only test cases that failed are logged."
+    echo "  --no-logs                Disable logs for all test cases, regardless of their resolution."
+    echo "                               By default, only test cases that failed are logged."
+    echo ""
+    echo "ITF Filtering Options:"
+    echo "  -i, --ignore [TESTNAME]  Ignore a test function contained in any suite file."
+    echo "                               By default, all functions with test cases will execute."
+    echo "                               This option can be used multiple times to ignore multiple tests."
+    echo "                               This option is incompatible with --pick."
+    echo "  -p, --pick   [TESTNAME]  Pick a test function from the suite files to execute."
+    echo "                               Using this option, all other test functions will be ignored."
+    echo "                               This option can be used multiple times to include multiple tests."
+    echo "                               This option is incompatible with --ignore."
+    echo "  -f, --filter [TARGS]     Ignore test cases from a given test function that match the test arguments."
+    echo "                               This option can be used multiple times for different tests and different arguments."
+    echo "  -r, --revfilter [TARGS]  Ignore test cases from a given test function that do not match the test arguments."
+    echo "                               This option can be used multiple times for different tests and different arguments."
+    echo ""
+    echo "  [TESTNAME]"
+    echo "        Format:  suite_name:test_name"
+    echo "        Example: recovername:standard"
+    echo ""
+    echo "  [TARGS]"
+    echo "        Format:   suite_name:test_name:param_name=val1[,val2]..."
+    echo "        Examples: recovername:standard:iolib=1"
+    echo "        Examples: recovername:standard:iolib=1,2,3"
+    echo ""
+    echo "Testdriver Options:"
+    echo "  --no-colors              Disable color for the testdriver output."
+    echo "                               By default, colors are turned on for terminal output."
+    echo "  --no-review              Disable exposing test case configurations that failed after execution."
+    echo "                               By default, test cases names and arguments that failed will be presented after execution."
+
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    --path-modules)
+        itf_cfg['core:module_path']=$2
+        shift
+        shift
+        ;;
+    --no-colors)
+        cfg['colors']='false'
+        shift
+        ;;
+    --no-review)
+        cfg['fail_review']='false'
+        shift
+        ;;
+    --verbose)
+        itf_cfg['core:verbose']='true'
+        itf_cfg['fti:verbose']='true'
+        itf_cfg['fti:verbose_app']='true'
+        shift
+        ;;
+    --quiet)
+        itf_cfg['core:verbose']='false'
+        itf_cfg['fti:verbose']='false'
+        itf_cfg['fti:verbose_app']='false'
+        shift
+        ;;
+    --dry-run)
+        itf_cfg['core:dry_run']='true'
+        shift
+        ;;
+    --ignore | -i)
+        if [ ! -z ${itf_filter['whitelist']} ]; then
+            echo "Cannot use both --ignore and --pick test case filters"
+            exit 1
+        fi
+        itf_list_add 'itf_filter' 'blacklist' "$2"
+        shift
+        shift
+        ;;
+    --pick | -p)
+        if [ ! -z ${itf_filter['blacklist']} ]; then
+            echo "Cannot use both --ignore and --pick test case filters"
+            exit 1
+        fi
+        itf_list_add 'itf_filter' 'whitelist' "$2"
+        shift
+        shift
+        ;;
+    --filter | -f)
+        itf_list_add 'itf_filter' "exclude:${2%=*}" "${2#*=}"
+        shift
+        shift
+        ;;
+    --revfilter | -r)
+        itf_list_add 'itf_filter' "include:${2%=*}" "${2#*=}"
+        shift
+        shift
+        ;;
+    --all-logs)
+        itf_cfg['log:passed_cases']='true'
+        shift
+        ;;
+    --no-logs)
+        itf_cfg['log:passed_cases']='false'
+        itf_cfg['log:failed_cases']='false'
+        shift
+        ;;
+    -d | --maintain-ckpt-dir)
+        itf_cfg['fti:keep_ckpt_dir']='true'
+        shift
+        ;;
+    -h | --help)
+        print_help
+        exit 0
+        ;;
+    --*)
+        echo "Invalid option: $1"
+        echo "Use \"./$(basename $0) --help\" to see the correct usage options."
+        exit 1
+        ;;
+    *)
+        arguments+=($1)
+        shift
+        ;;
+    esac
+done
+
+# ------------------------ Test Runner Color Variables ------------------------
+
+declare -r COLOR_RESET='\033[0m'
+declare -r COLOR_WHITEBOLD='\033[1m\033[37m'
+declare -r COLOR_GREENBOLD='\033[1m\033[32m'
+declare -r COLOR_REDBOLD='\033[1m\033[31m'
+declare -r COLOR_BLUEBOLD="\033[1m\033[36m"
+declare -r COLOR_MAGENTABOLD="\033[1m\033[35m"
+declare -r COLOR_YELLOWBOLD="\033[1m\033[33m"
+
+print_color() {
+    # Prints a string in a different color
+    #
+    # Parameters:
+    # $1: The color to use
+    # $2: The string to be printed
+
+    if [ ${cfg['colors']} == 'false' ]; then
+        printf "%b" "${@:2}"
+    else
+        printf "$1${@:2}$COLOR_RESET"
+    fi
+}
+
+# --------------------------- ITF Hook Registering ----------------------------
+
+# ITF engine hooks, parameter description and details are found in itf/src/test
+
+# Register to ITF events for when a suite is loaded/unloaded
+itf_hook_subscribe 'onSuiteBegin' 'suite_begin'
+itf_hook_subscribe 'onSuiteEnd' 'suite_end'
+
+# Register to ITF events for when a test function in a suite is loaded/unloaded
+itf_hook_subscribe 'onTestLoad' 'test_load'
+itf_hook_subscribe 'onTestRunBegin' 'test_case'
+
+# Register to ITF events for when a test finishes on success or failure
+itf_hook_subscribe 'onTestPass' 'test_pass'
+itf_hook_subscribe 'onTestFail' 'test_fail'
+
+# ------------------------ ITF Hook Listener Callbacks ------------------------
+
+suite_begin() {
+    # Brief:
+    # Print the suite name and account for its execution in the driver state
+    #
+    # Parameters:
+    # $1 - The suite name
+    #
+    # Details:
+    # This is called before executing the tests on a given suite
+
+    # Give it a line feed if this is not the first suite
+    if [ ${driver_state['suite.count']} -gt 0 ]; then
+        echo ""
+    fi
+
+    driver_state['suite.name']="$1"
+    print_color $COLOR_WHITEBOLD "Suite: "
+    print_color $COLOR_BLUEBOLD "$1"
+    print_color $COLOR_WHITEBOLD " with "
+    print_color $COLOR_YELLOWBOLD "${itf_state['ntests']}"
+    print_color $COLOR_WHITEBOLD " tests.\n"
+
+    let driver_state['suite.count']=${driver_state['suite.count']}+1
+}
+
+suite_end() {
+    # Brief:
+    # Print the suite summary and accumulate it into the overall summary
+    #
+    # Details:
+    # This is called after all test cases for a suite were executed
+
+    let summary['ntests']=${summary['ntests']}+${itf_state[ntests]}
+    let summary['passed']=${summary['passed']}+${itf_state[passed]}
+    let summary['failed']=${summary['failed']}+${itf_state[failed]}
+
+    # If this is a dry run, we are not interested in suite-specific summary
+    if [ ${itf_cfg['core:dry_run']} == 'true' ]; then
+        return 0
+    fi
+
+    print_color $COLOR_WHITEBOLD "\n### Suite summary ###"
+    print_color $COLOR_WHITEBOLD "\nExecuted: ${itf_state[ntests]}"
+    print_color $COLOR_GREENBOLD "\nPassed:   ${itf_state[passed]}"
+    print_color $COLOR_REDBOLD "\nFailed:   ${itf_state[failed]}\n"
+}
+
+test_load() {
+    # Brief:
+    # Print the loaded test name and its parameters
+    #
+    # Parameters:
+    # $1 - The test function name
+    # $1 - The amount of test cases associated with this function
+    #
+    # Details:
+    # This is called before executing the first test cases of a test function
+
+    driver_state['test.name']="$1"
+    driver_state['case.id']=1
+    driver_state['test.ncases']="$2"
+
+    print_color $COLOR_WHITEBOLD "\nFunction: "
+    print_color $COLOR_MAGENTABOLD "${driver_state['test.name']}"
+    print_color $COLOR_WHITEBOLD " with "
+    print_color $COLOR_YELLOWBOLD "${driver_state['test.ncases']}"
+    print_color $COLOR_WHITEBOLD " tests.\n"
+}
+
+test_case() {
+    # Brief:
+    # Print the loaded test name and its parameters
+    #
+    # Parameters:
+    # $1 - The test function name
+    #
+    # Details:
+    # This is called before executing the first test cases of a test function
+
+    echo ""
+    print_color $COLOR_WHITEBOLD "+ Test "
+    print_color $COLOR_MAGENTABOLD "${driver_state['suite.name']}"
+    print_color $COLOR_WHITEBOLD ":${driver_state['test.name']} "
+    print_color $COLOR_WHITEBOLD "(${driver_state['case.id']}/${driver_state['test.ncases']}) "
+
+    driver_state['case.params']=""
+    for param in ${@:2}; do
+
+        local name=$(param_name $param)
+        local val=$(param_value $param)
+
+        print_color $COLOR_BLUEBOLD "$name"
+        print_color $COLOR_WHITEBOLD "=$val "
+        driver_state['case.params']=" ${driver_state['case.params']} $name=$val"
+    done
+    printf "\n"
+
+    driver_state['case.params']="${driver_state['case.params']:2}"
+    let driver_state['case.id']=${driver_state['case.id']}+1
+}
+
+test_pass() {
+    # Prints a message in green to notify that a test passed
+
+    print_color $COLOR_GREENBOLD "[Passed]"
+    if [ $# -gt 0 ]; then
+        print_color $COLOR_GREENBOLD ":"
+        while [ $# -gt 0 ]; do
+            print_color $COLOR_GREENBOLD " $1"
+            shift
+        done
+    fi
+    printf '\n'
+}
+
+test_fail() {
+    # Prints a message in red to notify that a test failed
+
+    print_color $COLOR_REDBOLD "[Failed]"
+    if [ $# -gt 0 ]; then
+        print_color $COLOR_REDBOLD ":"
+        while [ $# -gt 0 ]; do
+            print_color $COLOR_REDBOLD " $1"
+            shift
+        done
+    fi
+    printf '\n'
+
+    local _sn="${driver_state['suite.name']}"
+    local _fn="${driver_state['test.name']}"
+    local _args="${driver_state['case.params']}"
+
+    # Register the test failure into the testdriver feedback variables
+    itf_array_contains 'failed_tests' "$_sn.$_fn"
+    if [ $? -ne 0 ]; then
+        failed_tests+=("$_sn.$_fn")
+    fi
+    itf_list_add 'failed_cases' "$_sn.$_fn" "$_args"
+}
+
+# --------------------------- Test Runner Procedure ---------------------------
+
+# Run all suites using ITF engine methods
+# ITF engine will generate hook events and invoke testrunner callback functions
+for suite in ${arguments[@]}; do
+    itf_run_suite $suite
+done
+
+# Testrunner variables are filled with the results of ITF tests, ready to print
+if [ ${itf_cfg['core:dry_run']} == 'true' ]; then
+    # If execution was a dry run, only print total test count
+    print_color $COLOR_WHITEBOLD "Total: "
+    print_color $COLOR_YELLOWBOLD "${summary[ntests]}\n"
+elif [ ${#arguments[@]} -gt 1 ]; then
+    # If execution had more than one suite, print accumulated summary
+    print_color $COLOR_WHITEBOLD "\n### Test Driver summary ###"
+    print_color $COLOR_WHITEBOLD "\nSuites:   ${driver_state['suite.count']}"
+    print_color $COLOR_WHITEBOLD "\nTests:    ${summary[ntests]}"
+    print_color $COLOR_GREENBOLD "\nPassed:   ${summary[passed]}"
+    print_color $COLOR_REDBOLD "\nFailed:   ${summary[failed]}\n"
+fi
+
+if [ ${summary[failed]} -ne 0 ] && [ ${cfg['fail_review']} == "true" ]; then
+    # If execution had failed cases, report them after summary
+    print_color $COLOR_WHITEBOLD "\n### Failed Test Case Review ###"
+    for ft in ${failed_tests[@]}; do
+        # Print every failed test function
+        echo ""
+        print_color $COLOR_MAGENTABOLD "${ft%.*}"
+        print_color $COLOR_WHITEBOLD ".${ft#*.} ("
+        print_color $COLOR_YELLOWBOLD "${ft%.*}"
+        print_color $COLOR_YELLOWBOLD "${itf_cfg["log:failed_name"]}"
+        print_color $COLOR_WHITEBOLD ")\n"
+
+        declare -a ft_cases=()
+        itf_list_unwrap 'failed_cases' "$ft" 'ft_cases'
+        for ((i = 0; i < ${#ft_cases[@]}; i++)); do
+            # Print every failed test case for a given test function
+            print_color $COLOR_WHITEBOLD "+ "
+            for arg in ${ft_cases[$i]}; do
+                # Print every argument for the test case
+                print_color $COLOR_BLUEBOLD "${arg%=*}"
+                print_color $COLOR_WHITEBOLD "=${arg#*=} "
+            done
+            echo ""
+        done
+    done
+fi
+
+itf_exit
+if [ ${summary[failed]} -ne 0 ] || [ ${summary[ntests]} -eq 0 ]; then
+    # If execution had failed cases or did not run tests, return non-zero
+    # Not executing tests should be regarded as a configuration fault or bug
+    exit 1
+fi

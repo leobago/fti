@@ -1,0 +1,70 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   fti_cfg_api.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   June, 2020
+
+itf_load_module 'fti'
+
+print_cfg_file() {
+    # Brief:
+    # Showcase how to access the FTI config file for this test case
+
+    local config_file="${itf_cfg['fti:config']}"
+    echo "Filename: $config_file"
+    echo "Contents:"
+    cat $config_file
+    pass
+}
+
+itf_case 'print_cfg_file'
+
+modify_config_file() {
+    # Brief:
+    # Showcase how to modify and access FTI config file fields
+
+    # Operations implicitly use the test case config file
+
+    # Set the ckpt_io field to 2
+    fti_config_set 'ckpt_io' '2'
+    # Echo the contents of the ckpt_io field
+    fti_config_get 'ckpt_io'
+
+    # Assign the echoed value to a variable
+    local ckpt_io=$(fti_config_get 'ckpt_io')
+
+    assert_equals '2' "$ckpt_io"
+}
+
+itf_case 'modify_config_file'
+
+macro_set() {
+    # Brief:
+    # Showcase how to use macro methods for setting FTI config file fields
+
+    # Operations implicitly use the test case config file
+
+    # Set all inline fields to 1 (see output in the test driver or logs)
+    fti_config_set_inline
+    # Set all inline fields to 0 (see output in the test driver or logs)
+    fti_config_set_noinline
+    # Sets the configuration intervals for L1, L2, L3 and L4
+    fti_config_set_ckpts '1' '2' '3' '4'
+
+    check_equals '1' $(fti_config_get 'ckpt_l1')
+    check_equals '2' $(fti_config_get 'ckpt_l2')
+    check_equals '3' $(fti_config_get 'ckpt_l3')
+    check_equals '4' $(fti_config_get 'ckpt_l4')
+    
+    # Sets the configuration intervals for L1 and L2
+    fti_config_set_ckpts '5' '10'
+
+    check_equals '5' $(fti_config_get 'ckpt_l1')
+    check_equals '10' $(fti_config_get 'ckpt_l2')
+    check_equals '3' $(fti_config_get 'ckpt_l3')
+    assert_equals '4' $(fti_config_get 'ckpt_l4')
+}
+
+itf_case 'macro_set'

@@ -1,0 +1,48 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   staging.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Kai Keller (kellekai@gmx.de) (First implementation)
+#   @date   May, 2020
+
+# ---------------------------- Bash Test functions ----------------------------
+
+itf_load_module 'fti'
+
+standard() {
+    # Brief:
+    # Asserts that FTI is capable of sending files to PFS in the background
+
+    param_parse '+head' $@
+
+    local app="$(dirname ${BASH_SOURCE[0]})/massive.exe"
+
+    fti_config_set 'head' $head
+    fti_config_set 'ckpt_io' 1 # POSIX
+    fti_config_set 'enable_staging' '1'
+    fti_config_set_ckpts '0' '1' '3' '0'
+
+    fti_run_success $app ${itf_cfg['fti:config']}
+
+    awk '/of staging completed/ { PROGRESS=$2*1.0; }
+        END { if ( PROGRESS != 100.00 ) {print "!"; exit(-1)} }
+    ' ${itf_cfg['fti:app_stdout']}
+    
+    check_is_zero $? 'Staging incomplete'
+
+    awk '/of staging completed/ { FILES_DONE=$7; FILES_TODO=$9; }
+        END { if ( FILES_DONE != FILES_TODO ) { exit(-1) }
+        } 
+    ' ${itf_cfg['fti:app_stdout']}
+
+    assert_equals $? 0 'Number of files differ'
+}
+
+# -------------------------- ITF Register test cases --------------------------
+
+for head in 0 1; do
+    itf_case 'standard' "--head=$head"
+done
+unset head

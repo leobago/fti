@@ -1,0 +1,63 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   cmake_versions.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# ----------------------------- ITF Test functions ----------------------------
+
+compile_fti() {
+    # Compile FTI using a specific cmake version
+    #
+    # Details:
+    # This test is intended for CI only, hence the hard-coded path.
+    # If you wish to use this test locally, change the cmd variable.
+
+    param_parse '+version' $@
+
+    local cmd="/opt/cmake/v${version}/bin/cmake"
+    local libdir="$rootdir/install/lib" # Default name for the install script
+
+    check_file_exists "$cmd" "CMake $version installation not found"
+    
+    echo "$($cmd --version)"
+    check_equals "$($cmd --version | grep $version -c)" '1' "Could not validate CMake version $version"
+
+    $rootdir/install.sh "--cmake-bin=$cmd"
+
+    # If install/lib does not exist, try install/lib64 folder
+    if [ ! -d "$libdir" ]; then
+        libdir="${libdir}64"
+        if [ ! -d "$libdir" ]; then
+            ls $rootdir/install
+            fail 'Could not find lib directory in install'
+        fi
+    fi
+    
+    check_file_exists "$libdir/libfti.a" 'Compilation failed for libfti.a'
+    assert_file_exists "$libdir/libfti.so" 'Compilation failed for libfti.so'
+}
+
+setup() {
+    unset CC
+    rootdir=$(git rev-parse --show-toplevel)
+    rm -rf $rootdir/install
+}
+
+teardown() {
+    rm -rf $rootdir/build
+    unset rootdir
+}
+
+# ------------------------- ITF Test Case Declaration -------------------------
+
+itf_fixture 'compile_fti' 'setup' 'teardown'
+supported=( '3.3.2' '3.4' '3.5' '3.7' '3.8' '3.9' '3.10' '3.11' '3.12' '3.13' '3.14' '3.15' '3.16' )
+
+for s in ${supported[@]}; do
+    itf_case 'compile_fti' "--version=$s"
+done
+
+unset supported

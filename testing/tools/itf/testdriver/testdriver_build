@@ -1,0 +1,24 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   install_testdriver
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+#
+# Brief:
+# A proxy script that calls ITF testdriver contained in the src directory.
+#
+# This script provides a quick way to invoke ITF test driver.
+# It can be modified to support users debugging and launching tests locally.
+# For users trying to mimick the Jenkins environment, check ci_testdriver.
+
+export MPIRUN_ARGS=--oversubscribe
+
+@CMAKE_CURRENT_SOURCE_DIR@/testdriver --path-modules "@itf_dir@/modules" $@
+    
+retval=$?
+
+unset MPIRUN_ARGS
+
+exit $retval

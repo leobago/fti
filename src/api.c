@@ -2691,6 +2691,7 @@ int FTI_Finalize() {
     if ( FTI_Conf.saveLastCkpt && FTI_Exec.hasCkpt ) {
         // if ((FTI_Conf.saveLastCkpt || FTI_Conf.keepL4Ckpt)
         // && FTI_Exec.ckptId > 0) {
+        MPI_Barrier(FTI_COMM_WORLD);
         if (FTI_Exec.ckptLvel != 4) {
             FTI_Try(FTI_Flush(&FTI_Conf, &FTI_Exec, &FTI_Topo,
              FTI_Ckpt, FTI_Exec.ckptLvel), "save the last ckpt. in the PFS.");
@@ -3034,51 +3035,24 @@ void FTI_Print(char* msg, int priority) {
 
   @param      configFile                    Configuration metadata.
   @param      globalComm                    MPI Global Communicator
-  @param      FTIT_allConfiguration         All configuration data structure
-  @return     int                           FTI_SCES if successful
-                                            FTI_NSCS if not.         
+  @return     FTIT_allConfiguration         All configuration data structure       
 
   This function returns all the configuration settings of the execution 
   in the form of a structure FTIT_allConfiguration
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetConfig(const char* configFile, MPI_Comm globalComm,
-FTIT_allConfiguration FTI_allconf) {
-    int res;
-
-    if (FTI_Exec.initSCES == 0) {  // FTI NOT initialized
-        FTI_Print("FTI is not initialized.", FTI_WARN);
-        res = FTI_InitExecVars(&(FTI_allconf.configuration),
-          &(FTI_allconf.execution), &(FTI_allconf.topology),
-          FTI_allconf.checkpoint, &(FTI_allconf.injection));
-        if (res == FTI_NSCS) {
-            return FTI_NSCS;
-        }
-        FTI_allconf.execution.globalComm = globalComm;
-        MPI_Comm_rank(FTI_allconf.execution.globalComm,
-         &FTI_allconf.topology.myRank);
-        MPI_Comm_size(FTI_allconf.execution.globalComm,
-         &FTI_allconf.topology.nbProc);
-        snprintf(FTI_allconf.configuration.cfgFile, FTI_BUFS, "%s",
-          configFile);
-        res = FTI_Try(FTI_ReadConf(&(FTI_allconf.configuration),
-          &(FTI_allconf.execution), &(FTI_allconf.topology),
-          FTI_allconf.checkpoint, &(FTI_allconf.injection)),
-          "read configuration.");
-        return res;
-    } else {  // FTI initialized
-        FTI_Print("FTI has been initialized.", FTI_WARN);
-        // append the existing structures to FTI_allconf
-        FTI_allconf.configuration = FTI_Conf;
-        FTI_allconf.execution = FTI_Exec;
-        FTI_allconf.topology = FTI_Topo;
-        int level;
-        for (level = 1; level < 5; level++) {
-            FTI_allconf.checkpoint[level] = FTI_Ckpt[level];
-        }
-        FTI_allconf.injection = FTI_Inje;
-        FTI_Print("FTI configuration returned.", FTI_INFO);
-        return FTI_SCES;
-    }
+FTIT_allConfiguration FTI_GetConfig(const char* configFile,
+ MPI_Comm globalComm) {
+    FTIT_allConfiguration FTI_allconf;
+      FTI_allconf.configuration = FTI_Conf;
+      FTI_allconf.execution = FTI_Exec;
+      FTI_allconf.topology = FTI_Topo;
+      int level;
+      for (level = 1; level < 5; level++) {
+          FTI_allconf.checkpoint[level] = FTI_Ckpt[level];
+      }
+      FTI_allconf.injection = FTI_Inje;
+      FTI_Print("FTI configuration returned.", FTI_INFO);
+      return FTI_allconf;
 }
 

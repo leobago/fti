@@ -1,0 +1,65 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# Associative array for itf configurations
+declare -A itf_cfg=()
+
+itf_cfg['core:dir']='itf_data'                  # Where to keep temporary files for the test run
+itf_cfg['core:module_path']=''                  # The path to find the ITF modules (should be set by apps)
+itf_cfg['core:assert_msg_buf']="${itf_cfg['core:dir']}/assert.out" # Assertion message buffer
+
+mkdir -p "${itf_cfg[core:dir]}"
+
+# ------------------------ ITF Core Functionalities ---------------------------
+
+srcdir="$(dirname ${BASH_SOURCE[0]})"
+
+# ITF list and methods to manipulate them
+. $srcdir/list
+# ITF hooks for publisher/subscriber event lists
+. $srcdir/hooks
+# Core functionality of registering and running tests
+. $srcdir/test
+# Core functionality for assertions and test results
+. $srcdir/assertions
+# Core ITF consumer module for generating logs
+. $srcdir/log
+
+# Frequently used module for parameter parsing in ITF test cases
+. $srcdir/parameters
+
+# ----------------------- ITF Non-Core Module Handling ------------------------
+
+itf_load_module() {
+    # Load an ITF module functions and definitions
+    for module in $@; do
+        . ${itf_cfg['core:module_path']}/$module
+        itf_list_add 'itf_state' 'modules' "$module"
+    done
+}
+
+itf_hook_subscribe 'onSuiteEnd' 'itf_unload_suite_modules'
+
+itf_unload_suite_modules() {
+    # Unload all modules loaded into the suite using itf_load_module
+
+    local modules=()
+    local mod=''
+
+    itf_list_unwrap 'itf_state' 'modules' 'modules'
+    for mod in ${modules[@]}; do
+        ${mod}_unload
+        unset ${mod}_unload
+    done
+}
+
+itf_exit() {
+  # Removes ITF temporary folders
+  
+  rm -rf "${itf_cfg[core:dir]}"
+}

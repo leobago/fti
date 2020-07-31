@@ -28,9 +28,17 @@ Fault Tolerance Library
    :maxdepth: 1
 
    doxy
-   codeformatting
    ftiff
+  
+.. toctree::
+   :hidden:
+   :caption: Developer Resources
+   :maxdepth: 1
+
+   codeformatting
    itf
+   test_suites
+   ci
 
 
 .. codeauthor:: Dr. Leonardo Bautista-Gomez (Leo) <leonardo.bautista@bsc.es>

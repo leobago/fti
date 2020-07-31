@@ -29,7 +29,7 @@ Download, compile and install FTI (as easy as 1,2,3)
 
 > **REMARK 2** (OpenSSL)
 > To use the built-in MD5 rather than OpenSSL, please configure using:
-> `cmake -DNO_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
+> `cmake -DENABLE_OPENSSL=true -DCMAKE_INSTALL_PREFIX:PATH=/install/here/fti ..`
 
 > **REMARK 3** (GNU versions)
 > The usage of different GNU compiler versions for C and Fortran leads currently to an undefined behavior. Please make sure the compiler identification for C and Fortran is the same.
@@ -63,9 +63,13 @@ examples in both, C and Fortran. Usage instructions in file "examples/README".
 User manual
 ===
 
-In folder "doc/manual" you will find a user manual, which contains the API description and code snippets for the implementation of FTI as checkpoint I/O.
+FTI is bundled with guides for users, contributors and maintainers alike.
+The complete documentation is hosted in `ReadTheDocs <https://fault-tolerance-interface.readthedocs.io/en/develop/>`_.
+In addition, we also provide documentation in the repository.
+You will find a user manual in folder "doc/manual", which contains the API description and code snippets for the implementation of FTI checkpoint I/O usage.
 
-To generate the documentation wit Doxygen, configure with `-DENABLE_DOCU=ON` and execute in the build directory:
+It is also possible to generate a full Doxygen documentation during the build process.
+To do so, add the CMake flag `-DENABLE_DOCU=ON` when building the library and execute the following command in the build directory:
 ```
     make doc
 ```

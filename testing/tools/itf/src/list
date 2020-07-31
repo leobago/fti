@@ -1,0 +1,152 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   list
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   May, 2020
+
+# ITF separator to simulate 2d arrays on a single-dimension associative arrays
+declare -r _itf_sep=','
+
+# ------------------- ITF Custom List Management functions --------------------
+
+itf_list_unwrap() {
+    # Unwrap a list of elemets into an bash array.
+    #
+    # Details:
+    # The list must be represented as a string with the _itf_sep separator.
+    # It must also reside in an associative array.
+    #
+    # Parameters:
+    # $1: Associative array variable name
+    # $2: Associative array key for the list
+    # $3: Variable name for the generated bash array
+    #
+    # Example:
+    # declare -A aarray=(['anykey']='a:b:c:d')
+    # itf_list_unwrap 'aarray' 'anykey' 'myarray'
+    # echo ${!myarray[@]} # Should print 4
+
+    declare pointer="$1[$2]"
+    pointer="${!pointer:1:-1}"
+    IFS="$_itf_sep" read -r -a $3 <<< "$pointer"
+}
+
+itf_list_add() {
+    # Add an element into a list within an associative array
+    #
+    # Parameters:
+    # $1: The associative array name
+    # $2: The associative array key
+    # $3: The value to add
+    #
+    # Details:
+    # If the key does not exist or is empty, the key will be created.
+    # In any case, an item will be added to the list.
+    # The items can be later retrieved as a bash array using itf_list_unwrap.
+
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    
+    if [ $# -lt 2 ]; then
+        return 1
+    fi
+
+    declare pointer="$1[$2]"
+
+    if [ -z "${!pointer}" ]; then
+        eval "$pointer=\"${_itf_sep}${@:3}${_itf_sep}\""
+    else
+        eval "$pointer=\"${!pointer::-1}${_itf_sep}${@:3}${_itf_sep}\""
+    fi
+}
+
+itf_list_remove() {
+    # Remove an element stored in a list within an associative array
+    #
+    # Parameters:
+    # $1: The associative array name
+    # $2: The associative array key
+    # $3: The value to remove
+
+    if [ $# -ne 3 ]; then
+        return
+    fi
+
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[$2]"
+
+    # List is empty
+    if [ -z "${!pointer}" ]; then
+        return 0
+    fi
+
+    # Element not in the list
+    itf_list_contains "$1" "$2" "$3"
+    if [ $? -ne 0 ]; then
+        return 0
+    fi
+
+    local prefix=${!pointer%$3*} # Get everything before element
+    local sufix=${!pointer#*$3}  # Get everything after element
+
+    prefix=${prefix/#$_itf_sep$_itf_sep/$_itf_sep} # Remove separator in begin
+    prefix=${prefix/%$_itf_sep/}                   # Remove separator in end
+    sufix=${sufix/%$_itf_sep$_itf_sep/$_itf_sep}   # Remove separator in end
+    sufix=${sufix/#$_itf_sep/}                     # Remove separator in begin
+
+    if [ -z $prefix ] && [ -z $sufix ]; then
+        eval "$pointer=''" # Deleted the only element
+    elif [ -z $prefix ]; then
+        eval "$pointer=\"$_itf_sep$sufix\"" # Deleted the first element
+    elif [ -z $sufix ]; then
+        eval "$pointer=\"$prefix$_itf_sep\"" # Deleted the last element
+    else
+        eval "$pointer=\"$prefix$_itf_sep$sufix\"" # Deleted element in the middle
+    fi
+}
+
+itf_list_contains() {
+    # Checks if an ITF associative array contains an element in a given key
+    #
+    # Parameters:
+    # $1: The associative array variable name
+    # $2: The associative array key
+    # $3: The element to be found in an ITF-list string
+
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[$2]"
+
+    # No items in the list or no sufficient parameters
+    if [ -z "${!pointer}" ] || [ $# -lt 3 ]; then
+        return 1
+    fi
+
+    # Check if substring exists
+    if [ -z "${!pointer##*${_itf_sep}$3${_itf_sep}*}" ]; then
+        return 0
+    fi
+    return 1
+}
+
+itf_array_contains() {
+    # Brief:
+    # Check if a bash array contains a given element
+    #
+    # Arguments:
+    # $1: The array variable name
+    # $2: The element value
+
+    if [ $# -lt 2 ]; then
+        return 2
+    fi
+
+    # TODO: As in bash 4.3.3, there is no need to use variable indirection.
+    # It is possible to use 'declare -n pointer=$1' and avoid 'eval'.
+    declare pointer="$1[@]"
+    case "${!pointer}" in *"${@:2}"*) return 0 ;; esac
+    return 1
+}
