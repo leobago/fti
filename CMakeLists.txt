@@ -236,8 +236,8 @@ if(HAVE_OPENSSL)
 endif()
 
 set(fti_targets "fti.static" "fti.shared")
-add_library("fti.static" STATIC ${fti_target_sources})
-add_library("fti.shared" SHARED ${fti_target_sources})
+add_library("fti.static" STATIC ${fti_targets})
+add_library("fti.shared" SHARED ${fti_targets})
 set_property(TARGET ${fti_targets} PROPERTY OUTPUT_NAME "fti")
 
 # Links libraries as dependencies for all FTI targets
@@ -261,7 +261,7 @@ set_property(TARGET ${fti_targets} APPEND PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAG
 link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
 
 if(NOT HAVE_OPENSSL)
-    set_property(TARGET ${fti_target_sources} APPEND PROPERTY LINK_FLAGS "-DMD5P=TRUE")
+    set_property(TARGET ${fti_targets} APPEND PROPERTY LINK_FLAGS "-DMD5P=TRUE")
 	unset(OPENSSL_LIBRARIES)
 endif()
 
