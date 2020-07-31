@@ -233,6 +233,8 @@ set(fti_target_sources
 
 if(HAVE_OPENSSL)
     list(APPEND fti_target_sources ${OPENSSL_LIBRARIES})
+else ()
+    list(APPEND fti_target_sources $<TARGET_OBJECTS:md5>)
 endif()
 
 set(fti_targets "fti.static" "fti.shared")
@@ -258,12 +260,7 @@ endif()
 set_property(TARGET ${fti_targets} PROPERTY POSITION_INDEPENDENT_CODE True)
 set_property(TARGET ${fti_targets} APPEND PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 
-link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
-
-if(NOT HAVE_OPENSSL)
-    set_property(TARGET ${fti_target_sources} APPEND PROPERTY LINK_FLAGS "-DMD5P=TRUE")
-	unset(OPENSSL_LIBRARIES)
-endif()
+link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${CUDA_LIBRARIES})
 
 if(ZLIB_FOUND)
     link_to_fti(${ZLIB_LIBRARIES})
