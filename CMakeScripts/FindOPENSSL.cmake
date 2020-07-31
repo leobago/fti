@@ -40,8 +40,8 @@
 #
 # Set ``OPENSSL_ROOT_DIR`` to the root directory of an OpenSSL installation.
 # Set ``OPENSSL_USE_STATIC_LIBS`` to ``TRUE`` to look for static libraries.
-# Set ``OPENSSL_MSVC_STATIC_RT`` set ``TRUE`` to choose the MT version of the lib.
-
+# Set ``OPENSSL_MSVC_STATIC_RT`` set ``TRUE`` to choose the MT
+# version of the lib.
 if (UNIX)
   find_package(PkgConfig QUIET)
   pkg_check_modules(_OPENSSL QUIET openssl)
@@ -56,13 +56,14 @@ if(OPENSSL_USE_STATIC_LIBS)
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a )
   endif()
 endif()
-
 if (WIN32)
   # http://www.slproweb.com/products/Win32OpenSSL.html
   set(_OPENSSL_ROOT_HINTS
     ${OPENSSL_ROOT_DIR}
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
+    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\
+    Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
+    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\
+    Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
     ENV OPENSSL_ROOT_DIR
     )
   file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
@@ -81,12 +82,10 @@ else ()
     ENV OPENSSL_ROOT_DIR
     )
 endif ()
-
 set(_OPENSSL_ROOT_HINTS_AND_PATHS
     HINTS ${_OPENSSL_ROOT_HINTS}
     PATHS ${_OPENSSL_ROOT_PATHS}
     )
-
 find_path(OPENSSL_INCLUDE_DIR
   NAMES
     openssl/ssl.h
@@ -96,38 +95,40 @@ find_path(OPENSSL_INCLUDE_DIR
   PATH_SUFFIXES
     include
 )
-
 if(WIN32 AND NOT CYGWIN)
   if(MSVC)
     # /MD and /MDd are the standard values - if someone wants to use
     # others, the libnames have to change here too
     # use also ssl and ssleay32 in debug as fallback for openssl < 0.9.8b
-    # enable OPENSSL_MSVC_STATIC_RT to get the libs build /MT (Multithreaded no-DLL)
-    # In Visual C++ naming convention each of these four kinds of Windows libraries has it's standard suffix:
+    # enable OPENSSL_MSVC_STATIC_RT to get the libs
+    # build /MT (Multithreaded no-DLL)
+    # In Visual C++ naming convention each of these four kinds of
+    # Windows libraries has it's standard suffix:
     #   * MD for dynamic-release
     #   * MDd for dynamic-debug
     #   * MT for static-release
     #   * MTd for static-debug
 
     # Implementation details:
-    # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
+    # We are using the libraries located in the VC subdir instead of
+    # the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
-    # enable OPENSSL_USE_STATIC_LIBS to use the static libs located in lib/VC/static
-
+    # enable OPENSSL_USE_STATIC_LIBS to use the
+    # static libs located in lib/VC/static
     if (OPENSSL_MSVC_STATIC_RT)
       set(_OPENSSL_MSVC_RT_MODE "MT")
     else ()
       set(_OPENSSL_MSVC_RT_MODE "MD")
     endif ()
 
-    # Since OpenSSL 1.1, lib names are like libcrypto32MTd.lib and libssl32MTd.lib
+    # Since OpenSSL 1.1, lib names are like
+    # libcrypto32MTd.lib and libssl32MTd.lib
     if( "${CMAKE_SIZEOF_VOID_P}" STREQUAL "8" )
         set(_OPENSSL_MSVC_ARCH_SUFFIX "64")
     else()
         set(_OPENSSL_MSVC_ARCH_SUFFIX "32")
     endif()
-
     if(OPENSSL_USE_STATIC_LIBS)
       set(_OPENSSL_PATH_SUFFIXES
         "lib/VC/static"
@@ -141,7 +142,6 @@ if(WIN32 AND NOT CYGWIN)
         "lib"
         )
     endif ()
-
     find_library(LIB_EAY_DEBUG
       NAMES
         libcrypto${_OPENSSL_MSVC_ARCH_SUFFIX}${_OPENSSL_MSVC_RT_MODE}d
@@ -154,7 +154,6 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         ${_OPENSSL_PATH_SUFFIXES}
     )
-
     find_library(LIB_EAY_RELEASE
       NAMES
         libcrypto${_OPENSSL_MSVC_ARCH_SUFFIX}${_OPENSSL_MSVC_RT_MODE}
@@ -168,7 +167,6 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         ${_OPENSSL_PATH_SUFFIXES}
     )
-
     find_library(SSL_EAY_DEBUG
       NAMES
         libssl${_OPENSSL_MSVC_ARCH_SUFFIX}${_OPENSSL_MSVC_RT_MODE}d
@@ -181,7 +179,6 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         ${_OPENSSL_PATH_SUFFIXES}
     )
-
     find_library(SSL_EAY_RELEASE
       NAMES
         libssl${_OPENSSL_MSVC_ARCH_SUFFIX}${_OPENSSL_MSVC_RT_MODE}
@@ -195,16 +192,13 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         ${_OPENSSL_PATH_SUFFIXES}
     )
-
     set(LIB_EAY_LIBRARY_DEBUG "${LIB_EAY_DEBUG}")
     set(LIB_EAY_LIBRARY_RELEASE "${LIB_EAY_RELEASE}")
     set(SSL_EAY_LIBRARY_DEBUG "${SSL_EAY_DEBUG}")
     set(SSL_EAY_LIBRARY_RELEASE "${SSL_EAY_RELEASE}")
-
     include(${CMAKE_CURRENT_LIST_DIR}/SelectLibraryConfigurations.cmake)
     select_library_configurations(LIB_EAY)
     select_library_configurations(SSL_EAY)
-
     mark_as_advanced(LIB_EAY_LIBRARY_DEBUG LIB_EAY_LIBRARY_RELEASE
                      SSL_EAY_LIBRARY_DEBUG SSL_EAY_LIBRARY_RELEASE)
     set(OPENSSL_SSL_LIBRARY ${SSL_EAY_LIBRARY} )
@@ -222,7 +216,6 @@ if(WIN32 AND NOT CYGWIN)
         "lib/MinGW"
         "lib"
     )
-
     find_library(SSL_EAY
       NAMES
         ${SSL_EAY_NAMES}
@@ -232,14 +225,14 @@ if(WIN32 AND NOT CYGWIN)
         "lib/MinGW"
         "lib"
     )
-
     mark_as_advanced(SSL_EAY LIB_EAY)
     set(OPENSSL_SSL_LIBRARY ${SSL_EAY} )
     set(OPENSSL_CRYPTO_LIBRARY ${LIB_EAY} )
     unset(LIB_EAY_NAMES)
     unset(SSL_EAY_NAMES)
   else()
-    # Not sure what to pick for -say- intel, let's use the toplevel ones and hope someone report issues:
+    # Not sure what to pick for -say- intel, let's use the toplevel ones
+    # and hope someone report issues:
     find_library(LIB_EAY
       NAMES
         libcrypto
@@ -251,7 +244,6 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         lib
     )
-
     find_library(SSL_EAY
       NAMES
         libssl
@@ -263,13 +255,11 @@ if(WIN32 AND NOT CYGWIN)
       PATH_SUFFIXES
         lib
     )
-
     mark_as_advanced(SSL_EAY LIB_EAY)
     set(OPENSSL_SSL_LIBRARY ${SSL_EAY} )
     set(OPENSSL_CRYPTO_LIBRARY ${LIB_EAY} )
   endif()
 else()
-
   find_library(OPENSSL_SSL_LIBRARY
     NAMES
       ssl
@@ -282,7 +272,6 @@ else()
     PATH_SUFFIXES
       lib
   )
-
   find_library(OPENSSL_CRYPTO_LIBRARY
     NAMES
       crypto
@@ -293,7 +282,6 @@ else()
     PATH_SUFFIXES
       lib
   )
-
   mark_as_advanced(OPENSSL_CRYPTO_LIBRARY OPENSSL_SSL_LIBRARY)
 
   # compat defines
@@ -301,12 +289,11 @@ else()
   set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
 
 endif()
-
+# Function comment
 function(from_hex HEX DEC)
   string(TOUPPER "${HEX}" HEX)
   set(_res 0)
   string(LENGTH "${HEX}" _strlen)
-
   while (_strlen GREATER 0)
     math(EXPR _res "${_res} * 16")
     string(SUBSTRING "${HEX}" 0 1 NIBBLE)
@@ -326,17 +313,14 @@ function(from_hex HEX DEC)
     else()
       math(EXPR _res "${_res} + ${NIBBLE}")
     endif()
-
     string(LENGTH "${HEX}" _strlen)
   endwhile()
-
   set(${DEC} ${_res} PARENT_SCOPE)
 endfunction()
-
 if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
   file(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" openssl_version_str
-       REGEX "^#[\t ]*define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
-
+       REGEX "^#[\t ]*define[\t ]+OPENSSL_VERSION_NUMBER[\t ]
+       +0x([0-9a-fA-F])+.*")
   if(openssl_version_str)
     # The version number is encoded as 0xMNNFFPPS: major minor fix patch status
     # The status gives if this is a developer or prerelease and is ignored here.
@@ -344,8 +328,9 @@ if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
     # the string. The patch field translates to the single character suffix that
     # indicates the bug fix state, which 00 -> nothing, 01 -> a, 02 -> b and so
     # on.
-
-    string(REGEX REPLACE "^.*OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F]).*$"
+    string(REGEX REPLACE "^.*OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])
+    ([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])
+    ([0-9a-fA-F]).*$"
            "\\1;\\2;\\3;\\4;\\5" OPENSSL_VERSION_LIST "${openssl_version_str}")
     list(GET OPENSSL_VERSION_LIST 0 OPENSSL_VERSION_MAJOR)
     list(GET OPENSSL_VERSION_LIST 1 OPENSSL_VERSION_MINOR)
@@ -353,7 +338,6 @@ if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
     list(GET OPENSSL_VERSION_LIST 2 OPENSSL_VERSION_FIX)
     from_hex("${OPENSSL_VERSION_FIX}" OPENSSL_VERSION_FIX)
     list(GET OPENSSL_VERSION_LIST 3 OPENSSL_VERSION_PATCH)
-
     if (NOT OPENSSL_VERSION_PATCH STREQUAL "00")
       from_hex("${OPENSSL_VERSION_PATCH}" _tmp)
       # 96 is the ASCII code of 'a' minus 1
@@ -362,17 +346,15 @@ if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
       # Once anyone knows how OpenSSL would call the patch versions beyond 'z'
       # this should be updated to handle that, too. This has not happened yet
       # so it is simply ignored here for now.
-      string(ASCII "${OPENSSL_VERSION_PATCH_ASCII}" OPENSSL_VERSION_PATCH_STRING)
+      string(ASCII "${OPENSSL_VERSION_PATCH_ASCII}"
+       OPENSSL_VERSION_PATCH_STRING)
     endif ()
-
-    set(OPENSSL_VERSION "${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}.${OPENSSL_VERSION_FIX}${OPENSSL_VERSION_PATCH_STRING}")
+    set(OPENSSL_VERSION "${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}.
+    ${OPENSSL_VERSION_FIX}${OPENSSL_VERSION_PATCH_STRING}")
   endif ()
 endif ()
-
 include(${CMAKE_CURRENT_LIST_DIR}/FindPackageHandleStandardArgs.cmake)
-
 set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY} )
-
 if (OPENSSL_VERSION)
   find_package_handle_standard_args(OpenSSL
     REQUIRED_VARS
@@ -382,18 +364,18 @@ if (OPENSSL_VERSION)
     VERSION_VAR
       OPENSSL_VERSION
     FAIL_MESSAGE
-      "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
+      "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in
+       the system variable OPENSSL_ROOT_DIR"
   )
 else ()
-  find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
+  find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to
+   set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
     OPENSSL_SSL_LIBRARY
     OPENSSL_CRYPTO_LIBRARY
     OPENSSL_INCLUDE_DIR
   )
 endif ()
-
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES)
-
 if(OPENSSL_FOUND)
   if(NOT TARGET OpenSSL::Crypto AND
       (EXISTS "${OPENSSL_CRYPTO_LIBRARY}" OR

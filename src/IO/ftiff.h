@@ -37,8 +37,8 @@
  *  @brief  Header file for the FTI File Format (FTI-FF).
  */
 
-#ifndef _FTIFF_H
-#define _FTIFF_H
+#ifndef FTI_FTIFF_H_
+#define FTI_FTIFF_H_
 
 #include "fti.h"
 #ifndef FTI_NOZLIB
@@ -56,13 +56,13 @@
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
-#define CKPT_FN_FORMAT(level, backup) ( ( backup ) ? ( ( level == 2 ) ? "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti" ) : "Ckpt%d-Rank%d.fti" )
+#define CKPT_FN_FORMAT(level, backup) ((backup) ? ((level == 2) ? "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti") : "Ckpt%d-Rank%d.fti")
 
-extern int FTI_filemetastructsize;	/**< size of FTIFF_metaInfo in file */
-extern int FTI_dbstructsize;		/**< size of FTIFF_db in file       */
-extern int FTI_dbvarstructsize;		/**< size of FTIFF_dbvar in file    */
+extern int FTI_filemetastructsize; /**< size of FTIFF_metaInfo in file */
+extern int FTI_dbstructsize;       /**< size of FTIFF_db in file       */
+extern int FTI_dbvarstructsize;    /**< size of FTIFF_dbvar in file    */
 
-extern char *filemmap; 
+extern char *filemmap;
 extern struct stat filestats;
 
 /**
@@ -74,13 +74,13 @@ extern struct stat filestats;
  **/
 
 /** @typedef    dcpBLK_t
- *  @brief      unsigned short (0 - 65535).
+ *  @brief      uint16_t (0 - 65535).
  *  
  *  Type that keeps the block sizes inside the hash meta data. 
- *  unsigned short is a trade off between memory occupation and block 
+ *  uint16_t is a trade off between memory occupation and block 
  *  size range.
  */
-typedef unsigned short dcpBLK_t;
+typedef uint16_t dcpBLK_t;
 
 /** @typedef    FTIFF_headInfo
  *  @brief      Runtime meta info for the heads.
@@ -93,9 +93,9 @@ typedef struct FTIFF_headInfo {
     int exists;
     int nbVar;
     char ckptFile[FTI_BUFS];
-    long maxFs;
-    long fs;
-    long pfs;
+    int32_t maxFs;
+    int32_t fs;
+    int32_t pfs;
     int isDcp;
 } FTIFF_headInfo;
 
@@ -110,9 +110,9 @@ typedef struct FTIFF_RecoveryInfo {
     int BackupExists;
     int ckptId;
     int rightIdx;
-    long maxFs;
-    long fs;
-    long bfs;
+    int32_t maxFs;
+    int32_t fs;
+    int32_t bfs;
 } FTIFF_RecoveryInfo;
 
 /**
@@ -148,53 +148,62 @@ typedef struct FTIFF_MPITypeInfo {
   +-------------------------------------------------------------------------+
 
  **/
-int FTI_FinalizeFtiff( void *fd );
+int FTI_FinalizeFtiff(void *fd);
 size_t FTI_DummyFilePos(void *ignore);
-int FTI_WriteFtiffData( FTIT_dataset* data, void *fd );
-void* FTI_InitFtiff( FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+int FTI_WriteFtiffData(FTIT_dataset* data, void *fd);
+void* FTI_InitFtiff(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
-        FTIT_keymap* FTI_Data );
+        FTIT_keymap* FTI_Data);
 void FTIFF_InitMpiTypes();
-int FTIFF_DeserializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
-int FTIFF_DeserializeDbMeta( FTIFF_db* db, char* buffer_ser );
-int FTIFF_DeserializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
-int FTIFF_SerializeFileMeta( FTIFF_metaInfo* meta, char* buffer_ser );
-int FTIFF_SerializeDbMeta( FTIFF_db* db, char* buffer_ser );
-int FTIFF_SerializeDbVarMeta( FTIFF_dbvar* dbvar, char* buffer_ser );
+int FTIFF_DeserializeFileMeta(FTIFF_metaInfo* meta, char* buffer_ser);
+int FTIFF_DeserializeDbMeta(FTIFF_db* db, char* buffer_ser);
+int FTIFF_DeserializeDbVarMeta(FTIFF_dbvar* dbvar, char* buffer_ser);
+int FTIFF_SerializeFileMeta(FTIFF_metaInfo* meta, char* buffer_ser);
+int FTIFF_SerializeDbMeta(FTIFF_db* db, char* buffer_ser);
+int FTIFF_SerializeDbVarMeta(FTIFF_dbvar* dbvar, char* buffer_ser);
 void FTIFF_FreeDbFTIFF(FTIFF_db* last);
-int FTIFF_Recover( FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data, FTIT_checkpoint *FTI_Ckpt );
-int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, 
+int FTIFF_Recover(FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data,
+ FTIT_checkpoint *FTI_Ckpt);
+int FTIFF_RecoverVar(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
+ FTIT_topology* FTI_Topo,
     FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data, int id);
-int FTIFF_UpdateDatastructVarFTIFF( FTIT_execution* FTI_Exec, 
-        FTIT_dataset* data, FTIT_configuration* FTI_Conf );
-int FTIFF_ReadDbFTIFF( FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data );
-int FTIFF_LoadMetaPostprocessing( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf, int proc );
-int FTIFF_GetFileChecksum( FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum );
-int FTIFF_createHashesDbVarFTIFF( FTIT_execution* FTI_Exec );
-int FTIFF_finalizeDatastructFTIFF( FTIT_execution* FTI_Exec );
-int FTIFF_writeMetaDataFTIFF( FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd );
-int FTIFF_CreateMetadata( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
-        FTIT_configuration* FTI_Conf );
-int FTIFF_RequestFileName( char* dir, int rank, int level, int dcp, int backup, char* fn );
-int FTIFF_LoadFileMeta(int fd, FTIFF_metaInfo* fm );
+int FTIFF_UpdateDatastructVarFTIFF(FTIT_execution* FTI_Exec,
+        FTIT_dataset* data, FTIT_configuration* FTI_Conf);
+int FTIFF_ReadDbFTIFF(FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
+ FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data);
+int FTIFF_LoadMetaPostprocessing(FTIT_execution* FTI_Exec,
+ FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
+ FTIT_configuration* FTI_Conf, int proc);
+int FTIFF_GetFileChecksum(FTIFF_metaInfo *FTIFF_Meta, int fd, char *checksum);
+int FTIFF_createHashesDbVarFTIFF(FTIT_execution* FTI_Exec);
+int FTIFF_finalizeDatastructFTIFF(FTIT_execution* FTI_Exec);
+int FTIFF_writeMetaDataFTIFF(FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd);
+int FTIFF_CreateMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+        FTIT_configuration* FTI_Conf);
+int FTIFF_RequestFileName(char* dir, int rank, int level, int dcp, int backup,
+ char* fn);
+int FTIFF_LoadFileMeta(int fd, FTIFF_metaInfo* fm);
 int FTIFF_OpenCkptFile(char* fn, int oflag);
-int FTIFF_GetEncodedFileChecksum( FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum ); 
-int FTIFF_RequestRecoveryInfo( FTIFF_RecoveryInfo* info, char* dir, int rank, int level, bool dcp, bool backup );
-int FTIFF_CheckL1RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
-        FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf );
-int FTIFF_CheckL2RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+int FTIFF_GetEncodedFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd,
+ char *checksum);
+int FTIFF_RequestRecoveryInfo(FTIFF_RecoveryInfo* info, char* dir, int rank,
+ int level, bool dcp, bool backup);
+int FTIFF_CheckL1RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+        FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf);
+int FTIFF_CheckL2RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration* FTI_Conf, int *exists);
-int FTIFF_CheckL3RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+int FTIFF_CheckL3RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int* erased);
-int FTIFF_CheckL4RecoverInit( FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
+int FTIFF_CheckL4RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt);
-void FTIFF_GetHashMetaInfo( unsigned char *hash, FTIFF_metaInfo *FTIFFMeta );
-void FTIFF_GetHashdb( unsigned char *hash, FTIFF_db *db );
-void FTIFF_GetHashdbvar( unsigned char *hash, FTIFF_dbvar *dbvar );
-void FTIFF_SetHashChunk( FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data ); 
-void FTIFF_PrintDataStructure( int rank, FTIT_execution* FTI_Exec );
-int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf, FTIFF_dbvar *currentdbvar, 
-        FTIT_dataset *data, unsigned char *hashchk, WriteFTIFFInfo_t *fd, long *dcpSize, unsigned char **dptr);
+void FTIFF_GetHashMetaInfo(unsigned char *hash, FTIFF_metaInfo *FTIFFMeta);
+void FTIFF_GetHashdb(unsigned char *hash, FTIFF_db *db);
+void FTIFF_GetHashdbvar(unsigned char *hash, FTIFF_dbvar *dbvar);
+void FTIFF_SetHashChunk(FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data);
+void FTIFF_PrintDataStructure(int rank, FTIT_execution* FTI_Exec);
+int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
+ FTIFF_dbvar *currentdbvar,  FTIT_dataset *data, unsigned char *hashchk,
+ WriteFTIFFInfo_t *fd, int32_t *dcpSize, unsigned char **dptr);
 int FTIFF_RecoverVarInit(char* fn);
 int FTIFF_RecoverVarFinalize();
-#endif
+#endif  // FTI_FTIFF_H_

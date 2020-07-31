@@ -1,9 +1,15 @@
-#ifndef __TOOLS_H__
-#define __TOOLS_H__
+/**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
+ *  @file   tools.h
+ */
+
+#ifndef FTI_TOOLS_H_
+#define FTI_TOOLS_H_
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 void FTI_Print(char *msg, int priority);
@@ -25,4 +31,4 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 }
 #endif
 
-#endif // __TOOLS_H__
+#endif  // FTI_TOOLS_H_

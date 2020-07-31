@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "../../../../src/deps/iniparser/dictionary.h"
 #include "../../../../src/deps/iniparser/iniparser.h"
@@ -35,7 +36,7 @@
 
 typedef struct AsByteArray {
   char character;
-  long longs[1024];
+  int32_t longs[1024];
 } AsByteArray;
 
 typedef struct Chars {
@@ -45,15 +46,15 @@ typedef struct Chars {
 } Chars;
 
 typedef struct Integers {
-  short int shortInteger;
+  int16_t shortInteger;
   int integer;
-  long int longInteger;
+  int32_t longInteger;
 } Integers;
 
 typedef struct UIntegers {
-  unsigned short int shortInteger;
+  int16_t shortInteger;
   unsigned int integer;
-  unsigned long int longInteger;
+  uint32_t longInteger;
 } UIntegers;
 
 typedef struct Floats {
@@ -574,3 +575,4 @@ int main(int argc, char** argv) {
   }
   return 0;
 }
+

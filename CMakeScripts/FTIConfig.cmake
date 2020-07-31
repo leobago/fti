@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
-
 include("${CMAKE_CURRENT_LIST_DIR}/FTILib.cmake")
-
 if(NOT TARGET fti.shared)
 	set(FTI_FOUND "FALSE")
 	if(NOT "${FTI_FIND_QUIETLY}")

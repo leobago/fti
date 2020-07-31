@@ -42,8 +42,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../../src/deps/iniparser/dictionary.h"
-#include "../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
 #include "fti.h"
 #include "mpi.h"
 #include "wrapperFunc.h"

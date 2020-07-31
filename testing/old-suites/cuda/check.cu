@@ -40,8 +40,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "../../src/deps/iniparser/iniparser.h"
-#include "../../src/deps/iniparser/dictionary.h"
+#include "../../../src/deps/iniparser/iniparser.h"
+#include "../../../src/deps/iniparser/dictionary.h"
 
 #define CUDA_CALL_SAFE(f)                                                                       \
 do {                                                                                            \

@@ -36,13 +36,13 @@
  *  @brief  Utility functions for the FTI library.
  */
 
-#include "../interface.h"
 #include <dirent.h>
 #include <execinfo.h>
+#include "../interface.h"
 
-int FTI_filemetastructsize;		        /**< size of FTIFF_db struct in file    */
-int FTI_dbstructsize;		        /**< size of FTIFF_db struct in file    */
-int FTI_dbvarstructsize;		        /**< size of FTIFF_db struct in file    */
+int FTI_filemetastructsize;         /**< size of FTIFF_db struct in file    */
+int FTI_dbstructsize;               /**< size of FTIFF_db struct in file    */
+int FTI_dbvarstructsize;            /**< size of FTIFF_db struct in file    */
 
 #ifdef ENABLE_HDF5
 int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
@@ -66,11 +66,11 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 
     DBG_MSG("open objects:", rank);
 
-    for (i = 0; i < howmany; i++ ) {
+    for (i = 0; i < howmany; i++) {
         anobj = *objs++;
         ot = H5Iget_type(anobj);
         H5Iget_name(anobj, name, 1024);
-        DBG_MSG(" %d: type %d, name %s", rank, i,ot,name);
+        DBG_MSG(" %d: type %d, name %s", rank, i, ot, name);
     }
 
     return howmany;
@@ -89,32 +89,32 @@ int FTI_DebugCheckOpenObjects(hid_t fid, int rank) {
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje) {
-
     // datablock size in file
     FTI_filemetastructsize
         = MD5_DIGEST_STRING_LENGTH
         + MD5_DIGEST_LENGTH
-        + 7*sizeof(long)
+        + 7*sizeof(int32_t)
         + sizeof(int);
 
-    // TODO RS L3 only works for even file sizes. This accounts for many but clearly not all cases.
+    // TODO(leobago) RS L3 only works for even file sizes.
+    // This accounts for many but clearly not all cases.
     // This is to fix.
     FTI_filemetastructsize += 2 - FTI_filemetastructsize%2;
 
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
-        + sizeof(long);             /* dbsize */
+        + sizeof(int32_t);             /* dbsize */
 
     FTI_dbvarstructsize
         = 2*sizeof(int)               /* numvars */
         + 2*sizeof(bool)
         + 2*sizeof(uintptr_t)
-        + 2*sizeof(long)
+        + 2*sizeof(int32_t)
         + MD5_DIGEST_LENGTH;
 
-    // 
-    //  init meta data variables 
-    // 
+    //
+    //  init meta data variables
+    //
 
     FTIT_execution      initExec = {0};
     FTIT_configuration  initConf = {0};
@@ -127,10 +127,9 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     *FTI_Topo = initTopo;
     *FTI_Inje = initInje;
 
-    int i=0; for(; i<5; i++) FTI_Ckpt[i] = initCkpt;
-    
-    return FTI_SCES;
+    int i = 0; for (; i < 5; i++) FTI_Ckpt[i] = initCkpt;
 
+    return FTI_SCES;
 }
 
 
@@ -148,12 +147,11 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data,
-        FTIT_configuration* FTI_Conf, char* checksum)
-{
+        FTIT_configuration* FTI_Conf, char* checksum) {
     int i;
     int ii = 0;
 
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+    for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
         sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
         ii += 2;
     }
@@ -173,47 +171,48 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data,
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
-{
+int FTI_VerifyChecksum(char* fileName, char* checksumToCmp) {
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
         char str[FTI_BUFS];
-        sprintf(str, "FTI failed to open file %s to calculate checksum.", fileName);
+        snprintf(str, sizeof(str),
+         "FTI failed to open file %s to calculate checksum.", fileName);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
 
     MD5_CTX mdContext;
-    MD5_Init (&mdContext);
+    MD5_Init(&mdContext);
 
     int bytes;
     unsigned char data[CHUNK_SIZE];
-    while ((bytes = fread (data, 1, CHUNK_SIZE, fd)) != 0) {
-        MD5_Update (&mdContext, data, bytes);
+    while ((bytes = fread(data, 1, CHUNK_SIZE, fd)) != 0) {
+        MD5_Update(&mdContext, data, bytes);
     }
     unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5_Final (hash, &mdContext);
+    MD5_Final(hash, &mdContext);
 
     int i;
-    char checksum[MD5_DIGEST_STRING_LENGTH];   //calculated checksum
+    char checksum[MD5_DIGEST_STRING_LENGTH];  // calculated checksum
     int ii = 0;
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+    for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
         sprintf(&checksum[ii], "%02x", hash[i]);
         ii += 2;
     }
 
     if (strcmp(checksum, checksumToCmp) != 0) {
         char str[FTI_BUFS];
-        sprintf(str, "TOOLS: Checksum do not match. \"%s\" file is corrupted. %s != %s",
-                fileName, checksum, checksumToCmp);
+        snprintf(str, sizeof(str),
+         "TOOLS: Checksum do not match. \"%s\" file is corrupted. %s != %s",
+          fileName, checksum, checksumToCmp);
         FTI_Print(str, FTI_WARN);
 
-        fclose (fd);
+        fclose(fd);
 
         return FTI_NSCS;
     }
 
-    fclose (fd);
+    fclose(fd);
 
     return FTI_SCES;
 }
@@ -230,17 +229,15 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Try(int result, char* message)
-{
+int FTI_Try(int result, char* message) {
     char str[FTI_BUFS];
     if (result == FTI_SCES || result == FTI_DONE) {
-        sprintf(str, "FTI succeeded to %s", message);
+        snprintf(str, sizeof(str), "FTI succeeded to %s", message);
         FTI_Print(str, FTI_DBUG);
-    }
-    else {
-        sprintf(str, "FTI failed to %s", message);
+    } else {
+        snprintf(str, sizeof(str), "FTI failed to %s", message);
         FTI_Print(str, FTI_WARN);
-        sprintf(str, "Error => %s", strerror(errno));
+        snprintf(str, sizeof(str), "Error => %s", strerror(errno));
         FTI_Print(str, FTI_WARN);
     }
     return result;
@@ -256,8 +253,7 @@ int FTI_Try(int result, char* message)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) 
-{
+int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
     FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
     if (FTI_Exec->FTI_Type == NULL) {
         return FTI_NSCS;
@@ -275,7 +271,8 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
 
     FTI_Exec->H5groups[0]->id = 0;
     FTI_Exec->H5groups[0]->childrenNo = 0;
-    sprintf(FTI_Exec->H5groups[0]->name, "/");
+    snprintf(FTI_Exec->H5groups[0]->name,
+     sizeof(FTI_Exec->H5groups[0]->name), "/");
     FTI_Exec->H5groups[0]->fullName[0] = '\0';
     FTI_Exec->nbGroup = 1;
     return FTI_SCES;
@@ -290,12 +287,11 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) 
-{
+void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
     int i;
     for (i = 0; i < FTI_Exec->nbType; i++) {
         if (FTI_Exec->FTI_Type[i]->structure != NULL) {
-            //if complex type and have structure
+            // if complex type and have structure
             free(FTI_Exec->FTI_Type[i]->structure);
         }
         free(FTI_Exec->FTI_Type[i]);
@@ -317,16 +313,15 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec)
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes()
-{
+int FTI_InitBasicTypes() {
     FTI_InitType(&FTI_CHAR, sizeof(char));
-    FTI_InitType(&FTI_SHRT, sizeof(short));
+    FTI_InitType(&FTI_SHRT, sizeof(int16_t));
     FTI_InitType(&FTI_INTG, sizeof(int));
-    FTI_InitType(&FTI_LONG, sizeof(long));
+    FTI_InitType(&FTI_LONG, sizeof(int32_t));
     FTI_InitType(&FTI_UCHR, sizeof(unsigned char));
-    FTI_InitType(&FTI_USHT, sizeof(unsigned short));
+    FTI_InitType(&FTI_USHT, sizeof(uint16_t));
     FTI_InitType(&FTI_UINT, sizeof(unsigned int));
-    FTI_InitType(&FTI_ULNG, sizeof(unsigned long));
+    FTI_InitType(&FTI_ULNG, sizeof(uint32_t));
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));
@@ -347,11 +342,11 @@ int FTI_InitBasicTypes()
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RmDir(char path[FTI_BUFS], int flag)
-{
+int FTI_RmDir(char path[FTI_BUFS], int flag) {
     if (flag) {
         char str[FTI_BUFS];
-        sprintf(str, "Removing directory %s and its files.", path);
+        snprintf(str, sizeof(str),
+         "Removing directory %s and its files.", path);
         FTI_Print(str, FTI_DBUG);
 
         DIR* dp = opendir(path);
@@ -359,23 +354,23 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
             struct dirent* ep = NULL;
             while ((ep = readdir(dp)) != NULL) {
                 char fil[FTI_BUFS];
-                sprintf(fil, "%s", ep->d_name);
+                snprintf(fil, sizeof(fil), "%s", ep->d_name);
                 FTI_Print(fil, FTI_DBUG);
                 if ((strcmp(fil, ".") != 0) && (strcmp(fil, "..") != 0)) {
                     char fn[FTI_BUFS];
-                    snprintf(fn,FTI_BUFS, "%s/%s", path, fil);
-                    snprintf(str,FTI_BUFS, "File %s will be removed.", fn);
+                    snprintf(fn, FTI_BUFS, "%s/%s", path, fil);
+                    snprintf(str, FTI_BUFS, "File %s will be removed.", fn);
                     FTI_Print(str, FTI_DBUG);
                     if (remove(fn) == -1) {
                         if (errno != ENOENT) {
-                            snprintf(str, FTI_BUFS, "Error removing target file (%s).", fn);
+                            snprintf(str, FTI_BUFS,
+                             "Error removing target file (%s).", fn);
                             FTI_Print(str, FTI_EROR);
                         }
                     }
                 }
             }
-        }
-        else {
+        } else {
             if (errno != ENOENT) {
                 FTI_Print("Error with opendir.", FTI_EROR);
             }
@@ -409,48 +404,51 @@ int FTI_RmDir(char path[FTI_BUFS], int flag)
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
-        FTIT_checkpoint* FTI_Ckpt, int level)
-{
-    int nodeFlag; //only one process in the node has set it to 1
-    int globalFlag = !FTI_Topo->splitRank; //only one process in the FTI_COMM_WORLD has set it to 1
+        FTIT_checkpoint* FTI_Ckpt, int level) {
+    // only one process in the node has set it to 1
+    int nodeFlag;
+    // only one process in the FTI_COMM_WORLD has set it to 1
+    int globalFlag = !FTI_Topo->splitRank;
 
-    nodeFlag = (((!FTI_Topo->amIaHead) && ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) || (FTI_Topo->amIaHead)) ? 1 : 0;
+    nodeFlag = (((!FTI_Topo->amIaHead) &&
+     ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) ||
+      (FTI_Topo->amIaHead)) ? 1 : 0;
 
-    bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff); 
-    bool notDcp = !FTI_Ckpt[4].isDcp;   
+    bool notDcpFtiff = !(FTI_Ckpt[4].isDcp && FTI_Conf->dcpFtiff);
+    bool notDcp = !FTI_Ckpt[4].isDcp;
 
     if (level == 0) {
-        FTI_RmDir(FTI_Conf->mTmpDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Conf->gTmpDir, globalFlag && notDcp );
-        FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag && notDcp );
+        FTI_RmDir(FTI_Conf->mTmpDir, globalFlag && notDcpFtiff);
+        FTI_RmDir(FTI_Conf->gTmpDir, globalFlag && notDcp);
+        FTI_RmDir(FTI_Conf->lTmpDir, nodeFlag && notDcp);
     }
 
     // Clean last checkpoint level 1
     if (level >= 1) {
-        FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag && notDcp );
+        FTI_RmDir(FTI_Ckpt[1].metaDir, globalFlag && notDcpFtiff);
+        FTI_RmDir(FTI_Ckpt[1].dir, nodeFlag && notDcp);
     }
 
     // Clean last checkpoint level 2
     if (level >= 2) {
-        FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag && notDcp );
+        FTI_RmDir(FTI_Ckpt[2].metaDir, globalFlag && notDcpFtiff);
+        FTI_RmDir(FTI_Ckpt[2].dir, nodeFlag && notDcp);
     }
 
     // Clean last checkpoint level 3
     if (level >= 3) {
-        FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag && notDcp );
+        FTI_RmDir(FTI_Ckpt[3].metaDir, globalFlag && notDcpFtiff);
+        FTI_RmDir(FTI_Ckpt[3].dir, nodeFlag && notDcp);
     }
 
     // Clean last checkpoint level 4
-    if ( level == 4 || level == 5 ) {
-        FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff );
-        FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp );
-        FTI_RmDir(FTI_Ckpt[4].L4Replica, nodeFlag );
+    if (level == 4 || level == 5) {
+        FTI_RmDir(FTI_Ckpt[4].metaDir, globalFlag && notDcpFtiff);
+        FTI_RmDir(FTI_Ckpt[4].dir, globalFlag && notDcp);
+        FTI_RmDir(FTI_Ckpt[4].L4Replica, nodeFlag);
         rmdir(FTI_Conf->gTmpDir);
     }
-    if ( (FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5 ) {
+    if ((FTI_Conf->dcpPosix || FTI_Conf->dcpFtiff) && level == 5) {
         FTI_RmDir(FTI_Ckpt[4].dcpDir, !FTI_Topo->splitRank);
     }
 
@@ -492,15 +490,15 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
   @return     char*             hex string of hash
  **/
 /*-------------------------------------------------------------------------*/
-char* FTI_GetHashHexStr( unsigned char* hash, int digestWidth, char* hashHexStr )
-{       
+char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
+ char* hashHexStr) {
     static char hashHexStatic[MD5_DIGEST_STRING_LENGTH];
-    if( hashHexStr == NULL ) {
+    if (hashHexStr == NULL) {
         hashHexStr = hashHexStatic;
     }
 
     int i;
-    for(i = 0; i < digestWidth; i++) {
+    for (i = 0; i < digestWidth; i++) {
         sprintf(&hashHexStr[2*i], "%02x", hash[i]);
     }
 

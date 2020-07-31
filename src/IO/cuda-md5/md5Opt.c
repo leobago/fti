@@ -41,9 +41,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "md5Opt.h"
 #include <pthread.h>
 #include <fti.h>
+#include "md5Opt.h"
 #include "../../interface.h"
 #define CPU 1
 #define GPU 2
@@ -56,12 +56,13 @@ int usesAsync = 0;
 pthread_t thread;
 pthread_mutex_t worker;
 pthread_mutex_t application;
-long totalWork= 0;
-long worker_exit = 0;
+int32_t totalWork = 0;
+int32_t worker_exit = 0;
 int deviceId;
-unsigned char* (*cpuHash)( const unsigned char *data, unsigned long nBytes, unsigned char *hash );
-long tempBufferSize;
-long md5ChunkSize;
+unsigned char* (*cpuHash)(const unsigned char *data, uint32_t nBytes,
+ unsigned char *hash);
+int32_t tempBufferSize;
+int32_t md5ChunkSize;
 
 
 /*-------------------------------------------------------------------------*/
@@ -75,8 +76,8 @@ long md5ChunkSize;
   This function initializes parameters for the computation of DCP MD5 checksums
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
-    if ( FTI_Conf->dcpInfoPosix.cachedCkpt)
+int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
+    if (FTI_Conf->dcpInfoPosix.cachedCkpt)
         usesAsync = 1;
     else
         usesAsync = 0;
@@ -96,21 +97,24 @@ int FTI_initMD5(long cSize, long tempSize, FTIT_configuration *FTI_Conf){
   This function computes the checksums of a specific variable 
  **/
 /*-------------------------------------------------------------------------*/
-int MD5CPU(FTIT_dataset *data){
-    unsigned long dataSize = data->size;
+int MD5CPU(FTIT_dataset *data) {
+    uint32_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;
-    for ( i = 0 ; i < data->size; i+=md5ChunkSize){
+    for (i = 0 ; i < data->size; i+=md5ChunkSize) {
         unsigned int blockId = i/md5ChunkSize;
         unsigned int hashIdx = blockId*16;
-        unsigned int chunkSize = ( (dataSize-i) < md5ChunkSize ) ? dataSize-i: md5ChunkSize;
-        if( chunkSize < md5ChunkSize ) {
-            memset( block, 0x0, md5ChunkSize );
-            memcpy( block, &ptr[i], chunkSize );
-            cpuHash( block, md5ChunkSize , &data->dcpInfoPosix.currentHashArray[hashIdx] );
+        unsigned int chunkSize = ((dataSize-i) < md5ChunkSize) ?
+         dataSize-i: md5ChunkSize;
+        if (chunkSize < md5ChunkSize) {
+            memset(block, 0x0, md5ChunkSize);
+            memcpy(block, &ptr[i], chunkSize);
+            cpuHash(block, md5ChunkSize,
+             &data->dcpInfoPosix.currentHashArray[hashIdx]);
         } else {
-            cpuHash( &ptr[i], md5ChunkSize , &data->dcpInfoPosix.currentHashArray[hashIdx] );
+            cpuHash(&ptr[i], md5ChunkSize,
+             &data->dcpInfoPosix.currentHashArray[hashIdx]);
         }
     }
     return FTI_SCES;
@@ -126,7 +130,7 @@ int MD5CPU(FTIT_dataset *data){
   it is actually an interface between the FTI and the async methods
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MD5CPU(FTIT_dataset *data){
+int FTI_MD5CPU(FTIT_dataset *data) {
     return MD5CPU(data);
 }
 
@@ -141,7 +145,7 @@ int FTI_MD5CPU(FTIT_dataset *data){
   it is actually an interface between the FTI and the async methods
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MD5GPU(FTIT_dataset *data){
+int FTI_MD5GPU(FTIT_dataset *data) {
     return 1;
 }
 
@@ -155,7 +159,7 @@ int FTI_MD5GPU(FTIT_dataset *data){
     checkpoints.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CLOSE_ASYNC(FILE *f){
+int FTI_CLOSE_ASYNC(FILE *f) {
     return 1;
 }
 
@@ -170,7 +174,7 @@ int FTI_CLOSE_ASYNC(FILE *f){
   This function should not be called when compiling without GPU optimizations
    **/
 /*-------------------------------------------------------------------------*/
-int FTI_SyncMD5(){
+int FTI_SyncMD5() {
     return FTI_SCES;
 }
 
@@ -183,7 +187,7 @@ int FTI_SyncMD5(){
   This function should not be called when compiling without GPU optimizations
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_startMD5(){
+int FTI_startMD5() {
     return FTI_SCES;
 }
 
@@ -196,6 +200,6 @@ int FTI_startMD5(){
   This function should not be called when compiling without GPU optimizations
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_destroyMD5(){
+int FTI_destroyMD5() {
     return FTI_SCES;
 }

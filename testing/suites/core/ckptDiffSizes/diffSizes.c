@@ -28,6 +28,7 @@
 #include <fti.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -55,7 +56,7 @@ char* configfile;
     Verifies final result.
  **/
 /*-------------------------------------------------------------------------*/
-int verify(long* array, int world_rank) {
+int verify(int32_t* array, int world_rank) {
   int i;
   int size = world_rank * ITERATIONS;
   for (i = 0; i < size; i++) {
@@ -96,7 +97,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   int addToSize = world_rank * 1024;
 
   FTI_Protect(1, &its, 1, itersInfo);
-  long* buf = malloc(sizeof(long) * its.size);
+  int32_t* buf = malloc(sizeof(int32_t) * its.size);
   for (j = 0; j < its.size; j++) {
     buf[j] = 0;
   }
@@ -145,7 +146,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
              expectedSize);
       return RECOVERY_FAILED;
     }
-    long recoverySize = 2 * sizeof(int);  // i and size
+    int32_t recoverySize = 2 * sizeof(int);  // i and size
 
     for (j = 0; j < its.size; j++) {
       if (buf[j] != its.i * world_rank) {
@@ -155,10 +156,10 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
                its.i * world_rank);
         return RECOVERY_FAILED;
       }
-      recoverySize += sizeof(long);
+      recoverySize += sizeof(int32_t);
     }
     printf("%d: Recovery size = %ld B\n", world_rank, recoverySize);
-    long savedSize = FTI_GetStoredSize(1);
+    int32_t savedSize = FTI_GetStoredSize(1);
     savedSize += FTI_GetStoredSize(2);
     if (recoverySize != savedSize) {
       printf("%d: RecoverySize != SavedSize: %ld != %ld\n", world_rank,
@@ -181,8 +182,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     }
 
     its.size += addToSize;  // enlarge size
-    buf = realloc(buf, sizeof(long) * its.size);
-    long tempValue = buf[0];
+    buf = realloc(buf, sizeof(int32_t) * its.size);
+    int32_t tempValue = buf[0];
     for (j = 0; j < its.size; j++) {
       buf[j] = tempValue + world_rank;
     }
@@ -284,7 +285,7 @@ int checkFileSizes(int* mpi_ranks, int world_size, int global_world_size,
 
           expectedSize +=
               ((rank + 1) * INIT_SIZE + lastCheckpointIter * rank * 1024) *
-              sizeof(long);
+              sizeof(int32_t);
 
           printf("%d: Last checkpoint file size = %d MB\n", rank,
                  fileSize / 1024 / 1024);
@@ -400,3 +401,4 @@ int main(int argc, char** argv) {
 
   return rtn;
 }
+

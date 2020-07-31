@@ -1,12 +1,15 @@
 /**
+ *  Copyright (c) 2017 Leonardo A. Bautista-Gomez
+ *  All rights reserved
+ *
  *  @file   fti.h
  *  @author Leonardo A. Bautista Gomez (leobago@gmail.com)
  *  @date   July, 2013
  *  @brief  Header file for the FTI library.
  */
 
-#ifndef __FTI_H__
-#define __FTI_H__
+#ifndef FTI_FTI_H_
+#define FTI_FTI_H_
 
 /** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
@@ -77,30 +80,35 @@ extern "C" {
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
   int FTI_InitType(FTIT_type* type, int size);
-  int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition, int length,
-      size_t size, char* name, FTIT_H5Group* h5group);
+  int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition,
+   int length, size_t size, char* name, FTIT_H5Group* h5group);
   void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
       size_t offset, int id, char* name);
-  void FTI_AddComplexField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
-      size_t offset, int rank, int* dimLength, int id, char* name);
+  void FTI_AddComplexField(FTIT_complexType* typeDefinition,
+   FTIT_type* ftiType, size_t offset, int rank, int* dimLength,
+   int id, char* name);
   int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
-  int FTI_Protect(int id, void* ptr, long count, FTIT_type type);
-  int FTI_DefineDataset(int id, int rank, int* dimLength, char* name, FTIT_H5Group* h5group);
-  int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength, const char* name, FTIT_H5Group* h5group, FTIT_type type);
-  int FTI_AddSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
-  int FTI_RecoverDatasetDimension( int did ); 
-  FTIT_hsize_t* FTI_GetDatasetSpan( int did, int rank );
-  int FTI_GetDatasetRank( int did );
-  int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength );
-  int FTI_UpdateSubset( int id, int rank, FTIT_hsize_t* offset, FTIT_hsize_t* count, int did );
-  long FTI_GetStoredSize(int id);
+  int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type);
+  int FTI_DefineDataset(int id, int rank, int* dimLength, char* name,
+   FTIT_H5Group* h5group);
+  int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
+   const char* name, FTIT_H5Group* h5group, FTIT_type type);
+  int FTI_AddSubset(int id, int rank, FTIT_hsize_t* offset,
+   FTIT_hsize_t* count, int did);
+  int FTI_RecoverDatasetDimension(int did);
+  FTIT_hsize_t* FTI_GetDatasetSpan(int did, int rank);
+  int FTI_GetDatasetRank(int did);
+  int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength);
+  int FTI_UpdateSubset(int id, int rank, FTIT_hsize_t* offset,
+   FTIT_hsize_t* count, int did);
+  int32_t FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
   int FTI_Checkpoint(int id, int level);
-  int FTI_GetStageDir( char* stageDir, int maxLen );
-  int FTI_GetStageStatus( int ID );
-  int FTI_SendFile( char* lpath, char *rpath );
+  int FTI_GetStageDir(char* stageDir, int maxLen);
+  int FTI_GetStageStatus(int ID);
+  int FTI_SendFile(char* lpath, char *rpath);
   int FTI_Recover();
   int FTI_Snapshot();
   int FTI_Finalize();
@@ -108,11 +116,12 @@ extern "C" {
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
   int FTI_InitICP(int id, int level, bool activate);
-  int FTI_AddVarICP( int varID ); 
-  int FTI_FinalizeICP(); 
-  int FTI_setIDFromString( char *name );
-  int FTI_getIDFromString( char *name );
-  FTIT_allConfiguration FTI_GetConfig(const char* configFile, MPI_Comm globalComm);
+  int FTI_AddVarICP(int varID);
+  int FTI_FinalizeICP();
+  int FTI_setIDFromString(char *name);
+  int FTI_getIDFromString(char *name);
+  FTIT_allConfiguration FTI_GetConfig(const char* configFile,
+   MPI_Comm globalComm);
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
 
@@ -121,4 +130,4 @@ extern "C" {
 }
 #endif
 
-#endif // __FTI_H__
+#endif  // FTI_FTI_H_

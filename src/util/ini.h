@@ -37,8 +37,8 @@
  *  @brief  methods that simplify the usage of the iniparser library.
  */
 
-#ifndef FTI_INI_H
-#define FTI_INI_H
+#ifndef FTI_INI_H_
+#define FTI_INI_H_
 
 #include "../deps/iniparser/iniparser.h"
 #include "../deps/iniparser/dictionary.h"
@@ -62,12 +62,12 @@
 
 --------------------------------------------------------------------------**/
 typedef enum FTIT_inimode {
-
-    FTI_INI_OPEN,   /**< pass to FTI_Iniparser -> open existing file       */
-    FTI_INI_CREATE, /**< pass to FTI_Iniparser -> create new file          */
-    FTI_INI_APPEND, /**< pass to FTI_Iniparser -> append to existing file 
-    or create new one. */
-
+    /**< pass to FTI_Iniparser -> open existing file       */
+    FTI_INI_OPEN,
+    /**< pass to FTI_Iniparser -> create new file          */
+    FTI_INI_CREATE,
+    /**< pass to FTI_Iniparser -> append to existing file or create new one. */
+    FTI_INI_APPEND,
 } FTIT_inimode;
 
 /**--------------------------------------------------------------------------
@@ -85,16 +85,15 @@ typedef enum FTIT_inimode {
 
 --------------------------------------------------------------------------**/
 typedef struct FTIT_iniparser {
-
     dictionary* dict;           /**< Pointer to iniparser dictionary       */
     char        file[FTI_BUFS]; /**< Path to corresponding file            */
-    char*       (*getString)    ( struct FTIT_iniparser*, const char* );
-    int         (*getInt)       ( struct FTIT_iniparser*, const char* );
-    int         (*getLong)      ( struct FTIT_iniparser*, const char* );
-    int         (*set)          ( struct FTIT_iniparser*, const char*, const char* );
-    int         (*dump)         ( struct FTIT_iniparser* );
-    int         (*clear)        ( struct FTIT_iniparser* );
-
+    char*       (*getString)(struct FTIT_iniparser*, const char*);
+    int         (*getInt)(struct FTIT_iniparser*, const char*);
+    int         (*getLong)(struct FTIT_iniparser*, const char*);
+    int         (*set)(struct FTIT_iniparser*, const char*,
+                                 const char*);
+    int         (*dump)(struct FTIT_iniparser*);
+    int         (*clear)(struct FTIT_iniparser*);
 } FTIT_iniparser;
 
 /**--------------------------------------------------------------------------
@@ -119,7 +118,7 @@ typedef struct FTIT_iniparser {
  
 
 --------------------------------------------------------------------------**/
-int FTI_Iniparser( FTIT_iniparser*, const char*, FTIT_inimode );
+int FTI_Iniparser(FTIT_iniparser*, const char*, FTIT_inimode);
 
 /**--------------------------------------------------------------------------
   
@@ -137,7 +136,7 @@ int FTI_Iniparser( FTIT_iniparser*, const char*, FTIT_inimode );
  
 
 --------------------------------------------------------------------------**/
-char* FTI_IniparserGetString( FTIT_iniparser*, const char* );
+char* FTI_IniparserGetString(FTIT_iniparser*, const char*);
 
 /**--------------------------------------------------------------------------
   
@@ -155,7 +154,7 @@ char* FTI_IniparserGetString( FTIT_iniparser*, const char* );
  
 
 --------------------------------------------------------------------------**/
-int FTI_IniparserGetInt( FTIT_iniparser*, const char* key );
+int FTI_IniparserGetInt(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   
@@ -173,7 +172,7 @@ int FTI_IniparserGetInt( FTIT_iniparser*, const char* key );
  
 
 --------------------------------------------------------------------------**/
-int FTI_IniparserGetLong( FTIT_iniparser*, const char* key );
+int FTI_IniparserGetLong(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   
@@ -192,7 +191,7 @@ int FTI_IniparserGetLong( FTIT_iniparser*, const char* key );
 
  
 --------------------------------------------------------------------------**/
-int FTI_IniparserSet( FTIT_iniparser*, const char*, const char* );
+int FTI_IniparserSet(FTIT_iniparser*, const char*, const char*);
 
 /**--------------------------------------------------------------------------
   
@@ -208,7 +207,7 @@ int FTI_IniparserSet( FTIT_iniparser*, const char*, const char* );
 
 
 --------------------------------------------------------------------------**/
-int FTI_IniparserDump( FTIT_iniparser* );
+int FTI_IniparserDump(FTIT_iniparser*);
 
 /**--------------------------------------------------------------------------
   
@@ -225,7 +224,7 @@ int FTI_IniparserDump( FTIT_iniparser* );
 
 
 --------------------------------------------------------------------------**/
-int FTI_IniparserClear( FTIT_iniparser* );
+int FTI_IniparserClear(FTIT_iniparser*);
 
-#endif // FTI_INI_H
-  
+#endif  // FTI_INI_H_
+

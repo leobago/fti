@@ -1,3 +1,3 @@
 PROGRAM checkMPImodule
-    USE MPI
+   USE MPI
 END PROGRAM
