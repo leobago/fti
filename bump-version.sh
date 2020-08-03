@@ -33,6 +33,7 @@ if [ -f VERSION ]; then
     fi
     echo "Will set new version to be $INPUT_STRING"
     echo $INPUT_STRING > VERSION
+	sed -i 's@^\(project.*VERSION \)\([0-9]\.[0-9]\.[0-9]\)\( LANGUAGES.*\)$@\1'"`cat VERSION`"'\3@g' CMakeLists.txt
     echo "Version $INPUT_STRING:" > tmpfile
     git log --pretty=format:" - %s" "v$BASE_STRING"...HEAD >> tmpfile
     echo "" >> tmpfile
