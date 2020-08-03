@@ -24,44 +24,39 @@ if [ -f VERSION ]; then
     V_MINOR=${BASE_LIST[1]}
     V_PATCH=${BASE_LIST[2]}
     echo "Current version : $BASE_STRING"
-    V_MINOR=$V_MINOR
     V_PATCH=$((V_PATCH + 1))
     SUGGESTED_VERSION="$V_MAJOR.$V_MINOR.$V_PATCH"
     read -p "Enter a version number [$SUGGESTED_VERSION]: " INPUT_STRING
     if [ "$INPUT_STRING" = "" ]; then
         INPUT_STRING=$SUGGESTED_VERSION
     fi
-    echo "Will set new version to be $INPUT_STRING"
-    echo $INPUT_STRING > VERSION
-	sed -i 's@^\(project.*VERSION \)\([0-9]\.[0-9]\.[0-9]\)\( LANGUAGES.*\)$@\1'"`cat VERSION`"'\3@g' CMakeLists.txt
-    echo "Version $INPUT_STRING:" > tmpfile
-    git log --pretty=format:" - %s" "v$BASE_STRING"...HEAD >> tmpfile
-    echo "" >> tmpfile
-    echo "" >> tmpfile
-    cat CHANGELOG >> tmpfile
-    mv tmpfile CHANGELOG
-    git add CHANGELOG VERSION
-    #git commit -m "Version bump to $INPUT_STRING"
-    #git tag -a -m "Tagging version $INPUT_STRING" "v$INPUT_STRING"
-    #git push origin --tags
+    echo -e "\nChanging Version number to $INPUT_STRING.\n\n[WARNING]\nThis includes changes to CMakeList.txt\nadding a new tag to the repository\nand push the new tag to the repository.\n"
+	read -p "Change version number now [y/n]?" -n 1 -r
+	echo    # (optional) move to a new line
+	if [[ $REPLY =~ ^[Yy]$ ]]
+	then
+    	echo "Setting version to $INPUT_STRING"
+    	echo $INPUT_STRING > VERSION
+		sed -i 's@^\(project.*VERSION \)\([0-9]\.[0-9]\.[0-9]\)\( LANGUAGES.*\)$@\1'"`cat VERSION`"'\3@g' CMakeLists.txt
+		sed -n 's@^\(project.*VERSION \)\([0-9]\.[0-9]\.[0-9]\)\( LANGUAGES.*\)$@\1\2\3@p' CMakeLists.txt
+    	echo "Version $INPUT_STRING:" > tmpfile
+    	git log --pretty=format:" - %s" "v$BASE_STRING"...HEAD >> tmpfile
+    	echo "" >> tmpfile
+    	echo "" >> tmpfile
+    	cat CHANGELOG >> tmpfile
+    	mv tmpfile CHANGELOG
+        set -x
+        cat CHANGELOG
+        cat VERSION
+    	git add CHANGELOG VERSION CMakeLists.txt
+    	git commit -m "Version bump to $INPUT_STRING"
+    	git tag -a -m "Tagging version $INPUT_STRING" "v$INPUT_STRING"
+    	git push origin --tags
+        set +x
+	elif [[ ! $REPLY =~ ^[Nn]$ ]]
+	then
+		echo "answer either with 'y' or 'n'! (nothing happened yet...)"
+	fi
 else
-    echo "Could not find a VERSION file"
-    read -p "Do you want to create a version file and start from scratch? [y]" RESPONSE
-    if [ "$RESPONSE" = "" ]; then RESPONSE="y"; fi
-    if [ "$RESPONSE" = "Y" ]; then RESPONSE="y"; fi
-    if [ "$RESPONSE" = "Yes" ]; then RESPONSE="y"; fi
-    if [ "$RESPONSE" = "yes" ]; then RESPONSE="y"; fi
-    if [ "$RESPONSE" = "YES" ]; then RESPONSE="y"; fi
-    if [ "$RESPONSE" = "y" ]; then
-        echo "0.1.0" > VERSION
-        echo "Version 0.1.0" > CHANGELOG
-        git log --pretty=format:" - %s" >> CHANGELOG
-        echo "" >> CHANGELOG
-        echo "" >> CHANGELOG
-        git add VERSION CHANGELOG
-        #git commit -m "Added VERSION and CHANGELOG files, Version bump to v0.1.0"
-        #git tag -a -m "Tagging version 0.1.0" "v0.1.0"
-        #git push origin --tags
-    fi
-
+    echo "Could not find a VERSION file!"
 fi
