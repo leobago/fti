@@ -1,0 +1,137 @@
+Version 1.4.1:
+ - Merge pull request #334 from leobago/feature-AutomateChangelogAndVersion
+ - version script armed
+ - tested
+ - added version replacement in CMakeList.txt in bump-version.sh
+ - updated version number in CMakeList.txt to new version semantic
+ - added bump-version.sh + CHANGELOG + VERSION
+ - Merge pull request #329 from leobago/develop
+ - Merge pull request #330 from leobago/merge-test
+ - fixed hdf5 tests + fixed diffSize hardcoded config path
+ - Removed unconditional pass on diff_sizes ITF suite
+ - Removed duplicate grank definition on diff_test_func test
+ - Merge step 3: fixed testing/ relative paths
+ - Merge step 2: testing
+ - Merge step 1: src and include dirs
+ - Merge step 1: itf, root folder and CMake
+ - Merge pull request #327 from souchtal/codestyle
+ - fixed MPI-IO recovery issue
+ - fixed MPI-IO recovery issue
+ - Merge pull request #325 from souchtal/issue286
+ - Merge pull request #324 from alexandrelimassantana/feature/project-cmake-refactor
+ - Fix for issue #286
+ - Refactored top-level CMake project() function call
+ - isolated failures for MPIIO Recovery
+ - fixed staging test
+ - filtered out erroneous mpiio case
+ - dcp test fixed
+ - Added reference to readthedocs link in the root-level README file
+ - solved compilation issue
+ - disable dcp tests
+ - cleaning warnings
+ - fixed overflow warning
+ - fixed compilation warnings
+ - fixed segFault caused by meta file
+ - fixed faults in tests
+ - rollback metadata changes in meta.c
+ - fixed diffckpt/ dir
+ - fixed int-rule for all C files + fixed formatting for remaining dirs (tuto, testing, examples)
+ - Merge pull request #320 from alexandrelimassantana/feature/intel-docker-integration
+ - Merge pull request #318 from alexandrelimassantana/feature/build-opt-install-script
+ - Added documentation on how to create the intel-compiler docker volume for CI image
+ - Adjusted build script for intel compiler in accordance to new CI docker image
+ - Removed malconstructed math operation in CMake
+ - Added build option in install script so that users can define the build directory location
+ - Merge pull request #317 from alexandrelimassantana/feature/docker-pgi-integration
+ - Changed docker image to reference FTI organization on Docker Hub instead of personal images
+ - Moved all ITF operations outside of tmpfs
+ - Added documentation about the CI environment
+ - Added volumes on JenkinsFile to avoid packaging extra compilers and CMake versions
+ - Update build script for new docker image when using PGI compiler
+ - Merge pull request #316 from alexandrelimassantana/feature/developer-docs
+ - Merge pull request #315 from alexandrelimassantana/feature/cobertura-integration
+ - Added some remarks about the install script and hdf5/sionlib linkage in documentation
+ - Added documentation to the existing FTI test suites
+ - Removed CI coverage script as it is small enough to fit in a Jenkins pipeline step
+ - Added Cobertura integration into Jenkinsfile
+ - Merge pull request #314 from leobago/dev-l4-local-replica
+ - Merge pull request #313 from alexandrelimassantana/feature/build-coverage
+ - Removed the standard:ckpt_disruption checks where expected behavior is failure
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Fixing small typo in help of install.sh
+ - Swapped docker agent from JenkinsFile to new CI image
+ - Removed some dangling debug messages from ITF source
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Changed the way ITF exports FTI-related build-variables for tests suites
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - more debug info on recovername
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Added debug options to recovername suite
+ - Revert "Added debug flags for debugging the standard suite"
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Added debug flags for debugging the standard suite
+ - Fixing merge
+ - Fixes to set default vars to variables
+ - Bundle of changes to address new docker image with code coverage support
+ - Merge pull request #312 from souchtal/codestyle
+ - Code style fixed for CMake + minor doc update + postreco for loop bug fixed
+ - Merge pull request #311 from alexandrelimassantana/feature/install-fix
+ - Removed unnecessary feedback from cmake_version ITF suite
+ - Build and compilation fixes for gcc-10.1 and cmake-3.17
+ - Merge branch 'develop' into dev-l4-local-replica
+ - Adding flag to apply L4Replica to only POSIX
+ - Merge pull request #308 from alexandrelimassantana/develop
+ - Merge pull request #307 from souchtal/rtd-fix
+ - Removed nameref bash variables from ITF source code
+ - fixed breathe bug for RTD
+ - Apply change only on Posix-IO, all other IOs keep their old behavior
+ - Working version of L4 Local Replica
+ - Merge pull request #305 from alexandrelimassantana/develop
+ - Merge branch 'feature/ci-build-script-refactor' into develop
+ - ITF Refactoring and Documentation Patch
+ - Merge pull request #303 from leobago/getconfig
+ - Refactored the build script for the CI compilers
+ - fixed test: fix io-lib cases + added MPI_BARRIER
+ - fix api.c diff
+ - added fix and ITF test for FTI_GetConfig
+ - Merge pull request #300 from souchtal/codestyle
+ - Merge pull request #301 from alexandrelimassantana/develop
+ - Integrated FTI tests into Jenkinsfile
+ - Merge branch 'updevelop' into develop
+ - Merge branch 'feature/itf-diffsizes' into develop
+ - Integrated diffSizes checks and Jenkinsfile rework
+ - Code style fixed for /include and all Fortran files
+ - Merge pull request #299 from alexandrelimassantana/feature/bugfix-compilation
+ - Bugfix on failing compilation when OpenSSL is not found
+ - Bugfix on failing compilation when OpenSSL is not found
+ - Integration of HDF5 checks into ITF format
+ - Merge pull request #297 from souchtal/codestyle
+ - Addition of Synchorization Interval tests into ITF format
+ - Organized CI Testdriver script to operate on different modes
+ - fix in ckptHierarchy script for bc cmd error
+ - Refactor of ITF test case filtering behavior and matching testdriver adjustments
+ - Integration of heatdis, addinarray and nodeflag checks and ITF bugfixes
+ - Merge branch 'feature/itf-corner-cases' into develop
+ - Bundle of ITF changes and corner case checks integration
+ - Code style fixed for src/util and src/IO
+ - Merge pull request #1 from alexandrelimassantana/sawsane-codestyle
+ - Initial steps in Jenkinsfile now deletes build folder before compiling FTI
+ - Code style fixed for src/util
+ - Merge pull request #292 from souchtal/code-style
+ - Code style fixed for all files in \src
+ - Merge pull request #291 from souchtal/code-style
+ - Code style fixed for: api-cuda, checkpoint, dcp, fti-io, icp
+ - Merge pull request #290 from souchtal/code-style
+ - code style fixed for api.c
+ - Merge branch 'develop' into feature/itf-corner-cases
+ - Merge pull request #289 from alexandrelimassantana/develop
+ - Integration of CMake Tests into ITF framework
+ - Added ITF filters to ignore tests by parameter or function name
+ - ITF test/suite declaration refactoring into its intended original design
+ - ITF Engine refactor to DSL-oriented design
+ - Rework on how ITF handles logs and clean-up
+ - wip
+ - Added the test case 3 of the corner cases
+ - Case 4 of corner cases is now complete
+ - Added configfile as a parameter for the cornercase test application
+
