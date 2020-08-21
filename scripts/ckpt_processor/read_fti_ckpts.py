@@ -73,4 +73,4 @@ def read_checkpoints(app_root):
 	meta_to_ckpt_mapping = map_ckpt_to_meta(metas, app_root)
 	for ckpt in meta_to_ckpt_mapping:
 		print("Processing ", ckpt, " using meta ", meta_to_ckpt_mapping[ckpt])
-		posix_ckpt2.read_checkpoint(ckpt, meta_to_ckpt_mapping[ckpt], config_file)
+		posix_read_ckpts.read_checkpoint(ckpt, meta_to_ckpt_mapping[ckpt], config_file)
