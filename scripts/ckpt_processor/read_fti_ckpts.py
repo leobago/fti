@@ -5,7 +5,7 @@ import os
 import time
 from fnmatch import fnmatch
 import configparser
-import posix_ckpt2
+import posix_read_ckpts
 
 pattern_ckpt = "*.fti"
 pattern_meta = "sector*"
