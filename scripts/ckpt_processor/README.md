@@ -11,12 +11,11 @@ of FTI. Later versions will have support for any application.
 ## Pre-requisites
 
 This version processes checkpoints written with POSIX mode.
-Pre-requisites: (to be relaxed in the next version)
 
-In FTI In configuration file, have the following parameters set as follows: \
-ckpt_io = 1; \
-ckpt_dir = ./local; \
-meta_dir = ./meta; 
+In FTI In configuration file, have the following parameter set as follows: \
+
+ckpt_io = 1; 
+
 
 ## Usage
 
