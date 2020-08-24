@@ -970,7 +970,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         myVarIDs[i] =  data[i].id;
         myRanks[i] =  data[i].dim.ndims;
         memcpy(&myCounts[i*32], &data[i].dim.count, 32*sizeof(uint64_t));
-        for(int tt=0; tt<myRanks[i]; tt++) DBG_MSG("dim %d: %lu", -1, tt, myCounts[i*32+tt]);
         myVarPositions[i] = data[i].filePos;
         strncpy(&ArrayOfIdChars[i*FTI_BUFS], data[i].idChar, FTI_BUFS);
         strncpy(&ArrayOfNames[i*FTI_BUFS], data[i].name, FTI_BUFS);
