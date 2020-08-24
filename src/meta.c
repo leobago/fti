@@ -679,6 +679,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int32_t* fs,
         int32_t mfs, char* fnl, char* checksums, int* allVarIDs,
         int* allRanks, uint64_t* allCounts,
+	int* allVarTypeIDs, int* allVarTypeSizes,
         int32_t* allVarSizes, uint32_t* allLayerSizes, char* allLayerHashes,
         int32_t *allVarPositions, char *allNames, char *allCharIds) {
     // no metadata files for FTI-FF
@@ -735,7 +736,17 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(key, FTI_BUFS, "%d:Var%d_id", i, j);
             snprintf(val, FTI_BUFS, "%d", allVarIDs[i * FTI_Exec->nbVar + j]);
             ini.set(&ini, key, val);
+            
+            // Save id of type
+            snprintf(key, FTI_BUFS, "%d:Var%d_typeId", i, j);
+            snprintf(val, FTI_BUFS, "%d", allVarTypeIDs[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
 
+            // Save size of type
+            snprintf(key, FTI_BUFS, "%d:Var%d_typeSize", i, j);
+            snprintf(val, FTI_BUFS, "%d", allVarTypeSizes[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
+            
             // Save size of variable
             snprintf(key, FTI_BUFS, "%d:Var%d_size", i, j);
             snprintf(val, FTI_BUFS, "%d",
@@ -919,6 +930,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Every process has the same number of protected variables
 
     int* allVarIDs = NULL;
+    int* allVarTypeIDs = NULL;
+    int* allVarTypeSizes = NULL;
     int32_t* allVarSizes = NULL;
     int32_t *allVarPositions = NULL;
 
@@ -937,6 +950,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         allRanks = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar); 
         allCounts = talloc(uint64_t, 32 * FTI_Topo->groupSize * FTI_Exec->nbVar); 
         allVarIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarTypeIDs = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarTypeSizes = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarSizes = talloc(int32_t, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarPositions = talloc(int32_t,
          FTI_Topo->groupSize * FTI_Exec->nbVar);
@@ -955,6 +970,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
     int* myRanks = talloc(int, FTI_Exec->nbVar);
     uint64_t* myCounts = talloc(uint64_t, 32 * FTI_Exec->nbVar);
+    int* myVarTypeIDs = talloc(int, FTI_Exec->nbVar);
+    int* myVarTypeSizes = talloc(int, FTI_Exec->nbVar);
     int32_t* myVarSizes = talloc(int32_t, FTI_Exec->nbVar);
     int32_t* myVarPositions = talloc(int32_t, FTI_Exec->nbVar);
     char *ArrayOfIdChars = (char *)malloc(FTI_Exec->nbVar *
@@ -966,6 +983,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
+        int typeID = data[i].type->id - FTI_Exec->basicTypesOffsetId;
+        myVarIDs[i] = data[i].id;
+        myVarTypeIDs[i] = (typeID < FTI_Exec->basicTypesNum) ? typeID : -1;
+        myVarTypeSizes[i] = data[i].type->size;
         myVarSizes[i] =  data[i].size;
         myVarIDs[i] =  data[i].id;
         myRanks[i] =  data[i].attribute.dim.ndims;
@@ -977,6 +998,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Gather variables IDs
     MPI_Gather(myVarIDs, FTI_Exec->nbVar, MPI_INT, allVarIDs, FTI_Exec->nbVar,
+     MPI_INT, 0, FTI_Exec->groupComm);
+    // Gather variables Type IDs
+    MPI_Gather(myVarTypeIDs, FTI_Exec->nbVar, MPI_INT, allVarTypeIDs, FTI_Exec->nbVar,
+     MPI_INT, 0, FTI_Exec->groupComm);
+    // Gather variables Type Sizes
+    MPI_Gather(myVarTypeSizes, FTI_Exec->nbVar, MPI_INT, allVarTypeSizes, FTI_Exec->nbVar,
      MPI_INT, 0, FTI_Exec->groupComm);
     // Gather variables Ranks
     MPI_Gather(myRanks, FTI_Exec->nbVar, MPI_INT, allRanks, FTI_Exec->nbVar,
@@ -1010,7 +1037,9 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     free(myVarIDs);
     free(myRanks);
-    free(myCounts);
+    free(myCounts);    
+    free(myVarTypeIDs);
+    free(myVarTypeSizes);
     free(myVarSizes);
     free(myVarPositions);
     free(ArrayOfIdChars);
@@ -1020,9 +1049,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo,
          FTI_Ckpt, fileSizes, mfs, ckptFileNames, checksums, allVarIDs,
          allRanks, allCounts,
+         allVarTypeIDs, allVarTypeSizes,
          allVarSizes, allLayerSizes, allLayerHashes, allVarPositions,
           allNames, allCharIds), "write the metadata.");
         free(allVarIDs);
+	free(allVarTypeIDs);
+	free(allVarTypeSizes);
         free(allVarSizes);
         free(allCharIds);
         free(allNames);

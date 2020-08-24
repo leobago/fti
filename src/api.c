@@ -136,7 +136,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
     }
     FTI_Try(FTI_InitGroupsAndTypes(&FTI_Exec),
       "malloc arrays for groups and types.");
-    FTI_Try(FTI_InitBasicTypes(), "create the basic data types.");
+    FTI_Try(FTI_InitBasicTypes(&FTI_Exec), "create the basic data types.");
     if (FTI_Topo.myRank == 0) {
         int restart = (FTI_Exec.reco != 3) ? FTI_Exec.reco : 0;
         FTI_Try(FTI_UpdateConf(&FTI_Conf, &FTI_Exec, restart),
