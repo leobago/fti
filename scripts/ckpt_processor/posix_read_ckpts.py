@@ -23,8 +23,12 @@ class variable(object):
 		self.var_position = var_position
 		self.var_name = var_name
 
-#reads meta_file data
-def read_meta(meta_file):
+#This function reads the given meta data
+#and returns a list of the variables found 
+#in the ckpt file
+def read_meta(meta_file, ckpt_file):
+	ckpt_file = ckpt_file.rsplit('/', 1)[1]
+	mysection = ""
 	data=[]
 	#count nbVars from meta_file
 	regex = "var[-0-9]+_id"
@@ -36,11 +40,17 @@ def read_meta(meta_file):
 	#get nbVars
 	global nbVars
 	nbVars = 0 #initialize it for every meta file
-	for (each_key, each_val) in config.items(config.sections()[1]):
+	for section in config.sections(): #traverse sections
+		if section.isdigit() == True:
+			if config[section]['ckpt_file_name'] == ckpt_file:
+				#this is the correct section from where to read the number of vars
+				mysection = section
+
+	for (each_key, each_val) in config.items(mysection):
+		#check var pattern to increment nbVars variable
 		if var_pattern.match(each_key):
 			nbVars = nbVars + 1
-	print("number of variables to read="+str(nbVars))
-
+	print("Number of variables to read = "+str(nbVars))
 	#get data for each Var
 	for i in range(int(group_size)):
 		for j in range(nbVars):
@@ -52,8 +62,8 @@ def read_meta(meta_file):
 			var = data.append(variable(var_id, var_size, var_position, var_name))
 	return data
 
-#reads checkpoint data
-#and saves it to csv file
+#This function reads the ckpt file
+#and saves its content to out.csv
 def read_checkpoint(ckpt_file, meta_file, config_file):
 	read_config(config_file)
 	if os.path.exists(ckpt_file) == False:
@@ -65,7 +75,7 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 			print("Found checkpoint file with size ", os.path.getsize(ckpt_file))
 			file = open(ckpt_file, "rb")
 			#read meta data
-			data = read_meta(meta_file)
+			data = read_meta(meta_file, ckpt_file)
 			#read Checkpoint
 			for i in range(nbVars):
 			#for each variable:  create list per variable to hold 
@@ -108,8 +118,8 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 				wr.writerows(export_data)
 			myfile.close()
 
-#read the configuration file to extract 
-#the number of nodes in a group
+#This function reads the config_file to extract 
+#the group size
 def read_config(config_file):
 	config = configparser.ConfigParser()
 	config.read(config_file)
