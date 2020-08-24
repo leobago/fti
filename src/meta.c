@@ -972,7 +972,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         memcpy(&myCounts[i*32], &data[i].attribute.dim.count, 32*sizeof(uint64_t));
         myVarPositions[i] = data[i].filePos;
         strncpy(&ArrayOfIdChars[i*FTI_BUFS], data[i].idChar, FTI_BUFS);
-        strncpy(&ArrayOfNames[i*FTI_BUFS], data[i].name, FTI_BUFS);
+        strncpy(&ArrayOfNames[i*FTI_BUFS], data[i].attribute.name, FTI_BUFS);
     }
 
     // Gather variables IDs
