@@ -1055,6 +1055,38 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
     return FTI_SCES;
 }
 
+int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag) {
+    
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTIT_dataset* data;
+    if (FTI_Data->get(&data, id) != FTI_SCES) {
+        FTI_Print("failed to set attribute: could not query dataset", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if( data == NULL ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "failed to set attribute: dataset with id=%d does not exist", id );
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
+        strncpy( data->name, attribute.name, FTI_BUFS );     
+    }
+
+    if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
+        data->dim = attribute.dim;
+    }
+
+    return FTI_SCES;
+
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Defines a global dataset (shared among application processes)

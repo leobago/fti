@@ -118,6 +118,11 @@ extern "C" {
     typedef uint64_t FTIT_hsize_t;
 #endif
 
+    typedef struct FTIT_dimension {
+        int ndims;
+        uint64_t count[32];
+    } FTIT_dimension;
+
     typedef uintptr_t           FTI_ADDRVAL;      /**< for ptr manipulation */
     typedef void*               FTI_ADDRPTR;      /**< void ptr type        */
 
@@ -420,6 +425,17 @@ extern "C" {
         FTIT_typeField      field[FTI_BUFS]; /**< Fields of the complex type.*/
     } FTIT_complexType;
 
+    // create a byte flag
+    typedef enum {
+        FTI_ATTRIBUTE_NAME   = 1 << 0,
+        FTI_ATTRIBUTE_DIM    = 1 << 1,
+    } FTIT_attributeFlag;
+
+    typedef struct FTIT_attribute {
+        FTIT_dimension dim;
+        char name[FTI_BUFS];
+    } FTIT_attribute;
+
     /** @typedef    FTIT_dataset
      *  @brief      Dataset metadata.
      *
@@ -431,6 +447,7 @@ extern "C" {
         bool                recovered;
         void                *ptr;               /**< Pointer to the dataset.*/
         int32_t                count;        /**< Number of elements in dataset.*/
+        FTIT_dimension       dim;
         FTIT_type*          type;             /**< Data type for the dataset.*/
         int                 eleSize;       /**< Element size for the dataset.*/
         int32_t                size;            /**< Total size of the dataset.*/
