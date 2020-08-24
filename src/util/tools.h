@@ -19,7 +19,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
-int FTI_InitBasicTypes();
+int FTI_InitBasicTypes(FTIT_execution* FTI_Exec);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje);
