@@ -1006,6 +1006,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          allVarSizes, allLayerSizes, allLayerHashes, allVarPositions,
           allCharIds), "write the metadata.");
         free(allVarIDs);
+	free(allVarTypeIDs);
+	free(allVarTypeSizes);
         free(allVarSizes);
         free(allCharIds);
         if (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) {
