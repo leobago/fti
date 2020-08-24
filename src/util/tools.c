@@ -313,7 +313,10 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes() {
+int FTI_InitBasicTypes( FTIT_execution* FTI_Exec ) {
+
+    FTI_Exec->basicTypesOffsetId = FTI_Exec->nbType;
+
     FTI_InitType(&FTI_CHAR, sizeof(char));
     FTI_InitType(&FTI_SHRT, sizeof(int16_t));
     FTI_InitType(&FTI_INTG, sizeof(int));
@@ -325,6 +328,8 @@ int FTI_InitBasicTypes() {
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));
+     
+    FTI_Exec->basicTypesNum = FTI_Exec->nbType - FTI_Exec->basicTypesOffsetId;
 
     return FTI_SCES;
 }

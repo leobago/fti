@@ -641,6 +641,8 @@ extern "C" {
         int             ckptIntv;       /**< Ckpt. interval in minutes.     */
         int             lastCkptLvel;   /**< Last checkpoint level.         */
         int             wasLastOffline; /**< TRUE if last ckpt. offline.    */
+        int             basicTypesOffsetId; /**< offset id basic types      */
+        int             basicTypesNum;  /**< number of basic FTI types      */
         double          iterTime;       /**< Current wall time.             */
         double          lastIterTime;   /**< Time spent in the last iter.   */
         double          meanIterTime;   /**< Mean iteration time.           */
@@ -656,7 +658,7 @@ extern "C" {
         unsigned int    ckptId;         /**< Checkpoint ID.                 */
         unsigned int    ckptNext;       /**< Iteration for next checkpoint. */
         unsigned int    ckptLast;       /**< Iteration for last checkpoint. */
-        int32_t            ckptSize;       /**< Checkpoint size.               */
+        int32_t         ckptSize;       /**< Checkpoint size.               */
         unsigned int    nbVar;          /**< Number of protected variables. */
         unsigned int    nbVarStored;    /**< Nr. prot. var. stored in file  */
         unsigned int    nbType;         /**< Number of data types.          */
