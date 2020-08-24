@@ -1043,6 +1043,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     free(myVarSizes);
     free(myVarPositions);
     free(ArrayOfIdChars);
+    free(ArrayOfNames);
 
     // Only one process in the group create the metadata
     if (FTI_Topo->groupRank == 0) {
