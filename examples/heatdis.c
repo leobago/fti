@@ -112,15 +112,6 @@ int main(int argc, char *argv[]) {
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
-    FTIT_attribute prop;
-    strncpy( prop.name, "Temperature_Field", FTI_BUFS );
-    FTIT_dimension dim;
-    dim.ndims = 3;
-    dim.count[0] = 11;
-    dim.count[1] = 22;
-    dim.count[2] = 33;
-    prop.dim = dim;
-    FTI_SetAttribute( 1, prop, FTI_ATTRIBUTE_NAME|FTI_ATTRIBUTE_DIM );
     FTI_Protect(2, g, M*nbLines, FTI_DBLE);
 
     wtime = MPI_Wtime();

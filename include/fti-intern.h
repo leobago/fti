@@ -447,7 +447,7 @@ extern "C" {
         bool                recovered;
         void                *ptr;               /**< Pointer to the dataset.*/
         int32_t                count;        /**< Number of elements in dataset.*/
-        FTIT_dimension       dim;
+        FTIT_attribute      attribute;
         FTIT_type*          type;             /**< Data type for the dataset.*/
         int                 eleSize;       /**< Element size for the dataset.*/
         int32_t                size;            /**< Total size of the dataset.*/

@@ -1076,11 +1076,11 @@ int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag)
     }
     
     if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
-        strncpy( data->name, attribute.name, FTI_BUFS );     
+        strncpy( data->attribute.name, attribute.name, FTI_BUFS );     
     }
 
     if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
-        data->dim = attribute.dim;
+        data->attribute.dim = attribute.dim;
     }
 
     return FTI_SCES;

@@ -968,8 +968,8 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     for (i = 0; i < FTI_Exec->nbVar; i++) {
         myVarSizes[i] =  data[i].size;
         myVarIDs[i] =  data[i].id;
-        myRanks[i] =  data[i].dim.ndims;
-        memcpy(&myCounts[i*32], &data[i].dim.count, 32*sizeof(uint64_t));
+        myRanks[i] =  data[i].attribute.dim.ndims;
+        memcpy(&myCounts[i*32], &data[i].attribute.dim.count, 32*sizeof(uint64_t));
         myVarPositions[i] = data[i].filePos;
         strncpy(&ArrayOfIdChars[i*FTI_BUFS], data[i].idChar, FTI_BUFS);
         strncpy(&ArrayOfNames[i*FTI_BUFS], data[i].name, FTI_BUFS);
