@@ -119,7 +119,7 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 				print("value type: ", type(d[key]))
 			print("###############################")
 			#write to csv file
-			write_data_to_csv(d)
+			#write_data_to_csv(d)
 
 #This function writes the variables
 #stored in a dictionary to the ouput csv file
