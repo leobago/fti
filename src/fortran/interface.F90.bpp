@@ -71,9 +71,6 @@ module FTI
 
   endinterface
 
-
-
-
   interface
 
     function FTI_SetAttribute_string_impl(id, attribute, flag) &
@@ -107,12 +104,9 @@ module FTI
     
     module procedure FTI_SetAttribute_string
     module procedure FTI_SetAttribute_long_array
+    module procedure FTI_SetAttribute_int_long_array
 
   endinterface FTI_SetAttribute
-
-
-
-
 
   interface 
 
@@ -449,9 +443,6 @@ contains
 
   endsubroutine FTI_Init
   
-  
-  
-  
   subroutine FTI_SetAttribute_string(id, attribute, flag, err)
 
     integer, intent(IN) :: id
@@ -477,7 +468,6 @@ contains
     endif
 
   endsubroutine FTI_SetAttribute_string
-
 
   subroutine FTI_SetAttribute_long_array(id, attribute, flag, err)
 
@@ -506,7 +496,32 @@ contains
 
   endsubroutine FTI_SetAttribute_long_array
 
+  subroutine FTI_SetAttribute_int_long_array(id, attribute, flag, err)
 
+    integer, intent(IN) :: id
+    integer(4), intent(IN) :: attribute(:)
+    integer, intent(IN) :: flag
+    integer, intent(OUT) :: err
+
+    integer :: ii, ll
+    integer(c_int) :: id_c
+    integer(c_int) :: flag_c
+    integer(c_int) :: ndims_c
+    integer(c_int64_t), target, dimension(1:size(attribute)) :: attribute_c
+    ndims_c = int(size(attribute), c_int)
+
+    ll = size(attribute)
+    do ii = 1, ll
+      attribute_c(ii) = int(attribute(ii),c_int64_t)
+    enddo
+    id_c = int(id, c_int)
+    flag_c = int(flag, c_int)
+    err = int(FTI_SetAttribute_long_array_impl(id_c, ndims_c, attribute_c, flag_c))
+    if (err /= FTI_SCES ) then
+      return
+    endif
+
+  endsubroutine FTI_SetAttribute_int_long_array
 
   !>  This function returns the current status of the recovery flag.
   !!  \brief    It returns the current status of the recovery flag.

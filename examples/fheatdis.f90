@@ -50,7 +50,7 @@ program heat
    call FTI_Protect(0, ptriter, err)
    call FTI_Protect(2, g, err)
    call FTI_SetAttribute( 2, 'temperature_field', FTI_ATTRIBUTE_NAME, err)
-   call FTI_SetAttribute( 2, counts, FTI_ATTRIBUTE_DIM, err)
+   call FTI_SetAttribute( 2, (/ 11, 22, 33 /), FTI_ATTRIBUTE_DIM, err)
    call FTI_Protect(1, h, err)
 
    wtime = MPI_Wtime()
