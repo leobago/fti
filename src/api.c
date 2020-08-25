@@ -1055,6 +1055,23 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
     return FTI_SCES;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      it allows to add descriptive attributes to a protected variable 
+  @param      id              ID of the variable.
+  @param      attribute       structure that holds the attributes values.
+  @param      flag            flag to indicate which attributes to set.
+  @return     integer         FTI_SCES if successful.
+
+  This function allows to set a descriptive attribute to a protected variable. 
+  The variable has to be protected and an ID assigned before the call. The
+  flag can consist of any combination of the following flags:
+    FTI_ATTRIBUTE_NAME
+    FTI_ATTRIBUTE_DIM
+  flags can be combined by using the bitwise or operator. The attributes will
+  appear inside the meta data files when a checkpoint is taken. 
+ **/
+/*-------------------------------------------------------------------------*/
 int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag) {
     
     if (FTI_Exec.initSCES == 0) {
