@@ -104,7 +104,7 @@ int FTI_SetAttribute_long_array_wrapper(int id, int ndims, int64_t* attribute, i
         att.dim.ndims = ndims;
         int i=0; for(; i<ndims; i++) {
             if(attribute[i] < 0) return FTI_NSCS;
-            att.dim.count[ndims-1-i] = attribute[i];
+            att.dim.count[i] = attribute[i];
         }
         return FTI_SetAttribute(id, att, flag);
     }

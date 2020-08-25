@@ -1069,7 +1069,10 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
     FTI_ATTRIBUTE_NAME
     FTI_ATTRIBUTE_DIM
   flags can be combined by using the bitwise or operator. The attributes will
-  appear inside the meta data files when a checkpoint is taken. 
+  appear inside the meta data files when a checkpoint is taken. When setting 
+  the dimension of a dataset, the first dimension is the leading dimension, 
+  i.e. the dimension that is stored contiguous inside a flat matrix 
+  representation. 
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag) {
