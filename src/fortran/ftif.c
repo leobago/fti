@@ -38,7 +38,7 @@
  */
 
 #include "fti.h"
-#include "../interface.h"
+#include "interface.h"
 #include "ftif.h"
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
