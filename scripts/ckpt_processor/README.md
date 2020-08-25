@@ -1,12 +1,11 @@
 # FTI Checkpoints Processor
 
 This program allows to read FTI's checkpoints from an external Python script. \
-Input: FTI's configuration file. \
+Input: FTI's configuration file and id of rank \
 Output: application data in CSV format.
 
 This is an initial version of FTI's Checkpoint Processor.
-This version works with HeatDistribution application found in *tutorial/* directory 
-of FTI. Later versions will have support for any application. 
+This version can only read checkpoints if saved to Level 1 of FTI. Next version will be accommodated to all levels.
 
 ## Pre-requisites
 
@@ -22,7 +21,7 @@ ckpt_io = 1
 ```python
 import read_fti_checkpoints
 
-read_fti_checkpoints.read_checkpoints(config_file) 
+read_fti_checkpoints.read_checkpoints(config_file, rank_id) 
 
 ```
 

@@ -15,11 +15,13 @@ ckpt_file_size = 0
 d = {} #temp dictionary struct
 var_labels = [] #header for csv file
 
-#varibale object
+#variable object
 class variable(object):
-	def __init__(self, var_id, var_size, var_position, var_name):
+	def __init__(self, var_id, var_size, var_typeid, var_typesize, var_position, var_name):
 		self.var_id = var_id
 		self.var_size = var_size
+		self.var_typeid = var_typeid
+		self.var_typesize = var_typesize
 		self.var_position = var_position
 		self.var_name = var_name
 
@@ -29,7 +31,7 @@ class variable(object):
 def read_meta(meta_file, ckpt_file):
 	ckpt_file = ckpt_file.rsplit('/', 1)[1]
 	mysection = ""
-	data=[]
+	data = []
 	#count nbVars from meta_file
 	regex = "var[-0-9]+_id"
 	var_pattern = re.compile(regex)
@@ -56,10 +58,14 @@ def read_meta(meta_file, ckpt_file):
 		for j in range(nbVars):
 			var_id = config[str(i)]['var'+str(j)+'_id']
 			var_size = config[str(i)]['var'+str(j)+'_size']
+			var_typeid = config[str(i)]['var'+str(j)+'_typeid']
+			var_typesize = config[str(i)]['var'+str(j)+'_typesize']
 			var_position = config[str(i)]['var'+str(j)+'_pos']
 			var_name = config[str(i)]['var'+str(j)+'_name']
 			print('id: '+var_id+' size:'+var_size+' pos:'+var_position+' name:'+var_name)
-			var = data.append(variable(var_id, var_size, var_position, var_name))
+			#(self, var_id, var_size, var_typeid, var_typesize, var_position, var_name):
+			var = data.append(variable(var_id, var_size, var_typeid, var_typesize,
+			 var_position, var_name))
 	return data
 
 #This function reads the ckpt file
@@ -84,39 +90,103 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 				var_array = []
 				print("reading var #", str(i), " of size ", str(data[i].var_size),
 				 " starting pos:", str(data[i].var_position))
-				print("current position ",file.tell())
+				print("current position ", file.tell())
 				file.seek(int(data[i].var_position), os.SEEK_SET)
 				var = file.read(int(data[i].var_size))
-
-				if int(data[i].var_size) == 4: #int
-					decoded_var = struct.unpack('<I', var)[0]
+				#process the datatype
+				decode_pattern = decode_fti_type(data[i].var_typeid)
+				#print for test
+				print("var#", data[i].var_id, " with typeId ", data[i].var_typeid)
+				if int(data[i].var_size) == int(data[i].var_typesize):
+					#single var
+					decoded_var = struct.unpack(decode_pattern, var)
 					var_array.append(decoded_var)
-				elif int(data[i].var_size) % 8 == 0: #double
-					subvars = int(data[i].var_size) // 8 #array elements
-					pattern = str(subvars)+"d"
-					decoded_var = struct.unpack(pattern, var)
+				elif int(data[i].var_size) % int(data[i].var_typesize) == 0:
+					#1-d array var
+					subvars = int(data[i].var_size) // int(data[i].var_typesize)
+					print("variable is array of ", str(subvars), " elements")
+					decode_pattern = str(subvars)+decode_pattern
+					print("[test] decoded pattern ", decode_pattern)
+					decoded_var = struct.unpack(decode_pattern, var)
 					var_array.append(decoded_var)
-				d[i] = var_array
+				d[i] = var_array #replace with var#id instead of id only
 			file.close()
-
+			#double checking dict content
+			print("from dictionary###############")
+			for key in d:
+				d[key] = list(d[key][0])
+				print("key: ", key, " , value: ", d[key])
+				print("value type: ", type(d[key]))
+			print("###############################")
 			#write to csv file
-			biggerlist = []
-			for key in d.keys():
-				print(key)
-				for value in d[key]:
-					if type(value) == tuple:
-						biggerlist.append(list(value))
-					elif type(value) != tuple and type(value) != list:
-						arr = []
-						arr.append(value)
-						biggerlist.append(arr)
+			write_data_to_csv(d)
 
-			export_data = zip_longest(*biggerlist, fillvalue = '')
-			with open('out.csv', 'w', encoding="ISO-8859-1", newline='') as myfile:
-				wr = csv.writer(myfile)
-				wr.writerow(var_labels)
-				wr.writerows(export_data)
-			myfile.close()
+#This function writes the variables
+#stored in a dictionary to the ouput csv file
+def write_data_to_csv(dictionary):
+	max_key = ''
+	max_value = 0
+	#find largest value in dict
+	for key in dictionary:
+		#traverse every value
+		if len(dictionary[key]) > max_value:
+			max_value = len(dictionary[key])
+			max_key = key
+	#print("the largest value in the dict : ", max_value,
+	# " and it belongs to key ", max_key)
+	#append to all other values until max_value
+	for key in dictionary:
+		if key != max_key:
+			#append from len key to max_value
+			for i in range(max_value - len(dictionary[key])):
+				dictionary[key].append('')
+
+	#given dictionary (key, value) where value is a list:
+	keys = sorted(dictionary.keys())
+	with open("out.csv", "w") as outfile:
+		writer = csv.writer(outfile, delimiter = "\t")
+		writer.writerow(keys)
+		writer.writerows(zip(*[dictionary[key] for key in keys]))
+	outfile.close()
+
+
+#This function returns the struct
+#decode pattern for the given FTI type
+def decode_fti_type(fti_type):
+	decode_pattern = ''
+
+	if fti_type == '0': #char
+		decode_pattern = 'c'
+	elif fti_type == '1': #short
+		decode_pattern = 'h'
+	elif fti_type == '2': #int
+		decode_pattern = 'i'
+	elif fti_type == '3': #long int
+		decode_pattern = 'l'
+	elif fti_type == '4': #uchar
+		decode_pattern = 'B'
+	elif fti_type == '5': #ushort
+		decode_pattern = 'H'
+	elif fti_type == '6': #unint
+		decode_pattern = 'I'
+	elif fti_type == '7': #ulong
+		decode_pattern = 'L'
+	elif fti_type == '8': #float
+		decode_pattern = 'f'
+	elif fti_type == '9': #double
+		decode_pattern = 'd'
+	elif fti_type == '10': #long double
+		#unavailable mapping for long double
+		decode_pattern = 'c'
+	elif fti_type == '-1':
+		#self-defined
+		#TODO: implement self-defined types
+		print("TODO")
+	else:
+		#TODO: handle error codes
+		print("error")
+	return decode_pattern
+
 
 #This function reads the config_file to extract 
 #the group size

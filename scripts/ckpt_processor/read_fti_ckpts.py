@@ -8,6 +8,7 @@ from fnmatch import fnmatch
 import configparser
 import posix_read_ckpts
 
+#runtime variables of FTI (ckpt and meta)
 ckpt_dir = ""
 meta_dir = ""
 ckpt_abs_path = ""
