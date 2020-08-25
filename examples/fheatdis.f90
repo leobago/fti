@@ -20,7 +20,9 @@ program heat
    integer, pointer  :: ptriter
    real(8) :: wtime, memSize, localerror, globalerror
    real(8), pointer :: g(:, :), h(:, :)
-
+  
+   integer(8), dimension(3) :: counts
+   counts = (/ 11, 22, 33 /)
    globalerror = 1
 
    call MPI_Init(err)
@@ -47,6 +49,8 @@ program heat
    ptriter => iter
    call FTI_Protect(0, ptriter, err)
    call FTI_Protect(2, g, err)
+   call FTI_SetAttribute( 2, 'temperature_field', FTI_ATTRIBUTE_NAME, err)
+   call FTI_SetAttribute( 2, counts, FTI_ATTRIBUTE_DIM, err)
    call FTI_Protect(1, h, err)
 
    wtime = MPI_Wtime()
