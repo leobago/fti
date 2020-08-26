@@ -49,6 +49,9 @@ APIs
 .. doxygenfunction:: FTI_Protect
 	:project: Fault Tolerance Library 
 
+.. doxygenfunction:: FTI_SetAttribute
+	:project: Fault Tolerance Library 
+
 .. doxygenfunction:: FTI_DefineGlobalDataset
 	:project: Fault Tolerance Library 
 

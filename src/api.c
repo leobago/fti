@@ -1057,6 +1057,58 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      it allows to add descriptive attributes to a protected variable 
+  @param      id              ID of the variable.
+  @param      attribute       structure that holds the attributes values.
+  @param      flag            flag to indicate which attributes to set.
+  @return     integer         FTI_SCES if successful.
+
+  This function allows to set a descriptive attribute to a protected variable. 
+  The variable has to be protected and an ID assigned before the call. The
+  flag can consist of any combination of the following flags:
+    FTI_ATTRIBUTE_NAME
+    FTI_ATTRIBUTE_DIM
+  flags can be combined by using the bitwise or operator. The attributes will
+  appear inside the meta data files when a checkpoint is taken. When setting 
+  the dimension of a dataset, the first dimension is the leading dimension, 
+  i.e. the dimension that is stored contiguous inside a flat matrix 
+  representation. 
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag) {
+    
+    if (FTI_Exec.initSCES == 0) {
+        FTI_Print("FTI is not initialized.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTIT_dataset* data;
+    if (FTI_Data->get(&data, id) != FTI_SCES) {
+        FTI_Print("failed to set attribute: could not query dataset", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if( data == NULL ) {
+        char str[FTI_BUFS];
+        snprintf( str, FTI_BUFS, "failed to set attribute: dataset with id=%d does not exist", id );
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
+        strncpy( data->attribute.name, attribute.name, FTI_BUFS );     
+    }
+
+    if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
+        data->attribute.dim = attribute.dim;
+    }
+
+    return FTI_SCES;
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      Defines a global dataset (shared among application processes)
   @param      id              ID of the dataset.
   @param      rank            Rank of the dataset.

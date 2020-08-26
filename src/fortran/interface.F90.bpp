@@ -33,7 +33,8 @@ module FTI
   !> Token returned if a FTI function fails.
   integer, parameter :: FTI_NSCS = -1
 
-
+  integer, parameter :: FTI_ATTRIBUTE_NAME = 1
+  integer, parameter :: FTI_ATTRIBUTE_DIM = 2
 
 !$SH for T in ${FORTTYPES}; do
   type(FTI_type) :: $(fti_type ${T})
@@ -42,6 +43,7 @@ module FTI
 
 
   public :: FTI_SCES, FTI_NSCS, &
+        FTI_ATTRIBUTE_NAME, FTI_ATTRIBUTE_DIM, &
 !$SH for T in ${FORTTYPES}; do
       $(fti_type ${T}), &
 !$SH done
@@ -50,7 +52,7 @@ module FTI
 			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
       FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
       FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP, FTI_setIDFromString, &
-      FTI_getIDFromString
+      FTI_getIDFromString, FTI_SetAttribute
 
 
 
@@ -68,6 +70,43 @@ module FTI
     endfunction FTI_Init_impl
 
   endinterface
+
+  interface
+
+    function FTI_SetAttribute_string_impl(id, attribute, flag) &
+            bind(c, name='FTI_SetAttribute_string_wrapper')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_SetAttribute_string_impl
+      integer(c_int), value :: id
+      character(c_char), intent(IN) :: attribute(*)
+      integer(c_int), value :: flag
+
+    endfunction FTI_SetAttribute_string_impl
+    
+    function FTI_SetAttribute_long_array_impl(id, ndims, attribute, flag) &
+            bind(c, name='FTI_SetAttribute_long_array_wrapper')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_SetAttribute_string_impl
+      integer(c_int), value :: id
+      integer(c_int), value :: ndims
+      integer(c_int64_t), intent(IN) :: attribute(*)
+      integer(c_int), value :: flag
+
+    endfunction FTI_SetAttribute_long_array_impl
+
+  endinterface
+
+  interface FTI_SetAttribute
+    
+    module procedure FTI_SetAttribute_string
+    module procedure FTI_SetAttribute_long_array
+    module procedure FTI_SetAttribute_int_long_array
+
+  endinterface FTI_SetAttribute
 
   interface 
 
@@ -403,6 +442,86 @@ contains
 !$SH done
 
   endsubroutine FTI_Init
+  
+  subroutine FTI_SetAttribute_string(id, attribute, flag, err)
+
+    integer, intent(IN) :: id
+    character(len=*), intent(IN) :: attribute
+    integer, intent(IN) :: flag
+    integer, intent(OUT) :: err
+
+    character, target, dimension(1:len_trim(attribute)+1) :: attribute_c
+    integer :: ii, ll
+    integer(c_int) :: id_c
+    integer(c_int) :: flag_c
+
+    ll = len_trim(attribute)
+    do ii = 1, ll
+      attribute_c(ii) = attribute(ii:ii)
+    enddo
+    attribute_c(ll+1) = c_null_char
+    id_c = int(id, c_int)
+    flag_c = int(flag, c_int)
+    err = int(FTI_SetAttribute_string_impl(id_c, attribute_c, flag_c))
+    if (err /= FTI_SCES ) then
+      return
+    endif
+
+  endsubroutine FTI_SetAttribute_string
+
+  subroutine FTI_SetAttribute_long_array(id, attribute, flag, err)
+
+    integer, intent(IN) :: id
+    integer(8), intent(IN) :: attribute(:)
+    integer, intent(IN) :: flag
+    integer, intent(OUT) :: err
+
+    integer :: ii, ll
+    integer(c_int) :: id_c
+    integer(c_int) :: flag_c
+    integer(c_int) :: ndims_c
+    integer(c_int64_t), target, dimension(1:size(attribute)) :: attribute_c
+    ndims_c = int(size(attribute), c_int)
+
+    ll = size(attribute)
+    do ii = 1, ll
+      attribute_c(ii) = int(attribute(ii),c_int64_t)
+    enddo
+    id_c = int(id, c_int)
+    flag_c = int(flag, c_int)
+    err = int(FTI_SetAttribute_long_array_impl(id_c, ndims_c, attribute_c, flag_c))
+    if (err /= FTI_SCES ) then
+      return
+    endif
+
+  endsubroutine FTI_SetAttribute_long_array
+
+  subroutine FTI_SetAttribute_int_long_array(id, attribute, flag, err)
+
+    integer, intent(IN) :: id
+    integer(4), intent(IN) :: attribute(:)
+    integer, intent(IN) :: flag
+    integer, intent(OUT) :: err
+
+    integer :: ii, ll
+    integer(c_int) :: id_c
+    integer(c_int) :: flag_c
+    integer(c_int) :: ndims_c
+    integer(c_int64_t), target, dimension(1:size(attribute)) :: attribute_c
+    ndims_c = int(size(attribute), c_int)
+
+    ll = size(attribute)
+    do ii = 1, ll
+      attribute_c(ii) = int(attribute(ii),c_int64_t)
+    enddo
+    id_c = int(id, c_int)
+    flag_c = int(flag, c_int)
+    err = int(FTI_SetAttribute_long_array_impl(id_c, ndims_c, attribute_c, flag_c))
+    if (err /= FTI_SCES ) then
+      return
+    endif
+
+  endsubroutine FTI_SetAttribute_int_long_array
 
   !>  This function returns the current status of the recovery flag.
   !!  \brief    It returns the current status of the recovery flag.

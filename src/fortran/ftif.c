@@ -89,6 +89,28 @@ int FTI_Protect_wrapper(int id, void* ptr, int32_t count, FTIT_type* type) {
     return FTI_Protect(id, ptr, count, *type);
 }
 
+int FTI_SetAttribute_string_wrapper(int id, char* attribute, int flag) {
+    if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
+        FTIT_attribute att;
+        strncpy(att.name, attribute, FTI_BUFS);
+        return FTI_SetAttribute(id, att, flag);
+    }
+    return FTI_SCES;
+}
+
+int FTI_SetAttribute_long_array_wrapper(int id, int ndims, int64_t* attribute, int flag) {
+    if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
+        FTIT_attribute att;
+        att.dim.ndims = ndims;
+        int i=0; for(; i<ndims; i++) {
+            if(attribute[i] < 0) return FTI_NSCS;
+            att.dim.count[i] = attribute[i];
+        }
+        return FTI_SetAttribute(id, att, flag);
+    }
+    return FTI_SCES;
+}
+
 /**
  *   @brief      Initializes a complex hdf5 data type.
  *   @param      newType         The data type to be intialized.
