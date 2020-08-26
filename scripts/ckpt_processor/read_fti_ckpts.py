@@ -14,6 +14,7 @@ config_file = ""
 ckpt_dir = ""
 meta_dir = ""
 global_dir = ""
+group_size = 0
 ckpt_abs_path = ""
 meta_abs_path = ""
 execution_id = ""
@@ -27,12 +28,14 @@ def init_config_params(config_file):
 	global ckpt_dir
 	global meta_dir
 	global global_dir
+	global group_size
 	config = configparser.ConfigParser()
 	config.read(config_file)
 	execution_id = config['restart']['exec_id']
 	ckpt_dir = config['basic']['ckpt_dir']
 	meta_dir = config['basic']['meta_dir']
 	global_dir = config['basic']['glbl_dir']
+	group_size = config['basic']['group_size']
 
 
 #This function processes FTI's files
@@ -133,14 +136,14 @@ def find_meta_file(ckpt_file):
 	return meta_file
 
 #This function sets FTI's files paths
-#depending on the level
+#depending on the level where the ckpt is stored
 def process_level(level):
 	global level_dir
 	level_dir = '/l'+str(level)+'/'
 	#print("level dir : ", level_dir)
 
 #This function compares ckpt directories
-#and returns the directory that has the latest ckpt
+#and returns the level to which the last ckpt was stored
 def get_latest_ckpt():
 	latest = max(glob.glob(os.path.join(ckpt_abs_path, '*/')), key=os.path.getmtime)
 	latest = latest.rsplit('/', 1)[0]
@@ -162,4 +165,4 @@ def read_checkpoints(config_file, rank_id, level=None):
 	ckpt_file = find_ckpt_file(rank_id) 
 	meta_file = find_meta_file(ckpt_file)
 	print("Processing ", ckpt_file, " using meta ", meta_file)
-	posix_read_ckpts.read_checkpoint(ckpt_file, meta_file, config_file)
+	posix_read_ckpts.read_checkpoint(ckpt_file, meta_file, config_file, group_size)

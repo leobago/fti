@@ -10,7 +10,6 @@ import time
 from itertools import zip_longest
 
 nbVars = 0
-group_size = 0
 ckpt_file_size = 0
 d = {} #temp dictionary struct
 var_labels = [] #header for csv file
@@ -28,7 +27,7 @@ class variable(object):
 #This function reads the given meta data
 #and returns a list of the variables found 
 #in the ckpt file
-def read_meta(meta_file, ckpt_file):
+def read_meta(meta_file, ckpt_file, group_size):
 	ckpt_file = ckpt_file.rsplit('/', 1)[1]
 	mysection = ""
 	data = []
@@ -69,8 +68,8 @@ def read_meta(meta_file, ckpt_file):
 
 #This function reads the ckpt file
 #and saves its content to out.csv
-def read_checkpoint(ckpt_file, meta_file, config_file):
-	read_config(config_file)
+def read_checkpoint(ckpt_file, meta_file, config_file, group_size):
+	#read_config(config_file)
 	if os.path.exists(ckpt_file) == False:
 		print("No checkpoint file found")
 	else:
@@ -80,7 +79,7 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 			print("Found checkpoint file with size ", os.path.getsize(ckpt_file))
 			file = open(ckpt_file, "rb")
 			#read meta data
-			data = read_meta(meta_file, ckpt_file)
+			data = read_meta(meta_file, ckpt_file, group_size)
 			#read Checkpoint
 			for i in range(nbVars):
 			#for each variable:  create list per variable to hold 
@@ -182,13 +181,3 @@ def decode_fti_type(fti_type):
 		#TODO: handle error codes
 		print("error")
 	return decode_pattern
-
-
-#This function reads the config_file to extract 
-#the group size
-def read_config(config_file):
-	config = configparser.ConfigParser()
-	config.read(config_file)
-	#read group_size
-	global group_size
-	group_size = config['basic']['group_size']
