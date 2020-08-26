@@ -23,6 +23,8 @@ class variable(object):
 		self.var_typesize = var_typesize
 		self.var_position = var_position
 		self.var_name = var_name
+		#self.var_dim = var_dim
+		#self.var_dims = var_dims
 
 #This function reads the given meta data
 #and returns a list of the variables found 
@@ -60,7 +62,9 @@ def read_meta(meta_file, ckpt_file, group_size):
 			var_typeid = config[str(i)]['var'+str(j)+'_typeid']
 			var_typesize = config[str(i)]['var'+str(j)+'_typesize']
 			var_position = config[str(i)]['var'+str(j)+'_pos']
-			var_name = config[str(i)]['var'+str(j)+'_name']
+			if config.has_option(str(i), 'var'+str(i)+'_name') == True:
+				var_name = config[str(i)]['var'+str(j)+'_name']
+				print("var name ", var_name)
 			#print('id: '+var_id+' size:'+var_size+' pos:'+var_position+' name:'+var_name)
 			var = data.append(variable(var_id, var_size, var_typeid, var_typesize,
 			 var_position, var_name))
