@@ -38,7 +38,7 @@
  */
 
 #include "fti.h"
-#include "interface.h"
+#include "../interface.h"
 #include "ftif.h"
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
@@ -90,7 +90,7 @@ int FTI_Protect_wrapper(int id, void* ptr, int32_t count, FTIT_type* type) {
 }
 
 int FTI_SetAttribute_string_wrapper(int id, char* attribute, int flag) {
-    if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
+    if ( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
         FTIT_attribute att;
         strncpy(att.name, attribute, FTI_BUFS);
         return FTI_SetAttribute(id, att, flag);
@@ -98,12 +98,13 @@ int FTI_SetAttribute_string_wrapper(int id, char* attribute, int flag) {
     return FTI_SCES;
 }
 
-int FTI_SetAttribute_long_array_wrapper(int id, int ndims, int64_t* attribute, int flag) {
-    if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
+int FTI_SetAttribute_long_array_wrapper(int id, int ndims,
+        int64_t* attribute, int flag) {
+    if ( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
         FTIT_attribute att;
         att.dim.ndims = ndims;
-        int i=0; for(; i<ndims; i++) {
-            if(attribute[i] < 0) return FTI_NSCS;
+        int i = 0; for (; i < ndims; i++) {
+            if (attribute[i] < 0) return FTI_NSCS;
             att.dim.count[i] = attribute[i];
         }
         return FTI_SetAttribute(id, att, flag);
@@ -128,6 +129,6 @@ int FTI_InitComplexType_wrapper(FTIT_type** newType,
  FTIT_complexType* typeDefinition, int length, size_t size, char* name,
  FTIT_H5Group* h5group) {
     *newType = talloc(FTIT_type, 1);
-    return FTI_InitComplexType(*newType, typeDefinition, length, size, name,
-     h5group);
+    return FTI_InitComplexType(*newType, typeDefinition,
+            length, size, name, h5group);
 }

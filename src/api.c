@@ -37,7 +37,7 @@
  */
 
 
-#include "./interface.h"
+#include "interface.h"
 #include "IO/cuda-md5/md5Opt.h"
 
 #ifdef GPUSUPPORT
@@ -1075,8 +1075,8 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
   representation. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag) {
-    
+int FTI_SetAttribute(int id, FTIT_attribute attribute,
+        FTIT_attributeFlag flag) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -1088,23 +1088,24 @@ int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag)
         return FTI_NSCS;
     }
 
-    if( data == NULL ) {
+    if ( data == NULL ) {
         char str[FTI_BUFS];
-        snprintf( str, FTI_BUFS, "failed to set attribute: dataset with id=%d does not exist", id );
+        snprintf(str, FTI_BUFS,
+                "failed to set attribute: dataset with id=%d does not exist",
+                id);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
-    
-    if( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
-        strncpy( data->attribute.name, attribute.name, FTI_BUFS );     
+
+    if ( (flag & FTI_ATTRIBUTE_NAME) == FTI_ATTRIBUTE_NAME ) {
+        strncpy(data->attribute.name, attribute.name, FTI_BUFS);
     }
 
-    if( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
+    if ( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
         data->attribute.dim = attribute.dim;
     }
 
     return FTI_SCES;
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3107,4 +3108,3 @@ FTIT_allConfiguration FTI_GetConfig(const char* configFile,
       FTI_Print("FTI configuration returned.", FTI_INFO);
       return FTI_allconf;
 }
-
