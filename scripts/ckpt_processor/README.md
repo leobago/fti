@@ -1,17 +1,14 @@
 # FTI Checkpoints Processor
 
+This is an initial version of FTI's Checkpoint Processor. \
 This program allows to read FTI's checkpoints from an external Python script. \
-
-Input \
+*Input* \
 config_file			: FTI's configuration file \
 rank_id    			: Id of rank \
-level(optional)     : FTI' level (1, 2, 3, 4) \
+level(optional)     : FTI's level (1, 2, 3, 4) \
 					 if not provided, read from last checkpoints. \
-Output: Application data in CSV format.
+*Output*: Application data in CSV format.
 
-
-This is an initial version of FTI's Checkpoint Processor.
-This version can only read checkpoints if saved to Level 1 of FTI. Next version will be accommodated to all levels.
 
 ## Pre-requisites
 
