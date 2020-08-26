@@ -62,8 +62,7 @@ def read_meta(meta_file, ckpt_file):
 			var_typesize = config[str(i)]['var'+str(j)+'_typesize']
 			var_position = config[str(i)]['var'+str(j)+'_pos']
 			var_name = config[str(i)]['var'+str(j)+'_name']
-			print('id: '+var_id+' size:'+var_size+' pos:'+var_position+' name:'+var_name)
-			#(self, var_id, var_size, var_typeid, var_typesize, var_position, var_name):
+			#print('id: '+var_id+' size:'+var_size+' pos:'+var_position+' name:'+var_name)
 			var = data.append(variable(var_id, var_size, var_typeid, var_typesize,
 			 var_position, var_name))
 	return data
@@ -90,7 +89,7 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 				var_array = []
 				print("reading var #", str(i), " of size ", str(data[i].var_size),
 				 " starting pos:", str(data[i].var_position))
-				print("current position ", file.tell())
+				#print("current position ", file.tell())
 				file.seek(int(data[i].var_position), os.SEEK_SET)
 				var = file.read(int(data[i].var_size))
 				#process the datatype
@@ -104,22 +103,19 @@ def read_checkpoint(ckpt_file, meta_file, config_file):
 				elif int(data[i].var_size) % int(data[i].var_typesize) == 0:
 					#1-d array var
 					subvars = int(data[i].var_size) // int(data[i].var_typesize)
-					print("variable is array of ", str(subvars), " elements")
+					#print("variable is array of ", str(subvars), " elements")
 					decode_pattern = str(subvars)+decode_pattern
-					print("[test] decoded pattern ", decode_pattern)
+					#print("[test] decoded pattern ", decode_pattern)
 					decoded_var = struct.unpack(decode_pattern, var)
 					var_array.append(decoded_var)
-				d[i] = var_array #replace with var#id instead of id only
+				d["var#"+str(i)] = var_array #replace with var#id instead of id only
 			file.close()
 			#double checking dict content
-			print("from dictionary###############")
 			for key in d:
 				d[key] = list(d[key][0])
-				print("key: ", key, " , value: ", d[key])
-				print("value type: ", type(d[key]))
-			print("###############################")
+				#print("key: ", key, " , value: ", d[key])
 			#write to csv file
-			#write_data_to_csv(d)
+			write_data_to_csv(d)
 
 #This function writes the variables
 #stored in a dictionary to the ouput csv file

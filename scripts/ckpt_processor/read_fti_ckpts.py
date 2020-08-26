@@ -32,7 +32,7 @@ def init_config_params(config_file):
 	execution_id = config['restart']['exec_id']
 	ckpt_dir = config['basic']['ckpt_dir']
 	meta_dir = config['basic']['meta_dir']
-	global_dir = config['basic']['global_dir']
+	global_dir = config['basic']['glbl_dir']
 
 
 #This function processes FTI's files
@@ -47,6 +47,9 @@ def process_fti_paths(config_file):
 	#TODO: should evaluate for global_dir 
 	dir_path = os.path.dirname(os.path.realpath(config_file))
 	#concatenate paths
+	if level_dir == '/l4/':
+		#switch to global_dir
+		ckpt_dir = global_dir
 	if ckpt_dir.startswith('./') == True: #same directory as config
 		ckpt_abs_path = dir_path + ckpt_dir.replace('.','')
 	elif "." not in ckpt_dir: #absolute path
@@ -56,7 +59,6 @@ def process_fti_paths(config_file):
 		#iterate over the number of '../' found in ckpt_path
 		os.chdir(dir_path)
 		dirs = ckpt_dir.count("..")
-		print("dirs : ", dirs)
 		for i in range(dirs):
 			os.chdir("..")
 		#concatenate the remaining part
@@ -81,7 +83,6 @@ def process_fti_paths(config_file):
 		#iterate over the number of '../' found in ckpt_path
 		os.chdir(dir_path)
 		dirs = meta_dir.count("..")
-		print("dirs : ", dirs)
 		for i in range(dirs):
 			os.chdir("..")
 		#concatenate the remaining part
@@ -99,17 +100,13 @@ def find_ckpt_file(rank_id):
 	pattern_ckpt_file = "*-Rank"+str(rank_id)+".fti"
 	pattern_ckpt_path = execution_id+level_dir
 	ckpt_file = ""
-	# for path, subdirs, files in os.walk(ckpt_abs_path):
-	# 	for name in files:
-	# 		if fnmatch(name, pattern_ckpt):
-	# 			ckpt_file = os.path.join(path, name)
+
 	for root, dirs, files in os.walk(os.path.abspath(ckpt_abs_path)):
 		for file in files:
 			file = os.path.join(root, file)
 			if pattern_ckpt_path in file and fnmatch(file, pattern_ckpt_file):
 				ckpt_file = file
-				print("FOUND CKPT ", file)
-
+				#print("FOUND CKPT ", file)
 	return ckpt_file
 
 
@@ -126,6 +123,7 @@ def find_meta_file(ckpt_file):
 			if os.path.isfile(file) == True:
 				config = configparser.ConfigParser()
 				config.read(file)
+				#print("ckpt_file: ",ckpt_file)
 				ckpt = ckpt_file.rsplit('/', 1)[1]
 				for section in config.sections():
 					if section.isdigit() == True:
@@ -138,12 +136,8 @@ def find_meta_file(ckpt_file):
 #depending on the level
 def process_level(level):
 	global level_dir
-	if level in (1, 2, 3):
-		level_dir = '/l'+str(level)+'/'
-		print("level dir : ", level_dir)
-	elif level == 4:
-		#should fetch the global_dir path from config_file
-		
+	level_dir = '/l'+str(level)+'/'
+	#print("level dir : ", level_dir)
 
 #This function compares ckpt directories
 #and returns the directory that has the latest ckpt
@@ -157,7 +151,6 @@ def get_latest_ckpt():
 #API to read the checkpoints given config and rank
 def read_checkpoints(config_file, rank_id, level=None):
 	init_config_params(config_file)
-	process_fti_paths(config_file)
 	if level in fti_levels:
 		process_level(level)
 	else:
@@ -165,6 +158,7 @@ def read_checkpoints(config_file, rank_id, level=None):
 		last_level = get_latest_ckpt()
 		process_level(level)
 
+	process_fti_paths(config_file)
 	ckpt_file = find_ckpt_file(rank_id) 
 	meta_file = find_meta_file(ckpt_file)
 	print("Processing ", ckpt_file, " using meta ", meta_file)
