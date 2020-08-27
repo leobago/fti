@@ -38,7 +38,7 @@
 
 #include <dirent.h>
 #include <execinfo.h>
-#include "../interface.h"
+#include "tools.h"
 
 int FTI_filemetastructsize;         /**< size of FTIFF_db struct in file    */
 int FTI_dbstructsize;               /**< size of FTIFF_db struct in file    */
@@ -152,7 +152,8 @@ int FTI_Checksum(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data,
     int ii = 0;
 
     for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", FTI_Exec->integrity[i]);
+        int rest = MD5_DIGEST_STRING_LENGTH-ii;
+        snprintf(&checksum[ii], rest, "%02x", FTI_Exec->integrity[i]);
         ii += 2;
     }
     return FTI_SCES;
@@ -196,7 +197,8 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp) {
     char checksum[MD5_DIGEST_STRING_LENGTH];  // calculated checksum
     int ii = 0;
     for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
+        int rest = MD5_DIGEST_STRING_LENGTH-ii;
+        snprintf(&checksum[ii], rest, "%02x", hash[i]);
         ii += 2;
     }
 
@@ -313,8 +315,7 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes( FTIT_execution* FTI_Exec ) {
-
+int FTI_InitBasicTypes(FTIT_execution* FTI_Exec) {
     FTI_Exec->basicTypesOffsetId = FTI_Exec->nbType;
 
     FTI_InitType(&FTI_CHAR, sizeof(char));
@@ -328,7 +329,7 @@ int FTI_InitBasicTypes( FTIT_execution* FTI_Exec ) {
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));
-     
+
     FTI_Exec->basicTypesNum = FTI_Exec->nbType - FTI_Exec->basicTypesOffsetId;
 
     return FTI_SCES;
@@ -503,8 +504,10 @@ char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
     }
 
     int i;
+    int rest = MD5_DIGEST_STRING_LENGTH;
     for (i = 0; i < digestWidth; i++) {
-        sprintf(&hashHexStr[2*i], "%02x", hash[i]);
+        rest -= 2;
+        snprintf(&hashHexStr[2*i], rest, "%02x", hash[i]);
     }
 
     return hashHexStr;

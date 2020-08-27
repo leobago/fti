@@ -5,8 +5,10 @@
  *  @file   meta.h
  */
 
-#ifndef FTI_META_H_
-#define FTI_META_H_
+#ifndef SRC_META_H_
+#define SRC_META_H_
+
+#include "interface.h"
 
 int FTI_GetChecksums(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
@@ -45,4 +47,4 @@ int FTI_LoadL4CkptMetaData(FTIT_configuration* FTI_Conf,
         FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt);
 
-#endif  // FTI_META_H_
+#endif  // SRC_META_H_

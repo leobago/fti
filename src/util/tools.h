@@ -5,8 +5,10 @@
  *  @file   tools.h
  */
 
-#ifndef FTI_TOOLS_H_
-#define FTI_TOOLS_H_
+#ifndef SRC_UTIL_TOOLS_H_
+#define SRC_UTIL_TOOLS_H_
+
+#include "../interface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,4 +33,4 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
 }
 #endif
 
-#endif  // FTI_TOOLS_H_
+#endif  // SRC_UTIL_TOOLS_H_

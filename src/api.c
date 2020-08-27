@@ -37,7 +37,7 @@
  */
 
 
-#include "./interface.h"
+#include "interface.h"
 #include "IO/cuda-md5/md5Opt.h"
 
 #ifdef GPUSUPPORT
@@ -1076,7 +1076,7 @@ int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SetAttribute(int id, FTIT_attribute attribute,
-  FTIT_attributeFlag flag) {
+        FTIT_attributeFlag flag) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -1091,7 +1091,8 @@ int FTI_SetAttribute(int id, FTIT_attribute attribute,
     if ( data == NULL ) {
         char str[FTI_BUFS];
         snprintf(str, FTI_BUFS,
-          "failed to set attribute: dataset with id=%d does not exist", id);
+                "failed to set attribute: dataset with id=%d does not exist",
+                id);
         FTI_Print(str, FTI_WARN);
         return FTI_NSCS;
     }
@@ -3107,4 +3108,3 @@ FTIT_allConfiguration FTI_GetConfig(const char* configFile,
       FTI_Print("FTI configuration returned.", FTI_INFO);
       return FTI_allconf;
 }
-

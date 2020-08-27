@@ -41,8 +41,8 @@
 #include <stdio.h>
 
 #include "fti.h"
+#include "../interface.h"
 #include "ftif.h"
-#include "interface.h"
 
 #define TYPECODE_NONE 0
 #define TYPECODE_INT 1
@@ -181,12 +181,12 @@ int FTI_SetAttribute_string_wrapper(int id, char* attribute, int flag) {
     return FTI_SCES;
 }
 
-int FTI_SetAttribute_long_array_wrapper(int id, int ndims, int64_t* attribute,
- int flag) {
+int FTI_SetAttribute_long_array_wrapper(int id, int ndims,
+        int64_t* attribute, int flag) {
     if ( (flag & FTI_ATTRIBUTE_DIM) == FTI_ATTRIBUTE_DIM ) {
         FTIT_attribute att;
         att.dim.ndims = ndims;
-        int i=0; for (; i < ndims; i++) {
+        int i = 0; for (; i < ndims; i++) {
             if (attribute[i] < 0) return FTI_NSCS;
             att.dim.count[i] = attribute[i];
         }
@@ -212,6 +212,6 @@ int FTI_InitComplexType_wrapper(FTIT_type** newType,
  FTIT_complexType* typeDefinition, int length, size_t size, char* name,
  FTIT_H5Group* h5group) {
     *newType = talloc(FTIT_type, 1);
-    return FTI_InitComplexType(*newType, typeDefinition, length, size, name,
-     h5group);
+    return FTI_InitComplexType(*newType, typeDefinition,
+            length, size, name, h5group);
 }

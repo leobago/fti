@@ -8,8 +8,8 @@
  *  @brief  Header file for the FTI library.
  */
 
-#ifndef FTI_FTI_H_
-#define FTI_FTI_H_
+#ifndef INCLUDE_FTI_H_
+#define INCLUDE_FTI_H_
 
 /** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
@@ -90,7 +90,8 @@ extern "C" {
   int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type);
-  int FTI_SetAttribute( int id, FTIT_attribute attribute, FTIT_attributeFlag flag);
+  int FTI_SetAttribute(int id, FTIT_attribute attribute,
+          FTIT_attributeFlag flag);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name,
    FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
@@ -131,4 +132,4 @@ extern "C" {
 }
 #endif
 
-#endif  // FTI_FTI_H_
+#endif  // INCLUDE_FTI_H_
