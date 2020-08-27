@@ -2669,7 +2669,7 @@ int FTI_Finalize() {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
     }
-
+    MPI_Barrier(FTI_COMM_WORLD);
     if (FTI_Topo.amIaHead) {
         if ( FTI_Conf.stagingEnabled ) {
             FTI_FinalizeStage(&FTI_Exec, &FTI_Topo, &FTI_Conf);
