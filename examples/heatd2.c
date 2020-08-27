@@ -135,9 +135,9 @@ int main(int argc, char *argv[]) {
     // Define and initialize the datastructure
     cInfo myCkpt = {1, 1};
     // Create a new FTI data type
-    FTIT_type ckptInfo;
+    fti_id_t ckptInfo;
     // Initialize the new FTI data type
-    FTI_InitType(&ckptInfo, 2*sizeof(int));
+    ckptInfo = FTI_InitType(2*sizeof(int));
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, &myCkpt, 1, ckptInfo);

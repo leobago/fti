@@ -40,12 +40,10 @@
 #ifndef _FTIF_H
 #define _FTIF_H
 
+#include "../interface.h"
+
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm);
-int FTI_InitType_wrapper(FTIT_type** type, int size);
-int FTI_Protect_wrapper(int id, void* ptr, int32_t count, FTIT_type* type);
-int FTI_InitPrimitiveType_C(FTIT_type** type, const char *name, int size);
-int FTI_InitComplexType_wrapper(FTIT_type** newType,
-  FTIT_complexType* typeDefinition, int length, size_t size,
-  char* name, FTIT_H5Group* parent);
+fti_id_t FTI_InitPrimitiveType_C(const char *name, int size);
+fti_id_t FTI_InitComplexType_wrapper(char* name, int size);
 
 #endif

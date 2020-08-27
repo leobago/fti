@@ -240,7 +240,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
-    FTI_Exec->nbType = 0;
     FTI_Exec->minuteCnt = 0;
     FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;

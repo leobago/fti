@@ -36,7 +36,7 @@
 
 typedef struct AsByteArray {
   char character;
-  int32_t longs[1024];
+  long longs[1024];
 } AsByteArray;
 
 typedef struct Chars {
@@ -46,15 +46,15 @@ typedef struct Chars {
 } Chars;
 
 typedef struct Integers {
-  int16_t shortInteger;
+  short shortInteger;
   int integer;
-  int32_t longInteger;
+  long longInteger;
 } Integers;
 
 typedef struct UIntegers {
-  int16_t shortInteger;
+  unsigned short shortInteger;
   unsigned int integer;
-  uint32_t longInteger;
+  unsigned long longInteger;
 } UIntegers;
 
 typedef struct Floats {
@@ -174,7 +174,7 @@ int verifyChars(Chars* in, int shift, int rank, char* name) {
     }
     for (j = 0; j < 1024; j++) {
       if (in->bytes[i].longs[j] != (j + 1) * 2 + shift) {
-        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %ld should be %d \n", rank,
+        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %d should be %d \n", rank,
                name, i, j, in->bytes[i].longs[j], (j + 1) * 2 + shift);
         return VERIFY_FAILED;
       }
@@ -195,7 +195,7 @@ int verifyInts(Integers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->longInteger != -1234 - shift) {
-    printf("[ %06d ] : %s.shortInteger = %ld should be %d \n", rank, name,
+    printf("[ %06d ] : %s.shortInteger = %d should be %d \n", rank, name,
            in->longInteger, -1234 - shift);
     return VERIFY_FAILED;
   }
@@ -218,7 +218,7 @@ int verifyUInts(UIntegers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->longInteger != 1234 + shift) {
-    printf("[ %06d ] : %s.shortInteger = %lu should be %u \n", rank, name,
+    printf("[ %06d ] : %s.shortInteger = %u should be %u \n", rank, name,
            in->longInteger, 1234 + shift);
     return VERIFY_FAILED;
   }
@@ -320,8 +320,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
   MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
-  FTIT_type bytesType;
-  FTI_InitType(&bytesType, sizeof(AsByteArray));
+  fti_id_t bytesType = FTI_InitType(sizeof(AsByteArray));
 
   // Create groups for types
   // AllIntegers datatype
@@ -341,110 +340,87 @@ int main(int argc, char** argv) {
   FTI_InitGroup(&charsAndFloatsGroup, "Chars and Floats", NULL);
 
   // Chars and array of bytes
-  FTIT_complexType CharsDef;
-  FTIT_type CharsType;
+  fti_id_t CharsType = FTI_InitComplexType("Chars", sizeof(Chars), NULL);
 
   int dimLength[4];
   dimLength[0] = 10;
-  FTI_AddComplexField(&CharsDef, &FTI_CHAR, offsetof(Chars, chars), 1,
-                      dimLength, 0, "char array");
+  FTI_AddComplexField(CharsType, "char array", FTI_CHAR,
+      offsetof(Chars, chars), 1, dimLength);
 
   dimLength[0] = 2;
   dimLength[1] = 3;
   dimLength[2] = 4;
   dimLength[3] = 5;
-  FTI_AddComplexField(&CharsDef, &FTI_UCHR, offsetof(Chars, uChars), 4,
-                      dimLength, 1, "unsigned char multi-array");
+  FTI_AddComplexField(CharsType, "unsigned char multi-array", FTI_UCHR,
+      offsetof(Chars, uChars), 4, dimLength);
 
   dimLength[0] = 2;
-  FTI_AddComplexField(&CharsDef, &bytesType, offsetof(Chars, bytes), 1,
-                      dimLength, 2, "byte array");
-
-  FTI_InitComplexType(&CharsType, &CharsDef, 3, sizeof(Chars), "Chars", NULL);
+  FTI_AddComplexField(CharsType, "byte array", bytesType,
+      offsetof(Chars, bytes), 1, dimLength);
 
   // Integers
-  FTIT_complexType IntegersDef;
-  FTIT_type IntegersType;
+  fti_id_t IntegersType = FTI_InitComplexType("struct Integers",
+      sizeof(Integers), &intsGroup);
 
-  FTI_AddSimpleField(&IntegersDef, &FTI_SHRT, offsetof(Integers, shortInteger),
-                     0, "short int");
-  FTI_AddSimpleField(&IntegersDef, &FTI_INTG, offsetof(Integers, integer), 1,
-                     "int");
-  FTI_AddSimpleField(&IntegersDef, &FTI_LONG, offsetof(Integers, longInteger),
-                     2, "long int");
-
-  FTI_InitComplexType(&IntegersType, &IntegersDef, 3, sizeof(Integers),
-                      "struct Integers", &intsGroup);
+  FTI_AddSimpleField(IntegersType, "short int", FTI_SHRT,
+      offsetof(Integers, shortInteger));
+  FTI_AddSimpleField(IntegersType, "int", FTI_INTG,
+      offsetof(Integers, integer));
+  FTI_AddSimpleField(IntegersType, "long int", FTI_LONG,
+      offsetof(Integers, longInteger));
 
   // Unsigned integers
-  FTIT_complexType UIntegersDef;
-  FTIT_type UIntegersType;
-  FTI_AddSimpleField(&UIntegersDef, &FTI_USHT,
-                     offsetof(UIntegers, shortInteger), 0,
-                     "unsigned short int");
-  FTI_AddSimpleField(&UIntegersDef, &FTI_UINT, offsetof(UIntegers, integer), 1,
-                     "unsigned int");
-  FTI_AddSimpleField(&UIntegersDef, &FTI_ULNG, offsetof(UIntegers, longInteger),
-                     2, "unsigned long int");
+  fti_id_t UIntegersType = FTI_InitComplexType("struct UIntegers",
+      sizeof(UIntegers), &uIntsGroup);
 
-  FTI_InitComplexType(&UIntegersType, &UIntegersDef, 3, sizeof(UIntegers),
-                      "struct UIntegers", &uIntsGroup);
+  FTI_AddSimpleField(UIntegersType, "unsigned short int", FTI_USHT,
+      offsetof(UIntegers, shortInteger));
+  FTI_AddSimpleField(UIntegersType, "unsigned int", FTI_UINT,
+      offsetof(UIntegers, integer));
+  FTI_AddSimpleField(UIntegersType, "unsigned long int", FTI_ULNG,
+      offsetof(UIntegers, longInteger));
 
   // Floats
-  FTIT_complexType FloatsDef;
-  FTIT_type FloatsType;
-  FTI_AddSimpleField(&FloatsDef, &FTI_SFLT, offsetof(Floats, singlePrec), 0,
-                     "float");
-  FTI_AddSimpleField(&FloatsDef, &FTI_DBLE, offsetof(Floats, doublePrec), 1,
-                     "double");
-  // FTI_AddSimpleField(&FloatsDef, &FTI_LDBE, offsetof(Floats, longDoublePrec),
-  // 2, "long double");
+  fti_id_t FloatsType = FTI_InitComplexType("struct Floats",
+      sizeof(Floats), &charsAndFloatsGroup);
 
-  FTI_InitComplexType(&FloatsType, &FloatsDef, 2, sizeof(Floats),
-                      "struct Floats", &charsAndFloatsGroup);
+  FTI_AddSimpleField(FloatsType, "float", FTI_SFLT,
+      offsetof(Floats, singlePrec));
+  FTI_AddSimpleField(FloatsType, "double", FTI_DBLE,
+      offsetof(Floats, doublePrec));
 
   // Integers aggregated
-  FTIT_complexType AllIntsDef;
-  FTIT_type AllIntsType;
+  fti_id_t AllIntsType = FTI_InitComplexType("struct AllInts",
+      sizeof(AllInts), &allIntsGroup);
 
   dimLength[0] = 5;
-  FTI_AddComplexField(&AllIntsDef, &IntegersType, offsetof(AllInts, integers),
-                      1, dimLength, 0, "struct Integers array");
+  FTI_AddComplexField(AllIntsType, "struct Integers array", IntegersType,
+      offsetof(AllInts, integers), 1, dimLength);
 
   dimLength[0] = 4;
-  FTI_AddComplexField(&AllIntsDef, &UIntegersType, offsetof(AllInts, uIntegers),
-                      1, dimLength, 1, "struct UIntegers array");
-
-  FTI_InitComplexType(&AllIntsType, &AllIntsDef, 2, sizeof(AllInts),
-                      "struct AllInts", &allIntsGroup);
+  FTI_AddComplexField(AllIntsType, "struct UIntegers array",
+      UIntegersType, offsetof(AllInts, uIntegers), 1, dimLength);
 
   // Floats and chars aggregated
-  FTIT_complexType FloatsCharsDef;
-  FTIT_type FloatsCharsType;
+  fti_id_t FloatsCharsType = FTI_InitComplexType("struct FloatsChars",
+      sizeof(FloatsChars), &charsAndFloatsGroup);
 
   dimLength[0] = 3;
-  FTI_AddComplexField(&FloatsCharsDef, &FloatsType,
-                      offsetof(FloatsChars, floats), 1, dimLength, 0,
-                      "struct Floats array");
+  FTI_AddComplexField(FloatsCharsType, "struct Floats array",
+      FloatsType, offsetof(FloatsChars, floats), 1, dimLength);
 
   dimLength[0] = 2;
-  FTI_AddComplexField(&FloatsCharsDef, &CharsType, offsetof(FloatsChars, chars),
-                      1, dimLength, 1, "struct Chars array");
-
-  FTI_InitComplexType(&FloatsCharsType, &FloatsCharsDef, 2, sizeof(FloatsChars),
-                      "struct FloatsChars", &charsAndFloatsGroup);
+  FTI_AddComplexField(FloatsCharsType, "struct Chars array",
+      CharsType, offsetof(FloatsChars, chars), 1, dimLength);
 
   // All types aggregated
-  FTIT_complexType AllTypesDef;
-  FTIT_type AllTypesType;
+  fti_id_t AllTypesType = FTI_InitComplexType("struct AllTypes",
+      sizeof(AllTypes), NULL);
 
-  FTI_AddSimpleField(&AllTypesDef, &AllIntsType, offsetof(AllTypes, allInts), 0,
-                     "struct AllInts");
-  FTI_AddSimpleField(&AllTypesDef, &FloatsCharsType,
-                     offsetof(AllTypes, floatsChars), 1, "struct FloatsChars");
-
-  FTI_InitComplexType(&AllTypesType, &AllTypesDef, 2, sizeof(AllTypes),
-                      "struct AllTypes", NULL);
+  FTI_AddSimpleField(AllTypesType, "struct AllInts", AllIntsType,
+      offsetof(AllTypes, allInts));
+  FTI_AddSimpleField(AllTypesType, "struct FloatsChars", FloatsCharsType,
+      offsetof(AllTypes, floatsChars));
 
   Chars charVars[2];
   Integers intVars[2];

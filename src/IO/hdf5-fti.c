@@ -82,19 +82,21 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
-    if (!ftiType) return;
-
+void FTI_CreateComplexType(FTIT_type* ftiType) {
+    // TODO(alex): check documentation
     char str[FTI_BUFS];
-    if (ftiType->h5datatype > -1) {
-        // This type already created
+
+    // Sanity Checks
+    if (!ftiType) return;
+    if (ftiType->h5datatype >= 0) {
         snprintf(str, sizeof(str),
          "Type [%d] is already created.", ftiType->id);
         FTI_Print(str, FTI_DBUG);
         return;
     }
+
+    // If type is simple (i.e initialized with FTI_InitType)
     if (ftiType->structure == NULL) {
-        // Save as array of bytes
         snprintf(str, sizeof(str), "Creating type [%d] as array of bytes.",
          ftiType->id);
         FTI_Print(str, FTI_DBUG);
@@ -103,17 +105,16 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
         return;
     }
 
+    // If type is complex (i.e initialized with FTI_InitComplexType)
     hid_t partTypes[FTI_BUFS];
     int i;
     // for each field create and rank-dimension array if needed
     for (i = 0; i < ftiType->structure->length; i++) {
         snprintf(str, sizeof(str), "Type [%d] trying to create new type [%d].",
-         ftiType->id, ftiType->structure->field[i].typeID);
+         ftiType->id, ftiType->structure->field[i].type->id);
         FTI_Print(str, FTI_DBUG);
-        FTI_CreateComplexType(FTI_Type[ftiType->structure->field[i].typeID],
-         FTI_Type);
-        partTypes[i] = FTI_Type[ftiType->structure->
-            field[i].typeID]->h5datatype;
+        FTI_CreateComplexType(ftiType->structure->field[i].type);
+        partTypes[i] = ftiType->structure->field[i].type->h5datatype;
         if (ftiType->structure->field[i].rank > 1) {
             // need to create rank-dimension array type
             hsize_t dims[FTI_BUFS];
@@ -123,10 +124,10 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
             }
             snprintf(str, sizeof(str), "Type [%d] trying to create %d-D array"
             " of type [%d].", ftiType->id, ftiType->structure->field[i].rank,
-             ftiType->structure->field[i].typeID);
+             ftiType->structure->field[i].type->id);
             FTI_Print(str, FTI_DBUG);
-            partTypes[i] = H5Tarray_create(FTI_Type[ftiType->structure->
-                field[i].typeID]->h5datatype,
+            partTypes[i] = H5Tarray_create(ftiType->structure->field[i]
+                .type->h5datatype,
                 ftiType->structure->field[i].rank, dims);
         } else {
             if (ftiType->structure->field[i].dimLength[0] > 1) {
@@ -134,16 +135,16 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
                 snprintf(str, sizeof(str), "Type [%d] trying to create 1-D"
                 " [%d] array of type [%d].", ftiType->id,
                 ftiType->structure->field[i].dimLength[0],
-                ftiType->structure->field[i].typeID);
+                ftiType->structure->field[i].type->id);
                 FTI_Print(str, FTI_DBUG);
                 hsize_t dim = ftiType->structure->field[i].dimLength[0];
-                partTypes[i] = H5Tarray_create(FTI_Type[ftiType->structure->
-                    field[i].typeID]->h5datatype, 1, &dim);
+                partTypes[i] = H5Tarray_create(ftiType->structure->
+                    field[i].type->h5datatype, 1, &dim);
             }
         }
     }
 
-    // create new HDF5 datatype
+    // create new HDF5 compound datatype
     snprintf(str, sizeof(str), "Creating type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
     ftiType->h5datatype = H5Tcreate(H5T_COMPOUND, ftiType->size);
@@ -154,16 +155,18 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
     }
 
-    // inserting fields into the new type
+    // inserting component fields into compound datatype
     for (i = 0; i < ftiType->structure->length; i++) {
         snprintf(str, sizeof(str), "Insering type [%d] into new type [%d].",
-         ftiType->structure->field[i].typeID, ftiType->id);
+         ftiType->structure->field[i].type->id, ftiType->id);
         FTI_Print(str, FTI_DBUG);
         herr_t res = H5Tinsert(ftiType->h5datatype,
          ftiType->structure->field[i].name,
           ftiType->structure->field[i].offset, partTypes[i]);
         if (res < 0) {
-            FTI_Print("FTI faied to insert type in complex type.", FTI_WARN);
+          snprintf(str, sizeof(str), "FTI faied to insert type [%d] in complex type [%d].",
+            ftiType->structure->field[i].type->id, ftiType->id);
+            FTI_Print(str, FTI_WARN);
         }
     }
 }
@@ -178,7 +181,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
+void FTI_CloseComplexType(FTIT_type* ftiType) {
     if (!ftiType) return;
 
     char str[FTI_BUFS];
@@ -196,10 +199,9 @@ void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type) {
         // close each field
         for (i = 0; i < ftiType->structure->length; i++) {
             snprintf(str, sizeof(str), "Closing type [%d] of compound type"
-            " [%d].", ftiType->structure->field[i].typeID, ftiType->id);
+            " [%d].", ftiType->structure->field[i].type->id, ftiType->id);
             FTI_Print(str, FTI_DBUG);
-            FTI_CloseComplexType(FTI_Type[ftiType->structure->field[i].typeID],
-             FTI_Type);
+            FTI_CloseComplexType(ftiType->structure->field[i].type);
         }
     }
 
@@ -447,16 +449,13 @@ int FTI_HDF5Open(char *fn, void *fileDesc) {
 /*-------------------------------------------------------------------------*/
 int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
     char str[FTI_BUFS];
-    int toCommit = 0;
+    int toCommit = data->type->h5datatype < 0;
     FTIT_H5Group* rootGroup = FTI_Exec->H5groups[0];
-    if (data->type->h5datatype < 0) {
-        toCommit = 1;
-    }
     snprintf(str, sizeof(str),
      "Calling CreateComplexType [%d] with hid_t %d",
      data->type->id, (int32_t)data->type->h5datatype);
     FTI_Print(str, FTI_DBUG);
-    FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
+    FTI_CreateComplexType(data->type);
     if (toCommit == 1) {
         char name[FTI_BUFS];
         if (data->type->structure == NULL) {
@@ -465,6 +464,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
         } else {
             strncpy(name, data->type->structure->name, FTI_BUFS);
         }
+
         herr_t res = H5Tcommit(data->type->h5group->h5groupID, name,
          data->type->h5datatype, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         if (res < 0) {
@@ -1123,7 +1123,7 @@ int  FTI_HDF5Close(void *fileDesc) {
         return FTI_NSCS;
 
     for (i = 0; i < fd->FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(data[i].type, fd->FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type);
     }
 
     for (j = 0; j < fd->FTI_Exec->H5groups[0]->childrenNo; j++) {
@@ -1334,7 +1334,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CreateComplexType(data[i].type, FTI_Exec->FTI_Type);
+        FTI_CreateComplexType(data[i].type);
     }
 
     if (FTI_Exec->h5SingleFile) {
@@ -1360,7 +1360,7 @@ int FTI_RecoverHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type);
     }
 
     int j;
@@ -1452,7 +1452,7 @@ int FTI_RecoverVarFinalizeHDF5(FTIT_configuration* FTI_Conf,
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        FTI_CloseComplexType(data[i].type, FTI_Exec->FTI_Type);
+        FTI_CloseComplexType(data[i].type);
     }
 
     FTI_Exec->H5groups[0]->h5groupID = _file_id;
@@ -1493,7 +1493,7 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    FTI_CreateComplexType(data->type, FTI_Exec->FTI_Type);
+    FTI_CreateComplexType(data->type);
 
     if (FTI_Exec->h5SingleFile) {
         FTI_OpenGlobalDatasets(FTI_Exec);
@@ -1532,7 +1532,7 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
     }
 
-    FTI_CloseComplexType(data->type, FTI_Exec->FTI_Type);
+    FTI_CloseComplexType(data->type);
 
     if (FTI_Exec->h5SingleFile) {
         FTI_CloseGlobalDatasets(FTI_Exec);
@@ -1562,7 +1562,7 @@ int FTI_OpenGlobalDatasets(FTIT_execution* FTI_Exec) {
 
         // open dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = dataset->type->h5datatype;
         dataset->hdf5TypeId = tid;
 
         dataset->hid = H5Dopen(loc, dataset->name, H5P_DEFAULT);
@@ -2040,7 +2040,7 @@ int FTI_CreateGlobalDatasets(FTIT_execution* FTI_Exec) {
 
         // create dataset
         hid_t loc = dataset->location->h5groupID;
-        hid_t tid = FTI_Exec->FTI_Type[dataset->type.id]->h5datatype;
+        hid_t tid = dataset->type->h5datatype;
         dataset->hdf5TypeId = tid;
         hid_t fsid = dataset->fileSpace;
 

@@ -37,6 +37,9 @@
 /** status 'not initialized' for stage requests                            */
 #define FTI_SI_NINI 0x0
 
+/** Identifier abstraction for FTI internal objects                        */
+#define fti_id_t int
+
 #include "fti-intern.h"
 
 #ifdef __cplusplus
@@ -51,27 +54,27 @@ extern "C" {
   extern MPI_Comm FTI_COMM_WORLD;
 
   /** FTI data type for chars.                                               */
-  extern FTIT_type FTI_CHAR;
+  extern fti_id_t FTI_CHAR;
   /** FTI data type for short integers.                                      */
-  extern FTIT_type FTI_SHRT;
+  extern fti_id_t FTI_SHRT;
   /** FTI data type for integers.                                            */
-  extern FTIT_type FTI_INTG;
+  extern fti_id_t FTI_INTG;
   /** FTI data type for long integers.                                       */
-  extern FTIT_type FTI_LONG;
+  extern fti_id_t FTI_LONG;
   /** FTI data type for unsigned chars.                                      */
-  extern FTIT_type FTI_UCHR;
+  extern fti_id_t FTI_UCHR;
   /** FTI data type for unsigned short integers.                             */
-  extern FTIT_type FTI_USHT;
+  extern fti_id_t FTI_USHT;
   /** FTI data type for unsigned integers.                                   */
-  extern FTIT_type FTI_UINT;
+  extern fti_id_t FTI_UINT;
   /** FTI data type for unsigned long integers.                              */
-  extern FTIT_type FTI_ULNG;
+  extern fti_id_t FTI_ULNG;
   /** FTI data type for single floating point.                               */
-  extern FTIT_type FTI_SFLT;
+  extern fti_id_t FTI_SFLT;
   /** FTI data type for double floating point.                               */
-  extern FTIT_type FTI_DBLE;
+  extern fti_id_t FTI_DBLE;
   /** FTI data type for long doble floating point.                           */
-  extern FTIT_type FTI_LDBE;
+  extern fti_id_t FTI_LDBE;
 
   /*---------------------------------------------------------------------------
     FTI public functions
@@ -79,23 +82,21 @@ extern "C" {
 
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
-  int FTI_InitType(FTIT_type* type, int size);
-  int FTI_InitComplexType(FTIT_type* newType, FTIT_complexType* typeDefinition,
-   int length, size_t size, char* name, FTIT_H5Group* h5group);
-  void FTI_AddSimpleField(FTIT_complexType* typeDefinition, FTIT_type* ftiType,
-      size_t offset, int id, char* name);
-  void FTI_AddComplexField(FTIT_complexType* typeDefinition,
-   FTIT_type* ftiType, size_t offset, int rank, int* dimLength,
-   int id, char* name);
+  int FTI_InitType(int size);
+  FTIT_type* FTI_GetType(fti_id_t id);
+  fti_id_t FTI_InitComplexType(char* name, int size, FTIT_H5Group* h5group);
+  int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t tid, size_t offset);
+  int FTI_AddComplexField(fti_id_t id, char* name,
+    fti_id_t tid, size_t offset, int ndims, int* dim_size);
   int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
-  int FTI_Protect(int id, void* ptr, int32_t count, FTIT_type type);
+  int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
   int FTI_DefineDataset(int id, int rank, int* dimLength, char* name,
    FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
-   const char* name, FTIT_H5Group* h5group, FTIT_type type);
+   const char* name, FTIT_H5Group* h5group, fti_id_t tid);
   int FTI_AddSubset(int id, int rank, FTIT_hsize_t* offset,
    FTIT_hsize_t* count, int did);
   int FTI_RecoverDatasetDimension(int did);
@@ -126,7 +127,6 @@ extern "C" {
    MPI_Comm globalComm);
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
-
 
 #ifdef __cplusplus
 }

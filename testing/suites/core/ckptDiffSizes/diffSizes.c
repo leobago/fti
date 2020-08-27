@@ -87,9 +87,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     int size;
   } cIters;
   cIters its = {0, (world_rank + 1) * INIT_SIZE};
-  FTIT_type itersInfo;
+  fti_id_t itersInfo;
   // creating new FTI type
-  FTI_InitType(&itersInfo, sizeof(cIters));
+  itersInfo = FTI_InitType(sizeof(cIters));
 
   int res;
   int j;

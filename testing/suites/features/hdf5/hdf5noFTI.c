@@ -26,7 +26,7 @@
 
 typedef struct AsByteArray {
   char character;
-  int32_t longs[1024];
+  long longs[1024];
 } AsByteArray;
 
 typedef struct Chars {
@@ -36,15 +36,15 @@ typedef struct Chars {
 } Chars;
 
 typedef struct Integers {
-  int16_t shortInteger;
+  short shortInteger;
   int integer;
-  int32_t longInteger;
+  unsigned long longInteger;
 } Integers;
 
 typedef struct UIntegers {
-  uint16_t shortInteger;
+  unsigned short shortInteger;
   unsigned int integer;
-  uint32_t longInteger;
+  unsigned long longInteger;
 } UIntegers;
 
 typedef struct Floats {
@@ -98,7 +98,7 @@ int verifyChars(Chars* in, int shift, int rank, char* name) {
     }
     for (j = 0; j < 1024; j++) {
       if (in->bytes[i].longs[j] != (j + 1) * 2 + shift) {
-        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %ld should be %d \n", rank,
+        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %d should be %d \n", rank,
                name, i, j, in->bytes[i].longs[j], (j + 1) * 2 + shift);
         return VERIFY_FAILED;
       }
@@ -119,7 +119,7 @@ int verifyInts(Integers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->longInteger != -1234 - shift) {
-    printf("[ %06d ] : %s.shortInteger = %ld should be %d \n", rank, name,
+    printf("[ %06d ] : %s.shortInteger = %d should be %d \n", rank, name,
            in->longInteger, -1234 - shift);
     return VERIFY_FAILED;
   }
@@ -142,7 +142,7 @@ int verifyUInts(UIntegers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->longInteger != 1234 + shift) {
-    printf("[ %06d ] : %s.shortInteger = %lu should be %u \n", rank, name,
+    printf("[ %06d ] : %s.shortInteger = %u should be %u \n", rank, name,
            in->longInteger, 1234 + shift);
     return VERIFY_FAILED;
   }
