@@ -16,15 +16,15 @@ var_labels = [] #header for csv file
 
 #variable object
 class variable(object):
-	def __init__(self, var_id, var_size, var_typeid, var_typesize, var_position, var_name):
+	def __init__(self, var_id, var_size, var_typeid, var_typesize, var_position, var_name, var_ndims, var_dims):
 		self.var_id = var_id
 		self.var_size = var_size
 		self.var_typeid = var_typeid
 		self.var_typesize = var_typesize
 		self.var_position = var_position
 		self.var_name = var_name
-		#self.var_dim = var_dim
-		#self.var_dims = var_dims
+		self.var_ndims = var_ndims
+		self.var_dims = var_dims
 
 #This function reads the given meta data
 #and returns a list of the variables found 
@@ -65,9 +65,17 @@ def read_meta(meta_file, ckpt_file, group_size):
 			if config.has_option(str(i), 'var'+str(i)+'_name') == True:
 				var_name = config[str(i)]['var'+str(j)+'_name']
 				print("var name ", var_name)
+			if config.has_option(section, 'var'+str(i)+'_ndims') == 0:
+				print("variable", str(i)," has 0 dimension ")
+			else: #get var dims
+				ndims = int(config[section]['var'+str(i)+'_ndims'])
+				for j in range(ndims):
+					dim = config[section]['var'+str(i)+'_dim'+str(j)]
+					print(dim)
+					print("variable", str(i)," dim #", str(j), " ", dim)
 			#print('id: '+var_id+' size:'+var_size+' pos:'+var_position+' name:'+var_name)
 			var = data.append(variable(var_id, var_size, var_typeid, var_typesize,
-			 var_position, var_name))
+			 var_position, var_name, var_ndims, var_dims))
 	return data
 
 #This function reads the ckpt file
@@ -89,7 +97,7 @@ def read_checkpoint(ckpt_file, meta_file, config_file, group_size):
 			#for each variable:  create list per variable to hold 
 			# the value of the variable to be exported to the csv file
 				var_labels.append("var#"+str(i))
-				var_array = []
+				var_array = [] #arra holding value(s) for every variable
 				print("reading var #", str(i), " of size ", str(data[i].var_size),
 				 " starting pos:", str(data[i].var_position))
 				#print("current position ", file.tell())
@@ -99,19 +107,62 @@ def read_checkpoint(ckpt_file, meta_file, config_file, group_size):
 				decode_pattern = decode_fti_type(data[i].var_typeid)
 				#print for test
 				print("var#", data[i].var_id, " with typeId ", data[i].var_typeid)
-				if int(data[i].var_size) == int(data[i].var_typesize):
+				#if var has no dimension:: one element
+				data[i].var_ndims = int(data[i].var_ndims)
+
+				if int(data[i].var_size) == int(data[i].var_typesize) and data[i].var_ndims == 0:
 					#single var
 					decoded_var = struct.unpack(decode_pattern, var)
 					var_array.append(decoded_var)
-				elif int(data[i].var_size) % int(data[i].var_typesize) == 0:
-					#1-d array var
-					subvars = int(data[i].var_size) // int(data[i].var_typesize)
-					#print("variable is array of ", str(subvars), " elements")
-					decode_pattern = str(subvars)+decode_pattern
-					#print("[test] decoded pattern ", decode_pattern)
-					decoded_var = struct.unpack(decode_pattern, var)
-					var_array.append(decoded_var)
-				d["var#"+str(i)] = var_array #replace with var#id instead of id only
+
+				#if var has at least one dimension::
+				elif data[i].var_ndims == 1:
+					for dim in range(data[i].var_ndims):
+						subvars = int(data[i].var_size) // int(data[i].var_typesize)
+						decode_pattern = str(subvars)+decode_pattern
+						decoded_var = struct.unpack(decode_pattern, var)
+						var_array.append(decoded_var)
+
+				elif data[i].var_ndims == 2:
+					for dim in range(data[i].var_ndims):
+						for x in range(int(data[i].var_dims[0])):
+							for y in range(int(data[i].var_dims[1])):
+								#decode each element of the array
+								decoded_var = struct.unpack(decode_pattern, var)
+								var_array.append(decoded_var)
+
+				elif data[i].var_ndims == 3:
+					for dim in range(data[i].var_ndims):
+						for x in range(int(data[i].var_dims[0])):
+							for y in range(int(data[i].var_dims[1])):
+								for z in range(int(data[i].var_dims[2])):
+									#decode each element of the array
+									decoded_var = struct.unpack(decode_pattern, var)
+									var_array.append(decoded_var)
+
+				elif data[i].var_ndims == 4:
+						for dim in range(data[i].var_ndims):
+							for x in range(int(data[i].var_dims[0])):
+								for y in range(int(data[i].var_dims[1])):
+									for z in range(int(data[i].var_dims[2])):
+										for w in range(int(data[i].var_dims[3])):
+											#decode each element of the array
+											decoded_var = struct.unpack(decode_pattern, var)
+											var_array.append(decoded_var)
+
+				# elif int(data[i].var_size) % int(data[i].var_typesize) == 0:
+				# 	#1-d array var
+				# 	subvars = int(data[i].var_size) // int(data[i].var_typesize)
+				# 	#print("variable is array of ", str(subvars), " elements")
+				# 	decode_pattern = str(subvars)+decode_pattern
+				# 	#print("[test] decoded pattern ", decode_pattern)
+				# 	decoded_var = struct.unpack(decode_pattern, var)
+				# 	var_array.append(decoded_var)
+
+				if data[i].var_name: #non empty
+					d[data[i].var_name] = var_array
+				else:
+					d["var#"+str(i)] = var_array
 			file.close()
 			#double checking dict content
 			for key in d:

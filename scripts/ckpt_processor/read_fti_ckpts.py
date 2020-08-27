@@ -9,7 +9,7 @@ import configparser
 import posix_read_ckpts
 
 #runtime variables of FTI (ckpt and meta)
-fti_levels = (1,2,3,4)
+fti_levels = (1, 2, 3, 4)
 config_file = ""
 ckpt_dir = ""
 meta_dir = ""
