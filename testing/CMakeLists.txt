@@ -67,8 +67,3 @@ add_subdirectory(suites/features)
 if(ENABLE_EXAMPLES)
   add_subdirectory(suites/examples)
 endif()
-
-if(ENABLE_FORTRAN)
-  add_subdirectory(suites/fortran)
-endif()
-

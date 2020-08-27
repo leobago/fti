@@ -7,8 +7,12 @@ add_subdirectory(staging)
 add_subdirectory(getConfig)
 
 if(ENABLE_HDF5)
-    add_subdirectory(variateProcessorRestart)
-    add_subdirectory(hdf5)
+  add_subdirectory(variateProcessorRestart)
+  add_subdirectory(hdf5)
+endif()
+
+if(ENABLE_FORTRAN)
+  add_subdirectory(fortran)
 endif()
 
 list(REMOVE_ITEM test_labels_current "features")
