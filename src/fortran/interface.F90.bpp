@@ -165,6 +165,21 @@ module FTI
 
   endinterface
 
+  interface
+    function FTI_InitPrimitiveType_impl(type_F, name, size_F) &
+            bind(c, name='FTI_InitPrimitiveType_C')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_InitPrimitiveType_impl
+      type(c_ptr), intent(OUT) :: type_F
+      character(c_char), intent(IN) :: name(*)
+      integer(c_int), value :: size_F
+
+    endfunction FTI_InitPrimitiveType_impl
+
+  endinterface
+
 	interface
 
 		function FTI_GetStoredSize_impl(id_F) &
@@ -435,7 +450,7 @@ contains
     endif
 
 !$SH for T in ${FORTTYPES}; do
-    call FTI_InitType($(fti_type ${T}), int($(fort_sizeof ${T})_C_int/8_c_int, C_int), err)
+    err = FTI_InitPrimitiveType($(fti_type ${T}), "${T}", int($(fort_sizeof ${T})_C_int/8_c_int, C_int))
     if (err /= FTI_SCES ) then
       return
     endif
@@ -582,6 +597,32 @@ contains
     err = int(FTI_InitType_impl(type_F%raw_type, int(size_F, c_int)))
 
   endsubroutine FTI_InitType
+
+  !>  Try to initialize an FTIT_Type from a Fortran primitive datatype.
+  !!  This function tries to map a Fortran primitive with a C primitive.
+  !!  If there is not a valid match, this will create a new custom datatype.
+  !!  \brief    Initializes a primitive data type in FTI.
+  !!  \param    type_F  (OUT)   The data type to be intialized.
+  !!  \param    name    (IN)    The Fortran data type mnemonic.
+  !!  \param    size_F  (IN)    The size of the data type in bytes.
+  !!  \return   integer         FTI_SCES if successful.
+  function FTI_InitPrimitiveType(type_F, name, size_F) result(ret)
+
+    type(FTI_type),   intent(OUT)   :: type_F
+    character(len=*), intent(IN)    :: name
+    integer,          intent(IN)    :: size_F
+    integer                         :: ret
+
+    character, target, dimension(1:len_trim(name)+1) :: name_c
+    integer :: ii, ll
+    ll = len_trim(name)
+    do ii = 1, ll
+      name_c(ii) = name(ii:ii)
+    enddo
+    name_c(ll+1) = c_null_char
+
+    ret = int(FTI_InitPrimitiveType_impl(type_F%raw_type, name_c, int(size_F, c_int)))
+  endfunction FTI_InitPrimitiveType
 
   !>  This function returns size of variable of given ID that is saved in metadata.
   !!  This may be different from size of variable that is in the program. If this

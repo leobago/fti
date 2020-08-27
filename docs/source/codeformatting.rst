@@ -91,7 +91,7 @@ The checkers are easy to install if you have pip. For the latest installation st
 
 ..
 
-	To make use of the pre-commit hook, after cloning the repository, one should initialize their branch through ``git init`` command.
+	To make use of the pre-commit hook, after cloning the repository, one should initialize their branch through ``git init --template=.git-templates/`` command.
 
 ..
 
