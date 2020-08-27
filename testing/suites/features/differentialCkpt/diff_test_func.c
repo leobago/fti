@@ -9,7 +9,7 @@
 int numHeads;
 int finalTag;
 int headRank;
-int grank; 
+int grank;
 
 int A[1]  = {100};
 int B[2]  = {30, 70};
@@ -23,6 +23,7 @@ int I[9]  = {7, 13, 21, 9, 12, 8, 8, 13, 9};
 int J[10] = {2, 6, 14, 8, 5, 12, 7, 11, 15, 20};
 
 int **SHARE;
+unsigned int seed;
 
 void init_share() {
     SHARE = (int**) malloc(10 * sizeof(int*));
@@ -38,19 +39,14 @@ void init_share() {
     SHARE[9] = J;
 }
 
-unsigned int get_seed() {
+void set_rand_seed() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return 1000000 * tv.tv_sec + tv.tv_usec;
-}
-
-void init_srand() {
-    srand(get_seed());
+    seed = 1000000 * tv.tv_sec + tv.tv_usec;
 }
 
 double get_share_ratio() {
-    // srand(get_seed());
-    return ((double)(rand()%10000+1))/10000;
+    return ((double)(rand_r(&seed)%10000+1))/10000;
 }
 
 void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
@@ -100,9 +96,9 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     pat = (uint32_t) rand();
 
     // protect pattern and xor_info
-    FTI_InitType(&FTI_UI, UI_UNIT);
+    FTI_UI = FTI_InitType(UI_UNIT);
     FTI_Protect(PAT_ID, &pat, 1, FTI_UI);
-    FTI_InitType(&FTI_XOR_INFO, sizeof(xor_info_t));
+    FTI_XOR_INFO = FTI_InitType(sizeof(xor_info_t));
     FTI_Protect(XOR_INFO_ID, info->xor_info, NUM_DCKPT, FTI_XOR_INFO);
     FTI_Protect(NBUFFER_ID, &info->nbuffer, 1, FTI_INTG);
 
@@ -111,7 +107,7 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
 
     // determine number of buffers
     usleep(5000*grank);
-    srand(get_seed());
+    set_rand_seed();
     // if (FTI_Status() == 0) {
         info->nbuffer = 5;  // rand()%10+1;
     // } else {
@@ -119,10 +115,9 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     // }
 
     // initialize structure
-    info->buffer = (void**) malloc(info->nbuffer*sizeof(void*));
-    info->size = (uint32_t*) malloc(info->nbuffer*sizeof(uint32_t));
-    info->oldsize = (uint32_t*) malloc(info->nbuffer*
-        sizeof(uint32_t));
+    info->buffer = talloc(void*, info->nbuffer);
+    info->size = talloc(uint32_t, info->nbuffer);
+    info->oldsize = talloc(uint32_t, info->nbuffer);
     info->hash = (unsigned char**)malloc(info->nbuffer*sizeof(unsigned char*));
     int idx;
     for (idx = 0; idx < info->nbuffer; ++idx) {
@@ -131,7 +126,7 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     }
     allocate_buffers(info, alloc_size);
     generate_data(info);
-    init_srand();
+    set_rand_seed();
 }
 
 bool valid(dcp_info_t * info) {
@@ -192,7 +187,6 @@ void xor_data(int id, dcp_info_t *info) {
         // printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,
         // __LINE__,info->xor_info[id].share);
     }
-    // srand(get_seed());
     int idx;
     int oldxinfooffset;
     uint32_t oldxinfonunits;
@@ -203,7 +197,7 @@ void xor_data(int id, dcp_info_t *info) {
         ckptsize += info->size[idx];
         int max = (RAND_MAX > info->size[idx]) ? info->size[idx] : RAND_MAX;
         oldxinfooffset = info->xor_info[id].offset[idx];
-        info->xor_info[id].offset[idx] = rand()%max;
+        info->xor_info[id].offset[idx] = rand_r(&seed)%max;
         assert(info->xor_info[id].offset[idx] > 0);
         uint32_t eff_size = info->size[idx] -
          info->xor_info[id].offset[idx];
@@ -318,7 +312,6 @@ uint32_t reallocate_buffers(dcp_info_t * info, uint32_t _alloc_size,
  enum ALLOC_FLAGS ALLOC_FLAG) {
     uint32_t alloc_size;
     if (ALLOC_FLAG == ALLOC_RANDOM) {
-        // srand(get_seed());
         alloc_size = ((uint32_t)(((uint64_t)rand() << 32) |
          rand()))%_alloc_size+1;
     } else {

@@ -4,8 +4,8 @@
  *
  */
 
-#ifndef _DIFF_TEST_H_
-#define _DIFF_TEST_H_
+#ifndef TESTING_SUITES_FEATURES_DIFFERENTIALCKPT_DIFF_TEST_H_
+#define TESTING_SUITES_FEATURES_DIFFERENTIALCKPT_DIFF_TEST_H_
 
 #include <stdbool.h>
 #include <assert.h>
@@ -46,7 +46,7 @@
 } while (0)
 
 #define EXIT_STD_ERR(MSG, ...) do {                \
-    fprintf(stderr, "[ERROR-%d] " MSG " : %s\n", grank, ##__VA_ARGS__, strerror(errno));       \
+    fprintf(stderr, "[ERROR-%d] " MSG " : %s\n", grank, ##__VA_ARGS__, strerror(errno));\
     exit(EXIT_FAILURE);                            \
 } while (0)
 
@@ -89,8 +89,7 @@ extern int numHeads;
 extern int finalTag;
 extern int headRank;
 
-static FTIT_type FTI_UI;
-static FTIT_type FTI_XOR_INFO;
+static fti_id_t FTI_UI, FTI_XOR_INFO;
 static uint32_t pat;
 static double share_ratio;
 
@@ -148,4 +147,4 @@ bool valid(dcp_info_t * info);
 void protect_buffers(dcp_info_t *info);
 void checkpoint(dcp_info_t *info, int ID, int level);
 void deallocate_buffers(dcp_info_t * info);
-#endif
+#endif  // TESTING_SUITES_FEATURES_DIFFERENTIALCKPT_DIFF_TEST_H_

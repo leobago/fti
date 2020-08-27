@@ -987,9 +987,10 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
-        int typeID = data[i].type->id - FTI_Exec->basicTypesOffsetId;
+        int typeID = data[i].type->id - FTI_Exec->datatypes.primitive_offset;
         myVarIDs[i] = data[i].id;
-        myVarTypeIDs[i] = (typeID < FTI_Exec->basicTypesNum) ? typeID : -1;
+        myVarTypeIDs[i] = (typeID < FTI_Exec->datatypes.nprimitives) ?
+          typeID : -1;
         myVarTypeSizes[i] = data[i].type->size;
         myVarSizes[i] =  data[i].size;
         myVarIDs[i] =  data[i].id;

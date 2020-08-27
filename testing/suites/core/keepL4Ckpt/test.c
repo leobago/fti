@@ -22,6 +22,8 @@
 
 #define N 1024
 
+unsigned int seed = 42;
+
 int main(int argc, char* argv[]) {
   MPI_Init(NULL, NULL);
   FTI_Init(argv[1], MPI_COMM_WORLD);
@@ -42,17 +44,15 @@ int main(int argc, char* argv[]) {
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
-  uint32_t* buffer = (uint32_t*)malloc(N * sizeof(uint32_t));
+  uint32_t* buffer = talloc(uint32_t, N);
   int i = 0;
   srand(time(NULL));
   for (; i < N; ++i) {
-    uint32_t rval = rand();
+    uint32_t rval = rand_r(&seed);
     memcpy(&buffer[i], &rval, sizeof(uint32_t));
   }
 
-  FTIT_type FTI_UINT32_T;
-
-  FTI_InitType(&FTI_UINT32_T, sizeof(uint32_t));
+  fti_id_t FTI_UINT32_T = FTI_InitType(sizeof(uint32_t));
 
   int id_cnt = 1;
   FTI_Protect(0, buffer, N, FTI_UINT32_T);

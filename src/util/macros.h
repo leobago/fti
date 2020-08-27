@@ -94,6 +94,7 @@ void cleanup(char* pattern, ...);
         }                                                     \
     } while (0)
 
-
+#define TRY_ALLOC(dest, dtype, count) dest = (dtype*) calloc(sizeof(dtype), count);\
+                                     if (dest == NULL)
 
 #endif  // FTI_MACROS_H_
