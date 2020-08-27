@@ -35,10 +35,10 @@ int main(int argc, char * argv[]) {
   char c1[SIZE];
 
   // Logicals are stored as integers in ANSI C, there are no booleans
-  int8_t i1[SIZE], l1[SIZE];
-  int16_t i2[SIZE], l2[SIZE];
-  int32_t i4[SIZE], l4[SIZE];
-  int64_t i8[SIZE], l8[SIZE];
+  char i1[SIZE], l1[SIZE];
+  short i2[SIZE], l2[SIZE];
+  int i4[SIZE], l4[SIZE];
+  long i8[SIZE], l8[SIZE];
 
   float r4[SIZE];
   double r8[SIZE];
@@ -118,65 +118,65 @@ int main(int argc, char * argv[]) {
   for (i = 0; i < SIZE; ++i) {
     if (c1[i] != C1_INIT) {
       if (rank == 0)
-        printf("character(1) was corrupted %c", c1[i]);
+        printf("character(1) was corrupted %c\n", c1[i]);
       goto end;
     }
 
     if (l1[i] != LX_INIT) {
       if (rank == 0)
-        printf("logical(1) was corrupted %d", l1[i]);
+        printf("logical(1) was corrupted %d\n", l1[i]);
       goto end;
     }
     if (l2[i] != LX_INIT) {
       if (rank == 0)
-        printf("logical(2) was corrupted %d", l2[i]);
+        printf("logical(2) was corrupted %d\n", l2[i]);
       goto end;
     }
     if (l4[i] != LX_INIT) {
       if (rank == 0)
-        printf("logical(4) was corrupted %d", l4[i]);
+        printf("logical(4) was corrupted %d\n", l4[i]);
       goto end;
     }
     if (l8[i] != LX_INIT) {
       if (rank == 0)
-        printf("logical(8) was corrupted %d", l8[i]);
+        printf("logical(8) was corrupted %d\n", l8[i]);
       goto end;
     }
 
     if (i1[i] != I1_INIT) {
       if (rank == 0)
-        printf("integer(1) was corrupted %d", i1[i]);
+        printf("integer(1) was corrupted %d\n", i1[i]);
       goto end;
     }
     if (i2[i] != I2_INIT) {
       if (rank == 0)
-        printf("integer(2) was corrupted %hd", i2[i]);
+        printf("integer(2) was corrupted %hd\n", i2[i]);
       goto end;
     }
     if (i4[i] != I4_INIT) {
       if (rank == 0)
-        printf("integer(4) was corrupted %d", i4[i]);
+        printf("integer(4) was corrupted %d\n", i4[i]);
       goto end;
     }
     if (i8[i] != I8_INIT) {
       if (rank == 0)
-        printf("integer(8) was corrupted %ld", i8[i]);
+        printf("integer(8) was corrupted %ld\n", i8[i]);
       goto end;
     }
 
     if (r4[i] != R4_INIT) {
       if (rank == 0)
-        printf("real(4) was corrupted %f", r4[i]);
+        printf("real(4) was corrupted %f\n", r4[i]);
       goto end;
     }
     if (r8[i] != R8_INIT) {
       if (rank == 0)
-        printf("real(8) was corrupted %f", r8[i]);
+        printf("real(8) was corrupted %f\n", r8[i]);
       goto end;
     }
     if (r16[i] != R16_INIT) {
       if (rank == 0)
-        printf("real(16) was corrupted %Lf", r16[i]);
+        printf("real(16) was corrupted %Lf\n", r16[i]);
       goto end;
     }
   }
