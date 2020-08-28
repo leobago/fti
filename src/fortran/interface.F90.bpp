@@ -636,9 +636,9 @@ contains
   subroutine FTI_GetStoredSize(id_F, size)
 
   	integer, intent(IN)	:: id_F
-  	integer(4)					:: size
+  	integer(8)					:: size
 
-  	size = long(FTI_GetStoredSize_impl(int(id_F,c_int)))
+  	size = int(FTI_GetStoredSize_impl(int(id_F,c_int)))
 
   endsubroutine FTI_GetStoredSize
 
