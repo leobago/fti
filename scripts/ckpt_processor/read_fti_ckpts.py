@@ -1,7 +1,6 @@
 #this module traverses the meta file
 #given the rank
 #in given the config_file
-
 import os, glob
 import time
 from fnmatch import fnmatch
@@ -103,13 +102,13 @@ def find_ckpt_file(rank_id):
 	pattern_ckpt_file = "*-Rank"+str(rank_id)+".fti"
 	pattern_ckpt_path = execution_id+level_dir
 	ckpt_file = ""
-
+	print("level dir", level_dir)
 	for root, dirs, files in os.walk(os.path.abspath(ckpt_abs_path)):
 		for file in files:
 			file = os.path.join(root, file)
 			if pattern_ckpt_path in file and fnmatch(file, pattern_ckpt_file):
 				ckpt_file = file
-				#print("FOUND CKPT ", file)
+				print("ckpt file:", ckpt_file)
 	return ckpt_file
 
 
@@ -122,7 +121,6 @@ def find_meta_file(ckpt_file):
 	for path, subdirs, files in os.walk(meta_abs_path):
 		for file in files:
 			file = meta_abs_path+'/'+execution_id+level_dir+file
-			#print("META FOUND:::",file)
 			if os.path.isfile(file) == True:
 				config = configparser.ConfigParser()
 				config.read(file)
@@ -132,6 +130,7 @@ def find_meta_file(ckpt_file):
 					if section.isdigit() == True:
 						if config[section]['ckpt_file_name'] == ckpt:
 							meta_file = file
+							print("meta file:", meta_file)
 							break;
 	return meta_file
 
@@ -160,8 +159,9 @@ def read_checkpoints(config_file, rank_id, level=None):
 		#check for latest ckpt
 		last_level = get_latest_ckpt()
 		process_level(level)
-
+	print("level:", str(level))
 	process_fti_paths(config_file)
+	#wrong?
 	ckpt_file = find_ckpt_file(rank_id) 
 	meta_file = find_meta_file(ckpt_file)
 	print("Processing ", ckpt_file, " using meta ", meta_file)

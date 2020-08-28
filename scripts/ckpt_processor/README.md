@@ -13,8 +13,8 @@ Application data in CSV format.
 
 ## Pre-requisites
 
-This version processes checkpoints written with POSIX mode.
-
+This version processes checkpoints written with POSIX mode. \
+It supports multi-dimensional arrays of data. \
 In FTI's configuration file, have the following parameter set as follows: \
 ckpt_io = 1
 
