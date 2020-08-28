@@ -89,7 +89,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   cIters its = {0, (world_rank + 1) * INIT_SIZE};
   FTIT_type itersInfo;
   // creating new FTI type
-  FTI_InitType(&itersInfo, 2 * sizeof(int));
+  FTI_InitType(&itersInfo, sizeof(cIters));
 
   int res;
   int j;
@@ -101,7 +101,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   for (j = 0; j < its.size; j++) {
     buf[j] = 0;
   }
-  FTI_Protect(2, buf, its.size, FTI_LONG);
+  FTI_Protect(2, buf, its.size, FTI_INTG);
   // checking if this is recovery run
   if (FTI_Status() != 0 && fail == 0) {
     if (world_rank % 2 == 0) {
@@ -172,7 +172,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   for (; its.i < ITERATIONS; its.i++) {
     // checkpoint after every ITER_CHECK iterations
     if (its.i % ITER_CHECK == 0) {
-      FTI_Protect(2, buf, its.size, FTI_LONG);
+      FTI_Protect(2, buf, its.size, FTI_INTG);
       res = FTI_Checkpoint(its.i / ITER_CHECK + 1, checkpoint_level);
       if (res != FTI_DONE) {
         printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n",
