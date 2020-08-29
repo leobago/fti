@@ -319,13 +319,13 @@ int FTI_InitBasicTypes(FTIT_execution* FTI_Exec) {
     FTI_Exec->basicTypesOffsetId = FTI_Exec->nbType;
 
     FTI_InitType(&FTI_CHAR, sizeof(char));
-    FTI_InitType(&FTI_SHRT, sizeof(int16_t));
+    FTI_InitType(&FTI_SHRT, sizeof(short));
     FTI_InitType(&FTI_INTG, sizeof(int));
-    FTI_InitType(&FTI_LONG, sizeof(int32_t));
+    FTI_InitType(&FTI_LONG, sizeof(long));
     FTI_InitType(&FTI_UCHR, sizeof(unsigned char));
-    FTI_InitType(&FTI_USHT, sizeof(uint16_t));
+    FTI_InitType(&FTI_USHT, sizeof(unsigned short));
     FTI_InitType(&FTI_UINT, sizeof(unsigned int));
-    FTI_InitType(&FTI_ULNG, sizeof(uint32_t));
+    FTI_InitType(&FTI_ULNG, sizeof(unsigned long));
     FTI_InitType(&FTI_SFLT, sizeof(float));
     FTI_InitType(&FTI_DBLE, sizeof(double));
     FTI_InitType(&FTI_LDBE, sizeof(long double));

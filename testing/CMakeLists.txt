@@ -35,13 +35,29 @@ function(DeclareITFSuite FixtureName)
   install(FILES ${FixtureName} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
 
-# Install a Test application with its source dependencies as extra arguments
+# Install a Test application with its source dependencies as arguments
 function(InstallTestApplication AppName)
   add_executable(${AppName} ${ARGN})
   target_link_libraries(${AppName} fti.static ${MPI_C_LIBRARIES} m)
   set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
   set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
+
+# Install a Fortran Test application with its source dependencies as arguments
+function(InstallFortTestApplication AppName)
+  add_executable(${AppName} ${ARGN})
+  target_link_libraries(${AppName} fti_f90.static ${MPI_Fortran_LIBRARIES} m)
+
+  set_property(TARGET ${AppName} APPEND PROPERTY
+    COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS})
+  set_property(TARGET ${AppName} APPEND PROPERTY
+    LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
+  if(NOT MPI_USE_MOD)
+    target_compile_definitions(${AppName} PRIVATE -DMPI_USE_HEADER)
+  endif()
+  target_compile_options(${AppName} PRIVATE -cpp)
+endfunction()
+
 
 # -------------------- Inclusion of ITF Test subdirectories -------------------
 
@@ -51,4 +67,3 @@ add_subdirectory(suites/features)
 if(ENABLE_EXAMPLES)
   add_subdirectory(suites/examples)
 endif()
-

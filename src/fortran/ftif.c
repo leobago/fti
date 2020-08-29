@@ -47,6 +47,7 @@
 #define TYPECODE_NONE 0
 #define TYPECODE_INT 1
 #define TYPECODE_FLOAT 2
+#define TYPECODE_CHAR 3
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
  *
@@ -106,11 +107,12 @@ int FTI_InitPrimitiveType_C(FTIT_type** type, const char *name, int size) {
     dest[i] = '\0';
     // Discover the fundamental format behind the type name
     if (strcmp(dest, "integer") == 0 ||
-      strcmp(dest, "logical") == 0 ||
-      strcmp(dest, "character") == 0)
+      strcmp(dest, "logical") == 0)
       typecode = TYPECODE_INT;
     else if (strcmp(dest, "real") == 0)
       typecode = TYPECODE_FLOAT;
+    else if (strcmp(dest, "character") == 0)
+      typecode = TYPECODE_CHAR;
     free(dest);
     // Find the static FTIT_Type object mapped to the primitive
     switch (typecode) {
@@ -147,6 +149,9 @@ int FTI_InitPrimitiveType_C(FTIT_type** type, const char *name, int size) {
         return FTI_InitType_wrapper(type, size);
       }
       break;
+      case TYPECODE_CHAR:
+        *type = &FTI_CHAR;
+        break;
       default:
         return FTI_InitType_wrapper(type, size);
     }
