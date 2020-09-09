@@ -30,6 +30,7 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
 
 void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...);
+int FTI_IsTypeComplex(FTIT_type *t);
 FTIT_type* FTI_GetComplexType(fti_id_t handle);
 
 #ifdef __cplusplus
