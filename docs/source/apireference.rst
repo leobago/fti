@@ -16,6 +16,9 @@ APIs
 .. doxygenfunction:: FTI_InitType
 	:project: Fault Tolerance Library 
 
+.. doxygenfunction:: FTI_GetType
+	:project: Fault Tolerance Library 
+
 .. doxygenfunction:: FTI_InitComplexType
 	:project: Fault Tolerance Library 
 
