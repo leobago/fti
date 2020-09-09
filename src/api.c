@@ -250,19 +250,19 @@ int FTI_Status() {
 /*-------------------------------------------------------------------------*/
 fti_id_t FTI_InitType(int size) {
     FTIT_type *type;
-
+    fti_id_t new_id = FTI_Exec.datatypes.ntypes;
     // Sanity Check
     if (size < 1) {
         FTI_Print("Types must have positive size", FTI_WARN);
         return FTI_NSCS;
     }
-    if (FTI_Exec.datatypes.ntypes >= TYPES_MAX) {
+    if (new_id >= TYPES_MAX) {
         FTI_Print("Maximum number of datatypes reached", FTI_WARN);
         return FTI_NSCS;
     }
     // Type initialization
-    type = FTI_GetType(FTI_Exec.datatypes.ntypes);
-    type->id = FTI_Exec.datatypes.ntypes;
+    type = &FTI_Exec.datatypes.types[new_id];
+    type->id = new_id;
     type->size = size;
     type->structure = NULL;
 #ifdef ENABLE_HDF5
@@ -278,14 +278,19 @@ fti_id_t FTI_InitType(int size) {
 /**
   @brief      Obtains the FTIT_type associated to a given type handle
   @param      handle         The data type handle
-  @return     FTIT_type      An external handle to represent the new type
+  @return     FTIT_type      The internal representation of an FTI type
 
-  Returns NULL if the handle is not associated to an initialized complex type.
+  Returns NULL if the handle is not associated to an initialized type.
+  This function should not be used directly.
+  It is meant for advanced users in need to inspect FTI data structures. 
 
 **/
 /*-------------------------------------------------------------------------*/
-inline FTIT_type* FTI_GetType(fti_id_t id) {
-    // TODO(alex): Place this in a better spot, this function is lib-private
+FTIT_type* FTI_GetType(fti_id_t id) {
+    if (id < 0 || id >= FTI_Exec.datatypes.ntypes) {
+      FTI_Print("Invalid type handle", FTI_WARN);
+      return NULL;
+    }
     return &FTI_Exec.datatypes.types[id];
 }
 
@@ -837,6 +842,10 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
 #endif
         data->count = count;
         data->type = FTI_GetType(tid);
+        if (data->type == NULL) {
+          FTI_Print("Invalid data type handle on FTI_Protect.", FTI_WARN);
+          return FTI_NSCS;
+        }
         data->eleSize = data->type->size;
         data->size = data->type->size * count;
         data->dimLength[0] = count;
@@ -972,8 +981,8 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
     data->count = count;
     data->type = FTI_GetType(tid);
     if (data->type == NULL) {
-      //TODO:(alex) handle error?
-      exit(1);
+        FTI_Print("Invalid data type handle on FTI_Protect.", FTI_WARN);
+        return FTI_NSCS;
     }
     data->eleSize = data->type->size;
     data->size = data->type->size * count;
@@ -1157,6 +1166,11 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
     last->numSubSets = 0;
     last->varId = NULL;
     last->type = FTI_GetType(tid);
+    if (last->type == NULL) {
+        FTI_Print("Invalid data type handle on FTI_DefineGlobalDataset.",
+          FTI_WARN);
+        return FTI_NSCS;
+    }
     last->location = (h5group) ?
      FTI_Exec.H5groups[h5group->id] : FTI_Exec.H5groups[0];
 

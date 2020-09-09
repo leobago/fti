@@ -531,6 +531,20 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      Checks if an allocated FTIT_type is complex
+  @param      t              A pointer to the FTIT_type
+  @return     int            Non-zero if true, zero if false
+
+  A complex type contains a non-empty structure field.
+
+**/
+/*-------------------------------------------------------------------------*/
+inline int FTI_IsTypeComplex(FTIT_type *t) {
+  return t && t->structure != NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      Obtains the FTIT_type associated to a given type handle
   @param      handle         The data type handle
   @return     FTIT_type      An external handle to represent the new type
@@ -540,9 +554,8 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
 **/
 /*-------------------------------------------------------------------------*/
 inline FTIT_type* FTI_GetComplexType(fti_id_t handle) {
-    // TODO(alex): Place this in a better spot
     FTIT_type* t = FTI_GetType(handle);
-    if (t == NULL || t->structure == NULL)
+    if (!FTI_IsTypeComplex(t))
         return NULL;  // Either an initialized type in memory or a simple type
     return t;
 }
