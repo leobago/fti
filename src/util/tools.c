@@ -519,7 +519,7 @@ char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
 void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
     if (src && strlen(src)) {
         // If src points to a non-zero string
-        strncpy(dest, src, FTI_BUFS);
+        strncpy(dest, src, strlen(src));
     } else {
         // Else, use default format instead
         va_list args;
@@ -540,7 +540,7 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
 **/
 /*-------------------------------------------------------------------------*/
 inline int FTI_IsTypeComplex(FTIT_type *t) {
-  return t && t->structure != NULL;
+  return t && t->structure;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -556,6 +556,6 @@ inline int FTI_IsTypeComplex(FTIT_type *t) {
 inline FTIT_type* FTI_GetComplexType(fti_id_t handle) {
     FTIT_type* t = FTI_GetType(handle);
     if (!FTI_IsTypeComplex(t))
-        return NULL;  // Either an initialized type in memory or a simple type
+        return NULL;
     return t;
 }

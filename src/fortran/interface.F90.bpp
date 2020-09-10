@@ -360,7 +360,7 @@ module FTI
 
       integer(c_int)                :: FTI_InitComplexType_impl
 
-      integer(c_size_t),   INTENT(IN) :: size
+      integer(c_size_t), value      :: size
       character(c_char), INTENT(IN) :: name(*)
 
     endfunction FTI_InitComplexType_impl
@@ -376,10 +376,10 @@ module FTI
 
       integer(c_int)                :: FTI_AddSimpleField_impl
 
-      integer(c_int),    INTENT(IN) :: complex_tid
-      character(c_char), INTENT(IN) :: name(*)
-      integer(c_int),    INTENT(IN) :: field_tid
-      integer(c_size_t),   INTENT(IN) :: offset
+      integer(c_int),    value      :: complex_tid
+      character(c_char), intent(in) :: name(*)
+      integer(c_int),    value      :: field_tid
+      integer(c_size_t), value      :: offset
 
     endfunction FTI_AddSimpleField_impl
 
@@ -394,11 +394,11 @@ module FTI
 
       integer(c_int)                :: FTI_AddComplexField_impl
 
-      integer(c_int),    INTENT(IN) :: complex_tid
+      integer(c_int),    value      :: complex_tid
       character(c_char), INTENT(IN) :: name(*)
-      integer(c_int),    INTENT(IN) :: field_tid
-      integer(c_long),   INTENT(IN) :: offset
-      integer(c_int),    INTENT(IN) :: ndims
+      integer(c_int),    value      :: field_tid
+      integer(c_long),   value      :: offset
+      integer(c_int),    value      :: ndims
       integer(c_int),    INTENT(IN) :: dimLength(*)
 
     endfunction FTI_AddComplexField_impl
@@ -856,10 +856,10 @@ contains
 
     integer                      :: ret
 
-    integer,           intent(IN) :: complex_tid
+    integer,           value      :: complex_tid
     character(len=*),  intent(IN) :: name
-    integer,           intent(IN) :: field_tid
-    integer(c_size_t), intent(IN) :: offset
+    integer,           value      :: field_tid
+    integer(c_size_t),    value      :: offset
 
     character, target, dimension(1:len_trim(name)+1) :: name_c
     integer                                          :: ii, ll
@@ -870,7 +870,7 @@ contains
       name_c(ii) = name(ii:ii)
     enddo
     name_c(ll+1) = c_null_char
-
+    !print *, "Adding field ", name_c, " of type ", int(field_tid, c_int), " to complex ", int(complex_tid, c_int)
     ret = int(FTI_AddSimpleField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset))
 
   endfunction
@@ -892,11 +892,11 @@ contains
 
     integer                     :: ret
 
-    integer,           intent(IN) :: complex_tid
+    integer,           value :: complex_tid
     character(len=*),  intent(IN) :: name
-    integer,           intent(IN) :: field_tid
-    integer(c_size_t), intent(IN) :: offset
-    integer,           intent(IN) :: ndims
+    integer,           value      :: field_tid
+    integer(c_size_t), value      :: offset
+    integer,           value      :: ndims
     integer,           intent(IN) :: dim_length(*)
 
     character, target, dimension(1:len_trim(name)+1) :: name_c
@@ -936,7 +936,7 @@ function FTI_InitComplexType(name, size) result(ret)
     name_c(ii) = name(ii:ii)
   enddo
   name_c(ll+1) = c_null_char
-  ret = int(FTI_InitComplexType_impl(name, size))
+  ret = int(FTI_InitComplexType_impl(name_c, size))
 endfunction FTI_InitComplexType
 
 endmodule FTI

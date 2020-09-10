@@ -54,11 +54,34 @@ fortran_to_c_map() {
     # Both applications should be able to recover for all primitive data-types
     fti_run_success $c_app ${itf_cfg['fti:config']} 0
     fti_run_success $f90_app $config_copy 0
-    pass
+}
+
+fortran_complex() {
+  # Brief:
+  # Test the definition of complex types in Fortran ( FTI_InitComplexType API )
+  #
+  # Details:
+  # Two executions for creating and restoring to/from checkpoint files.
+  # The application uses the FTI API for complex data type handling.
+  # If the first application fails, there might be errors on the API calls.
+  # If the second application fails, the bindings to Fortran may have problems.
+  local app="$(dirname ${BASH_SOURCE[0]})/complex.exe"
+  local app_id_c app_id_f90 meta_dir
+
+  param_parse '+iolib' $@
+  fti_config_set 'ckpt_io' $iolib
+
+  fti_run_success $app ${itf_cfg['fti:config']} 1
+  fti_run_success $app ${itf_cfg['fti:config']} 0
+  pass
 }
 
 # -------------------------- ITF Register test cases --------------------------
 
 for iolib in $fti_io_ids; do
   itf_case 'fortran_to_c_map' "--iolib=$iolib"
+done
+
+for iolib in $fti_io_ids; do
+  itf_case 'fortran_complex' "--iolib=$iolib"
 done
