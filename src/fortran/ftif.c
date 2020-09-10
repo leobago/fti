@@ -46,6 +46,7 @@
 #define TYPECODE_INT 1
 #define TYPECODE_FLOAT 2
 #define TYPECODE_CHAR 3
+#define TYPECODE_COMPLEX 4
 
 /** @brief Fortran wrapper for FTI_Init, Initializes FTI.
  *
@@ -82,14 +83,16 @@ int FTI_Init_fort_wrapper(char* configFile, int* globalComm) {
 fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
     int typecode = TYPECODE_NONE;
     char *dest;
-    int i = 0;
+    int w = 0;
+    fti_id_t t;
+
     // Copy the type name to lower case ignoring non-letters
     dest  = talloc(char, strlen(name));
     for (const char *p=name; *p; ++p) {
       if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z'))
-        dest[i++] = tolower(*p);
+        dest[w++] = tolower(*p);
     }
-    dest[i] = '\0';
+    dest[w] = '\0';
     // Discover the fundamental format behind the type name
     if (strcmp(dest, "integer") == 0 ||
       strcmp(dest, "logical") == 0)
@@ -98,6 +101,8 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
       typecode = TYPECODE_FLOAT;
     else if (strcmp(dest, "character") == 0)
       typecode = TYPECODE_CHAR;
+    else if (strcmp(dest, "complex") == 0)
+      typecode = TYPECODE_COMPLEX;
     free(dest);
     // Find the static FTIT_Type object mapped to the primitive
     switch (typecode) {
@@ -117,22 +122,45 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
       break;
     case TYPECODE_FLOAT:
       switch (size) {
-      case sizeof(float):
-        return FTI_SFLT;
-      case sizeof(double):
-        return FTI_DBLE;
-      case sizeof(long double):
-        return FTI_LDBE;
-      default:
-        return FTI_InitType(size);
+        case sizeof(float):
+          return FTI_SFLT;
+        case sizeof(double):
+          return FTI_DBLE;
+        case sizeof(long double):
+          return FTI_LDBE;
+        default:
+          return FTI_InitType(size);
       }
       break;
       case TYPECODE_CHAR:
         return FTI_CHAR;
+      case TYPECODE_COMPLEX:
+        switch (size) {
+          case sizeof(float)*2:
+            t = FTI_InitComplexType(
+              "Complex4", sizeof(FTI_FComplex4), NULL);
+            FTI_AddSimpleField(t, "r", FTI_SFLT, offsetof(FTI_FComplex4, r));
+            FTI_AddSimpleField(t, "i", FTI_SFLT, offsetof(FTI_FComplex4, i));
+            return t;
+          case sizeof(double)*2:
+            t = FTI_InitComplexType(
+              "Complex8", sizeof(FTI_FComplex8), NULL);
+            FTI_AddSimpleField(t, "r", FTI_DBLE, offsetof(FTI_FComplex8, r));
+            FTI_AddSimpleField(t, "i", FTI_DBLE, offsetof(FTI_FComplex8, i));
+            return t;
+          case sizeof(long double)*2:
+            t = FTI_InitComplexType(
+              "Complex16", sizeof(FTI_FComplex16), NULL);
+            FTI_AddSimpleField(t, "r", FTI_LDBE, offsetof(FTI_FComplex16, r));
+            FTI_AddSimpleField(t, "i", FTI_LDBE, offsetof(FTI_FComplex16, i));
+            return t;
+          default:
+            return FTI_InitType(size);
+        }
       default:
         return FTI_InitType(size);
     }
-    return FTI_SCES;
+    return FTI_NSCS;
 }
 
 int FTI_SetAttribute_string_wrapper(int id, char* attribute, int flag) {

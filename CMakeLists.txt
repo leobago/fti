@@ -52,26 +52,17 @@ if( ${ENABLE_FORTRAN} )
         endif()
 
         set(CMAKE_Fortran_FLAGS "-cpp")
-        try_run( PROG_RAN COMPILE_SUCCESS
-            "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
-            RUN_OUTPUT_VARIABLE VER_STRING
-            )
+        try_run(PROG_RAN COMPILE_SUCCESS "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}" RUN_OUTPUT_VARIABLE VER_STRING)
         if ( COMPILE_SUCCESS )
-            string( REGEX MATCH "[0-9]+"
-                DETECTED_VER "${VER_STRING}"
-                )
-
+            string( REGEX MATCH "[0-9]+" DETECTED_VER "${VER_STRING}")
             set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
-
             message(AUTHOR_WARNING "
             ** The major version was determined as: ${VER_STRING}")
         else()
-
             set(FORTRAN_VER_UNKNOWN 1)
             set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
             message(AUTHOR_WARNING "
             ** The Fortran version could not be determined!")
-
         endif()
     else()
 

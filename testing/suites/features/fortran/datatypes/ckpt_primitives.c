@@ -24,6 +24,18 @@
 #define R8_INIT 20 + i
 #define R16_INIT 30 + i
 
+typedef struct Complex4 {
+    float r, i;
+} Complex4;
+
+typedef struct Complex8 {
+    double r, i;
+} Complex8;
+
+typedef struct Complex16 {
+    long double r, i;
+} Complex16;
+
 int main(int argc, char * argv[]) {
   char *configfile;
   int doInitData, rank, ret, i;
@@ -43,6 +55,12 @@ int main(int argc, char * argv[]) {
   float r4[SIZE];
   double r8[SIZE];
   long double r16[SIZE];
+
+  Complex4 cp4[SIZE];
+  Complex8 cp8[SIZE];
+  Complex16 cp16[SIZE];
+
+  fti_id_t complex_4, complex_8, complex_16;
 
   if (argc < 2) {
     printf("Expected two arguments: configfile (str) and doInitData (bool)");
@@ -77,8 +95,24 @@ int main(int argc, char * argv[]) {
       r4[i] = R4_INIT;
       r8[i] = R8_INIT;
       r16[i] = R16_INIT;
+      cp4[i].i = i;
+      cp4[i].r = i;
+      cp8[i].i = i;
+      cp8[i].r = i;
+      cp16[i].i = i;
+      cp16[i].r = i;
     }
   }
+  // Initializing custom types
+  complex_4 = FTI_InitComplexType("Complex4", sizeof(Complex4), NULL);
+  FTI_AddSimpleField(complex_4, "r", FTI_SFLT, offsetof(Complex4, r));
+  FTI_AddSimpleField(complex_4, "i", FTI_SFLT, offsetof(Complex4, i));
+  complex_8 = FTI_InitComplexType("Complex8", sizeof(Complex8), NULL);
+  FTI_AddSimpleField(complex_8, "r", FTI_SFLT, offsetof(Complex8, r));
+  FTI_AddSimpleField(complex_8, "i", FTI_SFLT, offsetof(Complex8, i));
+  complex_16 = FTI_InitComplexType("Complex16", sizeof(Complex16), NULL);
+  FTI_AddSimpleField(complex_16, "r", FTI_SFLT, offsetof(Complex16, r));
+  FTI_AddSimpleField(complex_16, "i", FTI_SFLT, offsetof(Complex16, i));
 
   FTI_Protect(0, c1, SIZE, FTI_CHAR);
 
@@ -95,6 +129,10 @@ int main(int argc, char * argv[]) {
   FTI_Protect(30, r4, SIZE, FTI_SFLT);
   FTI_Protect(31, r8, SIZE, FTI_DBLE);
   FTI_Protect(32, r16, SIZE, FTI_LDBE);
+
+  FTI_Protect(40, cp4, SIZE, complex_4);
+  FTI_Protect(41, cp8, SIZE, complex_8);
+  FTI_Protect(42, cp16, SIZE, complex_16);
 
   /**
    * If the application initialized the data, do the following:
@@ -177,6 +215,21 @@ int main(int argc, char * argv[]) {
     if (r16[i] != R16_INIT) {
       if (rank == 0)
         printf("real(16) was corrupted %Lf\n", r16[i]);
+      goto end;
+    }
+    if (cp4[i].i != i || cp4[i].r != i) {
+      if (rank == 0)
+        printf("complex(4) was corrupted %f\n", cp4[i]);
+      goto end;
+    }
+    if (cp8[i].i != i || cp8[i].r != i) {
+      if (rank == 0)
+        printf("complex(8) was corrupted %f\n", cp8[i]);
+      goto end;
+    }
+    if (cp16[i].i != i || cp16[i].r != i) {
+      if (rank == 0)
+        printf("complex(16) was corrupted %Lf\n", cp16[i]);
       goto end;
     }
   }
