@@ -37,13 +37,25 @@
  *  @brief  Header file for the FTI Fortran interface.
  */
 
-#ifndef _FTIF_H
-#define _FTIF_H
+#ifndef SRC_FORTRAN_FTIF_H_
+#define SRC_FORTRAN_FTIF_H_
 
 #include "../interface.h"
+
+typedef struct FTI_FComplex4 {
+    float r, i;
+} FTI_FComplex4;
+
+typedef struct FTI_FComplex8 {
+    double r, i;
+} FTI_FComplex8;
+
+typedef struct FTI_FComplex16 {
+    long double r, i;
+} FTI_FComplex16;
 
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm);
 fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size);
 fti_id_t FTI_InitComplexType_wrapper(char* name, size_t size);
 
-#endif
+#endif  // SRC_FORTRAN_FTIF_H_
