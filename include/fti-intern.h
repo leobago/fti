@@ -406,7 +406,7 @@ extern "C" {
     typedef struct FTIT_typeField {
         FTIT_type *type;            /**< FTI type ID of the field.           */
         int id;                     /**< Order of the field in the structure */
-        int offset;                 /**< Offset of the field in structure.   */
+        size_t offset;              /**< Offset of the field in structure.   */
         int rank;                   /**< Field rank (max. 32)                */
         int dimLength[32];          /**< Lenght of each dimention            */
         char name[FTI_BUFS];        /**< Name of the field                   */
