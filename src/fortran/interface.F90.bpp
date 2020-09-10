@@ -571,11 +571,10 @@ contains
   end subroutine FTI_getIDFromString
 
 
-  !>  This function initalizes a data type. the only information needed is the
-  !!  size of the data type, the rest is black box for FTI.
-  !!  \brief    It initializes a data type.
-  !!  \param    size_F  (IN)    The size of the data type to be intialized.
-  !!  \return   integer         The identifier for the new type.
+  !>  
+  !!  \brief    Registers a new data type in FTI runtime.
+  !!  \param    size_F  (IN)    The data type size in bytes.
+  !!  \return   fti_id_t        A handle to represent the new type.
   function FTI_InitType(size_F) result(ret)
     integer, intent(IN) :: size_F
     integer             :: ret
@@ -583,13 +582,22 @@ contains
     ret = int(FTI_InitType_impl(int(size_F, c_int)))
   endfunction FTI_InitType
 
-  !>  Try to initialize an FTIT_Type from a Fortran primitive datatype.
-  !!  This function tries to map a Fortran primitive with a C primitive.
-  !!  If there is not a valid match, this will create a new custom datatype.
-  !!  \brief    Initializes a primitive data type in FTI.
-  !!  \param    name    (IN)    The Fortran data type mnemonic.
-  !!  \param    size_F  (IN)    The size of the data type in bytes.
-  !!  \return   integer         The identifier for the new type
+  !>  This method first try to associate the Fortran primitive type to a C type.
+  !!  It does so by parsing the type mnemonic and then its size.
+  !!  Integers and logicals are mapped to integers of size 1, 2, 4 and 8.
+  !!  Reals are mapped to float, real and long real.
+  !!  Character is mapped to char regardless of size (byte array).
+  !!  If there is no direct correlation between C an Fortran, create a new type.
+  !!  
+  !!  WARNING: We assume that C and Fortran types share the same binary format.
+  !!  For instance, the C float is defined by the IEEE 754 format.
+  !!  We would assume that Fortran real(4) types are also encoded as IEEE 754.
+  !!  This is usually the case but might be an error source on some compilers.
+  !!
+  !!  \brief    Registers a Fortran primitive in FTI type system
+  !!  \param    name    (IN)    Fortran data type mnemonic string
+  !!  \param    size_F  (IN)    The data type size in bytes.
+  !!  \return   integer         A handle for the new data type
   function FTI_InitPrimitiveType(name, size_F) result(ret)
 
     character(len=*), intent(IN)    :: name
@@ -657,7 +665,7 @@ contains
   !!  \param    id_F    (IN)    ID for searches and update.
   !!  \param    ptr     (IN)    C-Pointer to the data structure.
   !!  \param    count_F (IN)    Number of elements in the data structure.
-  !!  \param    type_F  (IN)    Type of elements in the data structure.
+  !!  \param    tid     (IN)    Type handle for the protected data structure.
   !!  \param    err     (OUT)   Token for error handling.
   !!  \return   integer         FTI_SCES if successful.
   subroutine FTI_Protect_Ptr(id_F, ptr, count_F, tid, err)
@@ -833,18 +841,20 @@ contains
 
   endsubroutine FTI_Finalize
 
-  !>  This function adds a field to the complex datatype. Use offsetof macro to
-  !!  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
-  !!  will set "T${id}" name. Sets rank and dimLength to 1.
-  !!  \brief    It adds a fileld to a complex data type definition.
-  !!  \param    def_F   (IN)    The definition of the data type to add field.
-  !!  \param    type_F  (IN)    The data type of the field to add.
-  !!  \param    offset  (IN)    Offset of field in a structure.
-  !!  \param    id      (IN)    Id of field in a structure.
-  !!  \param    name    (IN)    data field name in hdf5 checkpoint file.
+  !>  Adds a scalar field to a complex data type at a given offset.
+  !!  Note that FTI does not check for memory boundaries within the data type.
+  !!  Specifying a wrong offset leads to undefined behavior.
+  !!  This can be avoided using the offsetof() macro.
+  !!
+  !!  \brief    Adds a simple type as a complex data type component.
+  !!  \param    complex_tid (IN) The complex data type handle
+  !!  \param    name        (IN) An optional field name
+  !!  \param    field_tid   (IN) The field data type handle
+  !!  \param    offset      (IN) Offset of the field (use offsetof)
+  !!  \return   integer          FTI_SCES when successfull or FTI_NSCS
   function FTI_AddSimpleField(complex_tid, name, field_tid, offset) result(ret)
 
-    integer                     :: ret
+    integer                      :: ret
 
     integer,          intent(IN) :: complex_tid
     character(len=*), intent(IN) :: name
@@ -865,18 +875,19 @@ contains
 
   endfunction
 
-  !>  This function adds a field to the complex datatype. Use offsetof macro to
-  !!  set offset. First ID must be 0, next one must be +1. If name is NULL FTI
-  !!  will set "T${id}" name. Sets rank and dimLength to 1.
-  !!  \brief    It adds a fileld to a complex data type definition.
-  !!  \brief    It adds a fileld to a complex data type definition.
-  !!  \param    def_F     (IN)    The definition of the data type to add field.
-  !!  \param    type_F    (IN)    The data type of the field to add.
-  !!  \param    offset    (IN)    Offset of field in a structure.
-  !!  \param    rank      (IN)    Rank of the array.
-  !!  \param    dimLength (IN)    Dimention length for each dimention.
-  !!  \param    id        (IN)    Id of a field in a structure.
-  !!  \param    name      (IN)    data field name in hdf5 checkpoint file.
+  !>  Adds an N-dimensional array field to a complex data type at a given offset.
+  !!  Note that FTI does not check for memory boundaries within the data type.
+  !!  Specifying a wrong offset leads to undefined behavior.
+  !!  This can be avoided using the offsetof() macro.
+  !!
+  !!  \brief    Adds a complex field to a complex data type.
+  !!  \param    complex_tid (IN) The complex data type handle
+  !!  \param    name        (IN) The field name
+  !!  \param    field_tid   (IN) The field data type handle
+  !!  \param    offset      (IN) Offset of the field (use offsetof)
+  !!  \param    ndims       (IN) The number of dimensions for the field
+  !!  \param    dim_length  (IN) Array of lengths for each dimension
+  !!  \return   integer          FTI_SCES when successful, FTI_NSCS otherwise
   function FTI_AddComplexField(complex_tid, name, field_tid, offset, ndims, dim_length) result(ret)
 
     integer                     :: ret
@@ -903,15 +914,13 @@ contains
 
   endfunction FTI_AddComplexField
 
-!>  This function initalizes a data type. the only information needed is the
-!!  size of the data type, the rest is black box for FTI.
-!!  \brief    It initializes a data type.
-!!  \param    def_F   (IN)    The definition of the data type to be intialized.
-!!  \param    length  (IN)    Number of fields in the data structure.
-!!  \param    size    (IN)    Size of the sturcture.
-!!  \param    name    (IN)    data field name in hdf5 checkpoint file.
-!!  \param    err     (OUT)   Token for error handling.
-!!  \return   integer         FTI_SCES if successful.
+!>  Creates a complex data type that serves as a container for other data types.
+!!  The components can be added using FTI_AddSimpleField and FTI_AddComplexField.
+!!
+!!  \brief    Initializes an empty complex data type.
+!!  \param    name   (IN)    An optional type name
+!!  \param    size   (IN)    The total size of the complex data type
+!!  \return   integer        A handle to represent the new type
 function FTI_InitComplexType(name, size) result(ret)
   integer                                          :: ret
 
