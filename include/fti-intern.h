@@ -363,7 +363,7 @@ extern "C" {
      */
     typedef struct FTIT_type {
         int id;                              /**< ID of the data type.        */
-        int size;                            /**< Size of the data type.      */
+        size_t size;                         /**< Size of the data type.      */
         FTIT_complexType* structure;         /**< Logical structure for HDF5. */
         FTIT_H5Group* h5group;               /**< Group of this datatype.     */
 #ifdef ENABLE_HDF5
