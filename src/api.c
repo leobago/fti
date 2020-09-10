@@ -346,8 +346,6 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
-    // TODO(alex): These errors must be catastrophic
-    // TODO(alex): use constant on warning message
     FTIT_type *struct_ref, *field_type;
     int field_id;
     FTIT_typeField *field;
@@ -370,7 +368,7 @@ int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
     }
     if (field_id > TYPES_FIELDS_MAX) {
         FTI_Print(
-          "Complex type must contain at most 256 fields.",
+          "Complex type must contain at most " STR(TYPES_FIELDS_MAX) "fields.",
           FTI_WARN);
         return FTI_NSCS;
     }
@@ -407,9 +405,6 @@ int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
 /*-------------------------------------------------------------------------*/
 int FTI_AddComplexField(fti_id_t id, char* name,
   fti_id_t tid, size_t offset, int ndims, int* dim_size) {
-    // TODO(alex): These errors should be catastrophic
-    // TODO(alex): use constant in warning message
-    // TODO(alex): use memcpy on dim_size
     FTIT_complexType *type;
     FTIT_typeField *field;
     int i;
@@ -423,7 +418,8 @@ int FTI_AddComplexField(fti_id_t id, char* name,
     }
     if (ndims < 1 || ndims > TYPES_DIMENSION_MAX) {
         FTI_Print(
-          "Complex type field must have between 1 and 32 dimensions",
+          "Complex type field must have between 1 and "
+          STR(TYPES_DIMENSION_MAX) " dimensions",
           FTI_WARN);
         return FTI_NSCS;
     }
@@ -442,8 +438,7 @@ int FTI_AddComplexField(fti_id_t id, char* name,
     field = &type->field[type->length-1];  // Length was inc by AddSimpleField
     // Complex Field initialization
     field->rank = ndims;
-    for (i = 0; i < ndims; i++)
-        field->dimLength[i] = dim_size[i];
+    memcpy(field->dimLength, dim_size, ndims*sizeof(int));
     return FTI_SCES;
 }
 

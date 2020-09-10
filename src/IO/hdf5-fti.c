@@ -83,7 +83,6 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,
  **/
 /*-------------------------------------------------------------------------*/
 void FTI_CreateComplexType(FTIT_type* ftiType) {
-    // TODO(alex): check documentation
     char str[FTI_BUFS];
 
     // Sanity Checks
@@ -94,9 +93,8 @@ void FTI_CreateComplexType(FTIT_type* ftiType) {
         FTI_Print(str, FTI_DBUG);
         return;
     }
-
     // If type is simple (i.e initialized with FTI_InitType)
-    if (ftiType->structure == NULL) {
+    if (!FTI_IsTypeComplex(ftiType)) {
         snprintf(str, sizeof(str), "Creating type [%d] as array of bytes.",
          ftiType->id);
         FTI_Print(str, FTI_DBUG);
@@ -104,7 +102,6 @@ void FTI_CreateComplexType(FTIT_type* ftiType) {
         H5Tset_size(ftiType->h5datatype, ftiType->size);
         return;
     }
-
     // If type is complex (i.e initialized with FTI_InitComplexType)
     hid_t partTypes[FTI_BUFS];
     int i;
@@ -143,7 +140,6 @@ void FTI_CreateComplexType(FTIT_type* ftiType) {
             }
         }
     }
-
     // create new HDF5 compound datatype
     snprintf(str, sizeof(str), "Creating type [%d].", ftiType->id);
     FTI_Print(str, FTI_DBUG);
@@ -154,7 +150,6 @@ void FTI_CreateComplexType(FTIT_type* ftiType) {
     if (ftiType->h5datatype < 0) {
         FTI_Print("FTI failed to create HDF5 type.", FTI_WARN);
     }
-
     // inserting component fields into compound datatype
     for (i = 0; i < ftiType->structure->length; i++) {
         snprintf(str, sizeof(str), "Insering type [%d] into new type [%d].",

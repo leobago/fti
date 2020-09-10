@@ -94,7 +94,12 @@ void cleanup(char* pattern, ...);
         }                                                     \
     } while (0)
 
-#define TRY_ALLOC(dest, dtype, count) dest = (dtype*) calloc(sizeof(dtype), count);\
-                                     if (dest == NULL)
+#define TRY_ALLOC(dest, dtype, count) dest = \
+    (dtype*) calloc(sizeof(dtype), count);\
+    if (dest == NULL)
+
+/** Stringfy static functions **/
+#define STR_(X) #X
+#define STR(X) STR_(X)
 
 #endif  // FTI_MACROS_H_
