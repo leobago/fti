@@ -150,7 +150,7 @@ module FTI
       use ISO_C_BINDING
 
       integer(c_int) :: FTI_InitType_impl
-      integer(c_int), value :: size_F
+      integer(c_size_t), value :: size_F
 
     endfunction FTI_InitType_impl
 
@@ -164,7 +164,7 @@ module FTI
 
       integer(c_int) :: FTI_InitPrimitiveType_impl
       character(c_char), intent(IN) :: name(*)
-      integer(c_int), value :: size_F
+      integer(c_size_t), value :: size_F
 
     endfunction FTI_InitPrimitiveType_impl
 
@@ -360,7 +360,7 @@ module FTI
 
       integer(c_int)                :: FTI_InitComplexType_impl
 
-      integer(c_long),   INTENT(IN) :: size
+      integer(c_size_t),   INTENT(IN) :: size
       character(c_char), INTENT(IN) :: name(*)
 
     endfunction FTI_InitComplexType_impl
@@ -379,7 +379,7 @@ module FTI
       integer(c_int),    INTENT(IN) :: complex_tid
       character(c_char), INTENT(IN) :: name(*)
       integer(c_int),    INTENT(IN) :: field_tid
-      integer(c_long),   INTENT(IN) :: offset
+      integer(c_size_t),   INTENT(IN) :: offset
 
     endfunction FTI_AddSimpleField_impl
 
@@ -576,10 +576,10 @@ contains
   !!  \param    size_F  (IN)    The data type size in bytes.
   !!  \return   fti_id_t        A handle to represent the new type.
   function FTI_InitType(size_F) result(ret)
-    integer, intent(IN) :: size_F
+    integer(c_size_t), intent(IN) :: size_F
     integer             :: ret
 
-    ret = int(FTI_InitType_impl(int(size_F, c_int)))
+    ret = int(FTI_InitType_impl(size_F))
   endfunction FTI_InitType
 
   !>  This method first try to associate the Fortran primitive type to a C type.
@@ -612,7 +612,7 @@ contains
     enddo
     name_c(ll+1) = c_null_char
 
-    ret = int(FTI_InitPrimitiveType_impl(name_c, int(size_F, c_int)))
+    ret = int(FTI_InitPrimitiveType_impl(name_c, int(size_F, c_size_t)))
   endfunction FTI_InitPrimitiveType
 
   !>  This function returns size of variable of given ID that is saved in metadata.
@@ -856,10 +856,10 @@ contains
 
     integer                      :: ret
 
-    integer,          intent(IN) :: complex_tid
-    character(len=*), intent(IN) :: name
-    integer,          intent(IN) :: field_tid
-    integer,          intent(IN) :: offset
+    integer,           intent(IN) :: complex_tid
+    character(len=*),  intent(IN) :: name
+    integer,           intent(IN) :: field_tid
+    integer(c_size_t), intent(IN) :: offset
 
     character, target, dimension(1:len_trim(name)+1) :: name_c
     integer                                          :: ii, ll
@@ -871,7 +871,7 @@ contains
     enddo
     name_c(ll+1) = c_null_char
 
-    ret = int(FTI_AddSimpleField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), int(offset, c_long)))
+    ret = int(FTI_AddSimpleField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset))
 
   endfunction
 
@@ -892,12 +892,12 @@ contains
 
     integer                     :: ret
 
-    integer,          intent(IN) :: complex_tid
-    character(len=*), intent(IN) :: name
-    integer,          intent(IN) :: field_tid
-    integer,          intent(IN) :: offset
-    integer,          intent(IN) :: ndims
-    integer,          intent(IN) :: dim_length(*)
+    integer,           intent(IN) :: complex_tid
+    character(len=*),  intent(IN) :: name
+    integer,           intent(IN) :: field_tid
+    integer(c_size_t), intent(IN) :: offset
+    integer,           intent(IN) :: ndims
+    integer,           intent(IN) :: dim_length(*)
 
     character, target, dimension(1:len_trim(name)+1) :: name_c
     integer                                          :: ii, ll
@@ -909,7 +909,7 @@ contains
     enddo
     name_c(ll+1) = c_null_char
 
-    ret = int(FTI_AddComplexField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), int(offset, c_long), &
+    ret = int(FTI_AddComplexField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset, &
         int(ndims, c_int), dim_length))
 
   endfunction FTI_AddComplexField
@@ -925,7 +925,7 @@ function FTI_InitComplexType(name, size) result(ret)
   integer                                          :: ret
 
   character(len=*), intent(IN)                     :: name
-  integer, intent(IN)                              :: size
+  integer(c_size_t), intent(IN)                    :: size
 
   integer                                          :: ii, ll
   character, target, dimension(1:len_trim(name)+1) :: name_c
@@ -936,7 +936,7 @@ function FTI_InitComplexType(name, size) result(ret)
     name_c(ii) = name(ii:ii)
   enddo
   name_c(ll+1) = c_null_char
-  ret = int(FTI_InitComplexType_impl(name, int(size, c_long)))
+  ret = int(FTI_InitComplexType_impl(name, size))
 endfunction FTI_InitComplexType
 
 endmodule FTI

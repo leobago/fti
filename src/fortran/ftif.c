@@ -79,7 +79,7 @@ int FTI_Init_fort_wrapper(char* configFile, int* globalComm) {
  *   We would assume that Fortran real(4) types are also encoded as IEEE 754.
  *   This is usually the case but might be an error source on some compilers.
  **/
-fti_id_t FTI_InitPrimitiveType_C(const char *name, int size) {
+fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
     int typecode = TYPECODE_NONE;
     char *dest;
     int i = 0;
@@ -167,6 +167,6 @@ int FTI_SetAttribute_long_array_wrapper(int id, int ndims,
  *   The components are added with FTI_AddSimpleField and FTI_AddComplexField.
  *
  **/
-fti_id_t FTI_InitComplexType_wrapper(char* name, int size) {
+fti_id_t FTI_InitComplexType_wrapper(char* name, size_t size) {
   return FTI_InitComplexType(name, size, NULL);
 }

@@ -43,7 +43,7 @@
 #include "../interface.h"
 
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm);
-fti_id_t FTI_InitPrimitiveType_C(const char *name, int size);
-fti_id_t FTI_InitComplexType_wrapper(char* name, int size);
+fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size);
+fti_id_t FTI_InitComplexType_wrapper(char* name, size_t size);
 
 #endif
