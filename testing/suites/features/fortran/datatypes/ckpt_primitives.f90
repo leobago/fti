@@ -1,4 +1,7 @@
-!> @author Alexandre de Limas Santana
+!> Copyright (c) 2017 Leonardo A. Bautista-Gomez
+!> All rights reserved
+!>
+!> @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
 !> @date   August, 2020
 !> @brief  Checkpoint primitive types and validate FTI meta-data
 

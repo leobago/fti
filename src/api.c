@@ -271,7 +271,7 @@ fti_id_t FTI_InitType(size_t size) {
     type->h5datatype = -1;  // to mark as closed
 #endif
     // Global structure update
-    FTI_Exec.datatypes.ntypes += 1;
+    FTI_Exec.datatypes.ntypes++;
     return type->id;
 }
 
@@ -288,10 +288,8 @@ fti_id_t FTI_InitType(size_t size) {
 **/
 /*-------------------------------------------------------------------------*/
 FTIT_type* FTI_GetType(fti_id_t id) {
-    if (id < 0 || id >= FTI_Exec.datatypes.ntypes) {
-      FTI_Print("Invalid type handle", FTI_WARN);
+    if (id < 0 || id >= FTI_Exec.datatypes.ntypes)
       return NULL;
-    }
     return &FTI_Exec.datatypes.types[id];
 }
 
@@ -316,11 +314,17 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
 
     // Sanity check
     TRY_ALLOC(structure, FTIT_complexType, 1) {
+        FTI_Print("Failed to allocate complex type data", FTI_WARN);
         return FTI_NSCS;
     }
     // Simple type initialization
     type_id = FTI_InitType(size);
     type = FTI_GetType(type_id);
+    if (!type) {
+        free(structure);
+        FTI_Print("Failed to initialize complex type", FTI_WARN);
+        return FTI_NSCS;
+    }
     // Complex type initialization
     if (h5group)
         type->h5group = FTI_Exec.H5groups[h5group->id];
@@ -350,22 +354,21 @@ int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
     int field_id;
     FTIT_typeField *field;
 
+    // Sanity Checks
     struct_ref = FTI_GetComplexType(id);
     field_type = FTI_GetType(fid);
-    // Sanity Checks
-    if (struct_ref == NULL) {
+    if (!struct_ref) {
         FTI_Print(
-          "Complex type id invalid when attempting to add a field",
-          FTI_WARN);
+          "Complex type id invalid when attempting to add a field", FTI_WARN);
         return FTI_NSCS;
     }
-    field_id = struct_ref->structure->length;
-    if (field_type == NULL) {
+    if (!field_type) {
         FTI_Print(
           "Complex field type id invalid when attempting to add a field",
           FTI_WARN);
         return FTI_NSCS;
     }
+    field_id = struct_ref->structure->length;
     if (field_id > TYPES_FIELDS_MAX) {
         FTI_Print(
           "Complex type must contain at most " STR(TYPES_FIELDS_MAX) "fields.",
@@ -432,8 +435,10 @@ int FTI_AddComplexField(fti_id_t id, char* name,
         }
     }
     // Simple Field initialization
-    if (FTI_AddSimpleField(id, name, tid, offset) == FTI_NSCS)
-      return FTI_NSCS;
+    if (FTI_AddSimpleField(id, name, tid, offset) == FTI_NSCS) {
+        FTI_Print("Failed to initialize complex field data.", FTI_WARN);
+        return FTI_NSCS;
+    }
     type = FTI_GetComplexType(id)->structure;
     field = &type->field[type->length-1];  // Length was inc by AddSimpleField
     // Complex Field initialization
@@ -783,7 +788,6 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
     }
 
     char str[5*FTI_BUFS];  // For console output
-
     // Id out of bounds.
     if (id > FTI_Conf.maxVarId) {
         snprintf(str, FTI_BUFS, "Id out of bounds ('Basic:max_var_id = %d').",
