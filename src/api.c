@@ -238,8 +238,8 @@ int FTI_Status() {
 /*-------------------------------------------------------------------------*/
 /**
   @brief      Registers a new data type in FTI runtime
-  @param      size             The size of the data type.
-  @return     fti_id_t         An external handle to represent the new type.
+  @param      size             The data type size in bytes.
+  @return     fti_id_t         A handle to represent the new type.
 
   This function initalizes a data type.
   The type is treated as a black box for FTI.
@@ -301,7 +301,7 @@ FTIT_type* FTI_GetType(fti_id_t id) {
   @param      name            An optional type name
   @param      size            The total size of the complex data type
   @param      h5group         An optional H5 group identifier
-  @return     fti_id_t        An external handle to represent the new type.
+  @return     fti_id_t        A handle to represent the new type.
 
   Creates a complex data type that serves as a container for other data types.
   The components can be added using FTI_AddSimpleField and FTI_AddComplexField.
@@ -332,7 +332,7 @@ fti_id_t FTI_InitComplexType(char* name, int size, FTIT_H5Group* h5group) {
 /**
   @brief      Adds a simple type as a complex data type component.
   @param      id              The complex data type handle
-  @param      name            The field name
+  @param      name            An optional field name
   @param      fid             The field data type handle
   @param      offset          Offset of the field (use offsetof)
   @return     integer         FTI_SCES when successful, FTI_NSCS otherwise

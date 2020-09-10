@@ -62,18 +62,20 @@ int FTI_Init_fort_wrapper(char* configFile, int* globalComm) {
 }
 
 /**
- *   @brief      Initialize a FTIT_Type structure for a Fortran primitive type
- *   @param      type            The data type to be intialized
- *   @param      name            Fortran typename string
- *   @param      size            Type size in bytes
- *   @return     integer         FTI_SCES if successful
+ *   @brief      Registers a Fortran primitive in FTI type system
+ *   @param      name            Fortran data type mnemonic string
+ *   @param      size            The data type size in bytes
+ *   @return     fti_id_t        A handle for the new data type
  *
  *   This method first try to associate the Fortran primitive type to a C type.
- *   It does so by parsing the name and then the size of the data type.
+ *   It does so by parsing the type mnemonic and then its size.
+ *   Integers and logicals are mapped to integers of size 1, 2, 4 and 8.
+ *   Reals are mapped to float, real and long real.
+ *   Character is mapped to char regardless of size (byte array).
  *   If there is no direct correlation between C an Fortran, create a new type.
  *
  *   WARNING: We assume that C and Fortran types share the same binary format.
- *   For instance, the C float is usually defined by the IEEE 754 format.
+ *   For instance, the C float is defined by the IEEE 754 format.
  *   We would assume that Fortran real(4) types are also encoded as IEEE 754.
  *   This is usually the case but might be an error source on some compilers.
  **/
@@ -157,16 +159,14 @@ int FTI_SetAttribute_long_array_wrapper(int id, int ndims,
 }
 
 /**
- *   @brief      Initializes a complex hdf5 data type.
+ *   @brief      Initializes an hdf5-like empty complex data type.
  *   @param      size            Size of the structure.
  *   @param      name            Name of the structure.
- *   @return     integer         FTI_SCES if successful.
+ *   @return     integer         FTI_SCES if successful, FTI_NSCS otherwise.
  *
- *   This function initalizes a complex data type. the information needed is passed
- *   in typeDefinition, the rest is black box for FTI.
+ *   The components are added with FTI_AddSimpleField and FTI_AddComplexField.
  *
  **/
 fti_id_t FTI_InitComplexType_wrapper(char* name, int size) {
-  // TODO(alex): documentation
   return FTI_InitComplexType(name, size, NULL);
 }
