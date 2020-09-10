@@ -248,11 +248,12 @@ int FTI_Status() {
 
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitType(int size) {
+fti_id_t FTI_InitType(size_t size) {
     FTIT_type *type;
     fti_id_t new_id = FTI_Exec.datatypes.ntypes;
+
     // Sanity Check
-    if (size < 1) {
+    if (!size) {
         FTI_Print("Types must have positive size", FTI_WARN);
         return FTI_NSCS;
     }
@@ -308,7 +309,7 @@ FTIT_type* FTI_GetType(fti_id_t id) {
 
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitComplexType(char* name, int size, FTIT_H5Group* h5group) {
+fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
     FTIT_type *type;
     FTIT_complexType *structure;
     int type_id;
