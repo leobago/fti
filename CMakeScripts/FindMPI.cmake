@@ -472,8 +472,7 @@ function (interrogate_mpi_compiler lang try_libs)
     endif()
     if (${lang} STREQUAL Fortran)
       message(STATUS "Checking whether MPI Fortran module is available")
-      set(test_file "${CMAKE_BINARY_DIR}
-      ${CMAKE_FILES_DIRECTORY}/cmake_mpimodule_test.F90")
+      set(test_file "${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/cmake_mpimodule_test.F90")
       file(WRITE "${test_file}" "
 program test_mpimodule
     use mpi
