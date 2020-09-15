@@ -104,7 +104,7 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
     else if (strcmp(dest, "complex") == 0)
       typecode = TYPECODE_COMPLEX;
     free(dest);
-    // Find the static FTIT_Type object mapped to the primitive
+    // Find the static FTIT_Datatype object mapped to the primitive
     switch (typecode) {
     case TYPECODE_INT:
       switch (size) {

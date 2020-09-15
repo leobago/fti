@@ -129,7 +129,7 @@ int main ( int argc, char *argv[]){
   int headRank = grank - grank%nodeSize;
 
   FTIT_complexType coordinateDef;
-  FTIT_type threeDType;
+  FTIT_Datatype threeDType;
   FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, x),0, "X"); 
   FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, y),1, "y"); 
   FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, z),2, "z"); 

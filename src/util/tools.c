@@ -258,7 +258,7 @@ int FTI_Try(int result, char* message) {
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
     // Allocate all data structures
     memset(&FTI_Exec->datatypes, 0, sizeof(FTIT_DataTypes));
-    TRY_ALLOC(FTI_Exec->datatypes.types, FTIT_type, TYPES_MAX) {
+    TRY_ALLOC(FTI_Exec->datatypes.types, FTIT_Datatype, TYPES_MAX) {
       return FTI_NSCS;
     }
     // Allocate all groups
@@ -531,30 +531,30 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Checks if an allocated FTIT_type is complex
-  @param      t              A pointer to the FTIT_type
+  @brief      Checks if an allocated FTIT_Datatype is complex
+  @param      t              A pointer to the FTIT_Datatype
   @return     int            Non-zero if true, zero if false
 
   A complex type contains a non-empty structure field.
 
 **/
 /*-------------------------------------------------------------------------*/
-inline int FTI_IsTypeComplex(FTIT_type *t) {
+inline int FTI_IsTypeComplex(FTIT_Datatype *t) {
   return t && t->structure;
 }
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Obtains the FTIT_type associated to a given type handle
+  @brief      Obtains the FTIT_Datatype associated to a given type handle
   @param      handle         The data type handle
-  @return     FTIT_type      An external handle to represent the new type
+  @return     FTIT_Datatype      An external handle to represent the new type
 
-  Returns NULL if the handle is not associated to an initialized complex type.
+  Returns NULL if the handle is not associated to an initialized complex type
 
 **/
 /*-------------------------------------------------------------------------*/
-inline FTIT_type* FTI_GetComplexType(fti_id_t handle) {
-    FTIT_type* t = FTI_GetType(handle);
+inline FTIT_Datatype* FTI_GetComplexType(fti_id_t handle) {
+    FTIT_Datatype* t = FTI_GetType(handle);
     if (!FTI_IsTypeComplex(t))
         return NULL;
     return t;

@@ -83,7 +83,7 @@ extern "C" {
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
   int FTI_InitType(size_t size);
-  FTIT_type* FTI_GetType(fti_id_t id);
+  FTIT_Datatype* FTI_GetType(fti_id_t id);
   fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group);
   int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t tid, size_t offset);
   int FTI_AddComplexField(fti_id_t id, char* name,

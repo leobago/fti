@@ -356,12 +356,13 @@ extern "C" {
 
 
     typedef struct FTIT_complexType FTIT_complexType;
-    /** @typedef    FTIT_type
+
+    /** @typedef    FTIT_Datatype
      *  @brief      Type recognized by FTI.
      *
      *  This type allows handling data structures.
      */
-    typedef struct FTIT_type {
+    typedef struct FTIT_Datatype {
         int id;                              /**< ID of the data type.        */
         size_t size;                         /**< Size of the data type.      */
         FTIT_complexType* structure;         /**< Logical structure for HDF5. */
@@ -369,7 +370,7 @@ extern "C" {
 #ifdef ENABLE_HDF5
         hid_t h5datatype;                    /**< HDF5 datatype.              */
 #endif
-    } FTIT_type;
+    } FTIT_Datatype;
 
     typedef struct FTIT_globalDataset {
         bool initialized;                 /**< Dataset is initialized         */
@@ -385,7 +386,7 @@ extern "C" {
         hsize_t* dimension;                /**< num of elements for each dim. */
 #endif
         struct FTIT_globalDataset* next;  /**< Pointer to next dataset        */
-        FTIT_type *type;                  /**< corresponding FTI type.        */
+        FTIT_Datatype *type;                  /**< corresponding FTI type.        */
         char name[FTI_BUFS];              /**< Dataset name.                  */
         char fullName[FTI_BUFS];          /**< full 'path' of dataset         */
     } FTIT_globalDataset;
@@ -404,7 +405,7 @@ extern "C" {
      *  This type simplify creating complex datatypes.
      */
     typedef struct FTIT_typeField {
-        FTIT_type *type;            /**< FTI type ID of the field.           */
+        FTIT_Datatype *type;            /**< FTI type ID of the field.           */
         int id;                     /**< Order of the field in the structure */
         size_t offset;              /**< Offset of the field in structure.   */
         int rank;                   /**< Field rank (max. 32)                */
@@ -453,7 +454,7 @@ extern "C" {
         FTIT_attribute attribute;
         FTIT_sharedData sharedData;         /**< Info if dataset is subset    */
         FTIT_dcpDatasetPosix dcpInfoPosix;  /**< dCP info for posix I/O       */
-        FTIT_type* type;                    /**< Data type for the dataset    */
+        FTIT_Datatype* type;                    /**< Data type for the dataset    */
         FTIT_H5Group* h5group;              /**< Group of this dataset        */
         char idChar[FTI_BUFS];              /**< THis is glue for ALYA        */
         char name[FTI_BUFS];                /**< Name of the dataset          */
@@ -643,7 +644,7 @@ extern "C" {
         int32_t ntypes;                 /**< Number of data types.           */
         int32_t nprimitives;            /**< number of basic FTI types       */
         int32_t primitive_offset;       /**< where the first basic type is   */
-        FTIT_type *types;               /**< All FTI_Types registered        */
+        FTIT_Datatype *types;               /**< All FTI_Types registered        */
     } FTIT_DataTypes;
 
     /** @typedef    FTIT_execution

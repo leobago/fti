@@ -249,7 +249,7 @@ int FTI_Status() {
 **/
 /*-------------------------------------------------------------------------*/
 fti_id_t FTI_InitType(size_t size) {
-    FTIT_type *type;
+    FTIT_Datatype *type;
     fti_id_t new_id = FTI_Exec.datatypes.ntypes;
 
     // Sanity Check
@@ -287,7 +287,7 @@ fti_id_t FTI_InitType(size_t size) {
 
 **/
 /*-------------------------------------------------------------------------*/
-FTIT_type* FTI_GetType(fti_id_t id) {
+FTIT_Datatype* FTI_GetType(fti_id_t id) {
     if (id < 0 || id >= FTI_Exec.datatypes.ntypes)
       return NULL;
     return &FTI_Exec.datatypes.types[id];
@@ -308,7 +308,7 @@ FTIT_type* FTI_GetType(fti_id_t id) {
 **/
 /*-------------------------------------------------------------------------*/
 fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
-    FTIT_type *type;
+    FTIT_Datatype *type;
     FTIT_complexType *structure;
     int type_id;
 
@@ -350,7 +350,7 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
-    FTIT_type *struct_ref, *field_type;
+    FTIT_Datatype *struct_ref, *field_type;
     int field_id;
     FTIT_typeField *field;
 

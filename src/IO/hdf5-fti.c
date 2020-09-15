@@ -82,7 +82,7 @@ int FTI_ActivateHeadsHDF5(FTIT_configuration* FTI_Conf,
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CreateComplexType(FTIT_type* ftiType) {
+void FTI_CreateComplexType(FTIT_Datatype* ftiType) {
     char str[FTI_BUFS];
 
     // Sanity Checks
@@ -176,7 +176,7 @@ void FTI_CreateComplexType(FTIT_type* ftiType) {
 
  **/
 /*-------------------------------------------------------------------------*/
-void FTI_CloseComplexType(FTIT_type* ftiType) {
+void FTI_CloseComplexType(FTIT_Datatype* ftiType) {
     if (!ftiType) return;
 
     char str[FTI_BUFS];
