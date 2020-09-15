@@ -36,8 +36,6 @@
  *  @brief  API functions for the FTI library.
  */
 
-#include <stdarg.h> //TODO:(alex) maybe functions that use this move!!
-
 #include "interface.h"
 #include "IO/cuda-md5/md5Opt.h"
 
@@ -246,9 +244,12 @@ int FTI_Status() {
   Thus, the runtime only requires information about its size.
   Types built this was are saved as byte array when using HDF5 format.
 
+  @todo This function should replace FTI_InitType for a cleaner API.
+  This function is the result of a data type refactoring in FTI 1.4.
+  It was obscured from the user for API backwards compatibility.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitType(size_t size) {
+fti_id_t FTI_InitType_opaque(size_t size) {
     FTIT_Datatype *type;
     fti_id_t new_id = FTI_Exec.datatypes.ntypes;
 
@@ -277,6 +278,24 @@ fti_id_t FTI_InitType(size_t size) {
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief      Registers a new data type in FTI runtime
+  @param      type             Output parameter for the data type handle.
+  @param      size             The data type size in bytes.
+  @return     int              FTI_SCES on sucess, otherwise FTI_NSCS.
+
+  This function initalizes a data type.
+  The type is treated as a black box for FTI.
+  Thus, the runtime only requires information about its size.
+  Types built this was are saved as byte array when using HDF5 format.
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_InitType(fti_id_t* type, int size) {
+    *type = FTI_InitType_opaque(size);
+    return ((*type) != FTI_NSCS)? FTI_SCES : FTI_NSCS;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief      Obtains the FTIT_type associated to a given type handle
   @param      handle         The data type handle
   @return     FTIT_type      The internal representation of an FTI type
@@ -284,7 +303,6 @@ fti_id_t FTI_InitType(size_t size) {
   Returns NULL if the handle is not associated to an initialized type.
   This function should not be used directly.
   It is meant for advanced users in need to inspect FTI data structures. 
-
 **/
 /*-------------------------------------------------------------------------*/
 FTIT_Datatype* FTI_GetType(fti_id_t id) {
@@ -305,9 +323,13 @@ FTIT_Datatype* FTI_GetType(fti_id_t id) {
   Creates a complex data type that serves as a container for other data types.
   The components can be added using FTI_AddSimpleField and FTI_AddComplexField.
 
+  @todo This function should replace FTI_InitType for a cleaner API.
+  This function is the result of a data type refactoring in FTI 1.4.
+  It was obscured from the user for API backwards compatibility.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
+fti_id_t FTI_InitComplexType_opaque(char* name, size_t size,
+    FTIT_H5Group* h5group) {
     FTIT_Datatype *type;
     FTIT_complexType *structure;
     int type_id;
@@ -331,6 +353,31 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
     type->structure = structure;
     FTI_CopyStringOrDefault(type->structure->name, name, "Type%d", type_id);
     return type_id;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      It initializes a complex data type.
+  @param      newType         The data type to be intialized.
+  @param      typeDefinition  Structure definition of the new type.
+  @param      length          Number of fields in structure
+  @param      size            Size of the structure.
+  @param      name            Name of the structure.
+  @param      h5group         Group of the type.
+  @return     integer         FTI_SCES if successful.
+  This function initalizes a simple data type. New type can only consists
+  fields of flat FTI types (no arrays). Type definition must include:
+  - length                => number of fields in the new type
+  - field[].type          => types of the field in the new type
+  - field[].name          => name of the field in the new type
+  - field[].rank          => number of dimentions of the field
+  - field[].dimLength[]   => length of each dimention of the field
+ **/
+/*-------------------------------------------------------------------------*/
+int FTI_InitComplexType(fti_id_t* newType, FTIT_complexType* typeDefinition,
+   int length, size_t size, char* name, FTIT_H5Group* h5group) {
+    *newType = FTI_InitComplexType_opaque(name, size, h5group);
+    return ((*newType) != FTI_NSCS)? FTI_SCES : FTI_NSCS;
 }
 
 /*-------------------------------------------------------------------------*/

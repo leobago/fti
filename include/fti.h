@@ -38,7 +38,9 @@
 #define FTI_SI_NINI 0x0
 
 /** Identifier abstraction for FTI internal objects                        */
-#define fti_id_t int
+typedef int fti_id_t;
+/** FTI v1.4 and backwards data type handling compatibility                */
+#define FTIT_type fti_id_t
 
 #include "fti-intern.h"
 
@@ -82,12 +84,6 @@ extern "C" {
 
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
-  int FTI_InitType(size_t size);
-  FTIT_Datatype* FTI_GetType(fti_id_t id);
-  fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group);
-  int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t tid, size_t offset);
-  int FTI_AddComplexField(fti_id_t id, char* name,
-    fti_id_t tid, size_t offset, int ndims, int* dim_size);
   int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
   int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
@@ -127,6 +123,17 @@ extern "C" {
    MPI_Comm globalComm);
   int FTI_RecoverVarInit();
   int FTI_RecoverVarFinalize();
+
+  // FTI data type handling functions
+  FTIT_Datatype* FTI_GetType(fti_id_t id);
+  int FTI_InitType(fti_id_t* type, int size);
+  int FTI_InitComplexType(fti_id_t* newType, FTIT_complexType* typeDefinition,
+   int length, size_t size, char* name, FTIT_H5Group* h5group);
+  void FTI_AddSimpleField(FTIT_complexType* typeDefinition, fti_id_t* ftiType,
+      size_t offset, int id, char* name);
+  void FTI_AddComplexField(FTIT_complexType* typeDefinition,
+   fti_id_t* ftiType, size_t offset, int rank, int* dimLength,
+   int id, char* name);
 
 #ifdef __cplusplus
 }

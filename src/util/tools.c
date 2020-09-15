@@ -38,6 +38,8 @@
 
 #include <dirent.h>
 #include <execinfo.h>
+#include <stdarg.h>
+
 #include "tools.h"
 
 int FTI_filemetastructsize;         /**< size of FTIFF_db struct in file    */
