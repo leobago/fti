@@ -177,7 +177,7 @@ int main(int argc, char * argv[]) {
     }
     if (l8[i] != LX_INIT) {
       if (rank == 0)
-        printf("logical(8) was corrupted %d\n", l8[i]);
+        printf("logical(8) was corrupted %ld\n", l8[i]);
       goto end;
     }
 
@@ -219,17 +219,17 @@ int main(int argc, char * argv[]) {
     }
     if (cp4[i].i != i || cp4[i].r != i) {
       if (rank == 0)
-        printf("complex(4) was corrupted %f\n", cp4[i]);
+        printf("complex(4) corrupted r=%f, i=%f\n", cp4[i].r, cp4[i].i);
       goto end;
     }
     if (cp8[i].i != i || cp8[i].r != i) {
       if (rank == 0)
-        printf("complex(8) was corrupted %f\n", cp8[i]);
+        printf("complex(8) corrupted r=%f, i=%f\n", cp8[i].r, cp8[i].i);
       goto end;
     }
     if (cp16[i].i != i || cp16[i].r != i) {
       if (rank == 0)
-        printf("complex(16) was corrupted %Lf\n", cp16[i]);
+        printf("complex(16) corrupted r=%Lf, i=%Lf\n", cp16[i].r, cp16[i].i);
       goto end;
     }
   }
