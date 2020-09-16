@@ -276,17 +276,17 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
     snprintf(FTI_Exec->H5groups[0]->name, FTI_BUFS, "/");
 
     // Initialize the C native datatypes
-    FTI_CHAR = FTI_InitType(sizeof(char));
-    FTI_SHRT = FTI_InitType(sizeof(short));
-    FTI_INTG = FTI_InitType(sizeof(int));
-    FTI_LONG = FTI_InitType(sizeof(long));
-    FTI_UCHR = FTI_InitType(sizeof(unsigned char));
-    FTI_USHT = FTI_InitType(sizeof(unsigned short));
-    FTI_UINT = FTI_InitType(sizeof(unsigned int));
-    FTI_ULNG = FTI_InitType(sizeof(unsigned long));
-    FTI_SFLT = FTI_InitType(sizeof(float));
-    FTI_DBLE = FTI_InitType(sizeof(double));
-    FTI_LDBE = FTI_InitType(sizeof(long double));
+    FTI_CHAR = FTI_InitType_opaque(sizeof(char));
+    FTI_SHRT = FTI_InitType_opaque(sizeof(short));
+    FTI_INTG = FTI_InitType_opaque(sizeof(int));
+    FTI_LONG = FTI_InitType_opaque(sizeof(long));
+    FTI_UCHR = FTI_InitType_opaque(sizeof(unsigned char));
+    FTI_USHT = FTI_InitType_opaque(sizeof(unsigned short));
+    FTI_UINT = FTI_InitType_opaque(sizeof(unsigned int));
+    FTI_ULNG = FTI_InitType_opaque(sizeof(unsigned long));
+    FTI_SFLT = FTI_InitType_opaque(sizeof(float));
+    FTI_DBLE = FTI_InitType_opaque(sizeof(double));
+    FTI_LDBE = FTI_InitType_opaque(sizeof(long double));
 
 #ifdef ENABLE_HDF5
     FTI_GetType(FTI_CHAR)->h5datatype = H5T_NATIVE_CHAR;

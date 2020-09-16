@@ -320,7 +320,8 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(FTI_COMM_WORLD, &world_rank);
   MPI_Comm_size(FTI_COMM_WORLD, &world_size);
 
-  fti_id_t bytesType = FTI_InitType(sizeof(AsByteArray));
+  fti_id_t bytesType;
+  FTI_InitType(&bytesType, sizeof(AsByteArray));
 
   // Create groups for types
   // AllIntegers datatype

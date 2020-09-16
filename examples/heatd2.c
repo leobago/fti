@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     // Create a new FTI data type
     fti_id_t ckptInfo;
     // Initialize the new FTI data type
-    ckptInfo = FTI_InitType(2*sizeof(int));
+    FTI_InitType(&ckptInfo, 2*sizeof(int));
 
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, &myCkpt, 1, ckptInfo);

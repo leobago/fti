@@ -145,12 +145,12 @@ module FTI
   interface
 
     function FTI_InitType_impl(size_F) &
-            bind(c, name='FTI_InitType')
+            bind(c, name='FTI_InitType_wrapper')
 
       use ISO_C_BINDING
 
-      integer(c_int) :: FTI_InitType_impl
-      integer(c_size_t), value :: size_F
+      integer(c_int)                :: FTI_InitType_impl
+      integer(c_size_t), value      :: size_F
 
     endfunction FTI_InitType_impl
 

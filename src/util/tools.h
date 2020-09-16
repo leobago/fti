@@ -33,6 +33,9 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...);
 int FTI_IsTypeComplex(FTIT_Datatype *t);
 FTIT_Datatype* FTI_GetComplexType(fti_id_t handle);
 
+// TODO(alex): This method is temporairly hidden from the public API
+fti_id_t FTI_InitType_opaque(size_t size);
+
 #ifdef __cplusplus
 }
 #endif

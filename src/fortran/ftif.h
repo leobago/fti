@@ -55,6 +55,7 @@ typedef struct FTI_FComplex16 {
 } FTI_FComplex16;
 
 int FTI_Init_fort_wrapper(char* configFile, int* globalComm);
+int FTI_InitType_wrapper(size_t size);
 fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size);
 fti_id_t FTI_InitComplexType_wrapper(char* name, size_t size);
 

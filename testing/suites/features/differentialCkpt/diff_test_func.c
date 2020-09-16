@@ -96,9 +96,9 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     pat = (uint32_t) rand();
 
     // protect pattern and xor_info
-    FTI_UI = FTI_InitType(UI_UNIT);
+    FTI_InitType(&FTI_UI, UI_UNIT);
     FTI_Protect(PAT_ID, &pat, 1, FTI_UI);
-    FTI_XOR_INFO = FTI_InitType(sizeof(xor_info_t));
+    FTI_InitType(&FTI_XOR_INFO, sizeof(xor_info_t));
     FTI_Protect(XOR_INFO_ID, info->xor_info, NUM_DCKPT, FTI_XOR_INFO);
     FTI_Protect(NBUFFER_ID, &info->nbuffer, 1, FTI_INTG);
 

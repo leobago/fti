@@ -328,8 +328,7 @@ FTIT_Datatype* FTI_GetType(fti_id_t id) {
   It was obscured from the user for API backwards compatibility.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitComplexType_opaque(char* name, size_t size,
-    FTIT_H5Group* h5group) {
+fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
     FTIT_Datatype *type;
     FTIT_complexType *structure;
     int type_id;
@@ -340,7 +339,7 @@ fti_id_t FTI_InitComplexType_opaque(char* name, size_t size,
         return FTI_NSCS;
     }
     // Simple type initialization
-    type_id = FTI_InitType(size);
+    type_id = FTI_InitType_opaque(size);
     type = FTI_GetType(type_id);
     if (!type) {
         free(structure);
@@ -353,31 +352,6 @@ fti_id_t FTI_InitComplexType_opaque(char* name, size_t size,
     type->structure = structure;
     FTI_CopyStringOrDefault(type->structure->name, name, "Type%d", type_id);
     return type_id;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It initializes a complex data type.
-  @param      newType         The data type to be intialized.
-  @param      typeDefinition  Structure definition of the new type.
-  @param      length          Number of fields in structure
-  @param      size            Size of the structure.
-  @param      name            Name of the structure.
-  @param      h5group         Group of the type.
-  @return     integer         FTI_SCES if successful.
-  This function initalizes a simple data type. New type can only consists
-  fields of flat FTI types (no arrays). Type definition must include:
-  - length                => number of fields in the new type
-  - field[].type          => types of the field in the new type
-  - field[].name          => name of the field in the new type
-  - field[].rank          => number of dimentions of the field
-  - field[].dimLength[]   => length of each dimention of the field
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitComplexType(fti_id_t* newType, FTIT_complexType* typeDefinition,
-   int length, size_t size, char* name, FTIT_H5Group* h5group) {
-    *newType = FTI_InitComplexType_opaque(name, size, h5group);
-    return ((*newType) != FTI_NSCS)? FTI_SCES : FTI_NSCS;
 }
 
 /*-------------------------------------------------------------------------*/

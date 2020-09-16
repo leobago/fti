@@ -65,6 +65,7 @@ fortran_complex() {
   # The application uses the FTI API for complex data type handling.
   # If the first application fails, there might be errors on the API calls.
   # If the second application fails, the bindings to Fortran may have problems.
+
   local app="$(dirname ${BASH_SOURCE[0]})/complex.exe"
   local app_id_c app_id_f90 meta_dir
 

@@ -127,13 +127,10 @@ extern "C" {
   // FTI data type handling functions
   FTIT_Datatype* FTI_GetType(fti_id_t id);
   int FTI_InitType(fti_id_t* type, int size);
-  int FTI_InitComplexType(fti_id_t* newType, FTIT_complexType* typeDefinition,
-   int length, size_t size, char* name, FTIT_H5Group* h5group);
-  void FTI_AddSimpleField(FTIT_complexType* typeDefinition, fti_id_t* ftiType,
-      size_t offset, int id, char* name);
-  void FTI_AddComplexField(FTIT_complexType* typeDefinition,
-   fti_id_t* ftiType, size_t offset, int rank, int* dimLength,
-   int id, char* name);
+  int FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group);
+  int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset);
+  int FTI_AddComplexField(fti_id_t id, char* name,  fti_id_t tid,
+   size_t offset, int ndims, int* dim_size);
 
 #ifdef __cplusplus
 }

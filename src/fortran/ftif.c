@@ -117,7 +117,7 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
       case sizeof(long):
         return FTI_LONG;
       default:
-        return FTI_InitType(size);
+        return FTI_InitType_opaque(size);
       }
       break;
     case TYPECODE_FLOAT:
@@ -129,7 +129,7 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
         case sizeof(long double):
           return FTI_LDBE;
         default:
-          return FTI_InitType(size);
+          return FTI_InitType_opaque(size);
       }
       break;
       case TYPECODE_CHAR:
@@ -155,10 +155,10 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
             FTI_AddSimpleField(t, "i", FTI_LDBE, offsetof(FTI_FComplex16, i));
             return t;
           default:
-            return FTI_InitType(size);
+            return FTI_InitType_opaque(size);
         }
       default:
-        return FTI_InitType(size);
+        return FTI_InitType_opaque(size);
     }
     return FTI_NSCS;
 }
@@ -184,6 +184,20 @@ int FTI_SetAttribute_long_array_wrapper(int id, int ndims,
         return FTI_SetAttribute(id, att, flag);
     }
     return FTI_SCES;
+}
+
+/**
+ *   @brief      Registers a datatype into FTI runtime
+ *   @param      size            Size of the structure.
+ *   @return     integer         The handle id for the new type.
+ *
+ *   TODO(alex): This wrapper is temporary.
+ *   It can be discarded when the `_opaque' variant replaces FTI_InitType.
+ *   Then, the Fortran interface can bind directly to FTI_InitType.
+ *
+ **/
+int FTI_InitType_wrapper(size_t size) {
+  return FTI_InitType_opaque(size);
 }
 
 /**

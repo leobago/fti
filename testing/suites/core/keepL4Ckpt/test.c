@@ -52,7 +52,8 @@ int main(int argc, char* argv[]) {
     memcpy(&buffer[i], &rval, sizeof(uint32_t));
   }
 
-  fti_id_t FTI_UINT32_T = FTI_InitType(sizeof(uint32_t));
+  fti_id_t FTI_UINT32_T;
+  FTI_InitType(&FTI_UINT32_T, sizeof(uint32_t));
 
   int id_cnt = 1;
   FTI_Protect(0, buffer, N, FTI_UINT32_T);
