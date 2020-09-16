@@ -59,7 +59,7 @@ pthread_mutex_t application;
 int32_t totalWork = 0;
 int32_t worker_exit = 0;
 int deviceId;
-unsigned char* (*cpuHash)(const unsigned char *data, uint32_t nBytes,
+unsigned char* (*cpuHash)(const unsigned char *data, uint64_t nBytes,
  unsigned char *hash);
 int32_t tempBufferSize;
 int32_t md5ChunkSize;

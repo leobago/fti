@@ -144,7 +144,7 @@ extern "C" {
     typedef struct FTIT_dcpConfigurationPosix {
         unsigned int digestWidth;
         unsigned char* (*hashFunc)(const unsigned char *data,
-            uint32_t nBytes, unsigned char *hash);
+            uint64_t nBytes, unsigned char *hash);
         unsigned int StackSize;
         uint32_t BlockSize;
         unsigned int cachedCkpt;

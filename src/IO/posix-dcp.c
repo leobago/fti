@@ -1325,7 +1325,7 @@ void* FTI_DcpPosixRecoverRuntimeInfo(int tag, void* exec_, void* conf_) {
 }
 
 // have the same for for MD5 and CRC32
-unsigned char* CRC32(const unsigned char *d, uint32_t nBytes,
+unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
  unsigned char *hash) {
     static unsigned char hash_[CRC32_DIGEST_LENGTH];
     if (hash == NULL) {
