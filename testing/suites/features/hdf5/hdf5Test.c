@@ -174,7 +174,7 @@ int verifyChars(Chars* in, int shift, int rank, char* name) {
     }
     for (j = 0; j < 1024; j++) {
       if (in->bytes[i].longs[j] != (j + 1) * 2 + shift) {
-        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %d should be %d \n", rank,
+        printf("[ %06d ] : %s.bytes[%d].longs[%d] = %ld should be %d \n", rank,
                name, i, j, in->bytes[i].longs[j], (j + 1) * 2 + shift);
         return VERIFY_FAILED;
       }
@@ -190,12 +190,12 @@ int verifyInts(Integers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->integer != -123 - shift) {
-    printf("[ %06d ] : %s.shortInteger = %d should be %d \n", rank, name,
+    printf("[ %06d ] : %s.integer = %d should be %d \n", rank, name,
            in->integer, -123 - shift);
     return VERIFY_FAILED;
   }
   if (in->longInteger != -1234 - shift) {
-    printf("[ %06d ] : %s.shortInteger = %d should be %d \n", rank, name,
+    printf("[ %06d ] : %s.longtInteger = %ld should be %d \n", rank, name,
            in->longInteger, -1234 - shift);
     return VERIFY_FAILED;
   }
@@ -213,12 +213,12 @@ int verifyUInts(UIntegers* in, int shift, int rank, char* name) {
     return VERIFY_FAILED;
   }
   if (in->integer != 123 + shift) {
-    printf("[ %06d ] : %s.shortInteger = %u should be %u \n", rank, name,
+    printf("[ %06d ] : %s.integer = %u should be %u \n", rank, name,
            in->integer, 123 + shift);
     return VERIFY_FAILED;
   }
   if (in->longInteger != 1234 + shift) {
-    printf("[ %06d ] : %s.shortInteger = %u should be %u \n", rank, name,
+    printf("[ %06d ] : %s.longInteger = %lu should be %u \n", rank, name,
            in->longInteger, 1234 + shift);
     return VERIFY_FAILED;
   }
