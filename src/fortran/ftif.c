@@ -137,22 +137,22 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
       case TYPECODE_COMPLEX:
         switch (size) {
           case sizeof(float)*2:
-            t = FTI_InitComplexType(
+            t = FTI_InitCompositeType(
               "Complex4", sizeof(FTI_FComplex4), NULL);
-            FTI_AddSimpleField(t, "r", FTI_SFLT, offsetof(FTI_FComplex4, r));
-            FTI_AddSimpleField(t, "i", FTI_SFLT, offsetof(FTI_FComplex4, i));
+            FTI_AddScalarField(t, "r", FTI_SFLT, offsetof(FTI_FComplex4, r));
+            FTI_AddScalarField(t, "i", FTI_SFLT, offsetof(FTI_FComplex4, i));
             return t;
           case sizeof(double)*2:
-            t = FTI_InitComplexType(
+            t = FTI_InitCompositeType(
               "Complex8", sizeof(FTI_FComplex8), NULL);
-            FTI_AddSimpleField(t, "r", FTI_DBLE, offsetof(FTI_FComplex8, r));
-            FTI_AddSimpleField(t, "i", FTI_DBLE, offsetof(FTI_FComplex8, i));
+            FTI_AddScalarField(t, "r", FTI_DBLE, offsetof(FTI_FComplex8, r));
+            FTI_AddScalarField(t, "i", FTI_DBLE, offsetof(FTI_FComplex8, i));
             return t;
           case sizeof(long double)*2:
-            t = FTI_InitComplexType(
+            t = FTI_InitCompositeType(
               "Complex16", sizeof(FTI_FComplex16), NULL);
-            FTI_AddSimpleField(t, "r", FTI_LDBE, offsetof(FTI_FComplex16, r));
-            FTI_AddSimpleField(t, "i", FTI_LDBE, offsetof(FTI_FComplex16, i));
+            FTI_AddScalarField(t, "r", FTI_LDBE, offsetof(FTI_FComplex16, r));
+            FTI_AddScalarField(t, "i", FTI_LDBE, offsetof(FTI_FComplex16, i));
             return t;
           default:
             return FTI_InitType_opaque(size);
@@ -201,14 +201,14 @@ int FTI_InitType_wrapper(size_t size) {
 }
 
 /**
- *   @brief      Initializes an hdf5-like empty complex data type.
+ *   @brief      Initializes an hdf5-like empty composite data type.
  *   @param      size            Size of the structure.
  *   @param      name            Name of the structure.
  *   @return     integer         FTI_SCES if successful, FTI_NSCS otherwise.
  *
- *   The components are added with FTI_AddSimpleField and FTI_AddComplexField.
+ *   The components are added with FTI_AddScalarField and FTI_AddVectorField.
  *
  **/
-fti_id_t FTI_InitComplexType_wrapper(char* name, size_t size) {
-  return FTI_InitComplexType(name, size, NULL);
+fti_id_t FTI_InitCompositeType_wrapper(char* name, size_t size) {
+  return FTI_InitCompositeType(name, size, NULL);
 }

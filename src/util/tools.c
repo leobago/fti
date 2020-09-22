@@ -533,15 +533,15 @@ void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Checks if an allocated FTIT_Datatype is complex
+  @brief      Checks if an allocated FTIT_Datatype is composite
   @param      t              A pointer to the FTIT_Datatype
   @return     int            Non-zero if true, zero if false
 
-  A complex type contains a non-empty structure field.
+  A composite type contains a non-empty structure field.
 
 **/
 /*-------------------------------------------------------------------------*/
-inline int FTI_IsTypeComplex(FTIT_Datatype *t) {
+inline int FTI_IsTypeComposite(FTIT_Datatype *t) {
   return t && t->structure;
 }
 
@@ -551,13 +551,13 @@ inline int FTI_IsTypeComplex(FTIT_Datatype *t) {
   @param      handle         The data type handle
   @return     FTIT_Datatype      An external handle to represent the new type
 
-  Returns NULL if the handle is not associated to an initialized complex type
+  Returns NULL if the handle is not associated to an initialized composite type
 
 **/
 /*-------------------------------------------------------------------------*/
-inline FTIT_Datatype* FTI_GetComplexType(fti_id_t handle) {
+inline FTIT_Datatype* FTI_GetCompositeType(fti_id_t handle) {
     FTIT_Datatype* t = FTI_GetType(handle);
-    if (!FTI_IsTypeComplex(t))
+    if (!FTI_IsTypeComposite(t))
         return NULL;
     return t;
 }

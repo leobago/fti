@@ -8,8 +8,8 @@
  *  @brief  Header file for the FTI library.
  */
 
-#ifndef INCLUDE_FTI_H_
-#define INCLUDE_FTI_H_
+#ifndef FTI_INCLUDE_FTI_H_
+#define FTI_INCLUDE_FTI_H_
 
 /** Standard size of buffer and max node size.                             */
 #define FTI_BUFS 256
@@ -125,15 +125,14 @@ extern "C" {
   int FTI_RecoverVarFinalize();
 
   // FTI data type handling functions
-  FTIT_Datatype* FTI_GetType(fti_id_t id);
   int FTI_InitType(fti_id_t* type, int size);
-  int FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group);
-  int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset);
-  int FTI_AddComplexField(fti_id_t id, char* name,  fti_id_t tid,
-   size_t offset, int ndims, int* dim_size);
+  fti_id_t FTI_InitCompositeType(char* name, size_t size, FTIT_H5Group* h5g);
+  int FTI_AddScalarField(fti_id_t id, char* name, fti_id_t fid, size_t offset);
+  int FTI_AddVectorField(fti_id_t id, char* name,  fti_id_t tid,
+   size_t offset, int ndims, int* dim_sizes);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // INCLUDE_FTI_H_
+#endif  // FTI_INCLUDE_FTI_H_

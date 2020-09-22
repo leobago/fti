@@ -161,10 +161,10 @@ int main(int argc, char **argv) {
 
   // create FTI type of structure
   fti_id_t FTI_NEW_STRUCT =
-    FTI_InitComplexType("struct_one_two", sizeof(struct STRUCT), NULL);
-  FTI_AddSimpleField(FTI_NEW_STRUCT, "one", FTI_INTG,
+    FTI_InitCompositeType("struct_one_two", sizeof(struct STRUCT), NULL);
+  FTI_AddScalarField(FTI_NEW_STRUCT, "one", FTI_INTG,
     offsetof(struct STRUCT, one));
-  FTI_AddSimpleField(FTI_NEW_STRUCT, "two", FTI_INTG,
+  FTI_AddScalarField(FTI_NEW_STRUCT, "two", FTI_INTG,
                      offsetof(struct STRUCT, two));
 
   // create a group

@@ -94,7 +94,7 @@ void FTI_CreateComplexType(FTIT_Datatype* ftiType) {
         return;
     }
     // If type is simple (i.e initialized with FTI_InitType)
-    if (!FTI_IsTypeComplex(ftiType)) {
+    if (!FTI_IsTypeComposite(ftiType)) {
         snprintf(str, sizeof(str), "Creating type [%d] as array of bytes.",
          ftiType->id);
         FTI_Print(str, FTI_DBUG);
@@ -102,7 +102,7 @@ void FTI_CreateComplexType(FTIT_Datatype* ftiType) {
         H5Tset_size(ftiType->h5datatype, ftiType->size);
         return;
     }
-    // If type is complex (i.e initialized with FTI_InitComplexType)
+    // If type is complex (i.e initialized with FTI_InitCompositeType)
     hid_t partTypes[FTI_BUFS];
     int i;
     // for each field create and rank-dimension array if needed
@@ -159,7 +159,8 @@ void FTI_CreateComplexType(FTIT_Datatype* ftiType) {
          ftiType->structure->field[i].name,
           ftiType->structure->field[i].offset, partTypes[i]);
         if (res < 0) {
-          snprintf(str, sizeof(str), "FTI faied to insert type [%d] in complex type [%d].",
+          snprintf(str, sizeof(str),
+                    "FTI faied to insert type [%d] in complex type [%d].",
             ftiType->structure->field[i].type->id, ftiType->id);
             FTI_Print(str, FTI_WARN);
         }

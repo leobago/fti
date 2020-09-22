@@ -8,7 +8,7 @@
  *  @brief  FTI testing program.
  *
  *  Testing FTI_InitType, FTI_InitSimpleTypeWithNames,
- *  FTI_InitComplexTypeWithNames, FTI_ProtectWithName, FTI_Checkpoint,
+ *  FTI_InitCompositeTypeWithNames, FTI_ProtectWithName, FTI_Checkpoint,
  *  FTI_Recover, saving last checkpoint to PFS
  *
  *  Program creates complex data structures, then adds it to protect list
@@ -341,86 +341,86 @@ int main(int argc, char** argv) {
   FTI_InitGroup(&charsAndFloatsGroup, "Chars and Floats", NULL);
 
   // Chars and array of bytes
-  fti_id_t CharsType = FTI_InitComplexType("Chars", sizeof(Chars), NULL);
+  fti_id_t CharsType = FTI_InitCompositeType("Chars", sizeof(Chars), NULL);
 
   int dimLength[4];
   dimLength[0] = 10;
-  FTI_AddComplexField(CharsType, "char array", FTI_CHAR,
+  FTI_AddVectorField(CharsType, "char array", FTI_CHAR,
       offsetof(Chars, chars), 1, dimLength);
 
   dimLength[0] = 2;
   dimLength[1] = 3;
   dimLength[2] = 4;
   dimLength[3] = 5;
-  FTI_AddComplexField(CharsType, "unsigned char multi-array", FTI_UCHR,
+  FTI_AddVectorField(CharsType, "unsigned char multi-array", FTI_UCHR,
       offsetof(Chars, uChars), 4, dimLength);
 
   dimLength[0] = 2;
-  FTI_AddComplexField(CharsType, "byte array", bytesType,
+  FTI_AddVectorField(CharsType, "byte array", bytesType,
       offsetof(Chars, bytes), 1, dimLength);
 
   // Integers
-  fti_id_t IntegersType = FTI_InitComplexType("struct Integers",
+  fti_id_t IntegersType = FTI_InitCompositeType("struct Integers",
       sizeof(Integers), &intsGroup);
 
-  FTI_AddSimpleField(IntegersType, "short int", FTI_SHRT,
+  FTI_AddScalarField(IntegersType, "short int", FTI_SHRT,
       offsetof(Integers, shortInteger));
-  FTI_AddSimpleField(IntegersType, "int", FTI_INTG,
+  FTI_AddScalarField(IntegersType, "int", FTI_INTG,
       offsetof(Integers, integer));
-  FTI_AddSimpleField(IntegersType, "long int", FTI_LONG,
+  FTI_AddScalarField(IntegersType, "long int", FTI_LONG,
       offsetof(Integers, longInteger));
 
   // Unsigned integers
-  fti_id_t UIntegersType = FTI_InitComplexType("struct UIntegers",
+  fti_id_t UIntegersType = FTI_InitCompositeType("struct UIntegers",
       sizeof(UIntegers), &uIntsGroup);
 
-  FTI_AddSimpleField(UIntegersType, "unsigned short int", FTI_USHT,
+  FTI_AddScalarField(UIntegersType, "unsigned short int", FTI_USHT,
       offsetof(UIntegers, shortInteger));
-  FTI_AddSimpleField(UIntegersType, "unsigned int", FTI_UINT,
+  FTI_AddScalarField(UIntegersType, "unsigned int", FTI_UINT,
       offsetof(UIntegers, integer));
-  FTI_AddSimpleField(UIntegersType, "unsigned long int", FTI_ULNG,
+  FTI_AddScalarField(UIntegersType, "unsigned long int", FTI_ULNG,
       offsetof(UIntegers, longInteger));
 
   // Floats
-  fti_id_t FloatsType = FTI_InitComplexType("struct Floats",
+  fti_id_t FloatsType = FTI_InitCompositeType("struct Floats",
       sizeof(Floats), &charsAndFloatsGroup);
 
-  FTI_AddSimpleField(FloatsType, "float", FTI_SFLT,
+  FTI_AddScalarField(FloatsType, "float", FTI_SFLT,
       offsetof(Floats, singlePrec));
-  FTI_AddSimpleField(FloatsType, "double", FTI_DBLE,
+  FTI_AddScalarField(FloatsType, "double", FTI_DBLE,
       offsetof(Floats, doublePrec));
 
   // Integers aggregated
-  fti_id_t AllIntsType = FTI_InitComplexType("struct AllInts",
+  fti_id_t AllIntsType = FTI_InitCompositeType("struct AllInts",
       sizeof(AllInts), &allIntsGroup);
 
   dimLength[0] = 5;
-  FTI_AddComplexField(AllIntsType, "struct Integers array", IntegersType,
+  FTI_AddVectorField(AllIntsType, "struct Integers array", IntegersType,
       offsetof(AllInts, integers), 1, dimLength);
 
   dimLength[0] = 4;
-  FTI_AddComplexField(AllIntsType, "struct UIntegers array",
+  FTI_AddVectorField(AllIntsType, "struct UIntegers array",
       UIntegersType, offsetof(AllInts, uIntegers), 1, dimLength);
 
   // Floats and chars aggregated
-  fti_id_t FloatsCharsType = FTI_InitComplexType("struct FloatsChars",
+  fti_id_t FloatsCharsType = FTI_InitCompositeType("struct FloatsChars",
       sizeof(FloatsChars), &charsAndFloatsGroup);
 
   dimLength[0] = 3;
-  FTI_AddComplexField(FloatsCharsType, "struct Floats array",
+  FTI_AddVectorField(FloatsCharsType, "struct Floats array",
       FloatsType, offsetof(FloatsChars, floats), 1, dimLength);
 
   dimLength[0] = 2;
-  FTI_AddComplexField(FloatsCharsType, "struct Chars array",
+  FTI_AddVectorField(FloatsCharsType, "struct Chars array",
       CharsType, offsetof(FloatsChars, chars), 1, dimLength);
 
   // All types aggregated
-  fti_id_t AllTypesType = FTI_InitComplexType("struct AllTypes",
+  fti_id_t AllTypesType = FTI_InitCompositeType("struct AllTypes",
       sizeof(AllTypes), NULL);
 
-  FTI_AddSimpleField(AllTypesType, "struct AllInts", AllIntsType,
+  FTI_AddScalarField(AllTypesType, "struct AllInts", AllIntsType,
       offsetof(AllTypes, allInts));
-  FTI_AddSimpleField(AllTypesType, "struct FloatsChars", FloatsCharsType,
+  FTI_AddScalarField(AllTypesType, "struct FloatsChars", FloatsCharsType,
       offsetof(AllTypes, floatsChars));
 
   Chars charVars[2];

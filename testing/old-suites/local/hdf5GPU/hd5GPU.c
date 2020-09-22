@@ -130,11 +130,11 @@ int main ( int argc, char *argv[]){
 
   FTIT_complexType coordinateDef;
   FTIT_Datatype threeDType;
-  FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, x),0, "X"); 
-  FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, y),1, "y"); 
-  FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, z),2, "z"); 
-  FTI_AddSimpleField( &coordinateDef, &FTI_INTG, offsetof( threeD, id),3, "id"); 
-  FTI_InitComplexType(&threeDType, &coordinateDef, 4 , sizeof(threeD), "ThreeD", NULL);
+  FTI_AddScalarField( &coordinateDef, &FTI_INTG, offsetof( threeD, x),0, "X"); 
+  FTI_AddScalarField( &coordinateDef, &FTI_INTG, offsetof( threeD, y),1, "y"); 
+  FTI_AddScalarField( &coordinateDef, &FTI_INTG, offsetof( threeD, z),2, "z"); 
+  FTI_AddScalarField( &coordinateDef, &FTI_INTG, offsetof( threeD, id),3, "id"); 
+  FTI_InitCompositeType(&threeDType, &coordinateDef, 4 , sizeof(threeD), "ThreeD", NULL);
   
 
   if ( (nbHeads<0) || (nodeSize<0) ) {

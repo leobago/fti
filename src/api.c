@@ -246,7 +246,7 @@ int FTI_Status() {
 
   @todo This function should replace FTI_InitType for a cleaner API.
   This function is the result of a data type refactoring in FTI 1.4.
-  It was obscured from the user for API backwards compatibility.
+  It is obscured from the user for API backwards compatibility.
 **/
 /*-------------------------------------------------------------------------*/
 fti_id_t FTI_InitType_opaque(size_t size) {
@@ -314,21 +314,17 @@ FTIT_Datatype* FTI_GetType(fti_id_t id) {
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Initializes an empty complex data type.
+  @brief      Initializes an empty composite data type.
   @param      name            An optional type name
   @param      size            The total size of the complex data type
-  @param      h5group         An optional H5 group identifier
+  @param      h5g             An optional H5 group identifier
   @return     fti_id_t        A handle to represent the new type.
 
-  Creates a complex data type that serves as a container for other data types.
-  The components can be added using FTI_AddSimpleField and FTI_AddComplexField.
-
-  @todo This function should replace FTI_InitType for a cleaner API.
-  This function is the result of a data type refactoring in FTI 1.4.
-  It was obscured from the user for API backwards compatibility.
+  Creates a composite data type that can contains other data types as fields.
+  The fields can be added using FTI_AddScalarField and FTI_AddVectorField.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
+fti_id_t FTI_InitCompositeType(char* name, size_t size, FTIT_H5Group* h5g) {
     FTIT_Datatype *type;
     FTIT_complexType *structure;
     int type_id;
@@ -347,8 +343,8 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
         return FTI_NSCS;
     }
     // Complex type initialization
-    if (h5group)
-        type->h5group = FTI_Exec.H5groups[h5group->id];
+    if (h5g)
+        type->h5group = FTI_Exec.H5groups[h5g->id];
     type->structure = structure;
     FTI_CopyStringOrDefault(type->structure->name, name, "Type%d", type_id);
     return type_id;
@@ -356,43 +352,44 @@ fti_id_t FTI_InitComplexType(char* name, size_t size, FTIT_H5Group* h5group) {
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Adds a simple type as a complex data type component.
-  @param      id              The complex data type handle
+  @brief      Adds a scalar field to a composite type.
+  @param      id              The composite data type handle
   @param      name            An optional field name
   @param      fid             The field data type handle
   @param      offset          Offset of the field (use offsetof)
   @return     integer         FTI_SCES when successful, FTI_NSCS otherwise
 
   Adds a scalar field to a complex data type at a given offset.
+  @warning
   Do note that FTI does not check for memory boundaries within the data type.
   Specifying a wrong offset leads to undefined behavior.
   This can be avoided using the offsetof() macro.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
+int FTI_AddScalarField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
     FTIT_Datatype *struct_ref, *field_type;
     int field_id;
     FTIT_typeField *field;
 
     // Sanity Checks
-    struct_ref = FTI_GetComplexType(id);
+    struct_ref = FTI_GetCompositeType(id);
     field_type = FTI_GetType(fid);
     if (!struct_ref) {
         FTI_Print(
-          "Complex type id invalid when attempting to add a field", FTI_WARN);
+          "Composite id invalid when attempting to add a field", FTI_WARN);
         return FTI_NSCS;
     }
     if (!field_type) {
         FTI_Print(
-          "Complex field type id invalid when attempting to add a field",
+          "Composite field id invalid when attempting to add a field",
           FTI_WARN);
         return FTI_NSCS;
     }
     field_id = struct_ref->structure->length;
     if (field_id > TYPES_FIELDS_MAX) {
         FTI_Print(
-          "Complex type must contain at most " STR(TYPES_FIELDS_MAX) "fields.",
+          "Composite must contain at most " STR(TYPES_FIELDS_MAX) "fields.",
           FTI_WARN);
         return FTI_NSCS;
     }
@@ -411,8 +408,8 @@ int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief      Adds a complex field to a complex data type.
-  @param      id              The complex data type handle
+  @brief      Adds an n-dimensional vector field to a composite data type.
+  @param      id              The composite data type handle
   @param      name            The field name
   @param      fid             The field data type handle
   @param      offset          Offset of the field (use offsetof)
@@ -421,20 +418,21 @@ int FTI_AddSimpleField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
   @return     integer         FTI_SCES when successful, FTI_NSCS otherwise
 
   Adds an N-dimensional array field to a complex data type at a given offset.
+  @warning
   Do note that FTI does not check for memory boundaries within the data type.
   Specifying a wrong offset leads to undefined behavior.
   This can be avoided using the offsetof() macro.
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddComplexField(fti_id_t id, char* name,
-  fti_id_t tid, size_t offset, int ndims, int* dim_size) {
+int FTI_AddVectorField(fti_id_t id, char* name,
+  fti_id_t tid, size_t offset, int ndims, int* dim_sizes) {
     FTIT_complexType *type;
     FTIT_typeField *field;
     int i;
 
     // Sanity Check
-    if (dim_size == NULL) {
+    if (dim_sizes == NULL) {
         FTI_Print(
           "Complex type field dimension size pointer cannot be NULL.",
           FTI_WARN);
@@ -448,7 +446,7 @@ int FTI_AddComplexField(fti_id_t id, char* name,
         return FTI_NSCS;
     }
     for (i = 0; i < ndims; i++) {
-        if (dim_size[i] < 1) {
+        if (dim_sizes[i] < 1) {
             FTI_Print(
               "Complex type must have positive dimension sizes.",
               FTI_WARN);
@@ -456,15 +454,15 @@ int FTI_AddComplexField(fti_id_t id, char* name,
         }
     }
     // Simple Field initialization
-    if (FTI_AddSimpleField(id, name, tid, offset) == FTI_NSCS) {
+    if (FTI_AddScalarField(id, name, tid, offset) == FTI_NSCS) {
         FTI_Print("Failed to initialize complex field data.", FTI_WARN);
         return FTI_NSCS;
     }
-    type = FTI_GetComplexType(id)->structure;
-    field = &type->field[type->length-1];  // Length was inc by AddSimpleField
-    // Complex Field initialization
+    type = FTI_GetCompositeType(id)->structure;
+    field = &type->field[type->length-1];  // Length was inc by AddScalarField
+    // Composite Field initialization
     field->rank = ndims;
-    memcpy(field->dimLength, dim_size, ndims*sizeof(int));
+    memcpy(field->dimLength, dim_sizes, ndims*sizeof(int));
     return FTI_SCES;
 }
 

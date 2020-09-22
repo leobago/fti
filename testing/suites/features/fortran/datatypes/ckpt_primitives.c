@@ -104,15 +104,15 @@ int main(int argc, char * argv[]) {
     }
   }
   // Initializing custom types
-  complex_4 = FTI_InitComplexType("Complex4", sizeof(Complex4), NULL);
-  FTI_AddSimpleField(complex_4, "r", FTI_SFLT, offsetof(Complex4, r));
-  FTI_AddSimpleField(complex_4, "i", FTI_SFLT, offsetof(Complex4, i));
-  complex_8 = FTI_InitComplexType("Complex8", sizeof(Complex8), NULL);
-  FTI_AddSimpleField(complex_8, "r", FTI_SFLT, offsetof(Complex8, r));
-  FTI_AddSimpleField(complex_8, "i", FTI_SFLT, offsetof(Complex8, i));
-  complex_16 = FTI_InitComplexType("Complex16", sizeof(Complex16), NULL);
-  FTI_AddSimpleField(complex_16, "r", FTI_SFLT, offsetof(Complex16, r));
-  FTI_AddSimpleField(complex_16, "i", FTI_SFLT, offsetof(Complex16, i));
+  complex_4 = FTI_InitCompositeType("Complex4", sizeof(Complex4), NULL);
+  FTI_AddScalarField(complex_4, "r", FTI_SFLT, offsetof(Complex4, r));
+  FTI_AddScalarField(complex_4, "i", FTI_SFLT, offsetof(Complex4, i));
+  complex_8 = FTI_InitCompositeType("Complex8", sizeof(Complex8), NULL);
+  FTI_AddScalarField(complex_8, "r", FTI_SFLT, offsetof(Complex8, r));
+  FTI_AddScalarField(complex_8, "i", FTI_SFLT, offsetof(Complex8, i));
+  complex_16 = FTI_InitCompositeType("Complex16", sizeof(Complex16), NULL);
+  FTI_AddScalarField(complex_16, "r", FTI_SFLT, offsetof(Complex16, r));
+  FTI_AddScalarField(complex_16, "i", FTI_SFLT, offsetof(Complex16, i));
 
   FTI_Protect(0, c1, SIZE, FTI_CHAR);
 

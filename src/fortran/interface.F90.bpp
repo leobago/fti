@@ -42,7 +42,7 @@ module FTI
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
 			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
-      FTI_AddSimpleField, FTI_AddComplexField, FTI_InitComplexType, &
+      FTI_AddScalarField, FTI_AddVectorField, FTI_InitCompositeType, &
       FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP, FTI_setIDFromString, &
       FTI_getIDFromString, FTI_SetAttribute
 
@@ -353,46 +353,46 @@ module FTI
 
   interface
 
-    function FTI_InitComplexType_impl(name, size) &
-            bind(c, name='FTI_InitComplexType_wrapper')
+    function FTI_InitCompositeType_impl(name, size) &
+            bind(c, name='FTI_InitCompositeType_wrapper')
 
       use ISO_C_BINDING
 
-      integer(c_int)                :: FTI_InitComplexType_impl
+      integer(c_int)                :: FTI_InitCompositeType_impl
 
       integer(c_size_t), value      :: size
       character(c_char), INTENT(IN) :: name(*)
 
-    endfunction FTI_InitComplexType_impl
+    endfunction FTI_InitCompositeType_impl
 
   endinterface
 
   interface
 
-    function FTI_AddSimpleField_impl(complex_tid, name, field_tid, offset) &
-            bind(c, name='FTI_AddSimpleField')
+    function FTI_AddScalarField_impl(complex_tid, name, field_tid, offset) &
+            bind(c, name='FTI_AddScalarField')
 
       use ISO_C_BINDING
 
-      integer(c_int)                :: FTI_AddSimpleField_impl
+      integer(c_int)                :: FTI_AddScalarField_impl
 
       integer(c_int),    value      :: complex_tid
       character(c_char), intent(in) :: name(*)
       integer(c_int),    value      :: field_tid
       integer(c_size_t), value      :: offset
 
-    endfunction FTI_AddSimpleField_impl
+    endfunction FTI_AddScalarField_impl
 
   endinterface
 
   interface
 
-    function FTI_AddComplexField_impl(complex_tid, name, field_tid, offset, ndims, dimLength) &
-            bind(c, name='FTI_AddComplexField')
+    function FTI_AddVectorField_impl(complex_tid, name, field_tid, offset, ndims, dimLength) &
+            bind(c, name='FTI_AddVectorField')
 
       use ISO_C_BINDING
 
-      integer(c_int)                :: FTI_AddComplexField_impl
+      integer(c_int)                :: FTI_AddVectorField_impl
 
       integer(c_int),    value      :: complex_tid
       character(c_char), INTENT(IN) :: name(*)
@@ -401,7 +401,7 @@ module FTI
       integer(c_int),    value      :: ndims
       integer(c_int),    INTENT(IN) :: dimLength(*)
 
-    endfunction FTI_AddComplexField_impl
+    endfunction FTI_AddVectorField_impl
 
   endinterface
 
@@ -841,18 +841,18 @@ contains
 
   endsubroutine FTI_Finalize
 
-  !>  Adds a scalar field to a complex data type at a given offset.
+  !>  Adds a scalar field to a composite data type at a given offset.
   !!  Note that FTI does not check for memory boundaries within the data type.
   !!  Specifying a wrong offset leads to undefined behavior.
   !!  This can be avoided using the offsetof() macro.
   !!
-  !!  \brief    Adds a simple type as a complex data type component.
-  !!  \param    complex_tid (IN) The complex data type handle
+  !!  \brief    Adds a scalar field to a composite data type.
+  !!  \param    complex_tid (IN) The composite data type handle
   !!  \param    name        (IN) An optional field name
   !!  \param    field_tid   (IN) The field data type handle
   !!  \param    offset      (IN) Offset of the field (use offsetof)
   !!  \return   integer          FTI_SCES when successfull or FTI_NSCS
-  function FTI_AddSimpleField(complex_tid, name, field_tid, offset) result(ret)
+  function FTI_AddScalarField(complex_tid, name, field_tid, offset) result(ret)
 
     integer                      :: ret
 
@@ -871,7 +871,7 @@ contains
     enddo
     name_c(ll+1) = c_null_char
     !print *, "Adding field ", name_c, " of type ", int(field_tid, c_int), " to complex ", int(complex_tid, c_int)
-    ret = int(FTI_AddSimpleField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset))
+    ret = int(FTI_AddScalarField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset))
 
   endfunction
 
@@ -888,7 +888,7 @@ contains
   !!  \param    ndims       (IN) The number of dimensions for the field
   !!  \param    dim_length  (IN) Array of lengths for each dimension
   !!  \return   integer          FTI_SCES when successful, FTI_NSCS otherwise
-  function FTI_AddComplexField(complex_tid, name, field_tid, offset, ndims, dim_length) result(ret)
+  function FTI_AddVectorField(complex_tid, name, field_tid, offset, ndims, dim_length) result(ret)
 
     integer                     :: ret
 
@@ -909,19 +909,19 @@ contains
     enddo
     name_c(ll+1) = c_null_char
 
-    ret = int(FTI_AddComplexField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset, &
+    ret = int(FTI_AddVectorField_impl(int(complex_tid, c_int), name_c, int(field_tid, c_int), offset, &
         int(ndims, c_int), dim_length))
 
-  endfunction FTI_AddComplexField
+  endfunction FTI_AddVectorField
 
-!>  Creates a complex data type that serves as a container for other data types.
-!!  The components can be added using FTI_AddSimpleField and FTI_AddComplexField.
+!>  Creates a composite data type that can contain other data types.
+!!  The components can be added using FTI_AddScalarField and FTI_AddVectorField.
 !!
-!!  \brief    Initializes an empty complex data type.
+!!  \brief    Initializes an empty composite data type.
 !!  \param    name   (IN)    An optional type name
-!!  \param    size   (IN)    The total size of the complex data type
+!!  \param    size   (IN)    The total size of the composite data type
 !!  \return   integer        A handle to represent the new type
-function FTI_InitComplexType(name, size) result(ret)
+function FTI_InitCompositeType(name, size) result(ret)
   integer                                          :: ret
 
   character(len=*), intent(IN)                     :: name
@@ -936,8 +936,8 @@ function FTI_InitComplexType(name, size) result(ret)
     name_c(ii) = name(ii:ii)
   enddo
   name_c(ll+1) = c_null_char
-  ret = int(FTI_InitComplexType_impl(name_c, size))
-endfunction FTI_InitComplexType
+  ret = int(FTI_InitCompositeType_impl(name_c, size))
+endfunction FTI_InitCompositeType
 
 endmodule FTI
  

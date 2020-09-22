@@ -58,7 +58,7 @@ fortran_to_c_map() {
 
 fortran_complex() {
   # Brief:
-  # Test the definition of complex types in Fortran ( FTI_InitComplexType API )
+  # Test the definition of complex types in Fortran (FTI_InitCompositeType API)
   #
   # Details:
   # Two executions for creating and restoring to/from checkpoint files.

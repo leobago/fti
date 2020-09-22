@@ -19,13 +19,13 @@ APIs
 .. doxygenfunction:: FTI_GetType
 	:project: Fault Tolerance Library 
 
-.. doxygenfunction:: FTI_InitComplexType
+.. doxygenfunction:: FTI_InitCompositeType
 	:project: Fault Tolerance Library 
 
-.. doxygenfunction:: FTI_AddSimpleField
+.. doxygenfunction:: FTI_AddScalarField
 	:project: Fault Tolerance Library 
 
-.. doxygenfunction:: FTI_AddComplexField
+.. doxygenfunction:: FTI_AddVectorField
 	:project: Fault Tolerance Library 
 
 .. doxygenfunction:: FTI_GetStageDir
