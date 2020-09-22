@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
@@ -317,8 +317,12 @@ endif()
 
 
 if(ENABLE_HDF5)
+    set(HDF5_PREFER_PARALLEL ON)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
+        if(NOT HDF5_IS_PARALLEL)
+            message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
+        endif()
 		add_definitions(-DENABLE_HDF5)
         include_directories(${HDF5_INCLUDE_DIRS})
         message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
