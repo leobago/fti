@@ -19,6 +19,7 @@ Fault Tolerance Library
    configuration
    configurationexamples
    examples
+   compatibility_notes
 
 
 

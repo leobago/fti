@@ -405,7 +405,7 @@ extern "C" {
      *  This type simplify creating complex datatypes.
      */
     typedef struct FTIT_typeField {
-        FTIT_Datatype *type;            /**< FTI type ID of the field.           */
+        FTIT_Datatype *type;        /**< FTI type ID of the field.           */
         int id;                     /**< Order of the field in the structure */
         size_t offset;              /**< Offset of the field in structure.   */
         int rank;                   /**< Field rank (max. 32)                */
