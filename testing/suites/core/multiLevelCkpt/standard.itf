@@ -164,7 +164,7 @@ ckpt_disruption() {
 itf_fixture 'normal_run' 'setup' 'teardown'
 
 # Register checks for the full combination of parameter values
-for iolib in ${itf_cfg[fti:io_ids]}; do
+for iolib in $fti_io_ids; do
     for icp in 0 1; do
         for diffsize in 0 1; do
             for head in 0 1; do
