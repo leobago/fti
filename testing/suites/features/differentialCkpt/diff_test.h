@@ -12,10 +12,10 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
-#ifdef NO_OPENSSL
-#   include "../../../../src/deps/md5/md5.h"
-#else
+#if HAVE_OPENSSL
 #   include <openssl/md5.h>
+#else
+#   include "../../../../src/deps/md5/md5.h"
 #endif
 #include <fti.h>
 #include <time.h>
