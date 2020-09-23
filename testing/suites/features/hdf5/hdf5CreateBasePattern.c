@@ -20,8 +20,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include "hdf5.h"
-#include "hdf5_hl.h"
+#include <hdf5.h>
+#include <hdf5_hl.h>
 
 typedef struct AsByteArray {
   char character;

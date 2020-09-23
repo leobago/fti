@@ -45,6 +45,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 
 set(TOOLS_DIR "${CMAKE_SOURCE_DIR}/testing/tools/cmake")
 
+# Include directories that programs using FTI will need
+set(INC "")
+# Include directories that both FTI and programs using FTI will need
+set(INC_PUB "")
+# Include directories that only FTI needs
+set(INC_PRIV "")
+
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
@@ -61,7 +68,7 @@ if(ENABLE_OPENSSL)
     find_package(OPENSSL)
     if(OPENSSL_FOUND)
         set(HAVE_OPENSSL 1)
-	    include_directories(${OPENSSL_INCLUDE_DIR})
+        list(APPEND INC_PUB ${OPENSSL_INCLUDE_DIR})
     endif()
 endif()
 
@@ -121,7 +128,7 @@ if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
 
-    include_directories(${SIONLIB_INCLUDE_DIR})
+    list(APPEND INC_PUB ${SIONLIB_INCLUDE_DIR})
     find_library(SIONLIB_MPI NAMES "sionmpi_64" 
                 PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
     find_library(SIONLIB_GEN NAMES "siongen_64"
@@ -300,13 +307,16 @@ set_property(TARGET ${fti_targets} PROPERTY LINK_FLAGS
             "${MPI_C_LINK_FLAGS}")
 
 # Base include directories
-include_directories(
+list(APPEND INC_PRIV
     "${CMAKE_CURRENT_BINARY_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+list(APPEND INC_PUB
     ${MPI_C_INCLUDE_PATH}
     ${MPI_Fortran_INCLUDE_PATH}
 )
+list(APPEND INC "${CMAKE_INSTALL_PREFIX}/include")
 
 # ------------------------- Flags, Links and Includes -------------------------
 
@@ -355,7 +365,7 @@ endif()
 # CUDA
 if (ENABLE_GPU)
   set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
-  include_directories(${CUDA_INCLUDE_DIRS})
+  list(APPEND INC_PUB ${CUDA_INCLUDE_DIRS})
 endif()
 
 # FI-IO
@@ -366,21 +376,21 @@ endif()
 # HDF5
 if(ENABLE_HDF5)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_HDF5 -DHDF5")
-    include_directories(${HDF5_INCLUDE_DIRS})
+    list(APPEND INC_PUB ${HDF5_INCLUDE_DIRS})
 	link_to_fti(${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 endif()
 
 # IME
 if(ENABLE_IME_NATIVE)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_IME_NATIVE")
-    include_directories("${IMELIB_INCLUDE_DIR}")
+    list(APPEND INC_PUB ${IMELIB_INCLUDE_DIR})
     link_to_fti(${IMELIB})
 endif()
 
 # LUSTRE
 if(LUSTREAPI_FOUND)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DLUSTRE")
-    include_directories(${LUSTREAPI_INCLUDE_DIRS})
+    list(APPEND INC_PUB ${LUSTREAPI_INCLUDE_DIRS})
     link_to_fti(${LUSTREAPI_LIBRARIES})
 endif()
 
@@ -389,9 +399,8 @@ set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL=${HAVE_OPENSSL}")
 
 # SIONLib
 if(ENABLE_SIONLIB)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_SIONLIB"
-        "-DSION_DEBUG -D_SION_LINUX -DSION_MPI")
-    include_directories(${SIONLIB_INCLUDE_DIR})
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_SIONLIB -DSION_DEBUG -D_SION_LINUX -DSION_MPI")
+    list(APPEND INC_PUB ${SIONLIB_INCLUDE_DIR})
     link_to_fti(${SIONLIB_MPI} ${SIONLIB_GEN} ${SIONLIB_SER}
                 ${SIONLIB_COM} ${SIONLIB_COM_LOCK})
 endif()
@@ -403,10 +412,15 @@ if(NOT ZLIB_FOUND)
 endif()
 
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
-set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS
-            "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
+set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
 
 # -------------------------- Instalation definitions --------------------------
+
+foreach(fti_target ${fti_targets})
+        target_include_directories(${fti_target} INTERFACE ${INC})
+        target_include_directories(${fti_target} PUBLIC ${INC_PUB})
+        target_include_directories(${fti_target} PRIVATE ${INC_PRIV})
+endforeach(fti_target)
 
 install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     EXPORT FTI_EXPORT
