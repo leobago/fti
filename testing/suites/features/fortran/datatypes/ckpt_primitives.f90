@@ -1,4 +1,7 @@
-!> @author Alexandre de Limas Santana
+!> Copyright (c) 2017 Leonardo A. Bautista-Gomez
+!> All rights reserved
+!>
+!> @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
 !> @date   August, 2020
 !> @brief  Checkpoint primitive types and validate FTI meta-data
 
@@ -34,6 +37,10 @@ program checkpoint_primitives
    real(8), pointer      :: r8(:)
    real(16), pointer     :: r16(:)
 
+   complex(4), pointer   :: cp4(:)
+   complex(8), pointer   :: cp8(:)
+   complex(16), pointer  :: cp16(:)
+
    ! Parse program arguments before starting
    if (command_argument_count() .NE. 2) THEN
       write (*, *) 'Expected two arguments: configfile (str), doInitData (int)'
@@ -60,6 +67,10 @@ program checkpoint_primitives
    allocate (r4(SIZE))
    allocate (r8(SIZE))
    allocate (r16(SIZE))
+
+   allocate (cp4(SIZE))
+   allocate (cp8(SIZE))
+   allocate (cp16(SIZE))
 
    call MPI_Init(err)
    FTI_comm_world = MPI_COMM_WORLD
@@ -90,6 +101,10 @@ program checkpoint_primitives
          r4(i) = 10 + (i-1)
          r8(i) = 20 + (i-1)
          r16(i) = 30 + (i-1)
+
+         cp4(i) = CMPLX(i-1, i-1)
+         cp8(i) = CMPLX(i-1, i-1)
+         cp16(i) = CMPLX(i-1, i-1)
       end do
    else if (rank == 0) then
       print *, "Application initializes its data with using checkpoints"
@@ -110,6 +125,10 @@ program checkpoint_primitives
    call FTI_Protect(30, r4, err)
    call FTI_Protect(31, r8, err)
    call FTI_Protect(32, r16, err)
+
+   call FTI_Protect(40, cp4, err)
+   call FTI_Protect(41, cp8, err)
+   call FTI_Protect(42, cp16, err)
 
    ! If the application initialized the data:
    ! 1) Checkpoint the data
@@ -200,6 +219,24 @@ program checkpoint_primitives
       if (r16(i) /= 30 + (i - 1)) then
          if (rank == 0) then
             print *, "real(16) was corrupted: ", r16(i)
+         end if
+         call exit(1)
+      end if
+      if (cp4(i) /= CMPLX(i-1, i-1)) then
+         if (rank == 0) then
+            print *, "complex(4) was corrupted: ", cp4(i)
+         end if
+         call exit(1)
+      end if
+      if (cp8(i) /= CMPLX(i-1, i-1)) then
+         if (rank == 0) then
+            print *, "complex(8) was corrupted: ", cp8(i)
+         end if
+         call exit(1)
+      end if
+      if (cp16(i) /= CMPLX(i-1, i-1)) then
+         if (rank == 0) then
+            print *, "complex(16) was corrupted: ", cp16(i)
          end if
          call exit(1)
       end if

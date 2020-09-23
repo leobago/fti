@@ -33,7 +33,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
 char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
  char* hashHexStr);
 // wrapper for CRC32 hash algorithm
-unsigned char* CRC32(const unsigned char *d, uint32_t nBytes,
+unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
  unsigned char *hash);
 
 int FTI_RecoverVarDcpPosixInit();

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
@@ -52,26 +52,17 @@ if( ${ENABLE_FORTRAN} )
         endif()
 
         set(CMAKE_Fortran_FLAGS "-cpp")
-        try_run( PROG_RAN COMPILE_SUCCESS
-            "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}"
-            RUN_OUTPUT_VARIABLE VER_STRING
-            )
+        try_run(PROG_RAN COMPILE_SUCCESS "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}" RUN_OUTPUT_VARIABLE VER_STRING)
         if ( COMPILE_SUCCESS )
-            string( REGEX MATCH "[0-9]+"
-                DETECTED_VER "${VER_STRING}"
-                )
-
+            string( REGEX MATCH "[0-9]+" DETECTED_VER "${VER_STRING}")
             set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
-
             message(AUTHOR_WARNING "
             ** The major version was determined as: ${VER_STRING}")
         else()
-
             set(FORTRAN_VER_UNKNOWN 1)
             set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
             message(AUTHOR_WARNING "
             ** The Fortran version could not be determined!")
-
         endif()
     else()
 
@@ -317,8 +308,12 @@ endif()
 
 
 if(ENABLE_HDF5)
+    set(HDF5_PREFER_PARALLEL ON)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
+        if(NOT HDF5_IS_PARALLEL)
+            message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
+        endif()
 		add_definitions(-DENABLE_HDF5)
         include_directories(${HDF5_INCLUDE_DIRS})
         message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")

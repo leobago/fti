@@ -38,6 +38,8 @@
 
 #include <dirent.h>
 #include <execinfo.h>
+#include <stdarg.h>
+
 #include "tools.h"
 
 int FTI_filemetastructsize;         /**< size of FTIFF_db struct in file    */
@@ -256,27 +258,50 @@ int FTI_Try(int result, char* message) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
-    FTI_Exec->FTI_Type = malloc(sizeof(FTIT_type*) * FTI_BUFS);
-    if (FTI_Exec->FTI_Type == NULL) {
-        return FTI_NSCS;
+    // Allocate all data structures
+    memset(&FTI_Exec->datatypes, 0, sizeof(FTIT_DataTypes));
+    TRY_ALLOC(FTI_Exec->datatypes.types, FTIT_Datatype, TYPES_MAX) {
+      return FTI_NSCS;
     }
-
-    FTI_Exec->H5groups = malloc(sizeof(FTIT_H5Group*) * FTI_BUFS);
-    if (FTI_Exec->H5groups == NULL) {
-        return FTI_NSCS;
+    // Allocate all groups
+    TRY_ALLOC(FTI_Exec->H5groups, FTIT_H5Group*, FTI_BUFS) {
+      return FTI_NSCS;
     }
-
-    FTI_Exec->H5groups[0] = malloc(sizeof(FTIT_H5Group));
-    if (FTI_Exec->H5groups[0] == NULL) {
-        return FTI_NSCS;
+    // Allocate the first group
+    TRY_ALLOC(FTI_Exec->H5groups[0], FTIT_H5Group, 1) {
+      return FTI_NSCS;
     }
-
-    FTI_Exec->H5groups[0]->id = 0;
-    FTI_Exec->H5groups[0]->childrenNo = 0;
-    snprintf(FTI_Exec->H5groups[0]->name,
-     sizeof(FTI_Exec->H5groups[0]->name), "/");
-    FTI_Exec->H5groups[0]->fullName[0] = '\0';
+    // Initialize the first group
     FTI_Exec->nbGroup = 1;
+    snprintf(FTI_Exec->H5groups[0]->name, FTI_BUFS, "/");
+
+    // Initialize the C native datatypes
+    FTI_CHAR = FTI_InitType_opaque(sizeof(char));
+    FTI_SHRT = FTI_InitType_opaque(sizeof(short));
+    FTI_INTG = FTI_InitType_opaque(sizeof(int));
+    FTI_LONG = FTI_InitType_opaque(sizeof(long));
+    FTI_UCHR = FTI_InitType_opaque(sizeof(unsigned char));
+    FTI_USHT = FTI_InitType_opaque(sizeof(unsigned short));
+    FTI_UINT = FTI_InitType_opaque(sizeof(unsigned int));
+    FTI_ULNG = FTI_InitType_opaque(sizeof(unsigned long));
+    FTI_SFLT = FTI_InitType_opaque(sizeof(float));
+    FTI_DBLE = FTI_InitType_opaque(sizeof(double));
+    FTI_LDBE = FTI_InitType_opaque(sizeof(long double));
+
+#ifdef ENABLE_HDF5
+    FTI_GetType(FTI_CHAR)->h5datatype = H5T_NATIVE_CHAR;
+    FTI_GetType(FTI_SHRT)->h5datatype = H5T_NATIVE_SHORT;
+    FTI_GetType(FTI_INTG)->h5datatype = H5T_NATIVE_INT;
+    FTI_GetType(FTI_LONG)->h5datatype = H5T_NATIVE_LONG;
+    FTI_GetType(FTI_UCHR)->h5datatype = H5T_NATIVE_UCHAR;
+    FTI_GetType(FTI_USHT)->h5datatype = H5T_NATIVE_USHORT;
+    FTI_GetType(FTI_UINT)->h5datatype = H5T_NATIVE_UINT;
+    FTI_GetType(FTI_ULNG)->h5datatype = H5T_NATIVE_ULONG;
+    FTI_GetType(FTI_SFLT)->h5datatype = H5T_NATIVE_FLOAT;
+    FTI_GetType(FTI_DBLE)->h5datatype = H5T_NATIVE_DOUBLE;
+    FTI_GetType(FTI_LDBE)->h5datatype = H5T_NATIVE_LDOUBLE;
+#endif
+    FTI_Exec->datatypes.nprimitives = FTI_Exec->datatypes.ntypes;
     return FTI_SCES;
 }
 
@@ -291,48 +316,19 @@ int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec) {
 /*-------------------------------------------------------------------------*/
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
     int i;
-    for (i = 0; i < FTI_Exec->nbType; i++) {
-        if (FTI_Exec->FTI_Type[i]->structure != NULL) {
-            // if complex type and have structure
-            free(FTI_Exec->FTI_Type[i]->structure);
-        }
-        free(FTI_Exec->FTI_Type[i]);
-    }
-    free(FTI_Exec->FTI_Type);
-    for (i = 0; i < FTI_Exec->nbGroup; i++) {
+    // Free all complex structures
+    for (i = 0; i < FTI_Exec->datatypes.ntypes; i++)
+        if (FTI_Exec->datatypes.types[i].structure != NULL)
+            free(FTI_Exec->datatypes.types[i].structure);
+
+    // Free all type structures
+    free(FTI_Exec->datatypes.types);
+    memset(&FTI_Exec->datatypes, 0, sizeof(FTIT_DataTypes));
+
+    // Free all group structures
+    for (i = 0; i < FTI_Exec->nbGroup; i++)
         free(FTI_Exec->H5groups[i]);
-    }
     free(FTI_Exec->H5groups);
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief      It creates the basic datatypes and the dataset array.
-  @param      FTI_Data        Dataset metadata.
-  @return     integer         FTI_SCES if successful.
-
-  This function creates the basic data types using FTIT_Type.
-
- **/
-/*-------------------------------------------------------------------------*/
-int FTI_InitBasicTypes(FTIT_execution* FTI_Exec) {
-    FTI_Exec->basicTypesOffsetId = FTI_Exec->nbType;
-
-    FTI_InitType(&FTI_CHAR, sizeof(char));
-    FTI_InitType(&FTI_SHRT, sizeof(short));
-    FTI_InitType(&FTI_INTG, sizeof(int));
-    FTI_InitType(&FTI_LONG, sizeof(long));
-    FTI_InitType(&FTI_UCHR, sizeof(unsigned char));
-    FTI_InitType(&FTI_USHT, sizeof(unsigned short));
-    FTI_InitType(&FTI_UINT, sizeof(unsigned int));
-    FTI_InitType(&FTI_ULNG, sizeof(unsigned long));
-    FTI_InitType(&FTI_SFLT, sizeof(float));
-    FTI_InitType(&FTI_DBLE, sizeof(double));
-    FTI_InitType(&FTI_LDBE, sizeof(long double));
-
-    FTI_Exec->basicTypesNum = FTI_Exec->nbType - FTI_Exec->basicTypesOffsetId;
-
-    return FTI_SCES;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -513,3 +509,55 @@ char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
     return hashHexStr;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Copy src into dest if src is not null, copy fmt otherwise
+  @param      dest        Destination string buffer
+  @param      src         Source string buffer
+  @param      fmt         Default alternative format string
+
+**/
+/*-------------------------------------------------------------------------*/
+void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
+    if (src && strlen(src)) {
+        // If src points to a non-zero string
+        strncpy(dest, src, strlen(src));
+    } else {
+        // Else, use default format instead
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(dest, FTI_BUFS, fmt, args);
+        va_end(args);
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Checks if an allocated FTIT_Datatype is composite
+  @param      t              A pointer to the FTIT_Datatype
+  @return     int            Non-zero if true, zero if false
+
+  A composite type contains a non-empty structure field.
+
+**/
+/*-------------------------------------------------------------------------*/
+inline int FTI_IsTypeComposite(FTIT_Datatype *t) {
+  return t && t->structure;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      Obtains the FTIT_Datatype associated to a given type handle
+  @param      handle         The data type handle
+  @return     FTIT_Datatype      An external handle to represent the new type
+
+  Returns NULL if the handle is not associated to an initialized composite type
+
+**/
+/*-------------------------------------------------------------------------*/
+inline FTIT_Datatype* FTI_GetCompositeType(fti_id_t handle) {
+    FTIT_Datatype* t = FTI_GetType(handle);
+    if (!FTI_IsTypeComposite(t))
+        return NULL;
+    return t;
+}
