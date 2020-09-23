@@ -97,17 +97,9 @@ endif()
 if(ENABLE_HDF5)
     set(HDF5_PREFER_PARALLEL ON)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
-	if(HDF5_FOUND)
-        if(NOT HDF5_IS_PARALLEL)
-            message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
-        endif()
-	else()
-		message(WARNING
-		"** HDF5 could not be found!"
-		"*  You may specify:"
-		"*  -DHDF5_ROOT as the path to the HDF5 installation to use."
-		"**")
-	endif()
+    if(NOT HDF5_IS_PARALLEL)
+        message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
+    endif()
 endif()
 
 # Library: IME (Optional)
