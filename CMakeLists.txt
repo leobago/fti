@@ -355,9 +355,9 @@ endif()
 # --- Conditional definitions in alphabetical order ---
 
 # Coverage
-if(ENABLE_COVERAGE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+if(ENABLE_COVERAGE)
     set(ADD_CFLAGS "${ADD_CFLAGS} --coverage -O0 -g")
-    link_to_fti("gcov")
+    link_to_fti("gcov" "--coverage")
 endif()
 
 # CUDA
