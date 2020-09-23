@@ -19,7 +19,7 @@ option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
 # Developer Extra Utilities
 option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
 option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
-option(ENABLE_TESTS "Enables the generation of tests" ON)
+option(ENABLE_TESTS "Enables the generation of tests" OFF)
 option(ENABLE_COVERAGE "Enable coverage metrics for FTI" OFF)
 
 # ----------------------------- Project Definition ----------------------------
@@ -45,11 +45,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 
 set(TOOLS_DIR "${CMAKE_SOURCE_DIR}/testing/tools/cmake")
 
-# Include directories that programs using FTI will need
+# Include directories necessary to process FTI headers
 set(INC "")
-# Include directories that both FTI and programs using FTI will need
+# Include directories necessary to process FTI headers and source
 set(INC_PUB "")
-# Include directories that only FTI needs
+# Include directories necessary to process FTI source
 set(INC_PRIV "")
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
@@ -68,7 +68,7 @@ if(ENABLE_OPENSSL)
     find_package(OPENSSL)
     if(OPENSSL_FOUND)
         set(HAVE_OPENSSL 1)
-        list(APPEND INC_PUB ${OPENSSL_INCLUDE_DIR})
+        list(APPEND INC_PRIV ${OPENSSL_INCLUDE_DIR})
     endif()
 endif()
 
@@ -128,7 +128,7 @@ if(ENABLE_SIONLIB)
     set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
     set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
 
-    list(APPEND INC_PUB ${SIONLIB_INCLUDE_DIR})
+    list(APPEND INC_PRIV ${SIONLIB_INCLUDE_DIR})
     find_library(SIONLIB_MPI NAMES "sionmpi_64" 
                 PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
     find_library(SIONLIB_GEN NAMES "siongen_64"
@@ -316,7 +316,6 @@ list(APPEND INC_PUB
     ${MPI_C_INCLUDE_PATH}
     ${MPI_Fortran_INCLUDE_PATH}
 )
-list(APPEND INC "${CMAKE_INSTALL_PREFIX}/include")
 
 # ------------------------- Flags, Links and Includes -------------------------
 
@@ -390,7 +389,7 @@ endif()
 # LUSTRE
 if(LUSTREAPI_FOUND)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DLUSTRE")
-    list(APPEND INC_PUB ${LUSTREAPI_INCLUDE_DIRS})
+    list(APPEND INC_PRIV ${LUSTREAPI_INCLUDE_DIRS})
     link_to_fti(${LUSTREAPI_LIBRARIES})
 endif()
 
@@ -400,7 +399,7 @@ set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL=${HAVE_OPENSSL}")
 # SIONLib
 if(ENABLE_SIONLIB)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_SIONLIB -DSION_DEBUG -D_SION_LINUX -DSION_MPI")
-    list(APPEND INC_PUB ${SIONLIB_INCLUDE_DIR})
+    list(APPEND INC_PRIV ${SIONLIB_INCLUDE_DIR})
     link_to_fti(${SIONLIB_MPI} ${SIONLIB_GEN} ${SIONLIB_SER}
                 ${SIONLIB_COM} ${SIONLIB_COM_LOCK})
 endif()
@@ -465,7 +464,13 @@ if(ENABLE_FORTRAN)
 	set_property(TARGET fti_f90.static fti_f90.shared APPEND
 		PROPERTY LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
 	set_property(TARGET fti_f90.static fti_f90.shared
-		PROPERTY OUTPUT_NAME fti_f90)
+        PROPERTY OUTPUT_NAME fti_f90)
+    foreach(tgt fti_f90.static fti_f90.shared)
+        set_target_properties(${tgt} PROPERTIES POSITION_INDEPENDENT_CODE True)
+        target_include_directories(${tgt} INTERFACE ${INC})
+        target_include_directories(${tgt} PUBLIC ${INC_PUB})
+        target_include_directories(${tgt} PRIVATE ${INC_PRIV})
+    endforeach(tgt)
 
     install(TARGETS fti_f90.static fti_f90.shared EXPORT FTI_EXPORT
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -474,8 +479,6 @@ if(ENABLE_FORTRAN)
     )
 	install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-    set_target_properties(fti_f90.static fti_f90.shared PROPERTIES
-                        POSITION_INDEPENDENT_CODE True)
 endif()
 
 # ------------------------------- Extra folders -------------------------------
