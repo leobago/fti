@@ -5,8 +5,8 @@
  *  @file   posix-dcp.h
  */
 
-#ifndef FTI_POSIX_DCP_H_
-#define FTI_POSIX_DCP_H_
+#ifndef FTI_SRC_IO_POSIX_DCP_H_
+#define FTI_SRC_IO_POSIX_DCP_H_
 
 #ifndef MD5_DIGEST_LENGTH
 #   define MD5_DIGEST_LENGTH 16  // 128 bits
@@ -38,4 +38,4 @@ unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
 
 int FTI_RecoverVarDcpPosixInit();
 int FTI_RecoverVarDcpPosixFinalize();
-#endif  // FTI_POSIX_DCP_H_
+#endif  // FTI_SRC_IO_POSIX_DCP_H_
