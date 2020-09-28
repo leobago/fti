@@ -407,6 +407,7 @@ endif()
 # ZLib
 if(NOT ZLIB_FOUND)
     set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_NOZLIB")
+else()
     link_to_fti(${ZLIB_LIBRARIES})
 endif()
 
