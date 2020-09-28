@@ -5,8 +5,10 @@
  *  @file   conf.h
  */
 
-#ifndef FTI_CONF_H_
-#define FTI_CONF_H_
+#ifndef FTI_SRC_CONF_H_
+#define FTI_SRC_CONF_H_
+
+#include "./interface.h"
 
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int restart);
@@ -22,4 +24,4 @@ int FTI_LoadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection *FTI_Inje);
 
-#endif  // FTI_CONF_H_
+#endif  // FTI_SRC_CONF_H_
