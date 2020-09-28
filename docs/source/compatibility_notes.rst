@@ -11,7 +11,7 @@ An entry will be added in this section whenever FTI adopts changes that are not 
 [FTI v1.4] Data-type handling API
 ---------------------------------------------------
 
-Starting in FTI v1.4.2, the user is no longer required to manage the following FTI data structures:
+Starting in FTI v1.4.1, the user is no longer required to manage the following FTI data structures:
 
 - **FTIT_type** 
 - **FTIT_complexType**
@@ -25,28 +25,28 @@ These were previously employed to define custom data-types, being parameters for
 
 The new data-type handling API is opaque to the user, meaning that those structures are managed internally by FTI.
 The user is granted indirect access to manipulate the data-types through a type identifier, namely **fti_id_t** (i.e a 32-bit integer).
-To assist in the transition, the following pre-processor operation is added to FTI:
+Most of the changes are masked by a new pre-processor definition in FTI:
 
 .. code-block::
 
    #define FTIT_type fti_id_t
 
-These changes do not impact most existing applications.
-However, applications using the following function must be altered:
+As such, these changes will not impact the majority of existing applications.
+However, applications using the following functions will need to be adjusted:
 
 - **FTI_InitComplexType**
 - **FTI_AddSimpleField**
 - **FTI_AddComplexField**
 
-Due to the aforementioned changes, these functions had to be restructured.
-To reinforce these changes, we renamed these functions to:
+The management of complex types has been completely refactored due to the aforementioned changes.
+To reinforce this refactor, we renamed these functions respectively to:
 
 - **FTI_InitCompositeType**
 - **FTI_AddScalarField**
 - **FTI_AddVectorField**
 
-These 3 functions are used to describe user-defined composite data-types.
-Up to FTI version 1.4.1, these functions were used as follows:
+These functions are used to describe complex data-types to the FTI runtime.
+In previous versions of FTI, these functions were used as follows:
 
 .. code-block::
 
@@ -66,7 +66,7 @@ Up to FTI version 1.4.1, these functions were used as follows:
    // Association of data-type to data-type format
    FTI_InitComplexType(&point_type, &point_format, 2, sizeof(Point2D), "Point2D", NULL);
 
-Starting in FTI version 1.4.2, the same objective is achieved with the following snippet:
+The same code in FTI v1.4.1 API is slightly different:
 
 .. code-block::
 
@@ -85,13 +85,12 @@ Starting in FTI version 1.4.2, the same objective is achieved with the following
    FTI_AddScalarField(point_tid, "x", FTI_INTG, offsetof(Point2D, x));
    FTI_AddScalarField(point_tid, "y", FTI_INTG, offsetof(Point2D, y));
 
-Please note that the following changes were performed:
+Please note the following differences between both snippets:
 
 - **FTI_InitComplexType** was renamed to **FTI_InitCompositeType**;
 - **FTI_AddSimpleField** was renamed to **FTI_AddScalarField**;
-- FTI_AddComplexField was renamed to **FTI_AddVectorField**;
-- It is no longer necessary to allocate **FTIT_type** and **FTIT_complexType** objects;
-- The call to **FTI_InitCompositeType** comes before **FTI_AddScalarField** and **FTI_AddVectorField** function calls;
-- The arguments to these functions were re-ordered to be more intuitive.
+- The user code no longer manages **FTIT_type** and **FTIT_complexType** objects;
+- **FTI_InitCompositeType** is called before **FTI_AddScalarField** and **FTI_AddVectorField**;
+- The arguments to these functions were re-ordered.
 
-To see the complete changes, please refer to the API reference page.
+To see the new parameters order in more details, please refer to the API reference page.
