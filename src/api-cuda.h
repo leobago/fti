@@ -11,11 +11,11 @@
 #ifndef FTI_SRC_API_CUDA_H_
 #define FTI_SRC_API_CUDA_H_
 
+#include "interface.h"
+
 #ifdef GPUSUPPORT
 
 #include <cuda_runtime_api.h>
-
-#include "interface.h"
 
 #define CUDA_ERROR_CHECK(fun) \
     do { \

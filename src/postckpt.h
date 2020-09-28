@@ -5,8 +5,8 @@
  *  @file   postckpt.h
  */
 
-#ifndef FTI_POSTCKPT_H_
-#define FTI_POSTCKPT_H_
+#ifndef FTI_SRC_POSTCKPT_H_
+#define FTI_SRC_POSTCKPT_H_
 
 int FTI_Local(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
@@ -27,4 +27,4 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 int FTI_ArchiveL4Ckpt(FTIT_configuration* FTI_Conf, FTIT_execution *FTI_Exec,
         FTIT_checkpoint *FTI_Ckpt, FTIT_topology *FTI_Topo);
 
-#endif  // FTI_POSTCKPT_H_
+#endif  // FTI_SRC_POSTCKPT_H_

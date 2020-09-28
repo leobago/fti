@@ -43,8 +43,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <inttypes.h>
-#include "../interface.h"
 
+#include "interface.h"
+#include "ftiff.h"
 
 char *filemmap;
 struct stat filestats;

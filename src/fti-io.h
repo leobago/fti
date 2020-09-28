@@ -9,8 +9,6 @@
 #define FTI_SRC_FTI_IO_H_
 
 
-#include "interface.h"
-
 int FTI_InitFunctionPointers(int ckptIO, FTIT_execution * FTI_Exec);
 extern FTIT_IO ftiIO[4];
 

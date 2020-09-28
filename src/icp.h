@@ -5,15 +5,17 @@
  *  @file   icp.h
  */
 
-#ifndef FTI_ICP_H_
-#define FTI_ICP_H_
+#ifndef FTI_SRC_ICP_H_
+#define FTI_SRC_ICP_H_
 
 #include <mpi.h>
-#ifdef ENABLE_HDF5
-#include "hdf5.h"
-#include "hdf5_hl.h"
-#endif
 #include <stdio.h>
+#ifdef ENABLE_HDF5
+#include <hdf5.h>
+#include <hdf5_hl.h>
+#endif
+
+#include "interface.h"
 
 #define FTI_ICP_NINI 0
 #define FTI_ICP_ACTV 1
@@ -43,4 +45,4 @@ int FTI_FinalizeSionlibICP(FTIT_configuration* FTI_Conf,
         FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data);
 #endif
 
-#endif  // FTI_ICP_H_
+#endif  // FTI_SRC_ICP_H_
