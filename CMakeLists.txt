@@ -4,18 +4,25 @@ if(POLICY CMP0054)
 	cmake_policy(SET CMP0054 NEW)
 endif()
 
-option(ENABLE_FORTRAN "Enables the generation of the Fortran wrapper for FTI" OFF)
-option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+# ---------------------------------- Options ----------------------------------
+
+option(ENABLE_FORTRAN "Enables the build of a Fortran wrapper for FTI" OFF)
+option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
+option(ENABLE_OPENSSL "Enables linking against system OpenSSL library" ON)
+# Additional IO Modes
 option(ENABLE_SIONLIB "Enables the parallel I/O SIONlib for FTI" OFF)
 option(ENABLE_HDF5 "Enables the HDF5 checkpoints for FTI" OFF)
-option(ENABLE_TESTS "Enables the generation of tests" ON)
-option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
-option(ENABLE_LUSTRE "Enables Lustre Support" OFF)
-option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
-option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
 option(ENABLE_IME_NATIVE "Enables the IME native API" OFF)
-option(ENABLE_OPENSSL "Enables linking against system OpenSSL library" ON)
-option(ENABLE_COVERAGE "Enable another build, fti_cov, for gathering coverage metrics" OFF)
+# User Extra Utilities
+option(ENABLE_EXAMPLES "Enables the generation of examples" ON)
+option(ENABLE_TUTORIAL "Enables the generation of tutorial files" OFF)
+# Developer Extra Utilities
+option(ENABLE_FI_IO "Enables the I/O failure injection mechanism" OFF)
+option(ENABLE_DOCU "Enables the generation of a Doxygen documentation" OFF)
+option(ENABLE_TESTS "Enables the generation of tests" OFF)
+option(ENABLE_COVERAGE "Enable coverage metrics for FTI" OFF)
+
+# ----------------------------- Project Definition ----------------------------
 
 set(LANGUAGES "C")
 if(ENABLE_FORTRAN)
@@ -23,119 +30,208 @@ if(ENABLE_FORTRAN)
 endif()
 if(ENABLE_GPU)
   list(APPEND LANGUAGES "CUDA" "CXX")
-  FIND_PACKAGE(CUDA)
 endif()
 
 project("FTI" VERSION 1.4.0 LANGUAGES ${LANGUAGES})
 
-## [START] DETERMINE COMPILER MAJOR VERSIONS
-string(REGEX MATCH "[0-9]+" CMAKE_C_COMPILER_VERSION_MAJOR ${CMAKE_C_COMPILER_VERSION} )
-set(FORTRAN_VER_UNKNOWN 0)
-set(ADD_CFLAGS "")
-
-if( ${ENABLE_FORTRAN} )
-    if (NOT CMAKE_Fortran_COMPILER_VERSION)
-
-        message(AUTHOR_WARNING "
-        ** Cmake variable 'CMAKE_Fortran_COMPILER_VERSION' is unset
-        *  attempt to determine it manually...")
-
-        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "Intel" COMPILER_IDENT_INTEL)
-        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" COMPILER_IDENT_GNU)
-        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" COMPILER_IDENT_PGI)
-        if(${COMPILER_IDENT_INTEL})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/tools/cmake/intel_major_ver.f90")
-        elseif(${COMPILER_IDENT_GNU})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/tools/cmake/gnu_major_ver.f90")
-        elseif(${COMPILER_IDENT_PGI})
-            set(VER_CHECK_SRC "${CMAKE_SOURCE_DIR}/testing/tools/cmake/pgi_major_ver.f90")
-        endif()
-
-        set(CMAKE_Fortran_FLAGS "-cpp")
-        try_run(PROG_RAN COMPILE_SUCCESS "${CMAKE_BINARY_DIR}" "${VER_CHECK_SRC}" RUN_OUTPUT_VARIABLE VER_STRING)
-        if ( COMPILE_SUCCESS )
-            string( REGEX MATCH "[0-9]+" DETECTED_VER "${VER_STRING}")
-            set( CMAKE_Fortran_COMPILER_VERSION_MAJOR "${DETECTED_VER}" )
-            message(AUTHOR_WARNING "
-            ** The major version was determined as: ${VER_STRING}")
-        else()
-            set(FORTRAN_VER_UNKNOWN 1)
-            set(CMAKE_Fortran_COMPILER_VERSION_MAJOR "")
-            message(AUTHOR_WARNING "
-            ** The Fortran version could not be determined!")
-        endif()
-    else()
-
-        string(REGEX MATCH "[0-9]+" CMAKE_Fortran_COMPILER_VERSION_MAJOR ${CMAKE_Fortran_COMPILER_VERSION} )
-
-    endif()
-
-    if(NOT ${FORTRAN_VER_UNKNOWN})
-
-        set(C_COMPILER_IDENT "${CMAKE_C_COMPILER_ID}_${CMAKE_C_COMPILER_VERSION_MAJOR}")
-        set(Fortran_COMPILER_IDENT "${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION_MAJOR}")
-        string(COMPARE NOTEQUAL ${C_COMPILER_IDENT} ${Fortran_COMPILER_IDENT} COMPILER_VER_DIFFER)
-        if(${COMPILER_VER_DIFFER})
-            message(WARNING "
-            ** You are using different compiler idetifications for Fortran and C!
-            *  This might lead to undefined behavior!")
-        endif()
-
-    endif()
-endif()
-## [END] DETERMINE COMPILER MAJOR VERSIONS
+# ----------------------- Global Properties and Set-up ------------------------
 
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 include(GNUInstallDirs)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
-if(${ENABLE_FORTRAN})
-    include(FortranCInterface)
-    include(CheckFortranCompilerFlag)
-endif()
-
 include(CheckCCompilerFlag)
 
-#check for ZLIB (crc32)
-find_package(ZLIB)
-if(NOT ZLIB_FOUND)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_NOZLIB")
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts")
 
+set(TOOLS_DIR "${CMAKE_SOURCE_DIR}/testing/tools/cmake")
+
+# Include directories necessary to process FTI headers
+set(INC "")
+# Include directories necessary to process FTI headers and source
+set(INC_PUB "")
+# Include directories necessary to process FTI source
+set(INC_PRIV "")
+
+set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
+
+# ----------------------------- Find Dependencies -----------------------------
+
+# Search dependencies in following order: required, recommended, optional
+
+# Package: MPI (Required)
 find_package(MPI REQUIRED)
 
+# Package: OpenSSL (Recommended)
 set(HAVE_OPENSSL 0)
 if(ENABLE_OPENSSL)
     find_package(OPENSSL)
     if(OPENSSL_FOUND)
         set(HAVE_OPENSSL 1)
-	    include_directories( ${OPENSSL_INCLUDE_DIR} )
+        list(APPEND INC_PRIV ${OPENSSL_INCLUDE_DIR})
     endif()
 endif()
-set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL=${HAVE_OPENSSL}")
 
-if(ENABLE_LUSTRE)
-    find_package(LUSTREAPI)
-endif()
+# Package: ZLIB (Recommended)
+find_package(ZLIB)
 
-#PGCC C and C++ use builtin math functions, which are much more efficient than library calls.
-#http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
+# Library: LibM (Conditional)
+# PGCC C and C++ use builtin math functions.
+# These are much more efficient than library calls.
+# http://www.cecalc.ula.ve/documentacion/tutoriales/HPF/pgiws_ug/pgi30u09.htm
 if(NOT "$ENV{COMPILER}" STREQUAL "pgi")
 	find_library(LIBM m DOC "The math library")
 endif()
 
-add_subdirectory(src/deps)
+# Package: CUDA (Optional)
+if(ENABLE_GPU)
+    FIND_PACKAGE(CUDA)
+endif()
 
-include_directories("${CMAKE_CURRENT_BINARY_DIR}"
-	"${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH})
+# Package: Lustre (Optional)
+if(ENABLE_LUSTRE)
+    find_package(LUSTREAPI)
+    if(NOT LUSTREAPI_FOUND)
+        message(WARNING "Lustre could not be found!\n"
+            "You may specify:\n"
+            "-DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>"
+            " and\n"
+            "-DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
+    endif()
+endif()
 
-set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
-set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
+# Library: HDF5 (Optional)
+if(ENABLE_HDF5)
+    set(HDF5_PREFER_PARALLEL ON)
+    find_package(HDF5 COMPONENTS HL C REQUIRED)
+    if(NOT HDF5_IS_PARALLEL)
+        message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
+    endif()
+endif()
 
-set(
-SRC_FTI
+# Library: IME (Optional)
+if(ENABLE_IME_NATIVE)
+    if (IMELIBBASE)
+        set(IMELIBBASE "" CACHE FILEPATH
+            "base path to IME client lib installation")
+    else()
+        set(IMELIBBASE "/opt/ddn/ime/" CACHE FILEPATH
+            "base path to IME client lib installation" FORCE)
+    endif()
+    set(IMELIB_INCLUDE_DIR "${IMELIBBASE}/include/")
+    find_library(IMELIB NAMES "im_client" PATHS ${IMELIBBASE}
+                PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+endif()
+
+# Library: SIONLib (Optional)
+if(ENABLE_SIONLIB)
+    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
+    set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
+
+    list(APPEND INC_PRIV ${SIONLIB_INCLUDE_DIR})
+    find_library(SIONLIB_MPI NAMES "sionmpi_64" 
+                PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_GEN NAMES "siongen_64"
+                PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_SER NAMES "sionser_64"
+                PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_COM NAMES "sioncom_64"
+                PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+    find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none"
+                PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
+endif()
+
+# --------------------------- Fortran Support Checks --------------------------
+
+if(ENABLE_FORTRAN)
+    # 1) FTI requires the -cpp flag for the creation of Fortran bindings
+    set(CMAKE_Fortran_FLAGS "-cpp")
+    # 2) Compilers must share the major version or risk undefined behavior
+    set(F_CC_MAJOR 0)
+    # 3) FTI will ideally use the Fortran MPI.mod if compatible with compiler
+    set(MPI_USE_MOD 1)
+
+    # Load modules to perform the aforementioned checks
+    include(FortranCInterface)
+    include(CheckFortranCompilerFlag)
+
+    # 1) Check if the Fortran compiler supports the -cpp flag
+    CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
+    if(NOT FC_HAS_CPP_FLAG)
+        message(FATAL_ERROR
+        "Fortran compiler does not support -cpp flag,"
+        " please use a newer version!")
+    endif()
+
+    # 2) Determine if C and Fortran compilers are of the same major version
+    # 2.1) Determine the C compiler major version
+    string(REGEX MATCH "[0-9]+" C_CC_MAJOR ${CMAKE_C_COMPILER_VERSION})
+    # 2.2) Determine the Fortran compiler major version
+    string(REGEX MATCH "[0-9]+" F_CC_MAJOR ${CMAKE_Fortran_COMPILER_VERSION})
+    # 2.2.a) If fail to automatically detect the version, try manually
+    if (NOT F_CC_MAJOR)
+        message(AUTHOR_WARNING
+        "Cmake variable 'CMAKE_Fortran_COMPILER_VERSION' is undefined."
+        " Attempting to determine it manually...")
+
+        # 2.2.b) Compare compiler name to Intel, gfortran and PGI
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "Intel" F_CC_INTEL)
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "GNU" F_CC_GNU)
+        string(COMPARE EQUAL ${CMAKE_Fortran_COMPILER_ID} "PGI" F_CC_PGI)
+
+        # 2.2.c) Select a utility program to output the compiler version
+        if(${F_CC_INTEL})
+            set(F_CC_CHECK "${TOOLS_DIR}/intel_major_ver.f90")
+        elseif(${F_CC_GNU})
+            set(F_CC_CHECK "${TOOLS_DIR}/gnu_major_ver.f90")
+        elseif(${F_CC_PGI})
+            set(F_CC_CHECK "${TOOLS_DIR}/pgi_major_ver.f90")
+        else()
+            message(FATAL_ERROR
+                    "Could not determine the Fortran compiler version")
+        endif()
+
+        # 2.2.d) Compile, execute and store output of utility program
+        try_run(PROG_RAN COMPILE_SUCCESS "${CMAKE_BINARY_DIR}" "${F_CC_CHECK}"
+                RUN_OUTPUT_VARIABLE OUT)
+        if(COMPILE_SUCCESS and PROG_RAN)
+            string(REGEX MATCH "[0-9]+" F_CC_MAJOR "${OUT}")
+        endif()
+        # 2.2.e) Verify if successful in manual detection
+        if(F_CC_MAJOR)
+            message(AUTHOR_WARNING
+                    "The Fortran compiler version is ${F_CC_MAJOR}")
+        else()
+            message(FATAL_ERROR
+                    "Could not determine the Fortran compiler version")
+        endif()
+    endif()
+
+    # 2.2.f) Check if both compilers are of the same type/version
+    set(C_CC_ID "${CMAKE_C_COMPILER_ID}_${C_CC_MAJOR}")
+    set(F_CC_ID "${CMAKE_Fortran_COMPILER_ID}_${F_CC_MAJOR}")
+    string(COMPARE NOTEQUAL ${C_CC_ID} ${F_CC_ID} COMPILER_VER_DIFFER)
+    if(${COMPILER_VER_DIFFER})
+        message(FATAL_ERROR
+                "Different compiler idetifications for Fortran and C!")
+    endif()
+
+    # 3) Determine if using MPI.mod or mpif.h
+    try_compile(MPI_USE_MOD ${CMAKE_BINARY_DIR}
+        ${TOOLS_DIR}/checkMPImodule.f90
+        LINK_LIBRARIES ${MPI_Fortran_LIBRARIES}
+	    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${MPI_Fortran_INCLUDE_PATH}")
+	if(NOT MPI_USE_MOD)
+	    message(WARNING
+            "MPI.mod was generated by a different compiler/compiler-version."
+            " Fortran binaries will be built with 'mpif.h'")
+	endif()
+endif()
+
+# ------------------ Definition of source and include files -------------------
+
+# Define unconditional FTI sources
+set(SRC_FTI
     src/fortran/ftif.c
     src/util/tools.c
     src/util/utility.c
@@ -166,174 +262,168 @@ SRC_FTI
     src/topo.c
 )
 
-if (ENABLE_SIONLIB)
-    list(APPEND SRC_FTI "src/IO/sion-fti.c")
-    message("${SRC_FTI}")
+# FTI Dependencies
+add_subdirectory(src/deps)
+list(APPEND SRC_FTI $<TARGET_OBJECTS:iniparser> $<TARGET_OBJECTS:jerasure>)
+
+# --- Define FTI conditional sources in alphabetical order ---
+
+# CUDA
+if (ENABLE_GPU)
+    list(APPEND SRC_FTI "src/IO/cuda-md5/md5Opt.cu")
+else ()
+    list(APPEND SRC_FTI "src/IO/cuda-md5/md5Opt.c")
 endif()
 
+# IME
 if (ENABLE_IME_NATIVE)
     list(APPEND SRC_FTI "src/IO/ime.c")
-    message("${SRC_FTI}")
 endif()
 
-if (ENABLE_GPU)
-set(
-    SRC_CUDA_FTI
-    src/IO/cuda-md5/md5Opt.cu
-)
-else ()
-set(
-    SRC_CUDA_FTI
-    src/IO/cuda-md5/md5Opt.c
-)
+# SIONLib IO Mode
+if (ENABLE_SIONLIB)
+    list(APPEND SRC_FTI "src/IO/sion-fti.c")
 endif()
 
-
-if (ENABLE_GPU)
-  include_directories(${CUDA_INCLUDE_DIRS})
-  set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DGPUSUPPORT")
-  message("${CUDA_NVCC_FLAGS}")
-  message("${ADD_CFLAGS}")
-endif()
-
-
-# add compiler flags
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
-elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
-  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/tools/cmake/minimal.c COMPILE_DEFINITIONS "-Wno-format-truncation")
-  if(C_COMPILER_HAS_FLAG)
-      set(ADD_CFLAGS "${ADD_CFLAGS} -Wno-format-truncation")
-  endif()
-elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  try_compile(C_COMPILER_HAS_FLAG ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/tools/cmake/minimal.c COMPILE_DEFINITIONS "-Minform=inform")
-  if(C_COMPILER_HAS_FLAG)
-      set(ADD_CFLAGS "${ADD_CFLAGS} -Minform=inform")
-  endif()
-endif()
-
-set(ADD_CFLAGS "${ADD_CFLAGS} -D_FILE_OFFSET_BITS=64")
-
-set(fti_target_sources
-    ${SRC_FTI}
-    ${SRC_CUDA_FTI}
-    $<TARGET_OBJECTS:iniparser>
-    $<TARGET_OBJECTS:jerasure>
-)
-
+# OpenSSL
 if(HAVE_OPENSSL)
-    list(APPEND fti_target_sources ${OPENSSL_LIBRARIES})
+    list(APPEND SRC_FTI ${OPENSSL_LIBRARIES})
 else()
-    list(APPEND fti_target_sources $<TARGET_OBJECTS:md5>)
+    list(APPEND SRC_FTI $<TARGET_OBJECTS:md5>)
 	unset(OPENSSL_LIBRARIES)
 endif()
 
-set(fti_targets "fti.static" "fti.shared")
-add_library("fti.static" STATIC ${fti_target_sources})
-add_library("fti.shared" SHARED ${fti_target_sources})
-set_property(TARGET ${fti_targets} PROPERTY OUTPUT_NAME "fti")
+# ------------------------- Definition of FTI targets -------------------------
 
-# Links libraries as dependencies for all FTI targets
+# FTI main targets
+set(fti_targets "fti.static" "fti.shared")
+add_library("fti.static" STATIC ${SRC_FTI})
+add_library("fti.shared" SHARED ${SRC_FTI})
+
+# Base properties
+set_property(TARGET ${fti_targets} PROPERTY OUTPUT_NAME "fti")
+set_property(TARGET ${fti_targets} PROPERTY POSITION_INDEPENDENT_CODE True)
+set_property(TARGET ${fti_targets} PROPERTY LINK_FLAGS
+            "${MPI_C_LINK_FLAGS}")
+
+# Base include directories
+list(APPEND INC_PRIV
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+list(APPEND INC_PUB
+    ${MPI_C_INCLUDE_PATH}
+    ${MPI_Fortran_INCLUDE_PATH}
+)
+
+# ------------------------- Flags, Links and Includes -------------------------
+
+# Link utility function
 function(link_to_fti)
-    message("Libraries: ${libraries}")
     foreach(fti_target ${fti_targets})
         target_link_libraries(${fti_target} ${ARGN})
     endforeach(fti_target)
 endfunction(link_to_fti)
 
-# Coverage is only supported by the GCC compilers
-# TODO: Maybe support for CLang is also possible
-if(ENABLE_COVERAGE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    set(ADD_CFLAGS "${ADD_CFLAGS} --coverage -O0 -g")
-    link_to_fti("gcov")
-endif()
+# Compilation flags utility function
+function(ADD_CFLAG_IF_EXISTS CFLAG)
+  try_compile(HAS_FLAG ${CMAKE_BINARY_DIR} ${TOOLS_DIR}/minimal.c
+            COMPILE_DEFINITIONS "${CFLAG}")
+  if(HAS_FLAG)
+      set(ADD_CFLAGS "${ADD_CFLAGS} ${CFLAG}" PARENT_SCOPE)
+  endif()
+endfunction()
 
-set_property(TARGET ${fti_targets} PROPERTY POSITION_INDEPENDENT_CODE True)
-set_property(TARGET ${fti_targets} APPEND PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-
+# Unconditional definitions
+set(ADD_CFLAGS "-D_FILE_OFFSET_BITS=64")
 link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
 
-if(ZLIB_FOUND)
-    link_to_fti(${ZLIB_LIBRARIES})
+# --- Compiler Flags definitions ---
+
+# GCC compiler flags
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    ADD_CFLAG_IF_EXISTS("-Wno-format-truncation")
+endif()
+
+# PGI
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+    ADD_CFLAG_IF_EXISTS("-Minform=inform")
 else()
-    # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
-    set_property(SOURCE ${SRC_CUDA_FTI} APPEND PROPERTY COMPILE_FLAGS "-DFTI_NOZLIB")
+    set(ADD_CFLAGS "${ADD_CFLAGS} -Wall")
 endif()
 
-if(ENABLE_LUSTRE)
-    if(LUSTREAPI_FOUND)
-        include_directories(${LUSTREAPI_INCLUDE_DIRS})
-        set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_DEFINITIONS LUSTRE)
-        link_to_fti(${LUSTREAPI_LIBRARIES})
-    else()
-        message(WARNING "
-  ** Lustre could not be found!
-  *  You may specify:
-  *  -DLUSTREAPI_CMAKE_LIBRARY_DIRS:PATH=<path to liblustreapi.a>
-  *  and
-  *  -DLUSTREAPI_CMAKE_INCLUDE_DIRS:PATH=<path to liblustreapi.h>")
-    endif()
+# --- Conditional definitions in alphabetical order ---
+
+# Coverage
+if(ENABLE_COVERAGE)
+    set(ADD_CFLAGS "${ADD_CFLAGS} --coverage -O0 -g")
+    link_to_fti("gcov" "--coverage")
 endif()
 
-
-if(ENABLE_SIONLIB)
-    set(SIONLIBBASE "" CACHE FILEPATH "base path to SIONlib installation")
-    set(SIONLIB_INCLUDE_DIR "${SIONLIBBASE}/include/")
-    include_directories(${SIONLIB_INCLUDE_DIR})
-    set(SIONLIB_CFLAGS "-I${SIONLIB_INCLUDE_DIR} -DSION_DEBUG -D_SION_LINUX  -DSION_MPI")
-    find_library(SIONLIB_MPI NAMES "sionmpi_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    find_library(SIONLIB_GEN NAMES "siongen_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    find_library(SIONLIB_SER NAMES "sionser_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    find_library(SIONLIB_COM NAMES "sioncom_64" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    find_library(SIONLIB_COM_LOCK NAMES "sioncom_64_lock_none" PATHS ${SIONLIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    link_to_fti(${SIONLIB_MPI} ${SIONLIB_GEN} ${SIONLIB_SER} ${SIONLIB_COM} ${SIONLIB_COM_LOCK})
-    add_definitions(-DENABLE_SIONLIB)
+# CUDA
+if (ENABLE_GPU)
+  set(ADD_CFLAGS "${ADD_CFLAGS} -DGPUSUPPORT")
+  list(APPEND INC_PUB ${CUDA_INCLUDE_DIRS})
 endif()
 
-if(ENABLE_IME_NATIVE)
-    if (IMELIBBASE)
-        set(IMELIBBASE "" CACHE FILEPATH "base path to IME client lib installation")
-    else()
-        set(IMELIBBASE "/opt/ddn/ime/" CACHE FILEPATH "base path to IME client lib installation" FORCE)
-    endif()
-    set(IMELIB_INCLUDE_DIR "${IMELIBBASE}/include/")
-    include_directories("${IMELIB_INCLUDE_DIR}")
-    set(IMELIB_CFLAGS "-I${IMELIB_INCLUDE_DIR}")
-    find_library(IMELIB NAMES "im_client" PATHS ${IMELIBBASE} PATH_SUFFIXES "lib" NO_DEFAULT_PATH)
-    link_to_fti(${IMELIB})
-    add_definitions(-DENABLE_IME_NATIVE)
-endif()
-
-
-if(ENABLE_HDF5)
-    set(HDF5_PREFER_PARALLEL ON)
-    find_package(HDF5 COMPONENTS HL C REQUIRED)
-	if(HDF5_FOUND)
-        if(NOT HDF5_IS_PARALLEL)
-            message(FATAL_ERROR "Serial HDF5 found but HDF5 with MPI needed")
-        endif()
-		add_definitions(-DENABLE_HDF5)
-        include_directories(${HDF5_INCLUDE_DIRS})
-        message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
-		set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_DEFINITIONS HDF5)
-		link_to_fti(${HDF5_LIBRARIES})
-		link_to_fti(${HDF5_HL_LIBRARIES})
-	else()
-		message(WARNING "
-		** HDF5 could not be found!
-		*  You may specify:
-		*  -DHDF5_ROOT as the path to the HDF5 installation to use.
-		**")
-	endif()
-endif()
-
+# FI-IO
 if(ENABLE_FI_IO)
-    add_definitions(-DENABLE_FTI_FI_IO)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_FTI_FI_IO")
 endif()
 
-install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}" EXPORT FTI_EXPORT
+# HDF5
+if(ENABLE_HDF5)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_HDF5 -DHDF5")
+    list(APPEND INC_PUB ${HDF5_INCLUDE_DIRS})
+	link_to_fti(${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+endif()
+
+# IME
+if(ENABLE_IME_NATIVE)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_IME_NATIVE")
+    list(APPEND INC_PUB ${IMELIB_INCLUDE_DIR})
+    link_to_fti(${IMELIB})
+endif()
+
+# LUSTRE
+if(LUSTREAPI_FOUND)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DLUSTRE")
+    list(APPEND INC_PRIV ${LUSTREAPI_INCLUDE_DIRS})
+    link_to_fti(${LUSTREAPI_LIBRARIES})
+endif()
+
+# OpenSSL
+set(ADD_CFLAGS "${ADD_CFLAGS} -DHAVE_OPENSSL=${HAVE_OPENSSL}")
+
+# SIONLib
+if(ENABLE_SIONLIB)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_SIONLIB -DSION_DEBUG -D_SION_LINUX -DSION_MPI")
+    list(APPEND INC_PRIV ${SIONLIB_INCLUDE_DIR})
+    link_to_fti(${SIONLIB_MPI} ${SIONLIB_GEN} ${SIONLIB_SER}
+                ${SIONLIB_COM} ${SIONLIB_COM_LOCK})
+endif()
+
+# ZLib
+if(NOT ZLIB_FOUND)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_NOZLIB")
+else()
+    link_to_fti(${ZLIB_LIBRARIES})
+endif()
+
+# TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
+set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
+
+# -------------------------- Instalation definitions --------------------------
+
+foreach(fti_target ${fti_targets})
+        target_include_directories(${fti_target} INTERFACE ${INC})
+        target_include_directories(${fti_target} PUBLIC ${INC_PUB})
+        target_include_directories(${fti_target} PRIVATE ${INC_PRIV})
+endforeach(fti_target)
+
+install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    EXPORT FTI_EXPORT
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -344,51 +434,44 @@ install(FILES
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
+# ------------------------------ Fortran targets ------------------------------
+
 if(ENABLE_FORTRAN)
-    CHECK_Fortran_COMPILER_FLAG("-cpp" FC_HAS_CPP_FLAG)
-    if(NOT FC_HAS_CPP_FLAG)
-        message(FATAL_ERROR "
-  ** Fortran compiler does not support -cpp flag.
-  *  Please use a newer version!")
-    endif()
-    try_compile(MPI_USE_MOD ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/testing/tools/cmake/checkMPImodule.f90
-	    LINK_LIBRARIES ${MPI_Fortran_LIBRARIES}
-	    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${MPI_Fortran_INCLUDE_PATH}")
-	if(NOT MPI_USE_MOD)
-	    message(WARNING "
-  ** mpi.mod was generated by a different compiler/compiler-version
-  *  The Fortran examples and tests will be build using 'include mpif.h'!")
-
-	endif()
-
     add_subdirectory(src/deps/bpp-0.3.0/ bpp/ EXCLUDE_FROM_ALL)
 
-	bpp_preprocess(BPP_FTI_F90
-		src/fortran/interface.F90.bpp)
+	bpp_preprocess(BPP_FTI_F90 src/fortran/interface.F90.bpp)
 
-	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}") # to serialize src generation
+    # to serialize src generation
+	add_custom_target(bpp_file DEPENDS "${BPP_FTI_F90}")
 
-	set(SRC_FTI_F90 ${BPP_FTI_F90}
-		src/fortran/ftif.c)
+	set(SRC_FTI_F90 ${BPP_FTI_F90} src/fortran/ftif.c)
 	set_property(SOURCE ${SRC_FTI_F90} APPEND
-		PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
+		        PROPERTY COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}")
 
 	add_library(fti_f90.static STATIC ${SRC_FTI_F90})
 	add_dependencies(fti_f90.static bpp_file) # to serialize src generation
 	target_link_libraries(fti_f90.static
 		fti.static ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
-	set_property(TARGET fti_f90.static PROPERTY Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
+    set_property(TARGET fti_f90.static PROPERTY 
+                Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
 
-	add_library(fti_f90.shared SHARED ${SRC_FTI_F90})
-	add_dependencies(fti_f90.shared bpp_file) # to serialize src generation
-	add_dependencies(fti_f90.shared fti_f90.static) # to serialize mod generation
+    add_library(fti_f90.shared SHARED ${SRC_FTI_F90})
+    # to serialize src generation
+	add_dependencies(fti_f90.shared bpp_file) 
+	add_dependencies(fti_f90.shared fti_f90.static)
 	target_link_libraries(fti_f90.shared
-		fti.shared ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
+		                fti.shared ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES})
 
 	set_property(TARGET fti_f90.static fti_f90.shared APPEND
 		PROPERTY LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
 	set_property(TARGET fti_f90.static fti_f90.shared
-		PROPERTY OUTPUT_NAME fti_f90)
+        PROPERTY OUTPUT_NAME fti_f90)
+    foreach(tgt fti_f90.static fti_f90.shared)
+        set_target_properties(${tgt} PROPERTIES POSITION_INDEPENDENT_CODE True)
+        target_include_directories(${tgt} INTERFACE ${INC})
+        target_include_directories(${tgt} PUBLIC ${INC_PUB})
+        target_include_directories(${tgt} PRIVATE ${INC_PRIV})
+    endforeach(tgt)
 
     install(TARGETS fti_f90.static fti_f90.shared EXPORT FTI_EXPORT
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -397,11 +480,9 @@ if(ENABLE_FORTRAN)
     )
 	install(FILES ${CMAKE_Fortran_MODULE_DIRECTORY}/fti.mod
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-	set_target_properties(fti_f90.static fti_f90.shared PROPERTIES POSITION_INDEPENDENT_CODE True)
 endif()
 
-# TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
-set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${SIONLIB_CFLAGS} ${ADD_CFLAGS}")
+# ------------------------------- Extra folders -------------------------------
 
 if(ENABLE_EXAMPLES)
 	add_subdirectory(examples)
@@ -420,11 +501,19 @@ if(ENABLE_DOCU)
     add_subdirectory(docs/Doxygen)
 endif()
 
+file(COPY examples/config.fti DESTINATION examples)
+file(COPY examples/configBkp.fti DESTINATION examples)
+file(COPY examples/plot.sh DESTINATION examples)
+file(COPY examples/vplot.plg DESTINATION examples)
+file(COPY examples/README DESTINATION examples)
+
+# -------------------------- Package configurations ---------------------------
 
 # Installable config
 
 include(CMakePackageConfigHelpers)
-set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH "cmake modules directory (DATADIR/FTI/cmake)")
+set(INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/FTI/cmake" CACHE PATH
+    "cmake modules directory (DATADIR/FTI/cmake)")
 write_basic_package_version_file("${CMAKE_BINARY_DIR}/FTIConfigVersion.cmake"
 		VERSION ${CMAKE_PROJECT_VERSION}
 		COMPATIBILITY AnyNewerVersion
@@ -436,17 +525,6 @@ install(FILES
 	DESTINATION "${INSTALL_CMAKEDIR}"
 )
 
-
-# in tree config (most likely useless...)
-
 export(EXPORT FTI_EXPORT FILE "${PROJECT_BINARY_DIR}/FTILib.cmake")
-configure_file(CMakeScripts/FTIConfig.cmake "${PROJECT_BINARY_DIR}/FTIConfig.cmake" COPYONLY)
-
-
-# set up examples in build/examples/
-
-file(COPY examples/config.fti DESTINATION examples)
-file(COPY examples/configBkp.fti DESTINATION examples)
-file(COPY examples/plot.sh DESTINATION examples)
-file(COPY examples/vplot.plg DESTINATION examples)
-file(COPY examples/README DESTINATION examples)
+configure_file(CMakeScripts/FTIConfig.cmake
+                "${PROJECT_BINARY_DIR}/FTIConfig.cmake" COPYONLY)

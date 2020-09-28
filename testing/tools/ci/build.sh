@@ -20,20 +20,20 @@ fi
 case $1 in
 gcc | GCC)
     export FC=gfortran
-    ${install_script} --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
+    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
     ;;
 intel | Intel)
     export CFLAGS='-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
     export PATH="$PATH:/opt/intel/bin"
     /opt/intel/bin/compilervars.sh intel64
-    ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib -C $root_folder/CMakeScripts/intel.cmake
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib -C $root_folder/CMakeScripts/intel.cmake
     ;;
 clang | Clang)
     export OMPI_MPICC=clang
     export OMPI_CXX=clang++
     export CC=clang
     export FC=gfortran
-    ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 pgi | PGI)
     export PGICC='/opt/pgi/linux86-64/19.10/bin/'
@@ -43,6 +43,6 @@ pgi | PGI)
     export PATH="$PGICC:$PGIMPICC:$PATH"
     export CC=pgcc
     export FC=pgfortran
-    ${install_script} --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 esac

@@ -499,7 +499,7 @@ endprogram test_mpimodule
         set(MPI_Fortran_HAS_MODULE TRUE)
         message(STATUS "Checking whether MPI Fortran module is available --yes")
       endif()
-      set(MPI_Fortran_HAS_MODULE "${MPI_Fortran_HAS_MODULE}" CACHE BOOLEAN
+      set(MPI_Fortran_HAS_MODULE "${MPI_Fortran_HAS_MODULE}" CACHE STRING
        "Whether MPI Fortran supports the use of the MPI module")
       mark_as_advanced(MPI_Fortran_HAS_MODULE)
 
