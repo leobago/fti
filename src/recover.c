@@ -36,7 +36,7 @@
  *  @brief  Recovery functions for the FTI library.
  */
 
-#include "./interface.h"
+#include "recover.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -125,15 +125,16 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int ckptId, rank;  // Variables for proper partner file name
     int (*consistency)(char *, int32_t , char*);
 #ifdef ENABLE_HDF5
-    if (FTI_Conf->ioMode == FTI_IO_HDF5)
+    if (FTI_Conf->ioMode == FTI_IO_HDF5) {
         consistency = &FTI_CheckHDF5File;
-    else if (FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp &&
+    } else if (FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp &&
      FTI_Conf->dcpPosix) {
         FTI_DcpPosixRecoverRuntimeInfo(DCP_POSIX_INIT_TAG, FTI_Exec,
             FTI_Conf);
         consistency = &FTI_CheckFileDcpPosix;
-    } else
+    } else {
         consistency = &FTI_CheckFile;
+    }
 #else
     if (FTI_Ckpt[FTI_Exec->ckptMeta.level].recoIsDcp && FTI_Conf->dcpPosix) {
         FTI_DcpPosixRecoverRuntimeInfo(DCP_POSIX_INIT_TAG, FTI_Exec,
@@ -186,14 +187,14 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dcpDir, ckptFile);
               buf = consistency(fn, fs, checksum);
             } else {
-                snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].L4Replica, ckptFile);
+                snprintf(fn, FTI_BUFS, "%s/%s",
+                        FTI_Ckpt[4].L4Replica, ckptFile);
                 buf = consistency(fn, fs, checksum);
                 FTI_Ckpt[4].localReplica = 1;
-                if ( buf != 0 ){ 
+                if (buf) {
                     snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[4].dir, ckptFile);
                     buf = consistency(fn, fs, checksum);
                     FTI_Ckpt[4].localReplica = 0;
-
                 }
             }
             MPI_Allgather(&buf, 1, MPI_INT, erased, 1, MPI_INT,
@@ -296,8 +297,9 @@ int FTI_RecoverFiles(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                         res = FTI_RecoverL4(FTI_Conf, FTI_Exec, FTI_Topo,
                          FTI_Ckpt);
                         if (FTI_Conf->dcpFtiff) FTI_Ckpt[4].recoIsDcp = false;
-                        if (res == FTI_SCES ) break;
-                        else {
+                        if (res == FTI_SCES) {
+                            break;
+                        } else {
                             snprintf(str, FTI_BUFS,
                              "Recover failed from level %d_dCP with Ckpt. %d.",
                               level, ckptId);
