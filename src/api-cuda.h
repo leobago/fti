@@ -12,7 +12,10 @@
 #define FTI_SRC_API_CUDA_H_
 
 #ifdef GPUSUPPORT
+
 #include <cuda_runtime_api.h>
+
+#include "interface.h"
 
 #define CUDA_ERROR_CHECK(fun) \
     do { \
@@ -27,7 +30,6 @@
     } while (0)
 
 #endif
-#include "./interface.h"
 
 #define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
 

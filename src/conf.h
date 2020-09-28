@@ -8,7 +8,7 @@
 #ifndef FTI_SRC_CONF_H_
 #define FTI_SRC_CONF_H_
 
-#include "./interface.h"
+#include "interface.h"
 
 int FTI_UpdateConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int restart);

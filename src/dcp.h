@@ -8,7 +8,7 @@
 #ifndef FTI_SRC_DCP_H_
 #define FTI_SRC_DCP_H_
 
-#include "./interface.h"
+#include "interface.h"
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001

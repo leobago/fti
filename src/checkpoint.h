@@ -8,7 +8,7 @@
 #ifndef FTI_SRC_CHECKPOINT_H_
 #define FTI_SRC_CHECKPOINT_H_
 
-#include "./interface.h"
+#include "interface.h"
 
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec);
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
