@@ -152,7 +152,8 @@ int main(int argc, char *argv[]) {
             if (res != 0) {
                 exit(1);
             } else {  // Update ckpt. id & level
-                myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
+                myCkpt.level = (myCkpt.level+1)%5;
+                myCkpt.id++;
             }
         } else {
             // Checkpoint every ITER_OUT steps
@@ -160,7 +161,8 @@ int main(int argc, char *argv[]) {
                 // Ckpt ID 5 is ignored because level = 0
                 res = FTI_Checkpoint(myCkpt.id, myCkpt.level);
                 if (res == 0) {
-                    myCkpt.level = (myCkpt.level+1)%5; myCkpt.id++;
+                    myCkpt.level = (myCkpt.level+1)%5;
+                    myCkpt.id++;
                 }  // Update ckpt. id & level
             }
         }
