@@ -39,8 +39,10 @@
  *  @brief  header for stage.c
  */
 
-#ifndef FTI_STAGE_H_
-#define FTI_STAGE_H_
+#ifndef FTI_SRC_STAGE_H_
+#define FTI_SRC_STAGE_H_
+
+#include "interface.h"
 
 /** Maximum amount of concurrent active staging requests                   
   @note leads to 2.5MB for the application processes as minimum memory
@@ -134,4 +136,4 @@ int FTI_GetRequestIdx(int ID);
 void FTI_FinalizeStage(FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo,
  FTIT_configuration *FTI_Conf);
 
-#endif  // FTI_STAGE_H_
+#endif  // FTI_SRC_STAGE_H_
