@@ -5,8 +5,10 @@
  *  @file   checkpoint.h
  */
 
-#ifndef FTI_CHECKPOINT_H_
-#define FTI_CHECKPOINT_H_
+#ifndef FTI_SRC_CHECKPOINT_H_
+#define FTI_SRC_CHECKPOINT_H_
+
+#include "./interface.h"
 
 int FTI_UpdateIterTime(FTIT_execution* FTI_Exec);
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -22,4 +24,4 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data, FTIT_IO *FTI_IO);
 
-#endif  // FTI_CHECKPOINT_H_
+#endif  // FTI_SRC_CHECKPOINT_H_
