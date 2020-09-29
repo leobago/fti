@@ -36,9 +36,8 @@
  *  @brief  API functions for the FTI library.
  */
 
-
-
-#include "./interface.h"
+#include "interface.h"
+#include "fti-io.h"
 
 /** Structure that stores the function pointer wrappers to perform the IO **/
 FTIT_IO ftiIO[4];

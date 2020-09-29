@@ -36,8 +36,8 @@
  *  @brief  Header file for the FTI library private functions.
  */
 
-#ifndef FTI_INTERFACE_H_
-#define FTI_INTERFACE_H_
+#ifndef FTI_SRC_INTERFACE_H_
+#define FTI_SRC_INTERFACE_H_
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,4 +95,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif  // FTI_INTERFACE_H_
+#endif  // FTI_SRC_INTERFACE_H_

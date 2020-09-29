@@ -36,7 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
-#include "interface.h"
+#include "./interface.h"
 #include "IO/cuda-md5/md5Opt.h"
 
 #ifdef GPUSUPPORT
@@ -724,7 +724,8 @@ int FTI_setIDFromString(char *name) {
     }
 
     // initialize blank dataset
-    FTIT_dataset dataAdd; FTI_InitDataset(&FTI_Exec, &dataAdd, i);
+    FTIT_dataset dataAdd;
+    FTI_InitDataset(&FTI_Exec, &dataAdd, i);
 
     // set id to i+1 and assign name
     strncpy(dataAdd.idChar, name, FTI_BUFS);
@@ -1163,10 +1164,10 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
             last = curr;
             curr = last->next;
         }
-        last->next = (FTIT_globalDataset*) malloc(sizeof(FTIT_globalDataset));
+        last->next = talloc(FTIT_globalDataset, 1);
         last = last->next;
     } else {
-        last = (FTIT_globalDataset*) malloc(sizeof(FTIT_globalDataset));
+        last = talloc(FTIT_globalDataset, 1);
         FTI_Exec.globalDatasets = last;
     }
 
@@ -1175,7 +1176,7 @@ int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
     last->rank = rank;
     last->hid = -1;
     last->fileSpace = -1;
-    last->dimension = (hsize_t*) malloc(sizeof(hsize_t) * rank);
+    last->dimension = talloc(hsize_t, rank);
     int i;
     for (i = 0; i < rank; i++) {
         last->dimension[i] = dimLength[i];
@@ -1266,8 +1267,8 @@ int FTI_AddSubset(int id, int rank, FTIT_hsize_t* offset,
         dataset->varId[dataset->numSubSets-1] = id;
 
         data->sharedData.dataset = dataset;
-        data->sharedData.offset = (hsize_t*) malloc(sizeof(hsize_t) * rank);
-        data->sharedData.count = (hsize_t*) malloc(sizeof(hsize_t) * rank);
+        data->sharedData.offset = talloc(hsize_t, rank);
+        data->sharedData.count = talloc(hsize_t, rank);
         int i = 0; for (; i < rank; i++) {
             data->sharedData.offset[i] = offset[i];
             data->sharedData.count[i] = count[i];
@@ -1540,7 +1541,7 @@ int FTI_RecoverDatasetDimension(int did) {
         return FTI_NSCS;
     }
 
-    hsize_t *span = (hsize_t*) malloc(drank * sizeof(hsize_t));
+    hsize_t *span = talloc(hsize_t, drank);
 
     int status = FTI_GetDatasetSpanReco(dataset_id, span);
     if (status != FTI_SCES) {

@@ -5,8 +5,8 @@
  *  @file   hdf5-fti.h
  */
 
-#ifndef FTI_HDF5_FTI_H_
-#define FTI_HDF5_FTI_H_
+#ifndef FTI_SRC_IO_HDF5_FTI_H_
+#define FTI_SRC_IO_HDF5_FTI_H_
 
 #define FTI_HDF5_MAX_DIM 32
 
@@ -55,4 +55,4 @@ int FTI_FinalizeH5SingleFile(FTIT_execution* FTI_Exec,
  FTIT_checkpoint* FTI_Ckpt, double t);
 #endif
 
-#endif  // FTI_HDF5_FTI_H_
+#endif  // FTI_SRC_IO_HDF5_FTI_H_

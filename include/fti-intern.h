@@ -5,8 +5,8 @@
  *  @file   fti-intern.h
  */
 
-#ifndef INCLUDE_FTI_INTERN_H_
-#define INCLUDE_FTI_INTERN_H_
+#ifndef FTI_INCLUDE_FTI_INTERN_H_
+#define FTI_INCLUDE_FTI_INTERN_H_
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -226,16 +226,16 @@ extern "C" {
     typedef struct FTIFF_metaInfo {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< file hash without meta  */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct     */
-        int ckptId;            /**< Checkpoint ID                             */
-        int32_t metaSize;      /**< size of ckpt data                         */
-        int32_t ckptSize;      /**< also file size TODO remove                */
-        int32_t dataSize;      /**< size of protected data without meta data  */
-        int32_t pureDataSize;  /**< total data size (for printouts)           */
-        int32_t fs;            /**< file size                                 */
-        int32_t maxFs;         /**< maximum file size in group                */
-        int32_t ptFs;          /**< partner copy file size                    */
-        int32_t timestamp;     /**< time (ns) cp was created (CLOCK_REALTIME) */
-        int32_t dcpSize;       /**< how much actually written by rank         */
+        int ckptId;           /**< Checkpoint ID                             */
+        size_t metaSize;      /**< size of ckpt data                         */
+        size_t ckptSize;      /**< also file size TODO remove                */
+        size_t dataSize;      /**< size of protected data without meta data  */
+        size_t pureDataSize;  /**< total data size (for printouts)           */
+        size_t fs;            /**< file size                                 */
+        size_t maxFs;         /**< maximum file size in group                */
+        size_t ptFs;          /**< partner copy file size                    */
+        uint64_t timestamp;   /**< time (ns) cp was created (CLOCK_REALTIME) */
+        size_t dcpSize;       /**< how much actually written by rank         */
     } FTIFF_metaInfo;
 
     /** @typedef    FTIT_DataDiffHash
@@ -373,22 +373,22 @@ extern "C" {
     } FTIT_Datatype;
 
     typedef struct FTIT_globalDataset {
-        bool initialized;                 /**< Dataset is initialized         */
-        int rank;                         /**< Rank of dataset                */
-        int id;                           /**< ID of dataset.                 */
-        int* varId;                       /**< ID of subset variable          */
-        int numSubSets;                   /**< Number of assigned sub-sets    */
-        FTIT_H5Group* location;           /**< Dataset location in file.      */
+        bool initialized;                /**< Dataset is initialized         */
+        int rank;                        /**< Rank of dataset                */
+        int id;                          /**< ID of dataset.                 */
+        int* varId;                      /**< ID of subset variable          */
+        int numSubSets;                  /**< Number of assigned sub-sets    */
+        FTIT_H5Group* location;          /**< Dataset location in file.      */
 #ifdef ENABLE_HDF5
-        hid_t hid;                         /**< HDF5 id datset.               */
-        hid_t fileSpace;                   /**< HDF5 id dataset filespace     */
-        hid_t hdf5TypeId;                  /**< HDF5 id of assigned FTI type  */
-        hsize_t* dimension;                /**< num of elements for each dim. */
+        hid_t hid;                       /**< HDF5 id datset.               */
+        hid_t fileSpace;                 /**< HDF5 id dataset filespace     */
+        hid_t hdf5TypeId;                /**< HDF5 id of assigned FTI type  */
+        hsize_t* dimension;              /**< num of elements for each dim. */
 #endif
-        struct FTIT_globalDataset* next;  /**< Pointer to next dataset        */
-        FTIT_Datatype *type;                  /**< corresponding FTI type.        */
-        char name[FTI_BUFS];              /**< Dataset name.                  */
-        char fullName[FTI_BUFS];          /**< full 'path' of dataset         */
+        struct FTIT_globalDataset* next; /**< Pointer to next dataset        */
+        FTIT_Datatype *type;             /**< corresponding FTI type.        */
+        char name[FTI_BUFS];             /**< Dataset name.                  */
+        char fullName[FTI_BUFS];         /**< full 'path' of dataset         */
     } FTIT_globalDataset;
 
     typedef struct FTIT_sharedData {
@@ -441,25 +441,25 @@ extern "C" {
      *  This type stores the metadata related with a dataset.
      */
     typedef struct FTIT_dataset {
-        int id;                             /**< ID to search/update dataset  */
-        int eleSize;                        /**< Element size for the dataset */
-        int rank;                           /**< Rank of dataset (for HDF5)   */
-        int dimLength[32];                  /**< Lenght of each dimention     */
-        bool recovered;                     /**< True if metadata restored    */
-        bool isDevicePtr;                   /**< True if on device memory     */
-        int32_t count;                      /**< nb of elements in dataset    */
-        int32_t size;                       /**< size of the data             */
-        int32_t sizeStored;                 /**< size of the data in last CP  */
-        size_t filePos;                     /**< offset of buffer in CP file  */
+        int id;                            /**< ID to search/update dataset  */
+        int eleSize;                       /**< Element size for the dataset */
+        int rank;                          /**< Rank of dataset (for HDF5)   */
+        int dimLength[32];                 /**< Lenght of each dimention     */
+        bool recovered;                    /**< True if metadata restored    */
+        bool isDevicePtr;                  /**< True if on device memory     */
+        int32_t count;                     /**< nb of elements in dataset    */
+        int32_t size;                      /**< size of the data             */
+        int32_t sizeStored;                /**< size of the data in last CP  */
+        size_t filePos;                    /**< offset of buffer in CP file  */
         FTIT_attribute attribute;
-        FTIT_sharedData sharedData;         /**< Info if dataset is subset    */
-        FTIT_dcpDatasetPosix dcpInfoPosix;  /**< dCP info for posix I/O       */
-        FTIT_Datatype* type;                    /**< Data type for the dataset    */
-        FTIT_H5Group* h5group;              /**< Group of this dataset        */
-        char idChar[FTI_BUFS];              /**< THis is glue for ALYA        */
-        char name[FTI_BUFS];                /**< Name of the dataset          */
-        void *ptr;                          /**< Pointer to the dataset       */
-        void *devicePtr;                    /**< Pointer to data on device    */
+        FTIT_sharedData sharedData;        /**< Info if dataset is subset    */
+        FTIT_dcpDatasetPosix dcpInfoPosix; /**< dCP info for posix I/O       */
+        FTIT_Datatype* type;               /**< Data type for the dataset    */
+        FTIT_H5Group* h5group;             /**< Group of this dataset        */
+        char idChar[FTI_BUFS];             /**< THis is glue for ALYA        */
+        char name[FTI_BUFS];               /**< Name of the dataset          */
+        void *ptr;                         /**< Pointer to the dataset       */
+        void *devicePtr;                   /**< Pointer to data on device    */
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -641,10 +641,10 @@ extern "C" {
      *  Stores all the dynamic metadata related to datatype handling
      */
     typedef struct FTIT_DataTypes {
-        int32_t ntypes;                 /**< Number of data types.           */
-        int32_t nprimitives;            /**< number of basic FTI types       */
-        int32_t primitive_offset;       /**< where the first basic type is   */
-        FTIT_Datatype *types;               /**< All FTI_Types registered        */
+        int32_t ntypes;                /**< Number of data types.           */
+        int32_t nprimitives;           /**< number of basic FTI types       */
+        int32_t primitive_offset;      /**< where the first basic type is   */
+        FTIT_Datatype *types;          /**< All FTI_Types registered        */
     } FTIT_DataTypes;
 
     /** @typedef    FTIT_execution
@@ -768,4 +768,4 @@ extern "C" {
 }
 #endif
 
-#endif  // INCLUDE_FTI_INTERN_H_
+#endif  // FTI_INCLUDE_FTI_INTERN_H_

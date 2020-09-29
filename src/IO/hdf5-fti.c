@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include "../interface.h"
+#include "hdf5-fti.h"
 
 static hid_t _file_id;
 
@@ -334,9 +335,9 @@ int FTI_ScanGroup(hid_t gid, char* fn) {
                     int drank = H5Sget_simple_extent_ndims(sid);
                     size_t typeSize = H5Tget_size(tid);
                     hsize_t *count = (hsize_t*) calloc(drank, sizeof(hsize_t));
-                    hsize_t *offset = (hsize_t*) calloc(drank, sizeof(hsize_t));
+                    hsize_t *offset =(hsize_t*) calloc(drank, sizeof(hsize_t));
                     count[0] = 1;
-                    char* buffer = (char*) malloc(typeSize);
+                    char* buffer = talloc(char, typeSize);
                     hid_t msid = H5Screate_simple(drank, count, NULL);
                     H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL,
                      count, NULL);
@@ -549,8 +550,7 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes,
     if (maxElements == 0)
         maxElements = 1;
 
-    hsize_t *dimensionSize = (hsize_t *)malloc(sizeof(hsize_t)*
-        (numOfDimensions+1));
+    hsize_t *dimensionSize = talloc(hsize_t, numOfDimensions+1);
     dimensionSize[numOfDimensions] = 1;
 
     // Calculate how many elements does each whole dimension holds
@@ -620,7 +620,7 @@ int FTI_WriteElements(hid_t dataspace, hid_t dataType, hid_t dataset,
     char str[FTI_BUFS];
     hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset,
      NULL, count, NULL);
-    hsize_t *dims_in = (hsize_t*) malloc(sizeof(hsize_t)*ranks);
+    hsize_t *dims_in = talloc(hsize_t, ranks);
     memcpy(dims_in, count, ranks*sizeof(hsize_t));
     hid_t memspace = H5Screate_simple(ranks, dims_in, NULL);
     hsize_t *offset_in = (hsize_t*)calloc(ranks, sizeof(ranks));
@@ -660,7 +660,7 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset,
     char str[FTI_BUFS];
     hid_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset,
      NULL, count, NULL);
-    hsize_t *dims_out = (hsize_t*)malloc(sizeof(hsize_t)*ranks);
+    hsize_t *dims_out = talloc(hsize_t, ranks);
     memcpy(dims_out, count, ranks*sizeof(hsize_t));
     hid_t memspace = H5Screate_simple(ranks, dims_out, NULL);
     hsize_t *offset_out = (hsize_t*)calloc(ranks, sizeof(ranks));
@@ -815,7 +815,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
 
     // This code is only executed in the GPU case.
 
-    hsize_t *count = (hsize_t*) malloc(sizeof(hsize_t)*data->rank);
+    hsize_t *count = talloc(hsize_t, data->rank);
     hsize_t *offset = (hsize_t*) calloc(data->rank, sizeof(hsize_t));
 
     if (!count|| !offset) {
@@ -956,7 +956,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *data) {
     // This code is only executed in the GPU case.
 
 
-    hsize_t *count = (hsize_t*)malloc(sizeof(hsize_t)*data->rank);
+    hsize_t *count = talloc(hsize_t, data->rank);
     hsize_t *offset = (hsize_t*)calloc(data->rank, sizeof(hsize_t));
 
     if (!count|| !offset) {
@@ -1221,7 +1221,7 @@ void *FTI_InitHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int i;
-    WriteHDF5Info_t *fd = (WriteHDF5Info_t*) malloc(sizeof(WriteHDF5Info_t));;
+    WriteHDF5Info_t *fd = talloc(WriteHDF5Info_t, 1);
     fd->FTI_Exec = FTI_Exec;
     fd->FTI_Data = FTI_Data;
     fd->FTI_Conf = FTI_Conf;

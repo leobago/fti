@@ -41,7 +41,7 @@
 #define _BSD_SOURCE
 
 #include "../interface.h"
-
+#include "ftiff-dcp.h"
 
 #ifdef FTI_NOZLIB
 const uint32_t crc32_tab[] = {
@@ -161,8 +161,7 @@ int FTI_InitNextHashData(FTIT_DataDiffHash *hashes) {
             " before initializing it", FTI_EROR);
         }
 
-        hashes->bit32hash[NEXT(hashes)] = (uint32_t*)malloc(sizeof(uint32_t)*
-         hashes->nbHashes);
+        hashes->bit32hash[NEXT(hashes)] = talloc(uint32_t, hashes->nbHashes);
         if (!hashes->bit32hash[NEXT(hashes)]) {
             FTI_Print("Could Not Allocate memory for hashes", FTI_EROR);
             return FTI_NSCS;
@@ -411,7 +410,7 @@ int FTI_InitBlockHashArray(FTIFF_dbvar* dbvar) {
         return FTI_SCES;
 
 
-    dbvar->dataDiffHash = (FTIT_DataDiffHash*)malloc(sizeof(FTIT_DataDiffHash));
+    dbvar->dataDiffHash = talloc(FTIT_DataDiffHash, 1);
     if (dbvar->dataDiffHash == NULL) {
         FTI_Print("FTI_InitBlockHashArray - Unable to allocate memory "
             "for dcp meta info, disable dCP...", FTI_WARN);
@@ -435,7 +434,7 @@ int FTI_InitBlockHashArray(FTIFF_dbvar* dbvar) {
 
     // This will be done when start calculate the hash codes themselfes.
     // I only allocate memory for the data regarding the status of the dataset.
-    hashes->isValid = (bool*)malloc(nbHashes * sizeof(bool));
+    hashes->isValid = talloc(bool, nbHashes);
 
 
     if (!hashes->isValid) {
@@ -446,8 +445,7 @@ int FTI_InitBlockHashArray(FTIFF_dbvar* dbvar) {
         return FTI_NSCS;
     }
 
-    hashes->blockSize = (uint16_t*)malloc(nbHashes *
-     sizeof(uint16_t));
+    hashes->blockSize = talloc(uint16_t, nbHashes);
 
     if (!hashes->blockSize) {
         FTI_Print("FTI_InitBlockHashArray - Unable to allocate memory for dcp"

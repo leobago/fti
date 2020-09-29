@@ -36,7 +36,7 @@
  *  @brief  Topology functions for the FTI library.
  */
 
-#include "./interface.h"
+#include "topo.h"
 
 /*-------------------------------------------------------------------------*/
 /**
