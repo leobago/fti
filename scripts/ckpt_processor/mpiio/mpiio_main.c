@@ -11,7 +11,6 @@
 #define transferSize 16
 
 int main(int argc, char **argv) {
-
     /*int rank, char* file, int fileSize,
      int nbApprocs, int nbNodes*/
     int rank = atoi(argv[1]);
@@ -29,7 +28,7 @@ int main(int argc, char **argv) {
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    //begin MPI-IO routine
+    // begin MPI-IO routine
 
     MPI_Info info;
     MPI_Info_create(&info);
