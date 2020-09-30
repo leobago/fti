@@ -9,7 +9,7 @@
 # For more formatting options, check FTI's guide
 # at : https://fault-tolerance-interface.readthedocs.io
 
-OPTIONS_C="--filter=-readability/casting,-readability/braces" 													#cpplint has embedded formatting options 
+OPTIONS_C="--filter=-readability/casting,-readability/braces,-build/include_subdir"							#cpplint has embedded formatting options 
 OPTIONS_FORTRAN="-i 3 -l 140 -w 2 --strict-indent" 																#(line length=50 && whitespace btwn operators/print/read/+- && strinct indentation)
 OPTIONS_CMAKE="--line-width=80 --tab-size=4 --separate-ctrl-name-with-space TRUE --separate-fn-name-with-space TRUE --disabled-codes C0103 E1120 R0912 R0915 W0105 -- "
 
