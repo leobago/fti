@@ -34,7 +34,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;36m'
 NC='\033[0m' # No Color
 
-#
+
 #This function iterates through the files and checks their format 
 #given their extension and the formatting options per language
 check_files(){
@@ -45,25 +45,36 @@ check_files(){
 	
 	FILES=`git diff --cached --name-only --diff-filter=ACMR | grep -E "\.(${FILE_EXTENSIONS})$"` #Added, Copied, Modified, Renamed from (A|C|D|M|R|T|U|X|B)
 	for FILE in $FILES; do
-		cp $FILE tmp
-		$CHECKER $CHECKER_OPTIONS tmp 2>/dev/null | cmp -s tmp - > /dev/null
-		if [ $? -ne 0 ]; then #if any file/language
-			echo -e "\n######################## ${BLUE}$LANGUAGE${NC} #########################"
-			if [ $LANGUAGE == "FORTRAN" ]; then
-				#compare tmp and FILE
-				cmp $FILE tmp > /dev/null 2>&1
-				if [ $? -ne 0 ]; then #if they re not the same
-					echo -e "${RED}[Error]${NC} $FILE does not respect the agreed coding style." >&2
-					echo -e "${GREEN}[Info]${NC} You can run $CHECKER on the file separately to see the expected formatting"
-				fi
-			elif [ $LANGUAGE == "C" ]; then 
-				$CHECKER $CHECKER_OPTIONS $FILE
+		echo -e "\n######################## ${BLUE}$LANGUAGE${NC} #########################"
+		echo "Processing ..." $FILE
+		if [ $LANGUAGE == "FORTRAN" ]; then
+			#compare tmp and FILE
+			$CHECKER $CHECKER_OPTIONS tmp 2>/dev/null
+			cmp $FILE tmp > /dev/null 2>&1
+			if [ $? -ne 0 ]; then #if they re not the same
+				FLAG=1
+				echo -e "${RED}[Error]${NC} $FILE does not respect the agreed coding style." >&2
+				echo -e "${GREEN}[Info]${NC} You can run $CHECKER on the file separately to see the expected formatting"
+				rm tmp
+			fi
+		elif [ $LANGUAGE == "C" ]; then 
+			strSuccess="Done processing "
+			strSuccess+=$FILE
+			echo $str
+			if [[ $($CHECKER $CHECKER_OPTIONS $FILE) == $strSuccess ]]; then
 				#if C: check for implicit var declaration inside loop
 				check_loop_in_file $FILE
-			else #if CMake
-				$CHECKER $CHECKER_OPTIONS $FILE
+				FLAG=$retval
+			else 
+				FLAG=1
 			fi
-			FLAG=1
+		else #if CMake
+			echo ""
+			$CHECKER $CHECKER_OPTIONS $FILE
+			$CHECKER $CHECKER_OPTIONS $FILE | grep 'Convention' &> /dev/null
+			if [ $? == 0 ]; then
+			   FLAG=1
+			fi
 		fi
 	done
 }
@@ -72,21 +83,25 @@ check_files(){
 check_loop_in_file(){
   eval FILE="$1"     #file to check
   linenumber=0
+  flag=0
   while IFS='' read -r LINE || [ -n "${LINE}" ]; do
       #increment line number 
       linenumber=$((linenumber + 1))
       if [[ $LINE == *"for("* ]]; then  
         occurrence=$((occurrence + 1))
         if [[ $LINE == *"for(int"* || $LINE == *"for( int"* ]]; then
-          echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
+        	flag=1
+			echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
         fi
     elif [[ $LINE == *"for ("* ]]; then
       occurrence=$((occurrence + 1))
         if [[ $LINE == *"for (int"* || $LINE == *"for ( int"* ]]; then
-          echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
+        	flag=1
+			echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
         fi
     fi
   done < $FILE
+  retval=$flag
 }
 
 #Check installation of the code checkers
@@ -118,8 +133,9 @@ elif [ $COUNTER -eq 3 ]; then
 fi
 echo -e "\n\n"
 echo -e "########################### ${BLUE}Commit${NC} #######################"
+
 if [ $FLAG -eq 1 ];then
-	#formatting still needed 
+	#Unsucessful commit
 	echo -e "${RED}[Error]${NC} Some files need formatting. Please format them accordingly before trying to commit."
 	echo -e "${RED}[Error]${NC} Failed to commit..."
 	exit 1
