@@ -33,3 +33,7 @@ For processing MPI-IO checkpoints, compile the program under /mpiio, for example
 ```
 mpiic mpiio_main.c -o mpiio_main
 ```
+
+## Examples
+
+The /examples sub-folder contains same usage of the checkpoint processor.
