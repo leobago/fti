@@ -36,7 +36,7 @@
  *  @brief  Checkpointing functions for the FTI library.
  */
 
-#include "./interface.h"
+#include "api-cuda.h"
 
 #ifdef GPUSUPPORT
 #include <cuda_runtime_api.h>

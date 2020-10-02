@@ -37,26 +37,29 @@
  *  @brief  Header file for the FTI File Format (FTI-FF).
  */
 
-#ifndef FTI_FTIFF_H_
-#define FTI_FTIFF_H_
+#ifndef FTI_SRC_IO_FTIFF_H_
+#define FTI_SRC_IO_FTIFF_H_
 
-#include "fti.h"
-#ifndef FTI_NOZLIB
-#   include "zlib.h"
-#endif
 #include <assert.h>
 #include <string.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "fti.h"
+#include "../util/utility.h"
+
+#ifndef FTI_NOZLIB
+#   include "zlib.h"
+#endif
 
 #define MBR_CNT(TYPE) int TYPE ## _mbrCnt
 #define MBR_BLK_LEN(TYPE) int TYPE ## _mbrBlkLen[]
 #define MBR_TYPES(TYPE) MPI_Datatype TYPE ## _mbrTypes[]
 #define MBR_DISP(TYPE) MPI_Aint TYPE ## _mbrDisp[]
 
-#define CKPT_FN_FORMAT(level, backup) ((backup) ? ((level == 2) ? "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti") : "Ckpt%d-Rank%d.fti")
+#define CKPT_FN_FORMAT(level, backup) ((backup) ? ((level == 2) ? \
+        "Ckpt%d-Pcof%d.fti" : "Ckpt%d-RSed%d.fti") : "Ckpt%d-Rank%d.fti")
 
 extern int FTI_filemetastructsize; /**< size of FTIFF_metaInfo in file */
 extern int FTI_dbstructsize;       /**< size of FTIFF_db in file       */
@@ -206,4 +209,4 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
  WriteFTIFFInfo_t *fd, int32_t *dcpSize, unsigned char **dptr);
 int FTIFF_RecoverVarInit(char* fn);
 int FTIFF_RecoverVarFinalize();
-#endif  // FTI_FTIFF_H_
+#endif  // FTI_SRC_IO_FTIFF_H_

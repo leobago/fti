@@ -7,7 +7,6 @@
 
 #include "../interface.h"
 
-
 int FTI_SionClose(void *fileDesc) {
     WriteSionInfo_t *fd = (WriteSionInfo_t *) fileDesc;
     if (sion_parclose_mapped_mpi(fd->sid) == -1) {
@@ -40,8 +39,7 @@ int FTI_SionClose(void *fileDesc) {
 /*-------------------------------------------------------------------------*/
 void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data) {
-    WriteSionInfo_t *write_info = (WriteSionInfo_t *)
-    malloc(sizeof(WriteSionInfo_t));
+    WriteSionInfo_t *write_info = talloc(WriteSionInfo_t, 1);
 
     write_info->loffset = 0;
     int numFiles = 1;
@@ -111,7 +109,7 @@ void *FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_SionWrite(void *src, size_t size, void *opaque) {
-    int *sid = (int *)opaque;
+    int *sid = (int *) opaque;
     int res = sion_fwrite(src, size, 1, *sid);
     if (res < 0) {
         return FTI_NSCS;

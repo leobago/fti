@@ -43,8 +43,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <inttypes.h>
-#include "../interface.h"
 
+#include "interface.h"
+#include "ftiff.h"
 
 char *filemmap;
 struct stat filestats;
@@ -155,7 +156,7 @@ int FTIFF_ReadDbFTIFF(FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
 
     int isnextdb;
 
-    FTIFF_db *currentdb = (FTIFF_db*) malloc(sizeof(FTIFF_db));
+    FTIFF_db *currentdb = talloc(FTIFF_db, 1);
     if (currentdb == NULL) {
         snprintf(strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate"
         " %ld bytes for 'currentdb'", sizeof(FTIFF_db));
@@ -193,8 +194,7 @@ int FTIFF_ReadDbFTIFF(FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
              currentdb->numvars);
         FTI_Print(str, FTI_DBUG);
 
-        currentdb->dbvars = (FTIFF_dbvar*)malloc(sizeof(FTIFF_dbvar) *
-         currentdb->numvars);
+        currentdb->dbvars = talloc(FTIFF_dbvar, currentdb->numvars);
         if (currentdb->dbvars == NULL) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate"
             " %ld bytes for 'currentdb->dbvars'",
@@ -277,7 +277,7 @@ int FTIFF_ReadDbFTIFF(FTIT_configuration *FTI_Conf, FTIT_execution *FTI_Exec,
         }
 
         if (seek_ptr < seek_end) {
-            FTIFF_db *nextdb = (FTIFF_db*) malloc(sizeof(FTIFF_db));
+            FTIFF_db *nextdb = talloc(FTIFF_db, 1);
             if (nextdb == NULL) {
                 snprintf(strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to "
                     "allocate %ld bytes for 'nextdb'", sizeof(FTIFF_db));
@@ -350,7 +350,7 @@ int FTIFF_GetFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum) {
     FTI_ADDRPTR seek_end = fmmap + (FTI_ADDRVAL) FTIFFMeta->ckptSize -
      (FTI_ADDRVAL) FTI_filemetastructsize;
 
-    FTIFF_db *db = (FTIFF_db*) malloc(sizeof(FTIFF_db));
+    FTIFF_db *db = talloc(FTIFF_db, 1);
     if (db == NULL) {
         snprintf(strerr, FTI_BUFS, "FTI-FF: ReadDbFTIFF - failed to allocate "
             "%ld bytes for 'db'", sizeof(FTIFF_db));
@@ -371,8 +371,7 @@ int FTIFF_GetFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum) {
 
         seek_ptr += (FTI_ADDRVAL) FTI_dbstructsize;
 
-        FTIFF_dbvar *dbvars = (FTIFF_dbvar*)malloc(sizeof(FTIFF_dbvar) *
-         db->numvars);
+        FTIFF_dbvar *dbvars = talloc(FTIFF_dbvar, db->numvars);
         if (dbvars == NULL) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: Updatedb - failed to allocate"
             " %ld bytes for 'dbvars'", sizeof(FTIFF_dbvar) * db->numvars);
@@ -415,7 +414,7 @@ int FTIFF_GetFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum) {
     int i;
     int ii = 0;
     for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
+        snprintf(&checksum[ii], sizeof(char[3]), "%02x", hash[i]);
         ii += 2;
     }
 
@@ -459,7 +458,7 @@ int FTIFF_UpdateDatastructVarFTIFF(FTIT_execution* FTI_Exec,
     // first call to this function. This means that
     // for all variables only one chunk/container exists.
     if (!FTI_Exec->firstdb) {
-        FTIFF_db *dblock = (FTIFF_db*) malloc(sizeof(FTIFF_db));
+        FTIFF_db *dblock = talloc(FTIFF_db, 1);
         if (dblock == NULL) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - "
                 "failed to allocate %ld bytes for 'dblock'", sizeof(FTIFF_db));
@@ -468,7 +467,7 @@ int FTIFF_UpdateDatastructVarFTIFF(FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        dbvars = (FTIFF_dbvar*) malloc(sizeof(FTIFF_dbvar));
+        dbvars = talloc(FTIFF_dbvar, 1);
         if (dbvars == NULL) {
             snprintf(strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF - "
                 "failed to allocate %ld bytes for 'dbvars'",
@@ -502,7 +501,7 @@ int FTIFF_UpdateDatastructVarFTIFF(FTIT_execution* FTI_Exec,
         dbvars->update = true;
 
         FTI_Exec->nbVarStored = 1;
-        dblock->dbsize = dbvars->containersize;;
+        dblock->dbsize = dbvars->containersize;
 
         dblock->update = true;
         dblock->finalized = false;
@@ -652,7 +651,7 @@ int FTIFF_UpdateDatastructVarFTIFF(FTIT_execution* FTI_Exec,
             // protect, create new block.
             if (FTI_Exec->lastdb->next == NULL &&
              FTI_Exec->lastdb->finalized) {
-                dblock = (FTIFF_db*) malloc(sizeof(FTIFF_db));
+                dblock = talloc(FTIFF_db, 1);
                 if (dblock == NULL) {
                     snprintf(strerr, FTI_BUFS, "FTI-FF: UpdateDatastructFTIFF"
                     " - failed to allocate %ld bytes for 'dblock'",
@@ -951,8 +950,7 @@ void* FTI_InitFtiff(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data) {
     char fn[FTI_BUFS];
-    WriteFTIFFInfo_t *write_info = (WriteFTIFFInfo_t*)
-    malloc(sizeof(WriteFTIFFInfo_t));
+    WriteFTIFFInfo_t *write_info = talloc(WriteFTIFFInfo_t, 1);
     FTI_Print("I/O mode: FTI File Format.", FTI_DBUG);
     // only for printout of dCP share in FTI_Checkpoint
     FTI_Exec->FTIFFMeta.dcpSize = 0;
@@ -974,17 +972,18 @@ void* FTI_InitFtiff(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->gTmpDir,
              FTI_Exec->ckptMeta.ckptFile);
         }
-    } else if (level == 4 && !FTI_Ckpt[4].isInline)
+    } else if (level == 4 && !FTI_Ckpt[4].isInline) {
         if (FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp) {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dcpDir,
              FTI_Ckpt[4].dcpName);
         } else {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
              FTI_Exec->ckptMeta.ckptFile);
-        } else {
-            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
-             FTI_Exec->ckptMeta.ckptFile);
         }
+    } else {
+        snprintf(fn, FTI_BUFS, "%s/%s", FTI_Conf->lTmpDir,
+        FTI_Exec->ckptMeta.ckptFile);
+    }
 
     // for dCP: create if not exists, open if exists
     if (FTI_Conf->dcpFtiff && FTI_Ckpt[4].isDcp) {
@@ -1267,7 +1266,8 @@ int FTIFF_writeMetaDataFTIFF(FTIT_execution* FTI_Exec, WriteFTIFFInfo_t *fd) {
 
     int ii = 0, i;
     for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&(FTI_Exec->FTIFFMeta.checksum[ii]), "%02x", fhash[i]);
+        snprintf(&(FTI_Exec->FTIFFMeta.checksum[ii]), sizeof(char[3]),
+                "%02x", fhash[i]);
         ii += 2;
     }
 
@@ -1563,13 +1563,14 @@ int FTIFF_Recover(FTIT_execution *FTI_Exec, FTIT_keymap *FTI_Data,
             char checkSum[MD5_DIGEST_STRING_LENGTH];
             int ii = 0, i;
             for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                sprintf(&checkSum[ii], "%02x", hash[i]);
+                snprintf(&checkSum[ii], sizeof(char[3]), "%02x", hash[i]);
                 ii += 2;
             }
             char checkSum_struct[MD5_DIGEST_STRING_LENGTH];
             ii = 0;
             for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                sprintf(&checkSum_struct[ii], "%02x", currentdbvar->hash[i]);
+                snprintf(&checkSum_struct[ii], sizeof(char[3]),
+                        "%02x", currentdbvar->hash[i]);
                 ii += 2;
             }
             snprintf(str, FTI_BUFS, "dataset hash id: %d -> %s",
@@ -1996,7 +1997,7 @@ int FTIFF_GetEncodedFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd,
     int i;
     int ii = 0;
     for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&checksum[ii], "%02x", hash[i]);
+        snprintf(&checksum[ii], sizeof(char[3]), "%02x", hash[i]);
         ii += 2;
     }
     return FTI_SCES;

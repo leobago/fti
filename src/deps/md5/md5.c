@@ -288,7 +288,7 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
-unsigned char * MD5( const unsigned char *pointer, uint32_t pointerLength, unsigned char *md5HashPointer)
+unsigned char * MD5( const unsigned char *pointer, unsigned long pointerLength, unsigned char *md5HashPointer)
 {
 
     MD5_CTX mdContext;

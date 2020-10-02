@@ -5,8 +5,8 @@
  *  @file   posix-dcp.h
  */
 
-#ifndef FTI_POSIX_DCP_H_
-#define FTI_POSIX_DCP_H_
+#ifndef FTI_SRC_IO_POSIX_DCP_H_
+#define FTI_SRC_IO_POSIX_DCP_H_
 
 #ifndef MD5_DIGEST_LENGTH
 #   define MD5_DIGEST_LENGTH 16  // 128 bits
@@ -33,9 +33,9 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
 char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
  char* hashHexStr);
 // wrapper for CRC32 hash algorithm
-unsigned char* CRC32(const unsigned char *d, uint32_t nBytes,
+unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
  unsigned char *hash);
 
 int FTI_RecoverVarDcpPosixInit();
 int FTI_RecoverVarDcpPosixFinalize();
-#endif  // FTI_POSIX_DCP_H_
+#endif  // FTI_SRC_IO_POSIX_DCP_H_

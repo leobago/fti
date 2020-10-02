@@ -37,6 +37,7 @@
  */
 
 #include "../interface.h"
+#include "posix-dcp.h"
 #include "../api-cuda.h"
 #include "cuda-md5/md5Opt.h"
 
@@ -451,7 +452,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
 
-    void *buffer = (void*) malloc(blockSize);
+    void *buffer = malloc(blockSize);
     if (!buffer) {
         FTI_Print("unable to allocate memory!", FTI_EROR);
         return FTI_NSCS;
@@ -742,7 +743,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     }
 
 
-    void *buffer = (void*) malloc(blockSize);
+    void *buffer = malloc(blockSize);
     if (!buffer) {
         FTI_Print("unable to allocate memory!", FTI_EROR);
         return FTI_NSCS;
@@ -1047,6 +1048,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     unsigned int counter = 0;
     unsigned int dcpFileId;
     int lastCorrectLayer = -1;
+    int minLayer = 0;
 
     FILE *fd = fopen(fileName, "rb");
     if (fd == NULL) {
@@ -1167,9 +1169,9 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         FTI_Print("hashes differ in base", FTI_WARN);
         goto FINALIZE;
     }
-    layerSizes = (size_t*) malloc(sizeof(size_t)*stackSize);
-    ckptIds  = (int*) malloc(sizeof(int)*stackSize);
-    nbVarLayers = (int *) malloc(sizeof(int)*stackSize);
+    layerSizes = talloc(size_t, stackSize);
+    ckptIds  = talloc(int, stackSize);
+    nbVarLayers = talloc(int, stackSize);
 
     layerSizes[layer] = fs;
     ckptIds[layer] = ckptId;
@@ -1270,10 +1272,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         }
     }
 
-
-FINALIZE:;
-         int minLayer = 0;
-
+FINALIZE:
          MPI_Allreduce(&lastCorrectLayer, &minLayer, 1, MPI_INT, MPI_MIN,
           FTI_COMM_WORLD);
          if (minLayer == -1) {
@@ -1325,7 +1324,7 @@ void* FTI_DcpPosixRecoverRuntimeInfo(int tag, void* exec_, void* conf_) {
 }
 
 // have the same for for MD5 and CRC32
-unsigned char* CRC32(const unsigned char *d, uint32_t nBytes,
+unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
  unsigned char *hash) {
     static unsigned char hash_[CRC32_DIGEST_LENGTH];
     if (hash == NULL) {

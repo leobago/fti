@@ -5,8 +5,9 @@
  *  @file   posix.h
  */
 
-#ifndef FTI_POSIX_H_
-#define FTI_POSIX_H_
+#ifndef FTI_SRC_IO_POSIX_H_
+#define FTI_SRC_IO_POSIX_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,4 +35,4 @@ int FTI_RecoverVarFinalizePOSIX(FILE* fileposix);
 #ifdef __cplusplus
 }
 #endif
-#endif  // FTI_POSIX_H_
+#endif  // FTI_SRC_IO_POSIX_H_

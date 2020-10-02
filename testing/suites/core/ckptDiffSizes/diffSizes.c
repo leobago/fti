@@ -61,7 +61,7 @@ int verify(int32_t* array, int world_rank) {
   int size = world_rank * ITERATIONS;
   for (i = 0; i < size; i++) {
     if (array[i] != world_rank * ITERATIONS) {
-      printf("array[%d] = %ld, should be %d.\n", i, array[i],
+      printf("array[%d] = %d, should be %d.\n", i, array[i],
              world_rank * ITERATIONS);
       return VERIFY_FAILED;
     }
@@ -87,9 +87,9 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     int size;
   } cIters;
   cIters its = {0, (world_rank + 1) * INIT_SIZE};
-  FTIT_type itersInfo;
+  fti_id_t itersInfo;
   // creating new FTI type
-  FTI_InitType(&itersInfo, 2 * sizeof(int));
+  FTI_InitType(&itersInfo, sizeof(cIters));
 
   int res;
   int j;
@@ -101,7 +101,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   for (j = 0; j < its.size; j++) {
     buf[j] = 0;
   }
-  FTI_Protect(2, buf, its.size, FTI_LONG);
+  FTI_Protect(2, buf, its.size, FTI_INTG);
   // checking if this is recovery run
   if (FTI_Status() != 0 && fail == 0) {
     if (world_rank % 2 == 0) {
@@ -150,19 +150,19 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
 
     for (j = 0; j < its.size; j++) {
       if (buf[j] != its.i * world_rank) {
-        printf("%d: Recovery size = %ld MB\n", world_rank,
+        printf("%d: Recovery size = %d MB\n", world_rank,
                recoverySize / 1024 / 1024);
-        printf("%d: buf[%d] = %ld, should be %d\n", world_rank, j, buf[j],
+        printf("%d: buf[%d] = %d, should be %d\n", world_rank, j, buf[j],
                its.i * world_rank);
         return RECOVERY_FAILED;
       }
       recoverySize += sizeof(int32_t);
     }
-    printf("%d: Recovery size = %ld B\n", world_rank, recoverySize);
+    printf("%d: Recovery size = %d B\n", world_rank, recoverySize);
     int32_t savedSize = FTI_GetStoredSize(1);
     savedSize += FTI_GetStoredSize(2);
     if (recoverySize != savedSize) {
-      printf("%d: RecoverySize != SavedSize: %ld != %ld\n", world_rank,
+      printf("%d: RecoverySize != SavedSize: %d != %d\n", world_rank,
              recoverySize, savedSize);
     }
   }
@@ -172,7 +172,7 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
   for (; its.i < ITERATIONS; its.i++) {
     // checkpoint after every ITER_CHECK iterations
     if (its.i % ITER_CHECK == 0) {
-      FTI_Protect(2, buf, its.size, FTI_LONG);
+      FTI_Protect(2, buf, its.size, FTI_INTG);
       res = FTI_Checkpoint(its.i / ITER_CHECK + 1, checkpoint_level);
       if (res != FTI_DONE) {
         printf("%d: Checkpoint failed! FTI_Checkpoint returned %d.\n",

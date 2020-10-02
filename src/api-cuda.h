@@ -8,10 +8,13 @@
  *  @brief  Header file for functions that add CUDA support to FTI.
  */
 
-#ifndef FTI_API_CUDA_H_
-#define FTI_API_CUDA_H_
+#ifndef FTI_SRC_API_CUDA_H_
+#define FTI_SRC_API_CUDA_H_
+
+#include "interface.h"
 
 #ifdef GPUSUPPORT
+
 #include <cuda_runtime_api.h>
 
 #define CUDA_ERROR_CHECK(fun) \
@@ -27,7 +30,6 @@
     } while (0)
 
 #endif
-#include "./interface.h"
 
 #define FTI_DEFAULT_CHOSTBUF_SIZE_MB 32
 
@@ -95,4 +97,5 @@ BYTE *FTI_getHostBuffer(int id);
 size_t FTI_getHostBuffSize();
 int FTI_copy_to_device_async(void *dst, const void *src, size_t count);
 int FTI_device_sync();
-#endif  // FTI_API_CUDA_H_
+
+#endif  // FTI_SRC_API_CUDA_H_

@@ -5,8 +5,8 @@
  *  @file   hdf5-fti.h
  */
 
-#ifndef FTI_HDF5_FTI_H_
-#define FTI_HDF5_FTI_H_
+#ifndef FTI_SRC_IO_HDF5_FTI_H_
+#define FTI_SRC_IO_HDF5_FTI_H_
 
 #define FTI_HDF5_MAX_DIM 32
 
@@ -37,8 +37,8 @@ int FTI_ScanGroup(hid_t gid, char* fn);
 int FTI_CheckDimensions(FTIT_keymap * FTI_Data, FTIT_execution * FTI_Exec);
 void FTI_FreeVPRMem(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data);
 herr_t FTI_WriteSharedFileData(FTIT_dataset FTI_Data);
-void FTI_CreateComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
-void FTI_CloseComplexType(FTIT_type* ftiType, FTIT_type** FTI_Type);
+void FTI_CreateComplexType(FTIT_Datatype* ftiType);
+void FTI_CloseComplexType(FTIT_Datatype* ftiType);
 void FTI_CreateGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup,
  FTIT_H5Group** FTI_Group);
 void FTI_OpenGroup(FTIT_H5Group* ftiGroup, hid_t parentGroup,
@@ -55,4 +55,4 @@ int FTI_FinalizeH5SingleFile(FTIT_execution* FTI_Exec,
  FTIT_checkpoint* FTI_Ckpt, double t);
 #endif
 
-#endif  // FTI_HDF5_FTI_H_
+#endif  // FTI_SRC_IO_HDF5_FTI_H_

@@ -5,8 +5,10 @@
  *  @file   postreco.h
  */
 
-#ifndef FTI_POSTRECO_H_
-#define FTI_POSTRECO_H_
+#ifndef FTI_SRC_POSTRECO_H_
+#define FTI_SRC_POSTRECO_H_
+
+#include "interface.h"
 
 int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int *erased);
@@ -27,4 +29,4 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt);
 #endif
 
-#endif  // FTI_POSTRECO_H_
+#endif  // FTI_SRC_POSTRECO_H_

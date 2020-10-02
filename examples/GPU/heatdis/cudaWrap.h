@@ -3,7 +3,10 @@
  *  All rights reserved
  *	@file	cudaWrap.h
  */
-#ifndef __WRAP__
+
+#ifndef FTI_EXAMPLES_GPU_HEATDIS_CUDAWRAP_H_
+#define FTI_EXAMPLES_GPU_HEATDIS_CUDAWRAP_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,4 +32,4 @@ void destroyStream();
 }
 #endif
 
-#endif
+#endif  // FTI_EXAMPLES_GPU_HEATDIS_CUDAWRAP_H_

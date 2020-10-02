@@ -20,3 +20,6 @@ install.log
 
 # IDE ignore
 .vscode
+
+# Code style checker temporary files
+tmp

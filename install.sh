@@ -11,7 +11,7 @@ print_usage() {
     echo "            [--enable-lustre]             # Enable extended Lustre support (default: disabled)"
     echo "            [--enable-fortran]            # Enable Fortran bindings (default: disabled)"
     echo "            [--disable-examples]          # Disable the compilation of examples (default: enabled)"
-    echo "            [--enable-testing]            # Enable testing framework (default: disabled)"
+    echo "            [--enable-tests]              # Enable testing framework (default: disabled)"
     echo "            [--enable-docu]               # Enable creation of FTI documentation (default: disabled)"
     echo "            [--enable-tutorial]           # Enable creation of FTI tutorial (default: disabled)"
     echo "            [--enable-fi]                 # Enable FTI fault injection mechanism (default: disabled)"
@@ -105,11 +105,11 @@ while [ $# -gt 0 ]; do
         CMAKE_ARGS="$CMAKE_ARGS -DENABLE_FORTRAN=1"
         shift # past argument=value
         ;;
-    --disable-examples)
-        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_EXAMPLES=0"
+    --enable-examples)
+        CMAKE_ARGS="$CMAKE_ARGS -DENABLE_EXAMPLES=1"
         shift # past argument=value
         ;;
-    --enable-testing)
+    --enable-tests)
         CMAKE_ARGS="$CMAKE_ARGS -DENABLE_TESTS=1"
         shift # past argument=value
         ;;

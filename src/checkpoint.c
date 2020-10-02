@@ -41,7 +41,8 @@
 #endif
 
 #include <math.h>
-#include "./interface.h"
+
+#include "checkpoint.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -288,7 +289,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  FTI_Ckpt[FTI_Exec->ckptMeta.level].dir);
             } else {
                 // In case of Level 4 Checkpoint We keep a
-                // copy of the global checkpoint file 
+                // copy of the global checkpoint file
                 // on the local persistent memory
                 if (FTI_Conf->ioMode != FTI_IO_POSIX) {
                     RENAME(FTI_Conf->lTmpDir, FTI_Ckpt[4].L4Replica);
@@ -344,9 +345,12 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
-    MPI_Status ckpt_status;         int ckpt_flag = 0;
-    MPI_Status stage_status;        int stage_flag = 0;
-    MPI_Status finalize_status;     int finalize_flag = 0;
+    MPI_Status ckpt_status;
+    MPI_Status stage_status;
+    MPI_Status finalize_status;
+    int ckpt_flag = 0;
+    int stage_flag = 0;
+    int finalize_flag = 0;
 
     FTI_Print("Head starts listening...", FTI_DBUG);
     while (1) {  // heads can stop only by receiving FTI_ENDW

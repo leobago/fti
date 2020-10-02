@@ -5,8 +5,8 @@
  *  @file   ftiff-dcp.h
  */
 
-#ifndef FTI_FTIFF_DCP_H_
-#define FTI_FTIFF_DCP_H_
+#ifndef FTI_SRC_IO_FTIFF_DCP_H_
+#define FTI_SRC_IO_FTIFF_DCP_H_
 
 #define CHUNK_SIZE 131072    /**< MD5 algorithm chunk size.      */
 
@@ -26,4 +26,4 @@ int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec);
 int FTI_ReceiveDataChunk(unsigned char** buffer_addr, size_t* buffer_size,
  FTIFF_dbvar* dbvar,  unsigned char *startAddr, size_t *totalBytes);
 
-#endif  // FTI_FTIFF_DCP_H_
+#endif  // FTI_SRC_IO_FTIFF_DCP_H_

@@ -39,8 +39,13 @@ fti_config_get() {
     #
     # Parameters:
     # $1: The field name in the configuration file
+    # $2: The configuration file to look for (ITF-managed one is default)
 
-    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <${itf_cfg['fti:config']})"
+    local cfg=${itf_cfg['fti:config']}
+    if [ ! -z $2 ]; then
+      cfg=$2
+    fi
+    echo "$(awk -v f="$1" '$1 ~ f {print $3}' <$cfg)"
 }
 
 fti_config_dupe() {
@@ -63,8 +68,13 @@ fti_config_set() {
     # Parameters:
     # $1: The field name in the configuration file
     # $2: The new value for the field
+    # $3: The configuration file to be used (ITF-managed one is default)
 
-    sed -i "/$1/c\\$1 = $2" ${itf_cfg['fti:config']}
+    local cfg=${itf_cfg['fti:config']}
+    if [ ! -z $3 ]; then
+      cfg=$3
+    fi
+    sed -i "/$1/c\\$1 = $2" $cfg
 
     fti_mod_log "config_set: $1=$2"
 }

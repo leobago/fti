@@ -1,10 +1,12 @@
 add_executable(hd.exe heatdis.c)
 target_link_libraries(hd.exe fti.static ${MPI_C_LIBRARIES} m)
+target_include_directories(hd.exe PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_property(TARGET hd.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hd.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
 add_executable(hd2.exe heatd2.c)
 target_link_libraries(hd2.exe fti.static ${MPI_C_LIBRARIES} m)
+target_include_directories(hd2.exe PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 

@@ -30,7 +30,7 @@
 #define FILES_PER_ITER 10*/
 #define CLEAN_FREQ 10
 #define F_BUFF 512
-#define F_FORM "file-rank%04d-iter%05lu-numb%02lu.fti"
+#define F_FORM "file-rank%04d-iter%05u-numb%02u.fti"
 #define REMOTE_DIR "./rdir"
 
 void createFile(char *fn);
@@ -180,7 +180,7 @@ bool check_status(uint32_t request_counter, int *reqID, bool printout) {
          MPI_SUM, FTI_COMM_WORLD);
         acc = 100*((double)completed_all)/num_files;
         if (rank == 0) {
-            printf("[ %.2lf%% of staging completed ( %lu / %lu )... ]\n",
+            printf("[ %.2lf%% of staging completed ( %u / %u )... ]\n",
              acc, completed_all, num_files);
         }
         wait = !(completed_all == num_files);

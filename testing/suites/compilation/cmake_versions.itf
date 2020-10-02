@@ -54,7 +54,7 @@ teardown() {
 # ------------------------- ITF Test Case Declaration -------------------------
 
 itf_fixture 'compile_fti' 'setup' 'teardown'
-supported=( '3.3.2' '3.4' '3.5' '3.7' '3.8' '3.9' '3.10' '3.11' '3.12' '3.13' '3.14' '3.15' '3.16' )
+supported=( '3.4' '3.5' '3.7' '3.8' '3.9' '3.10' '3.11' '3.12' '3.13' '3.14' '3.15' '3.16' )
 
 for s in ${supported[@]}; do
     itf_case 'compile_fti' "--version=$s"

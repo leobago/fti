@@ -5,8 +5,9 @@
  *  @file   ime.h
  */
 
-#ifndef FTI_IME_H_
-#define FTI_IME_H_
+#ifndef FTI_SRC_IO_IME_H_
+#define FTI_SRC_IO_IME_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,4 +26,4 @@ int FTI_IMEOpen(char *fn, void *fileDesc);
 #ifdef __cplusplus
 }
 #endif
-#endif  // FTI_IME_H_
+#endif  // FTI_SRC_IO_IME_H_
