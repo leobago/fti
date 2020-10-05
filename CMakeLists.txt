@@ -319,9 +319,10 @@ endif()
 if(ENABLE_HDF5)
     find_package(HDF5 COMPONENTS HL C REQUIRED)
 	if(HDF5_FOUND)
-		add_definitions(-DENABLE_HDF5)
-        include_directories(${HDF5_INCLUDE_DIRS})
-        message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
+    add_definitions(-DENABLE_HDF5)
+		set(_COMPILE_DEFS "${_COMPILE_DEFS} ENABLE_HDF5")
+    include_directories(${HDF5_INCLUDE_DIRS})
+    message("Here are the HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
 		set_property(SOURCE ${SRC_FTI} APPEND PROPERTY COMPILE_DEFINITIONS HDF5)
 		link_to_fti(${HDF5_LIBRARIES})
 		link_to_fti(${HDF5_HL_LIBRARIES})
@@ -347,6 +348,7 @@ install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}" EXPORT FTI_
 install(FILES
     "include/fti.h"
     "include/fti-intern.h"
+    "include/fti-defs.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 if(ENABLE_FORTRAN)
@@ -425,6 +427,22 @@ if(ENABLE_DOCU)
     add_subdirectory(docs/Doxygen)
 endif()
 
+# create fti definition file "fti-defs.h"
+
+file(WRITE include/fti-defs.h
+  "#ifndef __FTI_DEFS__\n"
+  "#define __FTI_DEFS__\n"
+)
+foreach(_DEF ${_COMPILE_DEFS})
+  file(APPEND include/fti-defs.h
+    "#ifndef ENABLE_HDF5\n"
+    "#define ${_DEF}\n"
+    "#endif\n"
+  )
+endforeach()
+file(APPEND include/fti-defs.h
+  "#endif // __FTI_DEFS__\n"
+)
 
 # Installable config
 

@@ -145,6 +145,7 @@ bool valid(dcp_info_t * info) {
             success = false;
         }
     }
+    return success;
 }
 
 void protect_buffers(dcp_info_t *info) {
