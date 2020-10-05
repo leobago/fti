@@ -518,7 +518,7 @@ file(WRITE include/fti-defs.h
 )
 foreach(_DEF ${_COMPILE_DEFS})
   file(APPEND include/fti-defs.h
-    "#ifndef ENABLE_HDF5\n"
+    "#ifndef ${_DEF}\n"
     "#define ${_DEF}\n"
     "#endif\n"
   )
