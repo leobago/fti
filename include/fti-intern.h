@@ -8,6 +8,8 @@
 #ifndef FTI_INCLUDE_FTI_INTERN_H_
 #define FTI_INCLUDE_FTI_INTERN_H_
 
+#include "fti-defs.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
