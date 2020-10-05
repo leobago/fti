@@ -374,6 +374,7 @@ endif()
 
 # HDF5
 if(ENABLE_HDF5)
+		set(_COMPILE_DEFS "${_COMPILE_DEFS} ENABLE_HDF5")
     set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_HDF5 -DHDF5")
     list(APPEND INC_PUB ${HDF5_INCLUDE_DIRS})
 	link_to_fti(${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
@@ -506,6 +507,25 @@ file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)
 file(COPY examples/README DESTINATION examples)
+
+# ---------------------------- Compiler Definitions ---------------------------
+
+# create fti definition file 'fti-defs.h'
+
+file(WRITE include/fti-defs.h
+  "#ifndef __FTI_DEFS__\n"
+  "#define __FTI_DEFS__\n"
+)
+foreach(_DEF ${_COMPILE_DEFS})
+  file(APPEND include/fti-defs.h
+    "#ifndef ENABLE_HDF5\n"
+    "#define ${_DEF}\n"
+    "#endif\n"
+  )
+endforeach()
+file(APPEND include/fti-defs.h
+  "#endif // __FTI_DEFS__\n"
+)
 
 # -------------------------- Package configurations ---------------------------
 
