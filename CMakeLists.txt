@@ -432,6 +432,7 @@ install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 
 install(FILES
     "include/fti.h"
+    "include/fti-defs.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
