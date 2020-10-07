@@ -412,6 +412,10 @@ else()
     link_to_fti(${ZLIB_LIBRARIES})
 endif()
 
+if(NOT ENABLE_COVERAGE)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -O3")
+endif()
+
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
 set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
 
