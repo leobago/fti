@@ -77,9 +77,11 @@ setup() {
     unset CC
     rootdir=$(git rev-parse --show-toplevel)
     rm -rf $rootdir/install
+    rm -rf $rootdir/build
 }
 
 teardown() {
+    rm -rf $rootdir/install
     rm -rf $rootdir/build
     unset rootdir
 }
