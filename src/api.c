@@ -2637,7 +2637,7 @@ int FTI_Snapshot() {
         }
     } else {  // If it is a checkpoint test
         res = FTI_SCES;
-        FTI_UpdateIterTime(&FTI_Exec);
+        FTI_UpdateIterTime(&FTI_Exec, &FTI_Conf);
         if (FTI_Exec.ckptNext == FTI_Exec.ckptIcnt) {
             // If it is time to check for possible ckpt. (every minute)
             FTI_Print("Checking if it is time to checkpoint.", FTI_DBUG);

@@ -10,7 +10,7 @@
 
 #include "interface.h"
 
-int FTI_UpdateIterTime(FTIT_execution* FTI_Exec);
+int FTI_UpdateIterTime(FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf);
 int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data);

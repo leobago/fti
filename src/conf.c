@@ -142,6 +142,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // 0 -> disabled
     FTI_Ckpt[4].ckptDcpIntv = (int)iniparser_getint(ini, "Basic:dcp_l4", 0);
     FTI_Ckpt[4].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l4", -1);
+    // Fast Forward flag
+    FTI_Conf->fastForward = (int)iniparser_getint(ini, "Basic:fast_forward", 1);
     FTI_Ckpt[1].isInline = (int)1;
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
     FTI_Ckpt[3].isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
@@ -384,6 +386,12 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Conf->keepHeadsAlive && (FTI_Topo->nbHeads == 0)) {
         FTI_Print("Head feature is disabled but 'keep_heads_alive' is"
         " activated. Incompatiple setting!.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //fast forward
+    if (FTI_Conf->fastForward < 1 || FTI_Conf->fastForward > 10) {
+      FTI_Print("Fast Forward should be between 1 and 10, inclusive", FTI_WARN);
         return FTI_NSCS;
     }
 

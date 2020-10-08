@@ -525,6 +525,7 @@ extern "C" {
         size_t cHostBufSize;               /**< Host buffer size for GPU data.*/
         char suffix[4];                    /** Suffix of the checkpoint files */
         FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
+        int fastForward;            /**< Fast forward rate for ckpt intervals */
     } FTIT_configuration;
 
     /** @typedef    FTIT_topology
