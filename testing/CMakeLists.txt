@@ -40,7 +40,7 @@ function(InstallTestApplication AppName)
   add_executable(${AppName} ${ARGN})
   target_link_libraries(${AppName} fti.static ${MPI_C_LIBRARIES} m)
   target_include_directories(${AppName} PUBLIC ${CMAKE_SOURCE_DIR}/include)
-  set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -O3")
+  set_property(TARGET ${AppName} APPEND PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -O1")
   set_property(TARGET ${AppName} APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 endfunction()
 
@@ -50,7 +50,7 @@ function(InstallFortTestApplication AppName)
   target_link_libraries(${AppName} fti_f90.static ${MPI_Fortran_LIBRARIES} m)
 
   set_property(TARGET ${AppName} APPEND PROPERTY
-    COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS} -O3")
+    COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS} -O1")
   set_property(TARGET ${AppName} APPEND PROPERTY
     LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
   if(NOT MPI_USE_MOD)
