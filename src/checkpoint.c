@@ -59,7 +59,7 @@
 
 
 
-int FTI_UpdateIterTime(FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf) {
+int FTI_UpdateIterTime(FTIT_execution* FTI_Exec) {
     int nbProcs, res;
     char str[FTI_BUFS];
     double last = FTI_Exec->iterTime;
@@ -79,7 +79,7 @@ int FTI_UpdateIterTime(FTIT_execution* FTI_Exec, FTIT_configuration* FTI_Conf) {
                 FTI_Exec->ckptIntv = 1;
             } else {
                 FTI_Exec->ckptIntv = rint(60.0 / FTI_Exec->globMeanIter);
-                FTI_Exec->ckptIntv = ceil((double)FTI_Exec->ckptIntv/FTI_Conf->fastForward);
+                FTI_Exec->ckptIntv = ceil((double)FTI_Exec->ckptIntv/FTI_Exec->fastForward);
             }
             res = FTI_Exec->ckptLast + FTI_Exec->ckptIntv;
             if (FTI_Exec->ckptLast == 0) {
