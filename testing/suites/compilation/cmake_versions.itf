@@ -7,6 +7,37 @@
 #   @date   May, 2020
 
 # ----------------------------- ITF Test functions ----------------------------
+set_compiler_env() {
+    # $1 -> C         compiler
+    # $2 -> Fortran   compiler
+    # $3 -> C++       compiler
+    
+    # standard compiler
+    export CC=$1
+    export CXX=$3
+    export FC=$2
+    export F95=$2
+    export F77=$2
+    export F90=$2
+    
+    # MPI wrapper
+    export OMPI_CC=$1
+    export OMPI_FC=$2
+    export OMPI_F90=$2
+    export OMPI_F77=$2
+    export OMPI_CXX=$3
+    export OMPI_MPICC=$1
+    export MPICH_CC=$1
+    export MPICH_FC=$2
+    export MPICH_CXX=$3
+    export MPICH_F77=$2
+    export MPICH_F90=$2
+    export I_MPI_CC=$1
+    export I_MPI_CXX=$3
+    export I_MPI_FC=$2
+    export I_MPI_F90=$2
+    export I_MPI_F77=$2
+}
 
 compile_fti() {
     # Compile FTI using a specific cmake version
@@ -24,6 +55,8 @@ compile_fti() {
     
     echo "$($cmd --version)"
     check_equals "$($cmd --version | grep $version -c)" '1' "Could not validate CMake version $version"
+    
+    set_compiler_env gcc gfortran g++
 
     $rootdir/install.sh "--cmake-bin=$cmd"
 
@@ -44,9 +77,11 @@ setup() {
     unset CC
     rootdir=$(git rev-parse --show-toplevel)
     rm -rf $rootdir/install
+    rm -rf $rootdir/build
 }
 
 teardown() {
+    rm -rf $rootdir/install
     rm -rf $rootdir/build
     unset rootdir
 }

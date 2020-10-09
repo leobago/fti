@@ -374,6 +374,7 @@ endif()
 
 # HDF5
 if(ENABLE_HDF5)
+		set(_COMPILE_DEFS "${_COMPILE_DEFS} ENABLE_HDF5")
     set(ADD_CFLAGS "${ADD_CFLAGS} -DENABLE_HDF5 -DHDF5")
     list(APPEND INC_PUB ${HDF5_INCLUDE_DIRS})
 	link_to_fti(${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
@@ -411,6 +412,10 @@ else()
     link_to_fti(${ZLIB_LIBRARIES})
 endif()
 
+if(NOT ENABLE_COVERAGE)
+    set(ADD_CFLAGS "${ADD_CFLAGS} -O1")
+endif()
+
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
 set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
 
@@ -431,6 +436,7 @@ install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 
 install(FILES
     "include/fti.h"
+    "include/fti-defs.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
@@ -506,6 +512,25 @@ file(COPY examples/configBkp.fti DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)
 file(COPY examples/README DESTINATION examples)
+
+# ---------------------------- Compiler Definitions ---------------------------
+
+# create fti definition file 'fti-defs.h'
+
+file(WRITE include/fti-defs.h
+  "#ifndef __FTI_DEFS__\n"
+  "#define __FTI_DEFS__\n"
+)
+foreach(_DEF ${_COMPILE_DEFS})
+  file(APPEND include/fti-defs.h
+    "#ifndef ${_DEF}\n"
+    "#define ${_DEF}\n"
+    "#endif\n"
+  )
+endforeach()
+file(APPEND include/fti-defs.h
+  "#endif // __FTI_DEFS__\n"
+)
 
 # -------------------------- Package configurations ---------------------------
 
