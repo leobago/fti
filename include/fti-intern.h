@@ -525,6 +525,7 @@ extern "C" {
         size_t cHostBufSize;               /**< Host buffer size for GPU data.*/
         char suffix[4];                    /** Suffix of the checkpoint files */
         FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
+        // int fastForward;            /**< Fast forward rate for ckpt intervals */
     } FTIT_configuration;
 
     /** @typedef    FTIT_topology
@@ -699,6 +700,7 @@ extern "C" {
         MPI_Comm groupComm;                 /**< Group communicator.          */
         MPI_Comm nodeComm;
         FTIT_dcpExecutionPosix dcpInfoPosix; /**< dCP info for posix I/O  */
+        int fastForward;            /**< Fast forward rate for ckpt intervals */
         /** A function pointer pointing to the function which actually the
          * checkpoint file. Noticeably We need 2 function pointers, One for the
          * Level 4 checkpoint And one for the remaining cases */
