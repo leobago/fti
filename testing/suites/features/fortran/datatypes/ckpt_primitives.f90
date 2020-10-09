@@ -95,8 +95,8 @@ program checkpoint_primitives
 
          i1(i) = 127 - (i-1)
          i2(i) = 32767 - (i-1)
-         i4(i) = 2147483647 - (i-1)
-         i8(i) = 2147483647 + (i-1)
+         i4(i) = 27 - (i-1)
+         i8(i) = 3 + (i-1)
 
          r4(i) = 10 + (i-1)
          r8(i) = 20 + (i-1)
@@ -191,13 +191,13 @@ program checkpoint_primitives
          end if
          call exit(1)
       end if
-      if (i4(i) /= 2147483647 - (i - 1)) then
+      if (i4(i) /= 27 - (i - 1)) then
          if (rank == 0) then
             print *, "integer(4) was corrupted: ", i4(i)
          end if
          call exit(1)
       end if
-      if (i8(i) /= 2147483647 + (i - 1)) then
+      if (i8(i) /= 3 + (i - 1)) then
          if (rank == 0) then
             print *, "integer(8) was corrupted: ", i8(i)
          end if

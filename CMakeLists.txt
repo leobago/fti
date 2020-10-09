@@ -413,7 +413,7 @@ else()
 endif()
 
 if(NOT ENABLE_COVERAGE)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -O3")
+    set(ADD_CFLAGS "${ADD_CFLAGS} -O1")
 endif()
 
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)

@@ -18,8 +18,8 @@
 #define LX_INIT 1               // Fortran 'true' maps to 1 in C
 #define I1_INIT 127 - i         // Greater 8-bit number minus i
 #define I2_INIT 32767 - i       // Greater 16-bit number minus i
-#define I4_INIT 2147483647 - i  // Greater 32-bit number minus i
-#define I8_INIT 2147483647 + i  // Greater 32-bit number plus i
+#define I4_INIT 27 - i
+#define I8_INIT 3 + i
 #define R4_INIT 10 + i
 #define R8_INIT 20 + i
 #define R16_INIT 30 + i
