@@ -1,3 +1,146 @@
+Version 1.5.1:
+ - Merge branch 'master' of github.com:leobago/fti
+ - Merge pull request #375 from leobago/develop
+ - Merge pull request #374 from leobago/update-doc
+ - added documentation for fast_forward
+ - Merge pull request #373 from leobago/develop
+ - Merge pull request #372 from souchtal/feature/FastForward
+ - Merge remote-tracking branch 'upstream/develop' into feature/FastForward
+ - Merge pull request #369 from leobago/develop
+ - changed from O3 to O1 due to clang dcp checks failures
+ - updated fast_forward feature
+ - Added Fast-Forward param for config
+ - clean folders for cmake checks
+ - Fixed integer overflow on Fortran datatype checks
+ - set compiler environment in cmake install scripts
+ - export of compilervars in ci build script
+ - added O3 flag
+ - copy fti-defs.h to install include path
+ - Corrected typo in CMakeLists.txt
+ - Merge pull request #370 from leobago/hotfix_compiler_new
+ - fixes compiler issues for clang and pgi
+ - Update Jenkinsfile
+ - changed BRANCH_NAME to CHANGE_TARGET in Jenkinsfile
+ - Merge pull request #367 from leobago/develop
+ - Merge pull request #366 from leobago/alya_ckpt_processor
+ - Updated README file
+ - Added usage examples of ckpt processor
+ - Update AUTHORS
+ - Merge pull request #362 from leobago/alya_ckpt_processor
+ - updated README file
+ - added support for recovering from L4 MPI-IO
+ - Merge pull request #361 from souchtal/bugfix/hookFilter
+ - added cpplint filter to exclude undesired naming .h files rule
+ - Merge pull request #359 from souchtal/bugfix/pre-commit
+ - Merge pull request #358 from alexandrelimassantana/feature/code-format
+ - Bug fix for pre-commit hook
+ - Code formatting pass on examples sources and headers
+ - Code formatting pass on SION IO sources and headers
+ - Code formatting pass on POSIX-DCP IO sources and headers
+ - Code formatting pass on POSIX IO sources and headers
+ - Code formatting pass on MPIO IO sources and headers
+ - Code formatting pass on IME IO sources and headers
+ - Code formatting pass on HDF5 IO sources and headers
+ - Code formatting pass on FTIFF-DCP IO sources and headers
+ - Code formatting pass on FTIFF IO sources and headers
+ - Code formatting pass on topo sources and headers
+ - Code formatting pass on stage sources and headers
+ - Code formatting pass on recover sources and headers
+ - Code formatting pass on postreco sources and headers
+ - Code formatting pass on icp, interface, and postcpt sources and headers
+ - Code formatting pass on fti-io sources and headers
+ - Code formatting pass on dcp and conf sources and headers
+ - Code formatting pass on checkpoint source and header
+ - Code formatting pass on api and api-cuda
+ - Merge pull request #357 from alexandrelimassantana/feature/cmake-refactor
+ - Re-phrased compatibility notes documentation
+ - Fixed bug where ZLib was not included when found
+ - CMake now mark correctly the public/interface/private include directories for all sources
+ - Added better management of include directories in CMake
+ - Removed dead code in CMake file for HDF5 support
+ - Adjusted coverage build options to allow for other compilers
+ - Re-structured main CMake file as a pipeline of steps
+ - Merge pull request #352 from alexandrelimassantana/feature/post-type-refactor-warning-fix
+ - fixes #349
+ - Fixed a bug that was preventing some ITF tests to be registered in the multi-level checkpoint suite
+ - Added a compatibility notes document to readthedocs
+ - Renamed composite type handling API functions
+ - Fixed compiler warnings due to wrong type definition for MD5 functions
+ - Fixed compiler warnings on DiffTest function
+ - Fixed compiler warnings on C-variant of Fortran test application
+ - Fixed compiler warnings for the Staging test application
+ - Fixed compiler warnings for HDF5 FTI test application
+ - Fixed format warning messages on HDF5 CI tests
+ - Adjusted tests, examples and Fortran interface for the new datatype API
+ - Rollback FTI_InitType and FTI_InitComplexType signatures to pre-refactor format
+ - Changed the FTIT_type typename to FTIT_Datatype
+ - Fixed typo on FindMPI cmake script that caused Fortran builds to add another build folder
+ - Added tests for complex datatype handling in Fortran
+ - Adjusted error/warn messages related to the type refactor
+ - Added Fortran type bindings for Complex4, Complex8 and Complex16 datatypes
+ - Adjusted offset variables in FTI internal structures to use size_t
+ - Addjusted size parameters in API functions to be of type size_t
+ - Adjusted and synchronized documentation for Fortran and C API on type refactor
+ - Added extra checks and protection on new FTI_GetType API function
+ - Added FTI_GetType to readthedocs documentation
+ - Rework on datatype handling API and internal functions
+ - fixes #348
+ - Discarded CMake 3.3.2 from compilation tests as this version is not supported
+ - Merge pull request #350 from leobago/hotfix/issue-348-openssl
+ - fixes #348
+ - Merge pull request #345 from alexandrelimassantana/feature/fortran-test-suite
+ - enhanced support for N-dimensional data
+ - Fixed a bug in the differential checkpoint test application
+ - Adjusted type on FTI_GetStoredSize Fortran interface to int(8) instead of dedprecated 'long'
+ - Adjusted Fortran datatype matching so that character types alwasy map to CHAR
+ - Included a new Fortran suite of tests under the Feature Checks
+ - Added a new test suite to check datatype mapping from Fortran to C
+ - Added ITF option to get/set attributes of arbitrary configuration files
+ - Adjusted types on ckpt_primitives test application to reflect change on FTI datatype handling
+ - Changed the datatype definition in FTI to use native C datatypes
+ - Added a pair of applications to validate the Fortran datatype mappings
+ - Merge pull request #341 from leobago/code_check_setattributes
+ - added support for multi-dim variables
+ - Merge branch 'develop' into code_check_setattributes
+ - Merge pull request #342 from alexandrelimassantana/feature/barrier-fix
+ - Merge pull request #340 from alexandrelimassantana/feature/fti-hdf5-typefix
+ - Added an uncoditional barrier in FTI_Finalize
+ - added variable name support
+ - fixes compilation
+ - enhanced modularity
+ - updated README for new feature
+ - updated README for new feature
+ - added optional param for level
+ - Corrected code formating command snippet on readthedocs
+ - Added mappings from Fortran types to native C types when using HDF5 IO
+ - Merge pull request #338 from leobago/feature_set_property
+ - added level param to API: levels 1,2,3 and latest ckpt
+ - changed docs and behavior for fortran
+ - added support for FTI's pre-defined datatypes
+ - added documentation
+ - reverse changes to fheatdis
+ - added interface for int4 and int8
+ - adds fortran wrapper
+ - free arrayofnames
+ - Merge remote-tracking branch 'origin/develop' into feature_set_property
+ - undid changes heatdist
+ - Merge pull request #337 from leobago/feature_datadefinition_metadata
+ - removed interference with hdf5 name
+ - removed debug
+ - name and dimension can be added as attributes to the meta data
+ - Added second param for API to read ckpt per rank
+ - free global arrays
+ - adds type-id and type-size to meta data files
+ - updated README for last fix
+ - fixed API input to config_file
+ - fixed import typo
+ - fixed import typo
+ - initial version
+ - Merge pull request #336 from leobago/develop
+ - Merge remote-tracking branch 'origin/master' into develop
+ - Merge pull request #333 from leobago/issue-326
+ - fixes issue #326
+
 Version 1.4.1:
  - Merge pull request #334 from leobago/feature-AutomateChangelogAndVersion
  - version script armed
