@@ -5,8 +5,10 @@
  *  @file   tools.h
  */
 
-#ifndef FTI_TOOLS_H_
-#define FTI_TOOLS_H_
+#ifndef FTI_SRC_UTIL_TOOLS_H_
+#define FTI_SRC_UTIL_TOOLS_H_
+
+#include "../interface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,7 +21,7 @@ int FTI_VerifyChecksum(char* fileName, char* checksumToCmp);
 int FTI_Try(int result, char* message);
 void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec);
 int FTI_InitGroupsAndTypes(FTIT_execution* FTI_Exec);
-int FTI_InitBasicTypes();
+int FTI_InitBasicTypes(FTIT_execution* FTI_Exec);
 int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_injection* FTI_Inje);
@@ -27,8 +29,16 @@ int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
 
+void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...);
+int FTI_IsTypeComposite(FTIT_Datatype *t);
+FTIT_Datatype* FTI_GetCompositeType(fti_id_t handle);
+
+// TODO(alex): the following 2 methods are hidden from the public API
+fti_id_t FTI_InitType_opaque(size_t size);
+FTIT_Datatype* FTI_GetType(fti_id_t id);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // FTI_TOOLS_H_
+#endif  // FTI_SRC_UTIL_TOOLS_H_

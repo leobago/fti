@@ -20,12 +20,12 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include "hdf5.h"
-#include "hdf5_hl.h"
+#include <hdf5.h>
+#include <hdf5_hl.h>
 
 typedef struct AsByteArray {
   char character;
-  int32_t longs[1024];
+  long longs[1024];
 } AsByteArray;
 
 typedef struct Chars {
@@ -35,15 +35,15 @@ typedef struct Chars {
 } Chars;
 
 typedef struct Integers {
-  int16_t shortInteger;
+  short shortInteger;
   int integer;
-  int32_t longInteger;
+  long longInteger;
 } Integers;
 
 typedef struct UIntegers {
-  uint16_t shortInteger;
+  unsigned short shortInteger;
   unsigned int integer;
-  uint32_t longInteger;
+  unsigned long longInteger;
 } UIntegers;
 
 typedef struct Floats {

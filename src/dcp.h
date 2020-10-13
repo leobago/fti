@@ -5,8 +5,10 @@
  *  @file   dcp.h
  */
 
-#ifndef FTI_DCP_H_
-#define FTI_DCP_H_
+#ifndef FTI_SRC_DCP_H_
+#define FTI_SRC_DCP_H_
+
+#include "interface.h"
 
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
@@ -34,4 +36,4 @@ static inline uint32_t crc32(const void *buf, size_t size) {
 void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
  FTIT_topology FTI_Topo);
 
-#endif  // FTI_DCP_H_
+#endif  // FTI_SRC_DCP_H_

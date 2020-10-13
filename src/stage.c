@@ -40,7 +40,7 @@
  */
 
 #include <libgen.h>
-#include "./interface.h"
+#include "stage.h"
 
 /**
  * @todo

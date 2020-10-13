@@ -36,9 +36,7 @@
  *  @brief  API functions for the FTI library.
  */
 
-
 #include "../interface.h"
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -236,7 +234,7 @@ void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     free(chunkSizes);
     write_info->offset = offset;
-    return (void *)write_info;
+    return (void *) write_info;
 }
 
 

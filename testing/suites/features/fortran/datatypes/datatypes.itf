@@ -1,0 +1,88 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   datatypes.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @date   August, 2020
+
+itf_load_module 'fti'
+
+# ---------------------------- Bash Test functions ----------------------------
+
+fortran_to_c_map() {
+    # Brief:
+    # Tests the mapping of Fortran types to C types within FTI API
+    #
+    # Details:
+    # Run the first application to checkpoint primitive types.
+    # It will initialize data and simulate a crash.
+    # Next, re-run the application and expect the application to recover.
+    # The application will check if all values were restored correctly.
+    # This should test if the binary formats were stored correctly.
+
+    local c_app="$(dirname ${BASH_SOURCE[0]})/ckpt_c_primitives.exe"
+    local f90_app="$(dirname ${BASH_SOURCE[0]})/ckpt_f_primitives.exe"
+    local config_copy='config2.fti'
+    local app_id_c app_id_f90 meta_dir
+
+    param_parse '+iolib' $@
+    fti_config_set 'ckpt_io' $iolib
+
+    fti_config_dupe $config_copy
+
+    # Run the C application with the original configuration file
+    fti_run_success $c_app ${itf_cfg['fti:config']} 1
+    # The application is too fast and FTI would assign the same id
+    sleep 2
+    # Run the F90 application with a copy of the configuration file
+    fti_run_success $f90_app $config_copy 1
+
+    # Gather data from the execution exposed in the configuration file
+    app_id_c="$(fti_config_get 'exec_id')"
+    app_id_f90="$(fti_config_get 'exec_id' $config_copy)"
+    meta_dir="$(fti_config_get 'meta_dir')"
+
+    # Both applications should have the same meta-data save for checksum
+    # TODO: FTI-FF incorporates the meta-data inside the checkpoint data
+    # To make this check, we need to decode the file
+    if [ $iolib -ne 3 ]; then
+      diff -I 'checksum' "$meta_dir/$app_id_c/l1/sector0-group0.fti" "$meta_dir/$app_id_f90/l1/sector0-group0.fti" > /dev/null
+      check_is_zero $? "Meta-data for identical applications differ"
+    fi
+
+    # Both applications should be able to recover for all primitive data-types
+    fti_run_success $c_app ${itf_cfg['fti:config']} 0
+    fti_run_success $f90_app $config_copy 0
+}
+
+fortran_complex() {
+  # Brief:
+  # Test the definition of complex types in Fortran (FTI_InitCompositeType API)
+  #
+  # Details:
+  # Two executions for creating and restoring to/from checkpoint files.
+  # The application uses the FTI API for complex data type handling.
+  # If the first application fails, there might be errors on the API calls.
+  # If the second application fails, the bindings to Fortran may have problems.
+
+  local app="$(dirname ${BASH_SOURCE[0]})/complex.exe"
+  local app_id_c app_id_f90 meta_dir
+
+  param_parse '+iolib' $@
+  fti_config_set 'ckpt_io' $iolib
+
+  fti_run_success $app ${itf_cfg['fti:config']} 1
+  fti_run_success $app ${itf_cfg['fti:config']} 0
+  pass
+}
+
+# -------------------------- ITF Register test cases --------------------------
+
+for iolib in $fti_io_ids; do
+  itf_case 'fortran_to_c_map' "--iolib=$iolib"
+done
+
+for iolib in $fti_io_ids; do
+  itf_case 'fortran_complex' "--iolib=$iolib"
+done

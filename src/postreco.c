@@ -36,7 +36,8 @@
  *  @brief  Post recovery functions for the FTI library.
  */
 #include <time.h>
-#include "./interface.h"
+
+#include "postreco.h"
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It recovers a set of ckpt. files using RS decoding.
@@ -405,7 +406,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         char checksum[MD5_DIGEST_STRING_LENGTH];
         int ii = 0;
         for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksum[ii], "%02x", hashRS[i]);
+            snprintf(&checksum[ii], sizeof(char[3]), "%02x", hashRS[i]);
             ii+=2;
         }
         strncpy(FTIFFMeta->checksum, checksum, MD5_DIGEST_STRING_LENGTH);
@@ -415,7 +416,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
         // append meta info to RS file
         int ifd = open(efn, O_WRONLY|O_APPEND);
-        char* buffer_ser = (char*) malloc(FTI_filemetastructsize);
+        char* buffer_ser = talloc(char, FTI_filemetastructsize);
         if (buffer_ser == NULL) {
             FTI_Print("failed to allocate memory for FTI-FF file meta data.",
              FTI_EROR);

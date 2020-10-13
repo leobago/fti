@@ -37,7 +37,10 @@
  */
 
 #include <time.h>
-#include "./interface.h"
+
+#include "interface.h"
+#include "postckpt.h"
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It returns FTI_SCES.
@@ -446,7 +449,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         char checksum[MD5_DIGEST_STRING_LENGTH];
         int ii = 0;
         for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(&checksum[ii], "%02x", hash[i]);
+            snprintf(&checksum[ii], sizeof(char[3]), "%02x", hash[i]);
             ii+=2;
         }
 
@@ -472,7 +475,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
             // serialize data block variable meta data
             // and append to encoded file
-            char* buffer_ser = (char*) malloc(FTI_filemetastructsize);
+            char* buffer_ser = talloc(char, FTI_filemetastructsize);
             if (buffer_ser == NULL) {
                 snprintf(str, FTI_BUFS,
                  "FTI_RSenc - failed to allocate %d bytes for 'buffer_ser'",

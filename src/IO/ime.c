@@ -41,8 +41,8 @@ ould not open FTI checkpoint file
  *  @brief  Funtions to support IME checkpointing.
  */
 
-
 #include "../interface.h"
+#include "ime.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -62,9 +62,8 @@ int FTI_IMEOpen(char *fn, void *fileDesc) {
         fd->f = ime_native_open(fn, O_RDWR, 0664);
     else if (fd -> flag == O_APPEND)
         fd->f = ime_native_open(fn, O_APPEND, 0664);
-    else {
+    else
         FTI_Print("IME native Open Should always indicated flag", FTI_WARN);
-    }
 
 
     if (fd->f == -1) {
@@ -199,8 +198,7 @@ void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptMeta.level;
 
-    WriteIMEInfo_t *write_info = (WriteIMEInfo_t *)
-    malloc(sizeof(WriteIMEInfo_t));
+    WriteIMEInfo_t *write_info = talloc(WriteIMEInfo_t, 1);
 
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s",
      FTI_Exec->ckptId, FTI_Topo->myRank, FTI_Conf->suffix);
@@ -278,6 +276,6 @@ int FTI_WriteIMEData(FTIT_dataset * FTI_DataVar, void *fd) {
  **/
 /*-------------------------------------------------------------------------*/
 void FTI_IMEMD5(unsigned char *dest, void *md5) {
-    WriteIMEInfo_t *write_info =(WriteIMEInfo_t *) md5;
+    WriteIMEInfo_t *write_info = (WriteIMEInfo_t *) md5;
     MD5_Final(dest, &(write_info->integrity));
 }

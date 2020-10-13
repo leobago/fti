@@ -9,7 +9,7 @@
 int numHeads;
 int finalTag;
 int headRank;
-int grank; 
+int grank;
 
 int A[1]  = {100};
 int B[2]  = {30, 70};
@@ -23,6 +23,7 @@ int I[9]  = {7, 13, 21, 9, 12, 8, 8, 13, 9};
 int J[10] = {2, 6, 14, 8, 5, 12, 7, 11, 15, 20};
 
 int **SHARE;
+unsigned int seed;
 
 void init_share() {
     SHARE = (int**) malloc(10 * sizeof(int*));
@@ -38,19 +39,14 @@ void init_share() {
     SHARE[9] = J;
 }
 
-unsigned int get_seed() {
+void set_rand_seed() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return 1000000 * tv.tv_sec + tv.tv_usec;
-}
-
-void init_srand() {
-    srand(get_seed());
+    seed = 1000000 * tv.tv_sec + tv.tv_usec;
 }
 
 double get_share_ratio() {
-    // srand(get_seed());
-    return ((double)(rand()%10000+1))/10000;
+    return ((double)(rand_r(&seed)%10000+1))/10000;
 }
 
 void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
@@ -111,7 +107,7 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
 
     // determine number of buffers
     usleep(5000*grank);
-    srand(get_seed());
+    set_rand_seed();
     // if (FTI_Status() == 0) {
         info->nbuffer = 5;  // rand()%10+1;
     // } else {
@@ -119,10 +115,9 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     // }
 
     // initialize structure
-    info->buffer = (void**) malloc(info->nbuffer*sizeof(void*));
-    info->size = (uint32_t*) malloc(info->nbuffer*sizeof(uint32_t));
-    info->oldsize = (uint32_t*) malloc(info->nbuffer*
-        sizeof(uint32_t));
+    info->buffer = talloc(void*, info->nbuffer);
+    info->size = talloc(uint32_t, info->nbuffer);
+    info->oldsize = talloc(uint32_t, info->nbuffer);
     info->hash = (unsigned char**)malloc(info->nbuffer*sizeof(unsigned char*));
     int idx;
     for (idx = 0; idx < info->nbuffer; ++idx) {
@@ -131,7 +126,7 @@ void init(char *fti_cfgfile, dcp_info_t * info, uint32_t alloc_size) {
     }
     allocate_buffers(info, alloc_size);
     generate_data(info);
-    init_srand();
+    set_rand_seed();
 }
 
 bool valid(dcp_info_t * info) {
@@ -145,6 +140,7 @@ bool valid(dcp_info_t * info) {
             success = false;
         }
     }
+    return success;
 }
 
 void protect_buffers(dcp_info_t *info) {
@@ -192,7 +188,6 @@ void xor_data(int id, dcp_info_t *info) {
         // printf("%s:%d - info->xor_info[id].share: %.2lf\n", __FILE__,
         // __LINE__,info->xor_info[id].share);
     }
-    // srand(get_seed());
     int idx;
     int oldxinfooffset;
     uint32_t oldxinfonunits;
@@ -203,7 +198,7 @@ void xor_data(int id, dcp_info_t *info) {
         ckptsize += info->size[idx];
         int max = (RAND_MAX > info->size[idx]) ? info->size[idx] : RAND_MAX;
         oldxinfooffset = info->xor_info[id].offset[idx];
-        info->xor_info[id].offset[idx] = rand()%max;
+        info->xor_info[id].offset[idx] = rand_r(&seed)%max;
         assert(info->xor_info[id].offset[idx] > 0);
         uint32_t eff_size = info->size[idx] -
          info->xor_info[id].offset[idx];
@@ -251,7 +246,7 @@ void xor_data(int id, dcp_info_t *info) {
     int32_t dcpStats[2];
     int32_t sendBuf[] = { ckptsize, update };
     MPI_Reduce(sendBuf, dcpStats, 2, MPI_INT32_T, MPI_SUM, 0, FTI_COMM_WORLD);
-    DBG_MSG_APP("changed: %lu, of: %lu, expected dCP update (min): %.2lf", 0,
+    DBG_MSG_APP("changed: %u, of: %u, expected dCP update (min): %.2lf", 0,
      dcpStats[1], dcpStats[0], 100*((double)dcpStats[1])/dcpStats[0]);
 }
 
@@ -289,7 +284,7 @@ void allocate_buffers(dcp_info_t * info, uint32_t alloc_size) {
         info->oldsize[idx] = 0;
         info->buffer[idx] = malloc(info->size[idx]);
         if (info->buffer[idx] == NULL) {
-            EXIT_STD_ERR("idx: %d, cannot allocate %lu bytes", idx,
+            EXIT_STD_ERR("idx: %d, cannot allocate %u bytes", idx,
              info->size[idx]);
         }
         allocated += info->size[idx];
@@ -304,7 +299,7 @@ void allocate_buffers(dcp_info_t * info, uint32_t alloc_size) {
         info->size[idx-1] += rest;
         info->buffer[idx-1] = realloc(info->buffer[idx-1], info->size[idx-1]);
         if (info->buffer[idx-1] == NULL) {
-            EXIT_STD_ERR("idx: %d, cannot reallocate %lu bytes",
+            EXIT_STD_ERR("idx: %d, cannot reallocate %u bytes",
              idx-1, info->size[idx-1]);
         }
     }
@@ -318,7 +313,6 @@ uint32_t reallocate_buffers(dcp_info_t * info, uint32_t _alloc_size,
  enum ALLOC_FLAGS ALLOC_FLAG) {
     uint32_t alloc_size;
     if (ALLOC_FLAG == ALLOC_RANDOM) {
-        // srand(get_seed());
         alloc_size = ((uint32_t)(((uint64_t)rand() << 32) |
          rand()))%_alloc_size+1;
     } else {

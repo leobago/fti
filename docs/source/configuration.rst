@@ -778,3 +778,25 @@ local_test
 (\ *default = 1*\ )  
 
 
+fast_forward
+^^^^^^^^^^
+
+
+..
+
+   This parameter allows the checkpoint interval to be speeded up by the value given to this parameter. In other words, the interval is divided by the fast_forward value. For example, if ckpt_l1 is set to 15, a fast_forward configuration of 5 will result in L1 checkpoints every 3 minutes. A fast_forward rate of 1 keeps the same checkpoint interval frequency.
+
+
+.. list-table::
+   :header-rows: 1
+
+   * - Value
+     - Meaning
+   * - int
+     - Fast forward rate. Must be between 1 and 10.
+
+
+(\ *default = 1*\ )  
+
+
+

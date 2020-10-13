@@ -38,6 +38,7 @@
 
 
 #include "../interface.h"
+#include "posix.h"
 
 FILE* fileposix;
 
@@ -52,7 +53,7 @@ int FTI_ActivateHeadsPosix(FTIT_configuration* FTI_Conf,
     }
     MPI_Send(&value, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag,
      FTI_Exec->globalComm);
-    int isDCP = (int)FTI_Ckpt[4].isDcp;
+    int isDCP = (int) FTI_Ckpt[4].isDcp;
     MPI_Send(&isDCP, 1, MPI_INT, FTI_Topo->headRank, FTI_Conf->ckptTag,
      FTI_Exec->globalComm);
     MPI_Send(&FTI_Exec->ckptMeta.ckptId, 1, MPI_INT, FTI_Topo->headRank,
@@ -77,9 +78,8 @@ int FTI_PosixOpen(char *fn, void *fileDesc) {
         fd->f = fopen(fn, "r+");
     else if (fd -> flag == 'a')
         fd->f = fopen(fn, "a");
-    else {
+    else
         FTI_Print("Posix Open Should always indicated flag", FTI_WARN);
-    }
 
 
     if (fd->f == NULL) {
@@ -141,8 +141,9 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc) {
         FTI_Print(str, FTI_EROR);
         fclose(fd->f);
         return FTI_NSCS;
-    } else
+    } else {
         return FTI_SCES;
+    }
 }
 
 
@@ -226,8 +227,7 @@ void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char fn[FTI_BUFS];
     int level = FTI_Exec->ckptMeta.level;
 
-    WritePosixInfo_t *write_info = (WritePosixInfo_t *)
-    malloc(sizeof(WritePosixInfo_t));
+    WritePosixInfo_t *write_info = talloc(WritePosixInfo_t, 1);
 
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.%s",
      FTI_Exec->ckptMeta.ckptId, FTI_Topo->myRank, FTI_Conf->suffix);

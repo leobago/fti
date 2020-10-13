@@ -36,55 +36,71 @@
  *  @brief  Checkpointing functions for the FTI library.
  */
 
-#include "./interface.h"
+#include "dcp.h"
+
+static size_t _mb = 1024L*1024L;
+static size_t _gb = 1024L*1024L*1024L;
+static size_t _tb = 1024L*1024L*1024L*1024L;
+
+/**
+ *  Calculates the most adequate metric in bytes for N among TB, GB and MB
+ *  @param n A number N
+ *  @param s A string buffer to print the result, must not be null
+ *  @remark Sets s to be either TB, GB or MB
+ *  @return The adequate metric size in bytes
+ **/
+static inline size_t get_metric(size_t n, char* s) {
+    s[1] = 'B';
+    if (n > _tb) {
+        s[0] = 'T';
+        return _tb;
+    }
+    if (n > _gb) {
+        s[0] = 'G';
+        return _gb;
+    }
+    s[0] = 'M';
+    return _mb;
+}
 
 void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
  FTIT_topology FTI_Topo) {
     char str[FTI_BUFS];
-    long pureDataSize = (FTI_Conf.dcpFtiff) ?
-     FTI_Exec.FTIFFMeta.pureDataSize : FTI_Exec.dcpInfoPosix.dataSize;
-    long dcpSize = (FTI_Conf.dcpFtiff) ?
-     FTI_Exec.FTIFFMeta.dcpSize : FTI_Exec.dcpInfoPosix.dcpSize;
-    long norder_data, norder_dcp;
-    char corder_data[3], corder_dcp[3];
-    long DCP_TB = (1024L*1024L*1024L*1024L);//*1024
-    long DCP_GB = (1024L*1024L*1024L);
-    long DCP_MB = (1024L*1024L);
-    if (pureDataSize > DCP_TB) {
-        norder_data = DCP_TB;
-        snprintf(corder_data, sizeof(corder_data), "TB");
-    } else if (pureDataSize > DCP_GB) {
-        norder_data = DCP_GB;
-        snprintf(corder_data, sizeof(corder_data), "TB");
+    char data_metric[3] = "_B";
+    char dcp_metric[3] = "_B";
+    char cp_print_mode[6];
+
+    size_t norder_data, norder_dcp, pureDataSize, dcpSize;
+
+    if (FTI_Conf.dcpFtiff) {
+        dcpSize = FTI_Exec.FTIFFMeta.dcpSize;
+        pureDataSize = FTI_Exec.FTIFFMeta.pureDataSize;
     } else {
-        norder_data = DCP_MB;
-        snprintf(corder_data, sizeof(corder_data), "TB");
-    }
-    if (dcpSize > DCP_TB) {
-        norder_dcp = DCP_TB;
-        snprintf(corder_dcp, sizeof(corder_dcp), "TB");
-    } else if (dcpSize > DCP_GB) {
-        norder_dcp = DCP_GB;
-        snprintf(corder_dcp, sizeof(corder_dcp), "TB");
-    } else {
-        norder_dcp = DCP_MB;
-        snprintf(corder_dcp, sizeof(corder_dcp), "TB");
+        dcpSize = FTI_Exec.dcpInfoPosix.dcpSize;
+        pureDataSize = FTI_Exec.dcpInfoPosix.dataSize;
     }
 
-    if (FTI_Topo.splitRank != 0) {
-        snprintf(str, FTI_BUFS, "Local CP data: %.2lf %s, Local dCP update:"
+    norder_data = get_metric(pureDataSize, data_metric);
+    norder_dcp = get_metric(dcpSize, dcp_metric);
+
+    // If not head
+    if (FTI_Topo.splitRank)
+        snprintf(cp_print_mode, sizeof(cp_print_mode), "Local");
+    else
+        snprintf(cp_print_mode, sizeof(cp_print_mode), "Total");
+
+    snprintf(str, FTI_BUFS, "%s CP data: %.2lf %s, %s dCP update:"
             " %.2lf %s, dCP share: %.2lf%%",
-                (double)pureDataSize/norder_data, corder_data,
-                (double)dcpSize/norder_dcp, corder_dcp,
-                ((double)dcpSize/pureDataSize)*100);
+            cp_print_mode,
+            (double)pureDataSize/norder_data,
+            data_metric,
+            cp_print_mode,
+            (double)dcpSize/norder_dcp,
+            dcp_metric,
+            ((double)dcpSize/pureDataSize)*100);
+
+    // If not head
+    if (FTI_Topo.splitRank)
         FTI_Print(str, FTI_DBUG);
-    } else {
-        snprintf(str, FTI_BUFS, "Total CP data: %.2lf %s, Total dCP update:"
-            " %.2lf %s, dCP share: %.2lf%%",
-                (double)pureDataSize/norder_data, corder_data,
-                (double)dcpSize/norder_dcp, corder_dcp,
-                ((double)dcpSize/pureDataSize)*100);
-    }
-
     FTI_Print(str, FTI_IDCP);
 }

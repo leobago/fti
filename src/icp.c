@@ -36,7 +36,7 @@
  *  @brief  functions for the FTI incremental checkpoint.
  */
 
-#include "./interface.h"
+#include "icp.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -218,7 +218,7 @@ int FTI_WriteSionlibVar(int varID, FTIT_configuration* FTI_Conf,
     int sid;
     memcpy( &sid, FTI_Exec->iCPInfo.fh, sizeof(FTI_SL_FH) );
 
-    unsigned long offset = 0;
+    uint64_t offset = 0;
     // write datasets into file
     int i;
     for (i = 0; i < FTI_Exec->nbVar; i++) {

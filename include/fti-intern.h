@@ -5,8 +5,10 @@
  *  @file   fti-intern.h
  */
 
-#ifndef FTI_FTI_INTERN_H_
-#define FTI_FTI_INTERN_H_
+#ifndef FTI_INCLUDE_FTI_INTERN_H_
+#define FTI_INCLUDE_FTI_INTERN_H_
+
+#include "fti-defs.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -20,7 +22,7 @@
 #include <mpi.h>
 
 #ifdef ENABLE_HDF5  // --> If HDF5 is installed
-#include "hdf5.h"
+#include <hdf5.h>
 #endif
 
 #ifdef GPUSUPPORT
@@ -33,15 +35,18 @@
 #define LOCAL 0
 #define GLOBAL 1
 
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define __FILENAME__ (strrchr(__FILE__, '/') ? \
+        strrchr(__FILE__, '/') + 1 : __FILE__)
 
 #define DBG_MSG(MSG, RANK, ...) do { \
     int rank; \
     MPI_Comm_rank(MPI_COMM_WORLD, &rank); \
     if (rank == RANK) \
-        printf("%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__, __LINE__, rank, ##__VA_ARGS__); \
+        printf("%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__, \
+                __LINE__, rank, ##__VA_ARGS__);\
     if (RANK == -1) \
-        printf("%s:%d[DEBUG-%d] " MSG "\n", __FILENAME__, __LINE__, rank, ##__VA_ARGS__); \
+        printf("%s:%d[DEBUG-%d] " MSG "\n", \
+                __FILENAME__, __LINE__, rank, ##__VA_ARGS__); \
 } while (0)
 
 /** highest value for id of protected variable                             */
@@ -106,6 +111,13 @@
 
 #define MAX_STACK_SIZE 10
 
+/** Maximum number of FTIT_type objects (i.e. number of user datatypes)     **/
+#define TYPES_MAX 64
+/** Maximum number of dimensions (i.e. ranks) in an user-defined type       **/
+#define TYPES_DIMENSION_MAX 32
+/** Maximum number of fields (i.e. members) in an user-defined type         **/
+#define TYPES_FIELDS_MAX 128
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -118,6 +130,11 @@ extern "C" {
     typedef uint64_t FTIT_hsize_t;
 #endif
 
+    typedef struct FTIT_dimension {
+        int ndims;
+        uint64_t count[32];
+    } FTIT_dimension;
+
     typedef uintptr_t           FTI_ADDRVAL;      /**< for ptr manipulation */
     typedef void*               FTI_ADDRPTR;      /**< void ptr type        */
 
@@ -129,7 +146,7 @@ extern "C" {
     typedef struct FTIT_dcpConfigurationPosix {
         unsigned int digestWidth;
         unsigned char* (*hashFunc)(const unsigned char *data,
-         uint32_t nBytes, unsigned char *hash);
+            uint64_t nBytes, unsigned char *hash);
         unsigned int StackSize;
         uint32_t BlockSize;
         unsigned int cachedCkpt;
@@ -182,20 +199,20 @@ extern "C" {
 
     /** @typedef    FTIT_iCPInfo
      *  @brief      Meta Information needed for iCP.
-     *  
+     *
      *  The member fh is a generic file handle container large enough
      *  to hold any file handle type of I/O modes that are used within FTI.
      */
     typedef struct FTIT_iCPInfo {
-        bool isFirstCp;          /**< TRUE if first cp in run                */
-        int16_t status;            /**< holds status (active,failed) of iCP    */
-        int  result;             /**< holds result of I/O specific write     */
-        int lastCkptID;          /**< holds last successful cp ID            */
-        int countVar;            /**< counts datasets written                */
-        bool* isWritten;         /**< holds IDs of datasets in cp file       */
-        double t0;               /**< timing for CP statistics               */
-        double t1;               /**< timing for CP statistics               */
-        char fn[FTI_BUFS];       /**< Name of the checkpoint file            */
+        bool isFirstCp;              /**< TRUE if first cp in run             */
+        int16_t status;              /**< holds status (active,failed) of iCP */
+        int  result;                 /**< holds result of I/O specific write  */
+        int lastCkptID;              /**< holds last successful cp ID         */
+        int countVar;                /**< counts datasets written             */
+        bool* isWritten;             /**< holds IDs of datasets in cp file    */
+        double t0;                   /**< timing for CP statistics            */
+        double t1;                   /**< timing for CP statistics            */
+        char fn[FTI_BUFS];           /**< Name of the checkpoint file         */
         void *fd;
     } FTIT_iCPInfo;
 
@@ -209,42 +226,37 @@ extern "C" {
      *
      */
     typedef struct FTIFF_metaInfo {
-        /**< hash of file without meta */
-        char checksum[MD5_DIGEST_STRING_LENGTH];
-        unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct*/
-        int ckptId;     /**< Checkpoint ID*/
-        int32_t metaSize;  /**< size of ckpt data*/
-        int32_t ckptSize;  /**< also file size TODO remove*/
-        /**< total size of protected data (excluding meta data) */
-        int32_t dataSize;
-        /**< total size of protected data (excluding meta data)*/
-        int32_t pureDataSize;
-        int32_t fs;        /**< file size*/
-        int32_t maxFs;     /**< maximum file size in group*/
-        int32_t ptFs;      /**< partner copy file siz*/
-        int32_t timestamp;/**< time when ckpt was created in ns (CLOCK_REALTIME)*/
-        int32_t dcpSize;   /**< how much actually written by rank*/
+        char checksum[MD5_DIGEST_STRING_LENGTH]; /**< file hash without meta  */
+        unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct     */
+        int ckptId;           /**< Checkpoint ID                             */
+        size_t metaSize;      /**< size of ckpt data                         */
+        size_t ckptSize;      /**< also file size TODO remove                */
+        size_t dataSize;      /**< size of protected data without meta data  */
+        size_t pureDataSize;  /**< total data size (for printouts)           */
+        size_t fs;            /**< file size                                 */
+        size_t maxFs;         /**< maximum file size in group                */
+        size_t ptFs;          /**< partner copy file size                    */
+        uint64_t timestamp;   /**< time (ns) cp was created (CLOCK_REALTIME) */
+        size_t dcpSize;       /**< how much actually written by rank         */
     } FTIFF_metaInfo;
 
     /** @typedef    FTIT_DataDiffHash
      *  @brief      dCP information about data block.
-     *  
+     *
      *  Holds information for each data block relevant for the dCP mechanism.
      *  This structure is a member of FTIFF_dbvar. It is stored as an array
-     *  with n elements, where n corresponds to the number of data blocks in 
+     *  with n elements, where n corresponds to the number of data blocks in
      *  that the data chunk is partitioned (depending on the dCP block size).
      */
-    typedef struct              FTIT_DataDiffHash {
-        unsigned char*          md5hash[2];    /**< MD5 digest             */
-        uint32_t*               bit32hash[2];  /**< CRC32 digest           */
-        uint16_t*         blockSize;  /**< data block size           */
-        /**< indicates if data block is valid */
-        bool*                   isValid;
-        /**< holds the number of hashes for the data chunk  */
-        int32_t                    nbHashes;
-        int                     currentId;
-        int                     creationType;
-        int                     lifetime;
+    typedef struct FTIT_DataDiffHash {
+        unsigned char* md5hash[2];   /**< MD5 digest                          */
+        uint32_t* bit32hash[2];      /**< CRC32 digest                        */
+        uint16_t* blockSize;         /**< data block size                     */
+        bool* isValid;               /**< indicates if data block is valid    */
+        int32_t nbHashes;            /**< number of hashes for the data chunk */
+        int currentId;
+        int creationType;
+        int lifetime;
     }FTIT_DataDiffHash;
 
     /** @typedef    FTIFF_dbvar
@@ -257,20 +269,19 @@ extern "C" {
      *
      */
     typedef struct FTIFF_dbvar {
-        int id;             /**< id of protected variable*/
-        int containerid;    /**< container index (first container -> 0)*/
-        bool hascontent;    /**< indicates if container holds ckpt data*/
-        bool hasCkpt;       /**< indicates if container is stored in ckpt*/
-        uintptr_t dptr;     /**< data pointer offset*/
-        uintptr_t fptr;     /**< file pointer offset*/
-        int32_t chunksize;   /**< chunk size stored aof prot. var. in this block*/
-        /**< chunk size stored aof prot. var. in this block*/
-        int32_t containersize;
-        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk*/
-        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of this structure*/
-        bool update;    /**< TRUE if struct needs to be updated in ckpt file*/
-        FTIT_DataDiffHash* dataDiffHash; /**< dCP meta data for data chunk*/
-        char *cptr;     /**< pointer to memory address of container origin*/
+        int id;               /**< id of protected variable                   */
+        int containerid;      /**< container index (first container -> 0)     */
+        bool hascontent;      /**< indicates if container holds ckpt data     */
+        bool hasCkpt;         /**< indicates if container is stored in ckpt   */
+        uintptr_t dptr;       /**< data pointer offset                        */
+        uintptr_t fptr;       /**< file pointer offset                        */
+        int32_t chunksize;    /**< chunk size of variable in this block       */
+        int32_t containersize;/**< cont size stored of variable in this block */
+        unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk   */
+        unsigned char myhash[MD5_DIGEST_LENGTH];/**< hash of this structure   */
+        bool update;    /**< TRUE if struct needs to be updated in ckpt file  */
+        FTIT_DataDiffHash* dataDiffHash;   /**< dCP meta data for data chunk  */
+        char *cptr;       /**< pointer to memory address of container origin  */
     } FTIFF_dbvar;
 
     /** @typedef    FTIFF_db
@@ -281,14 +292,14 @@ extern "C" {
      *
      */
     typedef struct FTIFF_db {
-        int numvars;         /**< number of protected variables in datablock*/
-        int32_t dbsize;         /**< size of metadata + data for block in bytes*/
-        unsigned char myhash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk*/
-        bool update;/**< TRUE if struct needs to be updated in ckpt file*/
-        bool finalized;        /**< TRUE if block is stored in cp file*/
-        FTIFF_dbvar *dbvars;    /**< pointer to related dbvar array*/
-        struct FTIFF_db *previous;  /**< link to previous datablock*/
-        struct FTIFF_db *next;      /**< link to next datablock*/
+        int numvars;          /**< number of protected variables in datablock */
+        int32_t dbsize;       /**< size of metadata + data for block in bytes */
+        unsigned char myhash[MD5_DIGEST_LENGTH]; /**< hash of variable chunk  */
+        bool update;     /**< TRUE if struct needs to be updated in ckpt file */
+        bool finalized;             /**< TRUE if block is stored in cp file   */
+        FTIFF_dbvar *dbvars;        /**< pointer to related dbvar array       */
+        struct FTIFF_db *previous;  /**< link to previous datablock           */
+        struct FTIFF_db *next;      /**< link to next datablock               */
     } FTIFF_db;
 
     /*----------------------------------------------------------------------
@@ -297,7 +308,7 @@ extern "C" {
 
     /** @typedef    FTIT_StageInfo
      *  @brief      Staging meta info.
-     *  
+     *
      *  The request pointer is void in order to allow the structure to
      *  keep the head rank staging info if used by a head process or the
      *  application rank staging info otherwise. The cast is performed
@@ -305,8 +316,8 @@ extern "C" {
      *  'FTI_SI_APTR(ptr)' for the application processes.
      */
     typedef struct FTIT_StageInfo {
-        int nbRequest;  /**< Number of allocated request info structures     */
-        void *request;  /**< pointer to request meta info array              */
+        int nbRequest;       /**< Number of allocated request info structures */
+        void *request;       /**< pointer to request meta info array          */
     } FTIT_StageInfo;
 
     /** @typedef    FTIT_double
@@ -316,10 +327,10 @@ extern "C" {
      *  that we can inject failures on it.
      */
     typedef union FTIT_double {
-        double          value;           /**< Double floating point value.   */
-        float           floatval[2];     /**< Float mapped to do bit edits.  */
-        int             intval[2];       /**< Integer mapped to do bit edits.*/
-        char            byte[8];         /**< Byte array for coarser control.*/
+        double value;                    /**< Double floating point value.    */
+        float floatval[2];               /**< Float mapped to do bit edits.   */
+        int intval[2];                   /**< Integer mapped to do bit edits. */
+        char byte[8];                    /**< Byte array for coarser control. */
     } FTIT_double;
 
     /** @typedef    FTIT_float
@@ -329,70 +340,64 @@ extern "C" {
      *  that we can inject failures on it.
      */
     typedef union FTIT_float {
-        float           value;           /**< Floating point value.          */
-        int             intval;          /**< Integer mapped to do bit edits.*/
-        char            byte[4];         /**< Byte array for coarser control.*/
+        float value;                     /**< Floating point value.           */
+        int intval;                      /**< Integer mapped to do bit edits. */
+        char byte[4];                    /**< Byte array for coarser control. */
     } FTIT_float;
 
-    /** @typedef    FTIT_complexType
-     *  @brief      Type that consists of other FTI types
-     *
-     *  This type allows creating complex datatypes.
-     */
-    typedef struct FTIT_complexType FTIT_complexType;
-
-    typedef struct FTIT_H5Group FTIT_H5Group;
-
     typedef struct FTIT_H5Group {
-        int            id;                     /**< ID of the group.*/
-        char           name[FTI_BUFS];         /**< Name of the group.*/
-        char           fullName[FTI_BUFS];/**< Holds full 'path' of group*/
-        int            childrenNo;             /**< Number of children*/
-        int            childrenID[FTI_BUFS];/**< IDs of the children groups*/
+        int id;                               /**< ID of the group.           */
+        char name[FTI_BUFS];                  /**< Name of the group.         */
+        char fullName[FTI_BUFS];              /**< Holds full 'path' of group */
+        int childrenNo;                       /**< Number of children         */
+        int childrenID[FTI_BUFS];             /**< IDs of the children groups */
 #ifdef ENABLE_HDF5
-        hid_t          h5groupID;              /**< Group hid_t.*/
+        hid_t h5groupID;                      /**< Group hid_t.               */
 #endif
     } FTIT_H5Group;
 
-    /** @typedef    FTIT_type
+
+    typedef struct FTIT_complexType FTIT_complexType;
+
+    /** @typedef    FTIT_Datatype
      *  @brief      Type recognized by FTI.
      *
      *  This type allows handling data structures.
      */
-    typedef struct FTIT_type {
-        int                 id;              /**< ID of the data type.*/
-        int                 size;            /**< Size of the data type.*/
-        FTIT_complexType*   structure;       /**< Logical structure for HDF5.*/
-        FTIT_H5Group*       h5group;         /**< Group of this datatype.*/
+    typedef struct FTIT_Datatype {
+        int id;                              /**< ID of the data type.        */
+        size_t size;                         /**< Size of the data type.      */
+        FTIT_complexType* structure;         /**< Logical structure for HDF5. */
+        FTIT_H5Group* h5group;               /**< Group of this datatype.     */
 #ifdef ENABLE_HDF5
-        hid_t               h5datatype;      /**< HDF5 datatype.*/
+        hid_t h5datatype;                    /**< HDF5 datatype.              */
 #endif
-    } FTIT_type;
+    } FTIT_Datatype;
 
     typedef struct FTIT_globalDataset {
-        bool                   initialized; /**< Dataset is initialized*/
-        int                    rank;           /**< Rank of dataset*/
-        int                    id;             /**< ID of dataset.*/
-        int*                   varId;        /**< ID of subset variable*/
-        int                    numSubSets; /**< Number of assigned sub-sets*/
-        FTIT_H5Group*          location;   /**< Dataset location in file.*/
+        bool initialized;                /**< Dataset is initialized         */
+        int rank;                        /**< Rank of dataset                */
+        int id;                          /**< ID of dataset.                 */
+        int* varId;                      /**< ID of subset variable          */
+        int numSubSets;                  /**< Number of assigned sub-sets    */
+        FTIT_H5Group* location;          /**< Dataset location in file.      */
 #ifdef ENABLE_HDF5
-        hid_t                  hid;            /**< HDF5 id datset.*/
-        hid_t                  fileSpace;      /**< HDF5 id dataset filespace*/
-        hid_t                  hdf5TypeId;  /**< HDF5 id of assigned FTI type*/
-        hsize_t*               dimension;  /**< num of elements for each dim.*/
+        hid_t hid;                       /**< HDF5 id datset.               */
+        hid_t fileSpace;                 /**< HDF5 id dataset filespace     */
+        hid_t hdf5TypeId;                /**< HDF5 id of assigned FTI type  */
+        hsize_t* dimension;              /**< num of elements for each dim. */
 #endif
-        struct FTIT_globalDataset*  next;       /**< Pointer to next dataset*/
-        FTIT_type              type;       /**< corresponding FTI type.*/
-        char                   name[FTI_BUFS]; /**< Dataset name.*/
-        char                   fullName[FTI_BUFS];/**< full 'path' of dataset*/
+        struct FTIT_globalDataset* next; /**< Pointer to next dataset        */
+        FTIT_Datatype *type;             /**< corresponding FTI type.        */
+        char name[FTI_BUFS];             /**< Dataset name.                  */
+        char fullName[FTI_BUFS];         /**< full 'path' of dataset         */
     } FTIT_globalDataset;
 
     typedef struct FTIT_sharedData {
-        FTIT_globalDataset* dataset;        /**< Pointer to global dataset. */
+        FTIT_globalDataset* dataset;          /**< Pointer to global dataset. */
 #ifdef ENABLE_HDF5
-        hsize_t*            count;          /**< num of elem in each dim. */
-        hsize_t*            offset;         /**< coord origin of sub-set. */
+        hsize_t* count;                       /**< num of elem in each dim.   */
+        hsize_t* offset;                      /**< coord origin of sub-set.   */
 #endif
     } FTIT_sharedData;
 
@@ -402,11 +407,12 @@ extern "C" {
      *  This type simplify creating complex datatypes.
      */
     typedef struct FTIT_typeField {
-        int                 typeID;  /**< FTI type ID of the field.*/
-        int                 offset;  /**< Offset of the field in structure.*/
-        int                 rank;     /**< Field rank (max. 32)*/
-        int                 dimLength[32];   /**< Lenght of each dimention*/
-        char                name[FTI_BUFS];   /**< Name of the field*/
+        FTIT_Datatype *type;        /**< FTI type ID of the field.           */
+        int id;                     /**< Order of the field in the structure */
+        size_t offset;              /**< Offset of the field in structure.   */
+        int rank;                   /**< Field rank (max. 32)                */
+        int dimLength[32];          /**< Lenght of each dimention            */
+        char name[FTI_BUFS];        /**< Name of the field                   */
     } FTIT_typeField;
 
     /** @typedef    FTIT_complexType
@@ -415,10 +421,21 @@ extern "C" {
      *  This type allows creating complex datatypes.
      */
     typedef struct FTIT_complexType {
-        char                name[FTI_BUFS];  /**< Name of the complex type.*/
-        int                 length;     /**< Number of types in complex type.*/
-        FTIT_typeField      field[FTI_BUFS]; /**< Fields of the complex type.*/
+        int length;                             /**< number of fields in type.*/
+        FTIT_typeField field[TYPES_FIELDS_MAX]; /**< Component field array.   */
+        char name[FTI_BUFS];                    /**< Type mnemonic name.      */
     } FTIT_complexType;
+
+    // create a byte flag
+    typedef enum {
+        FTI_ATTRIBUTE_NAME = 1 << 0,
+        FTI_ATTRIBUTE_DIM  = 1 << 1,
+    } FTIT_attributeFlag;
+
+    typedef struct FTIT_attribute {
+        FTIT_dimension dim;
+        char name[FTI_BUFS];
+    } FTIT_attribute;
 
     /** @typedef    FTIT_dataset
      *  @brief      Dataset metadata.
@@ -426,27 +443,25 @@ extern "C" {
      *  This type stores the metadata related with a dataset.
      */
     typedef struct FTIT_dataset {
-        int                 id;            /**< ID to search/update dataset.*/
-        /**< True if dataset metadata was restored.*/
-        bool                recovered;
-        void                *ptr;               /**< Pointer to the dataset.*/
-        int32_t                count;        /**< Number of elements in dataset.*/
-        FTIT_type*          type;             /**< Data type for the dataset.*/
-        int                 eleSize;       /**< Element size for the dataset.*/
-        int32_t                size;            /**< Total size of the dataset.*/
-        /**< Total size of the dataset in last checkpoint.*/
-        int32_t                sizeStored;
-        int                 rank;          /**< Rank of dataset (for HDF5). */
-        int                 dimLength[32];    /**< Lenght of each dimention.*/
-        char                name[FTI_BUFS];     /**< Name of the dataset.*/
-        FTIT_H5Group*       h5group;           /**< Group of this dataset*/
-        /**< True if this data are stored in a device memory*/
-        bool                isDevicePtr;
-        void                *devicePtr;   /**< Pointer to data in the device*/
-        FTIT_sharedData     sharedData; /**< Info if dataset is sub-set (VPR)*/
-        FTIT_dcpDatasetPosix dcpInfoPosix;      /**< dCP info for posix I/O*/
-        char                idChar[FTI_BUFS];   /**< THis is glue for ALYA*/
-        size_t              filePos;       /**< offset of buffer in ckpt file*/
+        int id;                            /**< ID to search/update dataset  */
+        int eleSize;                       /**< Element size for the dataset */
+        int rank;                          /**< Rank of dataset (for HDF5)   */
+        int dimLength[32];                 /**< Lenght of each dimention     */
+        bool recovered;                    /**< True if metadata restored    */
+        bool isDevicePtr;                  /**< True if on device memory     */
+        int32_t count;                     /**< nb of elements in dataset    */
+        int32_t size;                      /**< size of the data             */
+        int32_t sizeStored;                /**< size of the data in last CP  */
+        size_t filePos;                    /**< offset of buffer in CP file  */
+        FTIT_attribute attribute;
+        FTIT_sharedData sharedData;        /**< Info if dataset is subset    */
+        FTIT_dcpDatasetPosix dcpInfoPosix; /**< dCP info for posix I/O       */
+        FTIT_Datatype* type;               /**< Data type for the dataset    */
+        FTIT_H5Group* h5group;             /**< Group of this dataset        */
+        char idChar[FTI_BUFS];             /**< THis is glue for ALYA        */
+        char name[FTI_BUFS];               /**< Name of the dataset          */
+        void *ptr;                         /**< Pointer to the dataset       */
+        void *devicePtr;                   /**< Pointer to data on device    */
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata
@@ -455,13 +470,13 @@ extern "C" {
      *  This type stores temporary checkpoint metadata.
      */
     typedef struct FTIT_metadata {
-        int             level;              /**< checkpoint level  */
-        int32_t            maxFs;              /**< Maximum file size.  */
-        int32_t            fs;                 /**< File size.  */
-        int32_t            pfs;                /**< Partner file size.  */
-        int             ckptId;             /**< Current Ckpt ID  */
-        int             ckptIdL4;           /**< Current L4 Ckpt ID   */
-        char            ckptFile[FTI_BUFS]; /**< Ckpt file name. [FTI_BUFS] */
+        int level;                            /**< checkpoint level           */
+        int ckptId;                           /**< Current Ckpt ID            */
+        int ckptIdL4;                         /**< Current L4 Ckpt ID         */
+        int32_t maxFs;                        /**< Maximum file size.         */
+        int32_t fs;                           /**< File size.                 */
+        int32_t pfs;                          /**< Partner file size.         */
+        char ckptFile[FTI_BUFS];              /**< Ckpt file name. [FTI_BUFS] */
     } FTIT_metadata;
 
     /** @typedef    FTIT_configuration
@@ -470,48 +485,47 @@ extern "C" {
      *  This type stores the general configuration metadata.
      */
     typedef struct FTIT_configuration {
-        bool            stagingEnabled;
-        bool            dcpFtiff;       /**< Enable differential ckpt.      */
-        bool            dcpPosix;       /**< Enable differential ckpt.      */
-        bool            keepL4Ckpt;      /**< TRUE if l4 ckpts to keep       */
-        bool            keepHeadsAlive;  /**< TRUE if heads return           */
-        int             dcpMode;         /**< dCP mode.                      */
-        int             dcpBlockSize;    /**< Block size for dCP hash        */
-        char            cfgFile[FTI_BUFS]; /**< Configuration file name.     */
-        int             saveLastCkpt;    /**< TRUE to save last checkpoint.  */
-        int             verbosity;       /**< Verbosity level.               */
-        int             blockSize;       /**< Communication block size.      */
-        int             transferSize;    /**< Transfer size local to PFS     */
-        int             maxVarId;
+        bool stagingEnabled;
+        bool dcpFtiff;                    /**< Enable differential ckpt.      */
+        bool dcpPosix;                    /**< Enable differential ckpt.      */
+        bool keepL4Ckpt;                  /**< TRUE if l4 ckpts to keep       */
+        bool keepHeadsAlive;              /**< TRUE if heads return           */
+        int dcpMode;                      /**< dCP mode.                      */
+        int dcpBlockSize;                 /**< Block size for dCP hash        */
+        char cfgFile[FTI_BUFS];           /**< Configuration file name.       */
+        int saveLastCkpt;                 /**< TRUE to save last checkpoint.  */
+        int verbosity;                    /**< Verbosity level.               */
+        int blockSize;                    /**< Communication block size.      */
+        int transferSize;                 /**< Transfer size local to PFS     */
+        int maxVarId;
 #ifdef LUSTRE
-        int             stripeUnit;      /**< Striping Unit for Lustre FS    */
-        int             stripeOffset;    /**< Striping Offset for Lustre FS  */
-        int             stripeFactor;    /**< Striping Factor for Lustre FS  */
+        int stripeUnit;                    /**< Striping Unit for Lustre FS   */
+        int stripeOffset;                  /**< Striping Offset for Lustre FS */
+        int stripeFactor;                  /**< Striping Factor for Lustre FS */
 #endif
-        int             ckptTag;      /**< MPI tag for ckpt requests.      */
-        int             stageTag;     /**< MPI tag for staging comm.       */
-        int             finalTag;     /**< MPI tag for finalize comm.      */
-        int             generalTag;         /**< MPI tag for general comm. */
-        int             test;               /**< TRUE if local test.       */
-        int             l3WordSize;         /**< RS encoding word size.    */
-        int             ioMode;             /**< IO mode for L4 ckpt.      */
-        bool            h5SingleFileEnable; /**< TRUE if VPR enabled       */
-        bool            h5SingleFileKeep;   /**< TRUE if VPR files to keep */
-        /**< Indicator if HDF5 single file  */
-        bool            h5SingleFileIsInline;
-        char            h5SingleFileDir[FTI_BUFS]; /**< HDF5 single file dir */
-        /**< HDF5 single file prefix  */
-        char            h5SingleFilePrefix[FTI_BUFS];
-        char            stageDir[FTI_BUFS]; /**< Staging directory.          */
-        char            localDir[FTI_BUFS]; /**< Local directory.            */
-        char            glbalDir[FTI_BUFS]; /**< Global directory.           */
-        char            metadDir[FTI_BUFS]; /**< Metadata directory.         */
-        char            lTmpDir[FTI_BUFS];  /**< Local temporary directory.  */
-        char            gTmpDir[FTI_BUFS];  /**< Global temporary directory. */
-        char            mTmpDir[FTI_BUFS]; /**< Metadata temporary directory.*/
-        size_t          cHostBufSize;   /**< Host buffer size for GPU data. */
-        char            suffix[4];    /** Suffix of the checkpoint files    */
-        FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O */
+        int ckptTag;                       /**< MPI tag for ckpt requests.    */
+        int stageTag;                      /**< MPI tag for staging comm.     */
+        int finalTag;                      /**< MPI tag for finalize comm.    */
+        int generalTag;                    /**< MPI tag for general comm.     */
+        int test;                          /**< TRUE if local test.           */
+        int l3WordSize;                    /**< RS encoding word size.        */
+        int ioMode;                        /**< IO mode for L4 ckpt.          */
+        bool h5SingleFileEnable;           /**< TRUE if VPR enabled           */
+        bool h5SingleFileKeep;             /**< TRUE if VPR files to keep     */
+        bool h5SingleFileIsInline;         /**< Indicator if HDF5 single file */
+        char h5SingleFileDir[FTI_BUFS];    /**< HDF5 single file dir          */
+        char h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix       */
+        char stageDir[FTI_BUFS];           /**< Staging directory.            */
+        char localDir[FTI_BUFS];           /**< Local directory.              */
+        char glbalDir[FTI_BUFS];           /**< Global directory.             */
+        char metadDir[FTI_BUFS];           /**< Metadata directory.           */
+        char lTmpDir[FTI_BUFS];            /**< Local temporary directory.    */
+        char gTmpDir[FTI_BUFS];            /**< Global temporary directory.   */
+        char mTmpDir[FTI_BUFS];            /**< Metadata temporary directory. */
+        size_t cHostBufSize;               /**< Host buffer size for GPU data.*/
+        char suffix[4];                    /** Suffix of the checkpoint files */
+        FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
+        // int fastForward;            /**< Fast forward rate for ckpt intervals */
     } FTIT_configuration;
 
     /** @typedef    FTIT_topology
@@ -520,25 +534,25 @@ extern "C" {
      *  This type stores the topology metadata.
      */
     typedef struct FTIT_topology {
-        int             nbProc;          /**< Total global number of proc.   */
-        int             nbNodes;         /**< Total global number of nodes.  */
-        int             myRank;          /**< My rank on the global comm.    */
-        int             splitRank;       /**< My rank on the FTI comm.       */
-        int             nodeSize;        /**< Total number of pro. per node. */
-        int             nbHeads;         /**< Number of FTI proc. per node.  */
-        int             nbApprocs;       /**< Number of app. proc. per node. */
-        int             groupSize;       /**< Group size for L2 and L3.      */
-        int             sectorID;        /**< Sector ID in the system.       */
-        int             nodeID;          /**< Node ID in the system.         */
-        int             groupID;         /**< Group ID in the node.          */
-        int             amIaHead;        /**< TRUE if FTI process.           */
-        int             headRank;        /**< Rank of the head in this node. */
-        int             headRankNode;    /**< Rank of the head in node comm. */
-        int             nodeRank;        /**< Rank of the node.              */
-        int             groupRank;       /**< My rank in the group comm.     */
-        int             right;           /**< Proc. on the right of the ring.*/
-        int             left;            /**< Proc. on the left of the ring. */
-        int             body[FTI_BUFS];  /**< List of app. proc. in the node.*/
+        int nbProc;                      /**< Total global number of proc.    */
+        int nbNodes;                     /**< Total global number of nodes.   */
+        int myRank;                      /**< My rank on the global comm.     */
+        int splitRank;                   /**< My rank on the FTI comm.        */
+        int nodeSize;                    /**< Total number of pro. per node.  */
+        int nbHeads;                     /**< Number of FTI proc. per node.   */
+        int nbApprocs;                   /**< Number of app. proc. per node.  */
+        int groupSize;                   /**< Group size for L2 and L3.       */
+        int sectorID;                    /**< Sector ID in the system.        */
+        int nodeID;                      /**< Node ID in the system.          */
+        int groupID;                     /**< Group ID in the node.           */
+        int amIaHead;                    /**< TRUE if FTI process.            */
+        int headRank;                    /**< Rank of the head in this node.  */
+        int headRankNode;                /**< Rank of the head in node comm.  */
+        int nodeRank;                    /**< Rank of the node.               */
+        int groupRank;                   /**< My rank in the group comm.      */
+        int right;                       /**< Proc. on the right of the ring. */
+        int left;                        /**< Proc. on the left of the ring.  */
+        int body[FTI_BUFS];              /**< List of app. proc. in the node. */
     } FTIT_topology;
 
 
@@ -548,27 +562,23 @@ extern "C" {
      *  This type stores all the checkpoint metadata.
      */
     typedef struct FTIT_checkpoint {
-        char            dir[FTI_BUFS];      /**< Checkpoint directory.  */
-        char            L4Replica[FTI_BUFS]; /**<A replica of the global
-                                     checkpoint file in case of head == 1 **/
-        char            dcpDir[FTI_BUFS];   /**< dCP directory.         */
-        char            archDir[FTI_BUFS];  /**< Checkpoint directory.  */
-        /**< .Directory storing archieved meta      */
-        char            archMeta[FTI_BUFS];
-        char            metaDir[FTI_BUFS];  /**< Metadata directory.     */
-        char            dcpName[FTI_BUFS];  /**< dCP file name.          */
-        bool            isDcp;              /**< TRUE if dCP requested   */
-        bool            recoIsDcp;          /**< TRUE if dCP requested   */
-        /**< TRUE if execution has already a dCP    */
-        bool            hasDcp;
-        bool            hasCkpt;            /**< TRUE if level has ckpt   */
-        int             isInline;           /**< TRUE if work is inline.  */
-        int             ckptIntv;           /**< Checkpoint interval.     */
-        int             ckptCnt;            /**< Checkpoint counter.      */
-        int             ckptDcpIntv;        /**< Checkpoint interval.     */
-        int             ckptDcpCnt;         /**< Checkpoint counter.      */
-        bool            localReplica;       /**< if I have a local replica
-                                                 of the ckpt file */
+        char dir[FTI_BUFS];         /**< checkpoint directory.                */
+        char L4Replica[FTI_BUFS];   /**< replica of L4 CP for head=1          */
+        char dcpDir[FTI_BUFS];      /**< dCP directory.                       */
+        char archDir[FTI_BUFS];     /**< Checkpoint directory.                */
+        char archMeta[FTI_BUFS];    /**< .Directory storing archieved meta    */
+        char metaDir[FTI_BUFS];     /**< Metadata directory.                  */
+        char dcpName[FTI_BUFS];     /**< dCP file name.                       */
+        bool isDcp;                 /**< True if dCP requested                */
+        bool recoIsDcp;             /**< True if dCP requested                */
+        bool hasDcp;                /**< True if execution has already a dCP  */
+        bool hasCkpt;               /**< True if level has ckpt               */
+        int isInline;               /**< True if work is inline.              */
+        int ckptIntv;               /**< Checkpoint interval.                 */
+        int ckptCnt;                /**< Checkpoint counter.                  */
+        int ckptDcpIntv;            /**< Checkpoint interval.                 */
+        int ckptDcpCnt;             /**< Checkpoint counter.                  */
+        bool localReplica;          /**< True if rank has local replica of CP */
     } FTIT_checkpoint;
 
     /** @typedef    FTIT_injection
@@ -577,24 +587,24 @@ extern "C" {
      *  This type allows users to describe a SDC failure injection model.
      */
     typedef struct FTIT_injection {
-        int             rank;            /**< Rank of proc. that injects     */
-        int             index;           /**< Array index of the bit-flip.   */
-        int             position;        /**< Bit position of the bit-flip.  */
-        int             number;          /**< Number of bit-flips to inject. */
-        int             frequency;       /**< Injection frequency (in min.)  */
-        int             counter;         /**< Injection counter.             */
-        double          timer;           /**< Timer to measure frequency     */
+        int rank;                         /**< Rank of proc. that injects     */
+        int index;                        /**< Array index of the bit-flip.   */
+        int position;                     /**< Bit position of the bit-flip.  */
+        int number;                       /**< Number of bit-flips to inject. */
+        int frequency;                    /**< Injection frequency (in min.)  */
+        int counter;                      /**< Injection counter.             */
+        double timer;                     /**< Timer to measure frequency     */
     } FTIT_injection;
 
     typedef struct FTIT_execution FTIT_execution;
 
 
-    /** @typedef    FTIT_IO 
+    /** @typedef    FTIT_IO
      *  @brief      Pointer to functions which are used
      *  to write the checkpoint file.
      *
      * This is a general description of what different file
-     * formats need to implement in 
+     * formats need to implement in
      * order to checkpoint.
      */
 
@@ -628,6 +638,18 @@ extern "C" {
         int(*clear)    (FTIT_mqueue*);
     } FTIT_mqueue;
 
+    /** @typedef    FTIT_DataTypes
+     *  @brief      Data type information structure.
+     *
+     *  Stores all the dynamic metadata related to datatype handling
+     */
+    typedef struct FTIT_DataTypes {
+        int32_t ntypes;                /**< Number of data types.           */
+        int32_t nprimitives;           /**< number of basic FTI types       */
+        int32_t primitive_offset;      /**< where the first basic type is   */
+        FTIT_Datatype *types;          /**< All FTI_Types registered        */
+    } FTIT_DataTypes;
+
     /** @typedef    FTIT_execution
      *  @brief      Execution metadata.
      *
@@ -635,91 +657,100 @@ extern "C" {
      *  related to the current execution
      */
     typedef struct FTIT_execution {
-        char            id[FTI_BUFS];   /**< Execution ID.                  */
-        int             reco;           /**< Recovery flag.                 */
-        int             ckptLvel;       /**< Checkpoint level.              */
-        int             ckptIntv;       /**< Ckpt. interval in minutes.     */
-        int             lastCkptLvel;   /**< Last checkpoint level.         */
-        int             wasLastOffline; /**< TRUE if last ckpt. offline.    */
-        double          iterTime;       /**< Current wall time.             */
-        double          lastIterTime;   /**< Time spent in the last iter.   */
-        double          meanIterTime;   /**< Mean iteration time.           */
-        double          globMeanIter;   /**< Global mean iteration time.    */
-        double          totalIterTime;  /**< Total main loop time spent.    */
-        unsigned int    syncIter;       /**< To check mean iter. time.      */
-        int             syncIterMax;    /**< Maximal synch. intervall.      */
-        unsigned int    minuteCnt;      /**< Checkpoint minute counter.     */
-        bool            hasCkpt;        /**< Indicator that ckpt exists     */
-        bool            h5SingleFile;   /**< Indicator if HDF5 single file  */
-        unsigned int    ckptCnt;        /**< Checkpoint number counter.     */
-        unsigned int    ckptIcnt;       /**< Iteration loop counter.        */
-        unsigned int    ckptId;         /**< Checkpoint ID.                 */
-        unsigned int    ckptNext;       /**< Iteration for next checkpoint. */
-        unsigned int    ckptLast;       /**< Iteration for last checkpoint. */
-        int32_t            ckptSize;       /**< Checkpoint size.               */
-        unsigned int    nbVar;          /**< Number of protected variables. */
-        unsigned int    nbVarStored;    /**< Nr. prot. var. stored in file  */
-        unsigned int    nbType;         /**< Number of data types.          */
-        int             nbGroup;        /**< Number of protected groups.    */
-        int             initSCES;       /**< TRUE if FTI initialized.       */
-        char    h5SingleFileLast[FTI_BUFS]; /**< Last HDF5 single file name  */
-        /**< HDF5 single fn from recovery   */
-        char    h5SingleFileReco[FTI_BUFS];
-        unsigned char   integrity[MD5_DIGEST_LENGTH];
-        FTIT_mqueue     mqueue;
-        FTIT_metadata   ckptMeta;        /**< Metadata for each ckpt level */
-        FTIFF_db         *firstdb;       /**< Pointer to first datablock   */
-        FTIFF_db         *lastdb;        /**< Pointer to first datablock   */
-        FTIFF_metaInfo  FTIFFMeta;       /**< File meta data for FTI-FF    */
-        FTIT_type**     FTI_Type;        /**< Pointer to FTI_Types         */
-        FTIT_H5Group**  H5groups;           /**< HDF5 root group.          */
-        /**< Pointer to first global dataset*/
-        FTIT_globalDataset* globalDatasets;
-        FTIT_StageInfo* stageInfo;          /**< root of staging requests   */
-        FTIT_iCPInfo    iCPInfo;            /**< meta info iCP              */
-        MPI_Comm        globalComm;         /**< Global communicator.       */
-        MPI_Comm        groupComm;          /**< Group communicator.        */
-        MPI_Comm        nodeComm;
-        FTIT_dcpExecutionPosix dcpInfoPosix;   /**< dCP info for posix I/O   */
-        int(*ckptFunc[2])               /** A function pointer pointing to  */
-            (FTIT_configuration* ,     /** the function which actually  */
-             struct FTIT_execution* ,  /** the checkpoint file. Noticeably  */
-             FTIT_topology* ,          /** We need 2 function pointers, */
-             FTIT_checkpoint* ,        /** One for the Level 4 checkpoint  */
-             FTIT_keymap*,             /** And one for the remaining cases  */
+        char id[FTI_BUFS];                  /**< Execution ID.                */
+        int reco;                           /**< Recovery flag.               */
+        int ckptLvel;                       /**< Checkpoint level.            */
+        int ckptIntv;                       /**< Ckpt. interval in minutes.   */
+        int lastCkptLvel;                   /**< Last checkpoint level.       */
+        int wasLastOffline;                 /**< TRUE if last ckpt. offline.  */
+        double iterTime;                    /**< Current wall time.           */
+        double lastIterTime;                /**< Time spent in the last iter. */
+        double meanIterTime;                /**< Mean iteration time.         */
+        double globMeanIter;                /**< Global mean iteration time.  */
+        double totalIterTime;               /**< Total main loop time spent.  */
+        unsigned int syncIter;              /**< To check mean iter. time.    */
+        int syncIterMax;                    /**< Maximal synch. intervall.    */
+        unsigned int minuteCnt;             /**< Checkpoint minute counter.   */
+        bool hasCkpt;                       /**< Indicator that ckpt exists   */
+        bool h5SingleFile;                  /**< Indicator if H5 single file  */
+        unsigned int ckptCnt;               /**< Checkpoint number counter.   */
+        unsigned int ckptIcnt;              /**< Iteration loop counter.      */
+        unsigned int ckptId;                /**< Checkpoint ID.               */
+        unsigned int ckptNext;              /**< Iteration for next CP.       */
+        unsigned int ckptLast;              /**< Iteration for last CP.       */
+        int32_t ckptSize;                   /**< Checkpoint size.             */
+        unsigned int nbVar;                 /**< nb of protected variables    */
+        unsigned int nbVarStored;           /**< nb prot. var. stored in CP   */
+        int nbGroup;                        /**< Number of protected groups.  */
+        int initSCES;                       /**< TRUE if FTI initialized.     */
+        char h5SingleFileLast[FTI_BUFS];    /**< Last HDF5 single file name   */
+        char h5SingleFileReco[FTI_BUFS];    /**< HDF5 single fn from recovery */
+        unsigned char integrity[MD5_DIGEST_LENGTH];
+        FTIT_mqueue mqueue;
+        FTIT_metadata ckptMeta;             /**< Metadata for each ckpt level */
+        FTIFF_db *firstdb;                  /**< Pointer to first datablock   */
+        FTIFF_db *lastdb;                   /**< Pointer to first datablock   */
+        FTIFF_metaInfo FTIFFMeta;           /**< File meta data for FTI-FF    */
+        FTIT_DataTypes datatypes;           /**< Pointer to FTI_Types         */
+        FTIT_H5Group** H5groups;            /**< HDF5 root group.             */
+        FTIT_globalDataset* globalDatasets; /**< ptr to first global dataset  */
+        FTIT_StageInfo* stageInfo;          /**< root of staging requests     */
+        FTIT_iCPInfo iCPInfo;               /**< meta info iCP                */
+        MPI_Comm globalComm;                /**< Global communicator.         */
+        MPI_Comm groupComm;                 /**< Group communicator.          */
+        MPI_Comm nodeComm;
+        FTIT_dcpExecutionPosix dcpInfoPosix; /**< dCP info for posix I/O  */
+        int fastForward;            /**< Fast forward rate for ckpt intervals */
+        /** A function pointer pointing to the function which actually the
+         * checkpoint file. Noticeably We need 2 function pointers, One for the
+         * Level 4 checkpoint And one for the remaining cases */
+        int(*ckptFunc[2])
+            (FTIT_configuration* ,
+             struct FTIT_execution* ,
+             FTIT_topology* ,
+             FTIT_checkpoint* ,
+             FTIT_keymap*,
              FTIT_IO *);
-
-        int(*initICPFunc[2])           /** A function pointer pointing to  */
-            (FTIT_configuration* ,      /** the function which actually     */
-             struct FTIT_execution* ,   /** initializes the iCP. Noticeably */
-             FTIT_topology* ,           /** We need 2 function pointers,    */
-             FTIT_checkpoint* ,         /** One for the Level 4 checkpoint  */
-             FTIT_keymap*,             /** And one for the remaining cases  */
+        /** A function pointer pointing to the function which actually
+         * initializes the iCP. Noticeably We need 2 function pointers, One for
+         * the Level 4 checkpoint And one for the remaining cases */
+        int(*initICPFunc[2])
+            (FTIT_configuration* ,
+             struct FTIT_execution* ,
+             FTIT_topology* ,
+             FTIT_checkpoint* ,
+             FTIT_keymap*,
              FTIT_IO *);
-
-        int(*writeVarICPFunc[2])        /** A function pointer pointing to  */
-            (int,                       /**                                  */
-             FTIT_configuration* ,      /** the function which actually     */
-             struct FTIT_execution* ,   /** writes the iCP. Noticeably      */
-             FTIT_topology* ,           /** We need 2 function pointers,    */
-             FTIT_checkpoint* ,         /** One for the Level 4 checkpoint  */
-             FTIT_keymap*,             /** And one for the remaining cases  */
+        /** A function pointer pointing to the function which actually writes
+         * the iCP. Noticeably We need 2 function pointers, One for the Level 4
+         * checkpoint And one for the remaining cases */
+        int(*writeVarICPFunc[2])
+            (int,
+             FTIT_configuration* ,
+             struct FTIT_execution* ,
+             FTIT_topology* ,
+             FTIT_checkpoint* ,
+             FTIT_keymap*,
              FTIT_IO*);
-
-        int(*finalizeICPFunc[2])        /** A function pointer pointing to  */
-            (FTIT_configuration* ,      /** the function which actually     */
-             struct FTIT_execution* ,   /** finalize the iCP. Noticeably    */
-             FTIT_topology* ,           /** We need 2 function pointers,    */
-             FTIT_checkpoint* ,         /** One for the Level 4 checkpoint  */
-             FTIT_keymap*,              /** And one for the remaining cases */
+        /** A function pointer pointing to the function which actually finalize
+         * the iCP. Noticeably We need 2 function pointers, One for the Level 4
+         * checkpoint And one for the remaining cases */
+        int(*finalizeICPFunc[2])
+            (FTIT_configuration* ,
+             struct FTIT_execution* ,
+             FTIT_topology* ,
+             FTIT_checkpoint* ,
+             FTIT_keymap*,
              FTIT_IO *);
-
-        int(*activateHeads)            /** A function pointer pointing to  */
-            (FTIT_configuration* ,      /** the function which actually     */
-             struct FTIT_execution* ,   /** finalize the iCP. Noticeably    */
-             FTIT_topology* ,           /** We need 2 function pointers,    */
-             FTIT_checkpoint* ,         /** One for the Level 4 checkpoint  */
-             int);          /** One for the Level 4 checkpoint  */
+        /** A function pointer pointing to the function which actually finalize
+         * the iCP. Noticeably We need 2 function pointers, One for the Level 4
+         * checkpoint One for the Level 4 checkpoint */
+        int(*activateHeads)
+            (FTIT_configuration* ,
+             struct FTIT_execution* ,
+             FTIT_topology* ,
+             FTIT_checkpoint* ,
+             int);
     } FTIT_execution;
 
     /** @typedef    FTIT_allConfiguration
@@ -741,4 +772,4 @@ extern "C" {
 }
 #endif
 
-#endif  // FTI_FTI_INTERN_H_
+#endif  // FTI_INCLUDE_FTI_INTERN_H_

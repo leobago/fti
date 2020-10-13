@@ -37,7 +37,8 @@
  */
 
 #include <time.h>
-#include "./interface.h"
+
+#include "conf.h"
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -141,6 +142,9 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // 0 -> disabled
     FTI_Ckpt[4].ckptDcpIntv = (int)iniparser_getint(ini, "Basic:dcp_l4", 0);
     FTI_Ckpt[4].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l4", -1);
+    // Fast Forward flag
+    // FTI_Conf->fastForward = (int)iniparser_getint(ini, "Basic:fast_forward", 1);
+    FTI_Exec->fastForward = (int)iniparser_getint(ini, "Advanced:fast_forward", 1);
     FTI_Ckpt[1].isInline = (int)1;
     FTI_Ckpt[2].isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
     FTI_Ckpt[3].isInline = (int)iniparser_getint(ini, "Basic:inline_l3", 1);
@@ -240,7 +244,6 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     // Reading/setting execution metadata
     FTI_Exec->nbVar = 0;
-    FTI_Exec->nbType = 0;
     FTI_Exec->minuteCnt = 0;
     FTI_Exec->ckptCnt = 1;
     FTI_Exec->ckptIcnt = 0;
@@ -384,6 +387,17 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (FTI_Conf->keepHeadsAlive && (FTI_Topo->nbHeads == 0)) {
         FTI_Print("Head feature is disabled but 'keep_heads_alive' is"
         " activated. Incompatiple setting!.", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    //fast forward
+    if (FTI_Exec->fastForward < 1 || FTI_Exec->fastForward > 10) {
+      FTI_Print("Fast Forward should be between 1 and 10, inclusive", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    if ( FTI_Exec->fastForward < 10 && FTI_Exec->fastForward > 1) {
+      FTI_Print("Fast Forward flag is set.", FTI_WARN);
         return FTI_NSCS;
     }
 
@@ -649,8 +663,8 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Ckpt[2].dir, FTI_BUFS, "%s/l2", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[3].dir, FTI_BUFS, "%s/l3", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[4].L4Replica, FTI_BUFS, "%s/lL4Dir", FTI_Conf->localDir);
-    // This is a local directory which will contain a replica of all 
-    // l4 file in case of posix. 
+    // This is a local directory which will contain a replica of all
+    // l4 file in case of posix.
     // Checking metadata directory
     if (FTI_Conf->h5SingleFileEnable && FTI_Topo->myRank == 0) {
         char str[FTI_BUFS];

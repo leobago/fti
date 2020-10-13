@@ -60,7 +60,7 @@ stages {
   }
 
   stage('Intel') {
-    when { expression { return env.BRANCH_NAME == 'master' } }
+    when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/ci:latest'
@@ -71,7 +71,7 @@ stages {
   }
 
   stage('CLang') {
-    when { expression { return env.BRANCH_NAME == 'master' } }
+    when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/ci:latest'
@@ -81,7 +81,7 @@ stages {
   }
 
   stage('PGI') {
-    when { expression { return env.BRANCH_NAME == 'master' } }
+    when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker { 
         image 'ftibsc/ci:latest'

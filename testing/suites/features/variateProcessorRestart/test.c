@@ -160,14 +160,12 @@ int main(int argc, char **argv) {
   };
 
   // create FTI type of structure
-  FTIT_complexType FTI_NEW_STRUCT_def;
-  FTI_AddSimpleField(&FTI_NEW_STRUCT_def, &FTI_INTG,
-                     offsetof(struct STRUCT, one), 0, "one");
-  FTI_AddSimpleField(&FTI_NEW_STRUCT_def, &FTI_INTG,
-                     offsetof(struct STRUCT, two), 1, "two");
-  FTIT_type FTI_NEW_STRUCT;
-  FTI_InitComplexType(&FTI_NEW_STRUCT, &FTI_NEW_STRUCT_def, 2,
-                      sizeof(struct STRUCT), "struct_one_two", NULL);
+  fti_id_t FTI_NEW_STRUCT =
+    FTI_InitCompositeType("struct_one_two", sizeof(struct STRUCT), NULL);
+  FTI_AddScalarField(FTI_NEW_STRUCT, "one", FTI_INTG,
+    offsetof(struct STRUCT, one));
+  FTI_AddScalarField(FTI_NEW_STRUCT, "two", FTI_INTG,
+                     offsetof(struct STRUCT, two));
 
   // create a group
   FTIT_H5Group gr;
