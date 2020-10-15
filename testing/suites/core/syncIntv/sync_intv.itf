@@ -44,6 +44,7 @@ checkpoint_interval() {
 
     fti_config_set 'keep_last_ckpt' '1'
     fti_config_set_ckpts '1' '2' '3' '4'
+    fti_config_set 'fast_forward' '2'
     fti_config_set 'head' '1'
     fti_config_set_noinline
     # This application verifies FTI debug logs and verbosity must be set to max

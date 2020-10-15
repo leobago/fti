@@ -18,6 +18,7 @@ setup() {
 
     fti_config_set 'keep_last_ckpt' '1'
     fti_config_set_ckpts '1' '2' '3' '4'
+    fti_config_set 'fast_forward' '2'
 }
 
 itf_suite_unload 'unload_corner_cases'
