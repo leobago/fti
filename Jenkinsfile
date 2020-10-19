@@ -16,7 +16,19 @@ def itf_suite(stage) {
     }
 }
 
-def compiler_checks(compilerName) {  
+/*def compiler_checks(compilerName) {  
+  stage('Compilation') {
+    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
+    labelledShell (
+      label:'Build FTI',
+      script:"testing/tools/ci/build.sh ${compilerName}"
+    )
+  }
+  //stage('Core behavior checks') { itf_suite('core') }
+  //stage('Feature checks') { itf_suite('features') }
+}*/
+
+/*def compiler_checks(compilerName) {  
   stage('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
@@ -26,13 +38,47 @@ def compiler_checks(compilerName) {
   }
   stage('Core behavior checks') { itf_suite('core') }
   stage('Feature checks') { itf_suite('features') }
+}*/
+
+
+def standard_checks(compilerName) {  
+  stage('Compilation') {
+    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
+    labelledShell (
+      label:'Build FTI',
+      script:"testing/tools/ci/build.sh ${compilerName}"
+    )
+  }
+  stage('Standard behavior checks') { itf_suite('standard') }
+}
+
+def diffsizes_checks(compilerName) {  
+  stage('Compilation') {
+    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
+    labelledShell (
+      label:'Build FTI',
+      script:"testing/tools/ci/build.sh ${compilerName}"
+    )
+  }
+  stage('DiffSizes behavior checks') { itf_suite('diffsizes') }
+}
+
+def feature_checks(compilerName) {  
+  stage('Compilation') {
+    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
+    labelledShell (
+      label:'Build FTI',
+      script:"testing/tools/ci/build.sh ${compilerName}"
+    )
+  }
+  stage('Feature checks') { itf_suite('features') }
 }
 
 pipeline {
 agent none
 
 stages {
-  stage('Complation checks') {
+  stage('Compilation checks') {
     agent {
       docker {
         image 'ftibsc/ci:latest'
@@ -48,7 +94,11 @@ stages {
         image 'ftibsc/ci:latest'
       }
     }
-    steps { script { compiler_checks('GCC') } }
+    steps {
+     script { standard_checks('GCC') }
+     script { diffsizes_checks('GCC') }
+     script { feature_checks('GCC') }
+    }
     post {
       always {
         labelledShell (
@@ -67,7 +117,12 @@ stages {
         args '--volume intel-compiler:/opt/intel'
       }
     }
-    steps { script { compiler_checks('Intel') } }
+    steps {
+     script { standard_checks('Intel') }
+     script { diffsizes_checks('Intel') }
+     script { feature_checks('Intel') }
+    }
+    /*steps { script { compiler_checks('Intel') } }*/
   }
 
   stage('CLang') {
@@ -77,7 +132,12 @@ stages {
         image 'ftibsc/ci:latest'
       }
     }
-    steps { script { compiler_checks('Clang') } }
+    steps {
+     script { standard_checks() }
+     script { diffsizes_checks() }
+     script { feature_checks() }
+    }
+    /*steps { script { compiler_checks('Clang') } }*/
   }
 
   stage('PGI') {
@@ -88,6 +148,11 @@ stages {
         args '--volume pgi-compiler:/opt/pgi'
       }
     }
-    steps { script { compiler_checks('PGI') } }
+    steps {
+     script { standard_checks() }
+     script { diffsizes_checks() }
+     script { feature_checks() }
+    }
+    /*steps { script { compiler_checks('PGI') } }*/
   }
 }}
