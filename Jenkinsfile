@@ -17,36 +17,36 @@ def itf_suite(stage) {
 }
 
 def standard_checks(compilerName) {  
-  step('Compilation') {
+  stage('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  step('Standard behavior checks') { itf_suite('standard') }
+  stage('Standard behavior checks') { itf_suite('standard') }
 }
 
 def diffsizes_checks(compilerName) {  
-  step('Compilation') {
+  stage('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  step('DiffSizes behavior checks') { itf_suite('diffsizes') }
+  stage('DiffSizes behavior checks') { itf_suite('diffsizes') }
 }
 
 def feature_checks(compilerName) {  
-  step('Compilation') {
+  stage('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  step('Feature checks') { itf_suite('features') }
+  stage('Feature checks') { itf_suite('features') }
 }
 
 pipeline {
