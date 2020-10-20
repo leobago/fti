@@ -16,62 +16,37 @@ def itf_suite(stage) {
     }
 }
 
-/*def compiler_checks(compilerName) {  
-  stage('Compilation') {
-    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
-    labelledShell (
-      label:'Build FTI',
-      script:"testing/tools/ci/build.sh ${compilerName}"
-    )
-  }
-  //stage('Core behavior checks') { itf_suite('core') }
-  //stage('Feature checks') { itf_suite('features') }
-}*/
-
-/*def compiler_checks(compilerName) {  
-  stage('Compilation') {
-    labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
-    labelledShell (
-      label:'Build FTI',
-      script:"testing/tools/ci/build.sh ${compilerName}"
-    )
-  }
-  stage('Core behavior checks') { itf_suite('core') }
-  stage('Feature checks') { itf_suite('features') }
-}*/
-
-
 def standard_checks(compilerName) {  
-  stage('Compilation') {
+  step('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  stage('Standard behavior checks') { itf_suite('standard') }
+  step('Standard behavior checks') { itf_suite('standard') }
 }
 
 def diffsizes_checks(compilerName) {  
-  stage('Compilation') {
+  step('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  stage('DiffSizes behavior checks') { itf_suite('diffsizes') }
+  step('DiffSizes behavior checks') { itf_suite('diffsizes') }
 }
 
 def feature_checks(compilerName) {  
-  stage('Compilation') {
+  step('Compilation') {
     labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
     labelledShell (
       label:'Build FTI',
       script:"testing/tools/ci/build.sh ${compilerName}"
     )
   }
-  stage('Feature checks') { itf_suite('features') }
+  step('Feature checks') { itf_suite('features') }
 }
 
 pipeline {
@@ -88,7 +63,64 @@ stages {
     steps { itf_suite('compilation') }
   }
 
-  stage('GCC') {
+  stage('GCC-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+      }
+    }
+    steps {
+     script { standard_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
+
+  stage('GCC-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+      }
+    }
+    steps {
+     script { diffsizes_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
+
+  stage('GCC-Features') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+      }
+    }
+    steps {
+     script { feature_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
+
+  /*stage('GCC') {
     agent {
       docker {
         image 'ftibsc/ci:latest'
@@ -107,7 +139,7 @@ stages {
         cobertura coberturaReportFile: 'coverage.xml'
       }
     }
-  }
+  }*/
 
   stage('Intel') {
     when { expression { return env.BRANCH_NAME == 'develop' } }
