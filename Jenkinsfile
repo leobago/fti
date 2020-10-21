@@ -1,6 +1,6 @@
 #!/bin/groovy
 
-def itf_suite(stage) {
+def itf_suite(stage, compilerName) {
   labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
   labelledShell (
     label:'Build FTI',
@@ -22,15 +22,15 @@ def itf_suite(stage) {
 }
 
 def standard_checks(compilerName) {  
-  stage('Standard behavior checks') { itf_suite('standard') }
+  stage('Standard behavior checks') { itf_suite('standard', compilerName) }
 }
 
 def diffsizes_checks(compilerName) {  
-  stage('DiffSizes behavior checks') { itf_suite('diffsizes') }
+  stage('DiffSizes behavior checks') { itf_suite('diffsizes', compilerName) }
 }
 
 def feature_checks(compilerName) {  
-  stage('Feature checks') { itf_suite('features') }
+  stage('Feature checks') { itf_suite('features', compilerName) }
 }
 
 pipeline {
