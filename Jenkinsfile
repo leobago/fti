@@ -1,5 +1,21 @@
 #!/bin/groovy
 
+def itf_suite_compilation(stage) {
+  tests = labelledShell (
+    label: "List ${stage} suites",
+    script: "testing/tools/ci/testdriver --find ${stage}",
+    returnStdout: true
+  ).trim()
+  
+  for( String test : tests.split('\n'))
+    catchError {
+      labelledShell (
+        label: "Suite: ${test}",
+        script: "testing/tools/ci/testdriver --run ${test}"
+      )
+    }
+}
+
 def itf_suite(stage, compilerName) {
   labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
   labelledShell (
@@ -44,7 +60,7 @@ stages {
         args '--volume cmake-versions:/opt/cmake'
       }
     }
-    steps { itf_suite('compilation') }
+    steps { itf_suite_compilation('compilation') }
   }
 
   //GCC
