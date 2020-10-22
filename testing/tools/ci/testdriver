@@ -78,8 +78,11 @@ find)
     # features:    FTI additional features
     for step in ${arguments[@]}; do
         case $step in
-        core)
-            find "${dirs['compiled']}/suites/core" -iname *.itf
+        standard)
+            find "${dirs['compiled']}/suites/core/multiLevelCkpt" -iname *.itf
+            ;;
+        diffsizes)
+            find "${dirs['compiled']}/suites/core/ckptDiffSizes" -iname *.itf
             ;;
         compilation)
             find "${dirs['src']}/suites/compilation" -iname *.itf

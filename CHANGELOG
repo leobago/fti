@@ -1,0 +1,280 @@
+Version 1.5.1:
+ - Merge branch 'master' of github.com:leobago/fti
+ - Merge pull request #375 from leobago/develop
+ - Merge pull request #374 from leobago/update-doc
+ - added documentation for fast_forward
+ - Merge pull request #373 from leobago/develop
+ - Merge pull request #372 from souchtal/feature/FastForward
+ - Merge remote-tracking branch 'upstream/develop' into feature/FastForward
+ - Merge pull request #369 from leobago/develop
+ - changed from O3 to O1 due to clang dcp checks failures
+ - updated fast_forward feature
+ - Added Fast-Forward param for config
+ - clean folders for cmake checks
+ - Fixed integer overflow on Fortran datatype checks
+ - set compiler environment in cmake install scripts
+ - export of compilervars in ci build script
+ - added O3 flag
+ - copy fti-defs.h to install include path
+ - Corrected typo in CMakeLists.txt
+ - Merge pull request #370 from leobago/hotfix_compiler_new
+ - fixes compiler issues for clang and pgi
+ - Update Jenkinsfile
+ - changed BRANCH_NAME to CHANGE_TARGET in Jenkinsfile
+ - Merge pull request #367 from leobago/develop
+ - Merge pull request #366 from leobago/alya_ckpt_processor
+ - Updated README file
+ - Added usage examples of ckpt processor
+ - Update AUTHORS
+ - Merge pull request #362 from leobago/alya_ckpt_processor
+ - updated README file
+ - added support for recovering from L4 MPI-IO
+ - Merge pull request #361 from souchtal/bugfix/hookFilter
+ - added cpplint filter to exclude undesired naming .h files rule
+ - Merge pull request #359 from souchtal/bugfix/pre-commit
+ - Merge pull request #358 from alexandrelimassantana/feature/code-format
+ - Bug fix for pre-commit hook
+ - Code formatting pass on examples sources and headers
+ - Code formatting pass on SION IO sources and headers
+ - Code formatting pass on POSIX-DCP IO sources and headers
+ - Code formatting pass on POSIX IO sources and headers
+ - Code formatting pass on MPIO IO sources and headers
+ - Code formatting pass on IME IO sources and headers
+ - Code formatting pass on HDF5 IO sources and headers
+ - Code formatting pass on FTIFF-DCP IO sources and headers
+ - Code formatting pass on FTIFF IO sources and headers
+ - Code formatting pass on topo sources and headers
+ - Code formatting pass on stage sources and headers
+ - Code formatting pass on recover sources and headers
+ - Code formatting pass on postreco sources and headers
+ - Code formatting pass on icp, interface, and postcpt sources and headers
+ - Code formatting pass on fti-io sources and headers
+ - Code formatting pass on dcp and conf sources and headers
+ - Code formatting pass on checkpoint source and header
+ - Code formatting pass on api and api-cuda
+ - Merge pull request #357 from alexandrelimassantana/feature/cmake-refactor
+ - Re-phrased compatibility notes documentation
+ - Fixed bug where ZLib was not included when found
+ - CMake now mark correctly the public/interface/private include directories for all sources
+ - Added better management of include directories in CMake
+ - Removed dead code in CMake file for HDF5 support
+ - Adjusted coverage build options to allow for other compilers
+ - Re-structured main CMake file as a pipeline of steps
+ - Merge pull request #352 from alexandrelimassantana/feature/post-type-refactor-warning-fix
+ - fixes #349
+ - Fixed a bug that was preventing some ITF tests to be registered in the multi-level checkpoint suite
+ - Added a compatibility notes document to readthedocs
+ - Renamed composite type handling API functions
+ - Fixed compiler warnings due to wrong type definition for MD5 functions
+ - Fixed compiler warnings on DiffTest function
+ - Fixed compiler warnings on C-variant of Fortran test application
+ - Fixed compiler warnings for the Staging test application
+ - Fixed compiler warnings for HDF5 FTI test application
+ - Fixed format warning messages on HDF5 CI tests
+ - Adjusted tests, examples and Fortran interface for the new datatype API
+ - Rollback FTI_InitType and FTI_InitComplexType signatures to pre-refactor format
+ - Changed the FTIT_type typename to FTIT_Datatype
+ - Fixed typo on FindMPI cmake script that caused Fortran builds to add another build folder
+ - Added tests for complex datatype handling in Fortran
+ - Adjusted error/warn messages related to the type refactor
+ - Added Fortran type bindings for Complex4, Complex8 and Complex16 datatypes
+ - Adjusted offset variables in FTI internal structures to use size_t
+ - Addjusted size parameters in API functions to be of type size_t
+ - Adjusted and synchronized documentation for Fortran and C API on type refactor
+ - Added extra checks and protection on new FTI_GetType API function
+ - Added FTI_GetType to readthedocs documentation
+ - Rework on datatype handling API and internal functions
+ - fixes #348
+ - Discarded CMake 3.3.2 from compilation tests as this version is not supported
+ - Merge pull request #350 from leobago/hotfix/issue-348-openssl
+ - fixes #348
+ - Merge pull request #345 from alexandrelimassantana/feature/fortran-test-suite
+ - enhanced support for N-dimensional data
+ - Fixed a bug in the differential checkpoint test application
+ - Adjusted type on FTI_GetStoredSize Fortran interface to int(8) instead of dedprecated 'long'
+ - Adjusted Fortran datatype matching so that character types alwasy map to CHAR
+ - Included a new Fortran suite of tests under the Feature Checks
+ - Added a new test suite to check datatype mapping from Fortran to C
+ - Added ITF option to get/set attributes of arbitrary configuration files
+ - Adjusted types on ckpt_primitives test application to reflect change on FTI datatype handling
+ - Changed the datatype definition in FTI to use native C datatypes
+ - Added a pair of applications to validate the Fortran datatype mappings
+ - Merge pull request #341 from leobago/code_check_setattributes
+ - added support for multi-dim variables
+ - Merge branch 'develop' into code_check_setattributes
+ - Merge pull request #342 from alexandrelimassantana/feature/barrier-fix
+ - Merge pull request #340 from alexandrelimassantana/feature/fti-hdf5-typefix
+ - Added an uncoditional barrier in FTI_Finalize
+ - added variable name support
+ - fixes compilation
+ - enhanced modularity
+ - updated README for new feature
+ - updated README for new feature
+ - added optional param for level
+ - Corrected code formating command snippet on readthedocs
+ - Added mappings from Fortran types to native C types when using HDF5 IO
+ - Merge pull request #338 from leobago/feature_set_property
+ - added level param to API: levels 1,2,3 and latest ckpt
+ - changed docs and behavior for fortran
+ - added support for FTI's pre-defined datatypes
+ - added documentation
+ - reverse changes to fheatdis
+ - added interface for int4 and int8
+ - adds fortran wrapper
+ - free arrayofnames
+ - Merge remote-tracking branch 'origin/develop' into feature_set_property
+ - undid changes heatdist
+ - Merge pull request #337 from leobago/feature_datadefinition_metadata
+ - removed interference with hdf5 name
+ - removed debug
+ - name and dimension can be added as attributes to the meta data
+ - Added second param for API to read ckpt per rank
+ - free global arrays
+ - adds type-id and type-size to meta data files
+ - updated README for last fix
+ - fixed API input to config_file
+ - fixed import typo
+ - fixed import typo
+ - initial version
+ - Merge pull request #336 from leobago/develop
+ - Merge remote-tracking branch 'origin/master' into develop
+ - Merge pull request #333 from leobago/issue-326
+ - fixes issue #326
+
+Version 1.4.1:
+ - Merge pull request #334 from leobago/feature-AutomateChangelogAndVersion
+ - version script armed
+ - tested
+ - added version replacement in CMakeList.txt in bump-version.sh
+ - updated version number in CMakeList.txt to new version semantic
+ - added bump-version.sh + CHANGELOG + VERSION
+ - Merge pull request #329 from leobago/develop
+ - Merge pull request #330 from leobago/merge-test
+ - fixed hdf5 tests + fixed diffSize hardcoded config path
+ - Removed unconditional pass on diff_sizes ITF suite
+ - Removed duplicate grank definition on diff_test_func test
+ - Merge step 3: fixed testing/ relative paths
+ - Merge step 2: testing
+ - Merge step 1: src and include dirs
+ - Merge step 1: itf, root folder and CMake
+ - Merge pull request #327 from souchtal/codestyle
+ - fixed MPI-IO recovery issue
+ - fixed MPI-IO recovery issue
+ - Merge pull request #325 from souchtal/issue286
+ - Merge pull request #324 from alexandrelimassantana/feature/project-cmake-refactor
+ - Fix for issue #286
+ - Refactored top-level CMake project() function call
+ - isolated failures for MPIIO Recovery
+ - fixed staging test
+ - filtered out erroneous mpiio case
+ - dcp test fixed
+ - Added reference to readthedocs link in the root-level README file
+ - solved compilation issue
+ - disable dcp tests
+ - cleaning warnings
+ - fixed overflow warning
+ - fixed compilation warnings
+ - fixed segFault caused by meta file
+ - fixed faults in tests
+ - rollback metadata changes in meta.c
+ - fixed diffckpt/ dir
+ - fixed int-rule for all C files + fixed formatting for remaining dirs (tuto, testing, examples)
+ - Merge pull request #320 from alexandrelimassantana/feature/intel-docker-integration
+ - Merge pull request #318 from alexandrelimassantana/feature/build-opt-install-script
+ - Added documentation on how to create the intel-compiler docker volume for CI image
+ - Adjusted build script for intel compiler in accordance to new CI docker image
+ - Removed malconstructed math operation in CMake
+ - Added build option in install script so that users can define the build directory location
+ - Merge pull request #317 from alexandrelimassantana/feature/docker-pgi-integration
+ - Changed docker image to reference FTI organization on Docker Hub instead of personal images
+ - Moved all ITF operations outside of tmpfs
+ - Added documentation about the CI environment
+ - Added volumes on JenkinsFile to avoid packaging extra compilers and CMake versions
+ - Update build script for new docker image when using PGI compiler
+ - Merge pull request #316 from alexandrelimassantana/feature/developer-docs
+ - Merge pull request #315 from alexandrelimassantana/feature/cobertura-integration
+ - Added some remarks about the install script and hdf5/sionlib linkage in documentation
+ - Added documentation to the existing FTI test suites
+ - Removed CI coverage script as it is small enough to fit in a Jenkins pipeline step
+ - Added Cobertura integration into Jenkinsfile
+ - Merge pull request #314 from leobago/dev-l4-local-replica
+ - Merge pull request #313 from alexandrelimassantana/feature/build-coverage
+ - Removed the standard:ckpt_disruption checks where expected behavior is failure
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Fixing small typo in help of install.sh
+ - Swapped docker agent from JenkinsFile to new CI image
+ - Removed some dangling debug messages from ITF source
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Changed the way ITF exports FTI-related build-variables for tests suites
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - more debug info on recovername
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Added debug options to recovername suite
+ - Revert "Added debug flags for debugging the standard suite"
+ - Merge branch 'dev-l4-local-replica' of https://github.com/leobago/fti into dev-l4-local-replica
+ - Added debug flags for debugging the standard suite
+ - Fixing merge
+ - Fixes to set default vars to variables
+ - Bundle of changes to address new docker image with code coverage support
+ - Merge pull request #312 from souchtal/codestyle
+ - Code style fixed for CMake + minor doc update + postreco for loop bug fixed
+ - Merge pull request #311 from alexandrelimassantana/feature/install-fix
+ - Removed unnecessary feedback from cmake_version ITF suite
+ - Build and compilation fixes for gcc-10.1 and cmake-3.17
+ - Merge branch 'develop' into dev-l4-local-replica
+ - Adding flag to apply L4Replica to only POSIX
+ - Merge pull request #308 from alexandrelimassantana/develop
+ - Merge pull request #307 from souchtal/rtd-fix
+ - Removed nameref bash variables from ITF source code
+ - fixed breathe bug for RTD
+ - Apply change only on Posix-IO, all other IOs keep their old behavior
+ - Working version of L4 Local Replica
+ - Merge pull request #305 from alexandrelimassantana/develop
+ - Merge branch 'feature/ci-build-script-refactor' into develop
+ - ITF Refactoring and Documentation Patch
+ - Merge pull request #303 from leobago/getconfig
+ - Refactored the build script for the CI compilers
+ - fixed test: fix io-lib cases + added MPI_BARRIER
+ - fix api.c diff
+ - added fix and ITF test for FTI_GetConfig
+ - Merge pull request #300 from souchtal/codestyle
+ - Merge pull request #301 from alexandrelimassantana/develop
+ - Integrated FTI tests into Jenkinsfile
+ - Merge branch 'updevelop' into develop
+ - Merge branch 'feature/itf-diffsizes' into develop
+ - Integrated diffSizes checks and Jenkinsfile rework
+ - Code style fixed for /include and all Fortran files
+ - Merge pull request #299 from alexandrelimassantana/feature/bugfix-compilation
+ - Bugfix on failing compilation when OpenSSL is not found
+ - Bugfix on failing compilation when OpenSSL is not found
+ - Integration of HDF5 checks into ITF format
+ - Merge pull request #297 from souchtal/codestyle
+ - Addition of Synchorization Interval tests into ITF format
+ - Organized CI Testdriver script to operate on different modes
+ - fix in ckptHierarchy script for bc cmd error
+ - Refactor of ITF test case filtering behavior and matching testdriver adjustments
+ - Integration of heatdis, addinarray and nodeflag checks and ITF bugfixes
+ - Merge branch 'feature/itf-corner-cases' into develop
+ - Bundle of ITF changes and corner case checks integration
+ - Code style fixed for src/util and src/IO
+ - Merge pull request #1 from alexandrelimassantana/sawsane-codestyle
+ - Initial steps in Jenkinsfile now deletes build folder before compiling FTI
+ - Code style fixed for src/util
+ - Merge pull request #292 from souchtal/code-style
+ - Code style fixed for all files in \src
+ - Merge pull request #291 from souchtal/code-style
+ - Code style fixed for: api-cuda, checkpoint, dcp, fti-io, icp
+ - Merge pull request #290 from souchtal/code-style
+ - code style fixed for api.c
+ - Merge branch 'develop' into feature/itf-corner-cases
+ - Merge pull request #289 from alexandrelimassantana/develop
+ - Integration of CMake Tests into ITF framework
+ - Added ITF filters to ignore tests by parameter or function name
+ - ITF test/suite declaration refactoring into its intended original design
+ - ITF Engine refactor to DSL-oriented design
+ - Rework on how ITF handles logs and clean-up
+ - wip
+ - Added the test case 3 of the corner cases
+ - Case 4 of corner cases is now complete
+ - Added configfile as a parameter for the cornercase test application
+

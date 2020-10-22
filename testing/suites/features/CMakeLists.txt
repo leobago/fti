@@ -5,6 +5,10 @@ add_subdirectory(recoverName)
 add_subdirectory(recoverVar)
 add_subdirectory(staging)
 add_subdirectory(getConfig)
+add_subdirectory(syncIntv)
+add_subdirectory(useCases)
+add_subdirectory(cornerCases)
+add_subdirectory(keepL4Ckpt)
 
 if(ENABLE_HDF5)
   add_subdirectory(variateProcessorRestart)
@@ -16,3 +20,4 @@ if(ENABLE_FORTRAN)
 endif()
 
 list(REMOVE_ITEM test_labels_current "features")
+
