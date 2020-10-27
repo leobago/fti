@@ -84,22 +84,14 @@ check_loop_in_file(){
   eval FILE="$1"     #file to check
   linenumber=0
   flag=0
+  regex='for [ ]{0,1}\([ ]{0,1}const{0,1}[ ]{0,1}(int|char|double)'
   while IFS='' read -r LINE || [ -n "${LINE}" ]; do
-      #increment line number 
-      linenumber=$((linenumber + 1))
-      if [[ $LINE == *"for("* ]]; then  
-        occurrence=$((occurrence + 1))
-        if [[ $LINE == *"for(int"* || $LINE == *"for( int"* ]]; then
-        	flag=1
-			echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
-        fi
-    elif [[ $LINE == *"for ("* ]]; then
-      occurrence=$((occurrence + 1))
-        if [[ $LINE == *"for (int"* || $LINE == *"for ( int"* ]]; then
-        	flag=1
-			echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop in . Declare the counter variable prior to the loop"
-        fi
-    fi
+  	#increment line number 
+  	linenumber=$((linenumber + 1))
+    if [[ $LINE =~ $regex ]]; then
+    	flag=1
+      	echo "${FILE}:${linenumber}: Implicit variable declaration inside for loop. Declare the counter variable prior to the loop"
+   	fi
   done < $FILE
   retval=$flag
 }

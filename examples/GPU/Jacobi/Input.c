@@ -179,7 +179,8 @@ int ParseCommandLineArguments(int argc, char ** argv, int rank, int size, int2 *
 	}
 
 	// At the end, there should be no other arguments that haven't been parsed
-	for (int i = 1; i < argc; ++i)
+	int i;
+	for (i = 1; i < argc; ++i)
 	{
 		if (strlen(argv[i]) > 0)
 		{

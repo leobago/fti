@@ -129,8 +129,9 @@ int main(int argc, char **argv) {
   rtn = do_work(array, world_rank, world_size, checkpoint_level, fail);
 
   // Verify if array values are correct, if necessary
+  int i;
   if (world_rank == 0 && rtn == 0 && !fail) {
-    for (int i = 0; i < world_size; i++) {
+    for (i = 0; i < world_size; i++) {
       if (array[i] != ITERATIONS + (i - 1)) {
         printf("Failure: array[%d] = %d, should be %d.\n", i, array[i],
                ITERATIONS + (i - 1));
