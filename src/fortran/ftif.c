@@ -88,7 +88,8 @@ fti_id_t FTI_InitPrimitiveType_C(const char *name, size_t size) {
 
     // Copy the type name to lower case ignoring non-letters
     dest  = talloc(char, strlen(name));
-    for (const char *p=name; *p; ++p) {
+    const char *p;
+    for (p=name; *p; ++p) {
       if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z'))
         dest[w++] = tolower(*p);
     }
