@@ -24,7 +24,7 @@ option(ENABLE_COVERAGE "Enable coverage metrics for FTI" OFF)
 
 # ----------------------------- Project Definition ----------------------------
 
-set(LANGUAGES "C")
+set(LANGUAGES "C" "CXX")
 if(ENABLE_FORTRAN)
   list(APPEND LANGUAGES "Fortran")
 endif()

@@ -708,7 +708,7 @@ int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_setIDFromString(char *name) {
+int FTI_setIDFromString(const char *name) {
     int i = 0;
 
     FTIT_dataset* data;
@@ -746,7 +746,7 @@ int FTI_setIDFromString(char *name) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_getIDFromString(char *name) {
+int FTI_getIDFromString(const char *name) {
     // after restart and before fully recovered, nbVarStored may be
     // larger than nbVar. In that case, the idchar may be in the recovered
     // set of protected variables.
