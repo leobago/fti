@@ -84,12 +84,13 @@ extern "C" {
 
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
-  int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent);
-  int FTI_RenameGroup(FTIT_H5Group* h5group, char* name);
+  int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,
+   FTIT_H5Group* parent);
+  int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name);
   int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
-  int FTI_DefineDataset(int id, int rank, int* dimLength, char* name,
+  int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
    FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
    const char* name, FTIT_H5Group* h5group, fti_id_t tid);
@@ -105,9 +106,9 @@ extern "C" {
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
   int FTI_Checkpoint(int id, int level);
-  int FTI_GetStageDir(char* stageDir, int maxLen);
+  int FTI_GetStageDir(const char* stageDir, int maxLen);
   int FTI_GetStageStatus(int ID);
-  int FTI_SendFile(char* lpath, char *rpath);
+  int FTI_SendFile(const char* lpath, const char *rpath);
   int FTI_Recover();
   int FTI_Snapshot();
   int FTI_Finalize();
@@ -126,9 +127,11 @@ extern "C" {
 
   // FTI data type handling functions
   int FTI_InitType(fti_id_t* type, int size);
-  fti_id_t FTI_InitCompositeType(char* name, size_t size, FTIT_H5Group* h5g);
-  int FTI_AddScalarField(fti_id_t id, char* name, fti_id_t fid, size_t offset);
-  int FTI_AddVectorField(fti_id_t id, char* name,  fti_id_t tid,
+  fti_id_t FTI_InitCompositeType(const char* name, size_t size,
+   FTIT_H5Group* h5g);
+  int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
+   size_t offset);
+  int FTI_AddVectorField(fti_id_t id, const char* name, fti_id_t tid,
    size_t offset, int ndims, int* dim_sizes);
 
 #ifdef __cplusplus

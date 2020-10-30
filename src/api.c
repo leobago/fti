@@ -324,7 +324,8 @@ FTIT_Datatype* FTI_GetType(fti_id_t id) {
   The fields can be added using FTI_AddScalarField and FTI_AddVectorField.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitCompositeType(char* name, size_t size, FTIT_H5Group* h5g) {
+fti_id_t FTI_InitCompositeType(const char* name, size_t size,
+ FTIT_H5Group* h5g) {
     FTIT_Datatype *type;
     FTIT_complexType *structure;
     int type_id;
@@ -367,7 +368,8 @@ fti_id_t FTI_InitCompositeType(char* name, size_t size, FTIT_H5Group* h5g) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddScalarField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
+int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
+ size_t offset) {
     FTIT_Datatype *struct_ref, *field_type;
     int field_id;
     FTIT_typeField *field;
@@ -425,7 +427,7 @@ int FTI_AddScalarField(fti_id_t id, char* name, fti_id_t fid, size_t offset) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AddVectorField(fti_id_t id, char* name,
+int FTI_AddVectorField(fti_id_t id, const char* name,
   fti_id_t tid, size_t offset, int ndims, int* dim_sizes) {
     FTIT_complexType *type;
     FTIT_typeField *field;
@@ -478,7 +480,7 @@ int FTI_AddVectorField(fti_id_t id, char* name,
   FTI_NSCS is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetStageDir(char* stageDir, int maxLen) {
+int FTI_GetStageDir(const char* stageDir, int maxLen) {
     if (!FTI_Conf.stagingEnabled) {
         FTI_Print("'FTI_GetStageDir' -> Staging disabled,"
           " no action performed.", FTI_WARN);
@@ -594,7 +596,7 @@ int FTI_GetStageStatus(int ID) {
   performed synchronously (i.e. by the calling rank).
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SendFile(char* lpath, char *rpath) {
+int FTI_SendFile(const char* lpath, const char *rpath) {
     if (!FTI_Conf.stagingEnabled) {
         FTI_Print("'FTI_SendFile' -> Staging disabled, no action performed.",
          FTI_WARN);
@@ -657,7 +659,8 @@ int FTI_SendFile(char* lpath, char *rpath) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_InitGroup(FTIT_H5Group* h5group, char* name, FTIT_H5Group* parent) {
+int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,
+ FTIT_H5Group* parent) {
     if (parent == NULL) {
         // child of root
         parent = FTI_Exec.H5groups[0];
@@ -778,7 +781,7 @@ int FTI_getIDFromString(const char *name) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RenameGroup(FTIT_H5Group* h5group, char* name) {
+int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name) {
     strncpy(FTI_Exec.H5groups[h5group->id]->name, name, FTI_BUFS);
     return FTI_SCES;
 }
@@ -1579,7 +1582,7 @@ int FTI_RecoverDatasetDimension(int did) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DefineDataset(int id, int rank, int* dimLength, char* name,
+int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
  FTIT_H5Group* h5group) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
