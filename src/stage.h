@@ -113,11 +113,11 @@ int FTI_InitStage(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
         FTIT_topology *FTI_Topo);
 int FTI_InitStageRequestApp(FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo,
         uint32_t ID);
-int FTI_AsyncStage(char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
+int FTI_AsyncStage(const char *lpath, const char *rpath, FTIT_configuration *FTI_Conf,
         FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID);
 int FTI_InitStageRequestHead(char* lpath, char *rpath, FTIT_execution *FTI_Exec,
         FTIT_topology *FTI_Topo, int source, uint32_t ID);
-int FTI_SyncStage(char* lpath, char *rpath, FTIT_execution *FTI_Exec,
+int FTI_SyncStage(const char* lpath, const char *rpath, FTIT_execution *FTI_Exec,
         FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID);
 int FTI_HandleStageRequest(FTIT_configuration* FTI_Conf,
         FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,

@@ -518,7 +518,7 @@ char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
 
 **/
 /*-------------------------------------------------------------------------*/
-void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...) {
+void FTI_CopyStringOrDefault(char* dest, const char* src, char* fmt, ...) {
     if (src && strlen(src)) {
         // If src points to a non-zero string
         strncpy(dest, src, strlen(src));

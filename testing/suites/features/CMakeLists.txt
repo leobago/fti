@@ -9,6 +9,7 @@ add_subdirectory(syncIntv)
 add_subdirectory(useCases)
 add_subdirectory(cornerCases)
 add_subdirectory(keepL4Ckpt)
+add_subdirectory(cppOperability)
 
 if(ENABLE_HDF5)
   add_subdirectory(variateProcessorRestart)
