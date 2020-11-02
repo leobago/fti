@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstring>
 #include <string>
+#include "mpi.h"
 #include "fti.h"
 
 
