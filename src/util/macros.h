@@ -68,7 +68,7 @@ void cleanup(char* pattern, ...);
     } while (0)
 
 
-#define FREAD(errorCode, bytes, buff, size, number, fd, format, ...)     \
+#define DFTI_EH_FREAD(errorCode, bytes, buff, size, number, fd, format, ...)     \
     do {                                                                 \
         bytes = fread(buff, size, number, fd);                           \
         if (ferror(fd)) {                                                \
@@ -81,7 +81,7 @@ void cleanup(char* pattern, ...);
         }                                                                \
     } while (0)
 
-#define FWRITE(errorCode, bytes, buff, size, number, fd, format, ...)    \
+#define DFTI_EH_FWRITE(errorCode, bytes, buff, size, number, fd, format, ...)    \
     do {                                                                 \
         bytes = fwrite(buff, size, number, fd);                          \
         if (ferror(fd)) {                                                \
@@ -93,6 +93,7 @@ void cleanup(char* pattern, ...);
             return errorCode;                                 \
         }                                                     \
     } while (0)
+
 
 #define TRY_ALLOC(dest, dtype, count) dest = \
     (dtype*) calloc(sizeof(dtype), count);\
