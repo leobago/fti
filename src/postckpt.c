@@ -104,7 +104,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int sendSize = (toSend > FTI_Conf->blockSize) ?
          FTI_Conf->blockSize : toSend;
         int bytes;
-        FREAD(FTI_NSCS, bytes, buffer, sizeof(char), sendSize, lfd, "p",
+        DFTI_EH_FREAD(FTI_NSCS, bytes, buffer, sizeof(char), sendSize, lfd, "p",
          buffer);
         MPI_Send(buffer, bytes, MPI_CHAR, destination, FTI_Conf->generalTag,
          FTI_Exec->groupComm);
@@ -160,7 +160,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag,
          FTI_Exec->groupComm, MPI_STATUS_IGNORE);
         size_t wbytes;
-        FWRITE(FTI_NSCS, wbytes, buffer, sizeof(char), recvSize, pfd, "p",
+        DFTI_EH_FWRITE(FTI_NSCS, wbytes, buffer, sizeof(char), recvSize, pfd, "p",
          buffer);
         toRecv -= recvSize;
     }
@@ -378,7 +378,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             bzero(myData, bs);
             bzero(data, 2*bs);
             size_t bytes;
-            FREAD(FTI_NSCS, bytes, myData, sizeof(char), remBsize, lfd,
+            DFTI_EH_FREAD(FTI_NSCS, bytes, myData, sizeof(char), remBsize, lfd,
              "ppppf", data, matrix, coding, myData, efd);
             int dest = FTI_Topo->groupRank;
             i = FTI_Topo->groupRank;
@@ -504,7 +504,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
             size_t wBytes = 0;
-            FWRITE(FTI_NSCS, wBytes, buffer_ser, FTI_filemetastructsize, 1,
+            DFTI_EH_FWRITE(FTI_NSCS, wBytes, buffer_ser, FTI_filemetastructsize, 1,
              efd, "ppppf", data, matrix, coding, myData, lfd);
             free(buffer_ser);
         }
@@ -798,10 +798,10 @@ int FTI_FlushPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 bSize = fs - pos;
 
             size_t bytes;
-            FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd, "pf",
+            DFTI_EH_FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd, "pf",
              readData, gfd);
             size_t wBytes = 0;
-            FWRITE(FTI_NSCS, wBytes, readData, sizeof(char), bytes, gfd, "pf",
+            DFTI_EH_FWRITE(FTI_NSCS, wBytes, readData, sizeof(char), bytes, gfd, "pf",
              readData, lfd);
             pos = pos + bytes;
         }
@@ -926,7 +926,7 @@ int FTI_FlushMPI(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             // #warning I also need to close pfh file
             // but this marcro is not yet ready
             //                MPI_File_close(&pfh);
-            FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd, "pppp",
+            DFTI_EH_FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd, "pppp",
                 localFileNames, allFileSizes, splitRanks, readData);
 
             FTI_MPIOWrite(readData, bytes, &write_info);
@@ -1086,7 +1086,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 bSize = fs - pos;
 
             size_t bytes;
-            FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd,
+            DFTI_EH_FREAD(FTI_NSCS, bytes, readData, sizeof(char), bSize, lfd,
                 "pppppppp", localFileNames, splitRanks, readData, file_map,
                  ranks, rank_map, chunkSizes);
 
