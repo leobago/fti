@@ -397,7 +397,7 @@ int FTI_TestConfig(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     }
 
     if ( FTI_Exec->fastForward < 10 && FTI_Exec->fastForward > 1) {
-        FTI_Print("Fast Forward flag is set.", FTI_WARN);
+        FTI_Print("Fast_Forward flag is set.", FTI_WARN);
     }
 
     // check dCP settings only if dCP is enabled

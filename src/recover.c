@@ -80,7 +80,7 @@ int FTI_CheckFile(char* fn, int32_t fs, char* checksum) {
     } else {
         char str[FTI_BUFS];
         snprintf(str, sizeof(str), "Missing file: \"%s\"", fn);
-        FTI_Print(str, FTI_WARN);
+        FTI_Print(str, FTI_DBUG);
         return 1;
     }
 }
