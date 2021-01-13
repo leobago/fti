@@ -173,7 +173,7 @@ stages {
       }
     }
     steps {
-     script { standard_checks() }
+     script { standard_checks('Clang') }
     }
   }
 
@@ -185,7 +185,7 @@ stages {
       }
     }
     steps {
-     script { diffsizes_checks() }
+     script { diffsizes_checks('Clang') }
     }
   }
 
@@ -197,7 +197,7 @@ stages {
       }
     }
     steps {
-     script { feature_checks() }
+     script { feature_checks('Clang') }
     }
   }
 
@@ -212,7 +212,7 @@ stages {
       }
     }
     steps {
-     script { standard_checks() }
+     script { standard_checks('PGI') }
     }
   }
 
@@ -225,7 +225,7 @@ stages {
       }
     }
     steps {
-     script { diffsizes_checks() }
+     script { diffsizes_checks('PGI') }
     }
   }
 
@@ -238,7 +238,7 @@ stages {
       }
     }
     steps {
-     script { feature_checks() }
+     script { feature_checks('PGI') }
     }
   }
 }}
