@@ -208,7 +208,7 @@ stages {
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/nvidia'
       }
     }
     steps {
@@ -221,7 +221,7 @@ stages {
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/nvidia'
       }
     }
     steps {
@@ -234,7 +234,7 @@ stages {
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/nvidia'
       }
     }
     steps {
