@@ -53,162 +53,162 @@ pipeline {
 agent none
 
 stages {
-  stage('Compilation checks') {
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume cmake-versions:/opt/cmake'
-      }
-    }
-    steps { itf_suite_compilation('compilation') }
-  }
+  //stage('Compilation checks') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //      args '--volume cmake-versions:/opt/cmake'
+  //    }
+  //  }
+  //  steps { itf_suite_compilation('compilation') }
+  //}
 
-  //GCC
+  ////GCC
 
-  stage('GCC-Standard') {
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { standard_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //stage('GCC-Standard') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { standard_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
 
-  stage('GCC-DiffSizes') {
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { diffsizes_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //stage('GCC-DiffSizes') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { diffsizes_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
 
-  stage('GCC-Features') {
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { feature_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //stage('GCC-Features') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { feature_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
 
-  //INTEL
+  ////INTEL
 
-  stage('Intel-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { standard_checks('Intel') }
-    }
-  }
+  //stage('Intel-Standard') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //      args '--volume intel-compiler:/opt/intel'
+  //    }
+  //  }
+  //  steps {
+  //   script { standard_checks('Intel') }
+  //  }
+  //}
 
-  stage('Intel-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { diffsizes_checks('Intel') }
-    }
-  }
+  //stage('Intel-DiffSizes') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //      args '--volume intel-compiler:/opt/intel'
+  //    }
+  //  }
+  //  steps {
+  //   script { diffsizes_checks('Intel') }
+  //  }
+  //}
 
-  stage('Intel-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { feature_checks('Intel') }
-    }
-  }
+  //stage('Intel-Features') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //      args '--volume intel-compiler:/opt/intel'
+  //    }
+  //  }
+  //  steps {
+  //   script { feature_checks('Intel') }
+  //  }
+  //}
 
-  //CLANG
+  ////CLANG
 
-  stage('CLang-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { standard_checks('Clang') }
-    }
-  }
+  //stage('CLang-Standard') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { standard_checks('Clang') }
+  //  }
+  //}
 
-  stage('CLang-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { diffsizes_checks('Clang') }
-    }
-  }
+  //stage('CLang-DiffSizes') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { diffsizes_checks('Clang') }
+  //  }
+  //}
 
-  stage('CLang-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { feature_checks('Clang') }
-    }
-  }
+  //stage('CLang-Features') {
+  //  when { expression { return env.BRANCH_NAME == 'develop' } }
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/ci:latest'
+  //    }
+  //  }
+  //  steps {
+  //   script { feature_checks('Clang') }
+  //  }
+  //}
 
-  //PGI
+  ////PGI
 
   stage('PGI-Standard') {
     when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume pgi-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/pgi'
       }
     }
     steps {
@@ -221,7 +221,7 @@ stages {
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume pgi-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/pgi'
       }
     }
     steps {
@@ -234,7 +234,7 @@ stages {
     agent {
       docker { 
         image 'ftibsc/ci:latest'
-        args '--volume pgi-compiler:/opt/pgi'
+        args '--volume nvidia-compiler:/opt/pgi'
       }
     }
     steps {
