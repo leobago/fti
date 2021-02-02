@@ -136,9 +136,9 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // - blocksize
     // - stacksize
     if (dcpLayer == 0) {
-        FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.BlockSize,
+        DFTI_EH_FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.BlockSize,
          sizeof(uint32_t), 1, write_info->f, "p", write_info);
-        FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.StackSize,
+        DFTI_EH_FWRITE(NULL, bytes, &FTI_Conf->dcpInfoPosix.StackSize,
          sizeof(unsigned int), 1, write_info->f, "p", write_info);
         FTI_Exec->dcpInfoPosix.FileSize += sizeof(uint32_t) +
          sizeof(unsigned int);
@@ -147,9 +147,9 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // write actual amount of variables at the beginning of each layer
-    FWRITE(NULL, bytes, &FTI_Exec->ckptId, sizeof(int), 1, write_info->f,
+    DFTI_EH_FWRITE(NULL, bytes, &FTI_Exec->ckptId, sizeof(int), 1, write_info->f,
      "p", write_info);
-    FWRITE(NULL, bytes, &FTI_Exec->nbVar, sizeof(int), 1, write_info->f,
+    DFTI_EH_FWRITE(NULL, bytes, &FTI_Exec->nbVar, sizeof(int), 1, write_info->f,
      "p", write_info);
     // + sizeof(unsigned int);
     FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);
@@ -214,9 +214,9 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     blockMeta.varId = data->id;
 
     if (dcpLayer == 0) {
-        FWRITE(FTI_NSCS, bytes, &data->id, sizeof(int), 1,
+        DFTI_EH_FWRITE(FTI_NSCS, bytes, &data->id, sizeof(int), 1,
          write_info->f, "p", block);
-        FWRITE(FTI_NSCS, bytes, &dataSize, sizeof(uint32_t), 1,
+        DFTI_EH_FWRITE(FTI_NSCS, bytes, &dataSize, sizeof(uint32_t), 1,
          write_info->f, "p", block);
         FTI_Exec->dcpInfoPosix.FileSize += (sizeof(int) +
          sizeof(uint32_t));
@@ -296,12 +296,12 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
             int fileUpdate = 0;
             if (commitBlock) {
                 if (dcpLayer > 0) {
-                    FWRITE(FTI_NSCS, success, &blockMeta, 6, 1, write_info->f,
+                    DFTI_EH_FWRITE(FTI_NSCS, success, &blockMeta, 6, 1, write_info->f,
                      "p", block);
                     if (success) fileUpdate += 6;
                 }
                 if (success) {
-                    FWRITE(FTI_NSCS, success, ptr, chunkSize, 1, write_info->f,
+                    DFTI_EH_FWRITE(FTI_NSCS, success, ptr, chunkSize, 1, write_info->f,
                      "p", block);
                     if (success) fileUpdate += chunkSize;
                 }
@@ -379,7 +379,7 @@ int FTI_PosixDCPClose(void *fileDesc) {
     // layer size is needed in order to create layer hash during recovery
     FTI_Exec->dcpInfoPosix.LayerSize[dcpLayer] = write_dcpInfo->layerSize;
     FTI_Exec->dcpInfoPosix.Counter++;
-    if ((dcpLayer == 0)) {
+    if (dcpLayer == 0) {
         char ofn[512];
         snprintf(ofn, FTI_BUFS, "%s/dcp-id%d-rank%d.fti", FTI_Ckpt[4].dcpDir,
          dcpFileId-1, FTI_Topo->myRank);

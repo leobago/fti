@@ -29,7 +29,7 @@ int FTI_RmDir(char path[FTI_BUFS], int flag);
 int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, int level);
 
-void FTI_CopyStringOrDefault(char* dest, char* src, char* fmt, ...);
+void FTI_CopyStringOrDefault(char* dest, const char* src, char* fmt, ...);
 int FTI_IsTypeComposite(FTIT_Datatype *t);
 FTIT_Datatype* FTI_GetCompositeType(fti_id_t handle);
 

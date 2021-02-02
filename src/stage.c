@@ -590,7 +590,7 @@ int FTI_GetRequestIdx(int ID) {
   without the head process being enabled. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_SyncStage(char* lpath, char *rpath, FTIT_execution *FTI_Exec,
+int FTI_SyncStage(const char* lpath, const char *rpath, FTIT_execution *FTI_Exec,
         FTIT_topology *FTI_Topo, FTIT_configuration *FTI_Conf, uint32_t ID) {
     if (!FTI_SI_ENABLED) {
         FTI_Print("Staging disabled, invalid call to 'FTI_SyncStage'",
@@ -777,7 +777,7 @@ int FTI_SyncStage(char* lpath, char *rpath, FTIT_execution *FTI_Exec,
   asynchronous staging of the local file to the PFS. 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_AsyncStage(char *lpath, char *rpath, FTIT_configuration *FTI_Conf,
+int FTI_AsyncStage(const char *lpath, const char *rpath, FTIT_configuration *FTI_Conf,
         FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo, int ID) {
     if (!FTI_SI_ENABLED) {
         FTI_Print("Staging disabled, invalid call to 'FTI_AsyncStage'",

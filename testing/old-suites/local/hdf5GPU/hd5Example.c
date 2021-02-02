@@ -44,10 +44,12 @@ dimensions ***allocateLinearMemory(hsize_t x, hsize_t y, hsize_t z)
 {
     dimensions *p = (dimensions*) malloc(x * y * z * sizeof(dimensions));
     dimensions ***q = (dimensions***) malloc(x * sizeof(dimensions**));
-    for (int i = 0; i < x; i++)
+    int i;
+    for (i = 0; i < x; i++)
     {
         q[i] = (dimensions **) malloc(y * sizeof(dimensions *));
-        for (int j = 0; j < y; j++)
+        int j;
+        for (j = 0; j < y; j++)
         {
             int idx = x*j + x*y*i;
             q[i][j] = &p[idx];

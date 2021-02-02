@@ -1,0 +1,206 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   standard.itf
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#   @author Kai Keller (kellekai@gmx.de) (First implementation)
+#   @date   May, 2020
+
+itf_load_module 'fti'
+
+# --------------------------- Test Fixture Functions ---------------------------
+
+setup() {
+    # Set up the common variables in all tests for this suite checks
+
+    fti_config_set_inline
+
+    write_dir='checks'
+    mkdir -p $write_dir
+    app="$(dirname ${BASH_SOURCE[0]})/check.exe"
+}
+
+teardown() {
+    # Clean up all common variables for this suite checks
+
+    rm -rf $write_dir
+    unset write_dir app
+}
+
+# -------------------------- Test Auxiliar Functions --------------------------
+
+run_app_first_time() {
+    # Prepare and run the check application for the first time in the test case
+
+    fti_config_set 'ckpt_io' $iolib
+    fti_config_set 'head' $head
+    fti_config_set 'keep_last_ckpt' $keep
+
+    local cfgfile=${itf_cfg['fti:config']}
+    local crash=0 # Do not crash on keep=1 to test flushing the last checkpoint
+    if [ $keep -eq 0 ]; then
+        # Simulate a crash when not keeping last checkpoint
+        crash=1
+    fi
+    fti_run_success $app $cfgfile $crash $level $diffsize $icp $write_dir
+}
+
+run_app_second_time() {
+    # Run the check application for the second time not simulating a crash
+
+    fti_run $app ${itf_cfg['fti:config']} 0 $level $diffsize $icp $write_dir
+}
+
+# ------------------------ Parametrized Test Functions ------------------------
+
+normal_run() {
+    # Brief:
+    # Checks the default behavior of FTI checkpoint protection
+    #
+    # Details:
+    # Runs a check application two times.
+    # The second application run will simulate a successful completion.
+    # If keep_last_ckpt is set, the first run will also complete.
+    # Otherwise, a crash will be simulated in the first application run.
+    #
+    # This will test the capability of the multi-level recovery.
+    # The test variates the io library, which level will be tested,
+    # if checkpoints have different sizes, head and keep_last_ckpt values.
+    #
+    # For the keep_last_ckpt, this check verifies if FTI recovers from the
+    # checkpoint that was sent to the PFS after the app completion.
+
+    param_parse '+iolib' '+level' '+icp' '+diffsize' '+head' '+keep' $@
+
+    # Setup
+    if [ $head -eq 1 ] && [ $level -gt 1 ]; then
+        fti_config_set "inline_l$level" '0'
+    fi
+
+    # Check body
+    run_app_first_time
+
+    # When keep=1, FTI flushes the last checkpoint to global
+    # It also writes 2 into 'failure' as to notify this behavior
+    if [ $keep -eq 1 ]; then
+        check_equals $(fti_config_get 'failure') '2'
+    fi
+
+    # This run should succeed and be a restart in both keep scenarios
+    # On keep=1, it should restart from the ckpt pushed to global
+    # On keep=0, it should restart from the last ckpt in local
+    run_app_second_time
+    assert_equals $? 0 'FTI failed to recover'
+}
+
+
+
+# -------------- ITF calls to register the FTI normal-run checks --------------
+
+itf_fixture 'normal_run' 'setup' 'teardown'
+
+# Register checks for the full combination of parameter values
+for iolib in $fti_io_ids; do
+    for icp in 0 1; do
+        for diffsize in 0 1; do
+            for head in 0 1; do
+                for keep in 0 1; do
+                    for level in $fti_levels; do
+                        itf_case 'normal_run' "--iolib=$iolib" "--icp=$icp" \
+                            "--diffsize=$diffsize" "--head=$head" \
+                            "--keep=$keep" "--level=$level"
+                    done
+                done
+            done
+        done
+    done
+done
+
+
+# ------------ FTI ckpt_disrupt checks where **keep_last_ckpt=1** -------------
+
+keep=1
+level=1                  # Only test the functionality for one level
+disrupt='erase'          # Erase the checkpoint files
+target='global'          # Files are in the PFS after the app completion
+consecutive='irrelevant' # The whole folder is deleted, so this is irrelevant
+expected='fail'          # FTI should NOT be able to recover from this scenario
+register_disrupt_checks  # Combine with parameters: iolib, icp, diffsize, head
+
+# ------------ FTI ckpt_disrupt checks where **keep_last_ckpt=0** -------------
+
+# Each level will have its own set of tests.
+# After setting keep to 0, we will have to individually evaluate every level.
+keep=0
+
+# -------- FTI ckpt_disrupt where **keep_last_ckpt=0** and **level=1** --------
+
+level=1
+target='checkpoint'       # Files are in the local folder after crash
+consecutive='false' # Disrupt checkpoints from non-consecutive nodes.
+expected='fail'     # FTI should NOT recover from this scenario.
+
+# Combine with parameters: iolib, icp, diffsize, head AND disrupt
+for disrupt in 'erase' 'corrupt'; do
+    register_disrupt_checks
+done
+
+# ------- FTI ckpt_disrupt where **keep_last_ckpt=0** and **level=2/3** -------
+
+for level in 2 3; do
+    # FTI can recover when disruptions are in non-consecutive nodes
+
+    consecutive='false' # Disrupt checkpoints from non-consecutive nodes.
+    expected='success'  # FTI should recover from this scenario.
+
+    # Register checks for the local checkpoint rank disruption
+    target='checkpoint'
+    for disrupt in 'erase' 'corrupt'; do
+        register_disrupt_checks
+    done
+
+    # Register checks for the checkpoint file according to the level
+    target='partner'
+    for disrupt in 'erase' 'corrupt'; do
+        register_disrupt_checks
+    done
+
+    # Also add tests where FTI fails due to corruptions in consecutive nodes
+    # We can simplify these tests by just deleting the whole node directories
+
+    target='node'      # Find the whole node directory within the local folder
+    consecutive='true' # Target consecutive nodes directories.
+    disrupt='erase'    # Delete all directories with all files inside
+    expected='fail'    # FTI should NOT recover from this scenario.
+    if [ $level -eq 3 ]; then
+        expected='success'    # RS-encoding will enable FTI to recover
+    fi
+    register_disrupt_checks
+
+    # Add tests when deleting the whole node directory does not impact FTI behavior
+    # This will happen if nodes are not consecutive.
+
+    consecutive='false' # Target non-consecutive nodes
+    expected='success'  # FTI should NOT recover from this scenario.
+    register_disrupt_checks
+done
+
+# -------- FTI ckpt_disrupt where **keep_last_ckpt=0** and **level=4** --------
+
+level=4
+disrupt='erase'          # Corruption is not needed, erasing is enough.
+target='global'          # The whole global directory.
+consecutive='irrelevant' # All nodes will be deleted.
+expected='fail'          # FTI should NOT recover from this scenario.
+register_disrupt_checks
+
+# -------------------------- ITF Suite Cleanup calls --------------------------
+
+# Clean up after all checks are registered
+unset 'iolib' 'level' 'icp' 'diffsize' 'head' 'keep' 'disrupt' 'target' 'consecutive' 'expected'
+itf_suite_unload 'on_suite_teardown'
+
+on_suite_teardown() {
+    unset run_app_first_time run_app_second_time register_disrupt_checks
+}

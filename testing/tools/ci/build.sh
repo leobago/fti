@@ -65,10 +65,10 @@ clang | Clang)
     ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
     ;;
 pgi | PGI)
-    export PGICC='/opt/pgi/linux86-64/19.10/bin/'
-    export PGIMPICC='/opt/pgi/linux86-64/2019/mpi/openmpi-3.1.3/bin/'
-    export LM_LICENSE_FILE="/opt/pgi/license.dat"
-    export LD_LIBRARY_PATH='/opt/pgi/linux86-64/19.10/lib'
+    export PGICC='/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/compilers/bin/'
+    export PGIMPICC='/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/comm_libs/openmpi/openmpi-3.1.5/bin/'
+    #export LM_LICENSE_FILE="/opt/pgi/license.dat"
+    export LD_LIBRARY_PATH='/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/compilers/lib/'
     export PATH="$PGICC:$PGIMPICC:$PATH"
     set_compiler_env pgcc pgfortran pgc++
     ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib

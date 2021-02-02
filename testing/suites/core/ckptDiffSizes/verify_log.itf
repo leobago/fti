@@ -1,0 +1,129 @@
+#!/bin/bash
+#   Copyright (c) 2017 Leonardo A. Bautista-Gomez
+#   All rights reserved
+#
+#   @file   integration.itf
+#   @author Karol Sierocinski (ksiero@man.poznan.pl)
+#       Contribution: First implementation of test behavior
+#   @author Alexandre de Limas Santana (alexandre.delimassantana@bsc.es)
+#       Contribution: Refactoring and conversion to ITF format
+#   @date   May, 2020
+
+itf_load_module 'fti'
+
+# --------------------- General Setup/Teardown Functions ----------------------
+
+setup() {
+    # Common setup for all diff_sizes checks
+
+    fti_config_set 'keep_last_ckpt' '1'
+    fti_config_set_ckpts '1' '2' '3' '4'
+}
+
+# ----------------------------- Utility Functions -----------------------------
+
+common_setups=('H0I1' 'H1I1' 'H1I0')
+
+itf_suite_unload 'unload_diff_sizes'
+
+unload_diff_sizes() {
+    # Remove all non-setup, teardown and test names after executing the suite
+    unset set_configfile_to_preset common_setups check_log
+}
+
+set_configfile_to_preset() {
+    # Change the config file, after the setup, to one of the common presets
+    #
+    # Arguments:
+    # $1: Preset name, one of the presets for this suite
+    #       values: [ H1I0, H1I1 ]
+
+    case $1 in
+    H1I0 | h1i0)
+        fti_config_set 'head' '1'
+        fti_config_set_noinline
+        ;;
+    H1I1 | h1i1)
+        fti_config_set 'head' '1'
+        fti_config_set_inline
+        ;;
+    esac
+}
+
+check_log() {
+    # Brief:
+    # Log checking routine for the tests
+    #
+    # Arguments:
+    # $1 - Expecting errors (boolean: 0/1)
+    # $2 - Check for restart (boolean: 0/1)
+
+    local i begin end
+
+    # If should not contain errors in the logs
+    if [ $1 -eq 0 ]; then
+        fti_check_not_in_log 'Error'
+    else
+        fti_check_in_log 'Error'
+    fi
+
+    # Check if all variables were protected
+    for i in $(seq 1 2); do
+        fti_check_in_log "Variable ID $i to protect."
+    done
+
+    begin=1
+    end=1
+    # If needed, check if this is a restart
+    if [ ! -z $2 ] && [ $2 -eq 1 ]; then
+        # Also, the initial and final checkpoint ids change
+        fti_check_in_log "This is a restart."
+        begin=7
+        end=12
+    fi
+
+    # Check if all checkpoints were taken in the correct level
+    for i in $(seq $begin $end); do
+        fti_check_in_log "Ckpt. ID $i (L$level)"
+    done
+}
+
+# ---------------------------- Log Check Function -----------------------------
+
+verify_log() {
+    # Brief:
+    # Asserts normal behavior, in logs, when ranks have different ckpt sizes
+
+    param_parse '+preset' '+level' $@
+
+    set_configfile_to_preset $preset
+
+    local app="$(dirname ${BASH_SOURCE[0]})/diffSizes.exe"
+    local cfgfile="${itf_cfg['fti:config']}"
+
+    local check_sizes=1
+    # Notice: If this test ever gets checked with other IOs
+    # We don't know the ckpt sizes whe using FTI-IO and HDF5
+    #if [ $iolib -eq 3 ] || [ $iolib -eq 5 ]; then
+    #    check_sizes=0
+    #fi
+
+    # Run once, simulate a crash
+    fti_run_success $app $cfgfile $level 1 $check_sizes
+    # Check logs for messages that should be there
+    check_log 0 0
+    # Run again, until the end
+    fti_run_success $app $cfgfile $level 0 $check_sizes
+    check_log 0 1
+
+    pass
+}
+
+itf_setup 'verify_log' 'setup'
+for pset in ${common_setups[@]}; do
+    for level in $fti_levels; do
+        itf_case 'verify_log' "--preset=$pset" "--level=$level"
+    done
+done
+unset level pset
+

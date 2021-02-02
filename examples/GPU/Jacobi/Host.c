@@ -277,7 +277,8 @@ void InitializeDataChunk(int topSizeY, int topIdxY, const int2 * domSize, const 
     // Set the boundary conditions for the left edge
     if (!HasNeighbor(neighbors, DIR_LEFT))
     {
-        for (int j = borderBounds.x, idx = domSize->x + 3; j < borderBounds.y; ++j, idx += domSize->x + 2)
+        int j;
+        for (j = borderBounds.x, idx = domSize->x + 3; j < borderBounds.y; ++j, idx += domSize->x + 2)
         {
             hostBlock[idx] = (real)sin(PI * j / borderSpan);
         }
@@ -286,14 +287,16 @@ void InitializeDataChunk(int topSizeY, int topIdxY, const int2 * domSize, const 
     // Set the boundary conditions for the right edge
     if (!HasNeighbor(neighbors, DIR_RIGHT))
     {
-        for (int j = borderBounds.x, idx = ((domSize->x + 2) << 1) - 2; j < borderBounds.y; ++j, idx += domSize->x + 2)
+        int j;
+        for (j = borderBounds.x, idx = ((domSize->x + 2) << 1) - 2; j < borderBounds.y; ++j, idx += domSize->x + 2)
         {
             hostBlock[idx] = (real)sin(PI * j / borderSpan) * E_M_PI;
         }
     }
 
     // Perform device memory allocation and initialization
-    for (int i = 0; i < 2; ++i)
+    int i;
+    for (i = 0; i < 2; ++i)
     {
         SafeCudaCall(cudaMalloc((void **)&devBlocks[i], blockBytes));
         SafeCudaCall(cudaMalloc((void **)&devSideEdges[i], sideLineBytes));	

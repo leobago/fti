@@ -90,7 +90,10 @@ int main(int argc, char *argv[]) {
     double wtime, *h, *g, memSize, localerror, globalerror = 1;
 
     MPI_Init(&argc, &argv);
-    FTI_Init(argv[2], MPI_COMM_WORLD);
+    if (FTI_Init(argv[2], MPI_COMM_WORLD) !=  0) {
+        printf("FTI could not initialize properly!\n");
+        return 1;
+    };
 
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
