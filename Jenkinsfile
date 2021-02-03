@@ -121,6 +121,45 @@ stages {
       }
     }
   }
+  
+  //MPICH
+
+  stage('MPICH-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+        args '--volume mpich:/opt/mpich'
+      }
+    }
+    steps {
+     script { standard_checks('MPICH') }
+    }
+  }
+
+  stage('MPICH-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+        args '--volume mpich:/opt/mpich'
+      }
+    }
+    steps {
+     script { diffsizes_checks('MPICH') }
+    }
+  }
+
+  stage('MPICH-Features') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+        args '--volume mpich:/opt/mpich'
+      }
+    }
+    steps {
+     script { feature_checks('MPICH') }
+    }
+  }
+
 
   //INTEL
 

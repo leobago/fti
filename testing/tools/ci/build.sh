@@ -53,6 +53,11 @@ gcc | GCC)
     set_compiler_env gcc gfortran g++
     ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
     ;;
+mpich | MPICH)
+    set_compiler_env gcc gfortran g++
+    PATH=/opt/mpich/bin:$PATH; export PATH
+    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
+    ;;
 intel | Intel)
     set_compiler_env icc ifort icpc
     export CFLAGS='-D__PURE_INTEL_C99_HEADERS__ -D_Float32=float -D_Float64=double -D_Float32x=_Float64 -D_Float64x=_Float128'
