@@ -56,6 +56,7 @@ gcc | GCC)
 mpich | MPICH)
     set_compiler_env gcc gfortran g++
     PATH=/opt/mpich/bin:$PATH; export PATH
+    LD_LIBRARY_PATH=/opt/mpich/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
     ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
     ;;
 intel | Intel)
