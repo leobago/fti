@@ -128,7 +128,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich'
+        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
       }
     }
     steps {
@@ -140,7 +140,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich'
+        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
       }
     }
     steps {
@@ -152,7 +152,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich'
+        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
       }
     }
     steps {
