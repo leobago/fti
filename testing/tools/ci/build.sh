@@ -11,36 +11,44 @@
 #      $1 - The compiler we want to use in building FTI
 
 set_compiler_env() {
-    # $1 -> C         compiler
-    # $2 -> Fortran   compiler
-    # $3 -> C++       compiler
-    
-    # standard compiler
-    export CC=$1
-    export CXX=$3
-    export FC=$2
-    export F95=$2
-    export F77=$2
-    export F90=$2
-    
-    # MPI wrapper
-    export OMPI_CC=$1
-    export OMPI_FC=$2
-    export OMPI_F90=$2
-    export OMPI_F77=$2
-    export OMPI_CXX=$3
-    export OMPI_MPICC=$1
-    export MPICH_CC=$1
-    export MPICH_FC=$2
-    export MPICH_CXX=$3
-    export MPICH_F77=$2
-    export MPICH_F90=$2
-    export I_MPI_CC=$1
-    export I_MPI_CXX=$3
-    export I_MPI_FC=$2
-    export I_MPI_F90=$2
-    export I_MPI_F77=$2
+  cat <<EOF > run
+#!/bin/bash
+. /opt/$1/install/activate_all
+\$*
+EOF
+	chmod +x run
+  . /opt/$1/install/activate_all  
 }
+#    # $1 -> C         compiler
+#    # $2 -> Fortran   compiler
+#    # $3 -> C++       compiler
+#    
+#    # standard compiler
+#    export CC=$1
+#    export CXX=$3
+#    export FC=$2
+#    export F95=$2
+#    export F77=$2
+#    export F90=$2
+#    
+#    # MPI wrapper
+#    export OMPI_CC=$1
+#    export OMPI_FC=$2
+#    export OMPI_F90=$2
+#    export OMPI_F77=$2
+#    export OMPI_CXX=$3
+#    export OMPI_MPICC=$1
+#    export MPICH_CC=$1
+#    export MPICH_FC=$2
+#    export MPICH_CXX=$3
+#    export MPICH_F77=$2
+#    export MPICH_F90=$2
+#    export I_MPI_CC=$1
+#    export I_MPI_CXX=$3
+#    export I_MPI_FC=$2
+#    export I_MPI_F90=$2
+#    export I_MPI_F77=$2
+#}
 root_folder=$(git rev-parse --show-toplevel)
 install_script=$root_folder/install.sh
 
@@ -50,8 +58,7 @@ fi
 
 case $1 in
 gcc | GCC)
-    set_compiler_env gcc gfortran g++
-    . /opt/gnu-openmpi/install/activate_all
+    set_compiler_env gnu-openmpi
     ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT
     ;;
 mpich | MPICH)

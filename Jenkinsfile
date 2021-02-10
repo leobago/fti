@@ -17,12 +17,10 @@ def itf_suite_compilation(stage) {
 }
 
 def itf_suite(stage, compilerName) {
-  labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
+  labelledShell (label:"Clean Folder", script:"rm -rf build/ install/")
   labelledShell (
-    label:'Build FTI', 
-    script: """
-    . testing/tools/ci/build.sh ${compilerName}
-    """
+    label:"Build FTI",
+    script:"testing/tools/ci/build.sh ${compilerName}"
   )
   tests = labelledShell (
     label: "List ${stage} suites",
@@ -34,7 +32,7 @@ def itf_suite(stage, compilerName) {
     catchError {
       labelledShell (
         label: "Suite: ${test}",
-        script: "testing/tools/ci/testdriver --run ${test}"
+        script: "./run testing/tools/ci/testdriver --run ${test}"
       )
     }
 }
@@ -71,7 +69,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env-file=testing/tools/ci/env-gnu-openmpi'
       }
     }
     steps {
