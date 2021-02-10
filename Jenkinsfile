@@ -69,7 +69,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env-file=testing/tools/ci/env-gnu-openmpi'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
       }
     }
     steps {
