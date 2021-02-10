@@ -51,7 +51,8 @@ fi
 case $1 in
 gcc | GCC)
     set_compiler_env gcc gfortran g++
-    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=/opt/sionlib
+    . /opt/gnu-openmpi/install/activate_all
+    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT
     ;;
 mpich | MPICH)
     set_compiler_env gcc gfortran g++

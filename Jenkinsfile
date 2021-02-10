@@ -68,7 +68,8 @@ stages {
   stage('GCC-Standard') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
       }
     }
     steps {
@@ -87,7 +88,8 @@ stages {
   stage('GCC-DiffSizes') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
       }
     }
     steps {
@@ -106,7 +108,8 @@ stages {
   stage('GCC-Features') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
       }
     }
     steps {
