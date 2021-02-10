@@ -69,7 +69,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
@@ -89,7 +89,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
@@ -109,7 +109,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
@@ -130,8 +130,8 @@ stages {
   stage('MPICH-Standard') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
       }
     }
     steps {
@@ -142,8 +142,8 @@ stages {
   stage('MPICH-DiffSizes') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
       }
     }
     steps {
@@ -154,8 +154,8 @@ stages {
   stage('MPICH-Features') {
     agent {
       docker {
-        image 'ftibsc/ci:latest'
-        args '--volume mpich:/opt/mpich --volume hdf5-mpich:/opt/hdf5-mpich --volume sionlib-mpich:/opt/sionlib-mpich'
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
       }
     }
     steps {

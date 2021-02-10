@@ -13,12 +13,12 @@
 # It can be modified to support users debugging and launching tests locally.
 # For users trying to mimick the Jenkins environment, check ci_testdriver.
 
-export MPIRUN_ARGS=--oversubscribe
+#export MPIRUN_ARGS=--oversubscribe
 
 @CMAKE_CURRENT_SOURCE_DIR@/testdriver --path-modules "@itf_dir@/modules" $@
     
 retval=$?
 
-unset MPIRUN_ARGS
+#unset MPIRUN_ARGS
 
 exit $retval
