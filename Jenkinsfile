@@ -19,8 +19,10 @@ def itf_suite_compilation(stage) {
 def itf_suite(stage, compilerName) {
   labelledShell (label:'Clean Folder', script:"rm -rf build/ install/")
   labelledShell (
-    label:'Build FTI',
-    script:". testing/tools/ci/build.sh ${compilerName}"
+    label:'Build FTI', 
+    script: """
+    . testing/tools/ci/build.sh ${compilerName}
+    """
   )
   tests = labelledShell (
     label: "List ${stage} suites",
