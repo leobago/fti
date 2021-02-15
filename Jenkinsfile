@@ -65,183 +65,221 @@ stages {
 
   //GCC
 
-  stage('GCC-Standard') {
+  //stage('GCC-Standard') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/debian-stable-slim-dev:latest'
+  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+  //    }
+  //  }
+  //  steps {
+  //   script { standard_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
+
+  //stage('GCC-DiffSizes') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/debian-stable-slim-dev:latest'
+  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+  //    }
+  //  }
+  //  steps {
+  //   script { diffsizes_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
+
+  //stage('GCC-Features') {
+  //  agent {
+  //    docker {
+  //      image 'ftibsc/debian-stable-slim-dev:latest'
+  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+  //    }
+  //  }
+  //  steps {
+  //   script { feature_checks('GCC') }
+  //  }
+  //  post {
+  //    always {
+  //      labelledShell (
+  //        label:'Generate coverage reports',
+  //        script:"gcovr --xml -r . -o coverage.xml")
+  //      cobertura coberturaReportFile: 'coverage.xml'
+  //    }
+  //  }
+  //}
+
+  //PGI
+
+  stage('PGI-Standard') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
-     script { standard_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
+     script { standard_checks('PGI') }
     }
   }
 
-  stage('GCC-DiffSizes') {
+  stage('PGI-DiffSizes') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
-     script { diffsizes_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
+     script { diffsizes_checks('PGI') }
     }
   }
 
-  stage('GCC-Features') {
+  stage('PGI-Features') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
       }
     }
     steps {
-     script { feature_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
-  
-  //MPICH
-
-  stage('MPICH-Standard') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-      }
-    }
-    steps {
-     script { standard_checks('MPICH') }
+     script { feature_checks('PGI') }
     }
   }
 
-  stage('MPICH-DiffSizes') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-      }
-    }
-    steps {
-     script { diffsizes_checks('MPICH') }
-    }
-  }
+//  //MPICH TODO
+//
+//  stage('MPICH-Standard') {
+//    agent {
+//      docker {
+//        image 'ftibsc/debian-stable-slim-dev:latest'
+//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
+//      }
+//    }
+//    steps {
+//     script { standard_checks('MPICH') }
+//    }
+//  }
+//
+//  stage('MPICH-DiffSizes') {
+//    agent {
+//      docker {
+//        image 'ftibsc/debian-stable-slim-dev:latest'
+//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
+//      }
+//    }
+//    steps {
+//     script { diffsizes_checks('MPICH') }
+//    }
+//  }
+//
+//  stage('MPICH-Features') {
+//    agent {
+//      docker {
+//        image 'ftibsc/debian-stable-slim-dev:latest'
+//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
+//      }
+//    }
+//    steps {
+//     script { feature_checks('MPICH') }
+//    }
+//  }
 
-  stage('MPICH-Features') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-      }
-    }
-    steps {
-     script { feature_checks('MPICH') }
-    }
-  }
 
+//  //INTEL FIXME currently unsupported because of intel compilerbug
+//
+//  stage('Intel-Standard') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//        args '--volume intel-compiler:/opt/intel'
+//      }
+//    }
+//    steps {
+//     script { standard_checks('Intel') }
+//    }
+//  }
+//
+//  stage('Intel-DiffSizes') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//        args '--volume intel-compiler:/opt/intel'
+//      }
+//    }
+//    steps {
+//     script { diffsizes_checks('Intel') }
+//    }
+//  }
+//
+//  stage('Intel-Features') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//        args '--volume intel-compiler:/opt/intel'
+//      }
+//    }
+//    steps {
+//     script { feature_checks('Intel') }
+//    }
+//  }
 
-  //INTEL
-
-  stage('Intel-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { standard_checks('Intel') }
-    }
-  }
-
-  stage('Intel-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { diffsizes_checks('Intel') }
-    }
-  }
-
-  stage('Intel-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume intel-compiler:/opt/intel'
-      }
-    }
-    steps {
-     script { feature_checks('Intel') }
-    }
-  }
-
-  //CLANG
-
-  stage('CLang-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { standard_checks('Clang') }
-    }
-  }
-
-  stage('CLang-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { diffsizes_checks('Clang') }
-    }
-  }
-
-  stage('CLang-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-      }
-    }
-    steps {
-     script { feature_checks('Clang') }
-    }
-  }
+//  //CLANG
+//
+//  stage('CLang-Standard') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//      }
+//    }
+//    steps {
+//     script { standard_checks('Clang') }
+//    }
+//  }
+//
+//  stage('CLang-DiffSizes') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//      }
+//    }
+//    steps {
+//     script { diffsizes_checks('Clang') }
+//    }
+//  }
+//
+//  stage('CLang-Features') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker {
+//        image 'ftibsc/ci:latest'
+//      }
+//    }
+//    steps {
+//     script { feature_checks('Clang') }
+//    }
+//  }
 
   //PGI
 
