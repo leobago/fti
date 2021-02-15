@@ -283,42 +283,42 @@ stages {
 
   //PGI
 
-  stage('PGI-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker { 
-        image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/nvidia'
-      }
-    }
-    steps {
-     script { standard_checks('PGI') }
-    }
-  }
-
-  stage('PGI-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker { 
-        image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/nvidia'
-      }
-    }
-    steps {
-     script { diffsizes_checks('PGI') }
-    }
-  }
-
-  stage('PGI-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
-    agent {
-      docker { 
-        image 'ftibsc/ci:latest'
-        args '--volume nvidia-compiler:/opt/nvidia'
-      }
-    }
-    steps {
-     script { feature_checks('PGI') }
-    }
-  }
+//  stage('PGI-Standard') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker { 
+//        image 'ftibsc/ci:latest'
+//        args '--volume nvidia-compiler:/opt/nvidia'
+//      }
+//    }
+//    steps {
+//     script { standard_checks('PGI') }
+//    }
+//  }
+//
+//  stage('PGI-DiffSizes') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker { 
+//        image 'ftibsc/ci:latest'
+//        args '--volume nvidia-compiler:/opt/nvidia'
+//      }
+//    }
+//    steps {
+//     script { diffsizes_checks('PGI') }
+//    }
+//  }
+//
+//  stage('PGI-Features') {
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    agent {
+//      docker { 
+//        image 'ftibsc/ci:latest'
+//        args '--volume nvidia-compiler:/opt/nvidia'
+//      }
+//    }
+//    steps {
+//     script { feature_checks('PGI') }
+//    }
+//  }
 }}
