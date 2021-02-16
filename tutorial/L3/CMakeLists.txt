@@ -1,5 +1,6 @@
 add_executable(hdl3.exe heatdis.c)
 target_link_libraries(hdl3.exe fti.static ${MPI_C_LIBRARIES} m)
+target_include_directories(hdl3.exe PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_property(TARGET hdl3.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hdl3.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
