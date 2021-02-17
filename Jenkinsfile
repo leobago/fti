@@ -126,6 +126,42 @@ stages {
   //}
 
   //PGI
+  
+  stage('LLVM-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+      }
+    }
+    steps {
+     script { standard_checks('LLVM') }
+    }
+  }
+
+  stage('LLVM-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+      }
+    }
+    steps {
+     script { diffsizes_checks('LLVM') }
+    }
+  }
+
+  stage('LLVM-Features') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+      }
+    }
+    steps {
+     script { feature_checks('LLVM') }
+    }
+  }
 
   stage('PGI-Standard') {
     agent {

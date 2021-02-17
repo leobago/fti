@@ -72,9 +72,9 @@ intel | Intel)
     /opt/intel/bin/compilervars.sh intel64
     ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib -C $root_folder/CMakeScripts/intel.cmake
     ;;
-clang | Clang)
-    set_compiler_env clang gfortran clang++
-    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=/opt/sionlib
+llvm | LLVM)
+    set_compiler_env llvm-openmpi
+    ${install_script} --enable-tests --enable-hdf5
     ;;
 pgi | PGI)
     set_compiler_env pgi-openmpi
