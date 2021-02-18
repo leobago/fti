@@ -13,8 +13,9 @@
 set_compiler_env() {
   cat <<EOF > run
 #!/bin/bash
-. /opt/$1/install/activate_all
-\$*
+cmd=$*
+. /opt/$1/install/activate_all > /dev/null 2>&1
+$cmd
 EOF
 	chmod +x run
   . /opt/$1/install/activate_all  
