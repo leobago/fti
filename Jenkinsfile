@@ -53,77 +53,77 @@ pipeline {
 agent none
 
 stages {
-  stage('Compilation checks') {
-    agent {
-      docker {
-        image 'ftibsc/ci:latest'
-        args '--volume cmake-versions:/opt/cmake'
-      }
-    }
-    steps { itf_suite_compilation('compilation') }
-  }
+  //////////stage('Compilation checks') {
+  //////////  agent {
+  //////////    docker {
+  //////////      image 'ftibsc/ci:latest'
+  //////////      args '--volume cmake-versions:/opt/cmake'
+  //////////    }
+  //////////  }
+  //////////  steps { itf_suite_compilation('compilation') }
+  //////////}
 
-  //GCC
+  ////////////GCC
 
-  stage('GCC-Standard') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-      }
-    }
-    steps {
-     script { standard_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //////////stage('GCC-Standard') {
+  //////////  agent {
+  //////////    docker {
+  //////////      image 'ftibsc/debian-stable-slim-dev:latest'
+  //////////      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+  //////////    }
+  //////////  }
+  //////////  steps {
+  //////////   script { standard_checks('GCC') }
+  //////////  }
+  //////////  post {
+  //////////    always {
+  //////////      labelledShell (
+  //////////        label:'Generate coverage reports',
+  //////////        script:"gcovr --xml -r . -o coverage.xml")
+  //////////      cobertura coberturaReportFile: 'coverage.xml'
+  //////////    }
+  //////////  }
+  //////////}
 
-  stage('GCC-DiffSizes') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-      }
-    }
-    steps {
-     script { diffsizes_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //////////stage('GCC-DiffSizes') {
+  //////////  agent {
+  //////////    docker {
+  //////////      image 'ftibsc/debian-stable-slim-dev:latest'
+  //////////      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+  //////////    }
+  //////////  }
+  //////////  steps {
+  //////////   script { diffsizes_checks('GCC') }
+  //////////  }
+  //////////  post {
+  //////////    always {
+  //////////      labelledShell (
+  //////////        label:'Generate coverage reports',
+  //////////        script:"gcovr --xml -r . -o coverage.xml")
+  //////////      cobertura coberturaReportFile: 'coverage.xml'
+  //////////    }
+  //////////  }
+  //////////}
 
-  stage('GCC-Features') {
-    agent {
-      docker {
-        image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-      }
-    }
-    steps {
-     script { feature_checks('GCC') }
-    }
-    post {
-      always {
-        labelledShell (
-          label:'Generate coverage reports',
-          script:"gcovr --xml -r . -o coverage.xml")
-        cobertura coberturaReportFile: 'coverage.xml'
-      }
-    }
-  }
+  //////////stage('GCC-Features') {
+  //////////  agent {
+  //////////    docker {
+  //////////      image 'ftibsc/debian-stable-slim-dev:latest'
+  //////////      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+  //////////    }
+  //////////  }
+  //////////  steps {
+  //////////   script { feature_checks('GCC') }
+  //////////  }
+  //////////  post {
+  //////////    always {
+  //////////      labelledShell (
+  //////////        label:'Generate coverage reports',
+  //////////        script:"gcovr --xml -r . -o coverage.xml")
+  //////////      cobertura coberturaReportFile: 'coverage.xml'
+  //////////    }
+  //////////  }
+  //////////}
 
 // TODO https://issues.jenkins.io/browse/JENKINS-41104?page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel&showAll=true
 // maybe we can use CHANGE_TARGET == master here and avoid checking the local branch. Instead only check the PR branch.
@@ -131,7 +131,7 @@ stages {
   //PGI
 
   stage('PGI-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+//    when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -144,7 +144,7 @@ stages {
   }
 
   stage('PGI-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -157,7 +157,7 @@ stages {
   }
 
   stage('PGI-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -172,7 +172,7 @@ stages {
   //LLVM
   
   stage('LLVM-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -185,7 +185,7 @@ stages {
   }
 
   stage('LLVM-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -198,7 +198,7 @@ stages {
   }
 
   stage('LLVM-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -213,7 +213,7 @@ stages {
   // Intel 
 
   stage('Intel-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -226,7 +226,7 @@ stages {
   }
 
   stage('Intel-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -239,7 +239,7 @@ stages {
   }
 
   stage('Intel-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -254,7 +254,7 @@ stages {
   //MPICH
 
   stage('MPICH-Standard') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -267,7 +267,7 @@ stages {
   }
 
   stage('MPICH-DiffSizes') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -280,7 +280,7 @@ stages {
   }
 
   stage('MPICH-Features') {
-    when { expression { return env.BRANCH_NAME == 'develop' } }
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
