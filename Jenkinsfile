@@ -160,42 +160,40 @@ stages {
      script { feature_checks('Intel') }
     }
   }
-
-  //PGI
   
-  stage('LLVM-Standard') {
+  stage('MPICH-Standard') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
       }
     }
     steps {
-     script { standard_checks('LLVM') }
+     script { standard_checks('MPICH') }
     }
   }
 
-  stage('LLVM-DiffSizes') {
+  stage('MPICH-DiffSizes') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
       }
     }
     steps {
-     script { diffsizes_checks('LLVM') }
+     script { diffsizes_checks('MPICH') }
     }
   }
 
-  stage('LLVM-Features') {
+  stage('MPICH-Features') {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
       }
     }
     steps {
-     script { feature_checks('LLVM') }
+     script { feature_checks('MPICH') }
     }
   }
 
@@ -235,44 +233,43 @@ stages {
     }
   }
 
-//  //MPICH TODO
-//
-//  stage('MPICH-Standard') {
-//    agent {
-//      docker {
-//        image 'ftibsc/debian-stable-slim-dev:latest'
-//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-//      }
-//    }
-//    steps {
-//     script { standard_checks('MPICH') }
-//    }
-//  }
-//
-//  stage('MPICH-DiffSizes') {
-//    agent {
-//      docker {
-//        image 'ftibsc/debian-stable-slim-dev:latest'
-//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-//      }
-//    }
-//    steps {
-//     script { diffsizes_checks('MPICH') }
-//    }
-//  }
-//
-//  stage('MPICH-Features') {
-//    agent {
-//      docker {
-//        image 'ftibsc/debian-stable-slim-dev:latest'
-//        args '--volume ci-gnu-mpich:/opt/gnu-mpich'
-//      }
-//    }
-//    steps {
-//     script { feature_checks('MPICH') }
-//    }
-//  }
+  //PGI
+  
+  stage('LLVM-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('LLVM') }
+    }
+  }
 
+  stage('LLVM-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('LLVM') }
+    }
+  }
+
+  stage('LLVM-Features') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('LLVM') }
+    }
+  }
 
 //
 //  stage('Intel-Standard') {
