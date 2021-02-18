@@ -124,6 +124,42 @@ stages {
   //    }
   //  }
   //}
+  
+  stage('Intel-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('Intel') }
+    }
+  }
+
+  stage('Intel-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('Intel') }
+    }
+  }
+
+  stage('Intel-Features') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('Intel') }
+    }
+  }
 
   //PGI
   
@@ -131,7 +167,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
       }
     }
     steps {
@@ -143,7 +179,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
       }
     }
     steps {
@@ -155,7 +191,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
       }
     }
     steps {
@@ -167,7 +203,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
       }
     }
     steps {
@@ -179,7 +215,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
       }
     }
     steps {
@@ -191,7 +227,7 @@ stages {
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
-        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS=--oversubscribe'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
       }
     }
     steps {
@@ -238,7 +274,6 @@ stages {
 //  }
 
 
-//  //INTEL FIXME currently unsupported because of intel compilerbug
 //
 //  stage('Intel-Standard') {
 //    when { expression { return env.BRANCH_NAME == 'develop' } }

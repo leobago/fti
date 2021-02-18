@@ -21,6 +21,7 @@ print_usage() {
     echo "            [--hdf5-path=DIR]             # Path to HDF5 installation"
     echo "            [--ime-path=DIR]              # Path to DDN IME installation"
     echo "            [--cmake-bin=BIN]             # Use a custom CMake installation"
+    echo "            [--cmake-arg=BIN]             # Use a custom CMake argument"
     echo " "
     echo "            [--enable-coverage]           # Enable another build, fti_cov, for gathering coverage metrics"
     echo "            [--make-verbose]              # Enable verbosity when calling make commands"
@@ -131,6 +132,10 @@ while [ $# -gt 0 ]; do
         ;;
     --enable-docu)
         CMAKE_ARGS="$CMAKE_ARGS -DENABLE_DOCU=1"
+        shift # past argument=value
+        ;;
+    --cmake-arg=*)
+        CMAKE_ARGS="$CMAKE_ARGS -D${1#*=}"
         shift # past argument=value
         ;;
     --sionlib-path=*)
