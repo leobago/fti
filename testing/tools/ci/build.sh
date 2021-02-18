@@ -47,7 +47,7 @@ llvm | LLVM)
     ;;
 pgi | PGI)
     set_compiler_env pgi-openmpi
-    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=$SIONLIB_ROOT
     ;;
 esac
 
