@@ -79,77 +79,77 @@ pipeline {
 agent none
 
 stages {
-  //stage('Compilation checks') {
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/ci:latest'
-  //      args '--volume cmake-versions:/opt/cmake'
-  //    }
-  //  }
-  //  steps { itf_suite_compilation('compilation') }
-  //}
+  stage('Compilation checks') {
+    agent {
+      docker {
+        image 'ftibsc/ci:latest'
+        args '--volume cmake-versions:/opt/cmake'
+      }
+    }
+    steps { itf_suite_compilation('compilation') }
+  }
 
-  ////GCC
+  //GCC
 
-  //stage('GCC-Standard') {
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('GCC') }
-  //  }
-  //  post {
-  //    always {
-  //      labelledShell (
-  //        label:'Generate coverage reports',
-  //        script:"gcovr --xml -r . -o coverage.xml")
-  //      cobertura coberturaReportFile: 'coverage.xml'
-  //    }
-  //  }
-  //}
+  stage('GCC-Standard') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
 
-  //stage('GCC-DiffSizes') {
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('GCC') }
-  //  }
-  //  post {
-  //    always {
-  //      labelledShell (
-  //        label:'Generate coverage reports',
-  //        script:"gcovr --xml -r . -o coverage.xml")
-  //      cobertura coberturaReportFile: 'coverage.xml'
-  //    }
-  //  }
-  //}
+  stage('GCC-DiffSizes') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
 
-  //stage('GCC-Features') {
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('GCC') }
-  //  }
-  //  post {
-  //    always {
-  //      labelledShell (
-  //        label:'Generate coverage reports',
-  //        script:"gcovr --xml -r . -o coverage.xml")
-  //      cobertura coberturaReportFile: 'coverage.xml'
-  //    }
-  //  }
-  //}
+  stage('GCC-Features') {
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-openmpi:/opt/gnu-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('GCC') }
+    }
+    post {
+      always {
+        labelledShell (
+          label:'Generate coverage reports',
+          script:"gcovr --xml -r . -o coverage.xml")
+        cobertura coberturaReportFile: 'coverage.xml'
+      }
+    }
+  }
 
   //PGI
 
@@ -166,154 +166,154 @@ stages {
     }
   }
 
-  //stage('PGI-DiffSizes') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('PGI') }
-  //  }
-  //}
+  stage('PGI-DiffSizes') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('PGI') }
+    }
+  }
 
-  //stage('PGI-Features') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('PGI') }
-  //  }
-  //}
+  stage('PGI-Features') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('PGI') }
+    }
+  }
 
-  ////LLVM
-  //
-  //stage('LLVM-Standard') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('LLVM') }
-  //  }
-  //}
+  //LLVM
+  
+  stage('LLVM-Standard') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('LLVM') }
+    }
+  }
 
-  //stage('LLVM-DiffSizes') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('LLVM') }
-  //  }
-  //}
+  stage('LLVM-DiffSizes') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('LLVM') }
+    }
+  }
 
-  //stage('LLVM-Features') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('LLVM') }
-  //  }
-  //}
+  stage('LLVM-Features') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('LLVM') }
+    }
+  }
 
-  //// Intel 
+  // Intel 
 
-  //stage('Intel-Standard') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('Intel') }
-  //  }
-  //}
+  stage('Intel-Standard') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('Intel') }
+    }
+  }
 
-  //stage('Intel-DiffSizes') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('Intel') }
-  //  }
-  //}
+  stage('Intel-DiffSizes') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('Intel') }
+    }
+  }
 
-  //stage('Intel-Features') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks_intel('Intel') }
-  //  }
-  //}
-  //
-  ////MPICH
+  stage('Intel-Features') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks_intel('Intel') }
+    }
+  }
+  
+  //MPICH
 
-  //stage('MPICH-Standard') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-Standard') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('MPICH') }
+    }
+  }
 
-  //stage('MPICH-DiffSizes') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-DiffSizes') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('MPICH') }
+    }
+  }
 
-  //stage('MPICH-Features') {
-  //  when { expression { return env.CHANGE_TARGET == 'master' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-Features') {
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('MPICH') }
+    }
+  }
 
 
 }}
