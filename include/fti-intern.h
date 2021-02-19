@@ -171,8 +171,8 @@ extern "C" {
     } FTIT_dcpDatasetPosix;
 
     typedef struct blockMetaInfo_t {
-        uint32_t varId : 18;
-        uint32_t blockId : 30;
+        uint64_t varId : 18;
+        uint64_t blockId : 30;
     } blockMetaInfo_t;
 
     /*-----------------------------------------------------------------------
