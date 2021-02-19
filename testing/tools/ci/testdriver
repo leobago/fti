@@ -55,7 +55,7 @@ run)
     # cd /path/to/FTI/build/testing
     # itf/ci_testdriver local/standard/standard.itf
 
-    export MPIRUN_ARGS=--oversubscribe
+    #export MPIRUN_ARGS=--oversubscribe
     echo "[Testdriver] Running suites: " ${arguments[@]}
     ${dirs['src']}/tools/itf/testdriver/testdriver \
         --path-modules "${dirs['compiled']}/itf/modules" \
@@ -63,7 +63,7 @@ run)
         --filter standard:ckpt_disruption:expected=fail \
         ${arguments[@]}
     retval=$?
-    unset MPIRUN_ARGS
+    #unset MPIRUN_ARGS
     exit $retval
     ;;
 find)
