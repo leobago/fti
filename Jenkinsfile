@@ -156,116 +156,116 @@ stages {
 
   //PGI
 
-  //stage('PGI-Standard') {
-////    when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('PGI') }
-  //  }
-  //}
+  stage('PGI-Standard') {
+    when { expression { return env.CHANGE_TARGET == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('PGI') }
+    }
+  }
 
-  //stage('PGI-DiffSizes') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('PGI') }
-  //  }
-  //}
+  stage('PGI-DiffSizes') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('PGI') }
+    }
+  }
 
-  //stage('PGI-Features') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('PGI') }
-  //  }
-  //}
+  stage('PGI-Features') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-pgi-openmpi:/opt/pgi-openmpi --env MPIRUN_ARGS="--oversubscribe --mca mpi_cuda_support 0" --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('PGI') }
+    }
+  }
 
-  ////LLVM
-  //
-  //stage('LLVM-Standard') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('LLVM') }
-  //  }
-  //}
+  //LLVM
+  
+  stage('LLVM-Standard') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('LLVM') }
+    }
+  }
 
-  //stage('LLVM-DiffSizes') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('LLVM') }
-  //  }
-  //}
+  stage('LLVM-DiffSizes') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('LLVM') }
+    }
+  }
 
-  //stage('LLVM-Features') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('LLVM') }
-  //  }
-  //}
+  stage('LLVM-Features') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-llvm-openmpi:/opt/llvm-openmpi --env MPIRUN_ARGS=--oversubscribe --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('LLVM') }
+    }
+  }
 
   // Intel 
 
-  //stage('Intel-Standard') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('Intel') }
-  //  }
-  //}
+  stage('Intel-Standard') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('Intel') }
+    }
+  }
 
-  //stage('Intel-DiffSizes') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('Intel') }
-  //  }
-  //}
+  stage('Intel-DiffSizes') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-intel-impi:/opt/intel-impi --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('Intel') }
+    }
+  }
 
   stage('Intel-Features') {
-    //when { expression { return env.BRANCH_NAME == 'develop' } }
+    when { expression { return env.BRANCH_NAME == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -279,44 +279,44 @@ stages {
   
   //MPICH
 
-  //stage('MPICH-Standard') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { standard_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-Standard') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { standard_checks('MPICH') }
+    }
+  }
 
-  //stage('MPICH-DiffSizes') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { diffsizes_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-DiffSizes') {
+    //when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { diffsizes_checks('MPICH') }
+    }
+  }
 
-  //stage('MPICH-Features') {
-  //  //when { expression { return env.BRANCH_NAME == 'develop' } }
-  //  agent {
-  //    docker {
-  //      image 'ftibsc/debian-stable-slim-dev:latest'
-  //      args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
-  //    }
-  //  }
-  //  steps {
-  //   script { feature_checks('MPICH') }
-  //  }
-  //}
+  stage('MPICH-Features') {
+    when { expression { return env.BRANCH_NAME == 'develop' } }
+    agent {
+      docker {
+        image 'ftibsc/debian-stable-slim-dev:latest'
+        args '--volume ci-gnu-mpich:/opt/gnu-mpich --shm-size=4G'
+      }
+    }
+    steps {
+     script { feature_checks('MPICH') }
+    }
+  }
 
 
 }}
