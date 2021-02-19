@@ -154,7 +154,10 @@ stages {
   //PGI
 
   stage('PGI-Standard') {
-    when { expression { return env.CHANGE_TARGET == 'master' },  beforeAgent: true}
+    when { 
+      expression: { return env.CHANGE_TARGET == 'master' }
+      beforeAgent: true
+    }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
