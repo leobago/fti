@@ -25,6 +25,10 @@ standard() {
     if [ $head -eq 1 ]; then
         itf_cfg['fti:nranks']=20
         fti_config_set 'node_size' '5'
+        fti_config_set 'h5_single_file_inline' '0'
+        fti_config_set 'h5_single_file_dir' './'
+        fti_config_set 'h5_single_file_prefix' 'SF'
+        fti_config_set 'h5_single_file_keep' '1'
     else
         itf_cfg['fti:nranks']=16
         fti_config_set 'node_size' '4'
