@@ -666,7 +666,9 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset,
     hsize_t *offset_out = (hsize_t*)calloc(ranks, sizeof(ranks));
     status = H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out,
      NULL, count, NULL);
+    
     status = H5Dread(dataset, dimType, memspace, dataspace, H5P_DEFAULT, ptr);
+    assert( status >= 0 );
     if (status < 0) {
         free(offset);
         free(count);
@@ -748,16 +750,14 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
         dimLength[j] = data->dimLength[j];
     }
 
-    dcpl = H5Pcreate(H5P_DATASET_CREATE);
-    res = H5Pset_fletcher32(dcpl);
-    res = H5Pset_chunk(dcpl, data->rank, dimLength);
-
-    hid_t dataspace = H5Screate_simple(data->rank, dimLength, NULL);
+    hid_t dataspace;
     hid_t dataset;
     if (FTI_Exec->h5SingleFile) {
+        dataspace = H5Screate_simple(data->sharedData.dataset->rank, data->sharedData.count, NULL);
         hid_t globalDataset = data->sharedData.dataset->hid;
         dataset = H5Dcreate2(globalDataset, data->name,
-         data->type->h5datatype, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
+         data->type->h5datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        assert( dataset >= 0);
         int rank = 1;
         hsize_t att_dims = data->sharedData.dataset->rank;
         hid_t att_space = H5Screate_simple(rank, &att_dims, NULL);
@@ -770,8 +770,13 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
         H5Aclose(att_offset);
         H5Aclose(att_count);
     } else {
+        dcpl = H5Pcreate(H5P_DATASET_CREATE);
+        res = H5Pset_fletcher32(dcpl);
+        res = H5Pset_chunk(dcpl, data->rank, dimLength);
+        dataspace = H5Screate_simple(data->rank, dimLength, NULL);
         dataset = H5Dcreate2(data->h5group->h5groupID, data->name,
          data->type->h5datatype, dataspace, H5P_DEFAULT, dcpl, H5P_DEFAULT);
+        res = H5Pclose(dcpl);
     }
     // If my data are stored in the CPU side
     // Just store the data to the file and return;
@@ -787,7 +792,6 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
             return FTI_NSCS;
         }
 
-        res = H5Pclose(dcpl);
         if (res < 0) {
             snprintf(str, sizeof(str),
              "Dataset #%d could not be written", data->id);
@@ -2271,34 +2275,56 @@ int FTI_MergeDatasetSingleFile(hid_t gid, hid_t loc, char *datasetname) {
         hid_t msid = H5Screate_simple(datasetrank, count, NULL);
         H5Sselect_hyperslab(sid, H5S_SELECT_SET, offset, NULL, count, NULL);
 
-        size_t memsize = typesize*H5Sget_simple_extent_npoints(msid);
+        hsize_t memsize = typesize*H5Sget_simple_extent_npoints(msid);
+        hsize_t sep;
+        hsize_t maxBytes = 1024*1024*4;
+        hsize_t *count_buf = talloc(hsize_t, datasetrank);
+        hsize_t *offset_buf = (hsize_t*) calloc(datasetrank, sizeof(hsize_t));
+        hsize_t *offset_dest = talloc(hsize_t, datasetrank); 
+        memcpy(offset_dest, offset, datasetrank*sizeof(hsize_t));
+        hsize_t buffersize;
+        buffersize = FTI_calculateCountDim(typesize, maxBytes, count_buf, datasetrank, count, &sep);
+        DBG_MSG("sep: %llu, tofetch: %llu, memsize: %llu, count_buf = {%llu, %llu}", 0, sep, buffersize, memsize, count_buf[0], count_buf[1]);
+        hsize_t tofetch = memsize;
+        void* data_buf = malloc(buffersize);
+        hid_t sid_subset = H5Dget_space(subset);
+        while( tofetch ) {
+          assert( tofetch >= 0 && "total size must be multiple of chunksize!" );
+          FTI_ReadElements(sid_subset, tid, subset, count_buf, offset_buf, datasetrank, data_buf);
+          DBG_MSG("tofetch: %llu, offset_local = {%llu, %llu}, offset_global = {%llu, %llu} data[0]: %d", 0, 
+              tofetch, offset_buf[0], offset_buf[1], offset[0]+offset_buf[0], offset[1]+offset_buf[1], *(int*)data_buf);
+          int i=0; for(;i<datasetrank;i++) offset_dest[i] = offset[i] + offset_buf[i];
+          FTI_WriteElements(sid, tid, did, count_buf, offset_dest, datasetrank , data_buf);
+          tofetch -= buffersize;
+          FTI_AdvanceOffset(sep, offset_buf, count_buf, count, datasetrank);
+        }
         data = malloc(memsize);
-        if (!data) {
-            char errstr[FTI_BUFS];
-            snprintf(errstr, FTI_BUFS, "Unable to allocate %lu bytes to merge"
-            " subset '%s' to global dataset '%s'", memsize,
-             subsetname, datasetname);
-            FTI_Print(errstr, FTI_EROR);
-            return FTI_NSCS;
-        }
+        //if (!data) {
+        //    char errstr[FTI_BUFS];
+        //    snprintf(errstr, FTI_BUFS, "Unable to allocate %llu bytes to merge"
+        //    " subset '%s' to global dataset '%s'", memsize,
+        //     subsetname, datasetname);
+        //    FTI_Print(errstr, FTI_EROR);
+        //    return FTI_NSCS;
+        //}
 
-        herr_t err = H5Dread(subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
-        if (err) {
-            char errstr[FTI_BUFS];
-            snprintf(errstr, FTI_BUFS, "Unable to read from subset '%s' of"
-            " global dataset '%s'", subsetname, datasetname);
-            FTI_Print(errstr, FTI_EROR);
-            return FTI_NSCS;
-        }
+        //herr_t err = H5Dread(subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+        //if (err) {
+        //    char errstr[FTI_BUFS];
+        //    snprintf(errstr, FTI_BUFS, "Unable to read from subset '%s' of"
+        //    " global dataset '%s'", subsetname, datasetname);
+        //    FTI_Print(errstr, FTI_EROR);
+        //    return FTI_NSCS;
+        //}
 
-        err = H5Dwrite(did, tid, msid, sid, plid, data);
-        if (err) {
-            char errstr[FTI_BUFS];
-            snprintf(errstr, FTI_BUFS, "Unable to write subset '%s' to global"
-            " dataset '%s'", subsetname, datasetname);
-            FTI_Print(errstr, FTI_EROR);
-            return FTI_NSCS;
-        }
+        //err = H5Dwrite(did, tid, msid, sid, plid, data);
+        //if (err) {
+        //    char errstr[FTI_BUFS];
+        //    snprintf(errstr, FTI_BUFS, "Unable to write subset '%s' to global"
+        //    " dataset '%s'", subsetname, datasetname);
+        //    FTI_Print(errstr, FTI_EROR);
+        //    return FTI_NSCS;
+        //}
         H5Sclose(msid);
         H5Dclose(subset);
         free(data);
