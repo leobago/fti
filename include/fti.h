@@ -106,7 +106,7 @@ extern "C" {
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
   int FTI_Checkpoint(int id, int level);
-  int FTI_GetStageDir(const char* stageDir, int maxLen);
+  int FTI_GetStageDir(char* stageDir, int maxLen);
   int FTI_GetStageStatus(int ID);
   int FTI_SendFile(const char* lpath, const char *rpath);
   int FTI_Recover();

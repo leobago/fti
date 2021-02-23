@@ -480,7 +480,7 @@ int FTI_AddVectorField(fti_id_t id, const char* name,
   FTI_NSCS is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_GetStageDir(const char* stageDir, int maxLen) {
+int FTI_GetStageDir(char* stageDir, int maxLen) {
     if (!FTI_Conf.stagingEnabled) {
         FTI_Print("'FTI_GetStageDir' -> Staging disabled,"
           " no action performed.", FTI_WARN);
@@ -3009,7 +3009,7 @@ int FTI_RecoverVar(int id) {
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverVarFinalize() {
-    int res;
+    int res = FTI_SCES;
 
     if (FTI_Exec.ckptLvel == 4) {
         if (FTI_Ckpt[4].recoIsDcp && FTI_Conf.dcpPosix) {

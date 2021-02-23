@@ -1067,7 +1067,7 @@ int FTI_GetRequestField(int ID, FTIT_RequestField val) {
 
     uint32_t field = idxRequest[ID];
 
-    int query;
+    int query = FTI_NSCS;
 
     switch (val) {
         case FTI_SIF_ALL:
@@ -1170,7 +1170,7 @@ int FTI_GetStatusField(FTIT_execution *FTI_Exec, FTIT_topology *FTI_Topo,
     MPI_Win_shared_query(stageWin, source, &size, &disp, &(status));
     uint8_t status_cpy = status[ID];
 
-    int query;
+    int query = FTI_NSCS;
 
     switch (val) {
         case FTI_SIF_VAL:
