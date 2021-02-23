@@ -1555,8 +1555,8 @@ int FTI_RecoverDatasetDimension(int did) {
     free(dataset->dimension);
     dataset->dimension = span;
 
-    H5Dclose(did);
-    H5Fclose(file_id);
+    assert(H5Dclose(dataset_id)>=0);
+    assert(H5Fclose(file_id)>=0);
 
     return FTI_SCES;
 
