@@ -106,7 +106,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
     FTI_InitFIIO();
 #endif
 #ifdef ENABLE_HDF5
-//    H5Eset_auto2(0, 0, NULL);
+    H5Eset_auto2(0, 0, NULL);
 #endif
     FTI_InitExecVars(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, &FTI_Inje);
     FTI_Exec.globalComm = globalComm;

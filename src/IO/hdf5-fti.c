@@ -2277,6 +2277,7 @@ int FTI_MergeDatasetSingleFile(hid_t gid, hid_t loc, char *datasetname) {
 
         hsize_t memsize = typesize*H5Sget_simple_extent_npoints(msid);
         hsize_t sep;
+        // transfer buffer size (4MB)
         hsize_t maxBytes = 1024*1024*4;
         hsize_t *count_buf = talloc(hsize_t, datasetrank);
         hsize_t *offset_buf = (hsize_t*) calloc(datasetrank, sizeof(hsize_t));
@@ -2284,47 +2285,17 @@ int FTI_MergeDatasetSingleFile(hid_t gid, hid_t loc, char *datasetname) {
         memcpy(offset_dest, offset, datasetrank*sizeof(hsize_t));
         hsize_t buffersize;
         buffersize = FTI_calculateCountDim(typesize, maxBytes, count_buf, datasetrank, count, &sep);
-        DBG_MSG("sep: %llu, tofetch: %llu, memsize: %llu, count_buf = {%llu, %llu}", 0, sep, buffersize, memsize, count_buf[0], count_buf[1]);
         hsize_t tofetch = memsize;
-        void* data_buf = malloc(buffersize);
+        data = malloc(buffersize);
         hid_t sid_subset = H5Dget_space(subset);
         while( tofetch ) {
           assert( tofetch >= 0 && "total size must be multiple of chunksize!" );
-          FTI_ReadElements(sid_subset, tid, subset, count_buf, offset_buf, datasetrank, data_buf);
-          DBG_MSG("tofetch: %llu, offset_local = {%llu, %llu}, offset_global = {%llu, %llu} data[0]: %d", 0, 
-              tofetch, offset_buf[0], offset_buf[1], offset[0]+offset_buf[0], offset[1]+offset_buf[1], *(int*)data_buf);
+          FTI_ReadElements(sid_subset, tid, subset, count_buf, offset_buf, datasetrank, data);
           int i=0; for(;i<datasetrank;i++) offset_dest[i] = offset[i] + offset_buf[i];
-          FTI_WriteElements(sid, tid, did, count_buf, offset_dest, datasetrank , data_buf);
+          FTI_WriteElements(sid, tid, did, count_buf, offset_dest, datasetrank , data);
           tofetch -= buffersize;
           FTI_AdvanceOffset(sep, offset_buf, count_buf, count, datasetrank);
         }
-        data = malloc(memsize);
-        //if (!data) {
-        //    char errstr[FTI_BUFS];
-        //    snprintf(errstr, FTI_BUFS, "Unable to allocate %llu bytes to merge"
-        //    " subset '%s' to global dataset '%s'", memsize,
-        //     subsetname, datasetname);
-        //    FTI_Print(errstr, FTI_EROR);
-        //    return FTI_NSCS;
-        //}
-
-        //herr_t err = H5Dread(subset, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
-        //if (err) {
-        //    char errstr[FTI_BUFS];
-        //    snprintf(errstr, FTI_BUFS, "Unable to read from subset '%s' of"
-        //    " global dataset '%s'", subsetname, datasetname);
-        //    FTI_Print(errstr, FTI_EROR);
-        //    return FTI_NSCS;
-        //}
-
-        //err = H5Dwrite(did, tid, msid, sid, plid, data);
-        //if (err) {
-        //    char errstr[FTI_BUFS];
-        //    snprintf(errstr, FTI_BUFS, "Unable to write subset '%s' to global"
-        //    " dataset '%s'", subsetname, datasetname);
-        //    FTI_Print(errstr, FTI_EROR);
-        //    return FTI_NSCS;
-        //}
         H5Sclose(msid);
         H5Dclose(subset);
         free(data);
