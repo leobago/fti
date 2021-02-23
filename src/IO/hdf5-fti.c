@@ -666,9 +666,7 @@ int FTI_ReadElements(hid_t dataspace, hid_t dimType, hid_t dataset,
     hsize_t *offset_out = (hsize_t*)calloc(ranks, sizeof(ranks));
     status = H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out,
      NULL, count, NULL);
-    
     status = H5Dread(dataset, dimType, memspace, dataspace, H5P_DEFAULT, ptr);
-    assert( status >= 0 );
     if (status < 0) {
         free(offset);
         free(count);
@@ -757,7 +755,6 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
         hid_t globalDataset = data->sharedData.dataset->hid;
         dataset = H5Dcreate2(globalDataset, data->name,
          data->type->h5datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        assert( dataset >= 0);
         int rank = 1;
         hsize_t att_dims = data->sharedData.dataset->rank;
         hid_t att_space = H5Screate_simple(rank, &att_dims, NULL);
@@ -2299,6 +2296,9 @@ int FTI_MergeDatasetSingleFile(hid_t gid, hid_t loc, char *datasetname) {
         H5Sclose(msid);
         H5Dclose(subset);
         free(data);
+        free(count_buf);
+        free(offset_buf);
+        free(offset_dest);
     }
 
     H5Pclose(plid);
