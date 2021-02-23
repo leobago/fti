@@ -154,7 +154,7 @@ stages {
   //PGI
 
   stage('PGI-Standard') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -167,7 +167,7 @@ stages {
   }
 
   stage('PGI-DiffSizes') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -180,7 +180,7 @@ stages {
   }
 
   stage('PGI-Features') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -195,7 +195,7 @@ stages {
   //LLVM
   
   stage('LLVM-Standard') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -208,7 +208,7 @@ stages {
   }
 
   stage('LLVM-DiffSizes') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -221,7 +221,7 @@ stages {
   }
 
   stage('LLVM-Features') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -236,7 +236,7 @@ stages {
   // Intel 
 
   stage('Intel-Standard') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -249,7 +249,7 @@ stages {
   }
 
   stage('Intel-DiffSizes') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -262,7 +262,7 @@ stages {
   }
 
   stage('Intel-Features') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -277,7 +277,7 @@ stages {
   //MPICH
 
   stage('MPICH-Standard') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -290,7 +290,7 @@ stages {
   }
 
   stage('MPICH-DiffSizes') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
@@ -303,7 +303,7 @@ stages {
   }
 
   stage('MPICH-Features') {
-    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'master' } }
+    when { beforeAgent true; expression { return env.CHANGE_TARGET == 'develop' } }
     agent {
       docker {
         image 'ftibsc/debian-stable-slim-dev:latest'
