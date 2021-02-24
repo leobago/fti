@@ -10,6 +10,7 @@ target_include_directories(hd2.exe PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_property(TARGET hd2.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hd2.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
+
 if(ENABLE_FORTRAN)
     add_executable(hdf.exe fheatdis.f90)
     target_link_libraries(hdf.exe fti_f90.static ${MPI_Fortran_LIBRARIES} m)
@@ -19,7 +20,12 @@ if(ENABLE_FORTRAN)
 	    target_compile_definitions(hdf.exe PRIVATE -DMPI_USE_HEADER)
     endif()
 	target_compile_options(hdf.exe PRIVATE -cpp)
+  install(TARGETS hd.exe hd2.exe hdf.exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/examples)
+else()
+  install(TARGETS hd.exe hd2.exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/examples)
 endif()
+
+install(FILES template.ini DESTINATION ${CMAKE_INSTALL_DATADIR}/config)
 
 if (ENABLE_GPU)
   add_subdirectory(GPU)
@@ -30,7 +36,7 @@ if(NOT $MPIRUN)
 endif()
 
 add_custom_target(init
-    COMMAND cp configBkp.fti config.fti
+    COMMAND cp template.ini config.ini
 )
 
 add_custom_target(runall
@@ -38,12 +44,12 @@ add_custom_target(runall
 )
 
 add_custom_target(hd
-	COMMAND ${MPIRUN} -n 16 ./hd.exe 4 config.fti
+	COMMAND ${MPIRUN} -n 16 ./hd.exe 4 config.ini
 )
 
 add_custom_target(hd2
 	COMMAND mkdir results
-	COMMAND ${MPIRUN} -n 16 ./hd2.exe config.fti
+	COMMAND ${MPIRUN} -n 16 ./hd2.exe config.ini
 )
 
 add_custom_target(hdf

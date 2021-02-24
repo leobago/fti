@@ -412,10 +412,6 @@ else()
     link_to_fti(${ZLIB_LIBRARIES})
 endif()
 
-if(NOT ENABLE_COVERAGE)
-    set(ADD_CFLAGS "${ADD_CFLAGS} -O1")
-endif()
-
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
 set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
 
@@ -507,8 +503,7 @@ if(ENABLE_DOCU)
     add_subdirectory(docs/Doxygen)
 endif()
 
-file(COPY examples/config.fti DESTINATION examples)
-file(COPY examples/configBkp.fti DESTINATION examples)
+file(COPY examples/template.ini DESTINATION examples)
 file(COPY examples/plot.sh DESTINATION examples)
 file(COPY examples/vplot.plg DESTINATION examples)
 file(COPY examples/README DESTINATION examples)

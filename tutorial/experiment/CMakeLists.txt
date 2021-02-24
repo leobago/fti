@@ -1,5 +1,6 @@
 add_executable(hdex.exe heatdis.c)
 target_link_libraries(hdex.exe fti.static ${MPI_C_LIBRARIES} m)
+target_include_directories(hdex.exe PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_property(TARGET hdex.exe APPEND PROPERTY COMPILE_FLAGS ${MPI_C_COMPILE_FLAGS})
 set_property(TARGET hdex.exe APPEND PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
 
