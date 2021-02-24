@@ -31,23 +31,23 @@ fi
 case $1 in
 gcc | GCC)
     set_compiler_env gnu-openmpi
-    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT
+    ${install_script} --enable-tests --enable-coverage --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT --cmake-arg=CMAKE_BUILD_TYPE=Release
     ;;
 mpich | MPICH)
     set_compiler_env gnu-mpich
-    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT --cmake-arg=CMAKE_BUILD_TYPE=Release
     ;;
 intel | Intel)
     set_compiler_env intel-impi
-    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT --cmake-arg="CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --enable-fortran --sionlib-path=$SIONLIB_ROOT --cmake-arg="CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH --cmake-arg=CMAKE_BUILD_TYPE=Release"
     ;;
 llvm | LLVM)
     set_compiler_env llvm-openmpi
-    ${install_script} --enable-tests --enable-hdf5
+    ${install_script} --enable-tests --enable-hdf5 --cmake-arg=CMAKE_BUILD_TYPE=Release
     ;;
 pgi | PGI)
     set_compiler_env pgi-openmpi
-    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=$SIONLIB_ROOT
+    ${install_script} --enable-tests --enable-hdf5 --enable-sionlib --sionlib-path=$SIONLIB_ROOT --cmake-arg=CMAKE_BUILD_TYPE=Release
     ;;
 esac
 
