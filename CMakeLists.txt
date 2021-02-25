@@ -32,7 +32,7 @@ if(ENABLE_GPU)
   list(APPEND LANGUAGES "CUDA" "CXX")
 endif()
 
-project("FTI" VERSION 1.5.1 LANGUAGES ${LANGUAGES})
+project("FTI" VERSION 1.6 LANGUAGES ${LANGUAGES})
 
 # ----------------------- Global Properties and Set-up ------------------------
 
