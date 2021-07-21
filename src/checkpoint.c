@@ -183,15 +183,15 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if ((FTI_Conf->dcpFtiff || FTI_Conf->dcpPosix) && FTI_Ckpt[4].isDcp) {
         // After dCP update store total data and dCP
         // sizes in application rank 0
-        uint32_t *dataSize = (FTI_Conf->dcpFtiff)?
-        (uint32_t*)&FTI_Exec->FTIFFMeta.pureDataSize:
+        uint64_t *dataSize = (FTI_Conf->dcpFtiff)?
+        (uint64_t*)&FTI_Exec->FTIFFMeta.pureDataSize:
         &FTI_Exec->dcpInfoPosix.dataSize;
-        uint32_t *dcpSize = (FTI_Conf->dcpFtiff)?
-        (uint32_t*)&FTI_Exec->FTIFFMeta.dcpSize:
+        uint64_t *dcpSize = (FTI_Conf->dcpFtiff)?
+        (uint64_t*)&FTI_Exec->FTIFFMeta.dcpSize:
         &FTI_Exec->dcpInfoPosix.dcpSize;
-        uint32_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
-        uint32_t sendBuf[] = { *dcpSize, *dataSize };
-        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT32_T, MPI_SUM, 0,
+        uint64_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
+        uint64_t sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT64_T, MPI_SUM, 0,
          FTI_COMM_WORLD);
         if (FTI_Topo->splitRank ==  0) {
             *dcpSize = dcpStats[0];

@@ -89,9 +89,10 @@ extern int numHeads;
 extern int finalTag;
 extern int headRank;
 
-static fti_id_t FTI_UI, FTI_XOR_INFO;
-static uint32_t pat;
-static double share_ratio;
+fti_id_t FTI_UI, FTI_XOR_INFO;
+// UNUSED!!
+uint32_t pat;
+//static double share_ratio;
 
 extern int A[1];
 extern int B[2];

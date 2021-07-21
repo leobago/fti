@@ -10,7 +10,7 @@
 
 #include "interface.h"
 
-int FTI_CheckFile(char *fn, int32_t fs, char* checksum);
+int FTI_CheckFile(char *fn, uint64_t fs, char* checksum);
 int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         int *erased);

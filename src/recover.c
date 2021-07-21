@@ -51,7 +51,7 @@
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckFile(char* fn, int32_t fs, char* checksum) {
+int FTI_CheckFile(char* fn, uint64_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
@@ -105,9 +105,9 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         int *erased) {
     int level = FTI_Exec->ckptMeta.level;
-    int32_t fs = FTI_Exec->ckptMeta.fs;
-    int32_t pfs = FTI_Exec->ckptMeta.pfs;
-    int32_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    uint64_t fs = FTI_Exec->ckptMeta.fs;
+    uint64_t pfs = FTI_Exec->ckptMeta.pfs;
+    uint64_t maxFs = FTI_Exec->ckptMeta.maxFs;
     char ckptFile[FTI_BUFS];
     strncpy(ckptFile, FTI_Exec->ckptMeta.ckptFile, FTI_BUFS);
 
@@ -123,7 +123,7 @@ int FTI_CheckErasures(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char fn[FTI_BUFS];  // Path to the checkpoint/partner file name
     int buf;
     int ckptId, rank;  // Variables for proper partner file name
-    int (*consistency)(char *, int32_t , char*);
+    int (*consistency)(char *, uint64_t , char*);
 #ifdef ENABLE_HDF5
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
         consistency = &FTI_CheckHDF5File;

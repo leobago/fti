@@ -68,7 +68,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int k = FTI_Topo->groupSize;
     int m = k;
 
-    int32_t fs = FTI_Exec->ckptMeta.fs;
+    uint64_t fs = FTI_Exec->ckptMeta.fs;
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -130,8 +130,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FILE *fd, *efd;
-    int32_t maxFs = FTI_Exec->ckptMeta.maxFs;
-    int32_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
+    uint64_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    uint64_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;  // Calculating padding size
     }
@@ -237,7 +237,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    int32_t pos = 0;
+    uint64_t pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
@@ -381,8 +381,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             close(ifd);
             return FTI_NSCS;
         }
+        
+        DBG_MSG("fs: %lu",-1,fs_);
 
-        fs = (int32_t) fs_;
+        fs = (uint64_t) fs_;
         FTI_Exec->ckptMeta.fs = fs;
 
         close(ifd);
@@ -441,7 +443,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         close(ifd);
         free(buffer_ser);
     }
-
+    
     if (truncate(fn, fs) == -1) {
         FTI_Print("R3 cannot re-truncate checkpoint file.", FTI_WARN);
 

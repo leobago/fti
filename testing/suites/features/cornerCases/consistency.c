@@ -33,7 +33,7 @@ void simulateCrash() {
   int res;
   if (checkpoint_level != 1) {
     int isInline = -1;
-    int heads = (int)iniparser_getint(ini, "Basic:head", -1);
+    //int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     switch (checkpoint_level) {
       case 2:
         isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
@@ -81,7 +81,7 @@ void simulateCrashWithoutCkpt() {
   dictionary* ini = iniparser_load(configfile);
   int heads = (int)iniparser_getint(ini, "Basic:head", -1);
   int nodeSize = (int)iniparser_getint(ini, "Basic:node_size", -1);
-  int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
+  //int general_tag = (int)iniparser_getint(ini, "Advanced:general_tag", 2612);
   int final_tag = (int)iniparser_getint(ini, "Advanced:final_tag", 3107);
   int res;
   iniparser_freedict(ini);
@@ -183,6 +183,8 @@ int afterSuccessfulRecovery() {
     if (world_rank == 0) printf("Recover done.\n");
     return 0;
   }
+  // no case from above
+  return -1;
 }
 
 void initKeep_last_ckpt() {
@@ -219,6 +221,8 @@ int keep_last_ckpt() {
       return 1;
     }
   }
+  // no case from above
+  return -1;
 }
 
 int initReInit() {
@@ -229,7 +233,7 @@ int initReInit() {
 
 /* check for a correct restart without the crash of the application. */
 int reInit() {
-  int initres = FTI_Init(configfile2, MPI_COMM_WORLD);
+  //int initres = FTI_Init(configfile2, MPI_COMM_WORLD);
   int* array2 = malloc(sizeof(int) * ARRAY_SIZE);
 
   initArray(array2);

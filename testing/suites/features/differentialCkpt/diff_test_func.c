@@ -303,8 +303,9 @@ void allocate_buffers(dcp_info_t * info, uint32_t alloc_size) {
              idx-1, info->size[idx-1]);
         }
     }
-    uint32_t ckptsize = allocated + sizeof(int) +
-     NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
+    // UNUSED!!
+    //uint32_t ckptsize = allocated + sizeof(int) +
+    // NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
     // DBG_MSG_APP("allocated (total): %lu, [ckptsize: %lu]",
     // -1, allocated, ckptsize);
     assert((alloc_size == allocated));
@@ -336,8 +337,9 @@ uint32_t reallocate_buffers(dcp_info_t * info, uint32_t _alloc_size,
         allocated += rest;
         info->size[idx-1] += rest;
     }
-    uint32_t ckptsize = allocated + sizeof(int) +
-     NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
+    // UNUSED!!
+    //uint32_t ckptsize = allocated + sizeof(int) +
+    // NUM_DCKPT*sizeof(xor_info_t) + sizeof(unsigned int);
     // DBG_MSG_APP("re-allocated (total): %lu, [ckptsize: %lu]",
     // -1, allocated, ckptsize);
     assert((alloc_size == allocated));

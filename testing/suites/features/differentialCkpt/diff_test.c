@@ -32,8 +32,9 @@ int main(int argc, char* argv[]) {
         checkpoint(&info, 1, FTI_L4_DCP);
         int i;
         for (i = 0; i < NUM_DCKPT-1; ++i) {
-            uint32_t allocated = reallocate_buffers(&info,
-             ALLOC_SIZE, ALLOC_RANDOM);
+            // UNUSED!!
+            //uint32_t allocated = reallocate_buffers(&info,
+            // ALLOC_SIZE, ALLOC_RANDOM);
             protect_buffers(&info);
             xor_data(i, &info);
             // FTI_Checkpoint(i+2, FTI_L4_DCP);

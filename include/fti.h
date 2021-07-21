@@ -87,7 +87,7 @@ extern "C" {
   int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,
    FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name);
-  int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
+  int FTI_Protect(int id, void* ptr, uint64_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
   int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
@@ -102,7 +102,7 @@ extern "C" {
   int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength);
   int FTI_UpdateSubset(int id, int rank, FTIT_hsize_t* offset,
    FTIT_hsize_t* count, int did);
-  int32_t FTI_GetStoredSize(int id);
+  uint64_t FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
   int FTI_Checkpoint(int id, int level);

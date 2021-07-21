@@ -317,16 +317,16 @@ int FTI_ScanGroup(hid_t gid, char* fn) {
     char errstr[FTI_BUFS];
     hsize_t nobj;
     if (H5Gget_num_objs(gid, &nobj) >= 0) {
-        int i;
+        hsize_t i;
         for (i = 0; i < nobj; i++) {
             int objtype;
             char dname[FTI_BUFS];
             char gname[FTI_BUFS];
             // determine if element is group or dataset
-            objtype = H5Gget_objtype_by_idx(gid, (size_t)i);
+            objtype = H5Gget_objtype_by_idx(gid, i);
             if (objtype == H5G_DATASET) {
-                H5Gget_objname_by_idx(gid, (hsize_t)i, dname,
-                 (size_t)FTI_BUFS);
+                H5Gget_objname_by_idx(gid, i, dname,
+                 (hsize_t)FTI_BUFS);
                 // open dataset
                 hid_t did = H5Dopen1(gid, dname);
                 if (did > 0) {
@@ -366,8 +366,8 @@ int FTI_ScanGroup(hid_t gid, char* fn) {
             }
             // step down other group
             if (objtype == H5G_GROUP) {
-                H5Gget_objname_by_idx(gid, (hsize_t)i, gname,
-                 (size_t) FTI_BUFS);
+                H5Gget_objname_by_idx(gid, i, gname,
+                 (hsize_t) FTI_BUFS);
                 hid_t sgid = H5Gopen1(gid, gname);
                 if (sgid > 0) {
                     res += FTI_ScanGroup(sgid, fn);
@@ -396,7 +396,7 @@ int FTI_ScanGroup(hid_t gid, char* fn) {
   @return     integer         The position in the file.
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetHDF5FilePos(void *fileDesc) {
+uint64_t FTI_GetHDF5FilePos(void *fileDesc) {
     return 0;
 }
 
@@ -492,7 +492,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckHDF5File(char* fn, int32_t fs, char* checksum) {
+int FTI_CheckHDF5File(char* fn, uint64_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
@@ -544,7 +544,7 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes,
  hsize_t *count, int numOfDimensions, hsize_t *dimensions, hsize_t *sep) {
     int i;
     memset(count, 0, sizeof(hsize_t)*numOfDimensions);
-    size_t maxElements = maxBytes/sizeOfElement;
+    uint64_t maxElements = maxBytes/sizeOfElement;
     hsize_t bytesToFetch;
 
     if (maxElements == 0)
@@ -842,7 +842,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
     prefetcher.totalBytesToFetch = data->size;
     prefetcher.isDevice = data->isDevicePtr;
     prefetcher.dptr = data->devicePtr;
-    size_t bytesToWrite;
+    uint64_t bytesToWrite;
     FTI_InitPrefetcher(&prefetcher);
     unsigned char *basePtr = NULL;
 
@@ -969,8 +969,8 @@ int FTI_ReadHDF5Var(FTIT_dataset *data) {
 
 
     hsize_t seperator;
-    size_t fetchBytes;
-    size_t hostBufSize = FTI_getHostBuffSize();
+    uint64_t fetchBytes;
+    uint64_t hostBufSize = FTI_getHostBuffSize();
     // Calculate How many dimension I can compute each time
     // and how bug should the HOST-GPU communication buffer should be
 
@@ -1506,8 +1506,8 @@ int FTI_RecoverVarHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          FTI_Conf->h5SingleFilePrefix, FTI_Exec->ckptId);
     } else {
         if (data->size != data->sizeStored) {
-            snprintf(str, sizeof(str), "Cannot recover %d bytes to "
-                "protected variable (ID %d) size: %d",
+            snprintf(str, sizeof(str), "Cannot recover %lu bytes to "
+                "protected variable (ID %d) size: %lu",
                     data->sizeStored, data->id,
                     data->size);
             FTI_Print(str, FTI_WARN);

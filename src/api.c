@@ -249,7 +249,7 @@ int FTI_Status() {
   It is obscured from the user for API backwards compatibility.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitType_opaque(size_t size) {
+fti_id_t FTI_InitType_opaque(uint64_t size) {
     FTIT_Datatype *type;
     fti_id_t new_id = FTI_Exec.datatypes.ntypes;
 
@@ -324,7 +324,7 @@ FTIT_Datatype* FTI_GetType(fti_id_t id) {
   The fields can be added using FTI_AddScalarField and FTI_AddVectorField.
 **/
 /*-------------------------------------------------------------------------*/
-fti_id_t FTI_InitCompositeType(const char* name, size_t size,
+fti_id_t FTI_InitCompositeType(const char* name, uint64_t size,
  FTIT_H5Group* h5g) {
     FTIT_Datatype *type;
     FTIT_complexType *structure;
@@ -369,7 +369,7 @@ fti_id_t FTI_InitCompositeType(const char* name, size_t size,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
- size_t offset) {
+ uint64_t offset) {
     FTIT_Datatype *struct_ref, *field_type;
     int field_id;
     FTIT_typeField *field;
@@ -428,7 +428,7 @@ int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_AddVectorField(fti_id_t id, const char* name,
-  fti_id_t tid, size_t offset, int ndims, int* dim_sizes) {
+  fti_id_t tid, uint64_t offset, int ndims, int* dim_sizes) {
     FTIT_complexType *type;
     FTIT_typeField *field;
     int i;
@@ -804,7 +804,7 @@ int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
+int FTI_Protect(int id, void* ptr, uint64_t count, fti_id_t tid) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return FTI_NSCS;
@@ -836,7 +836,7 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
     }
 
     if (data != NULL) {  // Search for dataset with given id
-        int32_t prevSize = data->size;
+        uint64_t prevSize = data->size;
 #ifdef GPUSUPPORT
         if (ptrInfo.type == FTIT_PTRTYPE_CPU) {
             // strcpy(memLocation, "CPU");
@@ -895,7 +895,7 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
         FTI_Print(str, FTI_DBUG);
         if (prevSize != data->size &&  FTI_Conf.dcpPosix) {
             if (!(data->isDevicePtr)) {
-                uint32_t nbHashes = data->size /
+                uint64_t nbHashes = data->size /
                 FTI_Conf.dcpInfoPosix.BlockSize +
                  (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
                 data->dcpInfoPosix.currentHashArray = (unsigned char*)
@@ -910,10 +910,10 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
 #ifdef GPUSUPPORT
             else {
                 unsigned char *x;
-                uint32_t nbNewHashes = data->size /
+                uint64_t nbNewHashes = data->size /
                 FTI_Conf.dcpInfoPosix.BlockSize +
                  (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
-                uint32_t nbOldHashes = prevSize /
+                uint64_t nbOldHashes = prevSize /
                 FTI_Conf.dcpInfoPosix.BlockSize +
                  (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
                 CUDA_ERROR_CHECK(cudaMallocManaged((void**) &x,
@@ -1018,7 +1018,7 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
 
     if (FTI_Conf.dcpPosix) {
         if (!(data->isDevicePtr)) {
-            uint32_t nbHashes = data->size /
+            uint64_t nbHashes = data->size /
             FTI_Conf.dcpInfoPosix.BlockSize
              + (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
             data->dcpInfoPosix.hashDataSize = 0;
@@ -1032,7 +1032,7 @@ int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid) {
 #ifdef GPUSUPPORT
         else {
             unsigned char *x;
-            uint32_t nbNewHashes = data->size /
+            uint64_t nbNewHashes = data->size /
             FTI_Conf.dcpInfoPosix.BlockSize +
              (bool)(data->size %FTI_Conf.dcpInfoPosix.BlockSize);
             CUDA_ERROR_CHECK(cudaMallocManaged((void**)&x,
@@ -1616,7 +1616,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
     }
 
     // check if size is correct
-    int expectedSize = 1;
+    uint64_t expectedSize = 1;
     int j;
     for (j = 0; j < rank; j++) {
         expectedSize *= dimLength[j];  // compute the number of elements
@@ -1627,7 +1627,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
             // sprintf(str, "Trying to define datasize: number of elements %d,
             // but the dataset count is %ld.", expectedSize, data->count);
             snprintf(str, sizeof(str), "Trying to define datasize: number of"
-            " elements %d, but the dataset count is %d.",
+            " elements %lu, but the dataset count is %lu.",
              expectedSize, data->count);
             FTI_Print(str, FTI_WARN);
             return FTI_NSCS;
@@ -1653,7 +1653,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
 /**
   @brief      Returns size saved in metadata of variable
   @param      id              Variable ID.
-  @return     int32_t            Returns size of variable or 0 if size not saved.
+  @return     uint64_t            Returns size of variable or 0 if size not saved.
 
   This function returns size of variable of given ID that is saved in metadata.
   This may be different from size of variable that is in the program. If this
@@ -1662,7 +1662,7 @@ int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
   is no size saved in metadata it returns 0.
  **/
 /*-------------------------------------------------------------------------*/
-int32_t FTI_GetStoredSize(int id) {
+uint64_t FTI_GetStoredSize(int id) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);
         return 0;
@@ -1734,7 +1734,7 @@ void* FTI_Realloc(int id, void* ptr) {
         ptr = tmp;
 
         // sprintf(str, "Reallocated size: %ld", data->sizeStored);
-        snprintf(str, sizeof(str), "Reallocated size: %d", data->sizeStored);
+        snprintf(str, sizeof(str), "Reallocated size: %lu", data->sizeStored);
         FTI_Print(str, FTI_INFO);
 
         FTI_Exec.ckptSize += data->sizeStored - data->size;
@@ -2295,13 +2295,13 @@ int FTI_FinalizeICP() {
 
     if ((FTI_Conf.dcpFtiff || FTI_Conf.dcpPosix) && FTI_Ckpt[4].isDcp) {
         // After dCP update store total data and dCP sizes in application rank0
-        uint32_t *dataSize = (FTI_Conf.dcpFtiff)?(uint32_t*)&
+        uint64_t *dataSize = (FTI_Conf.dcpFtiff)?(uint64_t*)&
         FTI_Exec.FTIFFMeta.pureDataSize:&FTI_Exec.dcpInfoPosix.dataSize;
-        uint32_t *dcpSize = (FTI_Conf.dcpFtiff)?(uint32_t*)&
+        uint64_t *dcpSize = (FTI_Conf.dcpFtiff)?(uint64_t*)&
         FTI_Exec.FTIFFMeta.dcpSize:&FTI_Exec.dcpInfoPosix.dcpSize;
-        uint32_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
-        uint32_t sendBuf[] = { *dcpSize, *dataSize };
-        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT32_T, MPI_SUM, 0,
+        uint64_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
+        uint64_t sendBuf[] = { *dcpSize, *dataSize };
+        MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT64_T, MPI_SUM, 0,
          FTI_COMM_WORLD);
         if (FTI_Topo.splitRank ==  0) {
             *dcpSize = dcpStats[0];
@@ -2477,8 +2477,8 @@ int FTI_Recover() {
                 protected variable (ID %d) size: %ld",
                         data[i].sizeStored, data[i].id,
                         data[i].size);*/
-                snprintf(str, sizeof(str), "Cannot recover %d bytes to "
-                  "protected variable (ID %d) size: %d",
+                snprintf(str, sizeof(str), "Cannot recover %lu bytes to "
+                  "protected variable (ID %d) size: %lu",
                         data[i].sizeStored, data[i].id,
                         data[i].size);
                 FTI_Print(str, FTI_WARN);
@@ -2513,8 +2513,8 @@ int FTI_Recover() {
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize, 
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
                         data->sizeStored);*/
-                snprintf(str, sizeof(str), "Cannot recover %d bytes to "
-                  "protected variable (ID %d) size: %d",
+                snprintf(str, sizeof(str), "Cannot recover %lu bytes to "
+                  "protected variable (ID %d) size: %lu",
                         FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varSize,
                          FTI_Exec.dcpInfoPosix.datasetInfo[lidx][i].varID,
                         data->sizeStored);
@@ -2573,7 +2573,7 @@ int FTI_Recover() {
 #ifdef GPUSUPPORT
 
     for (i = 0; i < FTI_Exec.nbVarStored; i++) {
-        size_t filePos = data[i].filePosStored;
+        uint64_t filePos = data[i].filePosStored;
         // strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         if (data[i].isDevicePtr)
@@ -2591,7 +2591,7 @@ int FTI_Recover() {
 
 #else
     for (i = 0; i < FTI_Exec.nbVarStored; i++) {
-        size_t filePos = data[i].filePos;
+        uint64_t filePos = data[i].filePos;
         // strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
         fread(data[i].ptr, 1, data[i].sizeStored, fd);
