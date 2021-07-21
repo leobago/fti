@@ -134,6 +134,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     uint64_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;  // Calculating padding size
+        DBG_MSG("maxFs: %lu, ps: %lu", 0, maxFs, ps);
     }
     if (erased[FTI_Topo->groupRank] == 0) {  // Resize and open files
         // determine file size in order to write at the end of the

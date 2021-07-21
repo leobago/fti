@@ -113,9 +113,9 @@ typedef struct FTIFF_RecoveryInfo {
     int BackupExists;
     int ckptId;
     int rightIdx;
-    uint64_t maxFs;
-    uint64_t fs;
-    uint64_t bfs;
+    int64_t maxFs;
+    int64_t fs;
+    int64_t bfs;
 } FTIFF_RecoveryInfo;
 
 /**

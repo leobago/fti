@@ -1348,6 +1348,8 @@ int FTIFF_CreateMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
                 // [Important for FTI_RSenc after file truncation to maxFs]
                 mfs += sizeof(off_t);
 
+                DBG_MSG("mfs: %lu", 0, mfs);
+
                 FTI_Exec->FTIFFMeta.maxFs = mfs;
                 FTI_Exec->FTIFFMeta.ptFs = -1;
         }
@@ -2328,6 +2330,45 @@ int FTIFF_CheckL3RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
 
     snprintf(FTI_Exec->ckptMeta.ckptFile, FTI_BUFS, "Ckpt%d-Rank%d.fti",
      FTI_Exec->ckptId, FTI_Topo->myRank);
+#warning REMOVE    
+        //char lfn[FTI_BUFS];
+
+        //snprintf(lfn, FTI_BUFS, "%s/%s", FTI_Ckpt[3].dir,
+        // FTI_Exec->ckptMeta.ckptFile);
+        //char str[FTI_BUFS];
+
+        //int ifd = open(lfn, O_RDONLY);
+        //if (ifd == -1) {
+        //    snprintf(str, FTI_BUFS,
+        //     "failed to read FTI-FF file meta data from file '%s'", lfn);
+        //    FTI_Print(str, FTI_EROR);
+        //    errno = 0;
+        //    return FTI_NSCS;
+        //}
+
+        //if (lseek(ifd, -sizeof(off_t), SEEK_END) == -1) {
+        //    snprintf(str, FTI_BUFS,
+        //     "failed to read FTI-FF file meta data from file '%s'", lfn);
+        //    FTI_Print(str, FTI_EROR);
+        //    errno = 0;
+        //    close(ifd);
+        //    return FTI_NSCS;
+        //}
+
+        //off_t fs_;
+        //if (read(ifd, &fs_, sizeof(off_t)) == -1) {
+        //    snprintf(str, FTI_BUFS,
+        //     "failed to read FTI-FF file meta data from file '%s'", lfn);
+        //    FTI_Print(str, FTI_EROR);
+        //    errno = 0;
+        //    close(ifd);
+        //    return FTI_NSCS;
+        //}
+        //
+        //DBG_MSG("fs: %lu",-1,fs_);
+
+        //close(ifd);
+#warning REMOVE    
 
     free(groupInfo);
 
