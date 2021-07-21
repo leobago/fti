@@ -396,7 +396,7 @@ int FTI_ScanGroup(hid_t gid, char* fn) {
   @return     integer         The position in the file.
  **/
 /*-------------------------------------------------------------------------*/
-uint64_t FTI_GetHDF5FilePos(void *fileDesc) {
+int64_t FTI_GetHDF5FilePos(void *fileDesc) {
     return 0;
 }
 
@@ -492,7 +492,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckHDF5File(char* fn, uint64_t fs, char* checksum) {
+int FTI_CheckHDF5File(char* fn, int64_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
@@ -544,7 +544,7 @@ hsize_t FTI_calculateCountDim(size_t sizeOfElement, hsize_t maxBytes,
  hsize_t *count, int numOfDimensions, hsize_t *dimensions, hsize_t *sep) {
     int i;
     memset(count, 0, sizeof(hsize_t)*numOfDimensions);
-    uint64_t maxElements = maxBytes/sizeOfElement;
+    int64_t maxElements = maxBytes/sizeOfElement;
     hsize_t bytesToFetch;
 
     if (maxElements == 0)
@@ -842,7 +842,7 @@ int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec) {
     prefetcher.totalBytesToFetch = data->size;
     prefetcher.isDevice = data->isDevicePtr;
     prefetcher.dptr = data->devicePtr;
-    uint64_t bytesToWrite;
+    int64_t bytesToWrite;
     FTI_InitPrefetcher(&prefetcher);
     unsigned char *basePtr = NULL;
 
@@ -969,8 +969,8 @@ int FTI_ReadHDF5Var(FTIT_dataset *data) {
 
 
     hsize_t seperator;
-    uint64_t fetchBytes;
-    uint64_t hostBufSize = FTI_getHostBuffSize();
+    int64_t fetchBytes;
+    int64_t hostBufSize = FTI_getHostBuffSize();
     // Calculate How many dimension I can compute each time
     // and how bug should the HOST-GPU communication buffer should be
 

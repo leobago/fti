@@ -29,7 +29,7 @@ int FTI_ReadHDF5Var(FTIT_dataset *data);
 int FTI_GetDatasetRankReco(hid_t did);
 int FTI_GetDatasetSpanReco(hid_t did, hsize_t * span);
 int FTI_WriteHDF5Var(FTIT_dataset *data, FTIT_execution* FTI_Exec);
-int FTI_CheckHDF5File(char* fn, uint64_t fs, char* checksum);
+int FTI_CheckHDF5File(char* fn, int64_t fs, char* checksum);
 int FTI_OpenGlobalDatasets(FTIT_execution* FTI_Exec);
 herr_t FTI_ReadSharedFileData(FTIT_dataset FTI_Data);
 int FTI_H5CheckSingleFile(FTIT_configuration* FTI_Conf, int * ckptID);

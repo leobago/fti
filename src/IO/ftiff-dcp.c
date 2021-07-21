@@ -342,13 +342,13 @@ int FTI_GetDcpMode() {
 /**
   @brief      Reallocate  meta data related to dCP 
   @param      FTIT_DataDiffHash   metadata to be reallocated.
-  @param      uint64_t                number of hashes that i need to reallocate
+  @param      int64_t                number of hashes that i need to reallocate
   @return     integer             FTI_SCES if successful.
   This function reallocates all the the metadata related to the dCP (isValid & blockSize);
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_ReallocateDataDiff(FTIT_DataDiffHash *dhash, uint64_t nbHashes) {
+int FTI_ReallocateDataDiff(FTIT_DataDiffHash *dhash, int64_t nbHashes) {
     if (!dcpEnabled)
         return FTI_SCES;
 
@@ -489,7 +489,7 @@ When the checkpoint will terminate the current hash will be freed, whereas the n
 will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, uint64_t chunkSize) {
+int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, int64_t chunkSize) {
     if (!dcpEnabled)
         return FTI_SCES;
 
@@ -498,8 +498,8 @@ int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, uint64_t chunkSize) {
 
     bool changeSize = true;
 
-    uint64_t nbHashesOld = hashes->nbHashes;
-    uint64_t newNumber = FTI_CalcNumHashes(chunkSize);
+    int64_t nbHashesOld = hashes->nbHashes;
+    int64_t newNumber = FTI_CalcNumHashes(chunkSize);
 
     // update to new number of hashes (which might be actually unchanged)
     hashes->nbHashes = newNumber;
@@ -554,7 +554,7 @@ When the checkpoint will terminate the current hash will be freed, whereas the n
 will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, uint64_t chunkSize) {
+int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int64_t chunkSize) {
     if (!dcpEnabled)
         return FTI_SCES;
 
@@ -562,10 +562,10 @@ int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, uint64_t chunkSize) {
         return FTI_SCES;
 
     bool changeSize = true;
-    uint64_t nbHashesOld = dataHash->nbHashes;
+    int64_t nbHashesOld = dataHash->nbHashes;
 
     //
-    uint64_t newNumber =  FTI_CalcNumHashes(chunkSize);
+    int64_t newNumber =  FTI_CalcNumHashes(chunkSize);
 
     assert(nbHashesOld <= newNumber);
     if (newNumber == nbHashesOld) {
@@ -615,7 +615,7 @@ int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, uint64_t chunkSize) {
   block size corresponding to chunkSize.
  **/
 /*-------------------------------------------------------------------------*/
-uint64_t FTI_CalcNumHashes(uint32_t chunkSize) {
+int64_t FTI_CalcNumHashes(uint32_t chunkSize) {
     if ((chunkSize%((uint32_t)DCP_BLOCK_SIZE)) == 0) {
         return chunkSize/DCP_BLOCK_SIZE;
     } else {
@@ -681,7 +681,7 @@ void PrintDataHashInfo(FTIT_DataDiffHash* dataHash, uint32_t chunkSize, int id) 
   It returns -1 if hashIdx is out of range.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_HashCmp(uint64_t hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr) {
+int FTI_HashCmp(int64_t hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr) {
     bool clean = true;
     uint32_t bit32hashNow = 0;
     unsigned char *prevHash = NULL;
@@ -810,11 +810,11 @@ int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec) {
   dirty regions are found in which case 0 is returned.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ReceiveDataChunk(unsigned char** buffer_addr, uint64_t* buffer_size,
- FTIFF_dbvar* dbvar, unsigned char *startAddr, uint64_t *totalBytes) {
+int FTI_ReceiveDataChunk(unsigned char** buffer_addr, int64_t* buffer_size,
+ FTIFF_dbvar* dbvar, unsigned char *startAddr, int64_t *totalBytes) {
     static bool init = true;
     static bool reset;
-    static uint64_t hashIdx;
+    static int64_t hashIdx;
     unsigned char *ptr = startAddr;
     static int called = 0;
 

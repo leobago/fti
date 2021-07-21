@@ -73,7 +73,7 @@ void cleanup(char* pattern, ...);
         bytes = fread(buff, size, number, fd);                           \
         if (ferror(fd)) {                                                \
             char ErrorString[400];                                       \
-            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Reading File Bytes Read : %lu", __FILE__, __FUNCTION__, __LINE__, (uint64_t)bytes);  \
+            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Reading File Bytes Read : %lu", __FILE__, __FUNCTION__, __LINE__, (int64_t)bytes);  \
             FTI_Print(ErrorString, FTI_EROR);                            \
             cleanup(format, __VA_ARGS__, NULL);                          \
             fclose(fd);                                                  \
@@ -86,7 +86,7 @@ void cleanup(char* pattern, ...);
         bytes = fwrite(buff, size, number, fd);                          \
         if (ferror(fd)) {                                                \
             char ErrorString[400];                                       \
-            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Writing File Bytes Written : %lu", __FILE__, __FUNCTION__, __LINE__, (uint64_t)bytes); \
+            snprintf(ErrorString, sizeof(ErrorString), "FILE %s FUNC %s:%d Error Writing File Bytes Written : %lu", __FILE__, __FUNCTION__, __LINE__, (int64_t)bytes); \
             FTI_Print(ErrorString, FTI_EROR);                 \
             cleanup(format, __VA_ARGS__, NULL);               \
             fclose(fd);                                       \

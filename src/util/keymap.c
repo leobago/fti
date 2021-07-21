@@ -109,8 +109,8 @@ int FTI_KeyMapPushBack(void* new_item, int key) {
         return FTI_NSCS;
     }
 
-    uint64_t new_size = self._size;
-    uint64_t new_used = self._used + 1;
+    int64_t new_size = self._size;
+    int64_t new_used = self._used + 1;
 
     if (new_used > self._size) {
         // double container size each time limit is reached except

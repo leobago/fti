@@ -68,7 +68,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int k = FTI_Topo->groupSize;
     int m = k;
 
-    uint64_t fs = FTI_Exec->ckptMeta.fs;
+    int64_t fs = FTI_Exec->ckptMeta.fs;
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -130,11 +130,10 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FILE *fd, *efd;
-    uint64_t maxFs = FTI_Exec->ckptMeta.maxFs;
-    uint64_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
+    int64_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    int64_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;  // Calculating padding size
-        DBG_MSG("maxFs: %lu, ps: %lu", 0, maxFs, ps);
     }
     if (erased[FTI_Topo->groupRank] == 0) {  // Resize and open files
         // determine file size in order to write at the end of the
@@ -238,7 +237,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    uint64_t pos = 0;
+    int64_t pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
@@ -383,9 +382,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
         
-        DBG_MSG("fs: %lu",-1,fs_);
-
-        fs = (uint64_t) fs_;
+        fs = (int64_t) fs_;
         FTI_Exec->ckptMeta.fs = fs;
 
         close(ifd);
