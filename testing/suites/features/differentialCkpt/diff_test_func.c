@@ -11,6 +11,9 @@ int finalTag;
 int headRank;
 int grank;
 
+fti_id_t FTI_UI, FTI_XOR_INFO;
+uint32_t pat;
+
 int A[1]  = {100};
 int B[2]  = {30, 70};
 int C[3]  = {20, 40, 40};
