@@ -233,7 +233,7 @@ int initReInit() {
 
 /* check for a correct restart without the crash of the application. */
 int reInit() {
-  //int initres = FTI_Init(configfile2, MPI_COMM_WORLD);
+  FTI_Init(configfile2, MPI_COMM_WORLD);
   int* array2 = malloc(sizeof(int) * ARRAY_SIZE);
 
   initArray(array2);
