@@ -1864,6 +1864,19 @@ int FTI_Checkpoint(int id, int level) {
         level -= 4;
     }
 
+    FTI_Exec.isPbdcp=false;
+    if((level>=FTI_L1_PBDCP)&&(level<FTI_L4_PBDCP) ){
+        FTI_Print("PBDCP only implemented for L4! The checkpoint will be performed without PBDCP ",FTI_WARN);
+        switch(level){
+            case FTI_L1_PBDCP: level=1; break;
+            case FTI_L2_PBDCP: level=2; break;
+            case FTI_L3_PBDCP: level=3; break;
+        }
+    }
+    if(level==FTI_L4_PBDCP){
+        FTI_Exec.isPbdcp=true;
+    }
+
     double t1, t2;
 
     FTI_Exec.ckptMeta.ckptId = id;

@@ -163,7 +163,11 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // Reading/setting configuration metadata
     FTI_Conf->keepHeadsAlive = (bool)iniparser_getboolean(ini,
      "Basic:keep_heads_alive", 0);
+     FTI_Conf->pbdcpEnabled = (bool)iniparser_getboolean(ini,
+     "Basic:enable_pbdcp", 0);
     bool dcpEnabled = (bool)iniparser_getboolean(ini, "Basic:enable_dcp", 0);
+    FTI_Conf->pbdcp_precision = (unsigned int)iniparser_getboolean(ini,
+     "Basic:pbdcp_precision", 0);
     FTI_Conf->dcpMode = (int)iniparser_getint(ini,
      "Basic:dcp_mode", -1) + FTI_DCP_MODE_OFFSET;
     FTI_Conf->dcpBlockSize = (int)iniparser_getint(ini,

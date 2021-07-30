@@ -191,6 +191,11 @@ extern "C" {
         FTI_L2_DCP,
         FTI_L3_DCP,
         FTI_L4_DCP,
+        //For PBDCP
+        FTI_L1_PBDCP,
+        FTI_L2_PBDCP,
+        FTI_L3_PBDCP,
+        FTI_L4_PBDCP,
         FTI_L4_H5_SINGLE,
         FTI_MIN_LEVEL_ID = FTI_L1,
         FTI_MAX_LEVEL_ID = FTI_L4_H5_SINGLE
@@ -490,6 +495,8 @@ extern "C" {
         bool dcpPosix;                    /**< Enable differential ckpt.      */
         bool keepL4Ckpt;                  /**< TRUE if l4 ckpts to keep       */
         bool keepHeadsAlive;              /**< TRUE if heads return           */
+        bool pbdcpEnabled;
+        unsigned int pbdcp_precision;
         int dcpMode;                      /**< dCP mode.                      */
         int dcpBlockSize;                 /**< Block size for dCP hash        */
         char cfgFile[FTI_BUFS];           /**< Configuration file name.       */
@@ -673,6 +680,7 @@ extern "C" {
         unsigned int minuteCnt;             /**< Checkpoint minute counter.   */
         bool hasCkpt;                       /**< Indicator that ckpt exists   */
         bool h5SingleFile;                  /**< Indicator if H5 single file  */
+        bool isPbdcp;
         unsigned int ckptCnt;               /**< Checkpoint number counter.   */
         unsigned int ckptIcnt;              /**< Iteration loop counter.      */
         unsigned int ckptId;                /**< Checkpoint ID.               */

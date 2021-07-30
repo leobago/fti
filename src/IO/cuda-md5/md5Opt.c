@@ -50,7 +50,7 @@
 #define CFILE 3
 
 int MD5GPU(FTIT_dataset *);
-int MD5CPU(FTIT_dataset *);
+int MD5CPU(FTIT_configuration *,FTIT_execution *,FTIT_dataset *);
 int usesAsync = 0;
 
 pthread_t thread;
@@ -97,7 +97,7 @@ int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
   This function computes the checksums of a specific variable 
  **/
 /*-------------------------------------------------------------------------*/
-int MD5CPU(FTIT_dataset *data) {
+int MD5CPU(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_dataset *data) {
     uint32_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
@@ -110,11 +110,15 @@ int MD5CPU(FTIT_dataset *data) {
         if (chunkSize < md5ChunkSize) {
             memset(block, 0x0, md5ChunkSize);
             memcpy(block, &ptr[i], chunkSize);
-            cpuHash(block, md5ChunkSize,
-             &data->dcpInfoPosix.currentHashArray[hashIdx]);
+            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,block,
+            md5ChunkSize,&data->dcpInfoPosix.currentHashArray[hashIdx]);
+            /*cpuHash(block, md5ChunkSize,
+             &data->dcpInfoPosix.currentHashArray[hashIdx]);*/
         } else {
-            cpuHash(&ptr[i], md5ChunkSize,
-             &data->dcpInfoPosix.currentHashArray[hashIdx]);
+            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,&ptr[i],
+            md5ChunkSize,&data->dcpInfoPosix.currentHashArray[hashIdx]);
+            /*cpuHash(&ptr[i], md5ChunkSize,
+             &data->dcpInfoPosix.currentHashArray[hashIdx]);*/
         }
     }
     return FTI_SCES;
@@ -130,8 +134,8 @@ int MD5CPU(FTIT_dataset *data) {
   it is actually an interface between the FTI and the async methods
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MD5CPU(FTIT_dataset *data) {
-    return MD5CPU(data);
+int FTI_MD5CPU(FTIT_configuration *FTI_Conf,FTIT_execution *FTI_Exec,FTIT_dataset *data) {
+    return MD5CPU(FTI_Conf,FTI_Exec,data);
 }
 
 

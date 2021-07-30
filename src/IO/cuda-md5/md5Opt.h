@@ -16,7 +16,7 @@ extern "C" {
 typedef unsigned int MD5_u32plus;
 int FTI_destroyMD5();
 int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf);
-int FTI_MD5CPU(FTIT_dataset *data);
+int FTI_MD5CPU(FTIT_configuration *FTI_Conf,FTIT_execution *FTI_Exec,FTIT_dataset *data);
 int FTI_MD5GPU(FTIT_dataset *data);
 int FTI_SyncMD5();
 int FTI_startMD5();
