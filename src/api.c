@@ -1906,6 +1906,12 @@ int FTI_Checkpoint(int id, int level) {
         }
         level = 4;
     }
+    if (level == FTI_L4_PBDCP){
+        if(FTI_Conf.pbdcpEnabled){
+            FTI_Ckpt[4].isDcp = true;
+        }
+        level=4;
+    }
 
     double t0 = MPI_Wtime();  // Start time
     if (FTI_Exec.wasLastOffline == 1) {
