@@ -152,10 +152,14 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
     }
     else if(type->id == FTI_SFLT){
         for(i=0;i<nBytes/sizeof(float);i++){
-            ((float *)block_)[i]= converttoIeeeFlt(((double *)block)[i],precision);
+            if(((float *)block)[i]!=0)
+                ((float *)block_)[i]=converttoIeeeFlt(((float *)block)[i],precision);
+            else
+                ((float *)block_)[i]=((float *)block)[i];
         }
     }
     memcpy(block, block_, nBytes);
+    free(block_);
 
     return FTI_SCES;
 }
