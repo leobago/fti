@@ -47,93 +47,27 @@
 
 float converttoIeeeFlt(double value,unsigned int precision){
     union ieee754_float _f = {0};
-    if( value < 0.0 ) {
-        _f.ieee.negative = 1;
-    }
-    double con = fabs(value);
-
-    int exponent = 0;
-
-    if( con >= 2.0 ) {
-        while( con >= 2.0 ) {
-            con /= 2;
-            exponent += 1;
-        }
-    }
-    if( con < 1.0 ) {
-        while( con < 1.0 ) {
-            con *= 2;
-            exponent -= 1;
-        }
-    }
-
-    con -= 1;
-    _f.ieee.exponent = exponent + IEEE754_FLOAT_BIAS;
-    _f.ieee.mantissa = 0;
-    unsigned int bit = 1;
-
-    for( int b=1; b<=23; b++ ) {
-        double power = pow(2,-b);
-        if( con/power > 1.0 ) {
-            _f.ieee.mantissa |= (bit << (23-b));
-            con -= power;
-        }
-    }
+    _f.f=value;
     int m=23-precision;
-    unsigned int num = (1 << (sizeof(int) * 8 - 1)) - 1;
-    unsigned int num2 = (1 << m) - 1;
-    num ^= num2;
-    _f.ieee.mantissa &= num;
+    struct {unsigned int mantissa:23;} a={0};
+    a.mantissa=~((1<<m)-1);
+    _f.ieee.mantissa &= a.mantissa;
     return _f.f;
 }
 
 double converttoIeeeDbl(double value,unsigned int precision){
     union ieee754_double _d = {0};
-    if( value < 0.0 ) {
-        _d.ieee.negative = 1;
-    }
-    double con = fabs(value);
-    int exponent = 0;
-    if( con >= 2.0 ) {
-        while( con >= 2.0 ) {
-            con /= 2;
-            exponent += 1;
-        }
-    }
-    if( con < 1.0 ) {
-        while( con < 1.0 ) {
-            con *= 2;
-            exponent -= 1;
-        }
-    }
-    con -= 1;
-    _d.ieee.exponent = exponent + IEEE754_DOUBLE_BIAS;
-    _d.ieee.mantissa0 = 0;
-    _d.ieee.mantissa1=0;
-    unsigned int bit = 1;
-    for( int b=1; b<=52; b++ ) {
-        double power = pow(2,-b);
-        if( con/power > 1.0 ) {
-            if(b<=20)
-                _d.ieee.mantissa0 |= (bit << (20-b));
-            else
-                _d.ieee.mantissa1 |= (bit << (52-b));
-            con -= power;
-        }
-    }
-
-    if(precision<=20){
-        unsigned int num=(1<< (sizeof(int) *8-1))-1;
-        unsigned int num2=(1<<(20-precision))-1;
-        num ^=num2;
-        _d.ieee.mantissa0 &= num;
-        _d.ieee.mantissa1 = 0;
+    _d.d=value;
+    int m=52-precision;
+    struct {unsigned int mantissa0:20; unsigned int mantissa1:32;} a={0};
+    if(m>32){
+        a.mantissa0=~((1<<(m-32))-1);
+        _d.ieee.mantissa0 &= a.mantissa0;
+        _d.ieee.mantissa1=0;
     }
     else{
-        unsigned int num=(1<< (sizeof(int) *8-1))-1;
-        unsigned int num2=(1<<(32-precision))-1;
-        num ^=num2;
-        _d.ieee.mantissa1 &= num;
+        a.mantissa1=~((1<<m)-1);
+        _d.ieee.mantissa1 &= a.mantissa1;
     }
     return _d.d;
 }
@@ -184,7 +118,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   void* block_;
   bool allocBlock = false;
   if ( FTI_Conf->pbdcpEnabled && FTI_Exec->isPbdcp ) {
-    if ( (FTI_Data->type->id != FTI_DBLE) && (FTI_Data->type->id != FTI_SFLT) ) {
+    if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
       FTI_Print ( "Only float and double types supported in PBDCP", FTI_WARN );
       block_ = block;
     } else {
@@ -1325,7 +1259,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     MD5_Final(md5_final, &mdContext);
     // compare hashes
     if (strcmp(FTI_GetHashHexStr(md5_final, conf->dcpInfoPosix.digestWidth,
-     NULL), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH])) {
+     NULL), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) /*&& !conf->pbdcpEnabled*/)  {
         FTI_Print("hashes differ in base", FTI_WARN);
         goto FINALIZE;
     }
@@ -1417,7 +1351,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         // compare hashes
         if (readLayer && strcmp(FTI_GetHashHexStr(md5_final,
          conf->dcpInfoPosix.digestWidth, NULL),
-         &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH])) {
+         &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) /*&& !conf->pbdcpEnabled*/) {
             readLayer = false;
         }
 
