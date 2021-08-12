@@ -578,6 +578,7 @@ extern "C" {
         char dcpName[FTI_BUFS];     /**< dCP file name.                       */
         bool isDcp;                 /**< True if dCP requested                */
         bool recoIsDcp;             /**< True if dCP requested                */
+        bool isPbdcp;               /**< True if pbdCP requested              */
         bool hasDcp;                /**< True if execution has already a dCP  */
         bool hasCkpt;               /**< True if level has ckpt               */
         int isInline;               /**< True if work is inline.              */
@@ -667,6 +668,7 @@ extern "C" {
         char id[FTI_BUFS];                  /**< Execution ID.                */
         int reco;                           /**< Recovery flag.               */
         int ckptLvel;                       /**< Checkpoint level.            */
+        int isPbdcp;                        /**< Level used for pbdcp         */
         int ckptIntv;                       /**< Ckpt. interval in minutes.   */
         int lastCkptLvel;                   /**< Last checkpoint level.       */
         int wasLastOffline;                 /**< TRUE if last ckpt. offline.  */
@@ -680,7 +682,6 @@ extern "C" {
         unsigned int minuteCnt;             /**< Checkpoint minute counter.   */
         bool hasCkpt;                       /**< Indicator that ckpt exists   */
         bool h5SingleFile;                  /**< Indicator if H5 single file  */
-        bool isPbdcp;
         unsigned int ckptCnt;               /**< Checkpoint number counter.   */
         unsigned int ckptIcnt;              /**< Iteration loop counter.      */
         unsigned int ckptId;                /**< Checkpoint ID.               */

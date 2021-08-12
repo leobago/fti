@@ -581,6 +581,17 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         } else {
             FTI_Ckpt[4].recoIsDcp = (bool) isDcp;
         }
+        snprintf(key, FTI_BUFS, "%s:is_pbdcp", lastCkpt);
+        int isPbdcp = iniparser_getboolean(ini, key, -1);
+        if (isPbdcp == -1) {
+            FTI_Print("Unable to identify if pbdcp from checkpoint "
+              "meta data file", FTI_EROR);
+            dictionary_del(ini);
+            return FTI_NSCS;
+        } else {
+            FTI_Ckpt[4].recoIsDcp = (bool) isPbdcp;
+            FTI_Exec->isPbdcp=ckptLvel;
+        }
     }
 
     FTI_Exec->ckptId = ckptId;
@@ -645,6 +656,10 @@ int FTI_WriteCkptMetaData(FTIT_configuration* FTI_Conf,
     snprintf(key, FTI_BUFS, "%s:is_dcp", section);
     snprintf(value, FTI_BUFS, "%s",
      (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) ? "true" : "false");
+    ini.set(&ini, key, value);
+    snprintf(key, FTI_BUFS, "%s:is_pbdcp", section);
+    snprintf(value, FTI_BUFS, "%s",
+     (FTI_Ckpt[FTI_Exec->ckptMeta.level].isPbdcp) ? "true" : "false");
     ini.set(&ini, key, value);
 
     ini.dump(&ini);

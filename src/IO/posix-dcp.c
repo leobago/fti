@@ -117,7 +117,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
   void* block_;
   bool allocBlock = false;
-  if ( FTI_Conf->pbdcpEnabled && FTI_Exec->isPbdcp ) {
+  if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptLvel == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
       FTI_Print ( "Only float and double types supported in PBDCP", FTI_WARN );
       block_ = block;
@@ -1259,7 +1259,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     MD5_Final(md5_final, &mdContext);
     // compare hashes
     if (strcmp(FTI_GetHashHexStr(md5_final, conf->dcpInfoPosix.digestWidth,
-     NULL), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) /*&& !conf->pbdcpEnabled*/)  {
+     NULL), &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) && !conf->pbdcpEnabled)  {
         FTI_Print("hashes differ in base", FTI_WARN);
         goto FINALIZE;
     }
@@ -1351,7 +1351,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         // compare hashes
         if (readLayer && strcmp(FTI_GetHashHexStr(md5_final,
          conf->dcpInfoPosix.digestWidth, NULL),
-         &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) /*&& !conf->pbdcpEnabled*/) {
+         &exec->dcpInfoPosix.LayerHash[layer*MD5_DIGEST_STRING_LENGTH]) && !conf->pbdcpEnabled) {
             readLayer = false;
         }
 

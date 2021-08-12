@@ -1864,7 +1864,7 @@ int FTI_Checkpoint(int id, int level) {
         level -= 4;
     }
 
-    FTI_Exec.isPbdcp=false;
+    FTI_Exec.isPbdcp=-1;
     if((level>=FTI_L1_PBDCP)&&(level<FTI_L4_PBDCP) ){
         FTI_Print("PBDCP only implemented for L4! The checkpoint will be performed without PBDCP ",FTI_WARN);
         switch(level){
@@ -1872,9 +1872,6 @@ int FTI_Checkpoint(int id, int level) {
             case FTI_L2_PBDCP: level=2; break;
             case FTI_L3_PBDCP: level=3; break;
         }
-    }
-    if(level==FTI_L4_PBDCP){
-        FTI_Exec.isPbdcp=true;
     }
 
     double t1, t2;
@@ -1892,6 +1889,7 @@ int FTI_Checkpoint(int id, int level) {
 
     // reset dcp requests.
     FTI_Ckpt[4].isDcp = false;
+    FTI_Ckpt[4].isPbdcp = false;
 
     if (level == FTI_L4_DCP) {
         if ((FTI_Conf.ioMode == FTI_IO_FTIFF) ||
@@ -1907,8 +1905,10 @@ int FTI_Checkpoint(int id, int level) {
         level = 4;
     }
     if (level == FTI_L4_PBDCP){
+        FTI_Exec.isPbdcp=4;
         if(FTI_Conf.pbdcpEnabled){
             FTI_Ckpt[4].isDcp = true;
+            FTI_Ckpt[4].isPbdcp = true;
         }
         level=4;
     }
