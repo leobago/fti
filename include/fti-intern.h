@@ -153,6 +153,8 @@ extern "C" {
     } FTIT_dcpConfigurationPosix;
 
     typedef struct FTIT_dcpExecutionPosix {
+        double errorSum;
+        int nbValues;
         int nbLayerReco;
         int nbVarReco;
         unsigned int Counter;

@@ -37,6 +37,7 @@
  */
 
 #include "dcp.h"
+#include <math.h>
 
 static size_t _mb = 1024L*1024L;
 static size_t _gb = 1024L*1024L*1024L;
@@ -82,6 +83,9 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
 
     norder_data = get_metric(pureDataSize, data_metric);
     norder_dcp = get_metric(dcpSize, dcp_metric);
+    double sum_error=FTI_Exec.dcpInfoPosix.errorSum;
+    int nVals=FTI_Exec.dcpInfoPosix.nbValues;
+    double rmse=sqrt(sum_error/nVals);
 
     // If not head
     if (FTI_Topo.splitRank)
@@ -98,7 +102,11 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
             (double)dcpSize/norder_dcp,
             dcp_metric,
             ((double)dcpSize/pureDataSize)*100);
-
+    if (FTI_Conf.pbdcpEnabled && nVals!=0){
+        char rmseStr[50];
+        snprintf(rmseStr,50," RMSE for capping error: %.5lf",rmse);
+        strcat(str,rmseStr);
+    }
     // If not head
     if (FTI_Topo.splitRank)
         FTI_Print(str, FTI_DBUG);

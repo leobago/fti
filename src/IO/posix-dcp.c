@@ -72,22 +72,30 @@ double converttoIeeeDbl(double value,unsigned int precision){
     return _d.d;
 }
 
-int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision){
+double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int *nbValues,double *error){
+    double errorSum=0;
+    int nValues=0;
     int i;
     void *block_;
     block_ = malloc(nBytes);
     if(type->id == FTI_DBLE){
         for(i=0;i<nBytes/sizeof(double);i++){
-            if(((double *)block)[i]!=0)
+            if(((double *)block)[i]!=0){
                 ((double *)block_)[i]=converttoIeeeDbl(((double *)block)[i],precision);
+                errorSum+=pow((((double *)block)[i]-((double *)block_)[i]),2);
+                nValues++;
+            }
             else
                 ((double *)block_)[i]=((double *)block)[i];
         }
     }
     else if(type->id == FTI_SFLT){
         for(i=0;i<nBytes/sizeof(float);i++){
-            if(((float *)block)[i]!=0)
+            if(((float *)block)[i]!=0){
                 ((float *)block_)[i]=converttoIeeeFlt(((float *)block)[i],precision);
+                errorSum+=pow((((float *)block)[i]-((float *)block_)[i]),2);
+                nValues++;
+            }
             else
                 ((float *)block_)[i]=((float *)block)[i];
         }
@@ -95,6 +103,8 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
     memcpy(block, block_, nBytes);
     free(block_);
 
+    *error=errorSum;
+    *nbValues=nValues;
     return FTI_SCES;
 }
 
@@ -117,6 +127,8 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
   void* block_;
   bool allocBlock = false;
+  int nVals;
+  double error;
   if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptLvel == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
       FTI_Print ( "Only float and double types supported in PBDCP", FTI_WARN );
@@ -125,7 +137,9 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       block_ = malloc(nBytes);
       memcpy(block_, block, nBytes);
       allocBlock = true;
-      FTI_TruncateMantissa ( block_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision );
+      FTI_TruncateMantissa ( block_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      FTI_Exec->dcpInfoPosix.errorSum += error;
+      FTI_Exec->dcpInfoPosix.nbValues += nVals;
     }
   } else {
     block_ = block;
