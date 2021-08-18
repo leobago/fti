@@ -60,7 +60,7 @@ double converttoIeeeDbl(double value,unsigned int precision){
     _d.d=value;
     int m=52-precision;
     struct {unsigned int mantissa0:20; unsigned int mantissa1:32;} a={0};
-    if(m>32){
+    if(m>=32){
         a.mantissa0=~((1<<(m-32))-1);
         _d.ieee.mantissa0 &= a.mantissa0;
         _d.ieee.mantissa1=0;

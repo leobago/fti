@@ -87,6 +87,20 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
     int nVals=FTI_Exec.dcpInfoPosix.nbValues;
     double rmse=sqrt(sum_error/nVals);
 
+    uint32_t *data_Size = (FTI_Conf.dcpFtiff)?
+    (uint32_t*)&FTI_Exec.FTIFFMeta.pureDataSize:
+    &FTI_Exec.dcpInfoPosix.dataSize;
+    uint32_t *dcp_Size = (FTI_Conf.dcpFtiff)?
+    (uint32_t*)&FTI_Exec.FTIFFMeta.dcpSize:
+    &FTI_Exec.dcpInfoPosix.dcpSize;
+    uint32_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
+    uint32_t sendBuf[] = { *dcp_Size, *data_Size };
+    MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT32_T, MPI_SUM, 0, FTI_COMM_WORLD);
+    if (FTI_Topo.splitRank ==  0) {
+        *dcp_Size = dcpStats[0];
+        *data_Size = dcpStats[1];
+    }
+
     // If not head
     if (FTI_Topo.splitRank)
         snprintf(cp_print_mode, sizeof(cp_print_mode), "Local");
