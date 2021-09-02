@@ -21,10 +21,10 @@ int FTI_WritePosixData(FTIT_dataset * data, void *fd);
 void* FTI_InitPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_PosixSync(void *fileDesc);
-int FTI_PosixRead(void *dest, size_t size, void *fileDesc);
-size_t FTI_GetPosixFilePos(void *fileDesc);
-int FTI_PosixSeek(size_t pos, void *fileDesc);
-int FTI_PosixWrite(void *src, size_t size, void *fileDesc);
+int FTI_PosixRead(void *dest, int64_t size, void *fileDesc);
+int64_t FTI_GetPosixFilePos(void *fileDesc);
+int FTI_PosixSeek(int64_t pos, void *fileDesc);
+int FTI_PosixWrite(void *src, int64_t size, void *fileDesc);
 int FTI_PosixClose(void *fileDesc);
 int FTI_PosixOpen(char *fn, void *fileDesc);
 int FTI_RecoverVarInitPOSIX(char* fn);

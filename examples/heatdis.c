@@ -86,7 +86,7 @@ double doWork(int numprocs, int rank, int M, int nbLines, double *g,
 
 
 int main(int argc, char *argv[]) {
-    int rank, nbProcs, nbLines, M, arg;
+    int rank, nbProcs, nbLines, i, M, arg;
     double wtime, *h, *g, memSize, localerror, globalerror = 1;
 
     MPI_Init(&argc, &argv);
@@ -98,17 +98,6 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(FTI_COMM_WORLD, &nbProcs);
     MPI_Comm_rank(FTI_COMM_WORLD, &rank);
 
-    int CKPT_LEVEL=atoi(argv[3]);
-    int CKPT_INTERVALL=atoi(argv[4]);
-
-    if(CKPT_LEVEL<1 || CKPT_LEVEL>4){
-	printf("Checkpoint Level should be between 1 - 4!\n");
-	return 1;
-    }
-    if(CKPT_INTERVALL<0 || CKPT_INTERVALL>ITER_TIMES){
-	printf("Checkpoint interal should be between 1 - %d!\n",ITER_TIMES);
-	return 1;
-    }
     arg = atoi(argv[1]);
     M = (int)sqrt((double)(arg * 1024.0 * 512.0 * nbProcs)/sizeof(double));
     nbLines = (M / nbProcs)+3;
@@ -124,20 +113,12 @@ int main(int argc, char *argv[]) {
         printf("Maximum number of iterations : %d \n", ITER_TIMES);
     }
 
-    int i=0;
     FTI_Protect(0, &i, 1, FTI_INTG);
     FTI_Protect(1, h, M*nbLines, FTI_DBLE);
     FTI_Protect(2, g, M*nbLines, FTI_DBLE);
 
     wtime = MPI_Wtime();
-    if (FTI_Status() != 0) {
-        FTI_Recover();
-    }
-    for (; i < ITER_TIMES; i++) {
-        //int checkpointed = FTI_Snapshot();
-	if (i % CKPT_INTERVALL == 0) {
-                FTI_Checkpoint(i / CKPT_INTERVALL + 1, FTI_L4_PBDCP);
-        }
+    for (i = 0; i < ITER_TIMES; i++) {
         localerror = doWork(nbProcs, rank, M, nbLines, g, h);
         if (((i%ITER_OUT) == 0) && (rank == 0)) {
             printf("Step : %d, error = %f\n", i, globalerror);

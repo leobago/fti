@@ -196,7 +196,8 @@ int do_work(int world_rank, int world_size, int checkpoint_level, int fail) {
     }
   }
 
-  int rtn = verify(buf, world_rank);
+  // UNUSED!!
+  //int rtn = verify(buf, world_rank);
 
   free(buf);
 
@@ -351,7 +352,7 @@ int main(int argc, char** argv) {
   int res;
   if (checkpoint_level != 1) {
     int isInline = -1;
-    int heads = (int)iniparser_getint(ini, "Basic:head", -1);
+    //int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     switch (checkpoint_level) {
       case 2:
         isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);

@@ -489,7 +489,6 @@ int main(int argc, char** argv) {
     int res;
     if (checkpoint_level != 1) {
       int isInline = -1;
-      int heads = (int)iniparser_getint(ini, "Basic:head", -1);
       switch (checkpoint_level) {
         case 2:
           isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);

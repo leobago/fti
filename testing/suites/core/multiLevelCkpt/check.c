@@ -297,7 +297,6 @@ int main(int argc, char* argv[]) {
 
 void init_arrays(double* A, double* B, size_t asize) {
   int i;
-  double r;
   for (i = 0; i < asize; i++) {
     A[i] = 1.0;
     B[i] = ((double)rand() / RAND_MAX) * 5.0;

@@ -13,7 +13,7 @@
 #define CONFIG_EROR 30
 
 int main(int argc, char *argv[]){
-    int nrank, nbProcs, i;
+    int nrank, nbProcs;
     
     char *path = argv[1];
     MPI_Init(&argc, &argv);

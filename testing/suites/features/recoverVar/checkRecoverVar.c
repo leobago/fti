@@ -101,14 +101,13 @@ int checkCorrectness(int *array, int size, int val) {
 }
 
 int main(int argc, char *argv[]) {
-  unsigned char parity, crash, level, state, diff_sizes, enable_icp = -1;
-  int FTI_APP_RANK, result, tmp, success = 1;
+  unsigned char crash, level, state;
+  int FTI_APP_RANK, result;
   int *array[10];
   int sizes[10] = {42, 85, 8, 19, 95, 26, 66, 33, 65, 83};
   int order[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
   srand(time(NULL));
-  size_t asize, asize_chk;
   allocArray(array, sizes, 10);
 
   MPI_Init(&argc, &argv);

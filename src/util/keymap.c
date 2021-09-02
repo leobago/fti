@@ -47,7 +47,7 @@
 /*-------------------------------------------------------------------------*/
 static FTIT_keymap self;
 
-int FTI_KeyMap(FTIT_keymap** instance, int32_t type_size, int32_t max_key,
+int FTI_KeyMap(FTIT_keymap** instance, size_t type_size, int max_key,
      bool reset) {
     if (type_size == 0) {
         FTI_Print("Call to FTI_KeyMap with typesize '0' is invalid", FTI_EROR);
@@ -109,8 +109,8 @@ int FTI_KeyMapPushBack(void* new_item, int key) {
         return FTI_NSCS;
     }
 
-    int32_t new_size = self._size;
-    int32_t new_used = self._used + 1;
+    int64_t new_size = self._size;
+    int64_t new_used = self._used + 1;
 
     if (new_used > self._size) {
         // double container size each time limit is reached except
@@ -175,7 +175,7 @@ int FTI_KeyMapGet(FTIT_dataset** data, int key) {
         return FTI_NSCS;
     }
 
-    int32_t check_pos = self._key[key];
+    int64_t check_pos = self._key[key];
 
     if (check_pos > (self._used - 1)) {
         FTI_Print("data location out of bounds", FTI_EROR);

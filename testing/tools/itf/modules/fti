@@ -125,7 +125,7 @@ fti_run() {
     # If this ever needs to be changed, the testrunner will need a rework.
     # Otherwise, the suite file will be consumed by mpirun.
 
-    local fti_cmd="mpirun $MPIRUN_ARGS -n ${itf_cfg['fti:nranks']}"
+    local fti_cmd="mpirun $MPIRUN_ARGS -n ${itf_cfg['fti:nranks']} $MPIRUN_PRE_COMMAND"
     local app_stdout="${itf_cfg['fti:app_stdout']}"
     local test_stdout="${itf_cfg['core:stdout']}"
 

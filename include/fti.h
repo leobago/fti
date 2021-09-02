@@ -87,7 +87,7 @@ extern "C" {
   int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,
    FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name);
-  int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
+  int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
   int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
@@ -102,7 +102,7 @@ extern "C" {
   int FTI_UpdateGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength);
   int FTI_UpdateSubset(int id, int rank, FTIT_hsize_t* offset,
    FTIT_hsize_t* count, int did);
-  int32_t FTI_GetStoredSize(int id);
+  int64_t FTI_GetStoredSize(int id);
   void* FTI_Realloc(int id, void* ptr);
   int FTI_BitFlip(int datasetID);
   int FTI_Checkpoint(int id, int level);
@@ -130,9 +130,9 @@ extern "C" {
   fti_id_t FTI_InitCompositeType(const char* name, size_t size,
    FTIT_H5Group* h5g);
   int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
-   size_t offset);
+   int64_t offset);
   int FTI_AddVectorField(fti_id_t id, const char* name, fti_id_t tid,
-   size_t offset, int ndims, int* dim_sizes);
+   int64_t offset, int ndims, int* dim_sizes);
 
 #ifdef __cplusplus
 }
