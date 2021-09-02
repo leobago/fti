@@ -81,18 +81,21 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
         pureDataSize = FTI_Exec.dcpInfoPosix.dataSize;
     }
 
-    norder_data = get_metric(pureDataSize, data_metric);
-    norder_dcp = get_metric(dcpSize, dcp_metric);
     double sum_error=FTI_Exec.dcpInfoPosix.errorSum;
     int nVals=FTI_Exec.dcpInfoPosix.nbValues;
-    double rmse=sqrt(sum_error/nVals);
+    double sum_error_tot;
+    int nVals_tot;
+    MPI_Reduce(&sum_error, &sum_error_tot, 1, MPI_DOUBLE, MPI_SUM, 0, FTI_COMM_WORLD);
+    MPI_Reduce(&nVals, &nVals_tot, 1, MPI_INT, MPI_SUM, 0, FTI_COMM_WORLD);
+    //double rmse=sqrt(sum_error_tot/nVals_tot);
+    double relErrAvg=sqrt(sum_error_tot/nVals_tot);
 
     uint32_t *data_Size = (FTI_Conf.dcpFtiff)?
     (uint32_t*)&FTI_Exec.FTIFFMeta.pureDataSize:
     &FTI_Exec.dcpInfoPosix.dataSize;
     uint32_t *dcp_Size = (FTI_Conf.dcpFtiff)?
-    (uint32_t*)&FTI_Exec.FTIFFMeta.dcpSize:
-    &FTI_Exec.dcpInfoPosix.dcpSize;
+      (uint32_t*)&FTI_Exec.FTIFFMeta.dcpSize:
+      &FTI_Exec.dcpInfoPosix.dcpSize;
     uint32_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
     uint32_t sendBuf[] = { *dcp_Size, *data_Size };
     MPI_Reduce(sendBuf, dcpStats, 2, MPI_UINT32_T, MPI_SUM, 0, FTI_COMM_WORLD);
@@ -100,6 +103,9 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
         *dcp_Size = dcpStats[0];
         *data_Size = dcpStats[1];
     }
+    
+    norder_data = get_metric(pureDataSize, data_metric);
+    norder_dcp = get_metric(dcpSize, dcp_metric);
 
     // If not head
     if (FTI_Topo.splitRank)
@@ -118,7 +124,7 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
             ((double)dcpSize/pureDataSize)*100);
     if (FTI_Conf.pbdcpEnabled && nVals!=0){
         char rmseStr[50];
-        snprintf(rmseStr,50," RMSE for capping error: %.5lf",rmse);
+        snprintf(rmseStr,50," average relative error: %.5lf%%",relErrAvg*100);
         strcat(str,rmseStr);
     }
     // If not head

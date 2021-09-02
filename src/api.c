@@ -1909,6 +1909,8 @@ int FTI_Checkpoint(int id, int level) {
         if(FTI_Conf.pbdcpEnabled){
             FTI_Ckpt[4].isDcp = true;
             FTI_Ckpt[4].isPbdcp = true;
+            FTI_Exec.dcpInfoPosix.errorSum = 0;
+            FTI_Exec.dcpInfoPosix.nbValues = 0;
         }
         level=4;
     }

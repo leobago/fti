@@ -80,9 +80,14 @@ double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type,
     block_ = malloc(nBytes);
     if(type->id == FTI_DBLE){
         for(i=0;i<nBytes/sizeof(double);i++){
-            if(((double *)block)[i]!=0){
-                ((double *)block_)[i]=converttoIeeeDbl(((double *)block)[i],precision);
-                errorSum+=pow((((double *)block)[i]-((double *)block_)[i]),2);
+            double* beforeCap = (double *)block;
+            double* afterCap = (double *)block_;
+            if( (beforeCap[i] != 0) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) ){
+                afterCap[i]=converttoIeeeDbl(beforeCap[i],precision);
+                //errorSum+=pow((((double *)block)[i]-((double *)block_)[i])/((double *)block)[i],2);
+                errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
+//                DBG_MSG("val[%d]: %le",-1,i,errorSum);
+                //errorSum+=pow((((double *)block)[i]-((double *)block_)[i]),2);
                 nValues++;
             }
             else
@@ -93,7 +98,8 @@ double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type,
         for(i=0;i<nBytes/sizeof(float);i++){
             if(((float *)block)[i]!=0){
                 ((float *)block_)[i]=converttoIeeeFlt(((float *)block)[i],precision);
-                errorSum+=pow((((float *)block)[i]-((float *)block_)[i]),2);
+                errorSum+=pow((((float *)block)[i]-((float *)block_)[i])/((float *)block)[i],2);
+                //errorSum+=pow((((float *)block)[i]-((float *)block_)[i]),2);
                 nValues++;
             }
             else
@@ -129,9 +135,8 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   bool allocBlock = false;
   int nVals;
   double error;
-  if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptLvel == FTI_Exec->isPbdcp)) {
+  if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptMeta.level == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
-      FTI_Print ( "Only float and double types supported in PBDCP", FTI_WARN );
       block_ = block;
     } else {
       block_ = malloc(nBytes);
