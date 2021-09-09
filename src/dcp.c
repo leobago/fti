@@ -80,15 +80,17 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
         dcpSize = FTI_Exec.dcpInfoPosix.dcpSize;
         pureDataSize = FTI_Exec.dcpInfoPosix.dataSize;
     }
-
-    double sum_error=FTI_Exec.dcpInfoPosix.errorSum;
-    int64_t nVals=FTI_Exec.dcpInfoPosix.nbValues;
-    double sum_error_tot;
-    int64_t nVals_tot;
-    MPI_Reduce(&sum_error, &sum_error_tot, 1, MPI_DOUBLE, MPI_SUM, 0, FTI_COMM_WORLD);
-    MPI_Reduce(&nVals, &nVals_tot, 1, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
-    //double rmse=sqrt(sum_error_tot/nVals_tot);
-    double relErrAvg=sqrt(sum_error_tot/nVals_tot);
+  
+    double relErrAvg = -1;
+    if( FTI_Exec.isPbdcp == 4 ) {
+      double sum_error=FTI_Exec.dcpInfoPosix.errorSum;
+      int64_t nVals=FTI_Exec.dcpInfoPosix.nbValues;
+      double sum_error_tot;
+      int64_t nVals_tot;
+      MPI_Reduce(&sum_error, &sum_error_tot, 1, MPI_DOUBLE, MPI_SUM, 0, FTI_COMM_WORLD);
+      MPI_Reduce(&nVals, &nVals_tot, 1, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
+      if( nVals_tot > 0 ) relErrAvg=sqrt(sum_error_tot/nVals_tot);
+    }
 
     int64_t *data_Size = (FTI_Conf.dcpFtiff)?
     (int64_t*)&FTI_Exec.FTIFFMeta.pureDataSize:
@@ -122,9 +124,12 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
             (double)dcpSize/norder_dcp,
             dcp_metric,
             ((double)dcpSize/pureDataSize)*100);
-    if (FTI_Conf.pbdcpEnabled && nVals!=0){
-        char rmseStr[50];
-        snprintf(rmseStr,50," average relative error: %.5lf%%",relErrAvg*100);
+    if ( (FTI_Exec.isPbdcp == 4) && FTI_Conf.pbdcpEnabled && (relErrAvg != -1) ){
+        char rmseStr[FTI_BUFS];
+        snprintf(rmseStr,FTI_BUFS," [PBDCP active -> average relative error: %.5lf%%]",relErrAvg*100);
+        strcat(str,rmseStr);
+    } else {
+        char rmseStr[FTI_BUFS] = " [PBDCP inactive]";
         strcat(str,rmseStr);
     }
     // If not head

@@ -43,9 +43,7 @@
 #include <ieee754.h>
 #include <math.h>
 
-//PBDC-25
-
-float converttoIeeeFlt(double value,unsigned int precision){
+float capBitsIeeeFlt(double value,unsigned int precision){
     union ieee754_float _f = {0};
     _f.f=value;
     int m=23-precision;
@@ -55,7 +53,7 @@ float converttoIeeeFlt(double value,unsigned int precision){
     return _f.f;
 }
 
-double converttoIeeeDbl(double value,unsigned int precision){
+double capBitsIeeeDbl(double value,unsigned int precision){
     union ieee754_double _d = {0};
     _d.d=value;
     int m=52-precision;
@@ -83,31 +81,35 @@ double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type,
             double* beforeCap = (double *)block;
             double* afterCap = (double *)block_;
             if( (beforeCap[i] != 0.0F) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) && (beforeCap[i] != -0.0F) ){
-                afterCap[i]=converttoIeeeDbl(beforeCap[i],precision);
-                //errorSum+=pow((((double *)block)[i]-((double *)block_)[i])/((double *)block)[i],2);
+                afterCap[i]=capBitsIeeeDbl(beforeCap[i],precision);
+                double errorCurrent = fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
                 errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
-                if( isnan(errorSum) ) {
-                  DBG_MSG("FUCK got nan at i=%d", -1, i);
-                  MPI_Abort(MPI_COMM_WORLD,-1);
+                if( !isnan(errorCurrent) && !isinf(errorCurrent) ) {
+                  errorSum+=errorCurrent;
+                  nValues++;
                 }
-//                DBG_MSG("val[%d]: %le",-1,i,errorSum);
-                //errorSum+=pow((((double *)block)[i]-((double *)block_)[i]),2);
-                nValues++;
             }
-            else
+            else {
                 ((double *)block_)[i]=((double *)block)[i];
+            }
         }
     }
     else if(type->id == FTI_SFLT){
         for(i=0;i<nBytes/sizeof(float);i++){
-            if(((float *)block)[i]!=0){
-                ((float *)block_)[i]=converttoIeeeFlt(((float *)block)[i],precision);
-                errorSum+=pow((((float *)block)[i]-((float *)block_)[i])/((float *)block)[i],2);
-                //errorSum+=pow((((float *)block)[i]-((float *)block_)[i]),2);
-                nValues++;
+            float* beforeCap = (float *)block;
+            float* afterCap = (float *)block_;
+            if( (beforeCap[i] != 0.0f) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) && (beforeCap[i] != -0.0f) ){
+                afterCap[i]=capBitsIeeeFlt(beforeCap[i],precision);
+                float errorCurrent = fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
+                errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
+                if( !isnan(errorCurrent) && !isinf(errorCurrent) ) {
+                  errorSum+=errorCurrent;
+                  nValues++;
+                }
             }
-            else
+            else {
                 ((float *)block_)[i]=((float *)block)[i];
+            }
         }
     }
     memcpy(block, block_, nBytes);
