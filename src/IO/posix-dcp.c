@@ -72,20 +72,24 @@ double converttoIeeeDbl(double value,unsigned int precision){
     return _d.d;
 }
 
-double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int *nbValues,double *error){
+double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
     double errorSum=0;
-    int nValues=0;
-    int i;
+    int64_t nValues=0;
+    int64_t i;
     void *block_;
     block_ = malloc(nBytes);
     if(type->id == FTI_DBLE){
         for(i=0;i<nBytes/sizeof(double);i++){
             double* beforeCap = (double *)block;
             double* afterCap = (double *)block_;
-            if( (beforeCap[i] != 0) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) ){
+            if( (beforeCap[i] != 0.0F) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) && (beforeCap[i] != -0.0F) ){
                 afterCap[i]=converttoIeeeDbl(beforeCap[i],precision);
                 //errorSum+=pow((((double *)block)[i]-((double *)block_)[i])/((double *)block)[i],2);
                 errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
+                if( isnan(errorSum) ) {
+                  DBG_MSG("FUCK got nan at i=%d", -1, i);
+                  MPI_Abort(MPI_COMM_WORLD,-1);
+                }
 //                DBG_MSG("val[%d]: %le",-1,i,errorSum);
                 //errorSum+=pow((((double *)block)[i]-((double *)block_)[i]),2);
                 nValues++;
@@ -133,7 +137,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
   void* block_;
   bool allocBlock = false;
-  int nVals;
+  uint64_t nVals;
   double error;
   if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptMeta.level == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {

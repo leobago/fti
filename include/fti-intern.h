@@ -109,7 +109,7 @@
 #define FTI_IO_IME 1006
 /** Token for IO mode MPI.                                                 */
 
-#define MAX_STACK_SIZE 10
+#define MAX_STACK_SIZE 50
 
 /** Maximum number of FTIT_type objects (i.e. number of user datatypes)     **/
 #define TYPES_MAX 64
@@ -154,7 +154,7 @@ extern "C" {
 
     typedef struct FTIT_dcpExecutionPosix {
         double errorSum;
-        int nbValues;
+        int64_t nbValues;
         int nbLayerReco;
         int nbVarReco;
         unsigned int Counter;
