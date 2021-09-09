@@ -30,7 +30,7 @@
 #endif
 
 /** Malloc macro.                                                          */
-#define talloc(type, num) (type *)malloc(sizeof(type) * ((size_t)num))
+#define talloc(type, num) (type *)malloc(sizeof(type) * (num))
 
 #define LOCAL 0
 #define GLOBAL 1

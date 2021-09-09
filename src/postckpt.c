@@ -362,7 +362,6 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             ps = ps + bs;
         }
 
-
         // for MD5 checksum
         MD5_CTX mdContext;
         MD5_Init(&mdContext);
