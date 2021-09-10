@@ -99,23 +99,27 @@ int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
 /*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_dataset *data) {
     uint64_t dataSize = data->size;
-    unsigned char block[md5ChunkSize];
+    unsigned char block_new[md5ChunkSize];
+    unsigned char block_old[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;
+    unsigned char *ptr_cpy = (unsigned char *) data->ptr_cpy;
     for (i = 0 ; i < data->size; i+=md5ChunkSize) {
         unsigned int blockId = i/md5ChunkSize;
         unsigned int hashIdx = blockId*16;
         unsigned int chunkSize = ((dataSize-i) < md5ChunkSize) ?
          dataSize-i: md5ChunkSize;
         if (chunkSize < md5ChunkSize) {
-            memset(block, 0x0, md5ChunkSize);
-            memcpy(block, &ptr[i], chunkSize);
-            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,block,
+            memset(block_new, 0x0, md5ChunkSize);
+            memcpy(block_new, &ptr[i], chunkSize);
+            memset(block_old, 0x0, md5ChunkSize);
+            memcpy(block_old, &ptr_cpy[i], chunkSize);
+            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,block_new,block_old,
             md5ChunkSize,&data->dcpInfoPosix.currentHashArray[hashIdx]);
-            /*cpuHash(block, md5ChunkSize,
+            /*cpuHash(block_new, md5ChunkSize,
              &data->dcpInfoPosix.currentHashArray[hashIdx]);*/
         } else {
-            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,&ptr[i],
+            FTI_BlockHashDcp(FTI_Conf,FTI_Exec,data,&ptr[i],&ptr_cpy[i],
             md5ChunkSize,&data->dcpInfoPosix.currentHashArray[hashIdx]);
             /*cpuHash(&ptr[i], md5ChunkSize,
              &data->dcpInfoPosix.currentHashArray[hashIdx]);*/

@@ -37,7 +37,7 @@ unsigned char* CRC32(const unsigned char *d, unsigned long nBytes,
  unsigned char *hash);
 
 int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf,FTIT_execution* FTI_Exec, 
-  FTIT_dataset* FTI_Data,void *block,uint64_t nBytes,unsigned char *hash) ;
+  FTIT_dataset* FTI_Data, void *block_new, void *block_old ,uint64_t nBytes,unsigned char *hash) ;
 int FTI_RecoverVarDcpPosixInit();
 int FTI_RecoverVarDcpPosixFinalize();
 #endif  // FTI_SRC_IO_POSIX_DCP_H_

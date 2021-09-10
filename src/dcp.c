@@ -89,7 +89,7 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
       int64_t nVals_tot;
       MPI_Reduce(&sum_error, &sum_error_tot, 1, MPI_DOUBLE, MPI_SUM, 0, FTI_COMM_WORLD);
       MPI_Reduce(&nVals, &nVals_tot, 1, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
-      if( nVals_tot > 0 ) relErrAvg=sqrt(sum_error_tot/nVals_tot);
+      if( nVals_tot > 0 ) relErrAvg=sum_error_tot/nVals_tot;
     }
 
     int64_t *data_Size = (FTI_Conf.dcpFtiff)?

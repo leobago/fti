@@ -872,11 +872,7 @@ int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid) {
         data->eleSize = data->type->size;
         data->size = data->type->size * count;
         if( prevSize != data->size ) { 
-          if( tid == FTI_SFLT ) {
-            data->ptr_cpy = (float*) realloc( data->ptr_cpy, data->size );
-          } else if( tid == FTI_DBLE ) {
-            data->ptr_cpy = (double*) realloc( data->ptr_cpy, data->size );
-          }
+          data->ptr_cpy = realloc( data->ptr_cpy, data->size );
         }
         data->dimLength[0] = count;
         FTI_Exec.ckptSize = FTI_Exec.ckptSize +
@@ -1014,13 +1010,10 @@ int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid) {
         FTI_Print("Invalid data type handle on FTI_Protect.", FTI_WARN);
         return FTI_NSCS;
     }
-    if( tid == FTI_SFLT ) {
-      data->ptr_cpy = talloc( float, count );
-    } else if( tid == FTI_DBLE ) {
-      data->ptr_cpy = talloc( double, count );
-    }
     data->eleSize = data->type->size;
     data->size = data->type->size * count;
+    data->ptr_cpy = malloc( data->size );
+    memset(data->ptr_cpy, 0x0, data->size);
     data->rank = 1;
     data->dimLength[0] = data->count;
     data->h5group = FTI_Exec.H5groups[0];
@@ -2039,7 +2032,9 @@ int FTI_Checkpoint(int id, int level) {
 
     int k = 0; for (; k < FTI_Exec.nbVar; k++) {
         data[k].sizeStored = data[k].size;
+        memcpy(data[k].ptr_cpy, data[k].ptr, data[k].size);
     }
+
 
     return FTI_DONE;
 }

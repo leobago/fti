@@ -70,6 +70,131 @@ double capBitsIeeeDbl(double value,unsigned int precision){
     return _d.d;
 }
 
+float getEpsilonIeeeFlt(float value,unsigned int precision){
+    union ieee754_float _f;
+    union ieee754_float _f_c;
+    _f.f = value;
+    _f.ieee.negative = 0; 
+    _f_c.f = _f.f;
+    _f_c.ieee.mantissa = 0;
+    struct {unsigned int mantissa:23;} a={0};
+    uint64_t eins = 1;
+    a.mantissa= (eins << (23-precision)) - 1;
+
+    _f.ieee.mantissa = a.mantissa;
+  
+    return _f.f - _f_c.f;
+}
+
+double getEpsilonIeeeDbl(double value,unsigned int precision){
+  union ieee754_double _d;
+  union ieee754_double _d_c;
+  _d.d = value;
+  _d.ieee.negative = 0; 
+  _d_c.d = _d.d;
+  _d_c.ieee.mantissa0 = 0;
+  _d_c.ieee.mantissa1 = 0;
+  struct {unsigned int mantissa0:20; unsigned int mantissa1:32;} a={0};
+  if(precision>20){
+    uint64_t eins = 1;
+    uint64_t m = precision - 20;
+    a.mantissa1 = (eins << (32-m)) - 1;
+  }
+  else{
+    uint64_t eins = 1;
+    a.mantissa1 = (eins << 32) - 1;
+    a.mantissa0= (eins << (20-precision)) - 1;
+  }
+
+  _d.ieee.mantissa0 = a.mantissa0;
+  _d.ieee.mantissa1 = a.mantissa1;
+  
+  return _d.d - _d_c.d;
+}
+
+bool FTI_CompareBlockValues_ieee_d(void *block_new, void* block_old, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
+  double errorSum=0;
+  int64_t nValues=0;
+  bool dirty = false;
+  //int count = 5;
+  double* old = (double*) block_old;
+  double* new = (double*) block_new;
+  int64_t n = nBytes/type->size;
+  int64_t i; for(i=0; i<n; i++) {
+    double epsilon = getEpsilonIeeeDbl( new[i], precision );
+    //if( (new[i] != 0.0F) && (new[i] != 0.0F) && !isnan(new[i]) && !isinf(new[i]) ){
+    if( !isnan(new[i]) && !isinf(new[i]) ){
+      double error = fabs( new[i] - old[i] );
+      //if((count >0) && (i%64==0)) {
+      //  DBG_MSG("new: %lf, old: %lf, error: %lf, epsilon: %lf", -1, 
+      //      new[i], old[i], error, epsilon);
+      //  count--;
+      //}
+      if( !isnan(error) && !isinf(error) ) {
+        if( error > epsilon ) dirty = true;
+        errorSum += error;
+        nValues++;
+      }
+    }
+  }
+  if( !dirty ) {
+    *error=errorSum;
+    *nbValues=nValues;
+    //DBG_MSG("errorSum: %lf", -1, errorSum);
+  } else {
+    *error=0;
+    *nbValues=0;
+  }
+  return dirty;
+}
+
+bool FTI_CompareBlockValues_ieee_f(void *block_new, void* block_old, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
+  double errorSum=0;
+  int64_t nValues=0;
+  float* old = (float*) block_old;
+  float* new = (float*) block_new;
+  int64_t n = nBytes/type->size;
+  bool dirty = false;
+  int64_t i; for(i=0; i<n; i++) {
+    double epsilon = getEpsilonIeeeFlt( new[i], precision );
+    if( (new[i] != 0.0F) && !isnan(new[i]) && !isinf(new[i]) && (new[i] != -0.0F) ){
+      double error = fabs( new[i] - old[i] );
+      if( !isnan(error) && !isinf(error) ) {
+        if( error > epsilon ) dirty = true;
+        errorSum+=error;
+        nValues++;
+      }
+    }
+  }
+  if( !dirty ) {
+    *error=errorSum;
+    *nbValues=nValues;
+  } else {
+    *error=0;
+    *nbValues=0;
+  }
+  return dirty;
+}
+
+int FTI_CompareBlockValues(void *block_new, void* block_old, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
+  bool dirty;
+  if(type->id == FTI_SFLT){
+    dirty = FTI_CompareBlockValues_ieee_f( block_new, block_old, nBytes, type, precision, nbValues, error );
+  }
+  if(type->id == FTI_DBLE){
+    dirty = FTI_CompareBlockValues_ieee_d( block_new, block_old, nBytes, type, precision, nbValues, error );
+  }
+  else {
+    *error=0;
+    *nbValues=0;
+  }
+  if( !dirty ) {
+    memcpy(block_new, block_old, nBytes);
+  }
+  return FTI_SCES;
+}
+
+
 int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
     double errorSum=0;
     int64_t nValues=0;
@@ -83,7 +208,6 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
             if( (beforeCap[i] != 0.0F) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) && (beforeCap[i] != -0.0F) ){
                 afterCap[i]=capBitsIeeeDbl(beforeCap[i],precision);
                 double errorCurrent = fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
-                errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
                 if( !isnan(errorCurrent) && !isinf(errorCurrent) ) {
                   errorSum+=errorCurrent;
                   nValues++;
@@ -101,7 +225,6 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
             if( (beforeCap[i] != 0.0f) && !isnan(beforeCap[i]) && !isinf(beforeCap[i]) && (beforeCap[i] != -0.0f) ){
                 afterCap[i]=capBitsIeeeFlt(beforeCap[i],precision);
                 float errorCurrent = fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
-                errorSum+=fabs((beforeCap[i]-afterCap[i])/beforeCap[i]);
                 if( !isnan(errorCurrent) && !isinf(errorCurrent) ) {
                   errorSum+=errorCurrent;
                   nValues++;
@@ -135,30 +258,37 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
 **/
 /*-------------------------------------------------------------------------*/
 int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
-  FTIT_dataset* FTI_Data, void *block, uint64_t nBytes, unsigned char *hash)
+  FTIT_dataset* FTI_Data, void *block_new, void* block_old, uint64_t nBytes, unsigned char *hash)
 {
-  void* block_;
+  void* block_new_;
+  void* block_old_;
   bool allocBlock = false;
   int64_t nVals;
   double error;
   if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptMeta.level == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
-      block_ = block;
+      block_new_ = block_new;
     } else {
-      block_ = malloc(nBytes);
-      memcpy(block_, block, nBytes);
+      block_new_ = malloc(nBytes);
+      memcpy(block_new_, block_new, nBytes);
+      block_old_ = malloc(nBytes);
+      memcpy(block_old_, block_old, nBytes);
       allocBlock = true;
-      FTI_TruncateMantissa ( block_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      //FTI_TruncateMantissa ( block_new_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
       FTI_Exec->dcpInfoPosix.errorSum += error;
       FTI_Exec->dcpInfoPosix.nbValues += nVals;
     }
   } else {
-    block_ = block;
+    block_new_ = block_new;
   }
   
-  FTI_Conf->dcpInfoPosix.hashFunc(block_, nBytes, hash);
+  FTI_Conf->dcpInfoPosix.hashFunc(block_new_, nBytes, hash);
   
-  if (allocBlock) free(block_);
+  if (allocBlock) {
+    free(block_new_);
+    free(block_old_);
+  }
   return FTI_SCES;
 }
 
