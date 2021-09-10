@@ -871,6 +871,13 @@ int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid) {
         }
         data->eleSize = data->type->size;
         data->size = data->type->size * count;
+        if( prevSize != data->size ) { 
+          if( tid == FTI_SFLT ) {
+            data->ptr_cpy = (float*) realloc( data->ptr_cpy, data->size );
+          } else if( tid == FTI_DBLE ) {
+            data->ptr_cpy = (double*) realloc( data->ptr_cpy, data->size );
+          }
+        }
         data->dimLength[0] = count;
         FTI_Exec.ckptSize = FTI_Exec.ckptSize +
         ((data->type->size * count) - prevSize);
@@ -1006,6 +1013,11 @@ int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid) {
     if (data->type == NULL) {
         FTI_Print("Invalid data type handle on FTI_Protect.", FTI_WARN);
         return FTI_NSCS;
+    }
+    if( tid == FTI_SFLT ) {
+      data->ptr_cpy = talloc( float, count );
+    } else if( tid == FTI_DBLE ) {
+      data->ptr_cpy = talloc( double, count );
     }
     data->eleSize = data->type->size;
     data->size = data->type->size * count;

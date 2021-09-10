@@ -468,6 +468,7 @@ extern "C" {
         char idChar[FTI_BUFS];             /**< THis is glue for ALYA        */
         char name[FTI_BUFS];               /**< Name of the dataset          */
         void *ptr;                         /**< Pointer to the dataset       */
+        void *ptr_cpy;                         /**< Pointer to the dataset       */
         void *devicePtr;                   /**< Pointer to data on device    */
     } FTIT_dataset;
 
