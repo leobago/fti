@@ -30,7 +30,7 @@
 #endif
 
 /** Malloc macro.                                                          */
-#define talloc(type, num) (type *)malloc(sizeof(type) * (num))
+#define talloc(type, num) (type *)malloc(sizeof(type) * ((size_t)num))
 
 #define LOCAL 0
 #define GLOBAL 1
@@ -127,12 +127,12 @@ extern "C" {
 #ifdef ENABLE_HDF5  // --> If HDF5 is installed
     typedef hsize_t FTIT_hsize_t;
 #else
-    typedef uint64_t FTIT_hsize_t;
+    typedef int64_t FTIT_hsize_t;
 #endif
 
     typedef struct FTIT_dimension {
         int ndims;
-        uint64_t count[32];
+        int64_t count[32];
     } FTIT_dimension;
 
     typedef uintptr_t           FTI_ADDRVAL;      /**< for ptr manipulation */
@@ -140,13 +140,13 @@ extern "C" {
 
     typedef struct FTIT_datasetInfo {
         int varID;
-        uint32_t varSize;
+        int64_t varSize;
     } FTIT_datasetInfo;
 
     typedef struct FTIT_dcpConfigurationPosix {
         unsigned int digestWidth;
         unsigned char* (*hashFunc)(const unsigned char *data,
-            uint64_t nBytes, unsigned char *hash);
+            unsigned long nBytes, unsigned char *hash);
         unsigned int StackSize;
         uint32_t BlockSize;
         unsigned int cachedCkpt;
@@ -156,23 +156,23 @@ extern "C" {
         int nbLayerReco;
         int nbVarReco;
         unsigned int Counter;
-        uint32_t FileSize;
-        uint32_t dataSize;
-        uint32_t dcpSize;
-        uint32_t LayerSize[MAX_STACK_SIZE];
+        int64_t FileSize;
+        int64_t dataSize;
+        int64_t dcpSize;
+        int64_t LayerSize[MAX_STACK_SIZE];
         FTIT_datasetInfo datasetInfo[MAX_STACK_SIZE][FTI_BUFS];
         char LayerHash[MAX_STACK_SIZE*MD5_DIGEST_STRING_LENGTH];
     } FTIT_dcpExecutionPosix;
 
     typedef struct FTIT_dcpDatasetPosix {
-        uint32_t hashDataSize;
+        int64_t hashDataSize;
         unsigned char* currentHashArray;
         unsigned char* oldHashArray;
     } FTIT_dcpDatasetPosix;
 
     typedef struct blockMetaInfo_t {
-        uint64_t varId : 18;
-        uint64_t blockId : 30;
+        int64_t varId : 18;
+        int64_t blockId : 30;
     } blockMetaInfo_t;
 
     /*-----------------------------------------------------------------------
@@ -229,15 +229,15 @@ extern "C" {
         char checksum[MD5_DIGEST_STRING_LENGTH]; /**< file hash without meta  */
         unsigned char myHash[MD5_DIGEST_LENGTH]; /**< hash of this struct     */
         int ckptId;           /**< Checkpoint ID                             */
-        size_t metaSize;      /**< size of ckpt data                         */
-        size_t ckptSize;      /**< also file size TODO remove                */
-        size_t dataSize;      /**< size of protected data without meta data  */
-        size_t pureDataSize;  /**< total data size (for printouts)           */
-        size_t fs;            /**< file size                                 */
-        size_t maxFs;         /**< maximum file size in group                */
-        size_t ptFs;          /**< partner copy file size                    */
-        uint64_t timestamp;   /**< time (ns) cp was created (CLOCK_REALTIME) */
-        size_t dcpSize;       /**< how much actually written by rank         */
+        int64_t metaSize;      /**< size of ckpt data                         */
+        int64_t ckptSize;      /**< also file size TODO remove                */
+        int64_t dataSize;      /**< size of protected data without meta data  */
+        int64_t pureDataSize;  /**< total data size (for printouts)           */
+        int64_t fs;            /**< file size                                 */
+        int64_t maxFs;         /**< maximum file size in group                */
+        int64_t ptFs;          /**< partner copy file size                    */
+        uint32_t timestamp;   /**< time (ns) cp was created (CLOCK_REALTIME) */
+        int64_t dcpSize;       /**< how much actually written by rank         */
     } FTIFF_metaInfo;
 
     /** @typedef    FTIT_DataDiffHash
@@ -253,7 +253,7 @@ extern "C" {
         uint32_t* bit32hash[2];      /**< CRC32 digest                        */
         uint16_t* blockSize;         /**< data block size                     */
         bool* isValid;               /**< indicates if data block is valid    */
-        int32_t nbHashes;            /**< number of hashes for the data chunk */
+        int64_t nbHashes;            /**< number of hashes for the data chunk */
         int currentId;
         int creationType;
         int lifetime;
@@ -275,8 +275,8 @@ extern "C" {
         bool hasCkpt;         /**< indicates if container is stored in ckpt   */
         uintptr_t dptr;       /**< data pointer offset                        */
         uintptr_t fptr;       /**< file pointer offset                        */
-        int32_t chunksize;    /**< chunk size of variable in this block       */
-        int32_t containersize;/**< cont size stored of variable in this block */
+        uint64_t chunksize;    /**< chunk size of variable in this block       */
+        uint64_t containersize;/**< cont size stored of variable in this block */
         unsigned char hash[MD5_DIGEST_LENGTH];  /**< hash of variable chunk   */
         unsigned char myhash[MD5_DIGEST_LENGTH];/**< hash of this structure   */
         bool update;    /**< TRUE if struct needs to be updated in ckpt file  */
@@ -293,7 +293,7 @@ extern "C" {
      */
     typedef struct FTIFF_db {
         int numvars;          /**< number of protected variables in datablock */
-        int32_t dbsize;       /**< size of metadata + data for block in bytes */
+        int64_t dbsize;       /**< size of metadata + data for block in bytes */
         unsigned char myhash[MD5_DIGEST_LENGTH]; /**< hash of variable chunk  */
         bool update;     /**< TRUE if struct needs to be updated in ckpt file */
         bool finalized;             /**< TRUE if block is stored in cp file   */
@@ -366,7 +366,7 @@ extern "C" {
      */
     typedef struct FTIT_Datatype {
         int id;                              /**< ID of the data type.        */
-        size_t size;                         /**< Size of the data type.      */
+        int64_t size;                         /**< Size of the data type.      */
         FTIT_complexType* structure;         /**< Logical structure for HDF5. */
         FTIT_H5Group* h5group;               /**< Group of this datatype.     */
 #ifdef ENABLE_HDF5
@@ -409,7 +409,7 @@ extern "C" {
     typedef struct FTIT_typeField {
         FTIT_Datatype *type;        /**< FTI type ID of the field.           */
         int id;                     /**< Order of the field in the structure */
-        size_t offset;              /**< Offset of the field in structure.   */
+        int64_t offset;              /**< Offset of the field in structure.   */
         int rank;                   /**< Field rank (max. 32)                */
         int dimLength[32];          /**< Lenght of each dimention            */
         char name[FTI_BUFS];        /**< Name of the field                   */
@@ -444,15 +444,15 @@ extern "C" {
      */
     typedef struct FTIT_dataset {
         int id;                            /**< ID to search/update dataset  */
-        int eleSize;                       /**< Element size for the dataset */
+        size_t eleSize;                       /**< Element size for the dataset */
         int rank;                          /**< Rank of dataset (for HDF5)   */
         int dimLength[32];                 /**< Lenght of each dimention     */
         bool recovered;                    /**< True if metadata restored    */
         bool isDevicePtr;                  /**< True if on device memory     */
-        int32_t count;                     /**< nb of elements in dataset    */
-        int32_t size;                      /**< size of the data             */
-        int32_t sizeStored;                /**< size of the data in last CP  */
-        size_t filePos;                    /**< offset of buffer in CP file  */
+        int64_t count;                     /**< nb of elements in dataset    */
+        int64_t size;                      /**< size of the data             */
+        int64_t sizeStored;                /**< size of the data in last CP  */
+        int64_t filePos;                    /**< offset of buffer in CP file  */
         FTIT_attribute attribute;
         FTIT_sharedData sharedData;        /**< Info if dataset is subset    */
         FTIT_dcpDatasetPosix dcpInfoPosix; /**< dCP info for posix I/O       */
@@ -473,9 +473,9 @@ extern "C" {
         int level;                            /**< checkpoint level           */
         int ckptId;                           /**< Current Ckpt ID            */
         int ckptIdL4;                         /**< Current L4 Ckpt ID         */
-        int32_t maxFs;                        /**< Maximum file size.         */
-        int32_t fs;                           /**< File size.                 */
-        int32_t pfs;                          /**< Partner file size.         */
+        int64_t maxFs;                        /**< Maximum file size.         */
+        int64_t fs;                           /**< File size.                 */
+        int64_t pfs;                          /**< Partner file size.         */
         char ckptFile[FTI_BUFS];              /**< Ckpt file name. [FTI_BUFS] */
     } FTIT_metadata;
 
@@ -522,7 +522,7 @@ extern "C" {
         char lTmpDir[FTI_BUFS];            /**< Local temporary directory.    */
         char gTmpDir[FTI_BUFS];            /**< Global temporary directory.   */
         char mTmpDir[FTI_BUFS];            /**< Metadata temporary directory. */
-        size_t cHostBufSize;               /**< Host buffer size for GPU data.*/
+        int64_t cHostBufSize;               /**< Host buffer size for GPU data.*/
         char suffix[4];                    /** Suffix of the checkpoint files */
         FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
         // int fastForward;            /**< Fast forward rate for ckpt intervals */
@@ -618,7 +618,7 @@ extern "C" {
         int(*WriteData) (FTIT_dataset * ,
                 void *write_info);
         int(*finCKPT)   (void *fileDesc);
-        size_t(*getPos) (void *fileDesc);
+        int64_t(*getPos) (void *fileDesc);
         void(*finIntegrity) (unsigned char *, void*);
     }FTIT_IO;
 
@@ -678,7 +678,7 @@ extern "C" {
         unsigned int ckptId;                /**< Checkpoint ID.               */
         unsigned int ckptNext;              /**< Iteration for next CP.       */
         unsigned int ckptLast;              /**< Iteration for last CP.       */
-        int32_t ckptSize;                   /**< Checkpoint size.             */
+        int64_t ckptSize;                   /**< Checkpoint size.             */
         unsigned int nbVar;                 /**< nb of protected variables    */
         unsigned int nbVarStored;           /**< nb prot. var. stored in CP   */
         int nbGroup;                        /**< Number of protected groups.  */

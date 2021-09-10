@@ -149,10 +149,8 @@ int main(int argc, char **argv) {
   FTI_Protect(0, &i, 1, FTI_INTG);
   FTI_Protect(1, h, M * nbLines, FTI_DBLE);
   FTI_Protect(2, g, M * nbLines, FTI_DBLE);
-  int iTmp = 0;
   wtime = MPI_Wtime();
   for (i = 0; i < ITER_TIMES; i++) {
-    iTmp = i;
     int checkpointed = FTI_Snapshot();
     if (!(checkpointed != FTI_SCES || checkpointed != FTI_DONE)) {
       printf("%d: Snapshot failed! Returned %d.\n", rank, checkpointed);

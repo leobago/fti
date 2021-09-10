@@ -119,9 +119,9 @@ int FTI_PosixClose(void *fileDesc) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixWrite(void *src, size_t size, void *fileDesc) {
+int FTI_PosixWrite(void *src, int64_t size, void *fileDesc) {
     WritePosixInfo_t *fd = (WritePosixInfo_t *)fileDesc;
-    size_t written = 0;
+    int64_t written = 0;
     int fwrite_errno = 0;
     char str[FTI_BUFS];
 
@@ -156,7 +156,7 @@ int FTI_PosixWrite(void *src, size_t size, void *fileDesc) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixSeek(size_t pos, void *fileDesc) {
+int FTI_PosixSeek(int64_t pos, void *fileDesc) {
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     if (fseek(fd->f, pos, SEEK_SET) == -1) {
         char error_msg[FTI_BUFS];
@@ -172,11 +172,11 @@ int FTI_PosixSeek(size_t pos, void *fileDesc) {
 /**
   @brief      Return the current file postion 
   @param      fileDesc          The fileDescriptor 
-  @return     size_t            Position of the file descriptor 
+  @return     int64_t            Position of the file descriptor 
 
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetPosixFilePos(void *fileDesc) {
+int64_t FTI_GetPosixFilePos(void *fileDesc) {
     WritePosixInfo_t *fd = (WritePosixInfo_t *) fileDesc;
     return ftell(fd->f);
 }
@@ -191,7 +191,7 @@ size_t FTI_GetPosixFilePos(void *fileDesc) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_PosixRead(void *dest, size_t size, void *fileDesc) {
+int FTI_PosixRead(void *dest, int64_t size, void *fileDesc) {
     return FTI_SCES;
 }
 
@@ -353,13 +353,13 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if (data->size != data->sizeStored) {
-        snprintf(str, sizeof(str), "Cannot recover %d bytes to protected "
-        "variable (ID %d) size: %d", data->sizeStored, data->id, data->size);
+        snprintf(str, sizeof(str), "Cannot recover %lu bytes to protected "
+        "variable (ID %d) size: %lu", data->sizeStored, data->id, data->size);
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }
 
-    int32_t filePos = data->filePos;
+    int64_t filePos = data->filePos;
     if (fseek(fileposix, filePos, SEEK_SET) == 0) {
         fread(data->ptr, 1, data->size, fileposix);
         if (ferror(fileposix)) {

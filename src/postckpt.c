@@ -357,17 +357,18 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
         int remBsize = bs;
-        int32_t ps = ((maxFs / bs)) * bs;
+        int64_t ps = ((maxFs / bs)) * bs;
         if (ps < maxFs) {
             ps = ps + bs;
         }
+
 
         // for MD5 checksum
         MD5_CTX mdContext;
         MD5_Init(&mdContext);
 
         // For each block
-        int32_t pos = 0;
+        int64_t pos = 0;
         while (pos < ps) {
             if ((maxFs - pos) < bs) {
                 remBsize = maxFs - pos;

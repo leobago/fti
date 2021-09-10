@@ -59,7 +59,7 @@ pthread_mutex_t application;
 int32_t totalWork = 0;
 int32_t worker_exit = 0;
 int deviceId;
-unsigned char* (*cpuHash)(const unsigned char *data, uint64_t nBytes,
+unsigned char* (*cpuHash)(const unsigned char *data, unsigned long nBytes,
  unsigned char *hash);
 int32_t tempBufferSize;
 int32_t md5ChunkSize;
@@ -98,7 +98,7 @@ int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
  **/
 /*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_dataset *data) {
-    uint32_t dataSize = data->size;
+    int64_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;

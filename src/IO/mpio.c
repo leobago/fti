@@ -122,10 +122,10 @@ int FTI_MPIOClose(void *fileDesc) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MPIOWrite(void *src, size_t size, void *fileDesc) {
+int FTI_MPIOWrite(void *src, int64_t size, void *fileDesc) {
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
-    size_t pos = 0;
-    size_t bSize = fd->FTI_Conf->transferSize;
+    int64_t pos = 0;
+    int64_t bSize = fd->FTI_Conf->transferSize;
     while (pos < size) {
         if ((size - pos) < fd->FTI_Conf->transferSize) {
             bSize = size - pos;
@@ -165,7 +165,7 @@ int FTI_MPIOWrite(void *src, size_t size, void *fileDesc) {
   @return     integer         The position in virtual local file.
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_GetMPIOFilePos(void *fileDesc) {
+int64_t FTI_GetMPIOFilePos(void *fileDesc) {
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
     return fd->loffset;
 }
@@ -181,7 +181,7 @@ size_t FTI_GetMPIOFilePos(void *fileDesc) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_MPIORead(void *dest, size_t size, void *fileDesc) {
+int FTI_MPIORead(void *dest, int64_t size, void *fileDesc) {
     WriteMPIInfo_t *fd = (WriteMPIInfo_t *)fileDesc;
     return MPI_File_read_at(fd->pfh, fd->offset, dest, size, MPI_BYTE,
      MPI_STATUS_IGNORE);

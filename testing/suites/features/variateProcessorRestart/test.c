@@ -95,7 +95,6 @@ int main(int argc, char **argv) {
   RECOVERVAR = atoi(argv[3]);
   int rank, grank;
   int size;
-  int size_bac;
   int i, j;
   int *ids;
 
@@ -138,8 +137,6 @@ int main(int argc, char **argv) {
       printf("invalid configuration for restart\n");
       MPI_Abort(MPI_COMM_WORLD, -1);
   }
-
-  size_bac = size;
 
   int ldim0 = fdimX / ((int)sqrt(size));
   int ldim1 = fdimY1 / ((int)sqrt(size));
@@ -295,7 +292,6 @@ int main(int argc, char **argv) {
     //
 
     int base = offset[0] * fdim[1] + offset[1] + 1;
-    int stride = 0;
     // init array elements with increasing integers
     for (i = 0; i < ldim0; ++i) {
       for (j = 0; j < ldim1; ++j) {
@@ -349,6 +345,7 @@ int checkpoint(int id, int level, int *ids, int nids) {
   } else {
     FTI_Checkpoint(id, level);
   }
+  return 0;
 }
 
 int recover(int *ids, int nids) {
@@ -367,6 +364,7 @@ int recover(int *ids, int nids) {
   } else {
     FTI_Recover();
   }
+  return 0;
 }
 
 void shuffle(int *array, size_t n) {
