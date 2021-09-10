@@ -70,7 +70,7 @@ double capBitsIeeeDbl(double value,unsigned int precision){
     return _d.d;
 }
 
-double * FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
+int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
     double errorSum=0;
     int64_t nValues=0;
     int64_t i;
@@ -139,7 +139,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 {
   void* block_;
   bool allocBlock = false;
-  uint64_t nVals;
+  int64_t nVals;
   double error;
   if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptMeta.level == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {

@@ -554,8 +554,7 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char lastCkpt[FTI_BUFS];
 
     memset(lastCkpt, 0x0, FTI_BUFS);
-    strncpy(lastCkpt, ini->key[ini->n-6], FTI_BUFS-1);
-
+    strncpy(lastCkpt, ini->key[ini->n-6-1], FTI_BUFS-1);
     int ckptId;
     sscanf(lastCkpt, "checkpoint_id.%d", &ckptId);
 
@@ -588,7 +587,7 @@ int FTI_LoadCkptMetaData(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
               "meta data file", FTI_EROR);
             dictionary_del(ini);
             return FTI_NSCS;
-        } else {
+        } else if (isPbdcp == 1) {
             FTI_Ckpt[4].recoIsDcp = (bool) isPbdcp;
             FTI_Exec->isPbdcp=ckptLvel;
         }
