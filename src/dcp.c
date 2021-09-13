@@ -69,9 +69,10 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
     char str[FTI_BUFS];
     char data_metric[3] = "_B";
     char dcp_metric[3] = "_B";
+    char pbdcp_metric[3] = "_B";
     char cp_print_mode[6];
 
-    size_t norder_data, norder_dcp, pureDataSize, dcpSize;
+    size_t norder_data, norder_dcp, pureDataSize, dcpSize, written_pbdcp;
 
     if (FTI_Conf.dcpFtiff) {
         dcpSize = FTI_Exec.FTIFFMeta.dcpSize;
@@ -82,32 +83,22 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
     }
   
     double relErrAvg = -1;
+    int64_t tot_written = 0;
     if( FTI_Exec.isPbdcp == 4 ) {
       double sum_error=FTI_Exec.dcpInfoPosix.errorSum;
       int64_t nVals=FTI_Exec.dcpInfoPosix.nbValues;
+      int64_t tot_bytes=FTI_Exec.dcpInfoPosix.tot_bytes;
       double sum_error_tot;
       int64_t nVals_tot;
       MPI_Reduce(&sum_error, &sum_error_tot, 1, MPI_DOUBLE, MPI_SUM, 0, FTI_COMM_WORLD);
       MPI_Reduce(&nVals, &nVals_tot, 1, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
+      MPI_Reduce(&tot_bytes, &tot_written, 1, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
       if( nVals_tot > 0 ) relErrAvg=sum_error_tot/nVals_tot;
-    }
-
-    int64_t *data_Size = (FTI_Conf.dcpFtiff)?
-    (int64_t*)&FTI_Exec.FTIFFMeta.pureDataSize:
-    &FTI_Exec.dcpInfoPosix.dataSize;
-    int64_t *dcp_Size = (FTI_Conf.dcpFtiff)?
-      (int64_t*)&FTI_Exec.FTIFFMeta.dcpSize:
-      &FTI_Exec.dcpInfoPosix.dcpSize;
-    int64_t dcpStats[2];  // 0:totalDcpSize, 1:totalDataSize
-    int64_t sendBuf[] = { *dcp_Size, *data_Size };
-    MPI_Reduce(sendBuf, dcpStats, 2, MPI_INT64_T, MPI_SUM, 0, FTI_COMM_WORLD);
-    if (FTI_Topo.splitRank ==  0) {
-        *dcp_Size = dcpStats[0];
-        *data_Size = dcpStats[1];
     }
     
     norder_data = get_metric(pureDataSize, data_metric);
     norder_dcp = get_metric(dcpSize, dcp_metric);
+    written_pbdcp = get_metric(tot_written, pbdcp_metric);
 
     // If not head
     if (FTI_Topo.splitRank)
@@ -126,7 +117,7 @@ void FTI_PrintDcpStats(FTIT_configuration FTI_Conf, FTIT_execution FTI_Exec,
             ((double)dcpSize/pureDataSize)*100);
     if ( (FTI_Exec.isPbdcp == 4) && FTI_Conf.pbdcpEnabled && (relErrAvg != -1) ){
         char rmseStr[FTI_BUFS];
-        snprintf(rmseStr,FTI_BUFS," [PBDCP active -> average relative error: %.5lf%%]",relErrAvg*100);
+        snprintf(rmseStr,FTI_BUFS," [PBDCP active -> average relative error: %.5lf%%, total written: %.2lf %s]",relErrAvg*100, (double)tot_written/written_pbdcp, pbdcp_metric);
         strcat(str,rmseStr);
     } else {
         char rmseStr[FTI_BUFS] = " [PBDCP inactive]";

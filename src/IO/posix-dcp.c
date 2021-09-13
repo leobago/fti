@@ -116,22 +116,28 @@ bool FTI_CompareBlockValues_ieee_d(void *block_new, void* block_old, uint64_t nB
   double errorSum=0;
   int64_t nValues=0;
   bool dirty = false;
-  //int count = 5;
+  int count = 5;
   double* old = (double*) block_old;
   double* new = (double*) block_new;
   int64_t n = nBytes/type->size;
   int64_t i; for(i=0; i<n; i++) {
     double epsilon = getEpsilonIeeeDbl( new[i], precision );
+    //double epsilon = fabs(new[i] * pow( 10, -precision ));
     //if( (new[i] != 0.0F) && (new[i] != 0.0F) && !isnan(new[i]) && !isinf(new[i]) ){
     if( !isnan(new[i]) && !isinf(new[i]) ){
       double error = fabs( new[i] - old[i] );
-      //if((count >0) && (i%64==0)) {
-      //  DBG_MSG("new: %lf, old: %lf, error: %lf, epsilon: %lf", -1, 
-      //      new[i], old[i], error, epsilon);
-      //  count--;
-      //}
       if( !isnan(error) && !isinf(error) ) {
-        if( error > epsilon ) dirty = true;
+        if( error > epsilon ) {
+          dirty = true;
+          if((count >0) && (i%64==0)) {
+            //DBG_MSG("new: %lf, old: %lf, error: %lf, epsilon: %lf", -1, 
+            //    new[i], old[i], error, epsilon);
+            //count--;
+          }
+        }
+        if( (new[i] != -0.0F) && (new[i] != 0.0F) ) {
+          error = fabs( error/new[i] );
+        }
         errorSum += error;
         nValues++;
       }
@@ -140,7 +146,6 @@ bool FTI_CompareBlockValues_ieee_d(void *block_new, void* block_old, uint64_t nB
   if( !dirty ) {
     *error=errorSum;
     *nbValues=nValues;
-    //DBG_MSG("errorSum: %lf", -1, errorSum);
   } else {
     *error=0;
     *nbValues=0;
@@ -176,7 +181,7 @@ bool FTI_CompareBlockValues_ieee_f(void *block_new, void* block_old, uint64_t nB
   return dirty;
 }
 
-int FTI_CompareBlockValues(void *block_new, void* block_old, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
+int64_t FTI_CompareBlockValues(void *block_new, void* block_old, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
   bool dirty;
   if(type->id == FTI_SFLT){
     dirty = FTI_CompareBlockValues_ieee_f( block_new, block_old, nBytes, type, precision, nbValues, error );
@@ -191,7 +196,7 @@ int FTI_CompareBlockValues(void *block_new, void* block_old, uint64_t nBytes, FT
   if( !dirty ) {
     memcpy(block_new, block_old, nBytes);
   }
-  return FTI_SCES;
+  return (dirty) ? nBytes : 0;
 }
 
 
@@ -275,7 +280,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       memcpy(block_old_, block_old, nBytes);
       allocBlock = true;
       //FTI_TruncateMantissa ( block_new_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
-      FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      FTI_Exec->dcpInfoPosix.tot_bytes += FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
       FTI_Exec->dcpInfoPosix.errorSum += error;
       FTI_Exec->dcpInfoPosix.nbValues += nVals;
     }
@@ -284,6 +289,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   }
   
   FTI_Conf->dcpInfoPosix.hashFunc(block_new_, nBytes, hash);
+  memcpy(block_old, block_new_, nBytes);
   
   if (allocBlock) {
     free(block_new_);

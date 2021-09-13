@@ -154,6 +154,7 @@ extern "C" {
 
     typedef struct FTIT_dcpExecutionPosix {
         double errorSum;
+        int64_t tot_bytes;
         int64_t nbValues;
         int nbLayerReco;
         int nbVarReco;

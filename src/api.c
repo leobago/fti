@@ -1914,6 +1914,7 @@ int FTI_Checkpoint(int id, int level) {
         if(FTI_Conf.pbdcpEnabled){
             FTI_Ckpt[4].isDcp = true;
             FTI_Ckpt[4].isPbdcp = true;
+            FTI_Exec.dcpInfoPosix.tot_bytes = 0;
             FTI_Exec.dcpInfoPosix.errorSum = 0;
             FTI_Exec.dcpInfoPosix.nbValues = 0;
         }
@@ -2032,7 +2033,7 @@ int FTI_Checkpoint(int id, int level) {
 
     int k = 0; for (; k < FTI_Exec.nbVar; k++) {
         data[k].sizeStored = data[k].size;
-        memcpy(data[k].ptr_cpy, data[k].ptr, data[k].size);
+        //memcpy(data[k].ptr_cpy, data[k].ptr, data[k].size);
     }
 
 
