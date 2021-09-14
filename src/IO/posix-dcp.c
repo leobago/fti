@@ -156,6 +156,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     block_ = block;
   }
   
+  // TODO only add error when hash has really changed
   FTI_Conf->dcpInfoPosix.hashFunc(block_, nBytes, hash);
   
   if (allocBlock) free(block_);
@@ -204,7 +205,6 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     write_DCPinfo->FTI_Ckpt = FTI_Ckpt;
     write_DCPinfo->FTI_Topo = FTI_Topo;
     write_DCPinfo->layerSize = 0;
-
 
     FTI_Exec->dcpInfoPosix.dcpSize = 0;
     FTI_Exec->dcpInfoPosix.dataSize = 0;
@@ -270,10 +270,13 @@ void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      "p", write_info);
     DFTI_EH_FWRITE(NULL, bytes, &FTI_Exec->nbVar, sizeof(int), 1, write_info->f,
      "p", write_info);
+    // write precision for pbdcp
+    DFTI_EH_FWRITE(NULL, bytes, &FTI_Conf->pbdcp_precision, sizeof(unsigned int), 1, write_info->f,
+     "p", write_info);
     // + sizeof(unsigned int);
-    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int);
+    FTI_Exec->dcpInfoPosix.FileSize += 2*sizeof(int)+sizeof(unsigned int);
     // + sizeof(unsigned int);
-    write_DCPinfo->layerSize += 2*sizeof(int);
+    write_DCPinfo->layerSize += 2*sizeof(int)+sizeof(unsigned int);
 
     return write_DCPinfo;
 }
@@ -415,9 +418,9 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
             int fileUpdate = 0;
             if (commitBlock) {
                 if (dcpLayer > 0) {
-                    DFTI_EH_FWRITE(FTI_NSCS, success, &blockMeta, 6, 1, write_info->f,
+                    DFTI_EH_FWRITE(FTI_NSCS, success, &blockMeta, FTI_DCP_BLKMETA_WIDTH, 1, write_info->f,
                      "p", block);
-                    if (success) fileUpdate += 6;
+                    if (success) fileUpdate += FTI_DCP_BLKMETA_WIDTH;
                 }
                 if (success) {
                     DFTI_EH_FWRITE(FTI_NSCS, success, ptr, chunkSize, 1, write_info->f,
@@ -526,6 +529,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     unsigned int stackSize;
     int nbVarLayer;
     int ckptId;
+    unsigned int pbdcp_precision;
 
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
@@ -586,6 +590,12 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
     fread(&nbVarLayer, 1, sizeof(int), fd);
+    if (ferror(fd)) {
+        snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
+        FTI_Print(errstr, FTI_EROR);
+        return FTI_NSCS;
+    }
+    fread(&pbdcp_precision, 1, sizeof(unsigned int), fd);
     if (ferror(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
         FTI_Print(errstr, FTI_EROR);
@@ -671,9 +681,15 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Print(errstr, FTI_EROR);
             return FTI_NSCS;
         }
+        pos += fread(&pbdcp_precision, 1, sizeof(unsigned int), fd);
+        if (ferror(fd)) {
+            snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
+            FTI_Print(errstr, FTI_EROR);
+            return FTI_NSCS;
+        }
 
         while (pos < FTI_Exec->dcpInfoPosix.LayerSize[i]) {
-            fread(&blockMeta, 1, 6, fd);
+            fread(&blockMeta, 1, FTI_DCP_BLKMETA_WIDTH, fd);
             if (ferror(fd)) {
                 snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
                 FTI_Print(errstr, FTI_EROR);
@@ -720,7 +736,7 @@ int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                 return FTI_NSCS;
             }
 
-            pos += (blockSize+6);
+            pos += (blockSize+FTI_DCP_BLKMETA_WIDTH);
         }
     }
 
@@ -819,6 +835,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
     unsigned int stackSize;
     int nbVarLayer;
     int ckptId;
+    unsigned int pbdcp_precision;
 
     char errstr[FTI_BUFS];
     char fn[FTI_BUFS];
@@ -878,6 +895,12 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
         return FTI_NSCS;
     }
     fread(&nbVarLayer, 1, sizeof(int), fd);
+    if (ferror(fd)) {
+        snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
+        FTI_Print(errstr, FTI_EROR);
+        return FTI_NSCS;
+    }
+    fread(&pbdcp_precision, 1, sizeof(int), fd);
     if (ferror(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
         FTI_Print(errstr, FTI_EROR);
@@ -960,9 +983,15 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
             FTI_Print(errstr, FTI_EROR);
             return FTI_NSCS;
         }
+        pos += fread(&pbdcp_precision, 1, sizeof(int), fd);
+        if (ferror(fd)) {
+            snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
+            FTI_Print(errstr, FTI_EROR);
+            return FTI_NSCS;
+        }
 
         while (pos < FTI_Exec->dcpInfoPosix.LayerSize[i]) {
-            fread(&blockMeta, 1, 6, fd);
+            fread(&blockMeta, 1, FTI_DCP_BLKMETA_WIDTH, fd);
             if (ferror(fd)) {
                 snprintf(errstr, FTI_BUFS, "unable to read in file %s", fn);
                 FTI_Print(errstr, FTI_EROR);
@@ -1004,7 +1033,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
                     return FTI_NSCS;
                 }
             }
-            pos += (blockSize+6);
+            pos += (blockSize+FTI_DCP_BLKMETA_WIDTH);
         }
     }
 
@@ -1227,6 +1256,7 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
     int layer = 0;
     int nbVarLayer;
     int ckptId;
+    unsigned int pbdcp_precision;
 
     // set number of recovered layers to 0
     exec->dcpInfoPosix.nbLayerReco = 0;
@@ -1248,6 +1278,12 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
         goto FINALIZE;
     }
     fs += fread(&nbVarLayer, 1, sizeof(int), fd);
+    if (ferror(fd) || feof(fd)) {
+        snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
+        FTI_Print(errstr, FTI_EROR);
+        goto FINALIZE;
+    }
+    fs += fread(&pbdcp_precision, 1, sizeof(int), fd);
     if (ferror(fd) || feof(fd)) {
         snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
         FTI_Print(errstr, FTI_EROR);
@@ -1341,8 +1377,24 @@ int FTI_VerifyChecksumDcpPosix(char* fileName) {
 
         layerSize += bytes;
 
+        bytes = fread(&pbdcp_precision, 1, sizeof(int), fd);
+
+        if (feof(fd)) {
+            readLayer = false;
+            break;
+        }
+
+
+        if (ferror(fd)) {
+            snprintf(errstr, FTI_BUFS, "unable to read in file %s", fileName);
+            FTI_Print(errstr, FTI_EROR);
+            goto FINALIZE;
+        }
+
+        layerSize += bytes;
+
         while ((readLayer) && layerSize < exec->dcpInfoPosix.LayerSize[layer]) {
-            bytes = fread(dummyBuffer, 1, 6, fd);
+            bytes = fread(dummyBuffer, 1, FTI_DCP_BLKMETA_WIDTH, fd);
             if (feof(fd)) {
                 readLayer = false;
                 break;

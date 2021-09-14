@@ -175,7 +175,10 @@ extern "C" {
     typedef struct blockMetaInfo_t {
         int64_t varId : 18;
         int64_t blockId : 30;
+        int64_t capped : 8;
     } blockMetaInfo_t;
+    
+#define FTI_DCP_BLKMETA_WIDTH 7 // bitsize of blockMetaInfo_t
 
     /*-----------------------------------------------------------------------
       FTI-FF types
