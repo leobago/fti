@@ -265,8 +265,8 @@ int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsi
 int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec, 
   FTIT_dataset* FTI_Data, void *block_new, void* block_old, uint64_t nBytes, unsigned char *hash)
 {
-  void* block_new_;
-  void* block_old_;
+  void* block_new_ = NULL;
+  void* block_old_ = NULL;
   bool allocBlock = false;
   int64_t nVals;
   double error;
