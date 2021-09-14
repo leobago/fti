@@ -270,6 +270,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
   bool allocBlock = false;
   int64_t nVals;
   double error;
+  int64_t res;
   if ( FTI_Conf->pbdcpEnabled && (FTI_Exec->ckptMeta.level == FTI_Exec->isPbdcp)) {
     if ( (FTI_Data->type != FTI_GetType(FTI_DBLE)) && (FTI_Data->type != FTI_GetType(FTI_SFLT)) ) {
       block_new_ = block_new;
@@ -280,7 +281,8 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       memcpy(block_old_, block_old, nBytes);
       allocBlock = true;
       //FTI_TruncateMantissa ( block_new_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
-      FTI_Exec->dcpInfoPosix.tot_bytes += FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      res = FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
+      FTI_Exec->dcpInfoPosix.tot_bytes += res; 
       FTI_Exec->dcpInfoPosix.errorSum += error;
       FTI_Exec->dcpInfoPosix.nbValues += nVals;
     }
@@ -288,7 +290,8 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     block_new_ = block_new;
   }
   
-  FTI_Conf->dcpInfoPosix.hashFunc(block_new_, nBytes, hash);
+  FTI_Conf->dcpInfoPosix.blockHashFunc(block_new_, block_old_, nBytes, hash);
+//  if( *hash == 0 ) DBG_MSG("hash == 0",0);
   memcpy(block_old, block_new_, nBytes);
   
   if (allocBlock) {
@@ -539,10 +542,12 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
             // if old hash exists, compare. If datasize increased, there
             // wont be an old hash to compare with.
             if (offset < data->dcpInfoPosix.hashDataSize) {
-                commitBlock = memcmp(&(data->
-                 dcpInfoPosix.currentHashArray[hashIdx]),
-                 &(data->dcpInfoPosix.oldHashArray[hashIdx]),
-                 FTI_Conf->dcpInfoPosix.digestWidth);
+                commitBlock = FTI_Conf->dcpInfoPosix.hashCompare( data, hashIdx );
+                  
+                 //memcmp(&(data->
+                 //dcpInfoPosix.currentHashArray[hashIdx]),
+                 //&(data->dcpInfoPosix.oldHashArray[hashIdx]),
+                 //FTI_Conf->dcpInfoPosix.digestWidth);
             } else {
                 commitBlock = true;
             }
@@ -565,9 +570,9 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
 
                 FTI_Exec->dcpInfoPosix.dcpSize += success*dcpChunkSize;
                 if (success) {
-                    MD5_Update(&write_info->integrity,
-                     &data->dcpInfoPosix.currentHashArray[hashIdx],
-                      MD5_DIGEST_LENGTH);
+                    //MD5_Update(&write_info->integrity,
+                    // &data->dcpInfoPosix.currentHashArray[hashIdx],
+                    //  MD5_DIGEST_LENGTH);
                 }
             }
             offset += dcpChunkSize*success;
@@ -1578,6 +1583,36 @@ void* FTI_DcpPosixRecoverRuntimeInfo(int tag, void* exec_, void* conf_) {
     return ret;
 }
 
+unsigned char* _COMPARE(const unsigned char *n, const unsigned char *o, unsigned long nBytes,
+ unsigned char *hash) 
+{
+    static unsigned char hash_;
+    if (hash == NULL) {
+        hash = &hash_;
+    }
+    
+    *hash = 1; // default dirty
+    
+    if( o != NULL ) {
+      *hash = ( memcmp( n, o, nBytes )==0 ) ? 0 : 1; 
+    }
+
+    return hash;
+
+}
+
+unsigned char* _CRC32_wrap(const unsigned char *n, const unsigned char *o, unsigned long nBytes,
+ unsigned char *hash) 
+{
+  return CRC32( n, nBytes, hash );
+}
+
+unsigned char* _MD5_wrap(const unsigned char *n, const unsigned char *o, unsigned long nBytes,
+ unsigned char *hash) 
+{
+  return MD5( n, nBytes, hash );
+}
+
 // have the same for for MD5 and CRC32
 unsigned char* CRC32(const unsigned char *d, unsigned long nBytes,
  unsigned char *hash) {
@@ -1596,5 +1631,27 @@ unsigned char* CRC32(const unsigned char *d, unsigned long nBytes,
     memcpy(hash, &digest, CRC32_DIGEST_LENGTH);
 
     return hash;
+}
+
+bool _MD5_cmp( FTIT_dataset* data, int hashIdx ) {
+  int res = memcmp(&(data->
+        dcpInfoPosix.currentHashArray[hashIdx]),
+      &(data->dcpInfoPosix.oldHashArray[hashIdx]),
+      MD5_DIGEST_LENGTH);
+  return (res == 0) ? false : true;
+}
+
+bool _CRC32_cmp( FTIT_dataset* data, int hashIdx  ) {
+  int res = memcmp(&(data->
+        dcpInfoPosix.currentHashArray[hashIdx]),
+      &(data->dcpInfoPosix.oldHashArray[hashIdx]),
+      CRC32_DIGEST_LENGTH);
+  return (res == 0) ? false : true;
+}
+
+bool _CMP_cmp( FTIT_dataset* data, int hashIdx  ) {
+  data->dcpInfoPosix.oldHashArray[hashIdx] = false;
+//  if( data->dcpInfoPosix.currentHashArray[hashIdx] == 0 ) DBG_MSG("hash == 0",0); 
+  return data->dcpInfoPosix.currentHashArray[hashIdx];
 }
 

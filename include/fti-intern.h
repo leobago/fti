@@ -143,15 +143,6 @@ extern "C" {
         int64_t varSize;
     } FTIT_datasetInfo;
 
-    typedef struct FTIT_dcpConfigurationPosix {
-        unsigned int digestWidth;
-        unsigned char* (*hashFunc)(const unsigned char *data,
-            unsigned long nBytes, unsigned char *hash);
-        unsigned int StackSize;
-        uint32_t BlockSize;
-        unsigned int cachedCkpt;
-    } FTIT_dcpConfigurationPosix;
-
     typedef struct FTIT_dcpExecutionPosix {
         double errorSum;
         int64_t tot_bytes;
@@ -472,6 +463,21 @@ extern "C" {
         void *ptr_cpy;                         /**< Pointer to the dataset       */
         void *devicePtr;                   /**< Pointer to data on device    */
     } FTIT_dataset;
+
+    typedef struct FTIT_configuration FTIT_configuration;
+
+    typedef struct FTIT_dcpConfigurationPosix {
+        unsigned int digestWidth;
+        unsigned char* (*blockHashFunc)(const unsigned char *data1,
+            const unsigned char *data2,
+            unsigned long nBytes, unsigned char *hash);
+        unsigned char* (*hashFunc)(const unsigned char *data,
+            unsigned long nBytes, unsigned char *hash);
+        bool (*hashCompare)( FTIT_dataset* data, int hashIdx  );
+        unsigned int StackSize;
+        uint32_t BlockSize;
+        unsigned int cachedCkpt;
+    } FTIT_dcpConfigurationPosix;
 
     /** @typedef    FTIT_metadata
      *  @brief      Temporary checkpoint metadata.

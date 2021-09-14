@@ -106,7 +106,7 @@ int MD5CPU(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,FTIT_dataset *
     unsigned char *ptr_cpy = (unsigned char *) data->ptr_cpy;
     for (i = 0 ; i < data->size; i+=md5ChunkSize) {
         unsigned int blockId = i/md5ChunkSize;
-        unsigned int hashIdx = blockId*16;
+        unsigned int hashIdx = blockId*FTI_Conf->dcpInfoPosix.digestWidth;
         unsigned int chunkSize = ((dataSize-i) < md5ChunkSize) ?
          dataSize-i: md5ChunkSize;
         if (chunkSize < md5ChunkSize) {

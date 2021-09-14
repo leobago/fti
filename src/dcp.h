@@ -13,6 +13,7 @@
 #define FTI_DCP_MODE_OFFSET 2000
 #define FTI_DCP_MODE_MD5 2001
 #define FTI_DCP_MODE_CRC32 2002
+#define FTI_DCP_MODE_CMP 2003
 
 #ifdef FTI_NOZLIB
 extern const uint32_t crc32_tab[];

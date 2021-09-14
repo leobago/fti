@@ -224,11 +224,21 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         switch (FTI_Conf->dcpMode) {
             case FTI_DCP_MODE_MD5:
                 FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                FTI_Conf->dcpInfoPosix.blockHashFunc = _MD5_wrap;
+                FTI_Conf->dcpInfoPosix.hashCompare = _MD5_cmp;
                 FTI_Conf->dcpInfoPosix.digestWidth = MD5_DIGEST_LENGTH;
                 break;
             case FTI_DCP_MODE_CRC32:
                 FTI_Conf->dcpInfoPosix.hashFunc = CRC32;
+                FTI_Conf->dcpInfoPosix.blockHashFunc = _CRC32_wrap;
+                FTI_Conf->dcpInfoPosix.hashCompare = _CRC32_cmp;
                 FTI_Conf->dcpInfoPosix.digestWidth = CRC32_DIGEST_LENGTH;
+                break;
+            case FTI_DCP_MODE_CMP:
+                FTI_Conf->dcpInfoPosix.hashFunc = MD5;
+                FTI_Conf->dcpInfoPosix.blockHashFunc = _COMPARE;
+                FTI_Conf->dcpInfoPosix.hashCompare = _CMP_cmp;
+                FTI_Conf->dcpInfoPosix.digestWidth = CMP_DIGEST_LENGTH;
                 break;
         }
     } else if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
