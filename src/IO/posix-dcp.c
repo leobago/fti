@@ -70,6 +70,28 @@ double capBitsIeeeDbl(double value,unsigned int precision){
     return _d.d;
 }
 
+bool FTI_CapDataBlock( void* block, void* block_cap, uint64_t size, uint64_t type_size_cap,
+    FTIT_Datatype* type, unsigned int precision ) {
+  
+  if( type->id == FTI_DBLE ) {
+    double* block_d = (double*) block;
+    int s=0, i=0, n=size/type->size; for(;i<n;i++,s+=type_size_cap) {
+      double cap = capBitsIeeeDbl( block_d[i], precision );
+      memcpy(block_cap + s, &cap, type_size_cap);
+    }
+    return true;
+  } else if( type->id == FTI_SFLT ) {
+    float* block_f = (float*) block;
+    int s=0, i=0, n=size/type->size; for(;i<n;i++,s+=type_size_cap) {
+      float cap = capBitsIeeeDbl( block_f[i], precision );
+      memcpy(block_cap + s, &cap, type_size_cap);
+    }
+    return true;
+  }
+  return false;
+
+}
+
 int FTI_TruncateMantissa(void *block, uint64_t nBytes, FTIT_Datatype* type, unsigned int precision,int64_t *nbValues,double *error){
     double errorSum=0;
     int64_t nValues=0;
@@ -332,7 +354,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     // (unsigned char)*nbHashes*FTI_Conf->dcpInfoPosix.digestWidth);
 
     // create meta data buffer
-    blockMetaInfo_t blockMeta;
+    blockMetaInfo_t blockMeta = {0};
     blockMeta.varId = data->id;
 
     if (dcpLayer == 0) {
@@ -372,6 +394,17 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
      " Fetching Next Memory block from memory") != FTI_SCES) {
         return FTI_NSCS;
     }
+    
+    int cappedSigBits = 0;
+    if( data->type->id == FTI_DBLE ) {
+        cappedSigBits = 1 + 11 + FTI_Conf->pbdcp_precision;
+    } else if( data->type->id == FTI_SFLT ) {
+        cappedSigBits = 1 + 8 + FTI_Conf->pbdcp_precision;
+    }
+    
+    int cappedSigBytes = cappedSigBits/8 + ( (cappedSigBits%8) != 0 ) ? 1 : 0;
+    data->dcpInfoPosix.blockCapped = malloc((FTI_Conf->dcpBlockSize/data->type->size)*cappedSigBytes);
+    
     int64_t offset = 0;
     FTI_SyncMD5();
     while (ptr) {
@@ -398,6 +431,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
                 ptr = block;
                 chunkSize = FTI_Conf->dcpInfoPosix.BlockSize;
             }
+            unsigned int chunkSizeCapped = (chunkSize/data->type->size)*cappedSigBytes;
             /*else {
               FTI_Conf->dcpInfoPosix.hashFunc(ptr, FTI_Conf->dcpInfoPosix.BlockSize, &data->dcpInfoPosix.currentHashArray[hashIdx]);
               }*/
@@ -417,20 +451,33 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
             bool success = true;
             int fileUpdate = 0;
             if (commitBlock) {
+                if ( (FTI_Exec->isPbdcp == FTI_Exec->ckptMeta.level) && !(dcpLayer == 0) && false) {
+                  blockMeta.capped = FTI_CapDataBlock( ptr, data->dcpInfoPosix.blockCapped, chunkSize, cappedSigBytes,
+                      data->type, FTI_Conf->pbdcp_precision );
+                }
                 if (dcpLayer > 0) {
                     DFTI_EH_FWRITE(FTI_NSCS, success, &blockMeta, FTI_DCP_BLKMETA_WIDTH, 1, write_info->f,
                      "p", block);
                     if (success) fileUpdate += FTI_DCP_BLKMETA_WIDTH;
                 }
                 if (success) {
+                  if( blockMeta.capped ) {
+                    DFTI_EH_FWRITE(FTI_NSCS, success, data->dcpInfoPosix.blockCapped, chunkSizeCapped, 1, write_info->f,
+                     "p", block);
+                    if (success) {
+                      fileUpdate += chunkSizeCapped;
+                      chunkSize = chunkSizeCapped;
+                    }
+                  } else {
                     DFTI_EH_FWRITE(FTI_NSCS, success, ptr, chunkSize, 1, write_info->f,
                      "p", block);
                     if (success) fileUpdate += chunkSize;
+                  }
                 }
                 FTI_Exec->dcpInfoPosix.FileSize += success*fileUpdate;
                 write_DCPinfo->layerSize += success*fileUpdate;
 
-                FTI_Exec->dcpInfoPosix.dcpSize += success*dcpChunkSize;
+                FTI_Exec->dcpInfoPosix.dcpSize += chunkSize;
                 if (success) {
                     MD5_Update(&write_info->integrity,
                      &data->dcpInfoPosix.currentHashArray[hashIdx],
@@ -443,6 +490,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
         }
         if (FTI_Try(FTI_getPrefetchedData (&prefetcher, &totalBytes, &ptr),
          " Fetching Next Memory block from memory") != FTI_SCES) {
+            free(data->dcpInfoPosix.blockCapped);
             return FTI_NSCS;
         }
     }
@@ -454,6 +502,7 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
     data->dcpInfoPosix.oldHashArray = tmp;
     //    data->dcpInfoPosix.hashArray = data->dcpInfoPosix.hashArrayTmp;
 
+    free(data->dcpInfoPosix.blockCapped);
     free(block);
 
     return FTI_SCES;

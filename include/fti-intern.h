@@ -170,6 +170,7 @@ extern "C" {
         int64_t hashDataSize;
         unsigned char* currentHashArray;
         unsigned char* oldHashArray;
+        void* blockCapped;
     } FTIT_dcpDatasetPosix;
 
     typedef struct blockMetaInfo_t {
