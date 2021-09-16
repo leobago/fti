@@ -280,6 +280,7 @@ int FTI_BlockHashDcp (FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
       block_old_ = malloc(nBytes);
       memcpy(block_old_, block_old, nBytes);
       allocBlock = true;
+#error HERE WE NEED AN OPTION SETTING WHICH TECHNIQUE TO SELECT
       //FTI_TruncateMantissa ( block_new_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
       res = FTI_CompareBlockValues( block_new_, block_old_, nBytes, FTI_Data->type, FTI_Conf->pbdcp_precision ,&nVals,&error);
       FTI_Exec->dcpInfoPosix.tot_bytes += res; 
