@@ -969,7 +969,8 @@ int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid) {
     }
     // Id could not be found in datasets
 
-    data = calloc(1, sizeof(FTIT_dataset));
+    FTIT_dataset dataNew = {0};
+    data = &dataNew;
 
     // Adding new variable to protect
     data->id = id;
