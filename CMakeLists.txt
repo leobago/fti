@@ -212,6 +212,14 @@ if(ENABLE_FORTRAN)
     set(F_CC_ID "${CMAKE_Fortran_COMPILER_ID}_${F_CC_MAJOR}")
     string(COMPARE NOTEQUAL ${C_CC_ID} ${F_CC_ID} COMPILER_VER_DIFFER)
     if(${COMPILER_VER_DIFFER})
+        message(WARNING
+                "Different compiler idetifications for Fortran and C!")
+    endif()
+    
+    # 2.2.f) Check if c/c++ and fortran compilers are compatible
+    FortranCInterface_VERIFY()
+    FortranCInterface_VERIFY(CXX)
+    if((NOT ${FortranCInterface_VERIFIED_C}) AND (NOT ${FortranCInterface_VERIFIED_CXX}))
         message(FATAL_ERROR
                 "Different compiler idetifications for Fortran and C!")
     endif()
