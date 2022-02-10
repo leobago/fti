@@ -2595,7 +2595,13 @@ int FTI_Recover() {
         size_t filePos = data[i].filePos;
         // strncpy(data[i].idChar, data[i].idChar, FTI_BUFS);
         fseek(fd, filePos, SEEK_SET);
-        fread(data[i].ptr, 1, data[i].sizeStored, fd);
+        if( data[i].compression.mode != FTI_CPC_NONE ) {
+          FTI_InitDecompression( &data[i] );
+          fread( data[i].compression.ptr, 1, data[i].sizeStored, fd );
+          FTI_FiniDecompression( &data[i] );
+        } else {
+          fread(data[i].ptr, 1, data[i].sizeStored, fd);
+        }
         if (ferror(fd)) {
             FTI_Print("Could not read FTI checkpoint file.", FTI_EROR);
             fclose(fd);

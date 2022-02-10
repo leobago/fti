@@ -437,31 +437,53 @@ extern "C" {
         char name[FTI_BUFS];
     } FTIT_attribute;
 
+    typedef enum FTIT_CPC_MODE {
+      FTI_CPC_NONE,
+      FTI_CPC_FPZIP,
+      FTI_CPC_ZFP,
+      FTI_CPC_SINGE,
+      FTI_CPC_HALF,
+      FTI_CPC_STRIP
+    } FTIT_CPC_MODE;
+
+    /** @typedef    FTIT_compression
+     *  @brief      Compression metadata.
+     *
+     *  This type stores the compression metadata related with a dataset.
+     */
+    typedef struct FTIT_compression {
+      FTIT_CPC_MODE mode;                   /**< compression algorithm        */ 
+      int64_t size;                         /**< compressed size              */
+      void *ptr;                            /**< pointer to compressed buffer */
+      int parameter;                        /**< compression parameter        */
+    } FTIT_compression;
+
     /** @typedef    FTIT_dataset
      *  @brief      Dataset metadata.
      *
      *  This type stores the metadata related with a dataset.
      */
     typedef struct FTIT_dataset {
-        int id;                            /**< ID to search/update dataset  */
-        size_t eleSize;                       /**< Element size for the dataset */
-        int rank;                          /**< Rank of dataset (for HDF5)   */
-        int dimLength[32];                 /**< Lenght of each dimention     */
-        bool recovered;                    /**< True if metadata restored    */
-        bool isDevicePtr;                  /**< True if on device memory     */
-        int64_t count;                     /**< nb of elements in dataset    */
-        int64_t size;                      /**< size of the data             */
-        int64_t sizeStored;                /**< size of the data in last CP  */
+        int id;                             /**< ID to search/update dataset  */
+        size_t eleSize;                     /**< Element size for the dataset */
+        int rank;                           /**< Rank of dataset (for HDF5)   */
+        int dimLength[32];                  /**< Lenght of each dimention     */
+        bool recovered;                     /**< True if metadata restored    */
+        bool isDevicePtr;                   /**< True if on device memory     */
+        int64_t count;                      /**< nb of elements in dataset    */
+        int64_t size;                       /**< size of the data             */
+        int64_t sizeStored;                 /**< size of the data in last CP  */
         int64_t filePos;                    /**< offset of buffer in CP file  */
         FTIT_attribute attribute;
-        FTIT_sharedData sharedData;        /**< Info if dataset is subset    */
-        FTIT_dcpDatasetPosix dcpInfoPosix; /**< dCP info for posix I/O       */
-        FTIT_Datatype* type;               /**< Data type for the dataset    */
-        FTIT_H5Group* h5group;             /**< Group of this dataset        */
-        char idChar[FTI_BUFS];             /**< THis is glue for ALYA        */
-        char name[FTI_BUFS];               /**< Name of the dataset          */
-        void *ptr;                         /**< Pointer to the dataset       */
-        void *devicePtr;                   /**< Pointer to data on device    */
+        FTIT_sharedData sharedData;         /**< Info if dataset is subset    */
+        FTIT_dcpDatasetPosix dcpInfoPosix;  /**< dCP info for posix I/O       */
+        FTIT_Datatype* type;                /**< Data type for the dataset    */
+        FTIT_H5Group* h5group;              /**< Group of this dataset        */
+        char idChar[FTI_BUFS];              /**< THis is glue for ALYA        */
+        char name[FTI_BUFS];                /**< Name of the dataset          */
+        void *ptr;                          /**< Pointer to the dataset       */
+        void *devicePtr;                    /**< Pointer to data on device    */
+        FTIT_compression compression;        /**< compression parameters       */
     } FTIT_dataset;
 
     /** @typedef    FTIT_metadata

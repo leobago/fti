@@ -534,8 +534,10 @@ int FTI_Write(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {
+        FTI_InitCompression( &data[i] );
         data[i].filePos = io->getPos(write_info);
         int ret = io->WriteData(&data[i], write_info);
+        FTI_FiniCompression( &data[i] );
         if (ret != FTI_SCES)
             return ret;
     }

@@ -265,7 +265,13 @@ int FTI_WritePosixData(FTIT_dataset * data, void *fd) {
     int res;
 
     if (!(data->isDevicePtr)) {
-        if (( res = FTI_Try(FTI_PosixWrite(data->ptr, data->size, write_info),
+        void* data_ptr = data->ptr;
+        int64_t data_size = data->size;
+        if ( data->compression.mode != FTI_CPC_NONE ) {
+          data_ptr = data->compression.ptr;
+          data_size = data->compression.size;
+        }
+        if (( res = FTI_Try(FTI_PosixWrite(data_ptr, data_size, write_info),
          "Storing Data to Checkpoint file")) != FTI_SCES) {
             snprintf(str, FTI_BUFS, "Dataset #%d could not be written.",
              data->id);
