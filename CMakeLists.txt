@@ -254,6 +254,7 @@ set(SRC_FTI
     src/IO/ftiff.c
     src/IO/mpio.c
     src/IO/posix.c
+    src/IO/compression.c
     src/IO/ftiff-dcp.c
     src/postckpt.c
     src/conf.c

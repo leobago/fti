@@ -441,7 +441,7 @@ extern "C" {
       FTI_CPC_NONE,
       FTI_CPC_FPZIP,
       FTI_CPC_ZFP,
-      FTI_CPC_SINGE,
+      FTI_CPC_SINGLE,
       FTI_CPC_HALF,
       FTI_CPC_STRIP
     } FTIT_CPC_MODE;

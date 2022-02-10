@@ -17,6 +17,9 @@ extern "C" {
   int FTI_InitDecompression( FTIT_dataset* );
   int FTI_FiniDecompression( FTIT_dataset* );
 
+  int64_t FTI_DoubleToFloat( FTIT_dataset* data );
+  int64_t FTI_FloatToDouble( FTIT_dataset* data );
+
 #ifdef __cplusplus
 }
 #endif

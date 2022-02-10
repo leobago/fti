@@ -786,6 +786,31 @@ int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name) {
     return FTI_SCES;
 }
 
+int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter )
+{
+    
+    FTIT_dataset* data;
+    if (FTI_Data->get(&data, id) != FTI_SCES) {
+        FTI_Print("failed to protect variable", FTI_WARN);
+        return FTI_NSCS;
+    }
+    
+    if ( data == NULL ) {
+        char str[FTI_BUFS];
+        snprintf(str, FTI_BUFS,
+                "failed to set compression parameters: dataset with id=%d does not exist",
+                id);
+        FTI_Print(str, FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    data->compression.mode = mode;
+    data->compression.parameter = parameter;
+
+    return FTI_SCES;
+
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief      It sets/resets the pointer and type to a protected variable.
@@ -2473,6 +2498,7 @@ int FTI_Recover() {
         }
         // Check if sizes of protected variables matches
         for (i = 0; i < FTI_Exec.nbVarStored; i++) {
+            if (data[i].compression.mode != FTI_CPC_NONE) continue;
             if (data[i].size != data[i].sizeStored) {
                 /*sprintf(str, "Cannot recover %ld bytes to 
                 protected variable (ID %d) size: %ld",

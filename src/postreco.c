@@ -491,32 +491,32 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
-    if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
-        if ( FTIFF_CheckL1RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt,
-         FTI_Conf) != FTI_SCES) {
-            FTI_Print("No restart possible from L1. Ckpt files missing.",
-             FTI_DBUG);
-            return FTI_NSCS;
-        }
-    } else {
-        int erased[FTI_BUFS];  // FTI_BUFS > 32*3
-        if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
-         erased) != FTI_SCES) {
-            FTI_Print("Error checking erasures.", FTI_DBUG);
-            return FTI_NSCS;
-        }
-        int buf = 0;
-        int i;
-        for (i = 0; i < FTI_Topo->groupSize; i++) {
-            if (erased[i]) {
-                buf++;  // Counting erasures
-            }
-        }
-        if (buf > 0) {
-            FTI_Print("Checkpoint files missing at L1.", FTI_WARN);
-            return FTI_NSCS;
-        }
-    }
+    //if (FTI_Conf->ioMode == FTI_IO_FTIFF) {
+    //    if ( FTIFF_CheckL1RecoverInit(FTI_Exec, FTI_Topo, FTI_Ckpt,
+    //     FTI_Conf) != FTI_SCES) {
+    //        FTI_Print("No restart possible from L1. Ckpt files missing.",
+    //         FTI_DBUG);
+    //        return FTI_NSCS;
+    //    }
+    //} else {
+    //    int erased[FTI_BUFS];  // FTI_BUFS > 32*3
+    //    if (FTI_CheckErasures(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
+    //     erased) != FTI_SCES) {
+    //        FTI_Print("Error checking erasures.", FTI_DBUG);
+    //        return FTI_NSCS;
+    //    }
+    //    int buf = 0;
+    //    int i;
+    //    for (i = 0; i < FTI_Topo->groupSize; i++) {
+    //        if (erased[i]) {
+    //            buf++;  // Counting erasures
+    //        }
+    //    }
+    //    if (buf > 0) {
+    //        FTI_Print("Checkpoint files missing at L1.", FTI_WARN);
+    //        return FTI_NSCS;
+    //    }
+    //}
     return FTI_SCES;
 }
 

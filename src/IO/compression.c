@@ -41,21 +41,41 @@
 
 int FTI_InitCompression( FTIT_dataset* data )
 {
-
+  data->compression.ptr = malloc(data->size);
+  data->compression.size = FTI_DoubleToFloat( data );
 }
 
 int FTI_FiniCompression( FTIT_dataset* data )
 {
-
+  free(data->compression.ptr);
 }
 
 int FTI_InitDecompression( FTIT_dataset* data )
 {
-
+  data->compression.ptr = malloc(data->sizeStored);
 }
 
 int FTI_FiniDecompression( FTIT_dataset* data )
 {
-
+  FTI_FloatToDouble( data );
+  free(data->compression.ptr);
 }
 
+int64_t FTI_DoubleToFloat( FTIT_dataset* data )
+{
+  double* values_d = (double*) data->ptr; 
+  float* values_f = (float*) data->compression.ptr;
+  for(int64_t i=0; i<data->count; i++) {
+    values_f[i] = (float) values_d[i];
+  }
+  return data->count*sizeof(float);
+}
+
+int64_t FTI_FloatToDouble( FTIT_dataset* data )
+{
+  double* values_d = (double*) data->ptr; 
+  float* values_f = (float*) data->compression.ptr;
+  for(int64_t i=0; i<data->count; i++) {
+    values_d[i] = (double) values_f[i];
+  }
+}
