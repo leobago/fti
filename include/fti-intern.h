@@ -438,7 +438,7 @@ extern "C" {
     } FTIT_attribute;
 
     typedef enum FTIT_CPC_MODE {
-      FTI_CPC_NONE,
+      FTI_CPC_NONE = 0,
       FTI_CPC_FPZIP,
       FTI_CPC_ZFP,
       FTI_CPC_SINGLE,
@@ -456,6 +456,8 @@ extern "C" {
       int64_t size;                         /**< compressed size              */
       void *ptr;                            /**< pointer to compressed buffer */
       int parameter;                        /**< compression parameter        */
+      void* context;                        /**< compression parameter        */
+      bool success;                        /**< compression parameter        */
     } FTIT_compression;
 
     /** @typedef    FTIT_dataset

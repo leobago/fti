@@ -60,7 +60,7 @@ int FTI_CheckFile(char* fn, int64_t fs, char* checksum) {
                 if (strlen(checksum)) {
                     int res = FTI_VerifyChecksum(fn, checksum);
                     if (res != FTI_SCES) {
-                        snprintf(str, sizeof(str), "Missing file: \"%s\"", fn);
+                        snprintf(str, sizeof(str), "Missing file (checksum validation failed): \"%s\"", fn);
                         FTI_Print(str, FTI_WARN);
                         return 1;
                     }
@@ -68,18 +68,18 @@ int FTI_CheckFile(char* fn, int64_t fs, char* checksum) {
                 }
                 return 0;
             } else {
-                snprintf(str, sizeof(str), "Missing file: \"%s\"", fn);
+                snprintf(str, sizeof(str), "Missing file (file size validation failed): \"%s\"", fn);
                 FTI_Print(str, FTI_WARN);
                 return 1;
             }
         } else {
-            snprintf(str, sizeof(str), "Missing file: \"%s\"", fn);
+            snprintf(str, sizeof(str), "Missing file (cannot stat file): \"%s\"", fn);
             FTI_Print(str, FTI_WARN);
             return 1;
         }
     } else {
         char str[FTI_BUFS];
-        snprintf(str, sizeof(str), "Missing file: \"%s\"", fn);
+        snprintf(str, sizeof(str), "Missing file (cannot access file): \"%s\"", fn);
         FTI_Print(str, FTI_DBUG);
         return 1;
     }

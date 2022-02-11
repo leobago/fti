@@ -864,8 +864,17 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     // metadata is created before for FTI-FF
     if (FTI_Conf->ioMode == FTI_IO_FTIFF) { return FTI_SCES; }
 
+    int64_t fs = 0;
+    FTIT_dataset* data;
+    if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
+    
+    int i;
+    for (i = 0; i < FTI_Exec->nbVar; i++) {
+      fs += data[i].sizeStored;
+    }
+
     FTI_Exec->ckptMeta.fs = (FTI_Ckpt[FTI_Exec->ckptMeta.level].isDcp) ?
-     FTI_Exec->dcpInfoPosix.FileSize : FTI_Exec->ckptSize;
+     FTI_Exec->dcpInfoPosix.FileSize : fs;
 
 #ifdef ENABLE_HDF5
     if (FTI_Conf->ioMode == FTI_IO_HDF5) {
@@ -911,7 +920,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     int64_t mfs = 0;  // Max file size in group
-    int i;
     for (i = 0; i < FTI_Topo->groupSize; i++) {
         if (fileSizes[i] > mfs) {
             mfs = fileSizes[i];  // Search max. size
@@ -1008,7 +1016,6 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char *ArrayOfNames = (char *)malloc(FTI_Exec->nbVar *
      sizeof(char*) *FTI_BUFS);
 
-    FTIT_dataset* data;
     if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) return FTI_NSCS;
 
     for (i = 0; i < FTI_Exec->nbVar; i++) {

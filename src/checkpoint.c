@@ -198,6 +198,20 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             *dataSize = dcpStats[1];
         }
     }
+    
+    FTIT_dataset* data;
+    if (FTI_Data->data(&data, FTI_Exec->nbVar) != FTI_SCES) {
+        FTI_Print("failed to finalize FTI", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    int k = 0; for (; k < FTI_Exec->nbVar; k++) {
+        if(data[k].compression.mode == FTI_CPC_NONE) {
+          data[k].sizeStored = data[k].size;
+        } else {
+          data[k].sizeStored = data[k].compression.size;
+        }
+    }
 
     res = FTI_Try(FTI_CreateMetadata(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt,
      FTI_Data), "create metadata.");
@@ -228,7 +242,7 @@ int FTI_WriteCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data) {
     char str[FTI_BUFS];  // For console output
 
     double t1 = MPI_Wtime();  // Start time
@@ -258,7 +272,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Clean(FTI_Conf, FTI_Topo, FTI_Ckpt, 0);  // Remove temporary files
         return FTI_NSCS;
     }
-
+    
     double t2 = MPI_Wtime();  // Post-processing time
 
     if (FTI_Exec->h5SingleFile) {
@@ -345,7 +359,7 @@ int FTI_PostCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt) {
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data) {
     MPI_Status ckpt_status;
     MPI_Status stage_status;
     MPI_Status finalize_status;
@@ -367,7 +381,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         if (ckpt_flag) {
             // head will process the whole checkpoint
             // (treated second due to priority)
-            FTI_HandleCkptRequest(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt);
+            FTI_HandleCkptRequest(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data);
             ckpt_flag = 0;
             continue;
         }
@@ -429,7 +443,7 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf,
  FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
-  FTIT_checkpoint* FTI_Ckpt) {
+  FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data) {
     char str[FTI_BUFS];  // For console output
     int flags[7];
     // Increment index if get corresponding value from application process
@@ -484,7 +498,7 @@ int FTI_HandleCkptRequest(FTIT_configuration* FTI_Conf,
     MPI_Allreduce(&res, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD);
     if (allRes == FTI_SCES) {
         // If checkpoint was written correctly do post-processing
-        res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt),
+        res = FTI_Try(FTI_PostCkpt(FTI_Conf, FTI_Exec, FTI_Topo, FTI_Ckpt, FTI_Data),
             "postprocess the checkpoint.");
         if (res == FTI_SCES) {
             // send checkpoint level if post-processing succeeds

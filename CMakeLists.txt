@@ -421,6 +421,20 @@ else()
     link_to_fti(${ZLIB_LIBRARIES})
 endif()
 
+find_library(FPZIP_LIBRARY
+    NAMES fpzip
+    HINTS "${CMAKE_PREFIX_PATH}/usr/lib"
+)
+
+link_to_fti(${FPZIP_LIBRARY})
+
+find_library(ZFP_LIBRARY
+    NAMES zfp
+    HINTS "${CMAKE_PREFIX_PATH}/usr/lib"
+)
+
+link_to_fti(${ZFP_LIBRARY})
+
 # TODO: COMPILER_FLAGS is superseded by COMPILER_OPTIONS (CMake 3.6+)
 set_property(SOURCE ${SRC_FTI} PROPERTY COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} ${ADD_CFLAGS}")
 

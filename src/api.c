@@ -171,7 +171,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
                 FTI_Exec.initSCES = 2;  // Could not recover all ckpt files
             }
         }
-        FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
+        FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data);
         // infinite loop inside, can stop only by calling FTI_Finalize
         // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
         return FTI_HEAD;
@@ -1966,7 +1966,7 @@ int FTI_Checkpoint(int id, int level) {
             // ckptLvel if not success
             FTI_Exec.ckptMeta.level = FTI_REJW - FTI_BASE;
         }
-        res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt),
+        res = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data),
          "postprocess the checkpoint.");
         if (res == FTI_SCES) {
             FTI_Exec.ckptLvel = FTI_Exec.ckptMeta.level;  // Update level
@@ -2023,16 +2023,6 @@ int FTI_Checkpoint(int id, int level) {
 
     FTI_Exec.nbVarStored = FTI_Exec.nbVar;
     FTI_Exec.ckptId = FTI_Exec.ckptMeta.ckptId;
-
-    FTIT_dataset* data;
-    if (FTI_Data->data(&data, FTI_Exec.nbVar) != FTI_SCES) {
-        FTI_Print("failed to finalize FTI", FTI_WARN);
-        return FTI_NSCS;
-    }
-
-    int k = 0; for (; k < FTI_Exec.nbVar; k++) {
-        data[k].sizeStored = data[k].size;
-    }
 
     return FTI_DONE;
 }
@@ -2355,7 +2345,7 @@ int FTI_FinalizeICP() {
             // ckptLvel if not success
             FTI_Exec.ckptMeta.level = FTI_REJW - FTI_BASE;
         }
-        resPP = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt),
+        resPP = FTI_Try(FTI_PostCkpt(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt, FTI_Data),
          "postprocess the checkpoint.");
         if (resPP == FTI_SCES) {
             // Store last successful post-processing checkpoint level
