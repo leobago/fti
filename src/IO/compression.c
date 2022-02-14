@@ -46,8 +46,26 @@ static double t1_decompression;
 
 int FTI_InitCompression( FTIT_dataset* data )
 {
-  
+  char err[FTI_BUFS];   
   if ( data->compression.mode == FTI_CPC_NONE ) return FTI_SCES;
+  if ( data->compression.mode == FTI_CPC_FPZIP ) {
+    if ( !isAllowedParameterFpzip( data->compression.parameter )  && data->compression.parameter ) {
+      snprintf( err, FTI_BUFS, "invalid compression parameter '%d' for FPZIP. Variable will not be compressed!", 
+          data->compression.parameter );
+      FTI_Print( err, FTI_WARN );
+      FTIT_compression init = {0};
+      data->compression = init;
+      return FTI_SCES;
+    }
+  }
+  if( !isCompressionType( data->compression.type ) && (data->compression.mode == FTI_CPC_ZFP) ) {
+      snprintf( err, FTI_BUFS, "invalid compression type '%d' for ZFP. Variable will not be compressed!", 
+          data->compression.type );
+      FTI_Print( err, FTI_WARN );
+      FTIT_compression init = {0};
+      data->compression = init;
+      return FTI_SCES;
+  }
   
   t0_compression = MPI_Wtime();
 
@@ -436,6 +454,10 @@ int FTI_Float16ToDouble( FTIT_dataset* data )
 int64_t FTI_CompressFpzip( FTIT_dataset* data )
 {
 	
+  int precision;
+  int parameter = data->compression.parameter;
+  precision = (parameter) ? parameter : 64;
+
   FPZ* fpz = (FPZ*) data->compression.context;
   int64_t result = FTI_SCES;
   int64_t size;
@@ -445,7 +467,7 @@ int64_t FTI_CompressFpzip( FTIT_dataset* data )
 	
   fpz = fpzip_write_to_buffer( data->compression.ptr, data->size+1024 );
   fpz->type = FPZIP_TYPE_DOUBLE;
-  fpz->prec = data->compression.parameter;
+  fpz->prec = precision;
   fpz->nx = data->count;
   fpz->ny = 1;
   fpz->nz = 1;
@@ -484,7 +506,7 @@ int64_t FTI_CompressFpzip( FTIT_dataset* data )
 
 int FTI_DecompressFpzip( FTIT_dataset* data )
 {
-
+  
   FPZ* fpz = data->compression.context;
 
   fpz = fpzip_read_from_buffer( data->compression.ptr );
@@ -517,14 +539,31 @@ int FTI_DecompressFpzip( FTIT_dataset* data )
 
 int64_t FTI_CompressZfp( FTIT_dataset* data )
 {
+  	
+  bool isCpcPrecision = false;
+  if( data->compression.type == FTI_CPC_PRECISION ) {
+    isCpcPrecision = true;
+  }
+  double tolerance;
+  double precision;
+  int parameter = data->compression.parameter;
+  if( (data->compression.type == FTI_CPC_DEFAULT) || (data->compression.type == FTI_CPC_ACCURACY) ) {
+    tolerance = (parameter) ? pow( 10, -parameter ) : 0;
+  } else {
+    precision = parameter;
+  }
 	
-	// initialize metadata for the 3D array a[nz][ny][nx]
+  // initialize metadata for the 3D array a[nz][ny][nx]
 	zfp_type type = zfp_type_double;                          // array scalar type
 	zfp_field* field = zfp_field_1d(data->ptr, type, data->count); // array metadata
 
 	// initialize metadata for a compressed stream
 	zfp_stream* zfp = zfp_stream_open(NULL);                  // compressed stream and parameters
-	zfp_stream_set_accuracy(zfp, data->compression.parameter);                  // set tolerance for fixed-accuracy mode
+	if ( isCpcPrecision ) {
+	  zfp_stream_set_precision(zfp, precision);             // alternative: fixed-precision mode
+  } else {
+    zfp_stream_set_accuracy(zfp, tolerance);                  // set tolerance for fixed-accuracy mode
+  }
 	//  zfp_stream_set_precision(zfp, precision);             // alternative: fixed-precision mode
 	//  zfp_stream_set_rate(zfp, rate, type, 3, 0);           // alternative: fixed-rate mode
 
@@ -545,14 +584,30 @@ int64_t FTI_CompressZfp( FTIT_dataset* data )
 int FTI_DecompressZfp( FTIT_dataset* data )
 {
 
-	// initialize metadata for the 3D array a[nz][ny][nx]
+  bool isCpcPrecision = false;
+  if( data->compression.type == FTI_CPC_PRECISION ) {
+    isCpcPrecision = true;
+  }
+  double tolerance;
+  double precision;
+  int parameter = data->compression.parameter;
+  if( (data->compression.type == FTI_CPC_DEFAULT) || (data->compression.type == FTI_CPC_ACCURACY) ) {
+    tolerance = (parameter) ? pow( 10, -parameter ) : 0;
+  } else {
+    precision = parameter;
+  }
+	
+  // initialize metadata for the 3D array a[nz][ny][nx]
 	zfp_type type = zfp_type_double;                          // array scalar type
 	zfp_field* field = zfp_field_1d(data->ptr, type, data->count); // array metadata
 
 	// initialize metadata for a compressed stream
 	zfp_stream* zfp = zfp_stream_open(NULL);                  // compressed stream and parameters
-	zfp_stream_set_accuracy(zfp, data->compression.parameter);                  // set tolerance for fixed-accuracy mode
-	//  zfp_stream_set_precision(zfp, precision);             // alternative: fixed-precision mode
+	if ( isCpcPrecision ) {
+	  zfp_stream_set_precision(zfp, precision);             // alternative: fixed-precision mode
+  } else {
+    zfp_stream_set_accuracy(zfp, tolerance);                  // set tolerance for fixed-accuracy mode
+  }
 	//  zfp_stream_set_rate(zfp, rate, type, 3, 0);           // alternative: fixed-rate mode
 
 	// associate bit stream with allocated buffer
@@ -567,3 +622,69 @@ int FTI_DecompressZfp( FTIT_dataset* data )
 
 }
 
+/**********************************************************************
+
+		helpers
+
+**********************************************************************/
+
+bool isCompressionMode ( FTIT_CPC_MODE mode ) {
+  switch( mode ) {
+    case FTI_CPC_NONE:
+    case FTI_CPC_FPZIP:
+    case FTI_CPC_ZFP:
+    case FTI_CPC_SINGLE:
+    case FTI_CPC_HALF:
+    case FTI_CPC_STRIP:
+     return true;
+  }
+  return false;
+}
+
+bool isCompressionType ( FTIT_CPC_TYPE type ) {
+  switch( type ) {
+    case FTI_CPC_DEFAULT:
+    case FTI_CPC_ACCURACY:
+    case FTI_CPC_PRECISION:
+     return true;
+  }
+  return false;
+}
+
+bool isAllowedParameterFpzip ( int parameter ) {
+  switch( parameter ) {
+    compress_case( 2);
+    compress_case( 3);
+    compress_case( 4);
+    compress_case( 5);
+    compress_case( 6);
+    compress_case( 7);
+    compress_case( 8);
+    compress_case( 9);
+    compress_case(10);
+    compress_case(11);
+    compress_case(12);
+    compress_case(13);
+    compress_case(14);
+    compress_case(15);
+    compress_case(16);
+    compress_case(17);
+    compress_case(18);
+    compress_case(19);
+    compress_case(20);
+    compress_case(21);
+    compress_case(22);
+    compress_case(23);
+    compress_case(24);
+    compress_case(25);
+    compress_case(26);
+    compress_case(27);
+    compress_case(28);
+    compress_case(29);
+    compress_case(30);
+    compress_case(31);
+    compress_case(32);
+    return true;
+  }
+  return false;
+}

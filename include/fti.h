@@ -83,7 +83,7 @@ extern "C" {
     FTI public functions
     ---------------------------------------------------------------------------*/
 
-  int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter );
+  int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter, FTIT_CPC_TYPE type );
   int FTI_Init(const char *configFile, MPI_Comm globalComm);
   int FTI_Status();
   int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,

@@ -459,6 +459,9 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         snprintf(str, FTI_BUFS, "%d:Var%d_compression_mode", FTI_Topo->groupRank, k);
         data.compression.mode = ini.getInt(&ini, str);
 
+        snprintf(str, FTI_BUFS, "%d:Var%d_compression_type", FTI_Topo->groupRank, k);
+        data.compression.type = ini.getInt(&ini, str);
+
         snprintf(str, FTI_BUFS, "%d:Var%d_compression_parameter", FTI_Topo->groupRank, k);
         data.compression.parameter = ini.getInt(&ini, str);
 
@@ -686,7 +689,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int64_t* fs,
         int64_t mfs, char* fnl, char* checksums, int* allVarIDs,
         int* allRanks, int64_t* allCounts,
-        int* allVarTypeIDs, int* allVarCompressionModes, int* allVarCompressionParameters, int* allVarTypeSizes,
+        int* allVarTypeIDs, int* allVarCompressionModes,  int* allVarCompressionTypes ,int* allVarCompressionParameters, int* allVarTypeSizes,
         int64_t* allVarSizes, int64_t* allLayerSizes, char* allLayerHashes,
         int64_t *allVarPositions, char *allNames, char *allCharIds) {
     // no metadata files for FTI-FF
@@ -754,6 +757,12 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             snprintf(key, FTI_BUFS, "%d:Var%d_compression_mode", i, j);
             snprintf(val, FTI_BUFS, "%d",
                     allVarCompressionModes[i * FTI_Exec->nbVar + j]);
+            ini.set(&ini, key, val);
+
+            // Save compression mode of type
+            snprintf(key, FTI_BUFS, "%d:Var%d_compression_type", i, j);
+            snprintf(val, FTI_BUFS, "%d",
+                    allVarCompressionTypes[i * FTI_Exec->nbVar + j]);
             ini.set(&ini, key, val);
 
             // Save compression parameter of type
@@ -965,6 +974,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int64_t* allVarSizes = NULL;
     int64_t *allVarPositions = NULL;
     int *allVarCompressionModes = NULL;
+    int *allVarCompressionTypes = NULL;
     int *allVarCompressionParameters = NULL;
 
     // for posix dcp
@@ -987,6 +997,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         allVarTypeSizes = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarSizes = talloc(int64_t, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarCompressionModes = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
+        allVarCompressionTypes = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarCompressionParameters = talloc(int, FTI_Topo->groupSize * FTI_Exec->nbVar);
         allVarPositions = talloc(int64_t,
          FTI_Topo->groupSize * FTI_Exec->nbVar);
@@ -1004,6 +1015,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int* myVarIDs = talloc(int, FTI_Exec->nbVar);
     int* myVarCompressionModes = talloc(int, FTI_Exec->nbVar);
+    int* myVarCompressionTypes = talloc(int, FTI_Exec->nbVar);
     int* myVarCompressionParameters = talloc(int, FTI_Exec->nbVar);
     int* myRanks = talloc(int, FTI_Exec->nbVar);
     int64_t* myCounts = talloc(int64_t, 32 * FTI_Exec->nbVar);
@@ -1027,6 +1039,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         myVarSizes[i] =  (data[i].compression.mode == FTI_CPC_NONE ) ? data[i].size : data[i].compression.size;
         myVarIDs[i] =  data[i].id;
         myVarCompressionModes[i] =  data[i].compression.mode;
+        myVarCompressionTypes[i] =  data[i].compression.type;
         myVarCompressionParameters[i] =  data[i].compression.parameter;
         myRanks[i] =  data[i].attribute.dim.ndims;
         memcpy(&myCounts[i*32], &data[i].attribute.dim.count,
@@ -1045,6 +1058,9 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      MPI_INT, 0, FTI_Exec->groupComm);
     // Gather variables compression modes
     MPI_Gather(myVarCompressionModes, FTI_Exec->nbVar, MPI_INT, allVarCompressionModes, FTI_Exec->nbVar,
+     MPI_INT, 0, FTI_Exec->groupComm);
+    // Gather variables compression types
+    MPI_Gather(myVarCompressionTypes, FTI_Exec->nbVar, MPI_INT, allVarCompressionTypes, FTI_Exec->nbVar,
      MPI_INT, 0, FTI_Exec->groupComm);
     // Gather variables compression parameters
     MPI_Gather(myVarCompressionParameters, FTI_Exec->nbVar, MPI_INT, allVarCompressionParameters, FTI_Exec->nbVar,
@@ -1087,6 +1103,7 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     free(myVarIDs);
     free(myVarCompressionModes);
+    free(myVarCompressionTypes);
     free(myVarCompressionParameters);
     free(myRanks);
     free(myCounts);
@@ -1102,11 +1119,12 @@ int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         int res = FTI_Try(FTI_WriteMetadata(FTI_Conf, FTI_Exec, FTI_Topo,
          FTI_Ckpt, fileSizes, mfs, ckptFileNames, checksums, allVarIDs,
          allRanks, allCounts,
-         allVarTypeIDs, allVarCompressionModes, allVarCompressionParameters, allVarTypeSizes,
+         allVarTypeIDs, allVarCompressionModes, allVarCompressionTypes, allVarCompressionParameters, allVarTypeSizes,
          allVarSizes, allLayerSizes, allLayerHashes, allVarPositions,
           allNames, allCharIds), "write the metadata.");
         free(allVarIDs);
         free(allVarCompressionModes);
+        free(allVarCompressionTypes);
         free(allVarCompressionParameters);
         free(allVarTypeIDs);
         free(allVarTypeSizes);

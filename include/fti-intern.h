@@ -445,6 +445,12 @@ extern "C" {
       FTI_CPC_HALF,
       FTI_CPC_STRIP
     } FTIT_CPC_MODE;
+    
+    typedef enum FTIT_CPC_TYPE {
+      FTI_CPC_DEFAULT = -1,
+      FTI_CPC_ACCURACY = 0,
+      FTI_CPC_PRECISION,
+    } FTIT_CPC_TYPE;
 
     /** @typedef    FTIT_compression
      *  @brief      Compression metadata.
@@ -456,8 +462,9 @@ extern "C" {
       int64_t size;                         /**< compressed size              */
       void *ptr;                            /**< pointer to compressed buffer */
       int parameter;                        /**< compression parameter        */
-      void* context;                        /**< compression parameter        */
-      bool success;                        /**< compression parameter        */
+      int type;                             /**< compression parameter        */
+      void* context;                        /**< compression type (for ZFP)   */
+      bool success;                         /**< compression parameter        */
     } FTIT_compression;
 
     /** @typedef    FTIT_dataset

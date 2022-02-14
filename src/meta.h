@@ -31,7 +31,7 @@ int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int64_t* fs,
         int64_t mfs, char* fnl, char* checksums, int* allVarIDs,
         int* allRanks, int64_t* allCounts,
-        int* allVarTypeIDs, int* allVarCompressionModes, int* allVarCompressionParameters, 
+        int* allVarTypeIDs, int* allVarCompressionModes, int* allVarCompressionTypes, int* allVarCompressionParameters, 
         int* allVarTypeSizes,
         int64_t* allVarSizes, int64_t* allLayerSizes, char* allLayerHashes,
         int64_t *allVarPositions, char *allNames, char *allCharIds);

@@ -786,7 +786,7 @@ int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name) {
     return FTI_SCES;
 }
 
-int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter )
+int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter, FTIT_CPC_TYPE type )
 {
     
     FTIT_dataset* data;
@@ -805,6 +805,7 @@ int FTI_SetCompression( int id, FTIT_CPC_MODE mode, int parameter )
     }
 
     data->compression.mode = mode;
+    data->compression.type = type;
     data->compression.parameter = parameter;
 
     return FTI_SCES;

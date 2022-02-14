@@ -10,6 +10,14 @@
 
 #include <fpzip.h>
 #include <zfp.h>
+#include <math.h>
+
+#define FTI_CPC_TYPE double
+
+#define subsize(T, n) (CHAR_BIT * sizeof(T) * (n) / 32)
+
+#define compress_case(p)\
+  case subsize(FTI_CPC_TYPE, p):
 
 #define  INT16_TYPE short
 #define UINT16_TYPE unsigned short
@@ -47,6 +55,12 @@ extern "C" {
   int FTI_DecompressFpzip( FTIT_dataset* data );
   int64_t FTI_CompressZfp( FTIT_dataset* data );
   int FTI_DecompressZfp( FTIT_dataset* data );
+  int64_t FTI_CompressStrip( FTIT_dataset* data );
+  int FTI_DecompressStrip( FTIT_dataset* data );
+
+  bool isCompressionMode ( FTIT_CPC_MODE mode );
+  bool isCompressionType ( FTIT_CPC_TYPE type );
+  bool isAllowedParameterFpzip ( int parameter );
 
 #ifdef __cplusplus
 }
