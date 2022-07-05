@@ -43,23 +43,27 @@
 #include <cuda_runtime_api.h>
 #endif
 
+#include "fti-kernel.h"
+
+bool FTI_INITIALIZED = false;
+
 /** General configuration information used by FTI.                         */
-static FTIT_configuration FTI_Conf;
+FTIT_configuration FTI_Conf;
 
 /** Checkpoint information for all levels of checkpoint.                   */
-static FTIT_checkpoint FTI_Ckpt[5];
+FTIT_checkpoint FTI_Ckpt[5];
 
 /** Dynamic information for this execution.                                */
-static FTIT_execution FTI_Exec;
+FTIT_execution FTI_Exec;
 
 /** Topology of the system.                                                */
-static FTIT_topology FTI_Topo;
+FTIT_topology FTI_Topo;
 
 /** id map that holds metadata for protected datasets                      */
-static FTIT_keymap* FTI_Data;
+FTIT_keymap* FTI_Data;
 
 /** SDC injection model and all the required information.                  */
-static FTIT_injection FTI_Inje;
+FTIT_injection FTI_Inje;
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
@@ -216,6 +220,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
               "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
+        FTI_INITIALIZED = true;
         return FTI_SCES;
     }
 }

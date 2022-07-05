@@ -11,15 +11,16 @@
 #ifndef FTI_INCLUDE_FTI_EXT_H_
 #define FTI_INCLUDE_FTI_EXT_H_
 
+#include <stdbool.h>
 #include <mpi.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-
-	/*==================================================================*/
+	
+  
+  /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */
 	/*==================================================================*/
 	
@@ -118,7 +119,7 @@ extern "C" {
   /**-------------------------------------------------------------------
     @brief Get List of app. proc. in the node
   -------------------------------------------------------------------**/
-  void FTIX_TopoGet_body( int** body, int* len );
+  int* FTIX_TopoGet_body( int* body, int* len, int );
 	
 
 
@@ -131,7 +132,7 @@ extern "C" {
   /**-------------------------------------------------------------------
     @brief Get FTI execution id
   -------------------------------------------------------------------**/
-  void FTIX_ExecGet_id( char**, int* len );
+  char* FTIX_ExecGet_id( char*, int* len, int );
   
   /**-------------------------------------------------------------------
     @brief Get global communicator
@@ -179,42 +180,42 @@ extern "C" {
   /**-------------------------------------------------------------------
     @brief Get Configuration file name
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_cfgFile( char**, int* );
+  char* FTIX_ConfGet_cfgFile( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Local directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_localDir( char**, int* );
+  char* FTIX_ConfGet_localDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Global directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_glbalDir( char**, int* );
+  char* FTIX_ConfGet_glbalDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Metadata directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_metadDir( char**, int* );
+  char* FTIX_ConfGet_metadDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Local temporary directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_lTmpDir( char**, int* );
+  char* FTIX_ConfGet_lTmpDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Global temporary directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_gTmpDir( char**, int* );
+  char* FTIX_ConfGet_gTmpDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Metadata temporary directory
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_mTmpDir( char**, int* );
+  char* FTIX_ConfGet_mTmpDir( char*, int*, int );
   
   /**-------------------------------------------------------------------
     @brief Get Suffix of the checkpoint files
   -------------------------------------------------------------------**/
-  void FTIX_ConfGet_suffix( char**, int* );
+  char* FTIX_ConfGet_suffix( char*, int*, int );
 
 
 #ifdef __cplusplus

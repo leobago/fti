@@ -262,6 +262,7 @@ set(SRC_FTI
     src/postreco.c
     src/api-cuda.c
     src/api.c
+    src/api-ext.c
     src/checkpoint.c
     src/dcp.c
     src/stage.c
@@ -440,6 +441,7 @@ install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 
 install(FILES
     "include/fti.h"
+    "include/fti-ext.h"
     "include/fti-defs.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
