@@ -36,6 +36,7 @@
  *  @brief  API functions for the extended FTI functionality.
  */
 
+
 #define FTIX_PREREC(RETURN_VAL) do {                                          \
   if ( !FTI_INITIALIZED ) {                                                   \
     FTI_Print("[missing prerequisite] FTI is not Initialized!\n", FTI_WARN);  \
@@ -46,6 +47,121 @@
 #include "fti-ext.h"
 #include "fti-kernel.h"
 #include "interface.h"
+
+int FTIX_Load( const char* ckptDir ) {
+  FTIX_PREREC(-1);
+  char mfn[FTI_BUFS];
+  char key[FTI_BUFS];
+  snprintf(mfn, FTI_BUFS, "%s/sector%d-group%d.fti", ckptDir, FTI_Topo.sectorID, FTI_Topo.groupID);
+  FTIT_iniparser ini;
+  if (FTI_Iniparser(&ini, mfn, FTI_INI_OPEN) != FTI_SCES) {
+      FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+      return FTI_NSCS;
+  }
+  snprintf( key, FTI_BUFS, "ckpt_info:ckpt_id" );
+  int ckptId = ini.getInt(&ini, key);
+
+  typedef struct dlist dlist;
+  struct dlist {
+    int64_t filePos;
+    int64_t size;
+    void* dataPtr;
+    dlist* next;
+  };
+
+  char fn[FTI_BUFS];
+  snprintf( key, FTI_BUFS, "%d:ckpt_file_name", FTI_Topo.groupRank );
+  snprintf(fn, FTI_BUFS, "%s/%s", ckptDir, ini.getString(&ini, key));
+
+  dlist* dnode = (dlist*) malloc(sizeof(dlist));
+  dlist* dfirst = dnode;
+
+  FTIT_dataset data_stored; 
+  FTIT_dataset* data;
+  int id; 
+  int i; 
+  
+  for (i = 0; i < FTI_Conf.maxVarId; i++) {
+
+    snprintf(key, FTI_BUFS, "%d:Var%d_id", FTI_Topo.groupRank, i);
+    if ( (id = ini.getInt(&ini, key)) == -1 ) break;
+    
+    if (FTI_Data->get(&data, id) != FTI_SCES) {
+        FTI_Print("failed to set attribute: could not query dataset", FTI_WARN);
+        return FTI_NSCS;
+    }
+
+    FTI_InitDataset(&FTI_Exec, &data_stored, id);
+
+    snprintf(key, FTI_BUFS, "%d:Var%d_size", FTI_Topo.groupRank, i);
+    data_stored.size = ini.getLong(&ini, key);
+    
+    if ( data_stored.size != data->size ) {
+      char wstr[FTI_BUFS];
+      snprintf( wstr, FTI_BUFS, 
+          "Load failed for id '%d': stored size (%ld Bytes) and current size (%ld Bytes) differ", 
+          id, data_stored.size, data->size);
+      FTI_Print(wstr, FTI_WARN);
+      return FTI_NSCS;
+    }
+
+    snprintf(key, FTI_BUFS, "%d:Var%d_pos", FTI_Topo.groupRank, i);
+    data_stored.filePos = ini.getLong(&ini, key);
+    
+    if( i > 0 ) {
+      
+      dnode->next = (dlist*) malloc(sizeof(dlist));
+      dnode = dnode->next;
+    
+    }
+
+    dnode->dataPtr = data->ptr;
+    dnode->size = data_stored.size;
+    dnode->filePos = data_stored.filePos;
+    dnode->next = NULL;
+
+  }
+  
+  char estr[FTI_BUFS];
+  FILE *fd = fopen(fn, "rb");
+  if (fd == NULL) {
+    snprintf(estr, FTI_BUFS, "FTI failed to open '%s'.", fn);
+    FTI_Print(estr, FTI_WARN);
+    return FTI_NSCS;
+  }
+
+  dnode = dfirst;
+
+  do {
+    dlist* dfree = dnode;
+    
+    fseek(fd, dnode->filePos, SEEK_SET);
+    
+    int64_t bytes = 0;
+    while( bytes < dnode->size ) {
+      int64_t block = FTI_MIN( dnode->size - bytes, FTI_Conf.transferSize );
+      bytes += fread( dnode->dataPtr + bytes, 1, block, fd );
+      if (feof(fd)) break;
+      if (ferror(fd)) {
+        snprintf(estr, FTI_BUFS, "FTI failed to read from '%s'.", fn);
+        FTI_Print(estr, FTI_WARN);
+        return FTI_NSCS;
+      }
+    }
+    
+    if ( bytes != dnode->size ) {
+        FTI_Print("Wrong size", FTI_EROR);
+        return FTI_NSCS;
+    }
+    dnode = dnode->next;
+    free(dfree);
+  } while ( dnode );
+  
+  fclose(fd);
+
+  return ckptId;
+
+}
 
 int FTIX_TopoGet_nbProc(){ 
   FTIX_PREREC(-1);

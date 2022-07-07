@@ -10,6 +10,8 @@
 
 #include "../interface.h"
 
+#define FTI_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
 #ifdef __cplusplus
 extern "C" {
 #endif

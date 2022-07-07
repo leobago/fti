@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 	
+  int FTIX_Load( const char* );
   
   /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */

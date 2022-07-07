@@ -180,7 +180,7 @@ int FTI_IniparserGetInt(FTIT_iniparser* self, const char* key) {
     return iniparser_getint(self->dict, key, -1);
 }
 
-int FTI_IniparserGetLong(FTIT_iniparser* self, const char* key) {
+long FTI_IniparserGetLong(FTIT_iniparser* self, const char* key) {
     if (self == NULL) {
         FTI_Print("iniparser context is NULL.", FTI_EROR);
         return FTI_NSCS;
