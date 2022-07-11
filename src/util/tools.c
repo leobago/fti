@@ -628,9 +628,7 @@ int FTI_FileCopy( const char* fi, const char* fo ) {
     }
   }
 
-  if( bytes == st.st_size ) {
-    printf("successfully copied %ld bytes\n", st.st_size);
-  } else {
+  if( bytes != st.st_size ){
     snprintf(err, FTI_BUFS, "copied %ld instead of expected %ld bytes\n", bytes, st.st_size);
     FTI_Print(err, FTI_WARN);
     return FTI_NSCS;

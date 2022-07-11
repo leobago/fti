@@ -36,6 +36,8 @@
  *  @brief  API functions for the extended FTI functionality.
  */
 
+#define FTI_NODEFLAG \
+    ( (((!FTI_Topo.amIaHead) && ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0 )
 
 #define FTIX_PREREC(RETURN_VAL) do {                                          \
   if ( !FTI_INITIALIZED ) {                                                   \
@@ -48,20 +50,31 @@
 #include "fti-kernel.h"
 #include "interface.h"
   
-int FTIX_Stash( int ckptId, uint64_t stashId ) {
+int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
   FTIX_PREREC(-1);
  
+  int allRes, success = 0, failure = 1;
+
+  if( stashId > INT64_MAX ) {
+    FTI_Print("stash ID must not be larger than INT64_MAX", FTI_WARN);
+    MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+    return FTI_NSCS; 
+  }
+
   char dir[FTI_BUFS];
   snprintf( dir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
   if ( FTI_CreateDirectory( &FTI_Topo, dir, FTI_FS_LOCAL ) != FTI_SCES ) {
     FTI_Print("failed to stash checkpoint", FTI_WARN);
+    MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
     return FTI_NSCS; 
   }
 
   int proclist[FTI_BUFS] = { FTI_Topo.myRank };
+  int groupID[FTI_BUFS] = { FTI_Topo.groupID };
   
   if( FTI_Topo.amIaHead ) {
     memcpy( proclist, FTI_Topo.body + 1, (FTI_Topo.nodeSize - FTI_Topo.nbHeads) * sizeof(int));
+    int i=1; for(; i<FTI_Topo.nodeSize; i++) groupID[i] = i;
   }
 
   char fi[FTI_BUFS], fo[FTI_BUFS];
@@ -73,20 +86,44 @@ int FTIX_Stash( int ckptId, uint64_t stashId ) {
         dir, ckptId, proclist[i], FTI_Conf.suffix );
     if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
       FTI_Print("failed to stash checkpoint", FTI_WARN);
+      MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+      return FTI_NSCS;
+    }
+    snprintf( fi, FTI_BUFS, "%s/sector%d-group%d.fti",
+        FTI_Ckpt[1].metaDir, FTI_Topo.sectorID, groupID[i] );
+    snprintf( fo, FTI_BUFS, "%s/sector%d-group%d.fti",
+        dir, FTI_Topo.sectorID, groupID[i] );
+    if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
+      FTI_Print("failed to stash metadata", FTI_WARN);
+      MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
       return FTI_NSCS;
     }
   }
+
+  char info[FTI_BUFS];
+  snprintf( info, FTI_BUFS, "Succsessfully stashed checkpoint (ckptId: %d, stashId: %lu)", ckptId, stashId );
+  FTI_Print( info, FTI_INFO );
+
+  MPI_Allreduce( &success, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+  return ( allRes == success ) ? stashId : FTI_NSCS ;
   
 }
 
-int FTIX_Load( const char* ckptDir ) {
+int FTIX_Load( uint64_t stashId ) {
   FTIX_PREREC(-1);
+  
+  int allRes, success = 0, failure = 1;
+  
+  char ckptDir[FTI_BUFS];
+  snprintf( ckptDir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
+
   char mfn[FTI_BUFS];
   char key[FTI_BUFS];
   snprintf(mfn, FTI_BUFS, "%s/sector%d-group%d.fti", ckptDir, FTI_Topo.sectorID, FTI_Topo.groupID);
   FTIT_iniparser ini;
   if (FTI_Iniparser(&ini, mfn, FTI_INI_OPEN) != FTI_SCES) {
       FTI_Print("Iniparser failed to parse the metadata file.", FTI_WARN);
+      MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
       return FTI_NSCS;
   }
   snprintf( key, FTI_BUFS, "ckpt_info:ckpt_id" );
@@ -119,6 +156,7 @@ int FTIX_Load( const char* ckptDir ) {
     
     if (FTI_Data->get(&data, id) != FTI_SCES) {
         FTI_Print("failed to set attribute: could not query dataset", FTI_WARN);
+        MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
         return FTI_NSCS;
     }
 
@@ -133,6 +171,7 @@ int FTIX_Load( const char* ckptDir ) {
           "Load failed for id '%d': stored size (%ld Bytes) and current size (%ld Bytes) differ", 
           id, data_stored.size, data->size);
       FTI_Print(wstr, FTI_WARN);
+      MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
       return FTI_NSCS;
     }
 
@@ -158,6 +197,7 @@ int FTIX_Load( const char* ckptDir ) {
   if (fd == NULL) {
     snprintf(estr, FTI_BUFS, "FTI failed to open '%s'.", fn);
     FTI_Print(estr, FTI_WARN);
+    MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
     return FTI_NSCS;
   }
 
@@ -176,12 +216,14 @@ int FTIX_Load( const char* ckptDir ) {
       if (ferror(fd)) {
         snprintf(estr, FTI_BUFS, "FTI failed to read from '%s'.", fn);
         FTI_Print(estr, FTI_WARN);
+        MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
         return FTI_NSCS;
       }
     }
     
     if ( bytes != dnode->size ) {
         FTI_Print("Wrong size", FTI_EROR);
+        MPI_Allreduce( &failure, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
         return FTI_NSCS;
     }
     dnode = dnode->next;
@@ -190,23 +232,27 @@ int FTIX_Load( const char* ckptDir ) {
   
   fclose(fd);
 
-  return ckptId;
+  MPI_Allreduce( &success, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+  return ( allRes == success ) ? ckptId : FTI_NSCS ;
 
 }
 
-int FTIX_Remove( const char* ckptDir ) {
+int FTIX_Remove( uint64_t stashId ) {
   
   FTIX_PREREC(-1);
    
-  static char _dir[FTI_BUFS];
-  _dir[FTI_BUFS-1] = '\0';
-  strncpy(_dir, ckptDir, FTI_BUFS-1);
+  char ckptDir[FTI_BUFS];
+  snprintf( ckptDir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
 
   int nodeFlag = (((!FTI_Topo.amIaHead) &&
      ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) ||
       (FTI_Topo.amIaHead)) ? 1 : 0;
 
-  FTI_RmDir( _dir, nodeFlag );
+  FTI_RmDir( ckptDir, nodeFlag );
+
+  MPI_Barrier(FTI_COMM_WORLD);
+
+  return FTI_SCES;
 
 }
 

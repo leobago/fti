@@ -20,9 +20,9 @@ extern "C" {
 #endif
 
 	
-  int FTIX_Stash( int, uint64_t );
-  int FTIX_Load( const char* );
-  int FTIX_Remove( const char* );
+  int64_t FTIX_Stash( int, uint64_t );
+  int FTIX_Load( uint64_t );
+  int FTIX_Remove( uint64_t );
   
   /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */
