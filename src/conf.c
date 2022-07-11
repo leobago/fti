@@ -656,6 +656,9 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
     MKDIR(FTI_Conf->localDir, 0777);
 
+    snprintf(FTI_Conf->stashDir, FTI_BUFS, "%s/stash", FTI_Conf->localDir);
+    MKDIR(FTI_Conf->stashDir, 0700);
+    
     snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);

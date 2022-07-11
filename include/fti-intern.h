@@ -80,6 +80,9 @@
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
 
+#define FTI_FS_LOCAL 0
+#define FTI_FS_GLOBAL 1
+
 /** Token for checkpoint Baseline.                                         */
 #define FTI_BASE 990
 /** Token for checkpoint Level 1.                                          */
@@ -516,6 +519,7 @@ extern "C" {
         char h5SingleFileDir[FTI_BUFS];    /**< HDF5 single file dir          */
         char h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix       */
         char stageDir[FTI_BUFS];           /**< Staging directory.            */
+        char stashDir[FTI_BUFS];           /**< Local directory.              */
         char localDir[FTI_BUFS];           /**< Local directory.              */
         char glbalDir[FTI_BUFS];           /**< Global directory.             */
         char metadDir[FTI_BUFS];           /**< Metadata directory.           */

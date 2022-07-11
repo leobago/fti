@@ -12,6 +12,7 @@
 #define FTI_INCLUDE_FTI_EXT_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <mpi.h>
 
 #ifdef __cplusplus
@@ -19,7 +20,9 @@ extern "C" {
 #endif
 
 	
+  int FTIX_Stash( int, uint64_t );
   int FTIX_Load( const char* );
+  int FTIX_Remove( const char* );
   
   /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */

@@ -47,6 +47,37 @@
 #include "fti-ext.h"
 #include "fti-kernel.h"
 #include "interface.h"
+  
+int FTIX_Stash( int ckptId, uint64_t stashId ) {
+  FTIX_PREREC(-1);
+ 
+  char dir[FTI_BUFS];
+  snprintf( dir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
+  if ( FTI_CreateDirectory( &FTI_Topo, dir, FTI_FS_LOCAL ) != FTI_SCES ) {
+    FTI_Print("failed to stash checkpoint", FTI_WARN);
+    return FTI_NSCS; 
+  }
+
+  int proclist[FTI_BUFS] = { FTI_Topo.myRank };
+  
+  if( FTI_Topo.amIaHead ) {
+    memcpy( proclist, FTI_Topo.body + 1, (FTI_Topo.nodeSize - FTI_Topo.nbHeads) * sizeof(int));
+  }
+
+  char fi[FTI_BUFS], fo[FTI_BUFS];
+  int i=0, end = (FTI_Topo.amIaHead) ? (FTI_Topo.nodeSize - FTI_Topo.nbHeads) : 1;
+  for(; i<end; i++) {
+    snprintf( fi, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s",
+        FTI_Ckpt[1].dir, ckptId, proclist[i], FTI_Conf.suffix );
+    snprintf( fo, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s",
+        dir, ckptId, proclist[i], FTI_Conf.suffix );
+    if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
+      FTI_Print("failed to stash checkpoint", FTI_WARN);
+      return FTI_NSCS;
+    }
+  }
+  
+}
 
 int FTIX_Load( const char* ckptDir ) {
   FTIX_PREREC(-1);
@@ -160,6 +191,22 @@ int FTIX_Load( const char* ckptDir ) {
   fclose(fd);
 
   return ckptId;
+
+}
+
+int FTIX_Remove( const char* ckptDir ) {
+  
+  FTIX_PREREC(-1);
+   
+  static char _dir[FTI_BUFS];
+  _dir[FTI_BUFS-1] = '\0';
+  strncpy(_dir, ckptDir, FTI_BUFS-1);
+
+  int nodeFlag = (((!FTI_Topo.amIaHead) &&
+     ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) ||
+      (FTI_Topo.amIaHead)) ? 1 : 0;
+
+  FTI_RmDir( _dir, nodeFlag );
 
 }
 
