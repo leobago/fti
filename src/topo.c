@@ -484,6 +484,26 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
+    FTI_Topo->masterLocal = false;
+    FTI_Topo->masterGlobal = false;
+    // determine node and global master processes
+    if( FTI_Topo->amIaHead ) {
+      FTI_Topo->masterLocal = true;
+    } else {
+      if( FTI_Topo->nbHeads == 0 ) {
+        if( FTI_Topo->nodeRank == 0 ) {
+          FTI_Topo->masterLocal = true;
+        }
+      } else {
+        if( FTI_Topo->nodeRank == 1 ) {
+          FTI_Topo->masterLocal = true;
+        }
+      }
+    }
+    if( FTI_Topo->splitRank == 0 ) {
+      FTI_Topo->masterGlobal = true;
+    }
+
     free(userProcList);
     free(distProcList);
     free(nameList);

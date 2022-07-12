@@ -51,7 +51,7 @@
 #include "fti-kernel.h"
 #include "interface.h"
 
-int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
+int64_t FTIX_StashDump( int ckptId, uint64_t stashId ) {
   FTIX_PREREC(-1);
  
   int allRes, success = 0, failure = 1;
@@ -74,8 +74,8 @@ int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
   int groupID[FTI_BUFS] = { FTI_Topo.groupID };
   
   if( FTI_Topo.amIaHead ) {
-    memcpy( proclist, FTI_Topo.body + 1, (FTI_Topo.nodeSize - FTI_Topo.nbHeads) * sizeof(int));
-    int i=1; for(; i<FTI_Topo.nodeSize; i++) groupID[i] = i;
+    memcpy( proclist, FTI_Topo.body, (FTI_Topo.nodeSize - FTI_Topo.nbHeads) * sizeof(int));
+    int i=1; for(; i<FTI_Topo.nodeSize; i++) groupID[i-1] = i;
   }
 
   char fi[FTI_BUFS], fo[FTI_BUFS];
@@ -101,16 +101,17 @@ int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
     }
   }
 
+  MPI_Allreduce( &success, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+
   char info[FTI_BUFS];
   snprintf( info, FTI_BUFS, "Succsessfully stashed checkpoint (ckptId: %d, stashId: %lu)", ckptId, stashId );
   FTI_Print( info, FTI_INFO );
-
-  MPI_Allreduce( &success, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+  
   return ( allRes == success ) ? stashId : FTI_NSCS ;
   
 }
 
-int FTIX_Load( uint64_t stashId ) {
+int FTIX_StashLoad( uint64_t stashId ) {
   FTIX_PREREC(-1);
   
   int allRes, success = 0, failure = 1;
@@ -234,11 +235,16 @@ int FTIX_Load( uint64_t stashId ) {
   fclose(fd);
 
   MPI_Allreduce( &success, &allRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+
+  char info[FTI_BUFS];
+  snprintf( info, FTI_BUFS, "Succsessfully loaded stashed checkpoint (ckptId: %d, stashId: %lu)", ckptId, stashId );
+  FTI_Print( info, FTI_INFO );
+  
   return ( allRes == success ) ? ckptId : FTI_NSCS ;
 
 }
 
-int FTIX_Remove( uint64_t stashId ) {
+int FTIX_StashDrop( uint64_t stashId ) {
   
   FTIX_PREREC(-1);
    
@@ -270,6 +276,16 @@ int FTIX_TopoGet_nbNodes(){
 int FTIX_TopoGet_myRank(){ 
   FTIX_PREREC(-1);
   return FTI_Topo.myRank;
+}
+
+bool FTIX_TopoGet_masterLocal(){ 
+  FTIX_PREREC(-1);
+  return FTI_Topo.masterLocal;
+}
+
+bool FTIX_TopoGet_masterGlobal(){ 
+  FTIX_PREREC(-1);
+  return FTI_Topo.masterGlobal;
 }
 
 int FTIX_TopoGet_splitRank(){ 

@@ -26,9 +26,9 @@ extern "C" {
   void (*__ftix_callback)(void) = NULL;
 #endif
 
-  int64_t FTIX_Stash( int, uint64_t );
-  int FTIX_Load( uint64_t );
-  int FTIX_Remove( uint64_t );
+  int64_t FTIX_StashDump( int, uint64_t );
+  int FTIX_StashLoad( uint64_t );
+  int FTIX_StashDrop( uint64_t );
   
   /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */
@@ -50,6 +50,16 @@ extern "C" {
     @brief Get My rank on the global comm
   -------------------------------------------------------------------**/
   int FTIX_TopoGet_myRank();
+  
+  /**-------------------------------------------------------------------
+    @brief returns TRUE if rank is master in FTI_COMM_WORLD
+  -------------------------------------------------------------------**/
+  bool FTIX_TopoGet_masterGlobal();
+  
+  /**-------------------------------------------------------------------
+    @brief returns TRUE if rank is master in node for FTI_COMM_WORLD
+  -------------------------------------------------------------------**/
+  bool FTIX_TopoGet_masterLocal();
   
   /**-------------------------------------------------------------------
     @brief Get My rank on the FTI comm

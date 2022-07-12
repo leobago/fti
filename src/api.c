@@ -175,6 +175,7 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
                 FTI_Exec.initSCES = 2;  // Could not recover all ckpt files
             }
         }
+        FTI_INITIALIZED = true;
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
         // infinite loop inside, can stop only by calling FTI_Finalize
         // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
@@ -3106,8 +3107,13 @@ void FTI_Print(char* msg, int priority) {
             break;
         case FTI_INFO:
             if (FTI_Topo.splitRank == 0) {
+              if( FTI_Topo.amIaHead ) {
+                fprintf(stream, "[ " FTI_COLOR_MAG
+                  "FTI-Head Message" FTI_COLOR_RESET " ] : %s \n", msg);
+              } else {
                 fprintf(stream, "[ " FTI_COLOR_GRN
                   "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
+              }
             }
             break;
         case FTI_IDCP:

@@ -64,6 +64,8 @@ extern void (*__ftix_callback) ( void );
 #define FTI_COLOR_RED   "\x1B[31m"
 /** Define ORANGE color for FTI output.                                    */
 #define FTI_COLOR_ORG   "\x1B[38;5;202m"
+/** Define MAGENTA color for FTI output.                                    */
+#define FTI_COLOR_MAG   "\x1B[1;36m"
 /** Define GREEN color for FTI output.                                     */
 #define FTI_COLOR_GRN   "\x1B[32m"
 /** Define BLUE color for FTI output.                                       */
@@ -553,6 +555,8 @@ extern "C" {
         int nodeID;                      /**< Node ID in the system.          */
         int groupID;                     /**< Group ID in the node.           */
         int amIaHead;                    /**< TRUE if FTI process.            */
+        bool masterLocal;
+        bool masterGlobal;
         int headRank;                    /**< Rank of the head in this node.  */
         int headRankNode;                /**< Rank of the head in node comm.  */
         int nodeRank;                    /**< Rank of the node.               */
