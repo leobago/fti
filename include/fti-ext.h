@@ -18,8 +18,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  
+#ifdef FTIX_CALLBACK
+  void FTIX_Callback(void);
+  void (*__ftix_callback)(void) = FTIX_Callback;
+#else
+  void (*__ftix_callback)(void) = NULL;
+#endif
 
-	
   int64_t FTIX_Stash( int, uint64_t );
   int FTIX_Load( uint64_t );
   int FTIX_Remove( uint64_t );

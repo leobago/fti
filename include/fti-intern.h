@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <mpi.h>
 
+extern void (*__ftix_callback) ( void );
+
 #ifdef ENABLE_HDF5  // --> If HDF5 is installed
 #include <hdf5.h>
 #endif
@@ -507,6 +509,7 @@ extern "C" {
         int stripeFactor;                  /**< Striping Factor for Lustre FS */
 #endif
         int ckptTag;                       /**< MPI tag for ckpt requests.    */
+        int userTag;                       /**< MPI tag for ckpt requests.    */
         int stageTag;                      /**< MPI tag for staging comm.     */
         int finalTag;                      /**< MPI tag for finalize comm.    */
         int generalTag;                    /**< MPI tag for general comm.     */

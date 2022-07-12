@@ -30,7 +30,8 @@
  *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
+ *  
+ *  @author Kai Keller (kellekai@gmx.de)
  *  @file   api-ext.c
  *  @date   July, 2022
  *  @brief  API functions for the extended FTI functionality.
@@ -49,7 +50,7 @@
 #include "fti-ext.h"
 #include "fti-kernel.h"
 #include "interface.h"
-  
+
 int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
   FTIX_PREREC(-1);
  

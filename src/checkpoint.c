@@ -381,6 +381,8 @@ int FTI_Listen(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             stage_flag = 0;
             continue;
         }
+          
+        if ( __ftix_callback != NULL ) __ftix_callback();
 
         // the 'continue' statement ensures that we first process all
         // checkpoint and staging request before we call finalize.

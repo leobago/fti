@@ -198,6 +198,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
      "Advanced:block_size", -1) * 1024;
     FTI_Conf->transferSize = (int)iniparser_getint(ini,
      "Advanced:transfer_size", -1) * 1024 * 1024;
+    FTI_Conf->userTag = (int)iniparser_getint(ini,
+     "Advanced:ckpt_tag", 1234);
     FTI_Conf->ckptTag = (int)iniparser_getint(ini,
      "Advanced:ckpt_tag", 711);
     FTI_Conf->stageTag = (int)iniparser_getint(ini,

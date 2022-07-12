@@ -138,4 +138,8 @@ extern "C" {
 }
 #endif
 
+#ifdef FTIX
+#include <fti-ext.h>
+#endif
+
 #endif  // FTI_INCLUDE_FTI_H_
