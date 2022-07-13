@@ -468,7 +468,9 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (level == 5) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
+        FTI_RmDir(FTI_Conf->stashDir, nodeFlag);
         rmdir(FTI_Conf->glbalDir);
+        FTI_RmDir(FTI_Conf->stashDirGlobal, globalFlag);
         char buf[FTI_BUFS];
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1) {
@@ -489,6 +491,8 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (level == 6) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
+        FTI_RmDir(FTI_Conf->stashDir, nodeFlag);
+        FTI_RmDir(FTI_Conf->stashDirGlobal, globalFlag);
     }
 
     return FTI_SCES;
@@ -680,4 +684,19 @@ int FTI_CreateDirectory( FTIT_topology* FTI_Topo, const char* dir, int where ){
 
   return ( sumRes == 0 ) ? FTI_SCES : FTI_NSCS ;
 
+}
+
+int FTI_CheckDirectory( const char* path ) {
+  DIR* dir = opendir( path );
+  if (dir) {
+    closedir(dir);
+    return 1;
+  } else if (ENOENT == errno) {
+    return 0;
+  } else {
+    char err[FTI_BUFS];
+    snprintf( err, FTI_BUFS, "Failed to check directory '%s' (error: %s)", path, strerror(errno) );
+    FTI_Print( err, FTI_WARN );
+    return -1;
+  }
 }

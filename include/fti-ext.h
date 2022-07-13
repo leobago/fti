@@ -26,10 +26,119 @@ extern "C" {
   void (*__ftix_callback)(void) = NULL;
 #endif
 
-  int64_t FTIX_StashDump( int, uint64_t );
-  int FTIX_StashLoad( uint64_t );
-  int FTIX_StashDrop( uint64_t );
+
+  /*==================================================================*/
+	/*  Stash mechanism                                                 */
+	/*==================================================================*/
+	
+
+
+  /**--------------------------------------------------------------------------
+    
+    
+    @brief        Copies checkpoint with 'ckptId' to local stash directory.
   
+    @param        ckptId[in]   <b> int </b> ID of local (L1) checkpoint to copy
+    @param        stashId[in]  <b> uint64_t </b> unique ID of the stashed item
+    
+    @return                     stashId on success.    
+                                \ref FTI_NSCS upon failure.  
+     
+
+    Copies local (L1) checkpoint with 'ckptId' to the local stash folder. The 
+    checkpoint remains unchanged. The stashed checkpoint will be stored to
+    "<local_path>/stash/<stashId>".  
+    
+
+    The function can be called from both the heads and application processes.
+  
+  --------------------------------------------------------------------------**/
+  int64_t FTIX_Stash( int ckptId, uint64_t stashId );
+  
+  /**--------------------------------------------------------------------------
+    
+    
+    @brief        Loads the stashed chackpoint data to protected buffers.
+  
+    @param        stashId[in]  <b> uint64_t </b> unique ID of the stashed item
+    
+    @return                     ckptId upon success.  
+                                \ref FTI_NSCS upon failure.  
+      
+
+    Loads the data from the stashed checkpoint with 'stashId' to the protected
+    buffers. The ID of the stashed checkpoint is returned upon success. 
+    
+
+    No FTI meta-data will be changed.
+  
+  --------------------------------------------------------------------------**/
+  int FTIX_StashLoad( uint64_t stashId );
+  
+  /**--------------------------------------------------------------------------
+    
+    
+    @brief        Erases stashed item with 'stashId' from 'layer'
+  
+    @param        stashId[in]  <b> uint64_t </b> unique ID of the stashed item
+    @param        layer[in]    <b> int </b> file-system layer. \ref FTI_FS_LOCAL
+    if item locally and \ref FTI_FS_GLOBAL if globally.
+    
+    @return                     \ref FTI_SCES upon success.  
+                                \ref FTI_NSCS upon failure.  
+      
+
+    Removes the stashed item from local or global file-system layer. If the
+    item shall be removed locally, 'layer' must be \ref FTI_FS_LOCAL. If the
+    item shall be removed globally, 'layer' must be \ref FTI_FS_GLOBAL.
+      
+
+    The function can be called from both the heads and application processes.
+
+  --------------------------------------------------------------------------**/
+  int FTIX_StashDrop( uint64_t stashId, int layer );
+  
+  /**--------------------------------------------------------------------------
+    
+    
+    @brief        Copies the local stashed item to the global file-system layer 
+  
+    @param        stashId[in]  <b> uint64_t </b> unique ID of the stashed item
+    
+    @return                     \ref FTI_SCES upon success.  
+                                \ref FTI_NSCS upon failure.  
+      
+
+    Copies stashed item with ID 'stashId' from the local stash directory to the 
+    global stash directory.  
+      
+        
+    The function can be called from both the heads and application processes.
+  
+  --------------------------------------------------------------------------**/
+  int FTIX_StashPush( uint64_t stashId );
+  
+  /**--------------------------------------------------------------------------
+    
+    
+    @brief        Copies the global stashed item to the local file-system layer   
+  
+    @param        stashId[in]  <b> uint64_t </b> unique ID of the stashed item  
+    
+    @return                     \ref FTI_SCES upon success.  
+                                \ref FTI_NSCS upon failure.  
+      
+
+    Copies stashed item with ID 'stashId' from the global stash directory to the 
+    local stash directory.  
+
+      
+    The function can be called from both the heads and application processes.  
+  
+  --------------------------------------------------------------------------**/
+  int FTIX_StashPull( uint64_t stashId );
+ 
+
   /*==================================================================*/
 	/*  Expose internal FTI information [TOPOLOGY]                      */
 	/*==================================================================*/

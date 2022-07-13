@@ -50,8 +50,246 @@
 #include "fti-ext.h"
 #include "fti-kernel.h"
 #include "interface.h"
+#include <glob.h>
+#include <libgen.h>
 
-int64_t FTIX_StashDump( int ckptId, uint64_t stashId ) {
+/* TODO:
+ *
+ * Create MPI Window that holds a hash-table that keeps
+ * all existing stashes. We can keep there all local and
+ * global stashes. In that way we can mix creating stashes
+ * from local and head ranks. We can also easily check if
+ * a stash already exists.
+ *
+ * We can then also provide a means of synchronization.
+ * currently the user has to ensure consistency.
+ *
+ */
+
+int FTIX_StashPull( uint64_t stashId ) {
+  FTIX_PREREC(-1);
+
+  char err[FTI_BUFS], info[FTI_BUFS];
+  int retVal, error=0, exists = 0, errorAll, existsAll;
+
+  if( stashId > INT64_MAX ) {
+    FTI_Print("stash ID must not be larger than INT64_MAX", FTI_WARN);
+    error = 1;
+  }
+
+  char stashLocal[FTI_BUFS];
+  if ( !error ) {
+    snprintf( stashLocal, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
+    retVal = FTI_CheckDirectory( stashLocal ); 
+    if ( retVal == 1 ) {
+      snprintf( err, FTI_BUFS, "stash with id '%lu' already exists", stashId ); 
+      FTI_Print( err, FTI_WARN );
+      exists = 1;
+    } else if ( retVal == -1 ) {
+      error = 1;
+    }
+  }
+
+  char stashGlobal[FTI_BUFS];
+  if ( !error ) {
+    snprintf( stashGlobal, FTI_BUFS, "%s/%lu", FTI_Conf.stashDirGlobal, stashId );
+    retVal = FTI_CheckDirectory( stashGlobal ); 
+    if ( retVal == 0 ) {
+      snprintf( info, FTI_BUFS, "stash with id '%lu' does not exists on global directory '%s'", stashId, stashGlobal ); 
+      FTI_Print( err, FTI_WARN );
+      error = 1;
+    } else if ( retVal == -1 ) {
+      error = 1;
+    }
+  }
+  
+  MPI_Allreduce( &error, &errorAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+  MPI_Allreduce( &exists, &existsAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+  if ( errorAll ) { 
+    snprintf( err, FTI_BUFS, "failed to pull stash with id '%lu'", stashId ); 
+    FTI_Print( err, FTI_WARN );
+    return FTI_NSCS;
+  } else if ( (existsAll < FTI_Topo.splitSize) &&  (existsAll > 0) ) { 
+    snprintf( err, FTI_BUFS, "failed to pull stash with id '%lu' (some exist local some not)", stashId ); 
+    FTI_Print( err, FTI_WARN );
+    return FTI_SCES;
+  } else if ( existsAll == FTI_Topo.splitSize ) { 
+    snprintf( info, FTI_BUFS, "Succsessfully pulled stashed checkpoint (stashId: %lu)", stashId );
+    FTI_Print( info, FTI_INFO );
+    return FTI_SCES;
+  }
+
+  if ( FTI_CreateDirectory( &FTI_Topo, stashLocal, FTI_FS_LOCAL ) != FTI_SCES ) {
+    snprintf( err, FTI_BUFS, "failed to pull stash with id '%lu'", stashId ); 
+    FTI_Print( err, FTI_WARN );
+    return FTI_NSCS;
+  }
+  
+  MPI_Barrier(FTI_COMM_WORLD);
+  
+  error = 0;
+
+  char fi[FTI_BUFS], fo[FTI_BUFS];
+  
+  glob_t glb_ctx;
+
+  char pattern[FTI_BUFS];
+  if ( FTI_Topo.masterLocal ) {
+    snprintf( pattern , FTI_BUFS, "%s/sector%d-group*.fti", stashGlobal, FTI_Topo.sectorID );
+    if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+      for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+        snprintf( fi, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
+        snprintf( fo, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
+        if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
+      }
+    }
+  }
+  
+  if ( !error ) {
+    if( FTI_Topo.amIaHead ) {
+      for(int i=0; i<FTI_Topo.nodeSize-FTI_Topo.nbHeads; i++) { 
+        snprintf( pattern , FTI_BUFS, "%s/Ckpt*-Rank%d.fti", stashGlobal, FTI_Topo.body[i] );
+        if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+          snprintf( fi, FTI_BUFS, "%s/%s", stashGlobal, basename(*glb_ctx.gl_pathv) );
+          snprintf( fo, FTI_BUFS, "%s/%s", stashLocal, basename(*glb_ctx.gl_pathv) );
+          if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
+            error = 1;
+            break;
+          }
+        }
+      }
+    } else {
+      snprintf( pattern , FTI_BUFS, "%s/Ckpt*-Rank%d.fti", stashGlobal, FTI_Topo.myRank);
+      if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+        snprintf( fi, FTI_BUFS, "%s/%s", stashGlobal, basename(*glb_ctx.gl_pathv) );
+        snprintf( fo, FTI_BUFS, "%s/%s", stashLocal, basename(*glb_ctx.gl_pathv) );
+        if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
+      }
+    }
+  }
+
+  MPI_Allreduce( &error, &errorAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+
+  if ( !errorAll ) {
+    snprintf( info, FTI_BUFS, "Succsessfully pulled stashed checkpoint (stashId: %lu)", stashId );
+    FTI_Print( info, FTI_INFO );
+  } else {
+    snprintf( err, FTI_BUFS, "failed to pull stash with id '%lu'", stashId ); 
+    FTI_Print( err, FTI_WARN );
+  }
+  
+  return ( errorAll ) ? FTI_NSCS : FTI_SCES;
+
+}
+
+int FTIX_StashPush( uint64_t stashId ) {
+  FTIX_PREREC(-1);
+
+  char err[FTI_BUFS], info[FTI_BUFS];
+  char stashLocal[FTI_BUFS], stashGlobal[FTI_BUFS];
+  int retVal, error=0, exists = 0, errorAll, existsAll;
+
+  if( stashId > INT64_MAX ) {
+    FTI_Print("stash ID must not be larger than INT64_MAX", FTI_WARN);
+    error = 1;
+  }
+
+  if ( !error ) {
+    snprintf( stashLocal, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
+    retVal = FTI_CheckDirectory( stashLocal ); 
+    if ( retVal == 0 ) {
+      snprintf( err, FTI_BUFS, "stash with id '%lu' does not exist", stashId ); 
+      FTI_Print( err, FTI_WARN );
+      error = 1;
+    } else if ( retVal == -1 ) {
+      error = 1;
+    }
+  }
+
+  if ( !error ) {
+    snprintf( stashGlobal, FTI_BUFS, "%s/%lu", FTI_Conf.stashDirGlobal, stashId );
+    retVal = FTI_CheckDirectory( stashGlobal ); 
+    if ( retVal == 1 ) {
+      snprintf( info, FTI_BUFS, "stash with id '%lu' already exists", stashId ); 
+      FTI_Print( err, FTI_WARN );
+      exists = 1;
+    } else if ( retVal == -1 ) {
+      error = 1;
+    }
+  }
+  
+  MPI_Allreduce( &error, &errorAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+  MPI_Allreduce( &exists, &existsAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD ); 
+  if ( errorAll ) { 
+    return FTI_NSCS;
+  } else if ( existsAll ) { 
+    return FTI_SCES;
+  }
+
+  if ( FTI_CreateDirectory( &FTI_Topo, stashGlobal, FTI_FS_GLOBAL ) != FTI_SCES ) {
+    snprintf( err, FTI_BUFS, "failed to push stash with id '%lu'", stashId ); 
+    FTI_Print( err, FTI_WARN );
+    return FTI_NSCS;
+  }
+  
+  MPI_Barrier(FTI_COMM_WORLD);
+  
+  error = 0;
+
+  char fi[FTI_BUFS], fo[FTI_BUFS];
+  
+  glob_t glb_ctx;
+
+  char pattern[FTI_BUFS];
+  if ( FTI_Topo.groupRank == 0 ) {
+    snprintf( pattern , FTI_BUFS, "%s/%s", stashLocal, "sector*-group*.fti");
+    if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+      for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+        snprintf( fi, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
+        snprintf( fo, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
+        if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
+      }
+    }
+  }
+  
+  if ( !error ) {
+    if( FTI_Topo.amIaHead ) {
+      snprintf( pattern , FTI_BUFS, "%s/%s", stashLocal, "Ckpt*-Rank*.fti");
+      if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+        for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+          snprintf( fi, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
+          snprintf( fo, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
+          if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
+            error = 1;
+            break;
+          }
+        }
+      }
+    } else {
+      snprintf( pattern , FTI_BUFS, "%s/Ckpt*-Rank%d.fti", stashLocal, FTI_Topo.myRank);
+      if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
+        snprintf( fi, FTI_BUFS, "%s/%s", stashLocal, basename(*glb_ctx.gl_pathv) );
+        snprintf( fo, FTI_BUFS, "%s/%s", stashGlobal, basename(*glb_ctx.gl_pathv) );
+        if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
+      }
+    }
+  }
+
+  MPI_Allreduce( &error, &errorAll, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+
+  if ( !errorAll ) {
+    snprintf( info, FTI_BUFS, "Succsessfully pushed stashed checkpoint (stashId: %lu)", stashId );
+    FTI_Print( info, FTI_INFO );
+  } else {
+    snprintf( err, FTI_BUFS, "failed to push stash with id '%lu'", stashId ); 
+    FTI_Print( err, FTI_WARN );
+  }
+  
+  return ( errorAll ) ? FTI_NSCS : FTI_SCES;
+
+}
+
+int64_t FTIX_Stash( int ckptId, uint64_t stashId ) {
   FTIX_PREREC(-1);
  
   int allRes, success = 0, failure = 1;
@@ -244,18 +482,21 @@ int FTIX_StashLoad( uint64_t stashId ) {
 
 }
 
-int FTIX_StashDrop( uint64_t stashId ) {
-  
+int FTIX_StashDrop( uint64_t stashId, int where ) {
   FTIX_PREREC(-1);
    
   char ckptDir[FTI_BUFS];
-  snprintf( ckptDir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
 
-  int nodeFlag = (((!FTI_Topo.amIaHead) &&
-     ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) ||
-      (FTI_Topo.amIaHead)) ? 1 : 0;
+  int nodeFlag = FTI_Topo.masterLocal;
+  int globalFlag = FTI_Topo.masterGlobal;
 
-  FTI_RmDir( ckptDir, nodeFlag );
+  if ( where == FTI_FS_LOCAL ) {
+    snprintf( ckptDir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDir, stashId );
+    FTI_RmDir( ckptDir, nodeFlag );
+  } else if ( where == FTI_FS_GLOBAL ) {
+    snprintf( ckptDir, FTI_BUFS, "%s/%lu", FTI_Conf.stashDirGlobal, stashId );
+    FTI_RmDir( ckptDir, globalFlag );
+  }
 
   MPI_Barrier(FTI_COMM_WORLD);
 

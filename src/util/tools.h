@@ -40,6 +40,7 @@ fti_id_t FTI_InitType_opaque(size_t size);
 FTIT_Datatype* FTI_GetType(fti_id_t id);
 int FTI_FileCopy( const char*, const char* );
 int FTI_CreateDirectory( FTIT_topology*, const char*, int );
+int FTI_CheckDirectory( const char* path );
 
 #ifdef __cplusplus
 }

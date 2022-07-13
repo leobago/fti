@@ -84,7 +84,10 @@ extern void (*__ftix_callback) ( void );
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
 
+/** Indicates a local file system operation                                */
 #define FTI_FS_LOCAL 0
+
+/** Indicates a global file system operation                               */
 #define FTI_FS_GLOBAL 1
 
 /** Token for checkpoint Baseline.                                         */
@@ -525,8 +528,10 @@ extern "C" {
         char h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix       */
         char stageDir[FTI_BUFS];           /**< Staging directory.            */
         char stashDir[FTI_BUFS];           /**< Local directory.              */
+        char stashDirGlobal[FTI_BUFS];     /**< Local directory.              */
         char localDir[FTI_BUFS];           /**< Local directory.              */
         char glbalDir[FTI_BUFS];           /**< Global directory.             */
+        char glbalStashDir[FTI_BUFS];           /**< Global directory.             */
         char metadDir[FTI_BUFS];           /**< Metadata directory.           */
         char lTmpDir[FTI_BUFS];            /**< Local temporary directory.    */
         char gTmpDir[FTI_BUFS];            /**< Global temporary directory.   */
@@ -547,6 +552,7 @@ extern "C" {
         int nbNodes;                     /**< Total global number of nodes.   */
         int myRank;                      /**< My rank on the global comm.     */
         int splitRank;                   /**< My rank on the FTI comm.        */
+        int splitSize;                   /**< My rank on the FTI comm.        */
         int nodeSize;                    /**< Total number of pro. per node.  */
         int nbHeads;                     /**< Number of FTI proc. per node.   */
         int nbApprocs;                   /**< Number of app. proc. per node.  */
