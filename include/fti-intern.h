@@ -21,8 +21,6 @@
 #include <stdbool.h>
 #include <mpi.h>
 
-extern void (*__ftix_callback) ( void );
-
 #ifdef ENABLE_HDF5  // --> If HDF5 is installed
 #include <hdf5.h>
 #endif
@@ -131,6 +129,8 @@ extern void (*__ftix_callback) ( void );
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    extern void (*__ftix_callback) ( void );
 
     typedef struct FTIT_keymap FTIT_keymap;
 
