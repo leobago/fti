@@ -19,13 +19,7 @@
 extern "C" {
 #endif
   
-#ifdef FTIX_CALLBACK
-  void FTIX_Callback(void);
-  void (*__ftix_callback)(void) = FTIX_Callback;
-#else
-  void (*__ftix_callback)(void) = NULL;
-#endif
-
+#define FTIX_CALLBACK( func ) __ftix_callback = func
 
   /*==================================================================*/
 	/*  Stash mechanism                                                 */

@@ -44,6 +44,8 @@
 #endif
 
 #include "fti-kernel.h"
+    
+void (*__ftix_callback)(void) = NULL;
 
 bool FTI_INITIALIZED = false;
 
