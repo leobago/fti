@@ -59,6 +59,14 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # Search dependencies in following order: required, recommended, optional
 
+# using pkg-config to configure uuid
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(UUID QUIET uuid)
+if(UUID_FOUND)
+  list(APPEND INC_PRIV ${UUID_INCLUDE_DIRS})
+endif()
+
+
 # Package: MPI (Required)
 find_package(MPI REQUIRED)
 
@@ -350,6 +358,12 @@ link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
 
 # --- Compiler Flags definitions ---
 
+# uuid
+if(UUID_FOUND)
+  set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_EXEC_UUID")
+  message("Flags so far: ${ADD_CFLAGS}")
+endif()
+
 # GCC compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     ADD_CFLAG_IF_EXISTS("-Wno-format-truncation")
@@ -363,6 +377,12 @@ else()
 endif()
 
 # --- Conditional definitions in alphabetical order ---
+
+# uuid
+if(UUID_FOUND)
+  message("linking with ${UUID_LIBRARIES}")
+  link_to_fti(${UUID_LIBRARIES})
+endif()
 
 # Coverage
 if(ENABLE_COVERAGE)
