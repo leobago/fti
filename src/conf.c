@@ -39,7 +39,10 @@
 #include <time.h>
 
 #include "conf.h"
-#include <uuid/uuid.h>
+
+#ifdef FTI_EXEC_UUID
+# include <uuid/uuid.h>
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**
