@@ -60,10 +60,12 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 # Search dependencies in following order: required, recommended, optional
 
 # using pkg-config to configure uuid
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(UUID QUIET uuid)
-if(UUID_FOUND)
-  list(APPEND INC_PRIV ${UUID_INCLUDE_DIRS})
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
+  pkg_check_modules(UUID QUIET uuid)
+  if(UUID_FOUND)
+    list(APPEND INC_PRIV ${UUID_INCLUDE_DIRS})
+  endif()
 endif()
 
 
