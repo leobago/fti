@@ -137,7 +137,7 @@ int FTIX_StashPull( uint64_t stashId ) {
   if ( FTI_Topo.masterLocal ) {
     snprintf( pattern , FTI_BUFS, "%s/sector%d-group*.fti", stashGlobal, FTI_Topo.sectorID );
     if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
-      for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+      int i=0; for(; i<glb_ctx.gl_pathc; i++) { 
         snprintf( fi, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
         snprintf( fo, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
         if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
@@ -147,7 +147,7 @@ int FTIX_StashPull( uint64_t stashId ) {
   
   if ( !error ) {
     if( FTI_Topo.amIaHead ) {
-      for(int i=0; i<FTI_Topo.nodeSize-FTI_Topo.nbHeads; i++) { 
+      int i=0; for(; i<FTI_Topo.nodeSize-FTI_Topo.nbHeads; i++) { 
         snprintf( pattern , FTI_BUFS, "%s/Ckpt*-Rank%d.fti", stashGlobal, FTI_Topo.body[i] );
         if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
           snprintf( fi, FTI_BUFS, "%s/%s", stashGlobal, basename(*glb_ctx.gl_pathv) );
@@ -244,7 +244,7 @@ int FTIX_StashPush( uint64_t stashId ) {
   if ( FTI_Topo.groupRank == 0 ) {
     snprintf( pattern , FTI_BUFS, "%s/%s", stashLocal, "sector*-group*.fti");
     if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
-      for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+      int i=0; for(; i<glb_ctx.gl_pathc; i++) { 
         snprintf( fi, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
         snprintf( fo, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
         if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) error = 1;
@@ -256,7 +256,7 @@ int FTIX_StashPush( uint64_t stashId ) {
     if( FTI_Topo.amIaHead ) {
       snprintf( pattern , FTI_BUFS, "%s/%s", stashLocal, "Ckpt*-Rank*.fti");
       if ( glob( pattern, GLOB_ERR|GLOB_NOCHECK, NULL, &glb_ctx ) != GLOB_NOMATCH ) { 
-        for(int i=0; i<glb_ctx.gl_pathc; i++) { 
+        int i=0; for(; i<glb_ctx.gl_pathc; i++) { 
           snprintf( fi, FTI_BUFS, "%s/%s", stashLocal, basename(glb_ctx.gl_pathv[i]) );
           snprintf( fo, FTI_BUFS, "%s/%s", stashGlobal, basename(glb_ctx.gl_pathv[i]) );
           if ( FTI_FileCopy( fi, fo ) != FTI_SCES ) {
