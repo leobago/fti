@@ -363,7 +363,6 @@ link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
 # uuid
 if(UUID_FOUND)
   set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_EXEC_UUID")
-  message("Flags so far: ${ADD_CFLAGS}")
 endif()
 
 # GCC compiler flags
@@ -382,7 +381,6 @@ endif()
 
 # uuid
 if(UUID_FOUND)
-  message("linking with ${UUID_LIBRARIES}")
   link_to_fti(${UUID_LIBRARIES})
 endif()
 

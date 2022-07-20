@@ -41,7 +41,7 @@
     ( (((!FTI_Topo.amIaHead) && ((FTI_Topo.nodeRank - FTI_Topo.nbHeads) == 0)) || (FTI_Topo.amIaHead)) ? 1 : 0 )
 
 #define FTIX_PREREC(RETURN_VAL) do {                                          \
-  if ( !FTI_INITIALIZED ) {                                                   \
+  if ( FTI_Exec.initSCES == 0 ) {                                             \
     FTI_Print("[missing prerequisite] FTI is not Initialized!\n", FTI_WARN);  \
     return RETURN_VAL;                                                        \
   }                                                                           \

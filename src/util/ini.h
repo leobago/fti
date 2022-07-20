@@ -93,7 +93,7 @@ typedef struct FTIT_iniparser {
     char*       (*getString)(struct FTIT_iniparser*, const char*);
     int         (*getInt)(struct FTIT_iniparser*, const char*);
     bool        (*getBool)(struct FTIT_iniparser*, const char*);
-    long         (*getLong)(struct FTIT_iniparser*, const char*);
+    long        (*getLong)(struct FTIT_iniparser*, const char*);
     int         (*set)(struct FTIT_iniparser*, const char*,
                                  const char*);
     int         (*dump)(struct FTIT_iniparser*);

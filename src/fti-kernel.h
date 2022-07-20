@@ -13,9 +13,6 @@
 
 #include "interface.h"
 
-/** TRUE is FTI extended functionality is initialized                      */
-extern bool FTI_INITIALIZED;
-
 /** General configuration information used by FTI.                         */
 extern FTIT_configuration FTI_Conf;
 

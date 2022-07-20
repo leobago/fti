@@ -84,7 +84,6 @@
 
 /** Indicates a local file system operation                                */
 #define FTI_FS_LOCAL 0
-
 /** Indicates a global file system operation                               */
 #define FTI_FS_GLOBAL 1
 
@@ -514,7 +513,6 @@ extern "C" {
         int stripeFactor;                  /**< Striping Factor for Lustre FS */
 #endif
         int ckptTag;                       /**< MPI tag for ckpt requests.    */
-        int userTag;                       /**< MPI tag for ckpt requests.    */
         int stageTag;                      /**< MPI tag for staging comm.     */
         int finalTag;                      /**< MPI tag for finalize comm.    */
         int generalTag;                    /**< MPI tag for general comm.     */
@@ -527,16 +525,16 @@ extern "C" {
         char h5SingleFileDir[FTI_BUFS];    /**< HDF5 single file dir          */
         char h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix       */
         char stageDir[FTI_BUFS];           /**< Staging directory.            */
-        char stashDir[FTI_BUFS];           /**< Local directory.              */
-        char stashDirGlobal[FTI_BUFS];     /**< Local directory.              */
+        char stashDir[FTI_BUFS];           /**< Local stash directory.        */
+        char stashDirGlobal[FTI_BUFS];     /**< Global stash directory.       */
         char localDir[FTI_BUFS];           /**< Local directory.              */
         char glbalDir[FTI_BUFS];           /**< Global directory.             */
-        char glbalStashDir[FTI_BUFS];           /**< Global directory.             */
+        char StashDirGlobalBase[FTI_BUFS]; /**< Global stash baser directory. */
         char metadDir[FTI_BUFS];           /**< Metadata directory.           */
         char lTmpDir[FTI_BUFS];            /**< Local temporary directory.    */
         char gTmpDir[FTI_BUFS];            /**< Global temporary directory.   */
         char mTmpDir[FTI_BUFS];            /**< Metadata temporary directory. */
-        int64_t cHostBufSize;               /**< Host buffer size for GPU data.*/
+        int64_t cHostBufSize;              /**< Host buffer size for GPU data.*/
         char suffix[4];                    /** Suffix of the checkpoint files */
         FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
         // int fastForward;            /**< Fast forward rate for ckpt intervals */
@@ -561,8 +559,8 @@ extern "C" {
         int nodeID;                      /**< Node ID in the system.          */
         int groupID;                     /**< Group ID in the node.           */
         int amIaHead;                    /**< TRUE if FTI process.            */
-        bool masterLocal;
-        bool masterGlobal;
+        bool masterLocal;		 /**< TRUE if master node process     */
+        bool masterGlobal;		 /**< TRUE if master process on split comm */
         int headRank;                    /**< Rank of the head in this node.  */
         int headRankNode;                /**< Rank of the head in node comm.  */
         int nodeRank;                    /**< Rank of the node.               */

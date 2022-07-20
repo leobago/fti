@@ -47,8 +47,6 @@
     
 void (*__ftix_callback)(void) = NULL;
 
-bool FTI_INITIALIZED = false;
-
 /** General configuration information used by FTI.                         */
 FTIT_configuration FTI_Conf;
 
@@ -177,7 +175,6 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
                 FTI_Exec.initSCES = 2;  // Could not recover all ckpt files
             }
         }
-        FTI_INITIALIZED = true;
         FTI_Listen(&FTI_Conf, &FTI_Exec, &FTI_Topo, FTI_Ckpt);
         // infinite loop inside, can stop only by calling FTI_Finalize
         // FTI_Listen only returns if FTI_Conf.keepHeadsAlive is TRUE
@@ -223,7 +220,6 @@ int FTI_Init(const char* configFile, MPI_Comm globalComm) {
               "load dataset metadata");
         }
         FTI_Print("FTI has been initialized.", FTI_INFO);
-        FTI_INITIALIZED = true;
         return FTI_SCES;
     }
 }
