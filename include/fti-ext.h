@@ -15,11 +15,12 @@
 #include <stdint.h>
 #include <mpi.h>
 
+/** Macro to pass callback function for FTI heads                     */ 
+#define FTIX_CALLBACK( func ) __ftix_callback = func
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
-#define FTIX_CALLBACK( func ) __ftix_callback = func
 
   /*==================================================================*/
 	/*  Stash mechanism                                                 */

@@ -55,14 +55,16 @@
 
 /* TODO:
  *
- * Create MPI Window that holds a hash-table that keeps
- * all existing stashes. We can keep there all local and
- * global stashes. In that way we can mix creating stashes
- * from local and head ranks. We can also easily check if
- * a stash already exists.
+ * Create data structure (maybe MPI window) that holds a hash-table that
+ * keeps all existing stashes.  We can keep there all local and global
+ * stashes.  In that way we can mix creating stashes from local and head
+ * ranks. We can also easily check if a stash already exists.
  *
- * We can then also provide a means of synchronization.
- * currently the user has to ensure consistency.
+ * We can then also provide a means of synchronization.  currently the
+ * user has to ensure consistency.
+ *
+ * Furthermore, we need to implement tests for continuous integration
+ * before making it part of the standard FTI API.
  *
  */
 
