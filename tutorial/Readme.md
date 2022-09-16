@@ -22,14 +22,14 @@ cd fti
 
 3. Optionally, set the `FTI_INSTALL_DIR` variable with an **absolute path** leading to the desired installation folder.
 ```base
-export FTI_INSTALL_DIR=/my/home/fti
+export FTI_INSTALL_DIR=/install/fti/here
 ```
 
 ## Configure and Install
 
 1. Execute the installation script
 ```bash
-scripts/install.sh '-DENABLE_TUTORIAL=1'
+./install.sh --enable-tutorial
 ```
 
 This script creates a 'install' and 'build' folder within FTI root directory.
@@ -38,8 +38,10 @@ If you provided a value for the `FTI_INSTALL_DIR` variable, the 'install' folder
 Instead, you will find the FTI binary and headers in the location you specified.
 The `build` folder will be populated with some installation files and the tutorial binaries.
 
-The `install.sh` script, used in this step, redirects all parameters to the cmake compilation command.
-As observed above, the flag -DENABLE\_TUTORIAL=1 will build the tutorial files as well as FTI.
+For other compile options, hit:
+```
+./install.sh -h
+```
 
 
 ## Executables, tutorial source code, and fti library files
@@ -107,8 +109,8 @@ If successfull, it will output the following message to the terminal.
 Take some time to look into the 'meta/' folder and the 'config.L1.fti' configuration file.
 Note that FTI detects a failure and the last previous execution ID annotated in these files.
 After the successful restart, interrupt the execution and delete one of the checkpoint files.
-The files are stored in: ${TUTORIAL\_EXEC}/L1//local/<NODE>/<EXEC-ID>/l1/.
-They are names as ckpt<ID>-Rank<RANK>.fti.
+The files are stored in: ${TUTORIAL\_EXEC}/L1/local/\<NODE>/\<EXEC-ID>/l1/.
+They are names as ckpt\<ID>-Rank\<RANK>.fti.
 You can also simply delete the whole node directory.
 You will notice that, after deletion, the program won’t be able to resume the execution.
 
@@ -204,7 +206,7 @@ Now, try to delete more than one file/directories in different combinations and 
 
 Change directory to the L4 example in folder ${TUTORIAL\_EXEC}/L4.
 Then, run the application with `make hdl4`.
-As before, you can **watch** the contents of the 'local' folder while the program is running.
+As before, you can **watch** the contents of the 'local' folder while the program is running. However, now it is also interesting to look at the 'global' folder (`watch -n 1 'find local global'`).
 
 Interrupt the execution after a checkpoint is made.
 Restart the application again with `make hdl4`.
