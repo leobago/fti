@@ -904,8 +904,6 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
         MD5_Final(hashchk, &dbContext);
     }
 
-    printf("Ends.\n"); fflush(stdout);
-
     return FTI_SCES;
 }
 
@@ -1335,7 +1333,7 @@ int FTIFF_CreateMetadata(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     // allgather not needed for L1 checkpoint
     if ((FTI_Exec->ckptMeta.level == 2) || (FTI_Exec->ckptMeta.level == 3)) {
         int64_t fileSizes[FTI_BUFS], mfs = 0;
-        MPI_Allgather(&fs, 1, MPI_INT32_T, fileSizes, 1, MPI_INT32_T,
+        MPI_Allgather(&fs, 1, MPI_INT64_T, fileSizes, 1, MPI_INT64_T,
          FTI_Exec->groupComm);
         int ptnerGroupRank, i;
         switch (FTI_Exec->ckptMeta.level) {
@@ -2498,7 +2496,7 @@ void FTIFF_InitMpiTypes() {
     MBR_CNT(headInfo) =  7;
     MBR_BLK_LEN(headInfo) = { 1, 1, FTI_BUFS, 1, 1, 1, 1 };
     MBR_TYPES(headInfo) = { MPI_INT, MPI_INT, MPI_CHAR,
-     MPI_INT32_T, MPI_INT32_T, MPI_INT32_T, MPI_INT };
+     MPI_INT64_T, MPI_INT64_T, MPI_INT64_T, MPI_INT };
     MBR_DISP(headInfo) = {
         offsetof(FTIFF_headInfo, exists),
         offsetof(FTIFF_headInfo, nbVar),
@@ -2517,7 +2515,7 @@ void FTIFF_InitMpiTypes() {
     MBR_CNT(RecoInfo) = 6;
     MBR_BLK_LEN(RecoInfo) = { 1, 1, 1, 1, 1, 1 };
     MBR_TYPES(RecoInfo) = { MPI_INT, MPI_INT, MPI_INT,
-     MPI_INT, MPI_INT32_T, MPI_INT32_T };
+     MPI_INT, MPI_INT64_T, MPI_INT64_T };
     MBR_DISP(RecoInfo) = {
         offsetof(FTIFF_RecoveryInfo, FileExists),
         offsetof(FTIFF_RecoveryInfo, BackupExists),
