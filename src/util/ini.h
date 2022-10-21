@@ -90,6 +90,7 @@ typedef struct FTIT_iniparser {
     char*       (*getString)(struct FTIT_iniparser*, const char*);
     int         (*getInt)(struct FTIT_iniparser*, const char*);
     int         (*getLong)(struct FTIT_iniparser*, const char*);
+    int64_t     (*getLongLong)(struct FTIT_iniparser*, const char*);
     int         (*set)(struct FTIT_iniparser*, const char*,
                                  const char*);
     int         (*dump)(struct FTIT_iniparser*);
@@ -173,6 +174,7 @@ int FTI_IniparserGetInt(FTIT_iniparser*, const char* key);
 
 --------------------------------------------------------------------------**/
 int FTI_IniparserGetLong(FTIT_iniparser*, const char* key);
+int64_t FTI_IniparserGetLongLong(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   

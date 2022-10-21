@@ -272,13 +272,27 @@ int FTI_getPrefetchedData(FTIT_data_prefetch *dfls, size_t *size,
         *fetchedData = hostBuffers[prevId];
     } else {
         *fetchedData = dfls->dptr;
-        *size = dfls->totalBytesToFetch;
-        dfls->end = true;
+        size_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
+        dfls->totalBytesToFetch -= copy_size;
+        *size = copy_size;
+        if (dfls->totalBytesToFetch > 0){
+            dfls->dptr += copy_size;
+        }
+        else {
+            dfls->end = true;
+        }
     }
 #else
     *fetchedData = dfls->dptr;
-    *size = dfls->totalBytesToFetch;
-    dfls->end = true;
+    size_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
+    dfls->totalBytesToFetch -= copy_size;
+    *size = copy_size;
+    if (dfls->totalBytesToFetch > 0){
+        dfls->dptr += copy_size;
+    }
+    else {
+        dfls->end = true;
+    }
 #endif
     return FTI_SCES;
 }

@@ -999,7 +999,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
   dCP POSIX implementation of FTI_CheckFile().
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckFileDcpPosix(char* fn, int32_t fs, char* checksum) {
+int FTI_CheckFileDcpPosix(char* fn, int64_t fs, char* checksum) {
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;
         if (stat(fn, &fileStatus) == 0) {

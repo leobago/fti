@@ -68,7 +68,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     int k = FTI_Topo->groupSize;
     int m = k;
 
-    int32_t fs = FTI_Exec->ckptMeta.fs;
+    int64_t fs = FTI_Exec->ckptMeta.fs;
 
     char** data = talloc(char*, k);
     char** coding = talloc(char*, m);
@@ -130,8 +130,8 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     FILE *fd, *efd;
-    int32_t maxFs = FTI_Exec->ckptMeta.maxFs;
-    int32_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
+    int64_t maxFs = FTI_Exec->ckptMeta.maxFs;
+    int64_t ps = ((maxFs / FTI_Conf->blockSize)) * FTI_Conf->blockSize;
     if (ps < maxFs) {
         ps = ps + FTI_Conf->blockSize;  // Calculating padding size
     }
@@ -145,7 +145,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         if (truncate(fn, maxFs) == -1) {
-            FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
+	     FTI_Print("Error with truncate on checkpoint file", FTI_DBUG);
 
             for (i = 0; i < m; i++) {
                 free(coding[i]);
@@ -237,7 +237,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // Main loop, block by block
-    int32_t pos = 0;
+    int64_t pos = 0;
     int remBsize = bs;
 
     MD5_CTX md5ctxRS;
@@ -382,7 +382,7 @@ int FTI_Decode(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             return FTI_NSCS;
         }
 
-        fs = (int32_t) fs_;
+        fs = (int64_t) fs_;
         FTI_Exec->ckptMeta.fs = fs;
 
         close(ifd);
@@ -536,7 +536,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int destination, int ptner) {
-    int32_t toSend;  // remaining data to send
+    int64_t toSend;  // remaining data to send
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to send Ptner file
         int ckptId, rank;
@@ -561,7 +561,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* buffer = talloc(char, FTI_Conf->blockSize);
 
     while (toSend > 0) {
-        int sendSize = (toSend > FTI_Conf->blockSize) ?
+        int64_t sendSize = (toSend > FTI_Conf->blockSize) ?
          FTI_Conf->blockSize : toSend;
         size_t bytes = fread(buffer, sizeof(char), sendSize, fileDesc);
 
@@ -600,7 +600,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int source, int ptner) {
-    int32_t toRecv;  // remaining data to receive
+    int64_t toRecv;  // remaining data to receive
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to receive Ptner file
         int ckptId, rank;
@@ -625,7 +625,7 @@ int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     char* buffer = talloc(char, FTI_Conf->blockSize);
 
     while (toRecv > 0) {
-        int recvSize = (toRecv > FTI_Conf->blockSize) ?
+        int64_t recvSize = (toRecv > FTI_Conf->blockSize) ?
          FTI_Conf->blockSize : toRecv;
         MPI_Recv(buffer, recvSize, MPI_CHAR, source, FTI_Conf->generalTag,
          FTI_Exec->groupComm, MPI_STATUS_IGNORE);

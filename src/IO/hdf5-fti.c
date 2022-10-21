@@ -492,7 +492,7 @@ int FTI_CommitDataType(FTIT_execution *FTI_Exec, FTIT_dataset *data) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CheckHDF5File(char* fn, int32_t fs, char* checksum) {
+int FTI_CheckHDF5File(char* fn, int64_t fs, char* checksum) {
     char str[FTI_BUFS];
     if (access(fn, F_OK) == 0) {
         struct stat fileStatus;

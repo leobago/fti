@@ -95,7 +95,7 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     FTI_filemetastructsize
         = MD5_DIGEST_STRING_LENGTH
         + MD5_DIGEST_LENGTH
-        + 7*sizeof(int32_t)
+        + 7*sizeof(int64_t)
         + sizeof(int);
 
     // TODO(leobago) RS L3 only works for even file sizes.
@@ -105,13 +105,13 @@ int FTI_InitExecVars(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     FTI_dbstructsize
         = sizeof(int)               /* numvars */
-        + sizeof(int32_t);             /* dbsize */
+        + sizeof(int64_t);             /* dbsize */
 
     FTI_dbvarstructsize
         = 2*sizeof(int)               /* numvars */
         + 2*sizeof(bool)
         + 2*sizeof(uintptr_t)
-        + 2*sizeof(int32_t)
+        + 2*sizeof(int64_t)
         + MD5_DIGEST_LENGTH;
 
     //

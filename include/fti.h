@@ -87,7 +87,7 @@ extern "C" {
   int FTI_InitGroup(FTIT_H5Group* h5group, const char* name,
    FTIT_H5Group* parent);
   int FTI_RenameGroup(FTIT_H5Group* h5group, const char* name);
-  int FTI_Protect(int id, void* ptr, int32_t count, fti_id_t tid);
+  int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
   int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,

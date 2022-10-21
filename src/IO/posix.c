@@ -353,8 +353,8 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     if (data->size != data->sizeStored) {
-        snprintf(str, sizeof(str), "Cannot recover %d bytes to protected "
-        "variable (ID %d) size: %d", data->sizeStored, data->id, data->size);
+        snprintf(str, sizeof(str), "Cannot recover %ld bytes to protected "
+        "variable (ID %d) size: %ld", data->sizeStored, data->id, data->size);
         FTI_Print(str, FTI_WARN);
         return FTI_NREC;
     }

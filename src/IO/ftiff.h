@@ -96,9 +96,9 @@ typedef struct FTIFF_headInfo {
     int exists;
     int nbVar;
     char ckptFile[FTI_BUFS];
-    int32_t maxFs;
-    int32_t fs;
-    int32_t pfs;
+    int64_t maxFs;
+    int64_t fs;
+    int64_t pfs;
     int isDcp;
 } FTIFF_headInfo;
 
@@ -113,9 +113,9 @@ typedef struct FTIFF_RecoveryInfo {
     int BackupExists;
     int ckptId;
     int rightIdx;
-    int32_t maxFs;
-    int32_t fs;
-    int32_t bfs;
+    int64_t maxFs;
+    int64_t fs;
+    int64_t bfs;
 } FTIFF_RecoveryInfo;
 
 /**
@@ -206,7 +206,7 @@ void FTIFF_SetHashChunk(FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data);
 void FTIFF_PrintDataStructure(int rank, FTIT_execution* FTI_Exec);
 int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
  FTIFF_dbvar *currentdbvar,  FTIT_dataset *data, unsigned char *hashchk,
- WriteFTIFFInfo_t *fd, int32_t *dcpSize, unsigned char **dptr);
+ WriteFTIFFInfo_t *fd, int64_t *dcpSize, unsigned char **dptr);
 int FTIFF_RecoverVarInit(char* fn);
 int FTIFF_RecoverVarFinalize();
 #endif  // FTI_SRC_IO_FTIFF_H_

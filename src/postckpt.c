@@ -99,7 +99,7 @@ int FTI_SendCkpt(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    int32_t toSend = FTI_Exec->ckptMeta.fs;  // remaining data to send
+    int64_t toSend = FTI_Exec->ckptMeta.fs;  // remaining data to send
     while (toSend > 0) {
         int sendSize = (toSend > FTI_Conf->blockSize) ?
          FTI_Conf->blockSize : toSend;
@@ -152,7 +152,7 @@ int FTI_RecvPtner(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char* buffer = talloc(char, FTI_Conf->blockSize);
-    uint32_t toRecv = FTI_Exec->ckptMeta.pfs;
+    int64_t toRecv = FTI_Exec->ckptMeta.pfs;
     // remaining data to receive
     while (toRecv > 0) {
         int recvSize = (toRecv > FTI_Conf->blockSize) ?
@@ -285,7 +285,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTI_Print(str, FTI_DBUG);
 
         // all files in group must have the same size
-        int32_t maxFs = FTI_Exec->ckptMeta.maxFs;  // max file size in group
+        int64_t maxFs = FTI_Exec->ckptMeta.maxFs;  // max file size in group
 
         // determine file size in order to write at the end of the elongated
         // file (i.e. write at the end of file after 'truncate(..., maxFs)'.
@@ -357,7 +357,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
 
         int remBsize = bs;
-        int32_t ps = ((maxFs / bs)) * bs;
+        int64_t ps = ((maxFs / bs)) * bs;
         if (ps < maxFs) {
             ps = ps + bs;
         }
@@ -367,7 +367,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         MD5_Init(&mdContext);
 
         // For each block
-        int32_t pos = 0;
+        int64_t pos = 0;
         while (pos < ps) {
             if ((maxFs - pos) < bs) {
                 remBsize = maxFs - pos;
@@ -516,7 +516,7 @@ int FTI_RSenc(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         fclose(lfd);
         fclose(efd);
 
-        int32_t fs = FTI_Exec->ckptMeta.fs;  // ckpt file size
+        int64_t fs = FTI_Exec->ckptMeta.fs;  // ckpt file size
 
         if (truncate(lfn, fs) == -1) {
             FTI_Print("Error with re-truncate on checkpoint file", FTI_WARN);
