@@ -401,7 +401,19 @@ int FTIFF_GetFileChecksum(FTIFF_metaInfo *FTIFFMeta, int fd, char *checksum) {
             // (Note: we create the file hash from the chunk hashes due to ICP)
             if (dbvar->hascontent) {
                 unsigned char chash[MD5_DIGEST_LENGTH];
-                MD5(fmmap + dbvar->fptr, (unsigned long)dbvar->chunksize, chash);
+                MD5_CTX dbvar_ctx;
+		uint64_t remaining = dbvar->chunksize;
+		uint32_t block_size = CHUNK_SIZE;
+		MD5_Init(&dbvar_ctx);
+		while (remaining > 0){
+		    uint32_t len_update = (remaining > block_size) ?
+			     block_size : remaining;
+		    uint64_t offset = dbvar->chunksize - remaining;
+		    MD5_Update(&dbvar_ctx, fmmap + dbvar->fptr + offset, 
+                               len_update);
+		    remaining -= len_update;
+		}
+		MD5_Final(chash, &dbvar_ctx);	
                 MD5_Update(&ctx, chash, MD5_DIGEST_LENGTH);
             }
         }
@@ -871,7 +883,15 @@ int FTI_ProcessDBVar(FTIT_execution *FTI_Exec, FTIT_configuration *FTI_Conf,
         }
 
         while (cbasePtr) {
-            MD5_Update(&dbContext, cbasePtr, totalBytes);
+            int64_t remaining = totalBytes;
+	    int block_size = CHUNK_SIZE;
+	    while (remaining > 0){
+	        int len_update = (remaining > block_size) ?
+		    block_size : remaining;
+	        int64_t offset = totalBytes - remaining;
+	        MD5_Update(&dbContext, cbasePtr + offset, len_update);
+	        remaining -= len_update;
+	    }
             FTI_WriteMemFTIFFChunk(FTI_Exec, currentdbvar, cbasePtr, offset,
              totalBytes, dcpSize, fd);
             offset+=totalBytes;
@@ -2389,9 +2409,19 @@ void FTIFF_SetHashChunk(FTIFF_dbvar *dbvar, FTIT_keymap* FTI_Data) {
             return;
         }
 
-        void * ptr = data->ptr + dbvar->dptr;
-        int64_t size = dbvar->chunksize;
-        MD5(ptr, size, dbvar->hash);
+	MD5_CTX dbvar_ctx;
+	void * ptr = data->ptr + dbvar->dptr;
+	int64_t remaining = dbvar->chunksize;
+	int block_size = CHUNK_SIZE;
+	MD5_Init(&dbvar_ctx);
+	while (remaining > 0){
+            int len_update = (remaining > block_size) ?
+	        block_size : remaining;
+	    int64_t offset = dbvar->chunksize - remaining;
+	    MD5_Update(&dbvar_ctx, ptr + offset, len_update);
+	    remaining -= len_update;
+	}
+	MD5_Final(dbvar->hash, &dbvar_ctx);
     }
 }
 

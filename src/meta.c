@@ -303,15 +303,15 @@ int FTI_LoadMetaRecovery(FTIT_configuration* FTI_Conf,
         snprintf(meta.ckptFile, FTI_BUFS, "%s", ini.getString(&ini, str));
 
         snprintf(str, FTI_BUFS, "%d:Ckpt_file_size", FTI_Topo->groupRank);
-        meta.fs = ini.getLong(&ini, str);
+        meta.fs = ini.getInt64(&ini, str);
         FTI_Exec->dcpInfoPosix.FileSize = meta.fs;
 
         snprintf(str, FTI_BUFS, "%d:Ckpt_file_size",
          (FTI_Topo->groupRank + FTI_Topo->groupSize - 1) %
           FTI_Topo->groupSize);
-        meta.pfs = ini.getLong(&ini, str);
+        meta.pfs = ini.getInt64(&ini, str);
 
-        meta.maxFs = ini.getLong(&ini, "0:Ckpt_file_maxs");
+        meta.maxFs = ini.getInt64(&ini, "0:Ckpt_file_maxs");
 
         FTI_Exec->mqueue.push(&FTI_Exec->mqueue, meta);
 
@@ -362,7 +362,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int k; for (k = 0; k < MAX_STACK_SIZE; k++) {
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
-        int64_t LayerSize = ini.getLong(&ini, str);
+        int64_t LayerSize = ini.getInt64(&ini, str);
         if (LayerSize == -1) {
             // No more variables
             break;
@@ -383,7 +383,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varID = varID;
             snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size",
              FTI_Topo->groupRank, k, j);
-            int64_t varSize = ini.getLong(&ini, str);
+            int64_t varSize = ini.getInt64(&ini, str);
             if (varID < 0) {
                 break;
             }
@@ -448,10 +448,10 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_dataset data; FTI_InitDataset(FTI_Exec, &data, id);
 
         snprintf(str, FTI_BUFS, "%d:Var%d_size", FTI_Topo->groupRank, k);
-        data.sizeStored = ini.getLong(&ini, str);
+        data.sizeStored = ini.getInt64(&ini, str);
 
         snprintf(str, FTI_BUFS, "%d:Var%d_pos", FTI_Topo->groupRank, k);
-        data.filePos = ini.getLong(&ini, str);
+        data.filePos = ini.getInt64(&ini, str);
 
         snprintf(str, FTI_BUFS, "%d:Var%d_idChar", FTI_Topo->groupRank, k);
         strncpy(data.idChar, ini.getString(&ini, str), FTI_BUFS);

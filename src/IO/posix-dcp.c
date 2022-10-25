@@ -187,14 +187,14 @@ int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd) {
 
     FTI_Exec->dcpInfoPosix.dataSize += data->size;
     int64_t dataSize = data->size;
+    int64_t maxSize = (int64_t)MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize;
     // int64_t nbHashes = dataSize/FTI_Conf->dcpInfoPosix.BlockSize +
     // (bool)(dataSize%FTI_Conf->dcpInfoPosix.BlockSize);
 
-    if (dataSize > (MAX_BLOCK_IDX*FTI_Conf->dcpInfoPosix.BlockSize)) {
+    if (dataSize > maxSize) {
         snprintf(errstr, FTI_BUFS, "overflow in size of dataset with id:"
-            " %d (datasize: %lu > MAX_DATA_SIZE: %u)", data->id, dataSize,
-             ((uint32_t)MAX_BLOCK_IDX)*
-             ((uint32_t)FTI_Conf->dcpInfoPosix.BlockSize));
+            " %d (datasize: %lu > MAX_DATA_SIZE: %lu)", data->id, dataSize,
+             maxSize);
         FTI_Print(errstr, FTI_EROR);
         return FTI_NSCS;
     }

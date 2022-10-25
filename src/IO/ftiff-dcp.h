@@ -20,7 +20,7 @@ int FTI_ReallocateDataDiff(FTIT_DataDiffHash *dhash, int64_t nbHashes);
 int FTI_InitBlockHashArray(FTIFF_dbvar* dbvar);
 int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, int64_t chunkSize);
 int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int64_t chunkSize);
-int64_t FTI_CalcNumHashes(uint32_t chunkSize);
+int64_t FTI_CalcNumHashes(int64_t chunkSize);
 int FTI_HashCmp(int64_t hashIdx, FTIFF_dbvar* dbvar, unsigned char *ptr);
 int FTI_UpdateDcpChanges(FTIT_execution* FTI_Exec);
 int FTI_ReceiveDataChunk(unsigned char** buffer_addr, int64_t* buffer_size,

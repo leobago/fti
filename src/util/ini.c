@@ -91,6 +91,7 @@ int FTI_Iniparser(FTIT_iniparser* self, const char* inifile,
     self->getString = FTI_IniparserGetString;
     self->getInt = FTI_IniparserGetInt;
     self->getLong = FTI_IniparserGetLong;
+    self->getInt64 = FTI_IniparserGetInt64;
     self->set = FTI_IniparserSet;
     self->dump = FTI_IniparserDump;
     self->clear = FTI_IniparserClear;
@@ -139,6 +140,18 @@ int FTI_IniparserGetLong(FTIT_iniparser* self, const char* key) {
     }
 
     return iniparser_getlint(self->dict, key, -1);
+}
+
+int64_t FTI_IniparserGetInt64(FTIT_iniparser* self, const char* key) {
+    if (self == NULL) {
+        FTI_Print("iniparser context is NULL.", FTI_EROR);
+	return FTI_NSCS;
+    }
+
+    char *string = iniparser_getstring(self->dict, key, NULL);
+    if (string == NULL) return -1;
+
+    return strtoll(string, NULL, 0);
 }
 
 int FTI_IniparserDump(FTIT_iniparser* self) {

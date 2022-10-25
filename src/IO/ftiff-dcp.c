@@ -615,7 +615,7 @@ int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int64_t chunkSize) {
   block size corresponding to chunkSize.
  **/
 /*-------------------------------------------------------------------------*/
-int64_t FTI_CalcNumHashes(uint32_t chunkSize) {
+int64_t FTI_CalcNumHashes(int64_t chunkSize) {
     if ((chunkSize%((uint32_t)DCP_BLOCK_SIZE)) == 0) {
         return chunkSize/DCP_BLOCK_SIZE;
     } else {

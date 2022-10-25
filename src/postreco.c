@@ -536,7 +536,7 @@ int FTI_RecoverL1(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int destination, int ptner) {
-    int32_t toSend;  // remaining data to send
+    int64_t toSend;  // remaining data to send
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to send Ptner file
         int ckptId, rank;
@@ -600,7 +600,7 @@ int FTI_SendCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 /*-------------------------------------------------------------------------*/
 int FTI_RecvCkptFileL2(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_checkpoint* FTI_Ckpt, int source, int ptner) {
-    int32_t toRecv;  // remaining data to receive
+    int64_t toRecv;  // remaining data to receive
     char filename[FTI_BUFS], str[FTI_BUFS];
     if (ptner) {  // if want to receive Ptner file
         int ckptId, rank;
@@ -1015,11 +1015,11 @@ int FTI_RecoverL4Posix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     char *readData = talloc(char, FTI_Conf->transferSize);
-    int32_t bSize = FTI_Conf->transferSize;
-    int32_t fs = FTI_Exec->ckptMeta.fs;
+    int64_t bSize = FTI_Conf->transferSize;
+    int64_t fs = FTI_Exec->ckptMeta.fs;
 
     // Checkpoint files transfer from PFS
-    int32_t pos = 0;
+    int64_t pos = 0;
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
             bSize = fs - pos;
@@ -1122,10 +1122,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
 
     // collect chunksizes of other ranks
-    int32_t* chunkSizes = talloc(int32_t,
+    int64_t* chunkSizes = talloc(int64_t,
      FTI_Topo->nbApprocs*FTI_Topo->nbNodes);
-    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_INT32_T, chunkSizes, 1,
-     MPI_INT32_T, FTI_COMM_WORLD);
+    MPI_Allgather(&FTI_Exec->ckptMeta.fs, 1, MPI_INT64_T, chunkSizes, 1,
+     MPI_INT64_T, FTI_COMM_WORLD);
 
     MPI_Offset offset = 0;
     // set file offset
@@ -1143,10 +1143,10 @@ int FTI_RecoverL4Mpi(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NSCS;
     }
 
-    int32_t fs = FTI_Exec->ckptMeta.fs;
+    int64_t fs = FTI_Exec->ckptMeta.fs;
     char *readData = talloc(char, FTI_Conf->transferSize);
     int32_t bSize = FTI_Conf->transferSize;
-    int32_t pos = 0;
+    int64_t pos = 0;
     // Checkpoint files transfer from PFS
     while (pos < fs) {
         if ((fs - pos) < FTI_Conf->transferSize) {
