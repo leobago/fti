@@ -362,7 +362,7 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
 
     int k; for (k = 0; k < MAX_STACK_SIZE; k++) {
         snprintf(str, FTI_BUFS, "%d:dcp_layer%d_size", FTI_Topo->groupRank, k);
-        uint32_t LayerSize = ini.getLong(&ini, str);
+        int64_t LayerSize = ini.getLongLong(&ini, str);
         if (LayerSize == -1) {
             // No more variables
             break;
@@ -383,12 +383,12 @@ int FTI_LoadMetaDcp(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
             FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varID = varID;
             snprintf(str, FTI_BUFS, "%d:dcp_layer%d_var%d_size",
              FTI_Topo->groupRank, k, j);
-            int32_t varSize = ini.getLong(&ini, str);
+            int64_t varSize = ini.getLongLong(&ini, str);
             if (varID < 0) {
                 break;
             }
             FTI_Exec->dcpInfoPosix.datasetInfo[k][j].varSize =
-             (uint32_t) varSize;
+             (int64_t) varSize;
         }
     }
 

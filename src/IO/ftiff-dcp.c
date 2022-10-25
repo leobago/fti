@@ -489,7 +489,7 @@ When the checkpoint will terminate the current hash will be freed, whereas the n
 will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, int32_t chunkSize) {
+int FTI_CollapseBlockHashArray(FTIT_DataDiffHash* hashes, int64_t chunkSize) {
     if (!dcpEnabled)
         return FTI_SCES;
 
@@ -554,7 +554,7 @@ When the checkpoint will terminate the current hash will be freed, whereas the n
 will be used as current. Keep in mind that the next has the correct size
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int32_t chunkSize) {
+int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int64_t chunkSize) {
     if (!dcpEnabled)
         return FTI_SCES;
 
@@ -615,7 +615,7 @@ int FTI_ExpandBlockHashArray(FTIT_DataDiffHash* dataHash, int32_t chunkSize) {
   block size corresponding to chunkSize.
  **/
 /*-------------------------------------------------------------------------*/
-int32_t FTI_CalcNumHashes(int32_t chunkSize) {
+int32_t FTI_CalcNumHashes(int64_t chunkSize) {
     if ((chunkSize%((uint32_t)DCP_BLOCK_SIZE)) == 0) {
         return chunkSize/DCP_BLOCK_SIZE;
     } else {

@@ -165,7 +165,7 @@ extern "C" {
     } FTIT_dcpExecutionPosix;
 
     typedef struct FTIT_dcpDatasetPosix {
-        uint32_t hashDataSize;
+        int64_t hashDataSize;
         unsigned char* currentHashArray;
         unsigned char* oldHashArray;
     } FTIT_dcpDatasetPosix;

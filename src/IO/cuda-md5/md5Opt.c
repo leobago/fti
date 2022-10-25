@@ -98,7 +98,7 @@ int FTI_initMD5(int32_t cSize, int32_t tempSize, FTIT_configuration *FTI_Conf) {
  **/
 /*-------------------------------------------------------------------------*/
 int MD5CPU(FTIT_dataset *data) {
-    uint32_t dataSize = data->size;
+    int64_t dataSize = data->size;
     unsigned char block[md5ChunkSize];
     size_t i;
     unsigned char *ptr = (unsigned char *) data->ptr;

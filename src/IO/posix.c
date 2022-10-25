@@ -359,7 +359,7 @@ int FTI_RecoverVarPOSIX(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         return FTI_NREC;
     }
 
-    int32_t filePos = data->filePos;
+    int64_t filePos = data->filePos;
     if (fseek(fileposix, filePos, SEEK_SET) == 0) {
         fread(data->ptr, 1, data->size, fileposix);
         if (ferror(fileposix)) {
