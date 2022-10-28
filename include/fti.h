@@ -90,7 +90,7 @@ extern "C" {
   int FTI_Protect(int id, void* ptr, int64_t count, fti_id_t tid);
   int FTI_SetAttribute(int id, FTIT_attribute attribute,
           FTIT_attributeFlag flag);
-  int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
+  int FTI_DefineDataset(int id, int rank, int64_t* dimLength, const char* name,
    FTIT_H5Group* h5group);
   int FTI_DefineGlobalDataset(int id, int rank, FTIT_hsize_t* dimLength,
    const char* name, FTIT_H5Group* h5group, fti_id_t tid);
@@ -132,7 +132,7 @@ extern "C" {
   int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
    int64_t offset);
   int FTI_AddVectorField(fti_id_t id, const char* name, fti_id_t tid,
-   int64_t offset, int ndims, int* dim_sizes);
+   int64_t offset, int ndims, int64_t* dim_sizes);
 
 #ifdef __cplusplus
 }

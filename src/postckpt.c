@@ -971,7 +971,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     }
     int nbProc = endProc - startProc;
 
-    int32_t* localFileSizes = talloc(int32_t, nbProc);
+    int64_t* localFileSizes = talloc(int64_t, nbProc);
     char* localFileNames = talloc(char, FTI_BUFS * nbProc);
     int* splitRanks = talloc(int, nbProc);  // rank of process in FTI_COMM_WORLD
     for (proc = startProc; proc < endProc; proc++) {
@@ -1077,10 +1077,10 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
 
         char *readData = talloc(char, FTI_Conf->transferSize);
-        int32_t bSize = FTI_Conf->transferSize;
-        int32_t fs = FTI_Exec->ckptMeta.fs;
+        int64_t bSize = FTI_Conf->transferSize;
+        int64_t fs = FTI_Exec->ckptMeta.fs;
 
-        int32_t pos = 0;
+        int64_t pos = 0;
         // Checkpoint files exchange
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize)
@@ -1092,7 +1092,7 @@ int FTI_FlushSionlib(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
                  ranks, rank_map, chunkSizes);
 
 
-            int32_t data_written = sion_fwrite(readData, sizeof(char),
+            int64_t data_written = sion_fwrite(readData, sizeof(char),
              bytes, sid);
 
             if (data_written < 0) {

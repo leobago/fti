@@ -1307,20 +1307,20 @@ int FTI_RecoverL4Sionlib(FTIT_configuration* FTI_Conf,
 
     // Checkpoint files transfer from PFS
     while (!sion_feof(sid)) {
-        int32_t fs = FTI_Exec->ckptMeta.fs;
+        int64_t fs = FTI_Exec->ckptMeta.fs;
         char *readData = talloc(char, FTI_Conf->transferSize);
-        int32_t bSize = FTI_Conf->transferSize;
-        int32_t pos = 0;
+        int64_t bSize = FTI_Conf->transferSize;
+        int64_t pos = 0;
         // Checkpoint files transfer from PFS
         while (pos < fs) {
             if ((fs - pos) < FTI_Conf->transferSize) {
                 bSize = fs - pos;
             }
-            res = sion_fread(readData, sizeof(char), bSize, sid);
-            if (res != bSize) {
+            int64_t nb = sion_fread(readData, sizeof(char), bSize, sid);
+            if (nb != bSize) {
                 char str[FTI_BUFS];
                 snprintf(str, FTI_BUFS, "SIONlib: Unable to read"
-                " %u Bytes from file", bSize);
+                " %ld Bytes from file", bSize);
                 FTI_Print(str, FTI_EROR);
                 sion_parclose_mapped_mpi(sid);
                 free(file_map);
