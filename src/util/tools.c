@@ -39,6 +39,15 @@
 #include <dirent.h>
 #include <execinfo.h>
 #include <stdarg.h>
+#include <sys/sendfile.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+#include <limits.h>
 
 #include "tools.h"
 
@@ -345,7 +354,7 @@ void FTI_FreeTypesAndGroups(FTIT_execution* FTI_Exec) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_RmDir(char path[FTI_BUFS], int flag) {
+int FTI_RmDir(const char *path, int flag) {
     if (flag) {
         char str[FTI_BUFS];
         snprintf(str, sizeof(str),
@@ -459,7 +468,9 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (level == 5) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
+        FTI_RmDir(FTI_Conf->stashDir, nodeFlag);
         rmdir(FTI_Conf->glbalDir);
+        FTI_RmDir(FTI_Conf->stashDirGlobal, globalFlag);
         char buf[FTI_BUFS];
         snprintf(buf, FTI_BUFS, "%s/Topology.fti", FTI_Conf->metadDir);
         if (remove(buf) == -1) {
@@ -480,6 +491,8 @@ int FTI_Clean(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo,
     if (level == 6) {
         rmdir(FTI_Conf->lTmpDir);
         rmdir(FTI_Conf->localDir);
+        FTI_RmDir(FTI_Conf->stashDir, nodeFlag);
+        FTI_RmDir(FTI_Conf->stashDirGlobal, globalFlag);
     }
 
     return FTI_SCES;
@@ -561,4 +574,129 @@ inline FTIT_Datatype* FTI_GetCompositeType(fti_id_t handle) {
     if (!FTI_IsTypeComposite(t))
         return NULL;
     return t;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief      copies file 'in' to file 'out'
+  @param      fi  path to source file
+  @param      fo  path to destination file
+  @return     int FTI_SCES on success and FTI_NSCS on failure
+
+  NOTICE: if file 'of' exists it will be truncated and overwritten. If
+  it does not exists, it will be created.
+**/
+/*-------------------------------------------------------------------------*/
+int FTI_FileCopy( const char* fi, const char* fo ) {
+  
+  char err[FTI_BUFS];
+
+  int fi_fd = open( fi, O_RDONLY );
+  if( fi_fd == -1 ) {
+    snprintf(err, FTI_BUFS, "failed to open fi file (path: %s, error: %s)", fi, strerror(errno)); 
+    FTI_Print(err, FTI_WARN);
+    return FTI_NSCS;
+  }
+
+  int fo_fd = open( fo, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
+  if( fo_fd == -1 ) {
+    snprintf(err, FTI_BUFS, "failed to open fo file (path: %s, error: %s)", fo, strerror(errno)); 
+    FTI_Print(err, FTI_WARN);
+    return FTI_NSCS;
+  }
+  
+  struct stat st;
+  if( fstat( fi_fd, &st ) == -1 ) {
+    snprintf(err, FTI_BUFS, "failed to stat fi file (path: %s, error: %s)", fi, strerror(errno)); 
+    FTI_Print(err, FTI_WARN);
+    return FTI_NSCS;
+  }
+
+  off_t bytes = 0;
+  while (bytes < st.st_size) {
+    size_t count;
+    off_t remaining = st.st_size - bytes;
+    if (remaining > SSIZE_MAX)
+      count = SSIZE_MAX;
+    else 
+      count = remaining;
+    ssize_t rc = sendfile( fo_fd, fi_fd, &bytes, count );
+    if (rc == 0) {
+      break;
+    }
+    if (rc == -1) {
+      snprintf(err, FTI_BUFS, "failed to copy the file (%s)\n", strerror(errno));
+      FTI_Print(err, FTI_WARN);
+      return FTI_NSCS;
+    }
+  }
+
+  if( bytes != st.st_size ){
+    snprintf(err, FTI_BUFS, "copied %ld instead of expected %ld bytes\n", bytes, st.st_size);
+    FTI_Print(err, FTI_WARN);
+    return FTI_NSCS;
+  }
+  
+  return FTI_SCES;
+
+}
+
+int FTI_CreateDirectory( FTIT_topology* FTI_Topo, const char* dir, int where ){
+  
+  char err[FTI_BUFS];
+
+  bool flag;
+
+  if ( where == FTI_FS_LOCAL ) {
+    flag = (((!FTI_Topo->amIaHead) &&
+     ((FTI_Topo->nodeRank - FTI_Topo->nbHeads) == 0)) ||
+      (FTI_Topo->amIaHead)) ? 1 : 0;
+  } else {
+    flag = (FTI_Topo->splitRank == 0);
+  }
+
+  int res = 0;
+
+  if (flag ) {
+
+    struct stat st = {0};
+
+    if (stat( dir, &st) == -1) {
+      if ( mkdir( dir, 0700) == -1 ) {
+        snprintf( err, FTI_BUFS, "Failed to create directory '%s' (error: %s)", dir, strerror(errno) );
+        FTI_Print( err, FTI_WARN );
+        res = 1;
+      }
+    } else {
+      snprintf( err, FTI_BUFS, "Directory '%s' already exists!", dir );
+      FTI_Print( err, FTI_WARN );
+      res = 1;
+    }
+
+    res = 0;
+
+  }
+
+  int sumRes;
+
+  MPI_Allreduce( &res, &sumRes, 1, MPI_INT, MPI_SUM, FTI_COMM_WORLD );
+
+  return ( sumRes == 0 ) ? FTI_SCES : FTI_NSCS ;
+
+}
+
+int FTI_CheckDirectory( const char* path ) {
+  DIR* dir = opendir( path );
+  if (dir) {
+    closedir(dir);
+    return 1;
+  } else if (ENOENT == errno) {
+    return 0;
+  } else {
+    char err[FTI_BUFS];
+    snprintf( err, FTI_BUFS, "Failed to check directory '%s' (error: %s)", path, strerror(errno) );
+    FTI_Print( err, FTI_WARN );
+    return -1;
+  }
 }

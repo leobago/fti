@@ -88,12 +88,16 @@ int FTI_Iniparser(FTIT_iniparser* self, const char* inifile,
         return FTI_NSCS;
     }
 
+    self->getSections = FTI_IniparserGetSections;
+    self->isSection = FTI_IniparserIsSection;
     self->getString = FTI_IniparserGetString;
     self->getInt = FTI_IniparserGetInt;
+    self->getBool = FTI_IniparserGetBool;
     self->getLong = FTI_IniparserGetLong;
     self->set = FTI_IniparserSet;
     self->dump = FTI_IniparserDump;
     self->clear = FTI_IniparserClear;
+    snprintf(self->filetmp, FTI_BUFS, "%s.XXXXXX", inifile);
     strncpy(self->file, inifile, FTI_BUFS);
 
     return FTI_SCES;
@@ -106,6 +110,41 @@ int FTI_IniparserSet(FTIT_iniparser* self, const char* key, const char* val) {
     }
 
     return (iniparser_set(self->dict, key, val) == 0) ? FTI_SCES : FTI_NSCS;
+}
+
+bool FTI_IniparserIsSection(FTIT_iniparser* self, const char* section) {
+    if (self == NULL) {
+        FTI_Print("iniparser context is NULL.", FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    int n_sec = iniparser_getnsec( self->dict );
+    if (n_sec == -1) return FTI_NSCS;
+
+    int i=0; for(; i<n_sec; i++) {
+        if( strcmp( section, iniparser_getsecname( self->dict, i ) ) == 0 ) return true;
+    }
+
+    return false;
+    
+}
+
+int FTI_IniparserGetSections(FTIT_iniparser* self, char** sections, int n) {
+    if (self == NULL) {
+        FTI_Print("iniparser context is NULL.", FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    int n_sec = iniparser_getnsec( self->dict );
+    if (n_sec == -1) return FTI_NSCS;
+
+    int i=0; for(; (i<n)&&(i<n_sec); i++) {
+        sections[i] = iniparser_getsecname( self->dict, n_sec-i-1 );
+        if( sections[i] == NULL ) return FTI_NSCS;
+    }
+
+    return i;
+    
 }
 
 char* FTI_IniparserGetString(FTIT_iniparser* self, const char* key) {
@@ -123,6 +162,15 @@ char* FTI_IniparserGetString(FTIT_iniparser* self, const char* key) {
     return string;
 }
 
+bool FTI_IniparserGetBool(FTIT_iniparser* self, const char* key) {
+    if (self == NULL) {
+        FTI_Print("iniparser context is NULL.", FTI_EROR);
+        return FTI_NSCS;
+    }
+
+    return iniparser_getboolean(self->dict, key, false);
+}
+
 int FTI_IniparserGetInt(FTIT_iniparser* self, const char* key) {
     if (self == NULL) {
         FTI_Print("iniparser context is NULL.", FTI_EROR);
@@ -132,7 +180,7 @@ int FTI_IniparserGetInt(FTIT_iniparser* self, const char* key) {
     return iniparser_getint(self->dict, key, -1);
 }
 
-int FTI_IniparserGetLong(FTIT_iniparser* self, const char* key) {
+long FTI_IniparserGetLong(FTIT_iniparser* self, const char* key) {
     if (self == NULL) {
         FTI_Print("iniparser context is NULL.", FTI_EROR);
         return FTI_NSCS;
@@ -148,11 +196,14 @@ int FTI_IniparserDump(FTIT_iniparser* self) {
     }
 
     char err[FTI_BUFS];
-
-    FILE* fd = fopen(self->file, "w");
+    
+    char tempfile[FTI_BUFS];
+    snprintf(tempfile, FTI_BUFS, "%s", self->filetmp);
+    int fnum = mkstemp(tempfile);
+    FILE* fd = fdopen(fnum, "w");
     if (fd == NULL) {
         snprintf(err, FTI_BUFS, "Iniparser failed to open file '%s'",
-         self->file);
+         tempfile);
         FTI_Print(err, FTI_WARN);
 
         return FTI_NSCS;
@@ -163,11 +214,13 @@ int FTI_IniparserDump(FTIT_iniparser* self) {
 
     if (fclose(fd) != 0) {
         snprintf(err, FTI_BUFS, "Iniparser failed to close file '%s'",
-         self->file);
+         tempfile);
         FTI_Print(err, FTI_WARN);
 
         return FTI_NSCS;
     }
+
+    rename( tempfile, self->file );
 
     return FTI_SCES;
 }

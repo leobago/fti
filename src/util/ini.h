@@ -86,10 +86,14 @@ typedef enum FTIT_inimode {
 --------------------------------------------------------------------------**/
 typedef struct FTIT_iniparser {
     dictionary* dict;           /**< Pointer to iniparser dictionary       */
+    char        filetmp[FTI_BUFS]; /**< Path to corresponding file            */
     char        file[FTI_BUFS]; /**< Path to corresponding file            */
+    int         (*getSections)(struct FTIT_iniparser*, char**, int);
+    bool        (*isSection)(struct FTIT_iniparser*, const char*);
     char*       (*getString)(struct FTIT_iniparser*, const char*);
     int         (*getInt)(struct FTIT_iniparser*, const char*);
-    int         (*getLong)(struct FTIT_iniparser*, const char*);
+    bool        (*getBool)(struct FTIT_iniparser*, const char*);
+    long        (*getLong)(struct FTIT_iniparser*, const char*);
     int         (*set)(struct FTIT_iniparser*, const char*,
                                  const char*);
     int         (*dump)(struct FTIT_iniparser*);
@@ -129,6 +133,26 @@ int FTI_Iniparser(FTIT_iniparser*, const char*, FTIT_inimode);
   found, the null string '\0' is returned.
 
   @param        self[in]    <b> FTIT_iniparser* </b> FTI_Iniparser handle.
+  @param        n[out]      <b> int* </b> number of sections.
+  
+  @return                       String array of section names.
+                                NULL on error.
+ 
+
+--------------------------------------------------------------------------**/
+int FTI_IniparserGetSections(FTIT_iniparser*, char**, int);
+
+bool FTI_IniparserIsSection(FTIT_iniparser*, const char*);
+
+/**--------------------------------------------------------------------------
+  
+  
+  @brief        Requests string value for key.
+
+  This function returns the string value that is set for key. If key was not
+  found, the null string '\0' is returned.
+
+  @param        self[in]    <b> FTIT_iniparser* </b> FTI_Iniparser handle.
   @param        key[in]     <b> const char* </b> dictionary key.
   
   @return                       Dictionary value on success.  
@@ -155,6 +179,10 @@ char* FTI_IniparserGetString(FTIT_iniparser*, const char*);
 
 --------------------------------------------------------------------------**/
 int FTI_IniparserGetInt(FTIT_iniparser*, const char* key);
+  
+// FIXME error handling! we have to change the getBool function
+// currently it does not allow error handling.
+bool FTI_IniparserGetBool(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   
@@ -172,7 +200,7 @@ int FTI_IniparserGetInt(FTIT_iniparser*, const char* key);
  
 
 --------------------------------------------------------------------------**/
-int FTI_IniparserGetLong(FTIT_iniparser*, const char* key);
+long FTI_IniparserGetLong(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   

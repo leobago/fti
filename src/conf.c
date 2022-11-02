@@ -140,6 +140,8 @@ int FTI_ReadConf(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Conf->glbalDir, FTI_BUFS, "%s", par);
     par = iniparser_getstring(ini, "Basic:meta_dir", NULL);
     snprintf(FTI_Conf->metadDir, FTI_BUFS, "%s", par);
+    par = iniparser_getstring(ini, "Basic:glbl_stash_dir", FTI_Conf->glbalDir);
+    snprintf(FTI_Conf->StashDirGlobalBase, FTI_BUFS, "%s", par);
     FTI_Ckpt[1].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l1", -1);
     FTI_Ckpt[2].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l2", -1);
     FTI_Ckpt[3].ckptIntv = (int)iniparser_getint(ini, "Basic:ckpt_l3", -1);
@@ -588,6 +590,14 @@ int FTI_TestDirectories(FTIT_configuration* FTI_Conf, FTIT_topology* FTI_Topo) {
          FTI_Conf->glbalDir);
         FTI_Print(str, FTI_DBUG);
         MKDIR(FTI_Conf->glbalDir, 0777);
+        
+        if ( strncmp(FTI_Conf->glbalDir, FTI_Conf->StashDirGlobalBase, FTI_BUFS) ) { 
+          // Checking global stash directory
+          snprintf(str, FTI_BUFS, "Checking the global directory (%s)...",
+           FTI_Conf->StashDirGlobalBase);
+          FTI_Print(str, FTI_DBUG);
+          MKDIR(FTI_Conf->StashDirGlobalBase, 0777);
+        }
     }
 
     // Waiting for metadDir being created
@@ -666,6 +676,12 @@ int FTI_CreateDirs(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
     snprintf(FTI_Conf->localDir, FTI_BUFS, "%s/%s", fn, FTI_Exec->id);
     MKDIR(FTI_Conf->localDir, 0777);
 
+    snprintf(FTI_Conf->stashDir, FTI_BUFS, "%s/stash", FTI_Conf->localDir);
+    MKDIR(FTI_Conf->stashDir, 0700);
+
+    snprintf(FTI_Conf->stashDirGlobal, FTI_BUFS, "%s/stash", FTI_Conf->StashDirGlobalBase);
+    MKDIR(FTI_Conf->stashDirGlobal, 0700);
+    
     snprintf(FTI_Conf->lTmpDir, FTI_BUFS, "%s/tmp", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dir, FTI_BUFS, "%s/l1", FTI_Conf->localDir);
     snprintf(FTI_Ckpt[1].dcpDir, FTI_BUFS, "%s/dCP", FTI_Conf->localDir);
