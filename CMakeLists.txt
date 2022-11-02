@@ -68,7 +68,6 @@ if(PkgConfig_FOUND)
   endif()
 endif()
 
-
 # Package: MPI (Required)
 find_package(MPI REQUIRED)
 
@@ -378,6 +377,7 @@ else()
 endif()
 
 # --- Conditional definitions in alphabetical order ---
+
 
 # uuid
 if(UUID_FOUND)

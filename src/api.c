@@ -2890,6 +2890,9 @@ int FTI_RecoverVarInit() {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir,
              FTI_Exec.ckptMeta.ckptFile);
             res = FTI_RecoverVarDcpPosixInit();
+	} else if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir,
+             FTI_Exec.ckptMeta.ckptFile);
         } else {
             snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir,
              FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
