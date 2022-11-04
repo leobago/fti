@@ -43,23 +43,27 @@
 #include <cuda_runtime_api.h>
 #endif
 
+#include "fti-kernel.h"
+    
+void (*__ftix_callback)(void) = NULL;
+
 /** General configuration information used by FTI.                         */
-static FTIT_configuration FTI_Conf;
+FTIT_configuration FTI_Conf;
 
 /** Checkpoint information for all levels of checkpoint.                   */
-static FTIT_checkpoint FTI_Ckpt[5];
+FTIT_checkpoint FTI_Ckpt[5];
 
 /** Dynamic information for this execution.                                */
-static FTIT_execution FTI_Exec;
+FTIT_execution FTI_Exec;
 
 /** Topology of the system.                                                */
-static FTIT_topology FTI_Topo;
+FTIT_topology FTI_Topo;
 
 /** id map that holds metadata for protected datasets                      */
-static FTIT_keymap* FTI_Data;
+FTIT_keymap* FTI_Data;
 
 /** SDC injection model and all the required information.                  */
-static FTIT_injection FTI_Inje;
+FTIT_injection FTI_Inje;
 
 /** MPI communicator that splits the global one into app and FTI appart.   */
 MPI_Comm FTI_COMM_WORLD;
@@ -2886,6 +2890,9 @@ int FTI_RecoverVarInit() {
             snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[FTI_Exec.ckptLvel].dcpDir,
              FTI_Exec.ckptMeta.ckptFile);
             res = FTI_RecoverVarDcpPosixInit();
+	} else if (FTI_Conf.ioMode == FTI_IO_FTIFF) {
+            snprintf(fn, FTI_BUFS, "%s/%s", FTI_Ckpt[1].dir,
+             FTI_Exec.ckptMeta.ckptFile);
         } else {
             snprintf(fn, FTI_BUFS, "%s/Ckpt%d-Rank%d.%s", FTI_Ckpt[1].dir,
              FTI_Exec.ckptId, FTI_Topo.myRank, FTI_Conf.suffix);
@@ -3101,8 +3108,13 @@ void FTI_Print(char* msg, int priority) {
             break;
         case FTI_INFO:
             if (FTI_Topo.splitRank == 0) {
+              if( FTI_Topo.amIaHead ) {
+                fprintf(stream, "[ " FTI_COLOR_MAG
+                  "FTI-Head Message" FTI_COLOR_RESET " ] : %s \n", msg);
+              } else {
                 fprintf(stream, "[ " FTI_COLOR_GRN
                   "FTI  Information" FTI_COLOR_RESET " ] : %s \n", msg);
+              }
             }
             break;
         case FTI_IDCP:

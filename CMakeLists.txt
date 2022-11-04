@@ -59,6 +59,15 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # Search dependencies in following order: required, recommended, optional
 
+# using pkg-config to configure uuid
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
+  pkg_check_modules(UUID QUIET uuid)
+  if(UUID_FOUND)
+    list(APPEND INC_PRIV ${UUID_INCLUDE_DIRS})
+  endif()
+endif()
+
 # Package: MPI (Required)
 find_package(MPI REQUIRED)
 
@@ -262,6 +271,7 @@ set(SRC_FTI
     src/postreco.c
     src/api-cuda.c
     src/api.c
+    src/api-ext.c
     src/checkpoint.c
     src/dcp.c
     src/stage.c
@@ -349,6 +359,11 @@ link_to_fti(${MPI_C_LIBRARIES} ${LIBM} ${OPENSSL_LIBRARIES} ${CUDA_LIBRARIES})
 
 # --- Compiler Flags definitions ---
 
+# uuid
+if(UUID_FOUND)
+  set(ADD_CFLAGS "${ADD_CFLAGS} -DFTI_EXEC_UUID")
+endif()
+
 # GCC compiler flags
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     ADD_CFLAG_IF_EXISTS("-Wno-format-truncation")
@@ -362,6 +377,12 @@ else()
 endif()
 
 # --- Conditional definitions in alphabetical order ---
+
+
+# uuid
+if(UUID_FOUND)
+  link_to_fti(${UUID_LIBRARIES})
+endif()
 
 # Coverage
 if(ENABLE_COVERAGE)
@@ -440,6 +461,7 @@ install(TARGETS ${fti_targets} DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 
 install(FILES
     "include/fti.h"
+    "include/fti-ext.h"
     "include/fti-defs.h"
     "include/fti-intern.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

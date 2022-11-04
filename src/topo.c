@@ -357,6 +357,7 @@ int FTI_CreateComms(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         }
     }
     MPI_Comm_rank(FTI_COMM_WORLD, &FTI_Topo->splitRank);
+    MPI_Comm_size(FTI_COMM_WORLD, &FTI_Topo->splitSize);
     int buf = FTI_Topo->sectorID * FTI_Topo->groupSize;
     int group[FTI_BUFS];  // FTI_BUFS > Max. group size
     int i;
@@ -482,6 +483,26 @@ int FTI_Topology(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         free(nodeList);
 
         return FTI_NSCS;
+    }
+
+    FTI_Topo->masterLocal = false;
+    FTI_Topo->masterGlobal = false;
+    // determine node and global master processes
+    if( FTI_Topo->amIaHead ) {
+      FTI_Topo->masterLocal = true;
+    } else {
+      if( FTI_Topo->nbHeads == 0 ) {
+        if( FTI_Topo->nodeRank == 0 ) {
+          FTI_Topo->masterLocal = true;
+        }
+      } else {
+        if( FTI_Topo->nodeRank == 1 ) {
+          FTI_Topo->masterLocal = true;
+        }
+      }
+    }
+    if( FTI_Topo->splitRank == 0 ) {
+      FTI_Topo->masterGlobal = true;
     }
 
     free(userProcList);

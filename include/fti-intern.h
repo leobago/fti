@@ -62,6 +62,8 @@
 #define FTI_COLOR_RED   "\x1B[31m"
 /** Define ORANGE color for FTI output.                                    */
 #define FTI_COLOR_ORG   "\x1B[38;5;202m"
+/** Define MAGENTA color for FTI output.                                    */
+#define FTI_COLOR_MAG   "\x1B[1;36m"
 /** Define GREEN color for FTI output.                                     */
 #define FTI_COLOR_GRN   "\x1B[32m"
 /** Define BLUE color for FTI output.                                       */
@@ -79,6 +81,11 @@
 #define FTI_INFO 2
 /** Verbosity level to print debug messages.                               */
 #define FTI_DBUG 1
+
+/** Indicates a local file system operation                                */
+#define FTI_FS_LOCAL 0
+/** Indicates a global file system operation                               */
+#define FTI_FS_GLOBAL 1
 
 /** Token for checkpoint Baseline.                                         */
 #define FTI_BASE 990
@@ -121,6 +128,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    extern void (*__ftix_callback) ( void );
 
     typedef struct FTIT_keymap FTIT_keymap;
 
@@ -516,13 +525,16 @@ extern "C" {
         char h5SingleFileDir[FTI_BUFS];    /**< HDF5 single file dir          */
         char h5SingleFilePrefix[FTI_BUFS]; /**< HDF5 single file prefix       */
         char stageDir[FTI_BUFS];           /**< Staging directory.            */
+        char stashDir[FTI_BUFS];           /**< Local stash directory.        */
+        char stashDirGlobal[FTI_BUFS];     /**< Global stash directory.       */
         char localDir[FTI_BUFS];           /**< Local directory.              */
         char glbalDir[FTI_BUFS];           /**< Global directory.             */
+        char StashDirGlobalBase[FTI_BUFS]; /**< Global stash baser directory. */
         char metadDir[FTI_BUFS];           /**< Metadata directory.           */
         char lTmpDir[FTI_BUFS];            /**< Local temporary directory.    */
         char gTmpDir[FTI_BUFS];            /**< Global temporary directory.   */
         char mTmpDir[FTI_BUFS];            /**< Metadata temporary directory. */
-        int64_t cHostBufSize;               /**< Host buffer size for GPU data.*/
+        int64_t cHostBufSize;              /**< Host buffer size for GPU data.*/
         char suffix[4];                    /** Suffix of the checkpoint files */
         FTIT_dcpConfigurationPosix dcpInfoPosix; /**< dCP info for posix I/O  */
         // int fastForward;            /**< Fast forward rate for ckpt intervals */
@@ -538,6 +550,7 @@ extern "C" {
         int nbNodes;                     /**< Total global number of nodes.   */
         int myRank;                      /**< My rank on the global comm.     */
         int splitRank;                   /**< My rank on the FTI comm.        */
+        int splitSize;                   /**< My rank on the FTI comm.        */
         int nodeSize;                    /**< Total number of pro. per node.  */
         int nbHeads;                     /**< Number of FTI proc. per node.   */
         int nbApprocs;                   /**< Number of app. proc. per node.  */
@@ -546,6 +559,8 @@ extern "C" {
         int nodeID;                      /**< Node ID in the system.          */
         int groupID;                     /**< Group ID in the node.           */
         int amIaHead;                    /**< TRUE if FTI process.            */
+        bool masterLocal;		 /**< TRUE if master node process     */
+        bool masterGlobal;		 /**< TRUE if master process on split comm */
         int headRank;                    /**< Rank of the head in this node.  */
         int headRankNode;                /**< Rank of the head in node comm.  */
         int nodeRank;                    /**< Rank of the node.               */
