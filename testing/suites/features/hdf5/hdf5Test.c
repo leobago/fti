@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
   // Chars and array of bytes
   fti_id_t CharsType = FTI_InitCompositeType("Chars", sizeof(Chars), NULL);
 
-  int dimLength[4];
+  int64_t dimLength[4];
   dimLength[0] = 10;
   FTI_AddVectorField(CharsType, "char array", FTI_CHAR,
       offsetof(Chars, chars), 1, dimLength);

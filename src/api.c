@@ -432,7 +432,7 @@ int FTI_AddScalarField(fti_id_t id, const char* name, fti_id_t fid,
  **/
 /*-------------------------------------------------------------------------*/
 int FTI_AddVectorField(fti_id_t id, const char* name,
-  fti_id_t tid, int64_t offset, int ndims, int* dim_sizes) {
+  fti_id_t tid, int64_t offset, int ndims, int64_t* dim_sizes) {
     FTIT_complexType *type;
     FTIT_typeField *field;
     int i;
@@ -468,7 +468,7 @@ int FTI_AddVectorField(fti_id_t id, const char* name,
     field = &type->field[type->length-1];  // Length was inc by AddScalarField
     // Composite Field initialization
     field->rank = ndims;
-    memcpy(field->dimLength, dim_sizes, ndims*sizeof(int));
+    memcpy(field->dimLength, dim_sizes, ndims*sizeof(int64_t));
     return FTI_SCES;
 }
 
@@ -1587,7 +1587,7 @@ int FTI_RecoverDatasetDimension(int did) {
 
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_DefineDataset(int id, int rank, int* dimLength, const char* name,
+int FTI_DefineDataset(int id, int rank, int64_t* dimLength, const char* name,
  FTIT_H5Group* h5group) {
     if (FTI_Exec.initSCES == 0) {
         FTI_Print("FTI is not initialized.", FTI_WARN);

@@ -94,6 +94,7 @@ typedef struct FTIT_iniparser {
     int         (*getInt)(struct FTIT_iniparser*, const char*);
     bool        (*getBool)(struct FTIT_iniparser*, const char*);
     long        (*getLong)(struct FTIT_iniparser*, const char*);
+    int64_t     (*getInt64)(struct FTIT_iniparser*, const char*);
     int         (*set)(struct FTIT_iniparser*, const char*,
                                  const char*);
     int         (*dump)(struct FTIT_iniparser*);
@@ -201,6 +202,24 @@ bool FTI_IniparserGetBool(FTIT_iniparser*, const char* key);
 
 --------------------------------------------------------------------------**/
 long FTI_IniparserGetLong(FTIT_iniparser*, const char* key);
+
+/**--------------------------------------------------------------------------
+  
+  
+  @brief        Requests 64bit integer value for key.
+
+  This function returns the 64bit integer value that is set for key. If key was
+  not found, -1 is returned.
+
+  @param        self[in]    <b> FTIT_iniparser* </b> FTI_Iniparser handle.
+  @param        key[in]     <b> const char* </b> dictionary key.
+  
+  @return                       Dictionary value on success.  
+                                <b> int64_t </b> -1 if key not found.
+ 
+
+--------------------------------------------------------------------------**/
+int64_t FTI_IniparserGetInt64(FTIT_iniparser*, const char* key);
 
 /**--------------------------------------------------------------------------
   

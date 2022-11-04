@@ -131,7 +131,7 @@ void FTI_CreateComplexType(FTIT_Datatype* ftiType) {
             if (ftiType->structure->field[i].dimLength[0] > 1) {
                 // need to create 1-dimension array type
                 snprintf(str, sizeof(str), "Type [%d] trying to create 1-D"
-                " [%d] array of type [%d].", ftiType->id,
+                " [%ld] array of type [%d].", ftiType->id,
                 ftiType->structure->field[i].dimLength[0],
                 ftiType->structure->field[i].type->id);
                 FTI_Print(str, FTI_DBUG);

@@ -420,7 +420,7 @@ extern "C" {
         int id;                     /**< Order of the field in the structure */
         int64_t offset;              /**< Offset of the field in structure.   */
         int rank;                   /**< Field rank (max. 32)                */
-        int dimLength[32];          /**< Lenght of each dimention            */
+        int64_t dimLength[32];          /**< Lenght of each dimention            */
         char name[FTI_BUFS];        /**< Name of the field                   */
     } FTIT_typeField;
 
@@ -455,7 +455,7 @@ extern "C" {
         int id;                            /**< ID to search/update dataset  */
         size_t eleSize;                       /**< Element size for the dataset */
         int rank;                          /**< Rank of dataset (for HDF5)   */
-        int dimLength[32];                 /**< Lenght of each dimention     */
+        int64_t dimLength[32];                 /**< Lenght of each dimention     */
         bool recovered;                    /**< True if metadata restored    */
         bool isDevicePtr;                  /**< True if on device memory     */
         int64_t count;                     /**< nb of elements in dataset    */
