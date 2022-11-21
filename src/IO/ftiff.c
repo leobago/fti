@@ -2134,7 +2134,7 @@ int FTIFF_CheckL1RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
         FTIT_checkpoint* FTI_Ckpt, FTIT_configuration *FTI_Conf) {
     int fcount, fneeded;
 
-    FTIFF_RecoveryInfo info;
+    FTIFF_RecoveryInfo info = {0};
 
     FTIFF_RequestRecoveryInfo(&info, FTI_Ckpt[1].dir, FTI_Topo->myRank,
      1, 0, 0);
@@ -2366,7 +2366,7 @@ int FTIFF_CheckL4RecoverInit(FTIT_execution* FTI_Exec, FTIT_topology* FTI_Topo,
     char fn[FTI_BUFS];
     int fcount, fneeded;
 
-    FTIFF_RecoveryInfo info;
+    FTIFF_RecoveryInfo info = {0};
 
     if (FTI_Ckpt[4].recoIsDcp) {
         FTIFF_RequestRecoveryInfo(&info, FTI_Ckpt[4].dcpDir, FTI_Topo->myRank,
