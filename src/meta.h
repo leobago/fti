@@ -28,12 +28,12 @@ int FTI_LoadMetaDataset(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data);
 int FTI_WriteMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
-        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int32_t* fs,
-        int32_t mfs, char* fnl, char* checksums, int* allVarIDs,
-        int* allRanks, uint64_t* allCounts,
+        FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, int64_t* fs,
+        int64_t mfs, char* fnl, char* checksums, int* allVarIDs,
+        int* allRanks, int64_t* allCounts,
         int* allVarTypeIDs, int* allVarTypeSizes,
-        int32_t* allVarSizes, uint32_t* allLayerSizes, char* allLayerHashes,
-        int32_t *allVarPositions, char *allNames, char *allCharIds);
+        int64_t* allVarSizes, int64_t* allLayerSizes, char* allLayerHashes,
+        int64_t *allVarPositions, char *allNames, char *allCharIds);
 int FTI_CreateMetadata(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data);

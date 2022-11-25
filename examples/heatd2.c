@@ -106,7 +106,7 @@ double doWork(int numprocs, int rank, int M, int nbLines, double *g,
 
 
 int main(int argc, char *argv[]) {
-    int rank, nbProcs, nbLines, i, j, N, M, res;
+    int rank, nbProcs, nbLines, i, N, M, res;
     double wtime, *h, *g, *grid, globalerror = 1;
     char fn[32];
 

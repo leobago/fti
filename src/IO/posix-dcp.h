@@ -22,7 +22,7 @@
 #define DCP_POSIX_CONF_TAG 1
 #define DCP_POSIX_INIT_TAG -1
 
-int FTI_CheckFileDcpPosix(char* fn, int32_t fs, char* checksum);
+int FTI_CheckFileDcpPosix(char* fn, int64_t fs, char* checksum);
 int FTI_VerifyChecksumDcpPosix(char* fileName);
 void* FTI_DcpPosixRecoverRuntimeInfo(int tag, void* exec_, void* conf_);
 int FTI_RecoverDcpPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
@@ -33,7 +33,7 @@ int FTI_RecoverVarDcpPosix(FTIT_configuration* FTI_Conf,
 char* FTI_GetHashHexStr(unsigned char* hash, int digestWidth,
  char* hashHexStr);
 // wrapper for CRC32 hash algorithm
-unsigned char* CRC32(const unsigned char *d, uint64_t nBytes,
+unsigned char* CRC32(const unsigned char *d, unsigned long nBytes,
  unsigned char *hash);
 
 int FTI_RecoverVarDcpPosixInit();

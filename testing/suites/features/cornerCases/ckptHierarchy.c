@@ -40,7 +40,7 @@ void simulateCrash() {
   int res;
   if (checkpoint_level[3] != 1) {
     int isInline = -1;
-    int heads = (int)iniparser_getint(ini, "Basic:head", -1);
+    //int heads = (int)iniparser_getint(ini, "Basic:head", -1);
     switch (checkpoint_level[3]) {
       case 2:
         isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);

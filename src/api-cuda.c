@@ -46,7 +46,7 @@ cudaStream_t Gstream;
 
 
 void *hostBuffers[2];
-size_t bufferSize;
+int64_t bufferSize;
 
 
 /*-------------------------------------------------------------------------*/
@@ -106,7 +106,7 @@ int FTI_get_pointer_info(const void *ptr, FTIT_ptrinfo *ptrInfo) {
   to the CPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_from_device(void *dst, const void *src, size_t count,
+int FTI_copy_from_device(void *dst, const void *src, int64_t count,
   FTIT_execution *exec) {
 #ifdef GPUSUPPORT
     CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
@@ -130,7 +130,7 @@ int FTI_copy_from_device(void *dst, const void *src, size_t count,
   to the GPU memory area pointed to by dst.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_copy_to_device(void *dst, const void *src, size_t count,
+int FTI_copy_to_device(void *dst, const void *src, int64_t count,
  FTIT_execution *exec) {
 #ifdef GPUSUPPORT
     CUDA_ERROR_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
@@ -166,7 +166,7 @@ int FTI_TransferDeviceMemToFileAsync(FTIT_dataset *data,
     prefetcher.isDevice = data->isDevicePtr;
     prefetcher.dptr = data->devicePtr;
     FTI_InitPrefetcher(&prefetcher);
-    size_t bytesToWrite;
+    int64_t bytesToWrite;
     unsigned char *basePtr = NULL;
 
     if (FTI_Try(FTI_getPrefetchedData(&prefetcher, &bytesToWrite, &basePtr),
@@ -212,7 +212,7 @@ int FTI_InitPrefetcher(FTIT_data_prefetch *dfls) {
     if (dfls->isDevice) {
         CUDA_ERROR_CHECK(cudaStreamCreate(&(dfls->streams[0])));
         CUDA_ERROR_CHECK(cudaStreamCreate(&(dfls->streams[1])));
-        size_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
+        int64_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
 
         if (copy_size > bufferSize) {
             FTI_Print("I am requesting more bytes than the ones reserved"
@@ -247,7 +247,7 @@ int FTI_InitPrefetcher(FTIT_data_prefetch *dfls) {
   requests more data from the GPU side.
  **/
 /*-------------------------------------------------------------------------*/
-int FTI_getPrefetchedData(FTIT_data_prefetch *dfls, size_t *size,
+int FTI_getPrefetchedData(FTIT_data_prefetch *dfls, int64_t *size,
  unsigned  char **fetchedData) {
     if (dfls->end) {
         *fetchedData = NULL;
@@ -259,7 +259,7 @@ int FTI_getPrefetchedData(FTIT_data_prefetch *dfls, size_t *size,
     if (dfls->isDevice) {
         *size = dfls->requestedData;
         if (dfls->totalBytesToFetch > 0) {
-            size_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
+            int64_t copy_size = MIN(dfls->fetchSize, dfls->totalBytesToFetch);
             CUDA_ERROR_CHECK(cudaMemcpyAsync(hostBuffers[dfls->Id], dfls->dptr,
              copy_size, cudaMemcpyDeviceToHost, dfls->streams[dfls->Id]));
             dfls->dptr += copy_size;
@@ -399,7 +399,7 @@ int FTI_TransferFileToDeviceAsync(FILE *fd, void *dptr, int numBytes) {
 
  **/
 /*-------------------------------------------------------------------------*/
-size_t FTI_getHostBuffSize() {
+int64_t FTI_getHostBuffSize() {
     return bufferSize;
 }
 
@@ -432,7 +432,7 @@ BYTE *FTI_getHostBuffer(int id) {
  **/
 /*-------------------------------------------------------------------------*/
 
-int FTI_copy_to_device_async(void *dst, const void *src, size_t count) {
+int FTI_copy_to_device_async(void *dst, const void *src, int64_t count) {
 #ifdef GPUSUPPORT
     CUDA_ERROR_CHECK(cudaMemcpyAsync(dst, src, count,
      cudaMemcpyHostToDevice, Gstream));

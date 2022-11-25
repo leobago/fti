@@ -212,8 +212,6 @@ void* FTI_InitIME(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
          FTI_Exec->ckptMeta.ckptFile);
     }
 
-    DBG_MSG("WRITING WITH IME: fn -> '%s'", -1, fn);
-
     write_info->flag = O_WRONLY;
     write_info->offset = 0;
     FTI_IMEOpen(fn, write_info);

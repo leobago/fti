@@ -144,7 +144,7 @@ int read_data(double* B_chk, size_t* asize_chk, int rank, size_t asize,
  */
 
 int main(int argc, char* argv[]) {
-  unsigned char parity, crash, state, diff_sizes, enable_icp = -1;
+  unsigned char parity, crash, state, diff_sizes;
   int FTI_APP_RANK, result, tmp, success = 1;
   double *A, *B, *B_chk;
   size_t i;
@@ -342,7 +342,6 @@ int main(int argc, char* argv[]) {
 
 void init_arrays(double* A, double* B, size_t asize) {
   int i;
-  double r;
   for (i = 0; i < asize; i++) {
     A[i] = 1.0;
     B[i] = ((double)rand() / RAND_MAX) * 5.0;

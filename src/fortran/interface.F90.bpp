@@ -41,10 +41,10 @@ module FTI
 !$SH done
       FTI_Init, FTI_Status, FTI_InitType, FTI_Protect,  &
       FTI_Checkpoint, FTI_Recover, FTI_Snapshot, FTI_Finalize, &
-			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVar, &
-      FTI_AddScalarField, FTI_AddVectorField, FTI_InitCompositeType, &
-      FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP, FTI_setIDFromString, &
-      FTI_getIDFromString, FTI_SetAttribute
+			FTI_GetStoredSize, FTI_Realloc, FTI_RecoverVarInit, FTI_RecoverVar, &
+      FTI_RecoverVarFinalize, FTI_AddScalarField, FTI_AddVectorField, &
+      FTI_InitCompositeType, FTI_InitICP, FTI_AddVarICP, FTI_FinalizeICP, &
+      FTI_setIDFromString, FTI_getIDFromString, FTI_SetAttribute
 
 
 
@@ -288,6 +288,31 @@ module FTI
 
   endinterface
 
+  interface
+
+    function FTI_RecoverVarInit_impl() &
+            bind(c, name='FTI_RecoverVarInit')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_RecoverVarInit_impl
+
+    endfunction FTI_RecoverVarInit_impl
+
+  endinterface
+
+  interface
+
+    function FTI_RecoverVarFinalize_impl() &
+            bind(c, name='FTI_RecoverVarFinalize')
+
+      use ISO_C_BINDING
+
+      integer(c_int) :: FTI_RecoverVarFinalize_impl
+
+    endfunction FTI_RecoverVarFinalize_impl
+
+  endinterface
 
   interface
 
@@ -789,6 +814,32 @@ contains
     err = int(FTI_Recover_impl())
 
   endsubroutine FTI_Recover
+  
+  !>  This function initializes the I/O operations for recoverVar 
+  !!  includes implementation for all I/O modes
+  !!  \brief    Initializes recovery of variable.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
+  subroutine FTI_RecoverVarInit(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_RecoverVarInit_impl())
+
+  endsubroutine FTI_RecoverVarInit 
+  
+  !>  This function finalizes the I/O operations for recoverVar 
+  !!  includes implementation for all I/O modes
+  !!  \brief    Finalizes recovery of variable.
+  !!  \param    err     (INOUT) Token for error handling.
+  !!  \return   integer         FTI_SCES if successful.
+  subroutine FTI_RecoverVarFinalize(err)
+
+    integer, intent(OUT) :: err
+
+    err = int(FTI_RecoverVarFinalize_impl())
+
+  endsubroutine FTI_RecoverVarFinalize 
 
   !>  During a restart process, this function recovers the variable specified
   !!  by the given id. No effect during a regular execution.

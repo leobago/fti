@@ -73,8 +73,8 @@
 #include <stdint.h>
 #include <limits.h>
 
-static inline uint64_t get_ruint() {
-    uint64_t buffer;
+static inline int64_t get_ruint() {
+    int64_t buffer;
     int fd = open("/dev/urandom", O_RDWR);
     read(fd, &buffer, 8);
     close(fd);
@@ -89,7 +89,7 @@ unsigned int FUNCTION(const char *testFunction);
 #define FTI_FI_WRITE(ERR, FD, BUF, COUNT, FN) \
     do { \
         if (FUNCTION(__FUNCTION__)) { \
-            if (get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX))) { \
+            if (get_ruint() < ((int64_t)((double)PROBABILITY()*INT_MAX))) { \
                 close(FD); \
                 FD = open(FN, O_RDONLY); \
             }  \
@@ -100,7 +100,7 @@ unsigned int FUNCTION(const char *testFunction);
 #define FTI_FI_FWRITE(ERR, BUF, SIZE, COUNT, FSTREAM, FN) \
     do { \
         if (FUNCTION(__FUNCTION__)) { \
-            if (get_ruint() < ((uint64_t)((double)PROBABILITY()*INT_MAX))) { \
+            if (get_ruint() < ((int64_t)((double)PROBABILITY()*INT_MAX))) { \
                 fclose(FSTREAM); \
                 FSTREAM = fopen(FN, "rb"); \
             } \

@@ -46,7 +46,7 @@ typedef struct {
     FTIT_configuration* FTI_Conf;   // Configuration of the FTI
     FTIT_topology *FTI_Topo;        // Topology of the nodes
     MPI_Offset offset;              // Offset of the Rank in the file
-    size_t loffset;                 // Offset in the local file
+    int64_t loffset;                 // Offset in the local file
     int err;                        // Errors
     MPI_Info info;                  // MPI info of the file
     MPI_File pfh;                   // File descriptor
@@ -56,7 +56,7 @@ typedef struct {
 
 typedef struct {
     FILE *f;                        // Posix file descriptor
-    size_t offset;                  // offset in the file
+    int64_t offset;                  // offset in the file
     char flag;                      // flags to open the file
     MD5_CTX integrity;              // integrity of the file
 }WritePosixInfo_t;
@@ -64,7 +64,7 @@ typedef struct {
 #ifdef ENABLE_IME_NATIVE
 typedef struct {
     int f;                          // IME native file descriptor
-    size_t offset;                  // offset in the file
+    int64_t offset;                  // offset in the file
     int flag;                       // flags to open the file
     mode_t mode;                    // mode the file has been opened
     MD5_CTX integrity;              // integrity of the file
@@ -77,12 +77,12 @@ typedef struct {
     FTIT_checkpoint *FTI_Ckpt;      // FTI Checkpoint options
     FTIT_execution *FTI_Exec;       // FTI execution options
     FTIT_topology *FTI_Topo;        // FTI node topology
-    size_t layerSize;               // size of the dcp layer
+    int64_t layerSize;               // size of the dcp layer
 }WriteDCPPosixInfo_t;
 
 typedef struct {
     FILE *f;                        // Posix file descriptor
-    size_t offset;                  // offset in the file
+    int64_t offset;                  // offset in the file
     char flag;                      // flags to open the file
     MD5_CTX integrity;              // integrity of the file
     FTIT_configuration *FTI_Conf;   // FTI Configuration
@@ -109,7 +109,7 @@ int FTI_WriteHDF5Data(FTIT_dataset * data, void *write_info);
 int FTI_WriteHDF5(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
         FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt,
         FTIT_keymap* FTI_Data);
-size_t FTI_GetHDF5FilePos(void *);
+int64_t FTI_GetHDF5FilePos(void *);
 #endif
 
 #ifdef ENABLE_SIONLIB
@@ -119,7 +119,7 @@ typedef struct {
     int *file_map;
     int *ranks;
     int *rank_map;
-    size_t loffset;
+    int64_t loffset;
     sion_int64* chunkSizes;
 }WriteSionInfo_t;
 
@@ -127,15 +127,15 @@ int FTI_WriteSionData(FTIT_dataset * data, void *fd);
 void* FTI_InitSion(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
 int FTI_SionClose(void *fileDesc);
-size_t FTI_GetSionFilePos(void *fileDesc);
+int64_t FTI_GetSionFilePos(void *fileDesc);
 #endif
 
 // Wrappers around MPIO
 int FTI_MPIOOpen(char *fn, void *fileDesc);
 int FTI_MPIOClose(void *fileDesc);
-int FTI_MPIOWrite(void *src, size_t size, void *fileDesc);
-int FTI_MPIORead(void *src, size_t size, void *fileDesc);
-size_t FTI_GetMPIOFilePos(void *fileDesc);
+int FTI_MPIOWrite(void *src, int64_t size, void *fileDesc);
+int FTI_MPIORead(void *src, int64_t size, void *fileDesc);
+int64_t FTI_GetMPIOFilePos(void *fileDesc);
 
 void *FTI_InitMPIO(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  FTIT_topology* FTI_Topo, FTIT_checkpoint *FTI_Ckpt, FTIT_keymap *FTI_Data);
@@ -143,7 +143,7 @@ int FTI_WriteMPIOData(FTIT_dataset * data, void *write_info);
 
 // Wrappers around dcp POSIX
 
-size_t FTI_GetDCPPosixFilePos(void *fileDesc);
+int64_t FTI_GetDCPPosixFilePos(void *fileDesc);
 void *FTI_InitDCPPosix(FTIT_configuration* FTI_Conf, FTIT_execution* FTI_Exec,
  FTIT_topology* FTI_Topo, FTIT_checkpoint* FTI_Ckpt, FTIT_keymap* FTI_Data);
 int FTI_WritePosixDCPData(FTIT_dataset *data, void *fd);
@@ -154,6 +154,6 @@ int copyDataFromDevive(FTIT_execution* FTI_Exec, FTIT_keymap* FTI_Data);
 
 
 #ifdef ENABLE_SIONLIB
-int write_sion(void *src, size_t size, void *opaque);
+int write_sion(void *src, int64_t size, void *opaque);
 #endif
 #endif  // FTI_UTILITY_H_

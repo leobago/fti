@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
   // Chars and array of bytes
   fti_id_t CharsType = FTI_InitCompositeType("Chars", sizeof(Chars), NULL);
 
-  int dimLength[4];
+  int64_t dimLength[4];
   dimLength[0] = 10;
   FTI_AddVectorField(CharsType, "char array", FTI_CHAR,
       offsetof(Chars, chars), 1, dimLength);
@@ -489,7 +489,6 @@ int main(int argc, char** argv) {
     int res;
     if (checkpoint_level != 1) {
       int isInline = -1;
-      int heads = (int)iniparser_getint(ini, "Basic:head", -1);
       switch (checkpoint_level) {
         case 2:
           isInline = (int)iniparser_getint(ini, "Basic:inline_l2", 1);
